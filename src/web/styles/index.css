@@ -448,13 +448,13 @@
 }
 
 /* The Inbox saying the work is done: the block fades in and rises 8px in 220ms, the tick icon coming
-   from 97 percent, starting once the last row's 150ms collapse is done, only when the last card left while the page was open (data-arrive is set at the
-   first draw, never on a page that is already empty). Reduced motion keeps a 90ms fade, no rise. */
+   from 97 percent, starting once the last row's 150ms collapse is done, only when the last card left
+   while the page was open (data-arrive is set at the first draw, never on a page that is already
+   empty). Reduced motion keeps a 90ms fade, no rise. */
 @utility done-arrive {
-  transition-property: opacity, translate;
-  transition-duration: var(--dur-3);
-  transition-delay: var(--dur-2);
-  transition-timing-function: var(--ease-out);
+  transition:
+    opacity var(--dur-3) var(--ease-out) var(--dur-2),
+    translate var(--dur-3) var(--ease-out) var(--dur-2);
 
   @media (prefers-reduced-motion: reduce) {
     transition-duration: var(--dur-fade), var(--dur-3);
@@ -468,10 +468,7 @@
   }
 
   & [data-slot='empty-icon'] {
-    transition-property: scale;
-    transition-duration: var(--dur-3);
-    transition-delay: var(--dur-2);
-    transition-timing-function: var(--ease-out);
+    transition: scale var(--dur-3) var(--ease-out) var(--dur-2);
   }
 
   &[data-arrive] [data-slot='empty-icon'] {
