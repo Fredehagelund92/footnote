@@ -157,7 +157,7 @@ export function ContextPage() {
   const [kind, setKind] = React.useState<Kind[]>([])
   // In the address, so a link (the old Conflicts list, a help page) lands on it and a reload keeps it.
   const onlyConflicts = query.get('show') === 'conflicts'
-  const setOnlyConflicts = (on: boolean) => void changeQuery({ show: on ? 'conflicts' : undefined })
+  const setOnlyConflicts = (on: boolean) => changeQuery({ show: on ? 'conflicts' : undefined })
   const reduced = useReducedMotion()
   // A pointer change of what the list shows (All or Conflicts, a filter, the sort, the grouping,
   // Show archived) moves the rows on screen to their new places in one view transition; the
@@ -236,7 +236,7 @@ export function ContextPage() {
     setDomain([])
     setStatus([])
     setKind([])
-    if (onlyConflicts) setOnlyConflicts(false)
+    if (onlyConflicts) void setOnlyConflicts(false)
   }
   const clearAll = () => {
     clearFilters()
@@ -647,7 +647,7 @@ export function ContextPage() {
                   />
                 )}
                 {onlyConflicts && (
-                  <FilterChip field="In a conflict" onRemove={() => setOnlyConflicts(false)} />
+                  <FilterChip field="In a conflict" onRemove={() => void setOnlyConflicts(false)} />
                 )}
               </FilterRow>
               <div className="min-w-0 shrink-0">
@@ -707,7 +707,7 @@ export function ContextPage() {
                           <Button
                             variant="outline"
                             className="mt-3"
-                            onClick={() => setOnlyConflicts(false)}
+                            onClick={() => void setOnlyConflicts(false)}
                           >
                             Show all context
                           </Button>
