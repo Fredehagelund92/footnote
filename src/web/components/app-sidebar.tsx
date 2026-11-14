@@ -92,6 +92,16 @@ function ResizeRail({ onWidth }: { onWidth: (width: number, done: boolean) => vo
   )
 }
 
+/** A press, and where the sidebar showed the person as being when it was made. */
+type Press = { id: string; from: string; off?: boolean }
+
+/**
+ * How long a press holds the highlight's travel open. The travel is 150ms (--dur-2) and starts on
+ * the frame after the press, so this is that with room to spare; nothing is drawn differently after
+ * it, the next arrival is simply in its place rather than travelling there.
+ */
+const PRESS_SPENT = 400
+
 export function AppSidebar({
   onWidth,
   ...props
@@ -110,6 +120,48 @@ export function AppSidebar({
     { id: 'context', title: 'Context', icon: NotebookTextIcon },
     { id: 'definitions', title: 'Definitions', icon: BookAIcon },
   ]
+
+  // A press answers before the new page has drawn: the place pressed takes the selected look the
+  // moment the pointer goes down, and the one highlight starts its 150ms travel there then, which
+  // runs on the compositor while the main thread draws the page (docs/design/motion.md). A press
+  // holds the highlight's travel open until it has run, and then is spent: a later arrival at the
+  // same place, from the keyboard or from Back, is simply there.
+  const [press, setPress] = React.useState<Press | null>(null)
+  // The place the sidebar shows as yours: the one pressed, until the address it asked for lands or
+  // the press is taken back.
+  const pending = press && !press.off && press.from === going ? press.id : null
+  const here = pending ?? going
+  // The highlight travels while the press that moved it is on its way, and until it has arrived
+  // where that press asked for: a move the press had nothing to do with is simply there.
+  const travel = press !== null && (press.from === going || press.id === going)
+  React.useEffect(() => {
+    if (!press) return
+    const spent = setTimeout(() => setPress(null), PRESS_SPENT)
+    const cancel = (e: KeyboardEvent) => e.key === 'Escape' && setPress({ ...press, off: true })
+    window.addEventListener('keydown', cancel)
+    return () => {
+      clearTimeout(spent)
+      window.removeEventListener('keydown', cancel)
+    }
+  }, [press])
+  // Only a press that moves inside the app answers: not the right button, and not a modifier key,
+  // which opens the link somewhere else (lib/router.ts).
+  const onPointerDown = (id: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || id === going) return
+    setPress({ id, from: going })
+  }
+  const takeBack = (id: string) =>
+    setPress((p) => (p && p.id === id && !p.off ? { ...p, off: true } : p))
+  /** What a place in the sidebar needs to answer a press at once. */
+  const answers = (id: string) => ({
+    isActive: here === id,
+    'data-pending': pending === id || undefined,
+    onPointerDown: onPointerDown(id),
+    // A press is taken back if the pointer leaves the place while it is still down; once it has
+    // been let go there, the move is on its way and leaving the place means nothing.
+    onPointerLeave: (e: React.PointerEvent) => e.buttons & 1 && takeBack(id),
+    onPointerCancel: () => takeBack(id),
+  })
 
   return (
     <Sidebar
@@ -171,12 +223,15 @@ export function AppSidebar({
             </SidebarGroup>
             <SidebarGroup className="pt-2 group-data-[collapsible=icon]:pt-3">
               <SidebarGroupContent>
-                <SidebarMenu>
+                <SidebarMenu
+                  selected={items.findIndex((item) => item.id === here)}
+                  travel={travel}
+                >
                   {items.map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
                         tooltip={item.title}
-                        isActive={going === item.id}
+                        {...answers(item.id)}
                         render={<a href={`/${item.id}`} onClick={close} />}
                       >
                         <item.icon />
@@ -204,7 +259,7 @@ export function AppSidebar({
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         tooltip="Observability"
-                        isActive={going === 'observability'}
+                        {...answers('observability')}
                         render={<a href="/observability" onClick={close} />}
                       >
                         <ActivityIcon />
@@ -217,7 +272,7 @@ export function AppSidebar({
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         tooltip="Settings"
-                        isActive={going === 'settings'}
+                        {...answers('settings')}
                         render={
                           <a href={me.admin ? '/settings' : '/settings/domains'} onClick={close} />
                         }
