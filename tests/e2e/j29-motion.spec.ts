@@ -457,22 +457,24 @@ test('a press on a place answers at once, and the one highlight travels there', 
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
   // The press is answered by itself: the place pressed is the selected one and the highlight is on
-  // its way, while the address and the page are still the Inbox's.
+  // its way there, while the address and the page are still the Inbox's.
   await expect(place(page, 'Context')).toHaveAttribute('data-pending', 'true')
   await expect(place(page, 'Context')).toHaveAttribute('data-active')
   await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
   expect(new URL(page.url()).pathname).toBe('/inbox')
-  expect(
-    await highlight(page).evaluate((el) => {
-      const [move] = el.getAnimations()
-      const timing = move?.effect?.getComputedTiming()
-      return [
-        (move as CSSTransition | undefined)?.transitionProperty,
-        timing?.duration,
-        timing?.easing,
-      ]
-    }),
-  ).toEqual(['translate', 150, 'cubic-bezier(0.77, 0, 0.175, 1)'])
+
+  const travel = await highlight(page).evaluate((el) => {
+    const [move] = el.getAnimations()
+    const timing = move?.effect?.getComputedTiming()
+    return move
+      ? [(move as CSSTransition).transitionProperty, timing?.duration, timing?.easing]
+      : null
+  })
+  // With reduced motion the highlight is in its new place at once, with nothing to run.
+  expect(travel).toEqual(
+    (await reduced(page)) ? null : ['translate', 150, 'cubic-bezier(0.77, 0, 0.175, 1)'],
+  )
+
   await page.mouse.up()
   await expect(page.locator('main tbody tr').first()).toBeVisible()
   await expect(place(page, 'Context')).not.toHaveAttribute('data-pending')
@@ -491,17 +493,6 @@ test('from the keyboard the highlight is simply in its new place', async ({ page
 
 test.describe('with reduced motion', () => {
   test.use({ reducedMotion: 'reduce' })
-
-  test('a press on a place puts the highlight in its new place at once', async ({ page }) => {
-    await go(page, '/inbox')
-    await expect(place(page, 'Context')).toBeVisible()
-    await place(page, 'Context').click()
-    await expect(place(page, 'Context')).toHaveAttribute('data-active')
-    await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
-    expect(await highlight(page).evaluate((el) => getComputedStyle(el).transitionDuration)).toBe(
-      '0s',
-    )
-  })
 
   test('the dock and overlays are there at once, and content still fades in', async ({ page }) => {
     await go(page, '/context')

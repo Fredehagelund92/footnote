@@ -92,15 +92,18 @@ function ResizeRail({ onWidth }: { onWidth: (width: number, done: boolean) => vo
   )
 }
 
-/** A press, and where the sidebar showed the person as being when it was made. */
-type Press = { id: string; from: string; off?: boolean }
+/**
+ * A press on a place, and where the sidebar showed the person as being when it was made. `off` is a
+ * press taken back, `spent` one whose travel has run.
+ */
+type Press = { id: string; from: string; off?: boolean; spent?: boolean }
 
 /**
  * How long a press holds the highlight's travel open. The travel is 150ms (--dur-2) and starts on
- * the frame after the press, so this is that with room to spare; nothing is drawn differently after
- * it, the next arrival is simply in its place rather than travelling there.
+ * the frame after the press, so this is that with room to spare. After it the place pressed is
+ * still the selected one, but it is no longer travelling anywhere.
  */
-const PRESS_SPENT = 400
+const TRAVEL_SPENT = 400
 
 export function AppSidebar({
   onWidth,
@@ -128,22 +131,24 @@ export function AppSidebar({
   // same place, from the keyboard or from Back, is simply there.
   const [press, setPress] = React.useState<Press | null>(null)
   // The place the sidebar shows as yours: the one pressed, until the address it asked for lands or
-  // the press is taken back.
+  // the press is taken back. A press held down keeps it, however long it is held.
   const pending = press && !press.off && press.from === going ? press.id : null
   const here = pending ?? going
   // The highlight travels while the press that moved it is on its way, and until it has arrived
   // where that press asked for: a move the press had nothing to do with is simply there.
-  const travel = press !== null && (press.from === going || press.id === going)
+  const travel = press !== null && !press.spent && (press.from === going || press.id === going)
   React.useEffect(() => {
-    if (!press) return
-    const spent = setTimeout(() => setPress(null), PRESS_SPENT)
-    const cancel = (e: KeyboardEvent) => e.key === 'Escape' && setPress({ ...press, off: true })
-    window.addEventListener('keydown', cancel)
-    return () => {
-      clearTimeout(spent)
-      window.removeEventListener('keydown', cancel)
-    }
+    if (!press || press.spent) return
+    const spend = setTimeout(() => setPress((p) => (p ? { ...p, spent: true } : p)), TRAVEL_SPENT)
+    return () => clearTimeout(spend)
   }, [press])
+  React.useEffect(() => {
+    if (!pending) return
+    const cancel = (e: KeyboardEvent) =>
+      e.key === 'Escape' && setPress((p) => (p ? { ...p, off: true } : p))
+    window.addEventListener('keydown', cancel)
+    return () => window.removeEventListener('keydown', cancel)
+  }, [pending])
   // Only a press that moves inside the app answers: not the right button, and not a modifier key,
   // which opens the link somewhere else (lib/router.ts).
   const onPointerDown = (id: string) => (e: React.PointerEvent) => {
@@ -223,10 +228,7 @@ export function AppSidebar({
             </SidebarGroup>
             <SidebarGroup className="pt-2 group-data-[collapsible=icon]:pt-3">
               <SidebarGroupContent>
-                <SidebarMenu
-                  selected={items.findIndex((item) => item.id === here)}
-                  travel={travel}
-                >
+                <SidebarMenu selected={items.findIndex((item) => item.id === here)} travel={travel}>
                   {items.map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton

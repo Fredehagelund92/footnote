@@ -459,7 +459,8 @@ function SidebarMenu({
           aria-hidden
           data-travel={travel || undefined}
           style={{ '--selected': selected } as React.CSSProperties}
-          className="nav-highlight"
+          // In the icon rail the places are 32px squares, a pixel wider than the menu around them.
+          className="nav-highlight group-data-[collapsible=icon]:right-auto group-data-[collapsible=icon]:w-8"
         />
       )}
       {children}
