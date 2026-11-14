@@ -499,6 +499,30 @@ test('Back after a press follows the address, not the press', async ({ page }) =
   await expect(highlight(page)).toHaveAttribute('style', '--selected: 0;')
 })
 
+test('a press whose move never comes gives the sidebar back to the address', async ({ page }) => {
+  await go(page, '/context/itm_norway_stop/edit')
+  await page.getByRole('textbox', { name: 'What agents should know' }).click()
+  await page.keyboard.insertText(' A sentence that nobody has saved.')
+  await expect(place(page, 'Inbox')).toBeVisible()
+
+  const box = (await place(page, 'Inbox').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await expect(place(page, 'Inbox')).toHaveAttribute('data-pending', 'true')
+  await page.waitForTimeout(600)
+  await expect(place(page, 'Inbox')).toHaveAttribute('data-pending', 'true')
+  await page.mouse.up()
+
+  const ask = page.getByRole('dialog', { name: 'Leave without saving?' })
+  await expect(ask).toBeVisible()
+  await ask.getByRole('button', { name: 'Keep editing' }).click()
+  await expect(page).toHaveURL(/\/context\/itm_norway_stop\/edit/)
+  await expect(place(page, 'Inbox')).not.toHaveAttribute('data-pending')
+  await expect(place(page, 'Inbox')).not.toHaveAttribute('data-active')
+  await expect(place(page, 'Context')).toHaveAttribute('data-active')
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
+})
+
 test('from the keyboard the highlight is simply in its new place', async ({ page }) => {
   await go(page, '/inbox')
   await expect(place(page, 'Definitions')).toBeVisible()
