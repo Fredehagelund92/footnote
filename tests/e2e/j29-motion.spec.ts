@@ -461,9 +461,11 @@ test('a press on a place answers at once, and the one highlight travels there', 
       if (e.target !== el) return
       const style = getComputedStyle(el)
       w.__travel.push(
-        [e.propertyName, parseFloat(style.transitionDuration) * 1000, style.transitionTimingFunction].join(
-          ' | ',
-        ),
+        [
+          e.propertyName,
+          parseFloat(style.transitionDuration) * 1000,
+          style.transitionTimingFunction,
+        ].join(' | '),
       )
     }
   })
@@ -477,11 +479,15 @@ test('a press on a place answers at once, and the one highlight travels there', 
   await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
   expect(new URL(page.url()).pathname).toBe('/inbox')
 
-  const travel = await page.evaluate(() => (window as unknown as { __travel: string[] }).__travel)
-  // With reduced motion the highlight is in its new place at once, with nothing to run.
-  expect(travel).toEqual(
-    (await reduced(page)) ? [] : ['translate | 150 | cubic-bezier(0.77, 0, 0.175, 1)'],
-  )
+  const travelled = () =>
+    page.evaluate(() => (window as unknown as { __travel: string[] }).__travel)
+  // With reduced motion the highlight is in its new place at once, with nothing to run. Otherwise
+  // the transitionrun event arrives on the frame after the style changes, so wait for it.
+  if (await reduced(page)) {
+    expect(await travelled()).toEqual([])
+  } else {
+    await expect.poll(travelled).toEqual(['translate | 150 | cubic-bezier(0.77, 0, 0.175, 1)'])
+  }
 
   await page.mouse.up()
   await expect(page.locator('main tbody tr').first()).toBeVisible()
