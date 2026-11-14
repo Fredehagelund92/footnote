@@ -15,6 +15,7 @@ import {
 } from '@/components/icons'
 import { toast } from 'sonner'
 import { useListOrder, words } from '@/lib/list'
+import type { Press } from '@/lib/list-motion'
 import { navigate } from '@/lib/router'
 import { flips, startOf, wayOf, type Dir, type SortKey, type Sorting } from '@/lib/sort'
 import { cn } from '@/lib/utils'
@@ -451,7 +452,8 @@ export function SortTh<K extends string>({
   keys: Record<K, SortKey>
   sorting: Sorting<K>
   by: K
-  onSort: (key: K) => void
+  /** The press that sorted: the keyboard's click counts none, so it stays instant. */
+  onSort: (key: K, press?: Press) => void
   className?: string
   tip?: string
 }) {
@@ -465,7 +467,7 @@ export function SortTh<K extends string>({
       <button
         type="button"
         title={tip}
-        onClick={() => onSort(by)}
+        onClick={(e) => onSort(by, e)}
         className={cn(
           'group/sort -mx-1.5 inline-flex h-6 items-center gap-1 rounded-md px-1.5 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
           on && 'text-foreground',
@@ -499,7 +501,8 @@ export function SortMenu<K extends string>({
 }: {
   keys: Record<K, SortKey>
   sorting: Sorting<K>
-  onSort: (s: Sorting<K>) => void
+  /** The press that sorted: the keyboard's click counts none, so it stays instant. */
+  onSort: (s: Sorting<K>, press?: Press) => void
   /** The keys on offer now, in order; all of them when left out. */
   shown?: K[]
   /** The class that hides the words on a narrow list. */
@@ -526,7 +529,7 @@ export function SortMenu<K extends string>({
           <DropdownMenuLabel>Sort by</DropdownMenuLabel>
           <DropdownMenuRadioGroup
             value={sorting.key}
-            onValueChange={(v) => onSort(startOf(keys, v as K))}
+            onValueChange={(v, d) => onSort(startOf(keys, v as K), d.event)}
           >
             {(shown ?? (Object.keys(keys) as K[])).map((k) => (
               <DropdownMenuRadioItem key={k} value={k}>
@@ -547,7 +550,7 @@ export function SortMenu<K extends string>({
               <DropdownMenuLabel>Direction</DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={sorting.dir}
-                onValueChange={(v) => onSort({ key: sorting.key, dir: v as Dir })}
+                onValueChange={(v, d) => onSort({ key: sorting.key, dir: v as Dir }, d.event)}
               >
                 {[key.first, other].map((d) => (
                   <DropdownMenuRadioItem key={d} value={d}>

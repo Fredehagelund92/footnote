@@ -147,11 +147,13 @@
   animation-duration: var(--dur-2);
 }
 
-/* Overview's filters changing: the topic rows and the chips move to their new places in 220ms on
-   the move curve, those that arrive fade in and those that go fade out, while the rest of the page
-   (the numbers counting, the bars moving) stays live under them. Only those on the screen take part
-   (data-vt-seen): a picture of each of hundreds of rows out of sight would hold the page still. With
-   reduced motion there is no transition at all (pages/observability/overview.tsx). */
+/* A list changing what it shows (Overview's filters, Context and the definitions when they sort,
+   group, filter or switch All and Conflicts): the rows and the chips move to their new places in
+   220ms on the move curve, those that arrive fade in and those that go fade out, while the rest of
+   the page (the numbers counting, the bars moving) stays live under them. Only those on the screen
+   take part (data-vt-seen): a picture of each of hundreds of rows out of sight would hold the page
+   still. The keyboard changes the list at once, and with reduced motion there is no transition at
+   all (lib/list-motion.ts). */
 :root[data-vt='filters'] {
   view-transition-name: none;
 
