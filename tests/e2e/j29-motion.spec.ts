@@ -453,6 +453,20 @@ test('a press on a place answers at once, and the one highlight travels there', 
   await expect(place(page, 'Context')).toBeVisible()
   await expect(highlight(page)).toHaveAttribute('style', '--selected: 0;')
 
+  // Write the travel down as it starts, so a slow machine cannot let it finish unseen.
+  await highlight(page).evaluate((el) => {
+    const w = window as unknown as { __travel: string[] }
+    w.__travel = []
+    ;(el as HTMLElement).ontransitionrun = (e) => {
+      if (e.target !== el) return
+      const style = getComputedStyle(el)
+      w.__travel.push(
+        [e.propertyName, parseFloat(style.transitionDuration) * 1000, style.transitionTimingFunction].join(
+          ' | ',
+        ),
+      )
+    }
+  })
   const box = (await place(page, 'Context').boundingBox())!
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
@@ -463,16 +477,10 @@ test('a press on a place answers at once, and the one highlight travels there', 
   await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
   expect(new URL(page.url()).pathname).toBe('/inbox')
 
-  const travel = await highlight(page).evaluate((el) => {
-    const [move] = el.getAnimations()
-    const timing = move?.effect?.getComputedTiming()
-    return move
-      ? [(move as CSSTransition).transitionProperty, timing?.duration, timing?.easing]
-      : null
-  })
+  const travel = await page.evaluate(() => (window as unknown as { __travel: string[] }).__travel)
   // With reduced motion the highlight is in its new place at once, with nothing to run.
   expect(travel).toEqual(
-    (await reduced(page)) ? null : ['translate', 150, 'cubic-bezier(0.77, 0, 0.175, 1)'],
+    (await reduced(page)) ? [] : ['translate | 150 | cubic-bezier(0.77, 0, 0.175, 1)'],
   )
 
   await page.mouse.up()
