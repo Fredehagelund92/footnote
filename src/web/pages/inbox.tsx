@@ -1206,10 +1206,18 @@ export function InboxPage() {
   const emptied = needing.length === 0
   const [wasEmptied, setWasEmptied] = React.useState(emptied)
   const [arrive, setArrive] = React.useState(false)
+  // Once shown, the entrance is spent. A ref, not state: clearing it must not re-render, or the
+  // urgent render drops the in-flight optimistic decision and flips `emptied` back and forth.
+  const shown = React.useRef(false)
   if (emptied !== wasEmptied) {
     setWasEmptied(emptied)
     setArrive(emptied)
+    shown.current = false
   }
+
+  const onShown = React.useCallback(() => {
+    shown.current = true
+  }, [])
 
   const visible = rows.filter((r) => {
     if (tab === 'needs' && !needs(r)) return false
@@ -1418,8 +1426,8 @@ export function InboxPage() {
           {allDone ? (
             <AllDone
               waitingCount={mineWaiting.length}
-              arrive={arrive}
-              onShown={() => setArrive(false)}
+              arrive={arrive && !shown.current}
+              onShown={onShown}
             />
           ) : visible.length === 0 ? (
             <p className="px-6 py-4 text-sm text-muted-foreground">No cards match “{search}”.</p>
