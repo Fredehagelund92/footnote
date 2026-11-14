@@ -480,6 +480,25 @@ test('a press on a place answers at once, and the one highlight travels there', 
   await expect(place(page, 'Context')).not.toHaveAttribute('data-pending')
 })
 
+test('Back after a press follows the address, not the press', async ({ page }) => {
+  await go(page, '/inbox')
+  await expect(place(page, 'Context')).toBeVisible()
+  const box = (await place(page, 'Context').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.up()
+  await expect(page).toHaveURL(/\/context/)
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
+  await page.waitForTimeout(500)
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/inbox/)
+  await expect(place(page, 'Inbox')).toHaveAttribute('data-active')
+  await expect(place(page, 'Context')).not.toHaveAttribute('data-active')
+  await expect(place(page, 'Context')).not.toHaveAttribute('data-pending')
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 0;')
+})
+
 test('from the keyboard the highlight is simply in its new place', async ({ page }) => {
   await go(page, '/inbox')
   await expect(place(page, 'Definitions')).toBeVisible()
