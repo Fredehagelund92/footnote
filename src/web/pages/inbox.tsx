@@ -1206,17 +1206,14 @@ export function InboxPage() {
   const emptied = needing.length === 0
   const [wasEmptied, setWasEmptied] = React.useState(emptied)
   const [arrive, setArrive] = React.useState(false)
-  // Once shown, the entrance is spent. A ref, not state: clearing it must not re-render, or the
-  // urgent render drops the in-flight optimistic decision and flips `emptied` back and forth.
-  const shown = React.useRef(false)
   if (emptied !== wasEmptied) {
     setWasEmptied(emptied)
     setArrive(emptied)
-    shown.current = false
   }
-
+  // Once shown, the entrance is spent. Cleared in a transition: an urgent render would drop the
+  // in-flight optimistic decision and flip `emptied` back and forth.
   const onShown = React.useCallback(() => {
-    shown.current = true
+    React.startTransition(() => setArrive(false))
   }, [])
 
   const visible = rows.filter((r) => {
@@ -1424,11 +1421,7 @@ export function InboxPage() {
         {/* The rows take focus, not the box they scroll in: no stop without a ring. */}
         <div tabIndex={-1} className="@container min-h-0 flex-1 overflow-y-auto outline-none">
           {allDone ? (
-            <AllDone
-              waitingCount={mineWaiting.length}
-              arrive={arrive && !shown.current}
-              onShown={onShown}
-            />
+            <AllDone waitingCount={mineWaiting.length} arrive={arrive} onShown={onShown} />
           ) : visible.length === 0 ? (
             <p className="px-6 py-4 text-sm text-muted-foreground">No cards match “{search}”.</p>
           ) : (
