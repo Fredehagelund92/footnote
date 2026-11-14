@@ -92,10 +92,10 @@ export const useDestination = () =>
   useRouterState({ select: (s) => s.location.pathname.split('/')[1] || 'inbox' })
 
 /**
- * Which entry of the history the address is. It changes with every navigation, Back and Forward
- * included, and is not the same again when the same place is reached a second time.
+ * The address as one navigation made it. A new value comes with every navigation, Back and Forward
+ * included, so it is never the same again once the address has moved: compare it by identity.
  */
-export const useEntry = () => useRouterState({ select: (s) => s.location.state.__TSR_key })
+export const useLocationNow = () => useRouterState({ select: (s) => s.location })
 
 /** The address as it stands, outside React. */
 function current(): Route {

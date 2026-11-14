@@ -31,7 +31,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { open } from '@/lib/events'
-import { useDestination, useEntry, useRoute } from '@/lib/router'
+import { useDestination, useLocationNow, useRoute } from '@/lib/router'
 import { useNeedsYou } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
 import { PRODUCT } from '@/lib/brand'
@@ -93,9 +93,9 @@ function ResizeRail({ onWidth }: { onWidth: (width: number, done: boolean) => vo
 }
 
 /**
- * A press on a place, and the history entry the address was at when it was made. `off` is a press taken back, `spent` one whose travel has run.
+ * A press on a place, and the navigation the address was at when it was made. `off` is a press taken back, `spent` one whose travel has run.
  */
-type Press = { id: string; entry: string | undefined; off?: boolean; spent?: boolean }
+type Press = { id: string; at: object; off?: boolean; spent?: boolean }
 
 /**
  * How long a press holds the highlight's travel open. The travel is 150ms (--dur-2) and starts on
@@ -113,7 +113,7 @@ export function AppSidebar({
   const { isMobile, setOpenMobile } = useSidebar()
   const place = route.parts[0] ?? 'inbox'
   const going = useDestination()
-  const entry = useEntry()
+  const at = useLocationNow()
   const count = useNeedsYou()
   const close = () => isMobile && setOpenMobile(false)
 
@@ -132,11 +132,11 @@ export function AppSidebar({
   const [press, setPress] = React.useState<Press | null>(null)
   // The place the sidebar shows as yours: the one pressed, until the address moves, whichever way
   // and wherever to, or the press is taken back. A press held down keeps it, however long it is held.
-  const pending = press && !press.off && press.entry === entry ? press.id : null
+  const pending = press && !press.off && press.at === at ? press.id : null
   const here = pending ?? going
   // The highlight travels while the press that moved it is on its way, and until it has arrived
   // where that press asked for: a move the press had nothing to do with is simply there.
-  const travel = press !== null && !press.spent && (press.entry === entry || press.id === going)
+  const travel = press !== null && !press.spent && (press.at === at || press.id === going)
   React.useEffect(() => {
     if (!press || press.spent) return
     const spend = setTimeout(() => setPress((p) => (p ? { ...p, spent: true } : p)), TRAVEL_SPENT)
@@ -153,7 +153,7 @@ export function AppSidebar({
   // which opens the link somewhere else (lib/router.ts).
   const onPointerDown = (id: string) => (e: React.PointerEvent) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || id === going) return
-    setPress({ id, entry })
+    setPress({ id, at })
   }
   const takeBack = (id: string) =>
     setPress((p) => (p && p.id === id && !p.off ? { ...p, off: true } : p))
