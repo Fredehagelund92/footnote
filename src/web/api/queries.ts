@@ -21,6 +21,7 @@ import {
 import { reportSignedOut } from '@/api/query-client'
 import type { AskInput } from '@/model/ask'
 import type { FigureAsk } from '@/model/figures'
+import type { Source } from '@/model/integrations'
 
 // Reads and writes as the screens use them: one query factory per read, keyed in one place, and
 // one table of what each write makes stale. A screen never names a cache itself.
@@ -242,6 +243,9 @@ export const integrationsQuery = () =>
 const READING_POLL_MS = 3_000
 /** A queued read waits for the job's next turn, up to five minutes: no need to ask as often. */
 const QUEUED_POLL_MS = 10_000
+/** A tool's pending read; none while it is paused. */
+const readOf = (source: Source | undefined) =>
+  source?.state.intent === 'active' ? source.state.read : null
 const pollFor = (reads: readonly (SourceRead | null | undefined)[]) =>
   reads.includes('reading') ? READING_POLL_MS : reads.includes('queued') ? QUEUED_POLL_MS : false
 
@@ -250,7 +254,7 @@ export const integrationsPageQuery = () =>
   queryOptions({
     queryKey: queryKeys.integrationsPage,
     queryFn: () => api.integrationsPage(),
-    refetchInterval: (query) => pollFor(query.state.data?.sources.map((s) => s.read) ?? []),
+    refetchInterval: (query) => pollFor(query.state.data?.sources.map(readOf) ?? []),
   })
 
 /** One connected tool's page. */
@@ -258,7 +262,7 @@ export const integrationPageQuery = (id: string) =>
   queryOptions({
     queryKey: queryKeys.integrationPage(id),
     queryFn: () => api.integrationPage({ id }),
-    refetchInterval: (query) => pollFor([query.state.data?.source.read]),
+    refetchInterval: (query) => pollFor([readOf(query.state.data?.source)]),
   })
 
 /** The connect flow's form: a tool to connect, or one connected whose settings change. */
@@ -511,8 +515,13 @@ const integrations: QueryKey[] = [
   queryKeys.integrationPages,
   queryKeys.connectForms,
 ]
+/**
+ * What a new live version of an item makes stale besides the items: the reviews, since a suggestion
+ * written against the version before is stale now (src/domain/suggestion-standing.ts).
+ */
+const live: QueryKey[] = [...items, queryKeys.reviews]
 /** What a decision on a suggestion makes stale: the Inbox, the items it changed, the saved questions. */
-const decision: QueryKey[] = [...inbox, ...items, queryKeys.savedQuestions, queryKeys.comments]
+const decision: QueryKey[] = [...inbox, ...live, queryKeys.savedQuestions, queryKeys.comments]
 
 /**
  * What each write makes stale. A screen never names caches itself: a write goes through
@@ -542,14 +551,14 @@ export const invalidations: {
   editItem: () => items,
   restoreAsDraft: () => items,
   // A published item may answer a Not found card, and be the setup checklist's first item.
-  saveItem: () => [...items, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
-  applyBulk: () => [...items, queryKeys.advancedPage],
+  saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
+  applyBulk: () => [...live, queryKeys.advancedPage],
   sendSuggestion: () => [...inbox, queryKeys.scopeSearches],
   withdrawSuggestion: () => inbox,
   undo: () => everything,
   // Settling archives an item, publishes a version or keeps both: the items, the Inbox's alert and
   // the comment that tells the other owners all move.
-  settleConflict: () => [...items, ...inbox, ...comments, queryKeys.savedQuestions],
+  settleConflict: () => [...live, ...inbox, ...comments, queryKeys.savedQuestions],
   suggestArchiving: () => inbox,
   postComment: () => comments,
   reactToComment: () => [queryKeys.comments],
@@ -611,7 +620,13 @@ export const invalidations: {
   // A content tool's open suggestions leave the Inbox with it.
   disconnectIntegration: () => [queryKeys.settings, ...integrations, ...inbox],
   readIntegration: () => integrations,
-  pauseIntegration: () => [...integrations, queryKeys.advancedPage],
+  // A paused tool's figures are held in Ask, and back once it is resumed.
+  pauseIntegration: () => [
+    ...integrations,
+    queryKeys.integrations,
+    queryKeys.figures,
+    queryKeys.advancedPage,
+  ],
   // A revoked app's policies end with it.
   revokeAgent: () => [
     queryKeys.agentConnections,

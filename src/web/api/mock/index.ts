@@ -834,13 +834,18 @@ export function createMockApi() {
             dispatch({ type: 'editFact', id: r.retire.factId, patch: { status: 'Archived' } })
         }),
       ),
-    closeReview: ({ id }) =>
+    closeReview: ({ id, reason }) =>
       now(() => {
         const r = reviews.find((x) => x.id === id)
-        if (!r || !reviewNow(r).retire?.withdrawn || state.done[id])
+        if (!r?.retire || state.done[id])
           throw new ApiError(
             'conflict',
-            'Only a suggestion to archive that its sender took back in the comments is closed. Decide this one instead.',
+            'Only a suggestion to archive is closed. Decide this one instead.',
+          )
+        if (!reviewNow(r).retire?.withdrawn && !reason?.trim())
+          throw new ApiError(
+            'invalid',
+            'Write why you close it. The reason is kept with the decision.',
           )
         return decideReview(id, 'Closed', () => {})
       }),
@@ -1063,7 +1068,7 @@ export function createMockApi() {
       }),
     getIntegrations: () =>
       now(() => ({
-        figureConnections: settings.connections(),
+        figureConnections: settings.connections(scenario.address(), integrations.paused),
       })),
     integrationsPage: () =>
       read('integrationsPage', '', () => integrations.page(scenario.address())),
@@ -1073,10 +1078,14 @@ export function createMockApi() {
     pauseIntegration: ({ id, paused }) => now(() => integrations.pause(id, paused)),
     readFigure: (asked) =>
       now(() => {
-        const on = settings.read(scenario.address()).figures
-        return figureFor(asked, (id) => on[id] ?? false)
+        // As the service: only a tool whose figures are on is asked, never one paused or broken.
+        const shown = settings.connections(scenario.address(), integrations.paused)
+        return figureFor(asked, (id) => shown[id]?.state === 'on')
       }),
-    tryFigure: ({ source }) => now(() => figureTryFor(source, settings.connections()[source])),
+    tryFigure: ({ source }) =>
+      now(() =>
+        figureTryFor(source, settings.connections(scenario.address(), integrations.paused)[source]),
+      ),
     listAgentConnections: () =>
       now(() =>
         settings
