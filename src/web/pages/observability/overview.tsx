@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { flushSync } from 'react-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { obsDimensionsQuery, useSavedViews, useSavedQuestions, useWrite } from '@/api/queries'
 import { toast } from 'sonner'
@@ -90,6 +89,7 @@ import {
   type Span,
 } from '@/lib/obs-views'
 import { afterDrawn } from '@/lib/loading'
+import { moveRows } from '@/lib/list-motion'
 import { rememberTopics } from '@/lib/obs-names'
 import { useRecentDimensions } from '@/lib/obs-recent'
 import { changeQuery, href, setQuery, useRoute } from '@/lib/router'
@@ -641,47 +641,15 @@ function onceDrawn(change: () => void) {
   })
 }
 
-/** The view transition of a change of the filters, while it runs. */
-let moving: ViewTransition | null = null
-
 /**
  * A change of the filters, as a step in the address. Unless it is instant, the topic rows and the
- * chips move to their new places in one view transition while the numbers count under them. The
- * page stops drawing while a transition takes its pictures, so it waits for the new address a
- * short while at most, and a change made while one runs is made at once.
+ * chips move to their new places in one view transition while the numbers count under them
+ * (lib/list-motion.ts, shared with Context and the definitions).
  */
 function moveTo(changes: Record<string, string | undefined>, instant: boolean) {
-  if (instant || moving || !document.startViewTransition) return void changeQuery(changes)
-  const root = document.documentElement
-  root.dataset.vt = 'filters'
-  inSight()
-  const t = document.startViewTransition(async () => {
-    await Promise.race([changeQuery(changes), new Promise((done) => setTimeout(done, DRAWN_IN))])
-    flushSync(() => {})
-    inSight()
-  })
-  moving = t
-  void t.finished.finally(() => {
-    if (moving !== t) return
-    moving = null
-    delete root.dataset.vt
-  })
+  moveRows(() => changeQuery(changes), instant)
 }
 
-/**
- * Marks the rows and chips on the screen as those that move: a transition takes a picture of each
- * one it moves, and hundreds of topic rows out of sight would hold the page still for seconds.
- */
-function inSight() {
-  const high = window.innerHeight
-  for (const el of document.querySelectorAll<HTMLElement>('[data-vt-move]')) {
-    const box = el.getBoundingClientRect()
-    if (box.bottom > 0 && box.top < high) el.dataset.vtSeen = ''
-    else delete el.dataset.vtSeen
-  }
-}
-/** How long a transition waits for the new address to be drawn, in ms. */
-const DRAWN_IN = 200
 /** How long the page may take to settle on arrival, keeping the topics at the top, in ms. */
 const SETTLE = 1000
 

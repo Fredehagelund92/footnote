@@ -58,6 +58,26 @@ describe('motion tokens', () => {
       hits(/requestAnimationFrame/, (_, file) => file !== 'components/heed/count-up.tsx'),
     ).toEqual([])
   })
+  it('moves a list through the one shared view transition', () => {
+    // A list that re-sorts or filters marks its rows data-vt-move and goes through
+    // lib/list-motion.ts, so the values and the reduced-motion rule live in one place; the
+    // review's crossfade between suggestions is the only other transition a page starts.
+    expect(
+      hits(
+        /document\.startViewTransition/,
+        (_, file) => file === 'lib/list-motion.ts' || file === 'pages/review-page.tsx',
+      ),
+    ).toEqual([])
+    const moving = source.filter(
+      ({ file, text }) => file !== 'lib/list-motion.ts' && text.includes('data-vt-move'),
+    )
+    expect(moving.map(({ file }) => file).sort()).toEqual([
+      'components/obs/filter-bar.tsx',
+      'components/obs/topic-table.tsx',
+      'pages/context.tsx',
+      'pages/definitions.tsx',
+    ])
+  })
   it('runs its own keyframes only for the countdown and the read fill', () => {
     expect(hits(/animate-\[(?!countdown_|readfill_)[^\]]*\]/)).toEqual([])
   })
