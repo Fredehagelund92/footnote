@@ -137,6 +137,7 @@ export function AppSidebar({
   // The highlight travels while the press that moved it is on its way, and until it has arrived
   // where that press asked for: a move the press had nothing to do with is simply there.
   const travel = press !== null && !press.spent && (press.at === at || press.id === going)
+  const takeBack = () => setPress((p) => (p ? { ...p, off: true } : p))
   React.useEffect(() => {
     if (!press || press.spent) return
     const spend = setTimeout(() => setPress((p) => (p ? { ...p, spent: true } : p)), TRAVEL_SPENT)
@@ -144,8 +145,7 @@ export function AppSidebar({
   }, [press])
   React.useEffect(() => {
     if (!pending) return
-    const cancel = (e: KeyboardEvent) =>
-      e.key === 'Escape' && setPress((p) => (p ? { ...p, off: true } : p))
+    const cancel = (e: KeyboardEvent) => e.key === 'Escape' && takeBack()
     window.addEventListener('keydown', cancel)
     return () => window.removeEventListener('keydown', cancel)
   }, [pending])
@@ -155,8 +155,6 @@ export function AppSidebar({
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || id === going) return
     setPress({ id, at })
   }
-  const takeBack = (id: string) =>
-    setPress((p) => (p && p.id === id && !p.off ? { ...p, off: true } : p))
   /** What a place in the sidebar needs to answer a press at once. */
   const answers = (id: string) => ({
     isActive: here === id,
@@ -164,8 +162,8 @@ export function AppSidebar({
     onPointerDown: onPointerDown(id),
     // A press is taken back if the pointer leaves the place while it is still down; once it has
     // been let go there, the move is on its way and leaving the place means nothing.
-    onPointerLeave: (e: React.PointerEvent) => e.buttons & 1 && takeBack(id),
-    onPointerCancel: () => takeBack(id),
+    onPointerLeave: (e: React.PointerEvent) => e.buttons & 1 && takeBack(),
+    onPointerCancel: takeBack,
   })
 
   return (
