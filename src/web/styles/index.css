@@ -447,6 +447,38 @@
   }
 }
 
+/* The Inbox saying the work is done: the block fades in and rises 8px in 220ms, the tick icon coming
+   from 97 percent, only when the last card left while the page was open (data-arrive is set at the
+   first draw, never on a page that is already empty). Reduced motion keeps a 90ms fade, no rise. */
+@utility done-arrive {
+  transition-property: opacity, translate;
+  transition-duration: var(--dur-3);
+  transition-timing-function: var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: var(--dur-fade), var(--dur-3);
+  }
+
+  &[data-arrive] {
+    @starting-style {
+      opacity: 0;
+      translate: 0 var(--dist-2);
+    }
+  }
+
+  & [data-slot='empty-icon'] {
+    transition-property: scale;
+    transition-duration: var(--dur-3);
+    transition-timing-function: var(--ease-out);
+  }
+
+  &[data-arrive] [data-slot='empty-icon'] {
+    @starting-style {
+      scale: 0.97;
+    }
+  }
+}
+
 /* Chart bars arriving after a wait: each grows from the baseline in 320ms, 30ms after the one before
    (at most six steps). Once only, and none with reduced motion. */
 @utility bar-grow {
