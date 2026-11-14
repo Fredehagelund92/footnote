@@ -288,11 +288,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       recheck ? 'item.rechecked' : 'decision.accept',
     )
     // Context written for a Not found card covers its gap once agents get it (FR-609).
-    const [written] = await tx.query<{ gap: string | null }>(
-      'select source_gap_id::text as gap from proposals where id=$1',
-      [p.id],
-    )
-    if (written?.gap) await createGapsService(tx).cover(written.gap, version.version.title)
+    if (p.sourceGapId) await createGapsService(tx).cover(p.sourceGapId, version.version.title)
     return { proposal, edition }
   }
 
