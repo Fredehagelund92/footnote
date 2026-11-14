@@ -1145,7 +1145,16 @@ function WeekLine() {
   )
 }
 
-function AllDone({ waitingCount, arrive }: { waitingCount: number; arrive: boolean }) {
+function AllDone({
+  waitingCount,
+  arrive,
+  onShown,
+}: {
+  waitingCount: number
+  arrive: boolean
+  onShown: () => void
+}) {
+  React.useEffect(onShown, [onShown])
   return (
     <Empty className="done-arrive py-10" data-arrive={arrive || undefined}>
       <EmptyHeader>
@@ -1407,7 +1416,11 @@ export function InboxPage() {
         {/* The rows take focus, not the box they scroll in: no stop without a ring. */}
         <div tabIndex={-1} className="@container min-h-0 flex-1 overflow-y-auto outline-none">
           {allDone ? (
-            <AllDone waitingCount={mineWaiting.length} arrive={arrive} />
+            <AllDone
+              waitingCount={mineWaiting.length}
+              arrive={arrive}
+              onShown={() => setArrive(false)}
+            />
           ) : visible.length === 0 ? (
             <p className="px-6 py-4 text-sm text-muted-foreground">No cards match “{search}”.</p>
           ) : (
