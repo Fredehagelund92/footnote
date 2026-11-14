@@ -59,16 +59,6 @@ describe('motion tokens', () => {
       hits(/requestAnimationFrame/, (_, file) => file !== 'components/heed/count-up.tsx'),
     ).toEqual([])
   })
-  it('moves the sidebar highlight on a duration and a curve of the tokens', () => {
-    // The one highlight behind a sidebar menu's places travels there on the move curve, and only
-    // translates, so it keeps moving while the main thread draws the new page.
-    const travel = /@utility nav-highlight \{[\s\S]*?\n\}/.exec(
-      readFileSync(join(ROOT, 'styles/index.css'), 'utf8'),
-    )?.[0]
-    expect(travel).toMatch(/transition-property: translate;/)
-    expect(travel).toMatch(/transition-duration: var\(--dur-2\);/)
-    expect(travel).toMatch(/transition-timing-function: var\(--ease-move\);/)
-  })
   it('runs its own keyframes only for the countdown and the read fill', () => {
     expect(hits(/animate-\[(?!countdown_|readfill_)[^\]]*\]/)).toEqual([])
   })

@@ -59,8 +59,6 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
-      // What an app under apps/ builds, which is not the app's source either.
-      'apps/*/dist/**',
       'coverage/**',
       'playwright-report/**',
       'test-results/**',
