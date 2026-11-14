@@ -21,6 +21,7 @@ export function Panel({
   label,
   children,
   className,
+  bodyClassName,
 }: {
   title: React.ReactNode
   /** A peek names what it is quietly in the bar; its own title is in the body, once. */
@@ -36,6 +37,8 @@ export function Panel({
   label?: string
   children: React.ReactNode
   className?: string
+  /** On the scrolling body only: the bar and the footer stay as they are. */
+  bodyClassName?: string
 }) {
   return (
     <section
@@ -66,7 +69,9 @@ export function Panel({
           </Tooltip>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+      <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}>
+        {children}
+      </div>
       {footer && <div className="shrink-0 border-t bg-background">{footer}</div>}
     </section>
   )

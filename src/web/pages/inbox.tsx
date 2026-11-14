@@ -249,7 +249,8 @@ function InboxList({
 }: {
   rows: InboxRow[]
   selected?: string
-  onSelect: (id: string) => void
+  /** `pointer` is false for a key (a click with detail 0), which keeps the pane change instant. */
+  onSelect: (id: string, pointer: boolean) => void
   sel: RowSelection
   list: React.RefObject<HTMLUListElement | null>
 }) {
@@ -355,7 +356,7 @@ function InboxList({
                   type="button"
                   data-row-open={id}
                   aria-current={isSelected || undefined}
-                  onClick={(e) => sel.rowClick(id, e) || onSelect(id)}
+                  onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0)}
                   className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                 >
                   <span
@@ -453,6 +454,8 @@ type PaneNav = {
   onBack?: () => void
   /** "3 of 20 in Needs me". */
   position?: string
+  /** The new card's body fades in (a pointer pick or a decision); J and K stay at once. */
+  fade?: boolean
 }
 
 /**
@@ -461,7 +464,7 @@ type PaneNav = {
  */
 function InboxPanel({
   label,
-  nav: { onStep, onBack, position },
+  nav: { onStep, onBack, position, fade },
   foot,
   children,
 }: {
@@ -476,6 +479,7 @@ function InboxPanel({
       title={position ?? label}
       quietTitle
       className="group/pane"
+      bodyClassName={fade ? 'dock-swap' : undefined}
       leading={
         onBack && (
           <Button variant="ghost" size="icon" aria-label="Back to the list" onClick={onBack}>
@@ -1113,9 +1117,9 @@ function WeekLine() {
   )
 }
 
-function AllDone({ waitingCount }: { waitingCount: number }) {
+function AllDone({ waitingCount, arrive }: { waitingCount: number; arrive: boolean }) {
   return (
-    <Empty className="py-10">
+    <Empty className="done-arrive py-10" data-arrive={arrive || undefined}>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <CircleCheckIcon />
@@ -1160,6 +1164,15 @@ export function InboxPage() {
   const { needing, rows, waiting: mineWaiting } = useInboxRows(decided)
   const tab = query.get('tab') === 'all' ? 'all' : 'needs'
   const [search, setSearch] = React.useState('')
+  // The last card leaving while the page is open ends on a calm "Nothing needs you"; a page that
+  // opens already empty just shows it.
+  const emptied = needing.length === 0
+  const [wasEmptied, setWasEmptied] = React.useState(emptied)
+  const [arrive, setArrive] = React.useState(false)
+  if (emptied !== wasEmptied) {
+    setWasEmptied(emptied)
+    setArrive(emptied)
+  }
 
   const visible = rows.filter((r) => {
     if (tab === 'needs' && !needs(r)) return false
@@ -1172,7 +1185,13 @@ export function InboxPage() {
     ? undefined
     : (query.get('card') ?? (isMobile ? undefined : visible[0] && rowId(visible[0])))
   const selected = rows.find((r) => rowId(r) === selectedId)
-  const select = (id?: string) => setQuery({ card: id ?? (isMobile ? undefined : 'none') })
+  // How the card on show was picked: a pointer pick or a decision fades its body in, a key does not.
+  const [picked, setPicked] = React.useState<{ id?: string; fade: boolean }>({ fade: false })
+  const select = (id?: string, pointer = false) => {
+    // On a phone the whole card slides in; its body does not fade on top of that.
+    setPicked({ id, fade: pointer && !isMobile })
+    setQuery({ card: id ?? (isMobile ? undefined : 'none') })
+  }
   const ids = visible.map(rowId)
   const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
@@ -1199,6 +1218,7 @@ export function InboxPage() {
   // After acting on a card, move to the next one that needs you.
   const next = () => {
     const rest = needing.filter((r) => rowId(r) !== selectedId)
+    setPicked({ id: rest[0] && rowId(rest[0]), fade: true })
     setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined })
   }
 
@@ -1273,6 +1293,7 @@ export function InboxPage() {
   const nav: PaneNav = {
     onStep: step,
     onBack: back,
+    fade: !!selectedId && picked.id === selectedId && picked.fade,
     position:
       at < 0 ? undefined : `${at + 1} of ${ids.length} in ${tab === 'all' ? 'All' : 'Needs me'}`,
   }
@@ -1358,7 +1379,7 @@ export function InboxPage() {
         {/* The rows take focus, not the box they scroll in: no stop without a ring. */}
         <div tabIndex={-1} className="@container min-h-0 flex-1 overflow-y-auto outline-none">
           {allDone ? (
-            <AllDone waitingCount={mineWaiting.length} />
+            <AllDone waitingCount={mineWaiting.length} arrive={arrive} />
           ) : visible.length === 0 ? (
             <p className="px-6 py-4 text-sm text-muted-foreground">No cards match “{search}”.</p>
           ) : (
@@ -1394,7 +1415,12 @@ export function InboxPage() {
   )
 
   const panes = isMobile ? (
-    <div className="h-full min-h-0">{selected ? detail : list}</div>
+    <div
+      key={selected ? 'card' : 'list'}
+      className={cn('h-full min-h-0', selected ? 'dock-enter' : !allDone && 'dock-swap')}
+    >
+      {selected ? detail : list}
+    </div>
   ) : allDone || dock ? (
     <div className="h-full min-h-0">{list}</div>
   ) : (
