@@ -41,7 +41,10 @@ test('a metric peek says it is read from its tool, and calls other names another
   page,
 }) => {
   await go(page, '/definitions')
-  await page.locator('tbody [data-row-open]').first().click()
+  await page
+    .locator('tbody [data-row-open]')
+    .filter({ hasText: /^Net revenue$/ })
+    .click()
   const comes = page.getByRole('region', { name: 'Where it comes from' })
   await expect(comes).toContainText('read-only, read from')
   await expect(comes).not.toContainText('synced')

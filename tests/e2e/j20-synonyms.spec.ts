@@ -76,7 +76,9 @@ test('typing words and commas makes tags; a taken word says who has it', async (
   await box.fill('Sales Value,')
   const tags = page
     .getByRole('region', { name: 'Another name' })
-    .or(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Another name' }) }))
+    .or(
+      page.locator('section').filter({ has: page.getByRole('heading', { name: 'Another name' }) }),
+    )
   await expect(tags.getByText('Sales Value', { exact: true })).toBeVisible()
   await expect(
     page.getByRole('status').filter({ hasText: 'Added synonym Sales Value.' }),
