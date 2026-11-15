@@ -22,7 +22,7 @@ const inbox = (extra: Partial<Inbox> = {}): Inbox => ({
 describe('the order of the groups', () => {
   it('puts Mentioned you and Suggestions before every chore', () => {
     const ids = INBOX_GROUPS.map((g) => g.id)
-    expect(ids.slice(0, 2)).toEqual(['mention', 'suggestion'])
+    expect(ids.slice(0, 3)).toEqual(['names', 'mention', 'suggestion'])
   })
 
   it('lists a suggestion before a Not found card, whatever order the read gave', () => {

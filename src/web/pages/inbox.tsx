@@ -1245,12 +1245,13 @@ export function InboxPage() {
   // search shows every match.
   const [byHand, setByHand] = React.useState<Partial<Record<InboxGroup, boolean>>>({})
   const linked = rows.find((r) => rowId(r) === query.get('card'))
-  const folded = new Set<InboxGroup>()
-  for (const g of INBOX_GROUPS) {
-    const count = visible.filter((r) => groupOf(r) === g.id).length
-    const open = !!search || (linked && groupOf(linked) === g.id)
-    if (count && (byHand[g.id] ?? (!open && startsFolded(g.id, count)))) folded.add(g.id)
-  }
+  const linkedGroup = linked && groupOf(linked)
+  const folded = new Set(
+    INBOX_GROUPS.map((g) => g.id).filter((id) => {
+      const count = visible.filter((r) => groupOf(r) === id).length
+      return count && (byHand[id] ?? (!(search || linkedGroup === id) && startsFolded(id, count)))
+    }),
+  )
   const toggleFold = (g: InboxGroup) => setByHand((b) => ({ ...b, [g]: !folded.has(g) }))
   // What the list shows, and so what the arrow keys, J and K, and a select-all walk through.
   const shown = visible.filter((r) => !folded.has(groupOf(r)))

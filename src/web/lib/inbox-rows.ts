@@ -18,13 +18,13 @@ export const rowId = (r: InboxRow) =>
 export const rowTitle = (r: InboxRow) =>
   r.kind === 'card' ? r.card.title : r.kind === 'waiting' ? r.item.title : r.title
 /**
- * The Inbox's groups, in the order of need: what people wait on first (a mention of you, then
- * suggestions), then the names a read made first, what agents couldn't answer, and the upkeep.
+ * The Inbox's groups, in the order of need: the names a read made first, then what people wait on
+ * (a mention of you, then suggestions), then what agents couldn't answer, and the upkeep.
  */
 export const INBOX_GROUPS = [
+  { id: 'names', label: 'Names' },
   { id: 'mention', label: 'Mentioned you' },
   { id: 'suggestion', label: 'Suggestions' },
-  { id: 'names', label: 'Names' },
   { id: 'gap', label: 'Not found' },
   { id: 'flag', label: 'Reported' },
   { id: 'look', label: 'Saved questions' },
