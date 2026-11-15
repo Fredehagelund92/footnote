@@ -433,8 +433,9 @@ that can be taken back answers with an `undo` token for `POST /decisions/undo`.
 - A clash (FR-225) is a live item an agent would get in the same answer as the suggestion,
   except the item it changes and those it already names as replaced or conflicting. An edit
   whose difference is only formatting, only order or only a change of dates has no clash; an edit
-  that changes anything else as well (wording, added, removed, a link) clashes as for any other. Publish
-  waits until the owner says how each one relates: `replaces` (the new version replaces it, and
+  that changes anything else as well (wording, added, removed, a link) clashes as for any other. The
+  review page sends each one as `unrelated` unless the owner changes it; the API refuses a publish
+  with one unanswered. The answers are `replaces` (the new version replaces it, and
   publishing archives it), `disagrees` (both stay, and agents get the conflict) or `unrelated`.
   Overlaps (live items whose scope and dates overlap) are for information only.
 - `POST /review/{id}/publish` takes `{ revision, relations?, reason? }` and accepts the
@@ -599,8 +600,7 @@ can be taken back answers with an `undo` token for `POST /decisions/undo`.
   it in one step, through the same checks and clash gate as the review; anyone else's goes to the
   domain's owners as a suggestion (`published: false`, with `ownerIds`). `relations` says how it
   relates to each live item it clashes with (`replaces`, `disagrees` or `unrelated`), as the
-  owner answered in the editor: a clash left unanswered refuses the publish (422, with the open
-  clashes as `data.clashes`, each `{ itemId, title }`), and an answer
+  owner answered in the editor: a clash left unanswered reads as `unrelated`, and an answer
   for an item it does not clash with is left out. `draftId` names the person's own draft it
   finishes, or their suggestion an owner returned: it takes the words and is sent as itself,
   changing the item it was started from, if any; only its writer sends it (403 otherwise). A publish the checks refuse keeps
