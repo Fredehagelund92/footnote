@@ -772,9 +772,9 @@ and `next` as before.
   sentence is a `sentence` event, sent once it is complete and passes the check (citing only the
   items given, with no list, heading, link or number it was not given), and `words-end` closes
   them. A sentence that cites items may say only what those items, the definitions given and the
-  question say; one that cites none may only restate the question or what agents are told, or say
-  what a definition says, and before any that cites an item one short lead may say what the items
-  say, held until a sentence that cites an item has passed. A sentence that says more is left out
+  question say; one that cites none is not weighed by its words and is never left out for them
+  (its numbers are checked as every sentence's are), but waits until a sentence that cites an item,
+  or says what a definition says, has passed. A sentence that cites items and says more is left out
   and the words go on (the log says `sentences left out`, with the check's reason and how many).
   `[1, 2]` is read as `[1][2]`. A sentence that fails the first check ends the words there, and
   nothing after it is sent, and the words run to at most 1,200 characters. When no sentence passes, the spending limits leave no room, or the provider
