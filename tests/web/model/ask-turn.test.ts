@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MOCK_LOOK_MS, MOCK_READ_MS, MOCK_SENTENCE_MS, playAnswer } from '@/api/mock/ask-live'
 import { askedOf, chatTurnOf, recordsAnswer, type Answer } from '@/model/ask'
+import { failedAnswer } from '@/api/http-ask'
 import {
   askedTurn,
   doneTurn,
+  drawnByLoop,
+  effectsOf,
   isLive,
+  outcomeOf,
   shownText,
   turnReducer,
   type AskEvent,
@@ -293,5 +297,64 @@ describe('what a turn sends on to the next question', () => {
     expect(
       chatTurnOf({ ...engine, reply: 'nothing_asked', state: null, sources: [] }),
     ).toBeUndefined()
+  })
+})
+
+describe('how a turn ended (one outcome per turn)', () => {
+  const reads = { steps: [], nouns: [] }
+  const notChecked = () =>
+    run(asked(), { type: 'reads', reads }, { type: 'done', answer: failedAnswer(engine.question) })
+
+  it('has no outcome while it is on its way', () => {
+    expect(outcomeOf(asked())).toBeNull()
+    expect(outcomeOf(run(asked(), { type: 'answer', answer: engine }))).toBeNull()
+  })
+
+  it('reads every way a turn ends as one outcome', () => {
+    expect(outcomeOf(run(asked(), { type: 'done', answer: engine }))).toEqual({ kind: 'answered' })
+    expect(outcomeOf(notChecked())).toEqual({ kind: 'not_checked' })
+    const limit = { ...engine, stopped: 'steps' as const, loop: {} as Answer['loop'] }
+    expect(outcomeOf(run(asked(), { type: 'done', answer: limit }))).toEqual({ kind: 'limit' })
+    expect(outcomeOf(run(asked(), { type: 'stop' }))).toEqual({ kind: 'stopped', answered: false })
+    expect(outcomeOf(run(asked(), { type: 'answer', answer: engine }, { type: 'stop' }))).toEqual({
+      kind: 'stopped',
+      answered: true,
+    })
+    expect(outcomeOf(run(asked(), { type: 'error', message: 'No.' }))).toEqual({
+      kind: 'refused',
+      message: 'No.',
+    })
+    // A loop answer that says Not checked has its own words and reads: it is an answer.
+    const loopFailed = { ...engine, state: 'failed' as const, loop: {} as Answer['loop'] }
+    expect(outcomeOf(doneTurn(loopFailed))).toEqual({ kind: 'answered' })
+  })
+
+  it('says what each outcome does, row by row', () => {
+    const rows = {
+      answered: effectsOf({ kind: 'answered' }),
+      limit: effectsOf({ kind: 'limit' }),
+      not_checked: effectsOf({ kind: 'not_checked' }),
+      stoppedBefore: effectsOf({ kind: 'stopped', answered: false }),
+      stoppedAfter: effectsOf({ kind: 'stopped', answered: true }),
+      refused: effectsOf({ kind: 'refused', message: 'No.' }),
+    }
+    expect(rows).toEqual({
+      answered: { joins: true, kept: true, carried: true, restores: false },
+      limit: { joins: true, kept: true, carried: true, restores: false },
+      // Not checked never joins the history and is never kept; asked again, the old answer stays.
+      not_checked: { joins: false, kept: false, carried: false, restores: true },
+      stoppedBefore: { joins: false, kept: false, carried: false, restores: true },
+      stoppedAfter: { joins: true, kept: false, carried: true, restores: false },
+      refused: { joins: false, kept: false, carried: false, restores: true },
+    })
+  })
+
+  it('draws a Not checked turn as one, not as the loop still reading', () => {
+    // The look-up read once, then the service failed: the loop's body would show it working for good.
+    expect(drawnByLoop(notChecked())).toBe(false)
+    expect(drawnByLoop(run(asked(), { type: 'reads', reads }))).toBe(true)
+    expect(drawnByLoop(run(asked(), { type: 'reads', reads }, { type: 'stop' }))).toBe(true)
+    expect(drawnByLoop(doneTurn({ ...engine, loop: {} as Answer['loop'] }))).toBe(true)
+    expect(drawnByLoop(doneTurn(engine))).toBe(false)
   })
 })
