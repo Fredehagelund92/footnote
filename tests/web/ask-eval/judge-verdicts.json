@@ -1,5 +1,5 @@
 {
-  "digest": "849b521e22468abd",
+  "digest": "0f8e4e2160036170",
   "model": "anthropic/claude-haiku-5.5",
   "verdicts": {
     "J01": {
@@ -87,8 +87,8 @@
       "unsupported": []
     },
     "J17": {
-      "advice": ["No."],
-      "verdict": ["No."],
+      "advice": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
+      "verdict": [],
       "unsupported": []
     },
     "J18": {
@@ -138,7 +138,9 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": ["so 12 May was only the plan [1]"]
+      "unsupported": [
+        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
+      ]
     },
     "J27": {
       "advice": [],
@@ -172,7 +174,7 @@
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway"]
+      "unsupported": ["Seven items are about Norway, and one of them is archived."]
     },
     "J33": {
       "advice": [],
@@ -230,8 +232,7 @@
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "I searched every domain, including archived items and drafts",
-        "nothing is written about Black Friday"
+        "I searched every domain, including archived items and drafts, and nothing is written about Black Friday."
       ]
     },
     "J45": {

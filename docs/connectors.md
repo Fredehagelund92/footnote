@@ -47,7 +47,7 @@ Whoever runs the service can also name a Cube model folder or another connector'
 
 | What happened                              | What follows                                                                            |
 | ------------------------------------------ | --------------------------------------------------------------------------------------- |
-| A definition an item relies on changed     | The item is flagged for a check, and still reaches agents, marked unverified            |
+| A definition an item relies on changed     | The item is Due for a check, and still reaches agents, marked as possibly out of date   |
 | A definition an item relies on went        | The same, naming the new definition if the tool renamed it                              |
 | A definition an item only mentions changed | The item stays as it is, and its owners are told                                        |
 | A domain changed in the tool               | Nothing is flagged. The owners are told, and the domain stays until an owner changes it |
