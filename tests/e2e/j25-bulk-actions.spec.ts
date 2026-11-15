@@ -226,6 +226,8 @@ test('Mark as checked counts only the items that were opened', async ({ page }) 
     .getByRole('button', { name: /^Close/ })
     .last()
     .click()
+  // Opening records itself with the service: let that write land before asking what was opened.
+  await page.waitForLoadState('networkidle')
   await boxes(page).nth(0).click()
   await boxes(page)
     .nth(1)
