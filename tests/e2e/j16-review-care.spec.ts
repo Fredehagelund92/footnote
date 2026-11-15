@@ -43,7 +43,7 @@ test('an overlap with several live items asks about each, and archives only the 
   // The two that say something about the same thing side by side; the stop, which shares no
   // words with it, folded into one line with one answer.
   await expect(
-    page.getByText('2 of 3 say something about the same thing. Answer for each.'),
+    page.getByText('2 of 3 say something about the same thing. Each starts as Unrelated.'),
   ).toBeVisible()
   for (const title of [stop, cardOnly, credit])
     await expect(page.getByText(title, { exact: false }).first()).toBeVisible()

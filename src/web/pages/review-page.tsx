@@ -769,8 +769,8 @@ function Clash({ r }: { r: Review }) {
         </Mark>
         <span className="text-sm text-muted-foreground">
           {items.length > 1
-            ? `${words.length} of ${items.length} say something about the same thing. Answer for each.`
-            : 'Publish waits for your answer.'}
+            ? `${words.length} of ${items.length} say something about the same thing. Each starts as Unrelated.`
+            : 'Starts as Unrelated; change it if they relate.'}
         </span>
       </header>
       {shown.map(({ item, pair }, i) => {
@@ -800,7 +800,7 @@ function Clash({ r }: { r: Review }) {
                 onChange={(v) => answer(item.factId, v)}
               />
               <p className="text-xs text-muted-foreground">
-                {relation ? relationText[relation].hint : 'Choose one of the three.'}
+                {relation ? relationText[relation].hint : 'Pick how they relate.'}
               </p>
             </fieldset>
           </div>
