@@ -68,7 +68,7 @@ export function SettingsNav({ section, close }: { section: string; close: () => 
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent label="Settings">
         {sections.map((g) => (
           <SidebarGroup key={g.group}>
             <SidebarGroupLabel>{g.group}</SidebarGroupLabel>

@@ -99,7 +99,7 @@ Name a view as the model names it. A public cube is read only when it is listed 
 
 The list applies everywhere the definitions do: the names waiting in the Inbox, Definitions, and figures in Ask, where a metric of a view that is not read gets no figure and says why. A listed view the model does not have is named in the read (`group_not_found`), and the other views are read.
 
-Taking a view out of the list marks its definitions missing at the next read. Each item that relies on one is marked **Needs checking** for its owners, and nothing is unpublished or deleted. Before you save, the app names the views left out and those items, and Save waits until you say you have seen them. Listing the view again clears the marks.
+Taking a view out of the list marks its definitions missing at the next read. Each item that relies on one is marked **Due for a check** for its owners, and nothing is unpublished or deleted. Before you save, the app names the views left out and those items, and Save waits until you say you have seen them. Listing the view again clears the marks.
 
 The server's file is read at each read. A file that is not a JSON list of names, each once, fails the read rather than reading every view.
 

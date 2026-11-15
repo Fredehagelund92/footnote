@@ -70,18 +70,18 @@ test('the toolbar stays under Details, open or shut', async ({ page }) => {
   await expect(page.getByRole('region', { name: 'Context' }).getByText(/^Status$/)).toHaveCount(0)
 })
 
-test('the quiet line says needs checking when a report or an overlap takes the attention line', async ({
+test('the quiet line says due for a check when a report or an overlap takes the attention line', async ({
   page,
 }) => {
   test.skip(mode !== 'mock', 'Opens a mock item with the mock report beside it')
   const region = page.getByRole('region', { name: 'Context' })
   await go(page, `/context?dock=context.itm_pfet8zj3&flag=${card('flag-germany')}`)
   await expect(region.getByText(/Reported unclear/)).toBeVisible()
-  await expect(region.getByText(/, needs checking$/)).toBeVisible()
+  await expect(region.getByText(/, due for a check$/)).toBeVisible()
   await go(page, `/context?dock=context.itm_0tmqp7o1&flag=${card('flag-germany')}`)
   await expect(region.getByText(/Reported unclear/)).toBeVisible()
   await expect(region.getByText(/owned by .* - checked /)).toBeVisible()
-  await expect(region.getByText(/needs checking/i)).toHaveCount(0)
+  await expect(region.getByText(/due for a check/i)).toHaveCount(0)
 })
 
 test('on the service, a draft has no empty History and the Inbox counts no zero', async ({

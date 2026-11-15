@@ -385,7 +385,7 @@ export function ContextBulk({
                     'checked',
                     'Checked: still true.',
                     (f) => ({
-                      status: f.status === 'Needs checking' ? 'Live' : f.status,
+                      status: f.status === 'Due for a check' ? 'Live' : f.status,
                       outOfDate: undefined,
                       checkedBy: me.name,
                       checkedOn: dateLabel(today()),

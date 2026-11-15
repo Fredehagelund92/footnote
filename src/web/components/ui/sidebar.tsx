@@ -348,11 +348,18 @@ function SidebarSeparator({ className, ...props }: React.ComponentProps<typeof S
   )
 }
 
-function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
+/** The sidebar's body. With a `label` it is a navigation landmark of that name. */
+function SidebarContent({
+  className,
+  label,
+  ...props
+}: React.ComponentProps<'div'> & { label?: string }) {
+  const Tag = label ? 'nav' : 'div'
   return (
-    <div
+    <Tag
       data-slot="sidebar-content"
       data-sidebar="content"
+      aria-label={label}
       className={cn(
         'no-scrollbar flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
         className,
@@ -519,6 +526,7 @@ function SidebarMenuButton({
     defaultTagName: 'button',
     props: mergeProps<'button'>(
       {
+        'aria-current': isActive ? 'page' : undefined,
         className: cn(sidebarMenuButtonVariants({ variant, size }), className),
       },
       props,

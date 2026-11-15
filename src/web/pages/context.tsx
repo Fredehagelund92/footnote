@@ -95,7 +95,7 @@ import { ContextBulk } from '@/components/heed/context-bulk'
 // one dot. An item in a conflict carries the Conflict chip after its title (FR-220); Conflicts is a
 // filter of this list, kept in the address (?show=conflicts), not a list of its own.
 
-const STATUSES: Status[] = ['Draft', 'Live', 'Needs checking', 'Archived']
+const STATUSES: Status[] = ['Draft', 'Live', 'Due for a check', 'Archived']
 const KINDS = Object.keys(kindLabel) as Kind[]
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
@@ -152,7 +152,7 @@ export function ContextPage() {
     query.get('domain') ? [query.get('domain') as DomainId] : [],
   )
   const [status, setStatus] = React.useState<Status[]>(() =>
-    query.get('due') ? ['Needs checking'] : query.get('status') === 'archived' ? ['Archived'] : [],
+    query.get('due') ? ['Due for a check'] : query.get('status') === 'archived' ? ['Archived'] : [],
   )
   const [kind, setKind] = React.useState<Kind[]>([])
   // In the address, so a link (the old Conflicts list, a help page) lands on it and a reload keeps it.
@@ -680,7 +680,7 @@ export function ContextPage() {
                       {sortTh(
                         'checked',
                         'w-19 min-w-19 px-1.5 text-center @max-xl/main:hidden',
-                        'Checked: fresh up to 30 days, then ageing, and overdue once it is due for a check',
+                        'Checked: recently, over 30 days ago, or due for a check',
                       )}
                       <Th className="hidden w-10 @max-xl/main:table-cell @max-xl/main:pr-4">
                         <span className="sr-only">Checked</span>
@@ -780,7 +780,7 @@ export function ContextPage() {
                         in force now
                       </td>
                       <td colSpan={2} className="px-1.5 @max-xl/main:pr-4 @max-xl/main:text-right">
-                        {count(filtered.filter((f) => trustOf(f) === 'due').length)} to check
+                        {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a check
                       </td>
                     </tr>
                   </tfoot>
