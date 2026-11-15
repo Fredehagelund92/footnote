@@ -242,7 +242,7 @@ function DataTable({
                 <td
                   key={j}
                   className={cn(
-                    'h-11 px-4 align-middle md:px-5',
+                    'h-row-table px-4 align-middle md:px-5',
                     align?.[j] === 'right' && 'text-right tabular-nums',
                   )}
                 >

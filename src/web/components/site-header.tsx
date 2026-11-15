@@ -171,7 +171,7 @@ export function SiteHeader({
       <header
         ref={ref}
         className={cn(
-          'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 border-b px-4 md:px-6',
+          'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 px-4 shadow-hairline-bottom md:px-6',
           'bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50',
           className,
         )}

@@ -487,6 +487,10 @@
   --spacing-bar: 3rem;
   --spacing-tool: 2.5rem;
 
+  /* Two table row heights: a list row (Context, Definitions) and a settings table row. */
+  --spacing-row: 2.25rem; /* 36 px */
+  --spacing-row-table: 2.75rem; /* 44 px */
+
   /* Widths: prose keeps a reading measure inside a fixed document sheet; tables, lists and
      settings use the wide frame. The sheet never grows with the window. */
   --container-reading: 60ch;
@@ -501,6 +505,7 @@
      sheet lifting from the bottom. */
   --shadow-hairline: inset 0 0 0 1px var(--border);
   --shadow-hairline-top: inset 0 1px 0 var(--border);
+  --shadow-hairline-bottom: inset 0 -1px 0 var(--border);
   --shadow-peeked: inset 2px 0 0 var(--foreground);
   --shadow-sidebar-ring: 0 0 0 1px var(--sidebar-border);
   --shadow-sidebar-ring-hover: 0 0 0 1px var(--sidebar-accent);
