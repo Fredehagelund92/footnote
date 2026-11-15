@@ -1,7 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/errors'
 import { createHttpApi } from '@/api/http'
+import { afterSomeoneElse } from '@/api/queries'
 import { createQueryClient } from '@/api/query-client'
 
 // Every tab shares the session cookie. When another tab signs this browser in as someone else
@@ -59,6 +60,9 @@ function browser() {
 
 const invite = { emails: ['omar@larchwood.example'], admin: false, owns: [] }
 
+afterEach(() => vi.useRealTimers())
+beforeEach(() => vi.useFakeTimers({ toFake: ['Date'] }))
+
 describe('a change after another tab signed this browser in as someone else', () => {
   it('is not sent as them, and says so', async () => {
     const { state, posts, api } = browser()
@@ -103,5 +107,59 @@ describe('a change after another tab signed this browser in as someone else', ()
       .execute(undefined)
       .catch(() => {})
     expect(moved).toBe(1)
+  })
+
+  it('is not sent as them when a session read already named them', async () => {
+    const { state, posts, api } = browser()
+    await api.getSession()
+    state.cookie = 'Maria Lindqvist'
+    state.token = 'csrf-maria'
+    vi.setSystemTime(Date.now() + 60_000)
+    // The window-focus refetch of the session meets the other tab's person first.
+    const read = await api.getSession().then(
+      () => expect.unreachable('the session was taken on'),
+      (error: unknown) => error as ApiError,
+    )
+    expect(read.someoneElse).toBe(true)
+    const failure = await api.invite(invite).then(
+      () => expect.unreachable('the change was sent'),
+      (error: unknown) => error as ApiError,
+    )
+    expect(failure.someoneElse).toBe(true)
+    expect(posts.some((post) => post.includes('as Maria'))).toBe(false)
+  })
+
+  it('sends nothing as them in a second change after the first was refused', async () => {
+    const { state, posts, api } = browser()
+    await api.getSession()
+    state.cookie = 'Maria Lindqvist'
+    state.token = 'csrf-maria'
+    await api.invite(invite).catch(() => {})
+    const second = await api.invite({ ...invite, emails: ['sven@larchwood.example'] }).then(
+      () => expect.unreachable('the change was sent'),
+      (error: unknown) => error as ApiError,
+    )
+    expect(second.someoneElse).toBe(true)
+    expect(posts.some((post) => post.includes('as Maria'))).toBe(false)
+  })
+
+  it('takes them on when the app moves, and forgets the last person reads', async () => {
+    const { state, posts, api } = browser()
+    const queryClient = createQueryClient({
+      onSomeoneElse: () => void afterSomeoneElse(queryClient),
+    })
+    queryClient.setQueryData(['inbox', 'ravi'], 'Ravi only')
+    await api.getSession()
+    state.cookie = 'Maria Lindqvist'
+    state.token = 'csrf-maria'
+    vi.setSystemTime(Date.now() + 60_000)
+    await queryClient
+      .fetchQuery({ queryKey: ['getSession'], queryFn: () => api.getSession(), staleTime: 0 })
+      .catch(() => {})
+    await vi.waitFor(() => expect(queryClient.getQueryData(['inbox', 'ravi'])).toBeUndefined())
+    vi.setSystemTime(Date.now() + 60_000)
+    expect((await api.getSession()).user).toBe('Maria Lindqvist')
+    await api.invite(invite)
+    expect(posts).toEqual(['POST /invites with csrf-maria -> 200, as Maria Lindqvist'])
   })
 })
