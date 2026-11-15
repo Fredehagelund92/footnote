@@ -52,29 +52,27 @@ export function parseWhen(when: string): TimeFrame {
 
 const dm = (t: number) => `${new Date(t).getUTCDate()} ${MON[new Date(t).getUTCMonth()]}`
 const yr = (t: number) => new Date(t).getUTCFullYear()
-const yy = (t: number) => String(yr(t)).slice(2)
 const dmy = (t: number) => `${dm(t)} ${yr(t)}`
-const withYear = (t: number) => `${dm(t)}${yr(t) !== 2026 ? ' ' + yy(t) : ''}`
 
-/** The short phrase: Always, Ongoing, Since 4 Aug, Until 19 Jan 26, 12–19 May. */
+/** The short phrase: Always, Ongoing, Since 4 Aug 2026, Until 19 Jan 2026, 12–19 May 2026. */
 export function timeShort(t: TimeFrame) {
   if (t.t === 'always') return 'Always'
   if (t.t === 'ongoing') return 'Ongoing'
-  if (t.t === 'since') return t.from ? `Since ${withYear(t.from)}` : 'Ongoing'
-  if (t.t === 'until') return t.to ? `Until ${withYear(t.to)}` : 'Until'
+  if (t.t === 'since') return t.from ? `Since ${dmy(t.from)}` : 'Ongoing'
+  if (t.t === 'until') return t.to ? `Until ${dmy(t.to)}` : 'Until'
   if (!t.from || !t.to) return 'A while'
   const a = new Date(t.from)
   const b = new Date(t.to)
   if (yr(t.from) === yr(t.to) && a.getUTCMonth() === b.getUTCMonth())
-    return `${a.getUTCDate()}–${withYear(t.to)}`
-  if (yr(t.from) === yr(t.to)) return `${dm(t.from)} – ${withYear(t.to)}`
-  return `${dm(t.from)} ${yy(t.from)} – ${dm(t.to)} ${yy(t.to)}`
+    return `${a.getUTCDate()}–${dmy(t.to)}`
+  if (yr(t.from) === yr(t.to)) return `${dm(t.from)} – ${dmy(t.to)}`
+  return `${dmy(t.from)} – ${dmy(t.to)}`
 }
 
 /** The date part only, for design B's glyph label: the glyph already says since, until or a range. */
 export function timeDate(t: TimeFrame) {
-  if (t.t === 'since') return t.from ? withYear(t.from) : 'Ongoing'
-  if (t.t === 'until') return t.to ? withYear(t.to) : 'Until'
+  if (t.t === 'since') return t.from ? dmy(t.from) : 'Ongoing'
+  if (t.t === 'until') return t.to ? dmy(t.to) : 'Until'
   return timeShort(t)
 }
 
