@@ -47,7 +47,11 @@ function Transcript({ agent }: { agent: string }) {
           <AgentLine>
             <p className="text-xs font-medium text-muted-foreground">{agent}</p>
             <p className="text-base leading-relaxed">{t.agent}</p>
-            <StateLine state={t.state} sentence className="text-xs font-medium text-muted-foreground">
+            <StateLine
+              state={t.state}
+              sentence
+              className="text-xs font-medium text-muted-foreground"
+            >
               {t.line}
             </StateLine>
           </AgentLine>

@@ -163,15 +163,15 @@ Draft, Live, Needs checking, Archived. Freshness is a dot. The tooltip gives the
 
 ### Inbox cards and groups
 
-| Card kind    | Group label         | Row evidence                                       |
-| ------------ | ------------------- | -------------------------------------------------- |
-| `gap`        | **Not found**       | How often a question found nothing                 |
-| `flag`       | **Reported**        | What was reported                                  |
-| `look`       | **Saved questions** | How many need a look                               |
-| mention      | **Mentioned you**   | Who, and where                                     |
-| returned     | **Returned to you** | Who returned it: "Returned by Jon Abara"           |
-| `check`      | **Due for a check** | The check date that passed                         |
-| `suggestion` | **Suggestion**      | Size and reach, "2 wording, 1 link - 12 questions" |
+| Card kind    | Group label             | Row evidence                                       |
+| ------------ | ----------------------- | -------------------------------------------------- |
+| `gap`        | **Nothing written yet** | How often a question found nothing                 |
+| `flag`       | **Reported**            | What was reported                                  |
+| `look`       | **Saved questions**     | How many need a look                               |
+| mention      | **Mentioned you**       | Who, and where                                     |
+| returned     | **Returned to you**     | Who returned it: "Returned by Jon Abara"           |
+| `check`      | **Due for a check**     | The check date that passed                         |
+| `suggestion` | **Suggestion**          | Size and reach, "2 wording, 1 link - 12 questions" |
 
 Under All: **Waiting on others** and **Done**. Never "Gap" or "Flag" as a card name.
 

@@ -4,11 +4,11 @@ import { expect, go, mode, test } from './go.ts'
 // J49, the Ask chat session: a chat joins the history with its first answered turn, whichever
 // button asked it; a chat this page started opens again, on Back, as the history opens it; one
 // stopped turn does not stop the rest of a chat being kept (the loop's, on the mock: ?loop=1); a
-// chat keeps its first answer, so a reload asks nothing; and Not checked is not an answer: it does
+// chat keeps its first answer, so a reload asks nothing; and Not looked up is not an answer: it does
 // not join, and Ask again that gets it keeps the answer the turn had. Time stands still in the
 // first six, so a stop lands while the answer is on its way.
 
-const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
+const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 const QUESTION = 'Why did orders in Norway really drop in August?'
 const FOLLOW_UP = 'And what about Sweden?'
 const LAST = 'And what about Denmark?'
@@ -172,7 +172,7 @@ test('one stopped turn does not stop the rest of a chat being kept', async ({ pa
 
 /**
  * The service's look-ups, counted. While `fail` is on, each one answers 502, as the service does
- * during a deploy: the chat says Not checked.
+ * during a deploy: the chat says Not looked up.
  */
 async function lookups(page: Page) {
   const seen = { count: 0, fail: false }
@@ -244,7 +244,7 @@ test('a four-turn chat opens again after a reload on all four turns and asks not
   expect(seen.count).toBe(4)
 })
 
-test('a first question that comes back Not checked does not join; Ask again that answers does', async ({
+test('a first question that comes back Not looked up does not join; Ask again that answers does', async ({
   page,
 }) => {
   test.skip(mode !== 'http', 'the mock has no failing service')
@@ -253,8 +253,8 @@ test('a first question that comes back Not checked does not join; Ask again that
   await go(page, '/ask?n=j49h')
   const log = page.getByRole('log')
   await ask(page, QUESTION)
-  await expect(log.getByText('Not checked', { exact: true })).toHaveCount(1)
-  // Not checked is not an answer: the chat stays as it was, out of the history.
+  await expect(log.getByText('Not looked up', { exact: true })).toHaveCount(1)
+  // Not looked up is not an answer: the chat stays as it was, out of the history.
   await expect(chats(page).getByText(QUESTION)).toHaveCount(0)
   expect(chatParam(page)).toBeNull()
 
@@ -262,11 +262,11 @@ test('a first question that comes back Not checked does not join; Ask again that
   await log.getByRole('button', { name: 'Ask again', exact: true }).click()
   await expect(chats(page).getByText(QUESTION)).toHaveCount(1)
   await expect(log.getByText(STATE)).toHaveCount(1)
-  await expect(log.getByText('Not checked', { exact: true })).toHaveCount(0)
+  await expect(log.getByText('Not looked up', { exact: true })).toHaveCount(0)
   expect(chatParam(page)).not.toBeNull()
 })
 
-test('Ask again that comes back Not checked keeps the answer the turn had', async ({ page }) => {
+test('Ask again that comes back Not looked up keeps the answer the turn had', async ({ page }) => {
   test.skip(mode !== 'http', 'the mock has no failing service')
   const seen = await lookups(page)
   await go(page, '/ask?n=j49i')
@@ -274,7 +274,7 @@ test('Ask again that comes back Not checked keeps the answer the turn had', asyn
   await ask(page, QUESTION)
   await expect(log.getByText(STATE)).toHaveCount(1)
   const had = await log.getByText(STATE).innerText()
-  expect(had).not.toBe('Not checked')
+  expect(had).not.toBe('Not looked up')
 
   seen.fail = true
   await log
