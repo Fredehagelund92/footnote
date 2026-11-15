@@ -26,6 +26,8 @@ export function useWide<T extends HTMLElement>(min = 1024) {
  */
 export function useSettled() {
   const [settled, setSettled] = React.useState(false)
-  React.useEffect(() => void requestAnimationFrame(() => setSettled(true)), [])
+  React.useEffect(() => {
+    requestAnimationFrame(() => setSettled(true))
+  }, [])
   return settled
 }
