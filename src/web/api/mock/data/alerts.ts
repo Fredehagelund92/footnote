@@ -91,7 +91,7 @@ export const RAISED: Raised[] = [
     id: 'r-cube',
     rule: 'sync',
     title: `${demoTool(DEMO_DEFINITIONS)} did not sync`,
-    line: 'A card went to the admins. It synced again at 06:00.',
+    line: 'A card went to the admins. It was read again at 06:00.',
     when: 'Fri 9 Oct',
     href: `/settings/integrations/${DEMO_DEFINITIONS}`,
   },

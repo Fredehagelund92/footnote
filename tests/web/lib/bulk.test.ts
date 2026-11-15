@@ -168,7 +168,7 @@ describe('terms', () => {
     const orders = findDefinition(all, 'Orders')!
     const plan = planTerms('delete', [webshop, orders], jon, domains)
     expect(plan.act).toEqual([webshop])
-    expect(plan.skipped[0]!).toEqual(expect.objectContaining({ why: 'synced from Cube' }))
+    expect(plan.skipped[0]!).toEqual(expect.objectContaining({ why: 'read from Cube' }))
     expect(planTerms('delete', [webshop], tomas, domains).skipped[0]!.why).toBe('owned by Sales')
   })
 
