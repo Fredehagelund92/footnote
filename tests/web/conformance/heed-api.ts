@@ -1033,7 +1033,7 @@ export function describeHeedApi(
             await live.readFigure({ ...orders, markets: [], values: ['val:product/footwear'] }),
           ).toEqual({
             kind: 'none',
-            why: "Cube can't split Orders the way the question does, so no figure is read for it.",
+            why: "Cube can't split "Orders" the way the question does, so no figure is read for it.",
             closest: [],
           })
           // A figure that can't be read for the question is no figure, never a guess.
