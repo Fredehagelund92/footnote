@@ -11,6 +11,8 @@ const header = (page: Page, name: string) =>
 
 test('suggestions come before the chores', async ({ page }) => {
   await go(page, '/inbox')
+  // The service answers after first paint, so wait for the groups before reading their order.
+  await expect(header(page, 'Suggestions')).toBeVisible()
   const names = (await headers(page).allInnerTexts()).map((t) => t.replace(/\s*\d+$/, ''))
   const at = (n: string) => names.indexOf(n)
   expect(at('Suggestions')).toBeGreaterThanOrEqual(0)
