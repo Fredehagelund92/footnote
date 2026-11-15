@@ -38,6 +38,45 @@ export function countWord(kind: ChangeKind, n: number) {
   return kind === 'Link' || kind === 'Order' ? `${w}s` : w
 }
 
+/**
+ * What a suggestion does, as the rest of a sentence about whoever sent it: "changed 2 sentences and
+ * 2 links, and moved 1 paragraph". Nothing for a review with no counted change.
+ */
+export function changeWords(counts: readonly { kind: ChangeKind; n: number }[]) {
+  const of = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+  const phrase = (c: { kind: ChangeKind; n: number }): [verb: string, what: string] => {
+    switch (c.kind) {
+      case 'Wording':
+        return ['changed', of(c.n, 'sentence', 'sentences')]
+      case 'Formatting':
+        return ['changed', of(c.n, 'formatted passage', 'formatted passages')]
+      case 'Link':
+        return ['changed', of(c.n, 'link', 'links')]
+      case 'Dates':
+        return ['changed', of(c.n, 'date', 'dates')]
+      case 'Order':
+        return ['moved', of(c.n, 'paragraph', 'paragraphs')]
+      case 'Added':
+        return ['added', of(c.n, 'passage', 'passages')]
+      case 'Removed':
+        return ['removed', of(c.n, 'passage', 'passages')]
+    }
+  }
+  const byVerb = new Map<string, string[]>()
+  for (const c of counts) {
+    const [verb, what] = phrase(c)
+    byVerb.set(verb, [...(byVerb.get(verb) ?? []), what])
+  }
+  const list = (xs: string[]) =>
+    xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`
+  return list([...byVerb].map(([verb, what]) => `${verb} ${list(what)}`))
+}
+
+/** How often agents asked: "Agents asked about this 12 times this week." */
+export function askedWords(times: number) {
+  return `Agents asked about this ${times === 1 ? 'once' : `${times} times`} this week.`
+}
+
 /** The quiet label each change block carries. */
 export type ChangeKind = 'Wording' | 'Formatting' | 'Link' | 'Order' | 'Added' | 'Removed' | 'Dates'
 
@@ -135,7 +174,7 @@ export type Review = {
     rows: { claim: string; source: string; same: 'same' | 'different' | 'check' }[]
   }
   /**
-   * Overlaps live context: the suggestion's words once, and each live item it overlaps, which the
+   * The clash with live context: the suggestion's words once, and each live item it overlaps, which the
    * owner answers on its own. Publish sends each answer for its own item.
    */
   clash?: {
@@ -181,11 +220,15 @@ export type Relation = 'replaces' | 'disagree' | 'unrelated'
 export const claimsToCheck = (r: Pick<Review, 'claims'>) =>
   r.claims?.rows.filter((x) => x.same !== 'same').length ?? 0
 
+/** The overlap with live context as a sentence: "About the same thing as 2 published items". */
+export const clashWords = (n: number) =>
+  `About the same thing as ${n === 1 ? '1 published item' : `${n} published items`}`
+
 /** What needs care, in a few words, for the quick view and the Inbox row: "2 claims to check". */
 export function careLine(r: Review) {
   const n = claimsToCheck(r)
   if (n) return `${n} ${n === 1 ? 'claim' : 'claims'} to check`
-  if (r.clash) return 'Overlaps live context'
+  if (r.clash) return clashWords(r.clash.items.length)
   if (r.retire?.withdrawn) return `Withdrawn by ${r.retire.withdrawn.by}`
   return undefined
 }

@@ -11,7 +11,7 @@ export type CardType = 'names' | 'suggestion' | 'gap' | 'flag' | 'check' | 'look
 
 /** Each card by what happened, so the word explains itself. */
 export const cardTypeLabel: Record<CardType, string> = {
-  names: 'Names',
+  names: 'New metrics and dimensions',
   suggestion: 'Suggestion',
   gap: 'Nothing written yet',
   flag: 'Reported',
@@ -33,7 +33,7 @@ export function namesWords({
   const total = ready + flagged
   return {
     title: total
-      ? `${total === 1 ? '1 name' : `${total} names`} from ${tools.join(', ')}`
+      ? `${total === 1 ? '1 new metric or dimension' : `${total} new metrics and dimensions`} from ${tools.join(', ')}`
       : 'Names left out',
     line: !total
       ? 'Left out of the names a read made.'
