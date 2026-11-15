@@ -41,7 +41,7 @@ export function createChats() {
   ]
   return {
     list: () => threads,
-    /** Ask's loop: a chat's finished answers, kept with it until the page reloads. */
+    /** A chat's finished answers, kept with it until the page reloads. */
     keep(id: string, answers: Thread['answers']) {
       threads = threads.map((t) => (t.id === id ? { ...t, answers } : t))
     },
