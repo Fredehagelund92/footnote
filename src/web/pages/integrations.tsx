@@ -111,6 +111,7 @@ import { sourceHealth } from '@domain/source-state'
 import type { DomainId } from '@/model/items'
 import type { FigureTry } from '@/model/figures'
 import { useConnectActions } from '@/lib/integrations'
+import { readFailureLines } from '@/lib/read-failure'
 import { tryFailureWords, useFigureActions, useFigures } from '@/lib/figures'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
@@ -1455,6 +1456,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
   const { figureConnections } = useIntegrations()
   const { source, views, folders, documents, activity, connection } = page
   const view = sourceView(c.kind, source, page.changedOn)
+  const failure = readFailureLines(source)
   const h = view.health
   const figures = useFiguresOff(c)
   const isDefinitions = c.kind === 'definitions'
@@ -1571,17 +1573,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
             <p className="flex items-start gap-2">
               <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
               <span>
-                <span className="font-medium">
-                  {source.failures > 1
-                    ? `The last ${source.failures} reads failed`
-                    : 'The last read failed'}
-                  : {source.failure ?? "it couldn't be read"}.
-                </span>{' '}
-                {source.lastGood
-                  ? `The last good read from ${source.lastGood.day}, ${source.lastGood.time} stays`
-                  : 'Nothing was read yet'}
-                , and nothing is {isDefinitions ? 'flagged' : 'created'} while {c.name} can't be
-                reached. Admins are told at {source.staleAfter}.
+                <span className="font-medium">{failure.what}</span> {failure.next}
               </span>
             </p>
             <div className="mt-3 flex gap-2 pl-6">
@@ -2773,7 +2765,7 @@ function ScopeChooser({
 
 /**
  * What a change stops reading of a definitions tool connected: the views left out, what they hold,
- * and the live items that rely on them, which its next read marks Needs checking for their owners.
+ * and the live items that rely on them, which its next read marks Due for a check for their owners.
  * Saving waits until whoever changes it says they have seen those items.
  */
 function LeftOutNotice({
@@ -2822,7 +2814,7 @@ function LeftOutNotice({
           <p>
             {items.count === 1 ? '1 live item relies' : `${items.count} live items rely`} on them.
             Its next read marks {items.count === 1 ? 'it' : 'each'}{' '}
-            <span className="font-medium">Needs checking</span> and tells its owners.
+            <span className="font-medium">Due for a check</span> and tells its owners.
           </p>
           <ul aria-label="Live items that rely on them" className="flex flex-col gap-1">
             {items.named.slice(0, 5).map((item) => (
@@ -3186,7 +3178,7 @@ function ChoiceSteps({
                 ? [
                     <>
                       A changed or missing definition marks the context that relies on it{' '}
-                      <span className="font-medium">Needs checking</span> and tells its owner.
+                      <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
                     <>Nothing is published or changed by a read.</>,
                     <>{`If ${c.name} can't be reached, the last good read stays and nothing is flagged.`}</>,

@@ -348,11 +348,18 @@ function SidebarSeparator({ className, ...props }: React.ComponentProps<typeof S
   )
 }
 
-function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
+/** The sidebar's body. With a `label` it is a navigation landmark of that name. */
+function SidebarContent({
+  className,
+  label,
+  ...props
+}: React.ComponentProps<'div'> & { label?: string }) {
+  const Tag = label ? 'nav' : 'div'
   return (
-    <div
+    <Tag
       data-slot="sidebar-content"
       data-sidebar="content"
+      aria-label={label}
       className={cn(
         'no-scrollbar flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
         className,
@@ -432,14 +439,39 @@ function SidebarGroupContent({ className, ...props }: React.ComponentProps<'div'
   )
 }
 
-function SidebarMenu({ className, ...props }: React.ComponentProps<'ul'>) {
+/**
+ * A menu of places. Given `selected`, the index of the place the person is in, it draws one
+ * highlight behind the places in place of each place's own grey: with `travel` it slides to the
+ * place pressed, and without it is simply there (docs/design/motion.md). Every place is 32px tall
+ * with no gap, so the highlight's place is its index.
+ */
+function SidebarMenu({
+  className,
+  selected,
+  travel,
+  children,
+  ...props
+}: React.ComponentProps<'ul'> & { selected?: number; travel?: boolean }) {
+  const highlight = selected !== undefined && selected >= 0
   return (
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn('flex w-full min-w-0 flex-col gap-0', className)}
+      data-highlight={highlight || undefined}
+      className={cn('flex w-full min-w-0 flex-col gap-0', highlight && 'relative', className)}
       {...props}
-    />
+    >
+      {highlight && (
+        <li
+          aria-hidden
+          data-travel={travel || undefined}
+          style={{ '--selected': selected } as React.CSSProperties}
+          // In the icon rail the places are 32px squares, a pixel wider than the menu around them.
+          className="nav-highlight group-data-[collapsible=icon]:right-auto group-data-[collapsible=icon]:w-8"
+        />
+      )}
+      {children}
+    </ul>
   )
 }
 
@@ -494,6 +526,7 @@ function SidebarMenuButton({
     defaultTagName: 'button',
     props: mergeProps<'button'>(
       {
+        'aria-current': isActive ? 'page' : undefined,
         className: cn(sidebarMenuButtonVariants({ variant, size }), className),
       },
       props,

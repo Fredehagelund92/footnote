@@ -439,7 +439,7 @@ function PickerBody({
         )}
       </StepHead>
     )
-    placeholder = d ? `Search ${plural(d.values, 'value')}` : `Search ${name.toLowerCase()}`
+    placeholder = d ? `Search ${plural(d.values, 'value')}` : `Search ${name}`
     label = `Search the values of ${name}`
     sections = isDim(valueStep) ? dimensionValues(valueStep) : fieldValues(field)
     const n = chip?.values.length ?? 0
@@ -762,7 +762,7 @@ function PickerBody({
         id: 'values',
         heading: undefined,
         rows: values.map((v) => tickRow(key, v, byValue.get(v), max)),
-        note: values.length ? undefined : `No ${keyWords(key).toLowerCase()} by that name.`,
+        note: values.length ? undefined : `Nothing in ${keyWords(key)} has that name.`,
       },
     ]
   }

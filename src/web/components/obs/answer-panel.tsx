@@ -222,12 +222,13 @@ function OverviewTab({ t }: { t: Topic }) {
         >
           {compare
             ? 'Hide the compare'
-            : `Compare with what agents got ${before.before.label.toLowerCase()}`}
+            : `Compare with the answer agents got earlier (${before.before.label})`}
         </button>
         {compare &&
           (same ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              The same {before.before.label.toLowerCase()}: nothing it reads changed.
+              The answer agents got earlier ({before.before.label}) is the same: nothing it reads
+              changed.
             </p>
           ) : (
             <div className="mt-2 grid gap-px overflow-hidden rounded-md border bg-border text-sm @md:grid-cols-2">
@@ -422,7 +423,7 @@ function WarningsTab({
     missing: 'Agents asked and nothing applies.',
     partial: `Agents asked without dates, so ${obs.topicName(t)} was read at today.`,
     conflict: 'Two items that apply say different things. Both are given until an owner chooses.',
-    stale: 'An item it answers from has a check date that passed.',
+    stale: 'An item it uses is due for a check.',
     grounded: '',
   }
   // A hidden count may be one under 5, or one hidden so that none is given away: say neither.

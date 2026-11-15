@@ -57,5 +57,5 @@ export function whenLabel(v: Validity): string {
   return v.ongoing ? 'Still going on' : 'Always'
 }
 
-/** Whether a check date has passed: an item past it reads "Needs checking". */
+/** Whether a check date has passed: an item past it reads "Due for a check". */
 export const checkDue = (reviewDate: string, today: string) => reviewDate < today

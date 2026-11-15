@@ -160,7 +160,7 @@ const scopeOf = (f: Fact, vocabulary: Vocabulary) => f.scope ?? termsOfNames(f.w
 
 /** The words of "Applies to" in a sentence: "Orders in any market". */
 const scopeWords = (terms: ScopeTerm[]) =>
-  terms.map((t) => (t.kind === 'dimension' ? `any ${t.name.toLowerCase()}` : t.name)).join(' in ')
+  terms.map((t) => (t.kind === 'dimension' ? `any "${t.name}"` : t.name)).join(' in ')
 
 function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
   // From the stored dates, so the editor shows the real ones.
@@ -268,8 +268,8 @@ const countWords = (text: string) =>
 const STATUS_OPTIONS: Option<Status>[] = [
   { value: 'Live', label: 'Live', hint: 'Agents get it.' },
   {
-    value: 'Needs checking',
-    label: 'Needs checking',
+    value: 'Due for a check',
+    label: 'Due for a check',
     hint: 'Agents get it, told it may be out of date.',
   },
   { value: 'Archived', label: 'Archived', hint: 'Agents stop getting it.' },
@@ -1120,9 +1120,9 @@ function Editor({
                   // Live is the default and says nothing; a status that needs attention is a chip.
                   form.status === 'Live' ? (
                     <span>Live</span>
-                  ) : form.status === 'Needs checking' ? (
+                  ) : form.status === 'Due for a check' ? (
                     <TagChip tone="warn" icon={<TriangleAlertIcon aria-hidden />}>
-                      Needs checking
+                      Due for a check
                     </TagChip>
                   ) : (
                     <TagChip icon={<ArchiveIcon aria-hidden />}>Archived</TagChip>

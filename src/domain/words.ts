@@ -231,7 +231,7 @@ export const kinds = {
 export type Kind = keyof typeof kinds
 
 /**
- * The words of one answer line: a label of one or two words, a sentence of eight words or fewer,
+ * The words of one answer line: a label of one to three words, a sentence of eight words or fewer,
  * and the long form for a tooltip and Help. None has a contraction.
  */
 export type AnswerLineWords = {

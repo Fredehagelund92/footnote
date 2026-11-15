@@ -10,6 +10,7 @@ import {
 import type { Queryable } from '../../db/database.ts'
 import { initialsOf } from './people.ts'
 import { changeGrants, lockRoles } from './roles.ts'
+import { notAllowed } from '../../../contract/refusals.ts'
 
 /*
   The people of a workspace as Heed v1 has them (docs/product.md, section 11): Admin or Member,
@@ -76,7 +77,8 @@ async function actorOf(tx: Queryable) {
   const [actor] = await tx.query<{ admin: boolean; id: string | null }>(
     'select cl_is_admin_now() as admin, cl_person()::text as id',
   )
-  if (!actor?.admin || !actor.id) throw new ORPCError('FORBIDDEN')
+  if (!actor?.admin || !actor.id)
+    throw new ORPCError('FORBIDDEN', { message: notAllowed('manage people', 'an admin') })
   return actor.id
 }
 

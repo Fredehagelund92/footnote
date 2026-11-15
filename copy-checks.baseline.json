@@ -133,14 +133,10 @@
     "src/web/api/http-integrations.ts": {
       "plural": 15
     },
-    "src/web/api/mock/data/figures.ts": {
-      "lowercased": 2
-    },
     "src/web/api/mock/data/integrations.ts": {
       "plural": 3
     },
     "src/web/api/mock/integrations.ts": {
-      "lowercased": 1,
       "plural": 5
     },
     "src/web/components/heed/answer.tsx": {
@@ -149,57 +145,23 @@
     "src/web/components/heed/conflict-view.tsx": {
       "plural": 1
     },
-    "src/web/components/heed/definition-peek.tsx": {
-      "lowercased": 1
-    },
     "src/web/components/heed/review-parts.tsx": {
       "plural": 1
     },
-    "src/web/components/heed/source-review.tsx": {
-      "lowercased": 1
-    },
-    "src/web/components/heed/source-threads.tsx": {
-      "lowercased": 1
-    },
-    "src/web/components/obs/answer-panel.tsx": {
-      "lowercased": 1
-    },
     "src/web/components/obs/filter-picker.tsx": {
-      "lowercased": 2,
       "plural": 10
-    },
-    "src/web/components/resizable-aside.tsx": {
-      "lowercased": 1
     },
     "src/web/components/templates/comment-box/utils.ts": {
       "plural": 1
     },
-    "src/web/lib/connect.ts": {
-      "lowercased": 1
-    },
-    "src/web/lib/definitions.ts": {
-      "lowercased": 1
-    },
-    "src/web/model/replay.ts": {
-      "lowercased": 1
-    },
     "src/web/pages/definitions.tsx": {
       "plural": 5
-    },
-    "src/web/pages/editor.tsx": {
-      "lowercased": 1
     },
     "src/web/pages/inbox.tsx": {
       "plural": 1
     },
     "src/web/pages/integrations.tsx": {
       "plural": 22
-    },
-    "src/web/pages/observability/overview.tsx": {
-      "lowercased": 3
-    },
-    "src/web/pages/people.tsx": {
-      "lowercased": 1
     },
     "src/web/pages/review.tsx": {
       "plural": 1
@@ -229,9 +191,6 @@
     "src/web/api/http-integrations.ts": {
       "a read": 2
     },
-    "src/web/api/http-map.ts": {
-      "needs checking": 1
-    },
     "src/web/api/http-obs.ts": {
       "gap": 1
     },
@@ -246,15 +205,13 @@
       "synced": 1
     },
     "src/web/api/mock/data/integrations.ts": {
-      "a read": 1,
-      "needs checking": 1
+      "a read": 1
     },
     "src/web/api/mock/data/observability.ts": {
       "gap": 3
     },
     "src/web/api/mock/data/world.ts": {
-      "flag": 1,
-      "needs checking": 3
+      "flag": 1
     },
     "src/web/api/mock/index.ts": {
       "flag": 1
@@ -270,10 +227,6 @@
     },
     "src/web/components/heed/answer.tsx": {
       "gap": 1
-    },
-    "src/web/components/heed/columns.tsx": {
-      "needs checking": 1,
-      "overdue": 1
     },
     "src/web/components/heed/conflict-view.tsx": {
       "flag": 4
@@ -295,16 +248,11 @@
     "src/web/components/heed/frame.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/list.tsx": {
-      "gap": 1,
-      "needs checking": 1
-    },
     "src/web/components/heed/load-state.tsx": {
       "retry": 1
     },
     "src/web/components/heed/loop-nouns.tsx": {
-      "gap": 1,
-      "needs checking": 1
+      "gap": 1
     },
     "src/web/components/heed/mention-chip.tsx": {
       "gap": 1
@@ -319,7 +267,7 @@
       "gap": 1
     },
     "src/web/components/heed/source-threads.tsx": {
-      "thread": 9
+      "thread": 7
     },
     "src/web/components/obs/facet-rail.tsx": {
       "facet": 1
@@ -335,9 +283,6 @@
     },
     "src/web/components/obs/topic-table.tsx": {
       "gap": 1
-    },
-    "src/web/components/templates/comment-box/index.tsx": {
-      "thread": 2
     },
     "src/web/lib/agents.ts": {
       "url": 1
@@ -364,9 +309,6 @@
     "src/web/pages/agent-policies.tsx": {
       "clashe": 1
     },
-    "src/web/pages/context.tsx": {
-      "needs checking": 2
-    },
     "src/web/pages/definition-editor.tsx": {
       "retry": 1
     },
@@ -375,7 +317,6 @@
       "synced": 2
     },
     "src/web/pages/editor.tsx": {
-      "needs checking": 2,
       "retry": 1
     },
     "src/web/pages/inbox.tsx": {
@@ -384,7 +325,6 @@
     "src/web/pages/integrations.tsx": {
       "a read": 10,
       "flagged": 2,
-      "needs checking": 2,
       "retry": 1
     },
     "src/web/pages/observability/feedback.tsx": {
@@ -407,71 +347,7 @@
       "thread": 1
     }
   },
-  "copy/errors-say-three-things": {
-    "src/server/http/api.ts": {
-      "nomessage": 12
-    },
-    "src/server/modules/agents/policies.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/answer/service.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/auth/invites.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/auth/members.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/comments/service.ts": {
-      "nomessage": 6
-    },
-    "src/server/modules/conflicts/service.ts": {
-      "nomessage": 5
-    },
-    "src/server/modules/context/service.ts": {
-      "nomessage": 4
-    },
-    "src/server/modules/inbox/service.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/observability/service.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/proposals/preview.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/proposals/service.ts": {
-      "nomessage": 6
-    },
-    "src/server/modules/reports/service.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/review/path.ts": {
-      "nomessage": 5
-    },
-    "src/server/modules/review/records.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/review/service.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/saved-questions/service.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/terms/service.ts": {
-      "nomessage": 4
-    },
-    "src/web/components/heed/source-threads.tsx": {
-      "nonextstep": 1
-    },
-    "src/web/components/templates/comment-box/index.tsx": {
-      "nonextstep": 1
-    },
-    "src/web/components/view-as.tsx": {
-      "nonextstep": 1
-    }
-  },
+  "copy/errors-say-three-things": {},
   "copy/no-fixed-locale": {
     "src/web/api/http-alerts.ts": {
       "month": 1

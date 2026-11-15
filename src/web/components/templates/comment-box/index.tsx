@@ -35,7 +35,7 @@ import '@/components/static-renderer/style.css'
  * source: in the Inbox, or in the review when it was written on an earlier version.
  */
 const whereItHangs = (anchor: CommentAnchor, earlier: boolean) =>
-  `On ${placeLabel(placeOf(anchor)).toLowerCase()}${earlier ? ', of an earlier version' : ''}`
+  `On ${placeLabel(placeOf(anchor))}${earlier ? ', of an earlier version' : ''}`
 
 /** The state of a thread on a line or a field, with Resolve or Reopen, above it where it is shown apart. */
 function AnchoredState({
@@ -116,7 +116,10 @@ export function CommentBox({
       () => {
         if (resolved) toast('Resolved')
       },
-      () => toast.error(resolved ? "The thread wasn't resolved" : "The thread wasn't reopened"),
+      () =>
+        toast.error(resolved ? "The comment wasn't resolved" : "The comment wasn't reopened", {
+          description: 'Nothing was changed. Try again.',
+        }),
     )
   }
 

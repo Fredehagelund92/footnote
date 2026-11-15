@@ -1266,7 +1266,7 @@ describe('get_context', () => {
       say: string
     }
     expect(failed.status).toBe('check_failed')
-    expect(failed.say).toMatch(/^Not checked\. The check did not run\./)
+    expect(failed.say).toMatch(/^Not looked up\. Ask could not look this up just now\./)
   })
 
   it('keeps the full reply, with every detail of the item and how the question was read', async () => {

@@ -174,7 +174,7 @@ links stay in a secret store in Docker's `heed_keys` volume.
   [Agent tools](docs/help/tools.md).
 - **No AI picks the context.** Rules choose what applies from the question's metrics, markets and dates, so the
   same question gets the same items until an owner publishes a change. Ask shows exactly that.
-- **Ask about the context itself.** Ask what is missing, stale, conflicting or unowned, and Heed counts it from its own
+- **Ask about the context itself.** Ask what is missing, due for a check, conflicting or unowned, and Heed counts it from its own
   records, says out of how many, and says what it can't see.
 - **Gaps and saved questions.** Questions that found nothing are counted by topic, so people write what's
   missing. Saved questions are answered again after every change, so a publish that makes an answer worse is

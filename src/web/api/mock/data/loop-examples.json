@@ -3,7 +3,7 @@
     "question": "Why is the last day of Germany's orders always low?",
     "turn": {
       "kind": "answer",
-      "text": "The payment files for Germany reach the source tool the morning after, so the last day of Orders is always short [1].",
+      "text": "The payment files for Germany reach the source tool the morning after, so the last day of Orders is always short.[1]",
       "sources": ["itm_0tmqp7o1"],
       "state": "grounded",
       "footer": {
@@ -59,20 +59,16 @@
             },
             {
               "t": "text",
-              "text": " is always short "
+              "text": " is always short."
             },
             {
               "t": "cite",
               "n": 1
-            },
-            {
-              "t": "text",
-              "text": "."
             }
           ]
         }
       ],
-      "said": "The payment files for [@value:market/germany] reach the source tool the morning after, so the last day of [@metric:orders] is always short [itm_0tmqp7o1].",
+      "said": "The payment files for [@value:market/germany] reach the source tool the morning after, so the last day of [@metric:orders] is always short.[itm_0tmqp7o1]",
       "nouns": [
         {
           "id": "metric:orders",
@@ -472,7 +468,7 @@
     "question": "Does net revenue in Spain include VAT?",
     "turn": {
       "kind": "answer",
-      "text": "Two items disagree. One in Sales says it includes VAT [1]; one in Paid media says it excludes VAT [2].",
+      "text": "Two items disagree. One in Sales says it includes VAT [1]; one in Paid media says it excludes VAT.[2]",
       "sources": ["itm_spainvatin", "itm_spainvatout"],
       "state": "conflict",
       "footer": {
@@ -532,20 +528,16 @@
             },
             {
               "t": "text",
-              "text": " says it excludes VAT "
+              "text": " says it excludes VAT."
             },
             {
               "t": "cite",
               "n": 2
-            },
-            {
-              "t": "text",
-              "text": "."
             }
           ]
         }
       ],
-      "said": "Two items disagree. One in [@domain:area_sales] says it includes VAT [itm_spainvatin]; one in [@domain:area_paid_media] says it excludes VAT [itm_spainvatout].",
+      "said": "Two items disagree. One in [@domain:area_sales] says it includes VAT [itm_spainvatin]; one in [@domain:area_paid_media] says it excludes VAT.[itm_spainvatout]",
       "nouns": [
         {
           "id": "metric:net_revenue",
@@ -645,7 +637,7 @@
     "question": "What happened with price promotions in Italy?",
     "turn": {
       "kind": "answer",
-      "text": "The regulator paused price promotions in Italy, so discount cost there dropped to near zero [1]. The item was last checked on 20 June 2026.",
+      "text": "The regulator paused price promotions in Italy, so discount cost there dropped to near zero.[1] The item was last checked on 20 June 2026.",
       "sources": ["itm_pfet8zj3"],
       "state": "stale",
       "footer": {
@@ -683,7 +675,7 @@
             },
             {
               "t": "text",
-              "text": ", so discount cost there dropped to near zero "
+              "text": ", so discount cost there dropped to near zero."
             },
             {
               "t": "cite",
@@ -691,7 +683,7 @@
             },
             {
               "t": "text",
-              "text": ". The item was last checked on "
+              "text": " The item was last checked on "
             },
             {
               "t": "date",
@@ -704,7 +696,7 @@
           ]
         }
       ],
-      "said": "The regulator paused price promotions in [@value:market/italy], so discount cost there dropped to near zero [itm_pfet8zj3]. The item was last checked on 20 June 2026.",
+      "said": "The regulator paused price promotions in [@value:market/italy], so discount cost there dropped to near zero.[itm_pfet8zj3] The item was last checked on 20 June 2026.",
       "nouns": [
         {
           "id": "metric:discount_cost",

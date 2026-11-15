@@ -52,7 +52,7 @@ export function afterAnswer(t: Pick<Topic, 'in' | 'gap'>) {
     : 'Nobody reported an answer about it.'
   const found = t.in.notFound
     ? t.gap
-      ? ` It found nothing 5 or more times, so it waits in the Inbox: ${t.gap.label.toLowerCase()}.`
+      ? ` It found nothing 5 or more times, so it waits in the Inbox. Its state there: ${t.gap.label}.`
       : ' It found nothing 5 or more times, so it waits in the Inbox.'
     : ''
   return `${reported}${found}`

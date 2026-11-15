@@ -62,7 +62,9 @@ export function ViewAs() {
                 .mutateAsync({ name })
                 .then(() => navigate('/'))
                 .catch(() =>
-                  toast.error('The switch did not work. You are still viewing as yourself.'),
+                  toast.error("Couldn't switch", {
+                    description: 'You are still viewing as yourself. Try again.',
+                  }),
                 )
             }}
           >

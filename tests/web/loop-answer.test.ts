@@ -158,10 +158,10 @@ describe("Ask's loop answer, state by state", () => {
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Compare the two')).toBe(true)
   })
 
-  it('Outdated: the item row says it needs checking, once, and an admin can mark it still true', () => {
+  it('Outdated: the item row says it is due for a check, once, and an admin can mark it still true', () => {
     const el = render(example('loop-stale'))
     expect(text(el)).toContain('Some of this may be old.')
-    expect(text(el)).toContain('Needs checking')
+    expect(text(el)).toContain('Due for a check')
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Mark it still true')).toBe(
       true,
     )
@@ -214,6 +214,40 @@ describe("Ask's loop answer, state by state", () => {
     act(() => more!.click())
     expect(lines()).toHaveLength(8)
     expect(text(el)).not.toMatch(/Show \d+ more/)
+  })
+
+  it('Definition: the label in place of a state, for an answer that uses no item', () => {
+    const el = render(
+      {
+        ...example('loop-checked'),
+        state: null,
+        sources: [],
+        defined: { names: ['Orders'], tool: 'Cube' },
+      },
+      'What is orders?',
+    )
+    expect(text(el)).toMatch(/^Definition/)
+    expect(text(el)).not.toMatch(/Checked|Partial|Not found/)
+  })
+
+  it('A reply to the chat that read nothing and cites nothing: its words and the actions only', () => {
+    const turn: LoopTurn = {
+      ...example('loop-checked'),
+      text: 'You are welcome.',
+      body: [{ t: 'p', runs: [{ t: 'text', text: 'You are welcome.' }] }],
+      state: null,
+      sources: [],
+      subject: null,
+      definitions: [],
+      read: [],
+      footer: { denominator: null, notSeen: null, stale: null },
+      reads: [],
+      items: [],
+      owners: [],
+    }
+    const el = render(turn, 'thanks!')
+    expect(text(el)).toMatch(/^You are welcome\./)
+    expect(text(el)).not.toMatch(/What Ask read|Definition|Used|records/)
   })
 
   it('A question back: the question and its readings as choices, with no state', () => {

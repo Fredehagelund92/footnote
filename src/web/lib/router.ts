@@ -91,6 +91,12 @@ export function useRoute(): Route {
 export const useDestination = () =>
   useRouterState({ select: (s) => s.location.pathname.split('/')[1] || 'inbox' })
 
+/**
+ * The address as one navigation made it. A new value comes with every navigation, Back and Forward
+ * included, so it is never the same again once the address has moved: compare it by identity.
+ */
+export const useLocationNow = () => useRouterState({ select: (s) => s.location })
+
 /** The address as it stands, outside React. */
 function current(): Route {
   const s = router!.state
