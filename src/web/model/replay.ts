@@ -1,3 +1,4 @@
+import { answerLines } from '@domain/words'
 import type { AnswerState, Answer } from './ask'
 import type { Topic } from './observability'
 
@@ -27,7 +28,7 @@ export const NEXT: Record<AnswerState, string> = {
   missing: 'Say that nothing is written down. Do not guess a cause. Offer to report it.',
   conflict: 'Say that two items disagree, and give both. Do not pick one.',
   stale: 'Say it may be out of date, and when it was last checked.',
-  failed: "Say it couldn't check just now, and to ask again.",
+  failed: `Say: ${answerLines.failed.sentence} Do not say nothing is written. Ask again in a minute.`,
 }
 
 /** A topic run again: the answer, its steps, how long it took, and the steps a publish changed. */
