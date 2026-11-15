@@ -48,7 +48,7 @@ Your browser opens a screen that names the agent and what it can do: read publis
 
 ## If nothing signs in
 
-The page checks every few seconds. After two minutes it shows what usually helps, and after ten it stops, with Check again:
+The page looks every few seconds. After two minutes it shows what usually helps, and after ten it stops, with Keep waiting:
 
 <!-- include checks -->
 

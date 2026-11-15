@@ -41,7 +41,8 @@ const OFF_TOPIC =
 const ADVICE = 'What to do is not written down. Here is what is.'
 const FORECAST = 'What happens next is not written down. Here is what is.'
 const OUTSIDE = 'Ask knows only what is written here, not what others do. Here is what is.'
-const NUMBERS = /keeps no numbers, so Ask cannot work this out\./
+const NUMBERS =
+  /keeps no numbers, so Ask cannot work this out\.|Ask does not hold the figures, only what is written about them\./
 const SOURCE = 'Definitions live in your source tool, so Ask cannot change one.'
 const WRITE = 'Ask does not write context. You can start it here.'
 const OWN_VOICE = /\b(?:I recommend|I suggest|you should|we should)\b/i

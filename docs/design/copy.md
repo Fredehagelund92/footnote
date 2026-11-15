@@ -100,14 +100,14 @@ Each list below is one source in the code (a map or a constant), drawn by every 
 
 The six states of an answer. One or two words, an icon and a tint, one short sentence under every line but Checked. In the Ask chat the badge stands alone and its sentence opens in its card.
 
-| State key | Label           | Sentence                           | Long form (tooltip, Help) |
-| --------- | --------------- | ---------------------------------- | ------------------------- |
-| grounded  | **Checked**     | (none)                             | Based on checked context  |
-| partial   | **Partial**     | Only part of this is written down. | Covers part of it         |
-| missing   | **Not found**   | Nothing is written about this yet. | Nothing written down      |
-| conflict  | **Conflict**    | Two items say different things.    | Context disagrees         |
-| stale     | **Outdated**    | Some of this may be old.           | May be out of date        |
-| failed    | **Not checked** | The check did not run.             | Could not check           |
+| State key | Label             | Sentence                             | Long form (tooltip, Help) |
+| --------- | ----------------- | ------------------------------------ | ------------------------- |
+| grounded  | **Checked**       | (none)                               | Based on checked context  |
+| partial   | **Partial**       | Only part of this is written down.   | Covers part of it         |
+| missing   | **Not found**     | Nothing is written about this yet.   | Nothing written down      |
+| conflict  | **Conflict**      | Two items say different things.      | Context disagrees         |
+| stale     | **Outdated**      | Some of this may be old.             | May be out of date        |
+| failed    | **Not looked up** | Ask could not look this up just now. | Could not look up         |
 
 A draft answer says "Based on this draft". The long forms are the only place the older labels may still appear.
 
@@ -125,20 +125,20 @@ A count of what agents asked says what the reader's own Observability says: a fl
 
 When Ask cannot answer the question asked, it says so in a fixed sentence (FR-720). A limit sentence comes first, and what is written follows it. A cannot sentence stands alone: nothing was looked up, so it has no state.
 
-| Exit             | Sentence                                                                                                               |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `limit:advice`   | What to do is not written down. Here is what is.                                                                       |
-| `limit:forecast` | What happens next is not written down. Here is what is.                                                                |
-| `limit:outside`  | Ask knows only what is written here, not what others do. Here is what is.                                              |
-| `limit:numbers`  | Heed keeps no numbers, so Ask cannot work this out. Here is what is written.                                           |
-| `limit:partly`   | Ask could read only part of this question. Here is what is written about what it names.                                |
-| `limit:general`  | Nothing is written about Poland in particular. Here is what is written in general.                                     |
-| `cannot:numbers` | Heed keeps no numbers, so Ask cannot work this out. An agent with your data tool can, and it reads this context first. |
-| `cannot:source`  | Definitions live in your source tool, so Ask cannot change one.                                                        |
-| `cannot:write`   | Ask does not write context. You can start it here.                                                                     |
-| `cannot:person`  | Ask does not answer questions about one person's work.                                                                 |
-| `cannot:not_yet` | Ask cannot work this out yet.                                                                                          |
-| Plan not used    | Ask could not read this question just now, so nothing was looked up.                                                   |
+| Exit             | Sentence                                                                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `limit:advice`   | What to do is not written down. Here is what is.                                                                                                                                        |
+| `limit:forecast` | What happens next is not written down. Here is what is.                                                                                                                                 |
+| `limit:outside`  | Ask knows only what is written here, not what others do. Here is what is.                                                                                                               |
+| `limit:numbers`  | Heed keeps no numbers, so Ask cannot work this out. Here is what is written.                                                                                                            |
+| `limit:partly`   | Ask could read only part of this question. Here is what is written about what it names.                                                                                                 |
+| `limit:general`  | Nothing is written about Poland in particular. Here is what is written in general.                                                                                                      |
+| `cannot:numbers` | Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first. |
+| `cannot:source`  | Definitions live in your source tool, so Ask cannot change one.                                                                                                                         |
+| `cannot:write`   | Ask does not write context. You can start it here.                                                                                                                                      |
+| `cannot:person`  | Ask does not answer questions about one person's work.                                                                                                                                  |
+| `cannot:not_yet` | Ask cannot answer this kind of question yet. It can tell you what is written about a metric, what changed lately, and who owns a domain.                                                |
+| Plan not used    | Ask could not read this question just now, so nothing was looked up.                                                                                                                    |
 
 A period a records read keeps no history for is said, never dropped: "This is how it stands today, not in 2025: the records keep no count by date." What the records keep about what an answer found stands in fixed sentences under its words: "Jon Abara and Sofia Brandt own Sales.", "Returns changed definition on 28 April 2026: check date 2 Oct 2026, due for a check, last checked 20 Oct 2026."
 
@@ -163,15 +163,15 @@ Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives th
 
 ### Inbox cards and groups
 
-| Card kind    | Group label         | Row evidence                                       |
-| ------------ | ------------------- | -------------------------------------------------- |
-| `gap`        | **Not found**       | How often a question found nothing                 |
-| `flag`       | **Reported**        | What was reported                                  |
-| `look`       | **Saved questions** | How many need a look                               |
-| mention      | **Mentioned you**   | Who, and where                                     |
-| returned     | **Returned to you** | Who returned it: "Returned by Jon Abara"           |
-| `check`      | **Due for a check** | The check date that passed                         |
-| `suggestion` | **Suggestion**      | Size and reach, "2 wording, 1 link - 12 questions" |
+| Card kind    | Group label             | Row evidence                                       |
+| ------------ | ----------------------- | -------------------------------------------------- |
+| `gap`        | **Nothing written yet** | How often a question found nothing                 |
+| `flag`       | **Reported**            | What was reported                                  |
+| `look`       | **Saved questions**     | How many need a look                               |
+| mention      | **Mentioned you**       | Who, and where                                     |
+| returned     | **Returned to you**     | Who returned it: "Returned by Jon Abara"           |
+| `check`      | **Due for a check**     | The check date that passed                         |
+| `suggestion` | **Suggestion**          | Size and reach, "2 wording, 1 link - 12 questions" |
 
 Under All: **Waiting on others** and **Done**. Never "Gap" or "Flag" as a card name.
 
@@ -197,7 +197,7 @@ The answers in a suggestion's quick view (the Inbox pane and the dock) carry one
 
 ### Agents and access
 
-The live line: **Not connected yet**, **Waiting for your agent to connect...**, **Still waiting**, **Connected: <agent>, <person>**, **Stopped checking after 10 minutes**, **The connection was declined in the browser**. Actions: Copy, Check again, Revoke.
+The live line: **Not connected yet**, **Waiting for your agent to connect...**, **Still waiting**, **Connected: <agent>, <person>**, **Stopped waiting after 10 minutes**, **The connection was declined in the browser**. Actions: Copy, Keep waiting, Revoke.
 
 ### Integrations
 

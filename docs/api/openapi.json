@@ -11751,7 +11751,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -11885,7 +11884,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -15213,7 +15211,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -15347,7 +15344,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -16397,7 +16393,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -16531,7 +16526,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -17914,7 +17908,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -18048,7 +18041,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -19322,7 +19314,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -19456,7 +19447,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -20722,7 +20712,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -20856,7 +20845,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -21964,7 +21952,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -22098,7 +22085,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -23346,7 +23332,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -23480,7 +23465,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -25775,7 +25759,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -25909,7 +25892,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -28353,7 +28335,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -28487,7 +28468,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -39712,7 +39692,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -39846,7 +39825,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -43628,7 +43606,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -43762,7 +43739,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -44948,7 +44924,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -45082,7 +45057,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -54597,7 +54571,7 @@
     "/archived-areas": {
       "get": {
         "operationId": "areas.archived",
-        "summary": "The deleted domains that history keeps, newest first, with what restoring each gives back",
+        "summary": "The deleted domains that history keeps, newest first",
         "tags": [
           "admin"
         ],
@@ -54635,15 +54609,6 @@
                       },
                       "archivedAt": {
                         "type": "string"
-                      },
-                      "team": {
-                        "type": "number"
-                      },
-                      "terms": {
-                        "type": "number"
-                      },
-                      "binnedItems": {
-                        "type": "number"
                       }
                     },
                     "required": [
@@ -54651,10 +54616,7 @@
                       "name",
                       "label",
                       "summary",
-                      "archivedAt",
-                      "team",
-                      "terms",
-                      "binnedItems"
+                      "archivedAt"
                     ]
                   }
                 }
@@ -68499,7 +68461,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -68633,7 +68594,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -69997,7 +69957,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -70131,7 +70090,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -76519,7 +76477,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -76653,7 +76610,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -77810,7 +77766,6 @@
                       },
                       "state": {
                         "enum": [
-                          "estimated",
                           "awaiting_approval",
                           "queued",
                           "running",
@@ -78542,7 +78497,6 @@
                         },
                         "state": {
                           "enum": [
-                            "estimated",
                             "awaiting_approval",
                             "queued",
                             "running",
@@ -79627,7 +79581,6 @@
                           },
                           "state": {
                             "enum": [
-                              "estimated",
                               "awaiting_approval",
                               "queued",
                               "running",
@@ -80160,7 +80113,6 @@
                     },
                     "state": {
                       "enum": [
-                        "estimated",
                         "awaiting_approval",
                         "queued",
                         "running",
@@ -80887,7 +80839,6 @@
                     },
                     "state": {
                       "enum": [
-                        "estimated",
                         "awaiting_approval",
                         "queued",
                         "running",
@@ -81615,7 +81566,6 @@
                     },
                     "state": {
                       "enum": [
-                        "estimated",
                         "awaiting_approval",
                         "queued",
                         "running",

@@ -379,7 +379,6 @@ const REASONS: Record<string, string> = {
   rollback: 'What agents got before came back',
   item_restored: 'A context item came back',
   area_deleted: 'A domain was deleted',
-  area_restored: 'A domain came back',
   decision_undone: 'A decision was undone',
 }
 

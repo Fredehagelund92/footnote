@@ -140,7 +140,7 @@ const stateWord: Record<AnswerState, string> = {
   missing: 'Not found',
   conflict: 'Conflict',
   stale: 'Outdated',
-  failed: 'Not checked',
+  failed: 'Not looked up',
 }
 
 /** What the planner reads for a question on this edition. */

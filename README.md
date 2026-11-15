@@ -168,7 +168,7 @@ links stay in a secret store in Docker's `heed_keys` volume.
 - **Checked before it ships.** The review compares the claims with the source, shows a clash with live
   context, and runs the question agents asked against the draft. [Review a suggestion](docs/help/review-a-suggestion.md).
 - **Six answer lines.** Every answer, for an agent and for a person, starts with one: Checked, Partial, Not found,
-  Conflict, Outdated or Not checked. [Answer lines](docs/help/answer-lines.md).
+  Conflict, Outdated or Not looked up. [Answer lines](docs/help/answer-lines.md).
 - **An MCP server.** Six tools: `get_context`, `find_context`, `read_context`, `report`, `suggest_context` and
   `get_related`. Agents sign in as the person and see only what that person can read.
   [Agent tools](docs/help/tools.md).

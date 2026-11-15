@@ -177,7 +177,7 @@ export default function NamesReview({
   const body = (
     <>
       <PaneHead
-        state={{ label: 'Names', icon: 'names', tone: 'neutral' }}
+        state={{ label: 'New metrics and dimensions', icon: 'names', tone: 'neutral' }}
         title={namesWords({ ready: ready.length, flagged: flagged.length, tools }).title}
         summary={`These metrics and dimensions were found in ${tools.length ? tools.join(', ') : 'your definitions tool'}. Publish them, and people can write context about them and agents can use them.`}
       />
