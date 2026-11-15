@@ -134,7 +134,7 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekFacts>
             {d.synced ? (
               <PeekFact icon={LockIcon}>
-                <b>{domain}</b> - read-only, synced from {d.tool ?? 'its tool'} {SYNCED_AT} -{' '}
+                <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} {SYNCED_AT} -{' '}
                 <a
                   href={sourceUrl(d)}
                   target="_blank"
@@ -153,7 +153,7 @@ export function DefinitionPeek({ name }: { name: string }) {
           </PeekFacts>
         </PeekBand>
         {!d.sameAs && (
-          <PeekBand label="Also called">
+          <PeekBand label="Another name">
             <SynonymTags d={d} canEdit={canEdit} />
           </PeekBand>
         )}

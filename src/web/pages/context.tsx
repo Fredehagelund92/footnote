@@ -429,8 +429,9 @@ export function ContextPage() {
                   </EmptyMedia>
                   <EmptyTitle>No context yet</EmptyTitle>
                   <EmptyDescription>
-                    Until there is some, agents hear “Nothing is written down for this.” That is the
-                    honest answer, not an error.
+                    A context item is one thing your team wrote down about a number, such as “Online
+                    sales to Norway stopped on 4 August”. Until there is some, agents hear “Nothing
+                    is written down for this.” That is the honest answer, not an error.
                   </EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>
@@ -673,7 +674,7 @@ export function ContextPage() {
                       </Th>
                       {sortTh('title', 'w-full px-1.5 @max-xl/main:px-3')}
                       <Th className="hidden w-px min-w-50.5 px-1.5 @min-[60rem]/main:table-cell">
-                        Scope
+                        Applies to
                       </Th>
                       <Th className="hidden w-18 min-w-18 px-1.5 @xl/main:table-cell">Status</Th>
                       <Th className="hidden w-39 min-w-39 px-1.5 @xl/main:table-cell">When</Th>

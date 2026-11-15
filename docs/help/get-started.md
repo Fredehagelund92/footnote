@@ -24,7 +24,7 @@ Here you write down what your numbers mean, so AI tools stop guessing. This page
 
 ## Publish the names
 
-Each read of your definitions makes a name for every metric and dimension that has none yet. They wait on one card, and nothing is published until you publish it.
+Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card, and nothing is published until you publish it.
 
 - **Publish all** makes the ready names live at once, so context can apply to them and agents can use them.
 - **Look at these first** holds a name that would give a word a second meaning, such as two metrics both called Revenue. Keep it, change it, or leave it out. Nothing is picked for you.

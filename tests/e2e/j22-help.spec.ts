@@ -127,7 +127,7 @@ test('Contact support goes to GitHub issues, and asks for a connector the same w
   await page.keyboard.press('Escape')
   await go(page, '/settings/integrations')
   for (const link of [
-    page.getByRole('link', { name: 'Request a connector' }),
+    page.getByRole('link', { name: 'Request an integration' }),
     page.getByRole('link', { name: 'Open an issue' }),
   ])
     await expect(link).toHaveAttribute(
