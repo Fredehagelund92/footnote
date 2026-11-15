@@ -149,7 +149,7 @@ export function DomainPage({
     )
 
   const items = isNew ? [] : facts.filter((f) => f.domain === id && servedToAgents(f))
-  const due = items.filter((f) => f.status === 'Needs checking').length
+  const due = items.filter((f) => f.status === 'Due for a check').length
   const saved = savedCounts(savedAll, id)
   const terms = isNew ? 0 : defs.filter((x) => x.domain === id).length
   const sandbox = d?.sandbox ?? false

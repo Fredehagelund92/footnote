@@ -229,9 +229,6 @@
     "src/web/api/http-integrations.ts": {
       "a read": 2
     },
-    "src/web/api/http-map.ts": {
-      "needs checking": 1
-    },
     "src/web/api/http-obs.ts": {
       "gap": 1
     },
@@ -246,15 +243,13 @@
       "synced": 1
     },
     "src/web/api/mock/data/integrations.ts": {
-      "a read": 1,
-      "needs checking": 1
+      "a read": 1
     },
     "src/web/api/mock/data/observability.ts": {
       "gap": 3
     },
     "src/web/api/mock/data/world.ts": {
-      "flag": 1,
-      "needs checking": 3
+      "flag": 1
     },
     "src/web/api/mock/index.ts": {
       "flag": 1
@@ -270,10 +265,6 @@
     },
     "src/web/components/heed/answer.tsx": {
       "gap": 1
-    },
-    "src/web/components/heed/columns.tsx": {
-      "needs checking": 1,
-      "overdue": 1
     },
     "src/web/components/heed/conflict-view.tsx": {
       "flag": 4
@@ -295,15 +286,11 @@
     "src/web/components/heed/frame.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/list.tsx": {
-      "needs checking": 1
-    },
     "src/web/components/heed/load-state.tsx": {
       "retry": 1
     },
     "src/web/components/heed/loop-nouns.tsx": {
-      "gap": 1,
-      "needs checking": 1
+      "gap": 1
     },
     "src/web/components/heed/mention-chip.tsx": {
       "gap": 1
@@ -360,9 +347,6 @@
     "src/web/pages/agent-policies.tsx": {
       "clashe": 1
     },
-    "src/web/pages/context.tsx": {
-      "needs checking": 2
-    },
     "src/web/pages/definition-editor.tsx": {
       "retry": 1
     },
@@ -371,7 +355,6 @@
       "synced": 2
     },
     "src/web/pages/editor.tsx": {
-      "needs checking": 2,
       "retry": 1
     },
     "src/web/pages/inbox.tsx": {
@@ -380,7 +363,6 @@
     "src/web/pages/integrations.tsx": {
       "a read": 10,
       "flagged": 2,
-      "needs checking": 2,
       "retry": 1
     },
     "src/web/pages/observability/feedback.tsx": {

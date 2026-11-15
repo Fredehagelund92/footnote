@@ -103,7 +103,7 @@ export function FactPeek({ id }: { id: string }) {
           (checked
             ? f.id === fact.disagreesWith
             : f.id === fact.disagreesWith || f.disagreesWith === fact.id) &&
-          (f.status === 'Live' || f.status === 'Needs checking'),
+          (f.status === 'Live' || f.status === 'Due for a check'),
       )
     : undefined
   // Who may settle it and how often agents got both come with the item's read: no second read.
@@ -129,7 +129,7 @@ export function FactPeek({ id }: { id: string }) {
   const owners = ownersOf(fact, domains)
   const page = `/context/${fact.id}`
   const flag = flagCard?.flag && !done[flagCard.id] ? flagCard : undefined
-  const stale = fact.status === 'Needs checking' || !!fact.outOfDate
+  const stale = fact.status === 'Due for a check' || !!fact.outOfDate
   const question = `What should I know about ${fact.where[0]?.toLowerCase() ?? 'this'}${fact.where[1] ? ` in ${fact.where[1]}` : ''}?`
   const nComments = countComments(comments)
 
@@ -206,7 +206,7 @@ export function FactPeek({ id }: { id: string }) {
         )
       }
     >
-      {fact.outOfDate ?? 'Its check date has passed.'}
+      {fact.outOfDate ?? 'It is due for a check.'}
     </PeekAttention>
   ) : null
 
@@ -264,7 +264,7 @@ export function FactPeek({ id }: { id: string }) {
               <PeekFact icon={CircleCheckIcon}>
                 <b>{domains[fact.domain]?.name}</b> - owned by <b>{and(owners)}</b> - checked{' '}
                 {fact.checkedOn}
-                {fact.status === 'Needs checking' && (flag || overlap) && ', needs checking'}
+                {fact.status === 'Due for a check' && (flag || overlap) && ', due for a check'}
               </PeekFact>
             )}
             {!checked && !fact.source ? (

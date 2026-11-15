@@ -328,7 +328,7 @@ Design B, at one density. A filter bar (Filter with a live count per value, Sort
 | Kind    | The kind as an icon before the title                                                                                                  |
 | Title   | The title alone                                                                                                                       |
 | Scope   | Tag chips in a column as wide as they are (up to 20rem), the metric cut first and a market never; it steps aside under 960 px of pane |
-| Status  | A circle icon (dashed draft, check live, alert needs checking, minus archived)                                                        |
+| Status  | A circle icon (dashed draft, check live, alert due for a check, minus archived)                                                       |
 | When    | A glyph and a short date (infinity always, arrow ongoing, since, until, a range)                                                      |
 | Checked | One dot: filled up to 30 days, half up to 90, hollow after that                                                                       |
 

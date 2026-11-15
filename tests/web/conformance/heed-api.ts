@@ -90,7 +90,7 @@ export function describeHeedApi(
         expect(new Set(items.map((f) => f.id)).size).toBe(items.length)
         for (const f of items) {
           expect(['event', 'issue', 'note', 'guide'], f.id).toContain(f.kind)
-          expect(['Draft', 'Live', 'Needs checking', 'Archived'], f.id).toContain(f.status)
+          expect(['Draft', 'Live', 'Due for a check', 'Archived'], f.id).toContain(f.status)
           expect(f.when, f.id).toBe(whenLabel(f.valid))
           expect(f.title, f.id).not.toBe('')
           for (const name of f.where) expect(name, f.id).not.toBe('')
@@ -511,7 +511,7 @@ export function describeHeedApi(
         const { domains } = await live.getWorkspace()
         const mine = new Set(domains.filter((d) => d.owners.includes(person)).map((d) => d.id))
         const due = (await live.getLibrary()).items.find(
-          (f) => f.status === 'Needs checking' && mine.has(f.domain),
+          (f) => f.status === 'Due for a check' && mine.has(f.domain),
         )!
         await live.editItem({
           id: due.id,
@@ -542,7 +542,7 @@ export function describeHeedApi(
       // answers each.
       const overlaps = items.filter(
         (f) =>
-          (f.status === 'Live' || f.status === 'Needs checking') &&
+          (f.status === 'Live' || f.status === 'Due for a check') &&
           item.where.every((w) => f.where.includes(w)),
       )
       return {
@@ -922,7 +922,7 @@ export function describeHeedApi(
         const items = (await live.getLibrary()).items
         const held = domains.find((d) =>
           items.some(
-            (f) => f.domain === d.id && (f.status === 'Live' || f.status === 'Needs checking'),
+            (f) => f.domain === d.id && (f.status === 'Live' || f.status === 'Due for a check'),
           ),
         )!
         await expect(live.removeDomain({ id: held.id })).rejects.toMatchObject({
@@ -2291,7 +2291,7 @@ export function describeHeedApi(
       async () => {
         const items = await listed()
         const due = await records('what is due for a check?')
-        expect(due.total).toBe(items.filter((f) => f.status === 'Needs checking').length)
+        expect(due.total).toBe(items.filter((f) => f.status === 'Due for a check').length)
         const archived = await records('what is archived?')
         expect(archived.total).toBe(items.filter((f) => f.status === 'Archived').length)
         // A domain by its name: the service names its domains by ids of its own.

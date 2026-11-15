@@ -2773,7 +2773,7 @@ function ScopeChooser({
 
 /**
  * What a change stops reading of a definitions tool connected: the views left out, what they hold,
- * and the live items that rely on them, which its next read marks Needs checking for their owners.
+ * and the live items that rely on them, which its next read marks Due for a check for their owners.
  * Saving waits until whoever changes it says they have seen those items.
  */
 function LeftOutNotice({
@@ -2822,7 +2822,7 @@ function LeftOutNotice({
           <p>
             {items.count === 1 ? '1 live item relies' : `${items.count} live items rely`} on them.
             Its next read marks {items.count === 1 ? 'it' : 'each'}{' '}
-            <span className="font-medium">Needs checking</span> and tells its owners.
+            <span className="font-medium">Due for a check</span> and tells its owners.
           </p>
           <ul aria-label="Live items that rely on them" className="flex flex-col gap-1">
             {items.named.slice(0, 5).map((item) => (
@@ -3186,7 +3186,7 @@ function ChoiceSteps({
                 ? [
                     <>
                       A changed or missing definition marks the context that relies on it{' '}
-                      <span className="font-medium">Needs checking</span> and tells its owner.
+                      <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
                     <>Nothing is published or changed by a read.</>,
                     <>{`If ${c.name} can't be reached, the last good read stays and nothing is flagged.`}</>,
