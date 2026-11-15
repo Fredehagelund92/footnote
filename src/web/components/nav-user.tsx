@@ -15,12 +15,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { ThemeChoices } from '@/components/site-header'
 import { open } from '@/lib/events'
 import { useApiWrite } from '@/api/queries'
 import { rememberSignedOut } from '@/lib/demo-profiles'
 import { useMe } from '@/lib/workspace'
 
-// The sidebar block's user menu: Connect an agent and Sign out. Help sits in the sidebar's foot, the theme in the header.
+// The sidebar block's user menu: Connect an agent and Sign out. Help sits in the sidebar's foot, the theme in the header; a phone's deep pages give up the header's theme, so it is here too.
 export function NavUser() {
   const { isMobile, setOpenMobile } = useSidebar()
   const me = useMe()
@@ -69,6 +70,15 @@ export function NavUser() {
                 Connect an agent
               </DropdownMenuItem>
             </DropdownMenuGroup>
+            {isMobile && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                  <ThemeChoices />
+                </DropdownMenuGroup>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
