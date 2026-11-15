@@ -31,6 +31,8 @@ export type Invite = {
   admin: boolean
   /** The domains they own once they sign in, by the rule the sign-in uses. */
   willOwn: DomainId[]
+  /** The domains it was sent to, by id, as the sender made it: a sender sends it again only while they own all of them. */
+  sentTo: DomainId[]
   /** Who sent it, by id; null for one made at the command line, which has no sender. */
   sentBy: string | null
   /** Whether it lets them in: open, expired (a new link gives another week), or void. */
@@ -139,7 +141,7 @@ export function partyActions(party: Party, me: Person, domains: Domains): PartyA
           : me.admin ||
               (sender &&
                 party.voidBecause !== 'sender' &&
-                party.willOwn.every((d) => me.owns.includes(d)))
+                party.sentTo.every((d) => me.owns.includes(d)))
             ? 'can'
             : party.voidBecause === 'sender'
               ? { locked: 'Its sender can no longer make this invite. An admin makes a new link' }

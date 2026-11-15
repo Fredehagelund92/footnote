@@ -49,6 +49,7 @@ export function peopleOf(input: {
     email: i.email,
     admin: i.role === 'admin',
     willOwn: i.willOwn.filter((d) => byId[d]),
+    sentTo: i.areaIds,
     sentBy: i.invitedBy,
     standing: i.standing,
     voidBecause: i.voidBecause,

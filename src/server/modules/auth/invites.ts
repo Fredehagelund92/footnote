@@ -122,7 +122,12 @@ export async function createInvites(
       [email],
     )
     if (pending) {
-      if (pending.standing === 'open' || !(actor.admin || pending.invitedBy === actor.id)) {
+      const pointless = pending.voidBecause && resendPointless[pending.voidBecause]
+      if (
+        pending.standing === 'open' ||
+        pointless ||
+        !(actor.admin || pending.invitedBy === actor.id)
+      ) {
         results.push({ email, outcome: 'pending', invite: pending })
         continue
       }

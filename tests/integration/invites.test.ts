@@ -546,4 +546,28 @@ describe('an invite that would be refused', () => {
       message: 'They are a member already. Take this invite back instead.',
     })
   })
+
+  it('reports an invite to an erased person as pending, not replaced by one just as void', async () => {
+    await client.query(
+      "insert into people (id,email,display_name,deactivated_at,erased_at) values ($1,'gone@example.test','gone',now(),now())",
+      [randomUUID()],
+    )
+    const made = await client.query<{ id: string }>(
+      `insert into invites (email,role,area_ids,invited_by,token_hash,expires_at)
+       values ('gone@example.test','member','{}',$1,$2,now()+interval '7 days') returning id::text`,
+      [people.admin, inviteTokenHash(randomUUID())],
+    )
+    const id = made.rows[0]!.id
+    expect((await openInvites(admin)).find((i) => i.id === id)).toMatchObject({
+      voidBecause: 'erased',
+    })
+    const results = await invite(admin, {
+      emails: ['gone@example.test'],
+      role: 'member',
+      areaIds: [],
+    })
+    expect(results).toEqual([expect.objectContaining({ outcome: 'pending' })])
+    const open = await openInvites(admin)
+    expect(open.filter((i) => i.email === 'gone@example.test').map((i) => i.id)).toEqual([id])
+  })
 })

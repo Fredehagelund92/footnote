@@ -77,6 +77,7 @@ describe('what may be done to a member or an invite', () => {
     email: 'omar@larchwood.example',
     admin: false,
     willOwn: ['marketing'],
+    sentTo: ['marketing'],
     sentBy: 'p_tomas',
     standing: 'open',
     voidBecause: null,
@@ -138,6 +139,13 @@ describe('what may be done to a member or an invite', () => {
     expect(partyActions(omar, moved, domains)).toMatchObject({
       resend: { locked: 'Only an admin or whoever sent it makes a new link' },
       leave: 'can',
+    })
+  })
+
+  it('keeps a sender from a new link once they own only some of the domains it names', () => {
+    const both: Party = { ...omar, willOwn: ['marketing'], sentTo: ['marketing', 'sales'] }
+    expect(partyActions(both, { ...tomas, owns: ['marketing'] }, domains).resend).toEqual({
+      locked: 'Only an admin or whoever sent it makes a new link',
     })
   })
 

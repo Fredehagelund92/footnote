@@ -70,6 +70,7 @@ describe('the people and their domains', () => {
         email: 'nina@larchwood.example',
         admin: false,
         willOwn: ['area_marketing'],
+        sentTo: ['area_marketing'],
         sentBy: 'p1',
         standing: 'open',
         voidBecause: null,
@@ -104,6 +105,7 @@ describe('the people and their domains', () => {
         email: 'first@larchwood.example',
         admin: true,
         willOwn: ['area_sales'],
+        sentTo: ['area_sales'],
         sentBy: null,
         standing: 'open',
         voidBecause: null,
@@ -133,7 +135,12 @@ describe('the people and their domains', () => {
       ],
     })
     expect(invites).toEqual([
-      expect.objectContaining({ willOwn: [], standing: 'void', voidBecause: 'sender' }),
+      expect.objectContaining({
+        willOwn: [],
+        sentTo: ['area_marketing'],
+        standing: 'void',
+        voidBecause: 'sender',
+      }),
     ])
   })
 })
