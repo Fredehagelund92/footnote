@@ -453,7 +453,7 @@ describe('heed, the command-line tool', () => {
     // Editions are for owners, deputies and administrators (Quality design G13).
     const contributor = await heed(['export', '--out', out])
     expect(contributor.code).toBe(1)
-    expect(contributor.err).toContain('Editions are for owners, deputies and administrators.')
+    expect(contributor.err).toContain('Editions are for owners, deputies and admins.')
     const exported = await heed(['export', '--out', out], 'owner')
     expect(exported.code, exported.err).toBe(0)
     const text = await readFile(out, 'utf8')
@@ -467,7 +467,7 @@ describe('heed, the command-line tool', () => {
 
     const refused = await heed(['audit'])
     expect(refused.code).toBe(1)
-    expect(refused.err).toContain('administrators and auditors')
+    expect(refused.err).toContain('The history log is for admins.')
     const audit = await heed(['audit', '--format', 'csv', '--action', 'import'], 'admin')
     expect(audit.code, audit.err).toBe(0)
     const lines = audit.out.trimEnd().split('\r\n')

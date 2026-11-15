@@ -24,7 +24,7 @@
 
 ## Before you send it
 
-- [ ] The words people read follow `docs/design/copy.md` and the names in `src/domain/words.ts` (the service's own sentences: `docs/design/voice.md` and `src/domain/words-v1.ts`)
+- [ ] The words people read follow `docs/design/copy.md` and the names in `src/domain/words.ts`
 - [ ] The description makes sense to a stranger: it links only to files in this repository, issues and public pages
 - [ ] No real access keys, passwords or personal data, in the code or in the examples
 - [ ] Shared components you reused, and any token you added, are named here: <!-- e.g. Button, Sheet; token `--mark-add` -->

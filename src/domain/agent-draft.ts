@@ -452,7 +452,8 @@ export function deriveAgentDraft(
     references: 'The definitions of the metrics and dimensions in its scope.',
     ownerId: "The domain's owner.",
     reviewDate: 'The default review date for its kind.',
-    claimLevel: 'The default: a fact, with no stated effect. Only an owner states an effect.',
+    claimLevel:
+      'The default: a context item, with no stated effect. Only an owner states an effect.',
     riskLevel: 'The default for its kind. Only an owner raises it.',
     audience: 'Everyone.',
     replaces: 'Left for people: only the items that overlap are listed.',

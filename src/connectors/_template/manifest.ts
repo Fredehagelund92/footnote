@@ -73,7 +73,7 @@ export const manifest = defineManifest({
         kind: 'text',
         label: 'User name for the token',
         description:
-          'Some Git hosts ask for a user name with the token, and most accept any. If you leave it empty, we send x-access-token.',
+          'Some Git hosts ask for a user name with the token, and most take any. If you leave it empty, we send x-access-token.',
         pattern: '^[A-Za-z0-9._@+-]{1,100}$',
         patternMessage: 'Use letters, digits and . _ @ + - only.',
         advanced: true,

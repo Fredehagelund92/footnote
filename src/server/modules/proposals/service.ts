@@ -87,7 +87,7 @@ export function changeReason(text: string | null | undefined, action: ProposalRe
   if (reason === null) return null
   if (action !== 'change')
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
-      message: 'Only a suggested change says what is wrong with a fact.',
+      message: 'Only a suggestion says what is wrong with a context item.',
     })
   rejectSensitive(reason)
   rejectMentions(reason)
@@ -176,7 +176,7 @@ function proposalsService(
   function conflict(proposal: ProposalRecord): never {
     throw new ORPCError('CONFLICT', {
       message:
-        'Someone changed this proposal after you opened it. Look at the latest version, then try again.',
+        'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
       data: { current: proposal },
     })
   }
@@ -386,11 +386,11 @@ function proposalsService(
       proposerOnly(prior)
       if (prior.state !== 'rejected')
         throw new ORPCError('CONFLICT', {
-          message: 'You can start a new draft only from a rejected proposal.',
+          message: 'You can start a new draft only from a rejected suggestion.',
         })
       if (input.itemId && (prior.action !== 'change' || input.itemId !== prior.itemId))
         throw new ORPCError('CONFLICT', {
-          message: 'That proposal is about a different fact.',
+          message: 'That suggestion is about a different context item.',
         })
       itemId = prior.action === 'change' ? (prior.itemId ?? undefined) : undefined
       source = prior.draft
@@ -504,7 +504,7 @@ function proposalsService(
       proposerOnly(p)
       if (!['draft', 'changes_requested'].includes(p.state))
         throw new ORPCError('CONFLICT', {
-          message: 'You can only edit a draft, or a proposal sent back for changes.',
+          message: 'You can only edit a draft, or a suggestion sent back for changes.',
         })
       const draft = await defaults(input, p.areaId, p.draft.scope)
       rejectSensitive(draft)
@@ -532,7 +532,7 @@ function proposalsService(
       proposerOnly(p)
       if (!['draft', 'changes_requested'].includes(p.state))
         throw new ORPCError('CONFLICT', {
-          message: 'Only a draft, or a proposal sent back for changes, can be sent for review.',
+          message: 'Only a draft, or a suggestion sent back for changes, can be sent for review.',
         })
       // Match edition_lock's key without granting write privileges on the live pointer.
       await tx.query(
@@ -564,11 +564,11 @@ function proposalsService(
         )
         // A resubmitted create has no live version yet. A change may change the kind (FR-139).
         if (p.action === 'change' && !rescue && !base)
-          throw new ORPCError('CONFLICT', { message: 'The accepted fact is gone.' })
+          throw new ORPCError('CONFLICT', { message: 'The published context item is gone.' })
         if (rescue && base)
           throw new ORPCError('CONFLICT', {
             message:
-              'Agents get this fact again since it was restored, so this proposal is out of date.',
+              'Agents get this context item again since it was restored, so this suggestion is out of date.',
           })
         // A change sent again hangs on the version agents get now, not on its last one: a check
         // or another publish since then would otherwise leave it unpublishable for good.
@@ -645,7 +645,8 @@ function proposalsService(
       }
       if (p.state !== 'draft')
         throw new ORPCError('CONFLICT', {
-          message: 'Only a draft can be discarded. To take back a proposal you sent, withdraw it.',
+          message:
+            'Only a draft can be discarded. To take back a suggestion you sent, withdraw it.',
         })
       const [discarded] = await tx.query<{ revision: number; discardedAt: string }>(
         'update proposals set discarded_at=now() where id=$1 returning revision,discarded_at::text as "discardedAt"',

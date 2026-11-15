@@ -28,8 +28,7 @@ The Heed v1 mockup tells the same world in its own fixtures: 22 context items, 1
    "deliveries stopped": the show's step 6 stops sharing a context item, and the two would read
    as one thing. The words "item", "term" and "member" were banned too. The glossary v2 of
    [Copy](copy.md) lifts that ban, because "context item", "term" and "Member" are product
-   words in Heed v1. `src/domain/words.ts` holds glossary v2; the earlier list, which still
-   governs the service's own sentences, is in `src/domain/words-v1.ts`. Metric names such as "Units per order"
+   words in Heed v1. `src/domain/words.ts` holds glossary v2, which the service's own sentences follow too. Metric names such as "Units per order"
    and "On-time shipping rate" keep their names, since the tests name them.
 5. **The draft rules must read the kind.** The kind of a drafted fact comes from its first
    sentence (`kindByRule`, `src/domain/agent-draft.ts`). An event needs a date ("on 4 August
@@ -91,7 +90,7 @@ we earn." Description:
 > sold**, the basket figures behind them (units per order, average order value, gross margin,
 > online share) and orders (orders and returns).
 >
-> Facts here are mostly events and notes that move these numbers, such as a market's online
+> Context items here are mostly events and notes that move these numbers, such as a market's online
 > sales stopping, a payment provider outage or a change in how discounts are netted off.
 > Marketing spend and discount cost live in Marketing.
 
@@ -111,7 +110,7 @@ first-time buyers, repeat purchases, churn and lifetime value." Description:
 > buyers**, **active customers**, **repeat purchase rate**, **churn rate** and **customer
 > lifetime value**.
 >
-> Most facts here explain definitions (what counts as active, when a customer churns) and breaks
+> Most context items here explain definitions (what counts as active, when a customer churns) and breaks
 > in the series, such as a change in the activity window or a market where accounts were merged.
 
 ## 4. Metrics
