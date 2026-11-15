@@ -59,8 +59,9 @@
 }
 
 /* The sidebar folding because a dock opened, or unfolding as it closes, is instant: the page reflows
-   once. A person's own fold keeps its motion. */
-[data-fold='auto'] [data-slot^='sidebar'] {
+   once. A person's own fold keeps its motion. Everything inside the rail goes with it (the user button
+   in the foot shrinks with the rail), but not the page, which the sidebar's wrapper also holds. */
+[data-fold='auto'] :is([data-slot^='sidebar'], [data-slot='sidebar-container'] *) {
   transition-duration: 0ms !important;
 }
 
@@ -147,11 +148,13 @@
   animation-duration: var(--dur-2);
 }
 
-/* Overview's filters changing: the topic rows and the chips move to their new places in 220ms on
-   the move curve, those that arrive fade in and those that go fade out, while the rest of the page
-   (the numbers counting, the bars moving) stays live under them. Only those on the screen take part
-   (data-vt-seen): a picture of each of hundreds of rows out of sight would hold the page still. With
-   reduced motion there is no transition at all (pages/observability/overview.tsx). */
+/* A list changing what it shows (Overview's filters, Context and the definitions when they sort,
+   group, filter or switch All and Conflicts): the rows and the chips move to their new places in
+   220ms on the move curve, those that arrive fade in and those that go fade out, while the rest of
+   the page (the numbers counting, the bars moving) stays live under them. Only those on the screen
+   take part (data-vt-seen): a picture of each of hundreds of rows out of sight would hold the page
+   still. The keyboard changes the list at once, and with reduced motion there is no transition at
+   all (lib/list-motion.ts). */
 :root[data-vt='filters'] {
   view-transition-name: none;
 
@@ -395,6 +398,43 @@
   }
 }
 
+/* The bulk bar: it comes up from 8px below in 220ms and goes back down in 150ms, one step shorter. It
+   stays mounted while it leaves (data-leaving), and a transition turns round where it is if the
+   count goes to zero and back. */
+@utility bar-motion {
+  transition-property: opacity, translate;
+  transition-duration: var(--dur-3);
+  transition-timing-function: var(--ease-out);
+
+  &[data-leaving] {
+    opacity: 0;
+    translate: 0 var(--dist-2);
+    transition-duration: var(--dur-2);
+  }
+
+  :root[data-ready] & {
+    @starting-style {
+      opacity: 0;
+      translate: 0 var(--dist-2);
+    }
+  }
+}
+
+/* The editor's Saved tick, when a save lands: it fades in from 97% in 150ms, as every other icon swap
+   starts. It is simply there on first show. */
+@utility tick-motion {
+  transition-property: opacity, scale;
+  transition-duration: var(--dur-2);
+  transition-timing-function: var(--ease-out);
+
+  :root[data-ready] & {
+    @starting-style {
+      opacity: 0;
+      scale: 0.97;
+    }
+  }
+}
+
 /* A copy button's icon after the copy: the tick takes the copy icon's place in 90ms, from 97%, and
    goes back the same way. Both sit in one cell, so the button never changes size. */
 @utility icon-swap {
@@ -441,6 +481,37 @@
   :root[data-ready] & {
     @starting-style {
       opacity: 0;
+    }
+  }
+}
+
+/* The Inbox saying the work is done: the block fades in and rises 8px in 220ms, the tick icon coming
+   from 97 percent, starting once the last row's 150ms collapse is done, only when the last card left
+   while the page was open (data-arrive is set at the first draw, never on a page that is already
+   empty). Reduced motion keeps a 90ms fade, no rise. */
+@utility done-arrive {
+  transition:
+    opacity var(--dur-3) var(--ease-out) var(--dur-2),
+    translate var(--dur-3) var(--ease-out) var(--dur-2);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: var(--dur-fade), var(--dur-3);
+  }
+
+  &[data-arrive] {
+    @starting-style {
+      opacity: 0;
+      translate: 0 var(--dist-2);
+    }
+  }
+
+  & [data-slot='empty-icon'] {
+    transition: scale var(--dur-3) var(--ease-out) var(--dur-2);
+  }
+
+  &[data-arrive] [data-slot='empty-icon'] {
+    @starting-style {
+      scale: 0.97;
     }
   }
 }

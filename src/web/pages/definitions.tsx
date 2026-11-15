@@ -73,6 +73,8 @@ import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
 import { TruncatedText } from '@/components/heed/truncated'
 import { TextSwitch } from '@/components/heed/switches'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { byPointer, moveRows, type Press } from '@/lib/list-motion'
 import { plainText } from '@/lib/mentions'
 import { Loadable } from '@/components/heed/load-state'
 import { DEFINITIONS_LEAD, TableBodySkeleton, TableSkeleton } from '@/components/heed/list-skeleton'
@@ -151,6 +153,12 @@ export function DefinitionsPage() {
   const [group, setGroup] = React.useState<Group>('domain')
   const [folded, setFolded] = React.useState<string[]>([])
   const [chosenSort, setSort] = React.useState<Sorting<Sort> | null>(null)
+  const reduced = useReducedMotion()
+  // A pointer change of what the list shows (the view, a filter, the sort, the grouping) moves the
+  // rows on screen to their new places in one view transition; the keyboard and reduced motion
+  // change the list at once (lib/list-motion.ts). Typing in Search changes it at once too, as a
+  // search must keep up with the hand.
+  const move = (press: Press, change: () => void) => moveRows(change, reduced || !byPointer(press))
 
   // Led by coverage: what agents would hear Not found for comes first.
   const sorting = chosenSort ?? startOf(SORTS, text.trim() ? 'best' : 'coverage')
@@ -194,7 +202,7 @@ export function DefinitionsPage() {
     words(text).filter((w) =>
       `${d.name} ${d.sourceNames.join(' ')} ${otherNames(d).join(' ')}`.toLowerCase().includes(w),
     ).length
-  const onSort = (k: Sort) => setSort(clicked(SORTS, sorting, k))
+  const onSort = (k: Sort, press?: Press) => move(press, () => setSort(clicked(SORTS, sorting, k)))
   const shown = rows
     .filter((d) => pass(d))
     .sort((a, b) =>
@@ -307,6 +315,7 @@ export function DefinitionsPage() {
         data-state={isSel ? 'selected' : undefined}
         data-peeked={peeked === d.name || undefined}
         data-leaving={leaving.has(d.name) || undefined}
+        data-vt-move
         className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:bg-muted data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
         onMouseDown={sel.onMouseDown}
         onClick={(e) => sel.rowClick(d.name, e) || openDock('def', d.name)}
@@ -479,7 +488,10 @@ export function DefinitionsPage() {
                 <ChevronDownIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-44">
-                <DropdownMenuRadioGroup value={view} onValueChange={(v) => setView(v as View)}>
+                <DropdownMenuRadioGroup
+                  value={view}
+                  onValueChange={(v, e) => move(e.event, () => setView(v as View))}
+                >
                   {(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => (
                     <DropdownMenuRadioItem key={v} value={v}>
                       <FilterValue count={typeCount(v)}>
@@ -495,7 +507,7 @@ export function DefinitionsPage() {
               label="Definitions to show"
               className="pl-1 text-sm @max-md/main:hidden"
               value={view}
-              onChange={setView}
+              onChange={(v, press) => move(press, () => setView(v))}
               options={(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => ({
                 value: v,
                 label: v === 'all' ? 'All' : `${typeLabel[v]}s`,
@@ -525,7 +537,7 @@ export function DefinitionsPage() {
                     <DropdownMenuCheckboxItem
                       key={c}
                       checked={cues.includes(c)}
-                      onCheckedChange={() => setCues((x) => toggle(x, c))}
+                      onCheckedChange={(_, e) => move(e.event, () => setCues((x) => toggle(x, c)))}
                     >
                       <FilterValue
                         count={all.filter((d) => cueOf(d) === c && pass(d, 'cue')).length}
@@ -538,7 +550,10 @@ export function DefinitionsPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>Synonyms</DropdownMenuLabel>
-                  <DropdownMenuCheckboxItem checked={synonymRows} onCheckedChange={setSynonymRows}>
+                  <DropdownMenuCheckboxItem
+                    checked={synonymRows}
+                    onCheckedChange={(on, e) => move(e.event, () => setSynonymRows(on))}
+                  >
                     <FilterValue count={all.filter((d) => glossary.foldsInto(d)).length}>
                       <span className="inline-flex items-center gap-2">
                         <TypeGlyph d={{ type: 'term', sameAs: 'x' }} />
@@ -554,7 +569,9 @@ export function DefinitionsPage() {
                     <DropdownMenuCheckboxItem
                       key={d}
                       checked={domain.includes(d)}
-                      onCheckedChange={() => setDomain((x) => toggle(x, d))}
+                      onCheckedChange={(_, e) =>
+                        move(e.event, () => setDomain((x) => toggle(x, d)))
+                      }
                     >
                       <FilterValue
                         count={all.filter((x) => x.domain === d && pass(x, 'domain')).length}
@@ -569,7 +586,7 @@ export function DefinitionsPage() {
             <SortMenu
               keys={SORTS}
               sorting={sorting}
-              onSort={setSort}
+              onSort={(next, press) => move(press, () => setSort(next))}
               shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
               narrow="@max-5xl/main:sr-only"
               className="w-56"
@@ -586,10 +603,12 @@ export function DefinitionsPage() {
                   <DropdownMenuLabel>Group by</DropdownMenuLabel>
                   <DropdownMenuRadioGroup
                     value={group}
-                    onValueChange={(v) => {
-                      setGroup(v as Group)
-                      setFolded([])
-                    }}
+                    onValueChange={(v, e) =>
+                      move(e.event, () => {
+                        setGroup(v as Group)
+                        setFolded([])
+                      })
+                    }
                   >
                     {(Object.keys(GROUPS) as Group[]).map((g) => (
                       <DropdownMenuRadioItem key={g} value={g}>
@@ -762,23 +781,25 @@ export function DefinitionsPage() {
                     </td>
                   </tr>
                 )}
+                {/* One flat list of rows, not a fragment per group: a row keeps its place in the
+                    tree when the grouping changes, so it moves to its new place instead of being
+                    drawn again. */}
                 {showRows &&
-                  groups.map((g) => {
+                  groups.flatMap((g) => {
                     const open = !folded.includes(g.key)
-                    return (
-                      <React.Fragment key={g.key || 'all'}>
-                        {g.key && (
-                          <GroupRow
-                            label={g.key}
-                            detail={mix(g.rows)}
-                            open={open}
-                            colSpan={COLS}
-                            onToggle={() => setFolded((x) => toggle(x, g.key))}
-                          />
-                        )}
-                        {open && g.rows.map(row)}
-                      </React.Fragment>
-                    )
+                    return [
+                      g.key ? (
+                        <GroupRow
+                          key={`group:${g.key}`}
+                          label={g.key}
+                          detail={mix(g.rows)}
+                          open={open}
+                          colSpan={COLS}
+                          onToggle={() => setFolded((x) => toggle(x, g.key))}
+                        />
+                      ) : null,
+                      ...(open ? g.rows.map(row) : []),
+                    ]
                   })}
                 {showRows && (
                   <AddRow

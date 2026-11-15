@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import type { Press } from '@/lib/list-motion'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -93,7 +94,8 @@ export function TextSwitch<T extends string>({
   label: string
   options: TextOption<T>[]
   value: T
-  onChange: (v: T) => void
+  /** The press that chose, when one chose it: the keys report none, so they stay instant. */
+  onChange: (v: T, press?: Press) => void
   /** Words before the choices, shown: "Answer as". */
   lead?: string
   /** A quiet mark between the words, for the sentence form. */
@@ -148,7 +150,7 @@ export function TextSwitch<T extends string>({
                 aria-checked={on}
                 tabIndex={on ? 0 : -1}
                 data-value={o.value}
-                onClick={() => onChange(o.value)}
+                onClick={(e) => onChange(o.value, e)}
                 className={cn(
                   'inline-flex h-7 items-center gap-1.5 rounded-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-3.5',
                   on

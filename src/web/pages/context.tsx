@@ -68,7 +68,9 @@ import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
 import { inForce, parseWhen, timeShort, trustOf } from '@/lib/timeframe'
 import { FreshDot, KindIcon, StatusIcon, TimeGlyph } from '@/components/heed/columns'
-import { href, navigate, setQuery } from '@/lib/router'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { byPointer, moveRows, type Press } from '@/lib/list-motion'
+import { changeQuery, href, navigate } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import { conflictsQuery, contextPageQuery, useVocabulary } from '@/api/queries'
 import { conflictsByItem } from '@/model/conflicts'
@@ -155,7 +157,14 @@ export function ContextPage() {
   const [kind, setKind] = React.useState<Kind[]>([])
   // In the address, so a link (the old Conflicts list, a help page) lands on it and a reload keeps it.
   const onlyConflicts = query.get('show') === 'conflicts'
-  const setOnlyConflicts = (on: boolean) => setQuery({ show: on ? 'conflicts' : undefined })
+  const setOnlyConflicts = (on: boolean) => changeQuery({ show: on ? 'conflicts' : undefined })
+  const reduced = useReducedMotion()
+  // A pointer change of what the list shows (All or Conflicts, a filter, the sort, the grouping,
+  // Show archived) moves the rows on screen to their new places in one view transition; the
+  // keyboard and reduced motion change the list at once (lib/list-motion.ts). Typing in Search
+  // changes it at once too, as a search must keep up with the hand.
+  const move = (press: Press, change: () => void | Promise<unknown>) =>
+    moveRows(change, reduced || !byPointer(press))
   const [chosenSort, setSort] = React.useState<Sorting<Sort> | null>(null)
   const [group, setGroup] = React.useState<Group>('none')
   const [folded, setFolded] = React.useState<string[]>([])
@@ -227,7 +236,7 @@ export function ContextPage() {
     setDomain([])
     setStatus([])
     setKind([])
-    if (onlyConflicts) setOnlyConflicts(false)
+    if (onlyConflicts) void setOnlyConflicts(false)
   }
   const clearAll = () => {
     clearFilters()
@@ -259,6 +268,7 @@ export function ContextPage() {
         data-state={isSel ? 'selected' : undefined}
         data-peeked={peeked === f.id || compared.includes(f.id) || undefined}
         data-leaving={leaving.has(f.id) || undefined}
+        data-vt-move
         className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:bg-muted data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
         onMouseDown={sel.onMouseDown}
         {...ahead(f.id)}
@@ -382,7 +392,7 @@ export function ContextPage() {
       keys={HEADS}
       sorting={sorting}
       by={key}
-      onSort={(k) => setSort(clicked(SORTS, sorting, k))}
+      onSort={(k, press) => move(press, () => setSort(clicked(SORTS, sorting, k)))}
       className={className}
       tip={tip}
     />
@@ -436,7 +446,11 @@ export function ContextPage() {
                 <TextSwitch
                   label="Show"
                   value={onlyConflicts ? 'conflicts' : 'all'}
-                  onChange={(v) => setOnlyConflicts(v === 'conflicts')}
+                  onChange={(v, press) =>
+                    move(press, () =>
+                      changeQuery({ show: v === 'conflicts' ? 'conflicts' : undefined }),
+                    )
+                  }
                   options={[
                     { value: 'all', label: 'All' },
                     { value: 'conflicts', label: 'Conflicts', count: conflicts.data?.length },
@@ -463,7 +477,9 @@ export function ContextPage() {
                         <DropdownMenuCheckboxItem
                           key={d}
                           checked={domain.includes(d)}
-                          onCheckedChange={() => setDomain((x) => toggle(x, d))}
+                          onCheckedChange={(_, e) =>
+                            move(e.event, () => setDomain((x) => toggle(x, d)))
+                          }
                         >
                           <FilterValue
                             count={facts.filter((f) => f.domain === d && pass(f, 'domain')).length}
@@ -480,7 +496,9 @@ export function ContextPage() {
                         <DropdownMenuCheckboxItem
                           key={st}
                           checked={status.includes(st)}
-                          onCheckedChange={() => setStatus((x) => toggle(x, st))}
+                          onCheckedChange={(_, e) =>
+                            move(e.event, () => setStatus((x) => toggle(x, st)))
+                          }
                         >
                           <FilterValue
                             count={facts.filter((f) => f.status === st && pass(f, 'status')).length}
@@ -497,7 +515,9 @@ export function ContextPage() {
                         <DropdownMenuCheckboxItem
                           key={k}
                           checked={kind.includes(k)}
-                          onCheckedChange={() => setKind((x) => toggle(x, k))}
+                          onCheckedChange={(_, e) =>
+                            move(e.event, () => setKind((x) => toggle(x, k)))
+                          }
                         >
                           <FilterValue
                             count={facts.filter((f) => f.kind === k && pass(f, 'kind')).length}
@@ -512,7 +532,9 @@ export function ContextPage() {
                       <DropdownMenuLabel>Conflict</DropdownMenuLabel>
                       <DropdownMenuCheckboxItem
                         checked={onlyConflicts}
-                        onCheckedChange={() => setOnlyConflicts(!onlyConflicts)}
+                        onCheckedChange={(_, e) =>
+                          move(e.event, () => setOnlyConflicts(!onlyConflicts))
+                        }
                       >
                         <FilterValue
                           count={
@@ -528,7 +550,7 @@ export function ContextPage() {
                 <SortMenu
                   keys={SORTS}
                   sorting={sorting}
-                  onSort={setSort}
+                  onSort={(next, press) => move(press, () => setSort(next))}
                   shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
                   narrow="@max-3xl/main:sr-only"
                   className="w-60"
@@ -552,10 +574,12 @@ export function ContextPage() {
                       <DropdownMenuLabel>Group by</DropdownMenuLabel>
                       <DropdownMenuRadioGroup
                         value={group}
-                        onValueChange={(v) => {
-                          setGroup(v as Group)
-                          setFolded([])
-                        }}
+                        onValueChange={(v, e) =>
+                          move(e.event, () => {
+                            setGroup(v as Group)
+                            setFolded([])
+                          })
+                        }
                       >
                         {(Object.keys(GROUPS) as Group[]).map((g) => (
                           <DropdownMenuRadioItem key={g} value={g}>
@@ -583,7 +607,7 @@ export function ContextPage() {
                       <button
                         type="button"
                         className="font-medium text-foreground underline underline-offset-4"
-                        onClick={() => setShowArchived((s) => !s)}
+                        onClick={(e) => move(e, () => setShowArchived((s) => !s))}
                       >
                         {showArchived ? 'Hide' : 'Show'}
                       </button>
@@ -623,7 +647,7 @@ export function ContextPage() {
                   />
                 )}
                 {onlyConflicts && (
-                  <FilterChip field="In a conflict" onRemove={() => setOnlyConflicts(false)} />
+                  <FilterChip field="In a conflict" onRemove={() => void setOnlyConflicts(false)} />
                 )}
               </FilterRow>
               <div className="min-w-0 shrink-0">
@@ -683,7 +707,7 @@ export function ContextPage() {
                           <Button
                             variant="outline"
                             className="mt-3"
-                            onClick={() => setOnlyConflicts(false)}
+                            onClick={() => void setOnlyConflicts(false)}
                           >
                             Show all context
                           </Button>
@@ -707,23 +731,25 @@ export function ContextPage() {
                         </tr>
                       )
                     )}
+                    {/* One flat list of rows, not a fragment per group: a row keeps its place in
+                        the tree when the grouping changes, so it moves to its new place instead of
+                        being drawn again. */}
                     {showRows &&
-                      groups.map((g) => {
+                      groups.flatMap((g) => {
                         const open = !folded.includes(g.key)
-                        return (
-                          <React.Fragment key={g.key || 'all'}>
-                            {g.key && (
-                              <GroupRow
-                                label={g.key}
-                                detail={String(g.rows.length)}
-                                open={open}
-                                colSpan={COLS}
-                                onToggle={() => setFolded((x) => toggle(x, g.key))}
-                              />
-                            )}
-                            {open && g.rows.map(row)}
-                          </React.Fragment>
-                        )
+                        return [
+                          g.key ? (
+                            <GroupRow
+                              key={`group:${g.key}`}
+                              label={g.key}
+                              detail={String(g.rows.length)}
+                              open={open}
+                              colSpan={COLS}
+                              onToggle={() => setFolded((x) => toggle(x, g.key))}
+                            />
+                          ) : null,
+                          ...(open ? g.rows.map(row) : []),
+                        ]
                       })}
                     {showRows && (
                       <AddRow
