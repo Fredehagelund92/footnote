@@ -335,15 +335,15 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
   const checkChain = () =>
     void write('checkHistory', undefined).then(
       ({ whole, entries }) =>
-        toast(whole ? 'The chain is whole' : 'The chain is broken', {
+        toast(whole ? 'The log is whole' : 'The log is broken', {
           description:
             entries === null
               ? whole
-                ? 'Every entry checked.'
+                ? 'Every entry verified.'
                 : 'An entry was changed after the fact.'
-              : `${entries.toLocaleString('en')} entries checked.`,
+              : `${entries.toLocaleString('en')} entries verified.`,
         }),
-      failed('check the chain'),
+      failed('verify the log'),
     )
   const exported = (what: 'exportHistory' | 'exportContext') =>
     void write(what, undefined).then((file) => {
@@ -393,7 +393,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
         action={
           <>
             <Button variant="outline" onClick={checkChain}>
-              Check the chain
+              Verify the log
             </Button>
             <Button variant="outline" onClick={() => exported('exportHistory')}>
               Export
@@ -459,7 +459,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Answer tests"
         level={3}
-        description="Saved questions answered by a real AI model, then judged. The free check of saved questions already runs after every change, in Observability, Quality."
+        description="Answer tests are saved questions, answered by a real AI model and then judged. The free run of saved questions already happens after every change, in Observability, Quality."
         collapsible
         defaultOpen={false}
       >

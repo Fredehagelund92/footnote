@@ -18,7 +18,7 @@ A suggestion from that agent publishes at once only when all of this is true:
 
 - It is a new context item. A change to a live item, or archiving one, always waits for an owner.
 - It is low risk. An agent never sets the risk level, so its suggestion keeps the default for its kind: a Rule starts at low risk, and an Event, a Warning or a Guide at normal risk. Today that means Rules only.
-- It clashes with nothing live, has no claim to check, and nothing in it needs care, such as words that may mean a legal or financial matter.
+- It clashes with nothing live, has no detail to compare with the source, and nothing in it needs care, such as words that may mean a legal or financial matter.
 - Every check passes, as it must for any publish.
 - The agent has not reached the most it may publish in a day. That cap is 10 unless the owner chooses another number from 1 to 50. Over it, the rest of the day's suggestions wait for review, and publishing starts again as the day's count falls.
 - The owner who set it is still an owner of the domain, and the agent may still send suggestions.

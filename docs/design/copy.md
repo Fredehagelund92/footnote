@@ -197,7 +197,7 @@ The answers in a suggestion's quick view (the Inbox pane and the dock) carry one
 
 ### Agents and access
 
-The live line: **Not connected yet**, **Waiting for your agent to connect...**, **Still waiting**, **Connected: <agent>, <person>**, **Stopped checking after 10 minutes**, **The connection was declined in the browser**. Actions: Copy, Check again, Revoke.
+The live line: **Not connected yet**, **Waiting for your agent to connect...**, **Still waiting**, **Connected: <agent>, <person>**, **Stopped waiting after 10 minutes**, **The connection was declined in the browser**. Actions: Copy, Keep waiting, Revoke.
 
 ### Integrations
 

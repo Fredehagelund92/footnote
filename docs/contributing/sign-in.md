@@ -90,7 +90,7 @@ false on a new install). Switching it off again ends every policy at once.
   a new item (never a change to a live item or an archive), at low
   risk as the server derived it (an agent never sets the risk level, so its suggestion keeps the
   default for its kind: low for a Rule, normal for every other kind), with no provenance flag, no
-  claim to check and no clash with live context (FR-225), under the daily cap, while the person who
+  detail to compare and no clash with live context (FR-225), under the daily cap, while the person who
   set it is still an owner of the domain and `suggest_context` is on for the agent and the
   workspace. It goes through the owner's own publish path, run as the owner who set the policy:
   every required check runs again, the decision names that owner as decider with a link to the

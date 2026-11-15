@@ -332,7 +332,7 @@ describe('the review sheet (FR-224)', () => {
       bulk: false,
       publishable: true,
     })
-    expect(s.readiness.title).toMatch(/^Ready, with \d claims? to check$/)
+    expect(s.readiness.title).toMatch(/^Compare \d details? with the source first$/)
     expect(s.tryIt.before.state).toBe('missing')
     expect(s.tryIt.after.items.map((i) => i.title)).toEqual(['Payments delayed in Spain'])
   })
