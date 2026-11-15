@@ -1,4 +1,4 @@
--- 0052_invite_standing: whether an invite will let its person in, and with what, asked in one place.
+-- 0053_invite_standing: whether an invite will let its person in, and with what, asked in one place.
 --
 -- - auth.accept_invite held the rule alone: an open invite in time is refused when its sender has
 --   lost the authority to make it, and gives only the domains its sender may still give. The People
