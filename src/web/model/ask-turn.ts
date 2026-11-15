@@ -157,3 +157,74 @@ export function turnReducer(turn: Turn, action: TurnAction): Turn {
  */
 export const shownText = (turn: Turn) =>
   turn.stage === 'done' ? turn.answer.text : turn.sentences.join(' ')
+
+/**
+ * How a turn ended, once it has: the one value that says whether it joins the history, is kept
+ * with the chat, is carried to the next question, which body draws it, and what Ask again does to
+ * the answer it had (`effectsOf`). Null while the turn is on its way.
+ *
+ *   answered     the engine's answer, or the loop's
+ *   not_checked  the check could not run: the service failed, or nothing came back (Not checked)
+ *   limit        Ask's loop stopped at a limit, with its fixed sentence
+ *   stopped      the person pressed Stop; `answered` when the engine's answer was already in
+ *   refused      Ask refused the question: why, in a sentence
+ */
+export type Outcome =
+  | { kind: 'answered' }
+  | { kind: 'not_checked' }
+  | { kind: 'limit' }
+  | { kind: 'stopped'; answered: boolean }
+  | { kind: 'refused'; message: string }
+
+/** How a finished answer ended: answered, Not checked, or the loop's limit. */
+export function outcomeOfAnswer(answer: Answer): Outcome {
+  if (answer.stopped) return { kind: 'limit' }
+  // A loop answer that says Not checked has its own words and reads: it is an answer.
+  if (answer.state === 'failed' && !answer.loop) return { kind: 'not_checked' }
+  return { kind: 'answered' }
+}
+
+export function outcomeOf(turn: Turn): Outcome | null {
+  if (turn.error) return { kind: 'refused', message: turn.error }
+  if (turn.stopped) return { kind: 'stopped', answered: turn.answered }
+  if (turn.stage !== 'done') return null
+  return outcomeOfAnswer(turn.answer)
+}
+
+export type Effects = {
+  /** It starts the chat in the history. */
+  joins: boolean
+  /** It is kept with the chat, so the chat opens again on it. */
+  kept: boolean
+  /** It goes with the next question, as the chat before it. */
+  carried: boolean
+  /** Asked again, it gives back the answer the turn had before. */
+  restores: boolean
+}
+
+/** What a turn's outcome does: the one table the page reads. */
+export function effectsOf(outcome: Outcome): Effects {
+  switch (outcome.kind) {
+    case 'answered':
+    case 'limit':
+      return { joins: true, kept: true, carried: true, restores: false }
+    case 'not_checked':
+    case 'refused':
+      return { joins: false, kept: false, carried: false, restores: true }
+    // Stopped once the engine's answer was in, it shows the new answer's words; before, nothing new.
+    case 'stopped':
+      return {
+        joins: outcome.answered,
+        kept: false,
+        carried: outcome.answered,
+        restores: !outcome.answered,
+      }
+  }
+}
+
+/**
+ * Whether Ask's loop body draws the turn: a loop answer, or one still reading or stopped while it
+ * read. A Not checked turn is drawn as the check that could not run, whatever it read first.
+ */
+export const drawnByLoop = (turn: Turn) =>
+  !!turn.answer.loop || (!!turn.reads && outcomeOf(turn)?.kind !== 'not_checked')

@@ -216,7 +216,7 @@ Nothing lies between them: the token file clears Tailwind's own scale (`--text-*
 
 Weights are 400 (text), 500 (labels, buttons), 600 (titles, headings) and 700 (document titles). The page title in the header is 14 px. Prose is set at a 60ch measure.
 
-**Ask.** A question and an answer are `text-base` on 26 px lines (`leading-chat`), as the chat apps people know set theirs. An answer's words keep the 60ch measure (`max-w-reading`) inside the 44rem thread, about 76 characters a line.
+**Ask.** A question and an answer are `text-base` on 26 px lines (`leading-chat`), as the chat apps people know set theirs. An answer's words keep the 60ch measure (`max-w-reading`) inside the 44rem thread, about 76 characters a line. The words show one sentence a line, five at most, then a Show more button ("Show 3 more"); the line "Nothing is written about X yet" appears only when no source was found.
 
 ### 2.4 Spacing
 
