@@ -21,7 +21,7 @@ async function hold(page: Page) {
 const bulk = (page: Page) =>
   page
     .getByRole('complementary', { name: 'Waiting suggestions' })
-    .getByRole('button', { name: /publish/i })
+    .getByRole('button', { name: /^(Publish the|Read one to publish)/ })
 
 test('opening and leaving does not count as read', async ({ page }) => {
   await page.clock.install()
