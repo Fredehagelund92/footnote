@@ -128,7 +128,7 @@ const cubeActivity: Activity[] = [
     when: '7 Oct, 06:00',
     tone: 'changed',
     what: 'Read complete',
-    detail: '2 definitions changed, 2 context items marked Needs checking',
+    detail: '2 definitions changed, 2 context items marked Due for a check',
   },
   {
     when: '1 Oct, 06:00',
