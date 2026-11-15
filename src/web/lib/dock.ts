@@ -48,3 +48,34 @@ export function openDock(kind: DockKind, id?: string, extra?: Record<string, str
 export function closeDock() {
   setQuery({ dock: undefined, tab: undefined, flag: undefined, ptab: undefined, when: undefined })
 }
+
+/*
+  The keyboard's hand-off for a list row's peek: opening it from a row sends focus into the panel's
+  title, and closing it gives focus back to that row, unless the person has moved on to something else.
+*/
+let fromRow: string | undefined
+let intoPanel = false
+
+/** Opens a list row's peek and takes focus into it. */
+export function openFromRow(kind: DockKind, id: string) {
+  fromRow = id
+  intoPanel = true
+  openDock(kind, id)
+}
+
+/** A panel that has just drawn asks once whether focus should go into it. */
+export function takeDockFocus() {
+  const take = intoPanel
+  intoPanel = false
+  return take
+}
+
+/** After the dock has closed: focus is back on the row it opened from, if it was left with nothing. */
+export function returnFromDock() {
+  const id = fromRow
+  fromRow = undefined
+  intoPanel = false
+  if (!id || (document.activeElement && document.activeElement !== document.body)) return
+  const rows = document.querySelectorAll<HTMLElement>('[data-row-open]')
+  ;[...rows].find((r) => r.dataset.rowOpen === id)?.focus({ preventScroll: true })
+}
