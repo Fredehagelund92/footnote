@@ -210,6 +210,40 @@ test('a chat keeps its first answer, so opening it again after a reload asks not
   expect(seen.count).toBe(1)
 })
 
+test('a four-turn chat opens again after a reload on all four turns and asks nothing', async ({
+  page,
+}) => {
+  test.skip(mode !== 'http', 'the mock keeps its chats only until the page reloads')
+  const seen = await lookups(page)
+  await go(page, '/ask?n=j49h')
+  const log = page.getByRole('log')
+  const questions = [
+    'What is net revenue?',
+    'Who owns that?',
+    'And in Spain?',
+    'Which one is right?',
+  ]
+  const stop = page.getByRole('button', { name: 'Stop', exact: true })
+  for (const question of questions) {
+    await ask(page, question)
+    await expect(log.getByText(question)).toHaveCount(1)
+    await expect(stop).toHaveCount(0)
+  }
+  expect(seen.count).toBe(4)
+  await expect.poll(() => keptInBrowser(page)).toBe(true)
+  const kept = () =>
+    page.evaluate(() => {
+      const key = Object.keys(localStorage).find((k) => k.startsWith('heed.ask.chats.'))!
+      const chats = JSON.parse(localStorage.getItem(key)!) as { answers?: unknown[] }[]
+      return chats[0]?.answers?.length ?? 0
+    })
+  await expect.poll(kept).toBe(4)
+
+  await page.reload()
+  for (const question of questions) await expect(log.getByText(question)).toHaveCount(1)
+  expect(seen.count).toBe(4)
+})
+
 test('a first question that comes back Not checked does not join; Ask again that answers does', async ({
   page,
 }) => {
