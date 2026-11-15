@@ -179,7 +179,7 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     }
   }
 
-  it('reads a value it does not know as unread: Not found, and no other value cited', async () => {
+  it('reads a value it does not know as unread, and keeps the item the words cite as theirs', async () => {
     const a = await asked(
       'anything written about orders in Jordan?',
       [
@@ -189,8 +189,9 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
       // The search matches only "orders": the model cites an item about another market anyway.
       (results) => `Orders has items [${itemsOf(results[1]!.value)[0]!.id}].`,
     )
-    expect(a.state).toBe('missing')
-    expect(a.sources).toEqual([])
+    // The words rest on a written item, though not about Jordan: their source, and not Not found.
+    expect(a.state).toBe('partial')
+    expect(a.sources).toHaveLength(1)
     expect(a.read?.[0]).toBe(
       "Looked up “orders in Jordan”: nothing applies. There is no value of Market named 'Jordan'.",
     )
@@ -220,7 +221,7 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(found).toHaveLength(2)
     expect(a.state).not.toBe('missing')
     expect(a.sources).toEqual(found.map((i) => i.id))
-    expect(a.text).toContain('[1] [2]')
+    expect(a.text).toContain('campaigns.[1] [2]')
     // What the count is out of, never that none apply under what the answer cites.
     expect(a.footer?.denominator).toBe('Out of 21 published context items you may read.')
   })

@@ -41,6 +41,7 @@ import {
   type RecordsReads,
   type UnlistedTopic,
 } from './records.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /**
  * An edition to answer on: its sequence, its label, the overlay of stops and flags now, and, for
@@ -588,7 +589,7 @@ export async function replayTopic(
        from topics t where t.id = $1`,
     [input.topic],
   )
-  if (!topic?.manages) throw new ORPCError('NOT_FOUND')
+  if (!topic?.manages) throw new ORPCError('NOT_FOUND', { message: missing('this topic') })
   const head = input.when === 'now' ? await liveHead(tx) : await headBefore(tx)
   if (!head)
     throw input.when === 'now'

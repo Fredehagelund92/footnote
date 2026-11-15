@@ -13,6 +13,7 @@ import { plainReason, recordAudit } from '../admin/index.ts'
 import type { BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
 import { createReviewPath, createReviewService, loadProposal } from '../review/index.ts'
+import { notAllowed, signedOutKept } from '../../../contract/refusals.ts'
 
 /*
   Publishing without review (FR-421; docs/contributing/sign-in.md). An admin switches it on for the
@@ -158,7 +159,7 @@ async function endOne(tx: Queryable, id: string, reason: string) {
 export async function setPolicy(tx: Queryable, input: SetAgentPolicy): Promise<AgentPolicy> {
   plainReason(input.reason)
   const me = await standing(tx, input.areaId)
-  if (!me.id) throw new ORPCError('UNAUTHORIZED')
+  if (!me.id) throw new ORPCError('UNAUTHORIZED', { message: signedOutKept })
   if (!(await switchOn(tx)))
     throw new ORPCError('CONFLICT', {
       message:
@@ -248,7 +249,10 @@ export async function switchAutoPublish(
 ): Promise<{ on: boolean; ended: number }> {
   plainReason(reason)
   const [me] = await tx.query<{ admin: boolean }>('select cl_is_admin_now() as admin')
-  if (!me?.admin) throw new ORPCError('FORBIDDEN')
+  if (!me?.admin)
+    throw new ORPCError('FORBIDDEN', {
+      message: notAllowed('change what agents may do', 'an admin'),
+    })
   await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.setting:' || $1,0))", [
     SETTING,
   ])

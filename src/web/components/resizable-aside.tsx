@@ -104,7 +104,7 @@ export function ResizableAside({
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-label={`Resize ${label.toLowerCase()}`}
+        aria-label={`Resize ${label}`}
         aria-valuemin={collapsible ? closed : min}
         aria-valuemax={max}
         aria-valuenow={Math.round(shown)}

@@ -222,12 +222,13 @@ function OverviewTab({ t }: { t: Topic }) {
         >
           {compare
             ? 'Hide the compare'
-            : `Compare with what agents got ${before.before.label.toLowerCase()}`}
+            : `Compare with the answer agents got earlier (${before.before.label})`}
         </button>
         {compare &&
           (same ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              The same {before.before.label.toLowerCase()}: nothing it reads changed.
+              The answer agents got earlier ({before.before.label}) is the same: nothing it reads
+              changed.
             </p>
           ) : (
             <div className="mt-2 grid gap-px overflow-hidden rounded-md border bg-border text-sm @md:grid-cols-2">

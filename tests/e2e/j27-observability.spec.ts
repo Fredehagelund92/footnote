@@ -320,11 +320,13 @@ test('The replay runs on what agents got before the last publish', async ({ page
   const panel = page.locator('[data-slot=resizable-panel]').last()
   const before = beforeLastPublish()
   await panel
-    .getByRole('button', { name: `Compare with what agents got ${before.toLowerCase()}` })
+    .getByRole('button', { name: `Compare with the answer agents got earlier (${before})` })
     .click()
   // Side by side when the publish changed what it reads, else said to be the same.
   await expect(
-    panel.getByText(before, { exact: true }).or(panel.getByText(/^The same before/)),
+    panel
+      .getByText(before, { exact: true })
+      .or(panel.getByText(/^The answer agents got earlier .* is the same/)),
   ).toBeVisible()
   await panel.getByRole('tab', { name: 'Steps' }).click()
   await panel.getByRole('radio', { name: before }).click()

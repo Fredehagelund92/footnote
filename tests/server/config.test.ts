@@ -39,7 +39,7 @@ describe('loadConfig', () => {
       trustedProxies: [],
       fixedToday: undefined,
       models: 'mock',
-      askLoop: false,
+      askLoop: true,
       modelEnv: {},
       cubeModelDir: undefined,
       serverFolders: {},
@@ -346,9 +346,9 @@ describe('loadConfig', () => {
     expect(loadConfig({ DATABASE_URL: databaseUrl, MODELS: 'live' }).models).toBe('live')
   })
 
-  it('answers Ask with its router unless HEED_ASK_LOOP=on, and takes only on or off', () => {
-    expect(loadConfig({ DATABASE_URL: databaseUrl }).askLoop).toBe(false)
-    expect(loadConfig({ DATABASE_URL: databaseUrl, HEED_ASK_LOOP: 'on' }).askLoop).toBe(true)
+  it('answers Ask with its loop unless HEED_ASK_LOOP=off, and takes only on or off', () => {
+    expect(loadConfig({ DATABASE_URL: databaseUrl }).askLoop).toBe(true)
+    expect(loadConfig({ DATABASE_URL: databaseUrl, HEED_ASK_LOOP: 'off' }).askLoop).toBe(false)
     expect(() => loadConfig({ DATABASE_URL: databaseUrl, HEED_ASK_LOOP: 'yes' })).toThrow(
       /HEED_ASK_LOOP/,
     )

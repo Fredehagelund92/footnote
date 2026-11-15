@@ -1484,7 +1484,11 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
         `select id::text from observability_views where lower(btrim(name)) = lower(btrim($1))`,
         [input.name],
       )
-      if (taken) throw new ORPCError('CONFLICT')
+      if (taken)
+        throw new ORPCError('CONFLICT', {
+          message:
+            'A view with this name exists already. Nothing was saved. Pick another name, then save again.',
+        })
       const [row] = await tx.query<ObsView>(
         `with saved as (
            insert into observability_views (name, filters, created_by)
