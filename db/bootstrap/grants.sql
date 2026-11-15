@@ -120,10 +120,9 @@ grant execute on function cl_area_holdings(text), cl_area_delete(text) to :api;
 grant execute on function cl_ref_view(text), cl_relevant_refs(text[], text[]), cl_live_term_refs(text),
   cl_version_metric_refs(uuid) to :api;
 -- Deleting a domain: an administrator reads what it would do and does it in one step, which retires its
--- terms and records the deletion; restoring fills the restore columns once. A record is never deleted.
+-- terms and records the deletion. A record is never changed or deleted.
 grant execute on function cl_area_deletion_plan(text), edition_close_vocab_term(bigint, text) to :api;
 grant insert on area_deletions to :api;
-grant update (restored_by, restored_at, restored_edition) on area_deletions to :api;
 -- One audience rule: row security on proposals and item versions calls it as the reader, and so do the read
 -- models; an edition export reads which served versions its reader may see, with their digests.
 grant execute on function cl_audience_allows(text[]), cl_item_open(text), cl_version_open(uuid),
