@@ -1944,6 +1944,7 @@ export function ReviewPage({ id }: { id: string }) {
       {/* Under a finger every control is at least 40px; the phone bar's actions are 44px. */}
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
+          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
@@ -1970,9 +1971,14 @@ export function ReviewPage({ id }: { id: string }) {
           }
         >
           {isMobile && (
-            <Button variant="outline" className="gap-1.5" onClick={() => setQueueOpen(true)}>
-              <ListIcon data-icon="inline-start" />
-              Queue
+            // The icon alone, named for a screen reader: the title keeps the room.
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Queue"
+              onClick={() => setQueueOpen(true)}
+            >
+              <ListIcon />
             </Button>
           )}
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
