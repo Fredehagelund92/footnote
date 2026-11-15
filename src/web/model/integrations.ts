@@ -62,6 +62,8 @@ export type Connector = {
   noFileLinks?: true
   /** The setting a definitions tool names a view's domain with, as people write it there. */
   domainField?: string
+  /** The server setting that names where it reads from, when the server's operator sets it. */
+  serverSetting?: string
   /** An example of its data endpoint, shown in the empty field where figures are set up. */
   endpointExample?: string
   /** The words of its own warnings, by code. */

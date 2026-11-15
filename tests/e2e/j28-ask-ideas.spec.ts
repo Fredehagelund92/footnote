@@ -245,7 +245,7 @@ test('Asked this week shows no draft to someone who does not own the domain, and
   // nothing yet: only the empty page's words (decided 27 October 2026). The mock's are its examples.
   const starters = page.getByRole('group', { name: 'Suggested questions' })
   if (mode === 'http') {
-    await expect(page.getByText('What do you want to know about the numbers?')).toBeVisible()
+    await expect(page.getByText('What do you want to know about your metrics?')).toBeVisible()
     await expect(starters).toHaveCount(0)
   } else await expect(starters).toBeVisible()
 })

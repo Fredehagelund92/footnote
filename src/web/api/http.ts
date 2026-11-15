@@ -1039,6 +1039,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       const failure = toApiError(error)
       // Nothing is shared with agents yet: no context, so nothing applies.
       if (failure.status === 412) return { ...nothingLiveAnswer(words), ...extra }
+      // Offline nothing was checked at all: the chat says so, with Ask again, not that a check failed.
+      if (failure.kind === 'unanswered' && !navigator.onLine) throw failure
       // The check could not run: Not checked, which is not the same as nothing written down.
       if (failure.kind === 'failed' || failure.kind === 'unanswered')
         return { ...failedAnswer(words), ...extra }

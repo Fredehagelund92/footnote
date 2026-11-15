@@ -84,7 +84,6 @@ import {
   type Connector,
   type ConnectScope,
   type ConnectStep,
-  type ConnectTest,
   type ConnectValues,
   firstReadWords,
   type DocState,
@@ -97,6 +96,17 @@ import {
   type When,
 } from '@/model/integrations'
 import { readEndedWords, sourceView, type SourceBanner } from '@/model/source-view'
+import {
+  canSave,
+  flow,
+  opening,
+  rowsOf,
+  startChoices,
+  type Choices,
+  type FlowEvent,
+  type FlowState,
+  type Testing,
+} from '@/model/connect-flow'
 import { sourceHealth } from '@domain/source-state'
 import type { DomainId } from '@/model/items'
 import type { FigureTry } from '@/model/figures'
@@ -2023,19 +2033,6 @@ function DomainPick({
   )
 }
 
-/** A test of the form's settings: running, what it found, or why it could not be asked. */
-type Testing = {
-  /** Which test this is: a new one starts what may be chosen again. */
-  run: number
-  /** The settings it tested, so a change to them asks for a new test. */
-  of: string
-  running: boolean
-  result: ConnectTest | null
-  error: string | null
-}
-
-const untested: Testing = { run: 0, of: '', running: false, result: null, error: null }
-
 /** How often a tool is read, as Connect says it: "once an hour", "once a day". */
 const onceWords = (every: string) =>
   every === 'every hour' ? 'once an hour' : every === 'every day' ? 'once a day' : every
@@ -2095,6 +2092,33 @@ function Recipe({ recipe }: { recipe: NonNullable<ConnectOption['recipe']> }) {
   )
 }
 
+/**
+ * A tool with no form to fill: not ready, unknown, or set where the server runs. The last says
+ * which setting holds it and goes back to the tool's page, where what is set shows.
+ */
+function ServerSet({ c }: { c: Connector | undefined }) {
+  const line = !c
+    ? 'There is no such integration.'
+    : c.soon
+      ? `${c.name} isn't ready to connect yet.`
+      : `${c.name}'s settings are set where the server runs${c.serverSetting ? `, in ${c.serverSetting}` : ''}, by whoever runs it. They can't be changed here.`
+  return (
+    <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
+      <p>{line}</p>
+      <div className="flex gap-2">
+        {c && !c.soon && (
+          <a href={`/settings/integrations/${c.id}`} className={buttonVariants()}>
+            Back to {c.name}
+          </a>
+        )}
+        <a href="/settings/integrations" className={buttonVariants({ variant: 'outline' })}>
+          Integrations
+        </a>
+      </div>
+    </div>
+  )
+}
+
 /** Settings › Integrations › a tool › Connect: five steps on a full page, and Change settings. */
 export function ConnectFlow({ id }: { id: string }) {
   const load = useQuery(connectFormQuery(id))
@@ -2111,35 +2135,43 @@ export function ConnectFlow({ id }: { id: string }) {
     >
       <Loadable what="The connect form" skeleton={<RowsSkeleton rows={6} />} query={load}>
         {form === null || (c && c.soon) ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            {c && c.soon
-              ? `${c.name} isn't ready to connect yet.`
-              : c
-                ? `${c.name}'s settings are set where the server runs.`
-                : 'There is no such integration.'}
-          </p>
+          <ServerSet c={c} />
         ) : (
-          form && c && <ConnectSteps form={form} c={c} />
+          form &&
+          c && (
+            <ConnectSteps
+              form={form}
+              c={c}
+              reload={async () => (await load.refetch({ throwOnError: true })).data}
+            />
+          )
         )}
       </Loadable>
     </Page>
   )
 }
 
-function ConnectSteps({ form, c }: { form: ConnectForm; c: Connector }) {
+function ConnectSteps({
+  form,
+  c,
+  reload,
+}: {
+  form: ConnectForm
+  c: Connector
+  /** Reads the form again: the latest version, after someone else saved it. */
+  reload: () => Promise<ConnectForm | null | undefined>
+}) {
   const { query } = useRoute()
   const at = Math.min(5, Math.max(1, Number(query.get('step')) || 1))
   const keyed = c.keyFile !== undefined
+  const isDefinitions = c.kind === 'definitions'
   const [copied, copy] = useCopied()
-  const [values, setValues] = React.useState<ConnectValues>(() => ({
-    config: Object.fromEntries(form.fields.map((f) => [f.key, f.value])),
-    secrets: Object.fromEntries(form.secrets.map((s) => [s.key, ''])),
-  }))
-  const [files, setFiles] = React.useState<
-    Record<string, { name: string; account: string | null }>
-  >(() => Object.fromEntries(form.secrets.flatMap((s) => (s.file ? [[s.key, s.file]] : []))))
+  // Every step's state in one place, so stepping Back or testing again keeps what was chosen.
+  const [state, dispatch] = React.useReducer(flow, form, opening)
+  const { values, files, test } = state
   const [more, setMore] = React.useState(false)
-  const [test, setTest] = React.useState<Testing>(untested)
+  const domainList = useDomainList()
+  const domains = React.useMemo(() => new Set(domainList.map((d) => d.id)), [domainList])
   const sent = inUse(form, values)
   const sentKey = settingsKey(sent)
   const tested = !!test.result?.ok && test.of === sentKey
@@ -2148,53 +2180,59 @@ function ConnectSteps({ form, c }: { form: ConnectForm; c: Connector }) {
   const go = (n: number) => setQuery({ step: String(n) })
   const cancel = () =>
     navigate(form.source ? `/settings/integrations/${form.source.id}` : '/settings/integrations')
+  const run = test.run + 1
   const runTest = React.useCallback(async () => {
     const settings = inUse(form, values)
-    const of = settingsKey(settings)
-    setTest((t) => ({ ...untested, run: t.run + 1, of, running: true }))
+    dispatch({ type: 'test', of: settingsKey(settings) })
     try {
       const result = await api.testIntegration({
         connector: c.id,
         ...(form.source ? { source: form.source.id } : {}),
         ...settings,
       })
-      setTest((t) => ({ ...t, running: false, result }))
+      // A tool that keeps the definitions elsewhere is why they are added, most often.
+      const why =
+        isDefinitions && (c.git || c.places) && !form.source
+          ? `Our metric definitions live in ${c.name}`
+          : ''
+      const start = startChoices(form, result.scopes, { definitions: isDefinitions, why, domains })
+      dispatch({ type: 'tested', run, result, start })
     } catch (e: unknown) {
-      setTest((t) => ({ ...t, running: false, error: toApiError(e).message }))
+      dispatch({ type: 'testFailed', run, error: toApiError(e).message })
     }
-  }, [values, c.id, form])
+  }, [values, c, form, run, isDefinitions, domains])
   // Choose, Map or Schedule opened by its address: the settings are tested first, as they are.
   const needsTest = at >= 3 && !test.running && test.run === 0
   React.useEffect(() => {
     if (needsTest) void runTest()
   }, [needsTest, runTest])
 
-  const setField = (key: string, value: string) =>
-    setValues((v) => ({ ...v, config: { ...v.config, [key]: value } }))
-  const setSecret = (key: string, value: string) =>
-    setValues((v) => ({ ...v, secrets: { ...v.secrets, [key]: value } }))
+  const setField = (key: string, value: string) => dispatch({ type: 'field', key, value })
+  const setSecret = (key: string, value: string) => dispatch({ type: 'secret', key, value })
   const upload = (key: string, file: File) =>
-    void file.text().then((text) => {
-      setSecret(key, text)
-      setFiles((f) => ({ ...f, [key]: { name: file.name, account: accountOf(text) } }))
-    })
+    void file
+      .text()
+      .then((text) =>
+        dispatch({ type: 'file', key, text, file: { name: file.name, account: accountOf(text) } }),
+      )
 
-  // The choices stay mounted while the settings are untouched, so Back to Connect and on again
-  // finds them as they were; they draw nothing before step 3.
-  const choices =
-    test.result?.ok && test.of === sentKey ? (
+  // Choose, Map and Schedule draw what the flow keeps, once the settings as they are tested ok.
+  if (at >= 3 && tested && test.result && state.choices)
+    return (
       <ChoiceSteps
-        key={test.run}
         form={form}
         c={c}
         at={at}
         values={sent}
         scopes={test.result.scopes}
+        state={state}
+        choices={state.choices}
+        dispatch={dispatch}
+        reload={reload}
         go={go}
         cancel={cancel}
       />
-    ) : null
-  if (at >= 3 && choices) return <>{choices}</>
+    )
 
   const showing = form.fields.filter((f) => fieldVisible(f, values.config, form.fields))
   const main = showing.filter((f) => !f.advanced)
@@ -2493,12 +2531,7 @@ function ConnectSteps({ form, c }: { form: ConnectForm; c: Connector }) {
     </FlowFrame>
   )
 
-  return (
-    <>
-      {choices}
-      {settings}
-    </>
-  )
+  return settings
 }
 
 /** The connect flow's page: its five steps above one panel. */
@@ -2836,6 +2869,10 @@ function ChoiceSteps({
   at,
   values,
   scopes,
+  state,
+  choices,
+  dispatch,
+  reload,
   go,
   cancel,
 }: {
@@ -2844,6 +2881,10 @@ function ChoiceSteps({
   at: number
   values: ConnectValues
   scopes: ConnectScope[]
+  state: FlowState
+  choices: Choices
+  dispatch: React.Dispatch<FlowEvent>
+  reload: () => Promise<ConnectForm | null | undefined>
   go: (n: number) => void
   cancel: () => void
 }) {
@@ -2852,32 +2893,12 @@ function ChoiceSteps({
   const { connect, change } = useConnectActions()
   const isDefinitions = c.kind === 'definitions'
   const keyed = c.keyFile !== undefined
-  const before = new Map(form.chosen.map((choice) => [choice.id, choice.domain]))
-  // A definitions tool reads every view, or only those chosen: an allow list.
-  const [readsAll, setReadsAll] = React.useState(isDefinitions && form.readsAll)
-  // A view it reads that the model no longer has stays in the list, ticked, so it is seen.
-  const rows = React.useMemo(() => {
-    const found = new Set(scopes.map((s) => s.id))
-    const gone =
-      !isDefinitions || form.readsAll
-        ? []
-        : form.chosen
-            .filter((choice) => !found.has(choice.id))
-            .map((choice): ConnectScope => ({
-              id: choice.id,
-              title: choice.title,
-              detail: 'Not in the model',
-            }))
-    return [...gone, ...scopes]
-  }, [scopes, form, isDefinitions])
+  const { readsAll, map, why } = choices
+  const rows = React.useMemo(
+    () => rowsOf(form, scopes, isDefinitions),
+    [form, scopes, isDefinitions],
+  )
   const ids = rows.map((s) => s.id)
-  // A tool connected starts from what it reads; a new one from everything found, but what is left
-  // out at first.
-  const initial = form.source
-    ? !form.readsAll || (!isDefinitions && before.size)
-      ? ids.filter((i) => before.has(i))
-      : ids
-    : scopes.filter((s) => !s.leftOut).map((s) => s.id)
   // What the search shows, in the list's order: a range is drawn over these rows only.
   const [find, setFind] = React.useState('')
   const words = find.trim().toLowerCase()
@@ -2889,28 +2910,14 @@ function ChoiceSteps({
   // The rows to read: Shift and a click ticks a run of them, as in every list.
   const pickScopes = useSelection(
     matching.map((s) => s.id),
-    { keys: false, initial },
+    { keys: false, state: [choices.picked, (update) => dispatch({ type: 'pick', update })] },
   )
   // Every view while each one the model has is ticked; a view left out makes it a list.
   const every = readsAll && scopes.every((s) => pickScopes.isSelected(s.id))
   const chosen = every ? scopes : rows.filter((s) => pickScopes.ids.includes(s.id))
-  // A domain the tool suggests goes in only when it is one of the workspace's.
-  const domainIds = new Set(useDomainList().map((d) => d.id))
-  const [map, setMap] = React.useState<Record<string, DomainId | null>>(() =>
-    Object.fromEntries(
-      rows.map((s) => {
-        const domain = before.has(s.id) ? (before.get(s.id) ?? null) : (s.domain ?? null)
-        return [s.id, domain && domainIds.has(domain) ? domain : null]
-      }),
-    ),
-  )
-  // A tool that keeps the definitions elsewhere is why they are added, most often.
-  const [why, setWhy] = React.useState(
-    isDefinitions && (c.git || c.places) && !form.source
-      ? `Our metric definitions live in ${c.name}`
-      : '',
-  )
-  const [saving, setSaving] = React.useState(false)
+  const setReadsAll = (on: boolean) => dispatch({ type: 'readsAll', on })
+  const { save } = state
+  const [loading, setLoading] = React.useState(false)
   const mapped = chosen.filter((s) => map[s.id]).length
   const unmapped = scopes.filter((s) => !s.domain).length
   const leftOut = scopes.filter((s) => s.leftOut)
@@ -2961,15 +2968,16 @@ function ChoiceSteps({
       readsAll: isDefinitions && every,
       reason: why.trim(),
     }
-    setSaving(true)
+    dispatch({ type: 'save' })
     try {
       if (form.source) {
         await change({
           id: form.source.id,
-          revision: form.source.revision,
+          revision: state.revision ?? form.source.revision,
           ...input,
           ...(mustSee ? { acceptLeftOut: seen } : {}),
         })
+        dispatch({ type: 'saved' })
         toast(`${c.name} settings saved`, {
           description: 'They apply from its next read, which starts now. Kept in the history log.',
         })
@@ -2977,6 +2985,7 @@ function ChoiceSteps({
         return
       }
       const done = await connect({ connector: c.id, ...input })
+      dispatch({ type: 'saved' })
       toast(`${c.name} connected`, {
         description: isDefinitions
           ? 'First read now. Its names wait for you in the Inbox.'
@@ -2985,12 +2994,33 @@ function ChoiceSteps({
       if (setup) navigate('/inbox')
       else navigate(`/settings/integrations/${done.id}`)
     } catch (e: unknown) {
+      const error = toApiError(e)
       if (form.source && !every) void stops.refetch()
+      // Someone else saved first: the flow says so and holds Save until their version is loaded.
+      if (form.source && error.kind === 'conflict') {
+        dispatch({ type: 'refused', failure: error.message })
+        return
+      }
+      dispatch({ type: 'failed' })
       toast(form.source ? `Couldn't save ${c.name}` : `Couldn't connect ${c.name}`, {
-        description: toApiError(e).message,
+        description: error.message,
       })
+    }
+  }
+  // The latest version, after a conflict: what was chosen here stays, and saves over it.
+  const loadLatest = async () => {
+    setLoading(true)
+    try {
+      const latest = await reload()
+      if (!latest?.source) throw new Error('There is no such source now.')
+      dispatch({ type: 'reloaded', revision: latest.source.revision })
+      toast('Loaded the latest version', {
+        description: 'What you chose here is kept. Save to put it in place of theirs.',
+      })
+    } catch (e: unknown) {
+      toast("Couldn't load the latest version", { description: toApiError(e).message })
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
   }
 
@@ -3110,7 +3140,7 @@ function ChoiceSteps({
                       <td className="px-4">
                         <DomainPick
                           value={map[s.id] ?? null}
-                          onChange={(d) => setMap((m) => ({ ...m, [s.id]: d }))}
+                          onChange={(d) => dispatch({ type: 'domain', id: s.id, domain: d })}
                         />
                       </td>
                       <td className="px-4">
@@ -3191,6 +3221,20 @@ function ChoiceSteps({
                 </Button>
               </p>
             )}
+            {save.kind === 'conflict' && (
+              <div
+                role="alert"
+                className="flex flex-col items-start gap-3 rounded-frame border border-caution/45 bg-caution/8 p-3 text-sm"
+              >
+                <span className="flex items-start gap-2">
+                  <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-caution" />
+                  <span>{save.failure} What you chose here is kept.</span>
+                </span>
+                <Button variant="outline" disabled={loading} onClick={() => void loadLatest()}>
+                  Load the latest version
+                </Button>
+              </div>
+            )}
             {left && left.views.length > 0 && (
               <LeftOutNotice left={left} tool={c.name} seen={seen} setSeen={setSeen} />
             )}
@@ -3201,7 +3245,7 @@ function ChoiceSteps({
               <Input
                 id="why"
                 value={why}
-                onChange={(e) => setWhy(e.target.value)}
+                onChange={(e) => dispatch({ type: 'why', text: e.target.value })}
                 placeholder={form.source ? 'The handbook moved' : 'Our handbook lives in Git'}
               />
               <FieldDescription>Kept in the history log.</FieldDescription>
@@ -3223,7 +3267,16 @@ function ChoiceSteps({
         ) : (
           <Button
             onClick={() => void finish()}
-            disabled={!why.trim() || saving || checking || (mustSee && !seen)}
+            disabled={
+              !canSave(state, {
+                tested: true,
+                chosen: chosen.length,
+                mapped,
+                definitions: isDefinitions,
+              }) ||
+              checking ||
+              (mustSee && !seen)
+            }
           >
             {form.source ? 'Save changes' : isDefinitions ? `Add ${c.name}` : `Connect ${c.name}`}
           </Button>
