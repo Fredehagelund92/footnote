@@ -100,7 +100,7 @@ test('on the service, a draft has no empty History and the Inbox counts no zero'
   await expect(page.getByRole('heading', { name: 'History', exact: true })).toHaveCount(0)
   await expect(page.getByText('About this item', { exact: true })).toHaveCount(0)
   await go(page, '/inbox')
-  await expect(page.getByText('Ines Duarte - 1 link', { exact: true })).toBeVisible()
+  await expect(page.getByText(/^Ines Duarte changed 1 link\./)).toBeVisible()
   await expect(page.getByText(/\b0 questions/)).toHaveCount(0)
 })
 
