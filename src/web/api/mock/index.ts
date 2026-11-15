@@ -1020,6 +1020,20 @@ export function createMockApi() {
         if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         checkConnect(tool.id, { chosen, reason })
+        // ?change=fail: someone else saves the tool's settings, as they are, just before this.
+        if (scenario.failsOnce('change', tool.id)) {
+          const theirs = connectFormFor(
+            tool.id,
+            settings.read(scenario.address()).connected,
+            kept.get(tool.id),
+          )!
+          kept.set(tool.id, {
+            config: Object.fromEntries(theirs.fields.map((f) => [f.key, f.value])),
+            chosen: theirs.chosen,
+            readsAll: theirs.readsAll,
+            revision: (kept.get(tool.id)?.revision ?? 1) + 1,
+          })
+        }
         const current = kept.get(tool.id)?.revision ?? 1
         if (revision !== current)
           throw new ApiError(
