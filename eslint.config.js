@@ -233,9 +233,7 @@ export default tseslint.config(
     plugins: { brand: productName },
     rules: { 'brand/no-product-name': 'error' },
   },
-  // The words people read come from the glossary: src/domain/words.ts (v2, docs/design/copy.md) in
-  // src/web, src/domain/words-v1.ts (docs/design/voice.md) in the server's sentences and the
-  // demo's fixtures.
+  // The words people read come from the glossary: src/domain/words.ts (docs/design/copy.md).
   ...plainWordsConfigs,
   ...boundaryConfigs,
 )

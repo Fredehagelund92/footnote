@@ -156,7 +156,7 @@ az storage blob generate-sas --account-name youraccount --container-name dbt \\
         kind: 'text',
         label: 'Region',
         description:
-          'The region your store signs for. An Amazon S3 address that names its region needs none. Leave it empty for us-east-1, which most stores with no regions accept.',
+          'The region your store signs for. An Amazon S3 address that names its region needs none. Leave it empty for us-east-1, which most stores with no regions take.',
         pattern: '^[a-z0-9-]{1,40}$',
         patternMessage: 'Use lowercase letters, digits and dashes, such as us-east-1.',
         visibleIf: { field: 'provider', equals: ['s3', 's3-compatible'] },
@@ -203,7 +203,7 @@ az storage blob generate-sas --account-name youraccount --container-name dbt \\
         kind: 'text',
         label: 'User name for the token',
         description:
-          'Some Git hosts ask for a user name with the token, and most accept any. If you leave it empty, we send x-access-token.',
+          'Some Git hosts ask for a user name with the token, and most take any. If you leave it empty, we send x-access-token.',
         pattern: '^[A-Za-z0-9._@+-]{1,100}$',
         patternMessage: 'Use letters, digits and . _ @ + - only.',
         advanced: true,

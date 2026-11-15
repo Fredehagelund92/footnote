@@ -79,7 +79,7 @@ export const fullDayWords = (day: string) =>
 
 /**
  * The days of a window (end exclusive) as a phrase that follows a subject, with whole month names
- * (docs/design/voice.md, principle 8): "on 14 October 2026", "from 1 to 7 October 2026", "in
+ * (docs/design/copy.md): "on 14 October 2026", "from 1 to 7 October 2026", "in
  * September 2026", "from July to September 2026", "in 2026", "from 15 June 2026 on", "at any date".
  */
 export function periodWords(window: DateWindow, { upTo = false } = {}): string {

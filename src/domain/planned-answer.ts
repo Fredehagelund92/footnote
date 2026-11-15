@@ -731,7 +731,7 @@ function factLines(
     return [
       who.length
         ? `${list(who)} ${who.length === 1 ? 'owns' : 'own'} ${name}.`
-        : `${name} has no owner. An administrator can add one.`,
+        : `${name} has no owner. An admin can add one.`,
     ]
   })
   const dueLines = c.facts?.includes('due')

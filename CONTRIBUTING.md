@@ -347,16 +347,15 @@ decision: FR-121 says what an agent may never set.
 
 Use everyday names in the UI. The web app in `src/web` takes them from glossary v2 in
 `src/domain/words.ts` and writes as `docs/design/copy.md` says: "context item", "suggestion",
-"owner", "People". The service's own sentences still follow the earlier glossary in
-`src/domain/words-v1.ts` and `docs/design/voice.md` until they move. Do not show ids or database
+"owner", "People". The service's own sentences, the contract's errors, the connectors' forms, the
+demo's fixtures and the command line's help follow the same glossary. Do not show ids or database
 words to people: a contributor must never need to know Git, YAML or MCP (NFR-015 in the
 requirements). Say what an empty state means and what to do about
 it.
 
 The plain-words lint enforces this. `npm run lint:words` (also part of `npm run check`) reports a
 word the glossary bans on a screen, with the word to write instead. In the web app the count of
-old words is zero and stays there; in the service's sentences no file may gain any
-(`plain-words.baseline.json`). The same check holds what people read outside the web app to the
+old words is zero and stays there. The same check holds what people read outside the web app to the
 same glossary, and keeps the shape of the copy: no sentence glued together in code, none over 25
 words, one word for one thing, no error without a message, no fixed locale and no demo in code
 every install runs. Each rule counts against `copy-checks.baseline.json` and fails only on a rise.
