@@ -36,6 +36,7 @@ import {
   type ReviewPath,
   type ReviewService,
 } from '../review/index.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /*
   The Inbox of Heed v1 (docs/product.md, section 5): the cards of the domains a person owns (every
@@ -815,7 +816,7 @@ export function createInboxFeedService(
             : `select area_id as area from feedback where id=$1 and verdict in ('wrong','unclear')`,
           [key.id],
         )
-        if (!row?.area) throw new ORPCError('NOT_FOUND')
+        if (!row?.area) throw new ORPCError('NOT_FOUND', { message: missing('this item') })
         await tx
           .query(
             `insert into card_states (card,area_id,state,decided_by) values ($1,$2,'closed',cl_person())`,
@@ -879,7 +880,7 @@ export function createInboxFeedService(
         await deps.gaps.move(ref, 'reopen', 'Undone.')
         return { edition: null }
       }
-      throw new ORPCError('NOT_FOUND')
+      throw new ORPCError('NOT_FOUND', { message: missing('this change') })
     },
 
     /** A new workspace's setup checklist (FR-816), read from what exists. */

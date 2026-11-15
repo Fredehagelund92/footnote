@@ -34,3 +34,20 @@ export const refusalOfCode: Readonly<Record<string, string>> = {
   BAD_REQUEST: refusals.badRequest,
   INTERNAL_SERVER_ERROR: refusals.failed,
 }
+
+/**
+ * An error says three things: what went wrong, what is safe, what to do next. These build the
+ * three for the refusals the service throws in many places. `what` starts with "this", "that" or
+ * "these" and names the thing.
+ */
+
+/** 404: it does not exist, or the person may not see it. The two answer alike on purpose. */
+export const missing = (what: string) =>
+  `We couldn't find ${what}. Nothing was changed. It may have been deleted, or you may not have access: reload the page and look again.`
+
+/** 403: `what` is the thing the person tried, `ask` who can do it. */
+export const notAllowed = (what: string, ask = 'the owner of the domain or an admin') =>
+  `You can't ${what}. Nothing was changed. Ask ${ask}.`
+
+/** 401 in the middle of a change. */
+export const signedOutKept = "You're signed out. Nothing was changed. Sign in, then try again."
