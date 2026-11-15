@@ -269,7 +269,7 @@ export function ContextPage() {
         data-peeked={peeked === f.id || compared.includes(f.id) || undefined}
         data-leaving={leaving.has(f.id) || undefined}
         data-vt-move
-        className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
+        className="group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
         onMouseDown={sel.onMouseDown}
         {...ahead(f.id)}
         onClick={(e) => sel.rowClick(f.id, e) || openFromRow('context', f.id)}

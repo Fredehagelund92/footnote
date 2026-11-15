@@ -57,7 +57,6 @@ function KindGlyph({ kind }: { kind: RecordsKind }) {
       role="img"
       aria-label={kindLabel[kind]}
       className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-      strokeWidth={1.75}
     />
   )
 }

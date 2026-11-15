@@ -329,11 +329,7 @@ export function ItemFold({
           aria-describedby={id}
           className="min-h-14 gap-3 px-4 @md:px-7"
           lead={
-            <Kind
-              aria-hidden
-              className="size-4 shrink-0 text-muted-foreground"
-              strokeWidth={1.75}
-            />
+            <Kind aria-hidden className="size-4 shrink-0 text-muted-foreground" />
           }
           label={
             <span className="flex flex-col">
