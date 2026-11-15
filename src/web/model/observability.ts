@@ -273,6 +273,10 @@ export function groupCount(g: Pick<TopicGroup, 'visible' | 'shown'>) {
   return g.shown > 0 ? `${g.shown.toLocaleString('en-GB')}+` : 'Fewer than 5'
 }
 
+/** The same count in the middle of a sentence: "1,200", "40+", "fewer than 5". */
+export const groupCountInSentence = (g: Pick<TopicGroup, 'visible' | 'shown'>) =>
+  g.visible === null && g.shown <= 0 ? 'fewer than 5' : groupCount(g)
+
 /** The ways the topics sort, each with its direction in words. */
 export const TOPIC_SORTS = {
   asked: { label: 'Asked', first: 'desc', ways: { desc: 'Most first', asc: 'Fewest first' } },

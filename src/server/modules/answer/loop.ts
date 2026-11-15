@@ -54,8 +54,7 @@ import {
   (tools.ts) as the person asking, and nothing else. It answers, or asks one question back. Code
   writes everything else from what the tools returned: which context items the words cite, the
   answer state, the footer and what was read. The answer's words are not checked yet beyond the
-  citations (the answer check comes next), so the service runs this loop only where HEED_ASK_LOOP
-  turns it on.
+  citations (the answer check comes next); HEED_ASK_LOOP=off answers with the router instead.
 
   - The chat. The browser sends each earlier turn with what Ask said and what it read, by tool and
     input (FR-719.1). Each read is made again, as the person, now, before the model sees its

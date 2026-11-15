@@ -351,10 +351,10 @@ SDK's shape.
 
 ### Ask's loop
 
-With `HEED_ASK_LOOP=on`, Ask answers with one model in a tool loop on these tools in place of its
-router, through the same endpoint (`ask.lookup`, `src/server/modules/answer/loop.ts`). It is off by
-default: what it shows is not yet checked beyond its citations. The answer check of FR-720.10 comes
-next, and until it ships the router serves everyone.
+Ask answers with one model in a tool loop on these tools in place of its router, through the same
+endpoint (`ask.lookup`, `src/server/modules/answer/loop.ts`). It is on by default, and
+`HEED_ASK_LOOP=off` answers with the router. What it shows is not yet checked beyond its citations;
+the answer check of FR-720.10 comes next.
 
 - **One model, the whole chat.** The model of `models.assistant` gets a short prompt written once
   from the product's rules and promises, with no case or example in it, the chat so far, and the
