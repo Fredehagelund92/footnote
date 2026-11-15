@@ -712,7 +712,10 @@ async function forgetLastPerson(queryClient: QueryClient) {
  */
 export async function afterSomeoneElse(queryClient: QueryClient) {
   await forgetLastPerson(queryClient)
-  await queryClient.invalidateQueries()
+  await queryClient.refetchQueries({ queryKey: queryKeys.session })
+  await queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] !== queryKeys.session[0],
+  })
 }
 
 /** Marks every cache a write made stale, so open screens fetch them again. */

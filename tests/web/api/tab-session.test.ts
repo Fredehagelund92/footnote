@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query'
+import { QueryObserver, type QueryClient } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/errors'
 import { createHttpApi } from '@/api/http'
@@ -55,7 +55,12 @@ function browser() {
     }
     return Promise.resolve(json({}))
   }
-  return { state, posts, api: createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch }) }
+  return {
+    state,
+    posts,
+    fetch,
+    api: createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch }),
+  }
 }
 
 const invite = { emails: ['omar@larchwood.example'], admin: false, owns: [] }
@@ -161,5 +166,32 @@ describe('a change after another tab signed this browser in as someone else', ()
     expect((await api.getSession()).user).toBe('Maria Lindqvist')
     await api.invite(invite)
     expect(posts).toEqual(['POST /invites with csrf-maria -> 200, as Maria Lindqvist'])
+  })
+
+  it('reads what the app asks as the new person once it has moved', async () => {
+    const { state, fetch } = browser()
+    const keys: string[] = []
+    const api = createHttpApi({
+      baseUrl: 'https://heed.example/api/v1',
+      fetch,
+      shelf: { get: (key) => (keys.push(key), null), set: () => {} },
+    })
+    const queryClient = createQueryClient()
+    const session = { queryKey: ['getSession'], queryFn: () => api.getSession(), staleTime: 0 }
+    queryClient.mount()
+    const watching = new QueryObserver(queryClient, {
+      queryKey: ['listChats'],
+      queryFn: () => api.listChats(),
+    }).subscribe(() => {})
+    const shown = new QueryObserver(queryClient, session).subscribe(() => {})
+    await vi.waitFor(() => expect(keys).toEqual([`heed.ask.chats.${RAVI}`]))
+    state.cookie = 'Maria Lindqvist'
+    state.token = 'csrf-maria'
+    vi.setSystemTime(Date.now() + 60_000)
+    await queryClient.refetchQueries({ queryKey: ['getSession'] })
+    await afterSomeoneElse(queryClient)
+    await vi.waitFor(() => expect(keys.at(-1)).toBe(`heed.ask.chats.${MARIA}`))
+    watching()
+    shown()
   })
 })
