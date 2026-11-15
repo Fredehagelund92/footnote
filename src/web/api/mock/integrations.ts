@@ -273,7 +273,7 @@ export function testFor(connector: string, values: ConnectValues, many = false):
           title: tool.git ? 'Reach the repository' : 'Check the settings',
           status: 'failed',
           detail: `${missing.label} is empty.`,
-          fix: `Give the ${missing.label.toLowerCase()}.`,
+          fix: `Fill in the field called ${missing.label}.`,
         },
       ],
       scopes: [],

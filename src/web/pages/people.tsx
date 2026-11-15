@@ -479,7 +479,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
               <p className="mt-1 text-sm text-muted-foreground">
                 {p.kind === 'invite'
                   ? 'Nothing yet.'
-                  : `Last active ${(p.lastActive ?? 'a while ago').toLowerCase()}.`}
+                  : `Last active: ${p.lastActive ?? 'A while ago'}.`}
               </p>
             )}
           </section>
