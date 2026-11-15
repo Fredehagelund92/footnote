@@ -42,7 +42,7 @@ export function ObservabilityNav({ section, close }: { section: string; close: (
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent label="Observability">
         {groups.map((g) => (
           <SidebarGroup key={g.group}>
             <SidebarGroupLabel>{g.group}</SidebarGroupLabel>

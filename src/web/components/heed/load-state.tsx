@@ -3,7 +3,7 @@ import { ViewTransition } from 'react'
 import { CloudAlertIcon, RefreshCwIcon, WifiOffIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { NotFound } from '@/components/heed/not-found'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrivedAfterWait, useDelayedBusy } from '@/lib/loading'
 import { useOnline } from '@/lib/send'
@@ -157,15 +157,12 @@ export function LoadError({
 /** A context item's page, or its editor, when the item is not there. */
 export function NoSuchItem() {
   return (
-    <Empty>
-      <EmptyHeader>
-        <EmptyTitle>No such context item</EmptyTitle>
-        <EmptyDescription>
-          It may have been a draft someone deleted. Settings, Advanced says who deleted what, and
-          when.
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
+    <NotFound
+      title="There is no context item here"
+      way={{ href: '/context', label: 'Open Context' }}
+    >
+      It may have been a draft someone deleted, or the link may be old.
+    </NotFound>
   )
 }
 

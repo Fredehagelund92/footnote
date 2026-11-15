@@ -308,8 +308,8 @@ in `.github/scripts/ci-scope.sh`; a change there is itself Sensitive.
 The slow jobs run in parallel parts, each on its own runner (and its own database where it needs
 one): the checks in two jobs, the service tests in two parts, and the golden job specs in three
 parts on the mock build and four in http mode. Every job stops after 25 minutes at most, so a hung
-part fails instead of holding the run. The first load check writes the measured sizes, the budget
-and the margin to its job's summary page.
+part fails instead of holding the run. The first load check writes the measured sizes, the growth, the
+ceilings and the margins to its job's summary page.
 
 ### Migration numbers
 
@@ -325,13 +325,15 @@ it yourself with `node scripts/check-migration-numbers.ts origin/main`.
 
 A pull request is tested on the base it had when CI ran. Two pull requests that each pass on
 their own can still fail together on `main`: both take the next migration number, or each adds a
-little to the first load and together they pass its budget. So the rule on `main` merges a pull
+little to the first load and together they pass its ceiling. So the rule on `main` merges a pull
 request only when it is up to date with `main` and **CI gate** passed on that head: after another
 pull request merges, update the branch and let CI run again. The repository belongs to a personal
 account, where GitHub has no merge queue; the `merge_group` trigger in `ci.yml` waits for one.
 
-The first load budget (`scripts/check-bundle-size.mjs`) keeps about 3 percent of room over what
-CI measures, so ordinary changes fit. The automatic repairs of the pipeline that validates
+The first load budget (`scripts/check-bundle-size.mjs`) measures a pull request against its base:
+the unit job also builds the first parent of the commit under test, and the change may add at most
+1 KB of first load script over it. So a pull request that merges first moves the base for the
+others instead of failing them by a few bytes. A hard ceiling holds whatever the growth. The automatic repairs of the pipeline that validates
 changes before they are pushed (no-mistakes) may not edit the budget, the `package.json` files,
 the lockfiles or `db/migrations` (`protected_paths` in `.no-mistakes.yaml`): such a repair stops
 and reports instead, and the change goes in a pull request of its own that says why.

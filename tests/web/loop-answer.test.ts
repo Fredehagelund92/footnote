@@ -158,10 +158,10 @@ describe("Ask's loop answer, state by state", () => {
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Compare the two')).toBe(true)
   })
 
-  it('Outdated: the item row says it needs checking, once, and an admin can mark it still true', () => {
+  it('Outdated: the item row says it is due for a check, once, and an admin can mark it still true', () => {
     const el = render(example('loop-stale'))
     expect(text(el)).toContain('Some of this may be old.')
-    expect(text(el)).toContain('Needs checking')
+    expect(text(el)).toContain('Due for a check')
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Mark it still true')).toBe(
       true,
     )

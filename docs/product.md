@@ -208,14 +208,14 @@ The stored values are the earlier names. Screens, help and agents use the labels
 
 A context item has one of four statuses, each a circle icon with a word on hover:
 
-| Status             | Icon          | Meaning                                                                             |
-| ------------------ | ------------- | ----------------------------------------------------------------------------------- |
-| **Draft**          | Dashed circle | Started and never published. Agents never get it. Only drafts can be deleted.       |
-| **Live**           | Check         | Published. Agents get it.                                                           |
-| **Needs checking** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old. |
-| **Archived**       | Minus         | Retired. Agents no longer get it. Its history stays.                                |
+| Status              | Icon          | Meaning                                                                             |
+| ------------------- | ------------- | ----------------------------------------------------------------------------------- |
+| **Draft**           | Dashed circle | Started and never published. Agents never get it. Only drafts can be deleted.       |
+| **Live**            | Check         | Published. Agents get it.                                                           |
+| **Due for a check** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old. |
+| **Archived**        | Minus         | Retired. Agents no longer get it. Its history stays.                                |
 
-**Freshness** is one dot in the Checked column: filled up to 30 days since the last check, half full after that, and a hollow ring while the item is Needs checking (its check date passed or its source changed, checked or never). Age alone never makes an item due. A suggestion shows its state in words (waiting, published, returned, withdrawn).
+**Freshness** is one dot in the Checked column: filled up to 30 days since the last check, half full after that, and a hollow ring while the item is Due for a check (its check date passed or its source changed, checked or never). Age alone never makes an item due. A suggestion shows its state in words (waiting, published, returned, withdrawn).
 
 ## 9. Privacy
 
