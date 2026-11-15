@@ -42,14 +42,14 @@ describe.each(persons)('as %s', (name) => {
     const listed = items.filter((f) => f.status !== 'Draft')
     const status = (s: string) => listed.filter((f) => f.status === s).length
     expect((await records(api, 'how many context items are there?')).total).toBe(listed.length)
-    expect((await records(api, 'what is due for a check?')).total).toBe(status('Needs checking'))
+    expect((await records(api, 'what is due for a check?')).total).toBe(status('Due for a check'))
     expect((await records(api, 'what is archived?')).total).toBe(status('Archived'))
     expect((await records(api, 'how many events are there?')).total).toBe(
       listed.filter((f) => f.kind === 'event').length,
     )
     const sales = listed.filter((f) => f.domain === 'area_sales' || f.domain === 'sales')
     expect((await records(api, 'what is due for a check in Sales?')).total).toBe(
-      sales.filter((f) => f.status === 'Needs checking').length,
+      sales.filter((f) => f.status === 'Due for a check').length,
     )
     expect((await records(api, 'which items conflict?')).total).toBe(
       (await api.conflicts({ whose: 'all' })).length,

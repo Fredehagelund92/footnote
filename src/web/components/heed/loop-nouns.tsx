@@ -350,14 +350,14 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
   const due = item.status === 'due' || !!item.outOfDate
   return {
     due,
-    words: (item.status === 'archived' ? 'Archived' : due ? 'Needs checking' : 'Live') as Status,
+    words: (item.status === 'archived' ? 'Archived' : due ? 'Due for a check' : 'Live') as Status,
     day: item.outOfDate ?? (item.checked ? `checked ${dayText(item.checked, true)}` : null),
   }
 }
 
-/** A status with its dot, as the Context list draws it: live green, needs checking amber. */
+/** A status with its dot, as the Context list draws it: live green, due for a check amber. */
 function StatusMark({ status }: { status: Status }) {
-  const dot = status === 'Live' ? 'bg-good' : status === 'Needs checking' ? 'bg-caution' : 'bg-off'
+  const dot = status === 'Live' ? 'bg-good' : status === 'Due for a check' ? 'bg-caution' : 'bg-off'
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <span aria-hidden className={`size-2 shrink-0 rounded-full ${dot}`} />

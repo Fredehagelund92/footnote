@@ -159,7 +159,7 @@ Event (lightning), Warning (triangle), Rule (ruler), Guide (route). Stored as `e
 
 ### Item statuses and freshness
 
-Draft, Live, Needs checking, Archived. Freshness is a dot. The tooltip gives the exact value.
+Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives the exact value.
 
 ### Inbox cards and groups
 

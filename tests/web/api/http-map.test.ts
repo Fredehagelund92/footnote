@@ -62,7 +62,7 @@ describe('reading the library index', () => {
 
   it('says the status in the app’s words, from the status and the trust', () => {
     expect(statusOf(row())).toBe('Live')
-    expect(statusOf(row({ trust: 'needs_check' }))).toBe('Needs checking')
+    expect(statusOf(row({ trust: 'needs_check' }))).toBe('Due for a check')
     expect(statusOf(row({ trust: 'ended' }))).toBe('Live')
     expect(statusOf(row({ status: 'retired', trust: 'ended' }))).toBe('Archived')
   })
