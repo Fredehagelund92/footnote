@@ -159,7 +159,7 @@ function kept(choices: Choices, start: Choices): Choices {
 }
 
 const choose = (s: FlowState, change: (c: Choices) => Choices): FlowState =>
-  s.choices && s.save.kind === 'idle' ? { ...s, choices: change(s.choices) } : s
+  s.choices && s.save.kind !== 'saving' && s.save.kind !== 'saved' ?{ ...s, choices: change(s.choices) } : s
 
 /** The next state; the same object when the event does not apply, so a caller can tell. */
 export function flow(s: FlowState, e: FlowEvent): FlowState {
