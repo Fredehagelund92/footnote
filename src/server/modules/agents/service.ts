@@ -54,7 +54,7 @@ export async function readTryItQuestion(
   if (!bundle)
     throw new ORPCError('PRECONDITION_FAILED', {
       message:
-        'Nothing is shared with agents yet. They get facts once an owner accepts the first one.',
+        'Nothing is shared with agents yet. They get context once an owner publishes the first item.',
     })
   return questionReading(question, bundle.terms, clock.today())
 }

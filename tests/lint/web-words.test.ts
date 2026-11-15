@@ -27,7 +27,7 @@ function said(code: string, file = 'src/web/pages/inbox.tsx') {
             parserOptions: { ecmaFeatures: { jsx: true } },
           },
           plugins: { heed: plainWords },
-          rules: { 'heed/plain-words': ['error', { glossary: 'web' }] },
+          rules: { 'heed/plain-words': 'error' },
         },
       ],
       { filename: join(root, file) },

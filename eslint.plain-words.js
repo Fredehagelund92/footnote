@@ -1,14 +1,10 @@
 import { matchesGlob, relative } from 'node:path'
-import { wordsToChange } from './src/domain/words-v1.ts'
-import { wordsToChange as webWordsToChange } from './src/domain/words.ts'
+import { wordsToChange } from './src/domain/words.ts'
 
 /*
-  The words people read take their names from a glossary. The web app in src/web follows glossary
-  v2 (src/domain/words.ts, docs/design/copy.md); the server's sentences and the demo's fixtures
-  follow the earlier one (src/domain/words-v1.ts, docs/design/voice.md). This reports a string,
-  template text or JSX text that a person reads and that holds a banned word and says what to
-  write instead. For the earlier voice it also reports a negative people say short ("do not" for
-  "don't") or an unclear contraction ("you'd").
+  The words people read take their names from one glossary (glossary v2, src/domain/words.ts,
+  docs/design/copy.md). This reports a string, template text or JSX text that a person reads and
+  that holds a banned word and says what to write instead.
 
   Only text a person reads is checked. Code is not: an import, a key, a type, a comparison, a
   class name, a test id, an address, an id or a word made of code's marks (`item_id`, `/library`,
@@ -19,17 +15,12 @@ import { wordsToChange as webWordsToChange } from './src/domain/words.ts'
   tools give against the glossary instead, and the tool titles people read too.
 
   A banned word may show where the glossary allows it (`allowedOn`): `webSurfaces` says which
-  files make each place of the web app. For the earlier glossary the rule warns, and
-  scripts/check-plain-words.ts fails a change that adds to the count in plain-words.baseline.json.
-  In the web app it is an error: its count starts at zero and stays there.
+  files make each place of the web app. In the web app the rule is an error: its count starts at
+  zero and stays there. Outside the web app the same glossary is a ratchet
+  (scripts/check-plain-words.ts, copy-checks.baseline.json).
 */
 
-/** The server's sentences people read, and the demo's fixtures, which the demo shows them. */
-export const plainWordsFiles = [
-  'src/server/modules/notifications/**/*.ts',
-  'db/seed/fixtures/**/*.ts',
-]
-/** Of the rest of the server, only the messages of the errors it answers with. */
+/** Of the server, only the messages of the errors it answers with. */
 export const errorMessageFiles = ['src/server/**/*.ts']
 
 /** The files whose strings people read in the web app. */
@@ -261,13 +252,12 @@ export const codeSample = (text) =>
   /[{[]\s*"[^"]*"\s*:|=>|<\/|\/>|^\s*(\$|npx|npm|claude|curl) /m.test(text)
 
 /**
- * The rule in three forms. `plain-words` is the one that has always run: the earlier glossary on
- * the server's sentences, glossary v2 in the web app. `plain-words-wide` is glossary v2 on the
- * text the narrow reading takes for code (a `switch` body, a toast's `action`, a one-word
- * "Publishing…"). `plain-words-v2` is glossary v2 on what people read outside the web app:
- * `src/domain`, the contract, the connectors' forms, the demo's fixtures and the server's errors.
- * The last two are ratchets: scripts/check-plain-words.ts counts them in
- * copy-checks.baseline.json and fails on a rise.
+ * The rule in three forms, all glossary v2. `plain-words` is the web app's, an error from the
+ * start. `plain-words-wide` is the same on the text the narrow reading takes for code (a `switch`
+ * body, a toast's `action`, a one-word "Publishing…"). `plain-words-v2` is the same on what people
+ * read outside the web app: `src/domain`, the contract, the connectors' forms, the demo's
+ * fixtures, the command line and the server's errors. The last two are ratchets:
+ * scripts/check-plain-words.ts counts them in copy-checks.baseline.json and fails on a rise.
  */
 const makePlainWords = (form) => ({
   meta: {
@@ -278,32 +268,27 @@ const makePlainWords = (form) => ({
         type: 'object',
         properties: {
           errorsOnly: { type: 'boolean' },
-          // `web`: glossary v2, for the web app. Left out: the earlier glossary.
-          glossary: { enum: ['web'] },
         },
         additionalProperties: false,
       },
     ],
     messages: {
-      webGlossary: 'Instead of "{{found}}", write: {{write}}. See docs/design/copy.md.',
-      glossary: 'Instead of "{{found}}", write: {{write}}. See docs/design/voice.md.',
-      contraction:
-        'Instead of "{{found}}", write "{{write}}", as people say it. Keep "not" in full only where it carries the sentence (fullNegatives in src/domain/words-v1.ts).',
-      unclear:
-        'Instead of "{{found}}", write it in full: {{write}}. See docs/design/voice.md, principle 5.',
+      glossary: 'Instead of "{{found}}", write: {{write}}. See docs/design/copy.md.',
     },
   },
   create(context) {
     const errorsOnly = context.options[0]?.errorsOnly ?? false
     const path = relative(context.cwd, context.filename)
-    const toChange =
-      context.options[0]?.glossary === 'web' || form !== 'plain-words'
-        ? (text) => {
-            // A connector names its own tool in its own form.
-            const places = path.startsWith('src/connectors/') ? ['Integrations'] : webPlacesOf(path)
-            return webWordsToChange(text, places).map((c) => ({ ...c, rule: 'webGlossary' }))
-          }
-        : (text) => wordsToChange(text, [])
+    const toChange = (text) => {
+      // A connector names its own tool in its own form; the command line is for engineers, who
+      // work with editions as Advanced settings do.
+      const places = path.startsWith('src/connectors/')
+        ? ['Integrations']
+        : path.startsWith('src/cli/')
+          ? ['Settings']
+          : webPlacesOf(path)
+      return wordsToChange(text, places).map((c) => ({ ...c, rule: 'glossary' }))
+    }
     const check = (node, text, whole, isJsx) => {
       if (typeof text !== 'string' || !text.trim()) return
       const reads = (wide) =>
@@ -346,27 +331,13 @@ const plugin = {
 }
 export default plugin
 
-/**
- * The rule where it applies: on the server's sentences and the demo's fixtures in warn mode until
- * the count is 0 (voice plan V9), in the web app as an error from the start.
- */
+/** The rule where it is an error: the web app, from the start. */
 export const plainWordsConfigs = [
-  {
-    files: plainWordsFiles,
-    plugins: { heed: plugin },
-    rules: { 'heed/plain-words': 'warn' },
-  },
-  {
-    files: errorMessageFiles,
-    ignores: plainWordsFiles,
-    plugins: { heed: plugin },
-    rules: { 'heed/plain-words': ['warn', { errorsOnly: true }] },
-  },
   {
     files: webWordsFiles,
     ignores: webNotProductFiles,
     plugins: { heed: plugin },
-    rules: { 'heed/plain-words': ['error', { glossary: 'web' }] },
+    rules: { 'heed/plain-words': 'error' },
   },
 ]
 
@@ -375,15 +346,12 @@ export const glossaryV2Files = [
   'src/domain/**/*.ts',
   'src/contract/**/*.ts',
   'src/connectors/*/manifest.ts',
+  'src/cli/**/*.ts',
   'db/seed/fixtures/**/*.ts',
   'src/server/modules/notifications/**/*.ts',
 ]
 /** The glossaries themselves list the banned words, and the text for models keeps its words. */
-export const glossaryV2Not = [
-  'src/domain/words.ts',
-  'src/domain/words-v1.ts',
-  'src/domain/mcp-text.ts',
-]
+export const glossaryV2Not = ['src/domain/words.ts', 'src/domain/mcp-text.ts']
 
 /** The ratchets on copy that the plain-words check counts: see scripts/check-plain-words.ts. */
 export const copyRatchetConfigs = [
@@ -391,7 +359,7 @@ export const copyRatchetConfigs = [
     files: webWordsFiles,
     ignores: webNotProductFiles,
     plugins: { heed: plugin },
-    rules: { 'heed/plain-words-wide': ['warn', { glossary: 'web' }] },
+    rules: { 'heed/plain-words-wide': 'warn' },
   },
   {
     files: glossaryV2Files,

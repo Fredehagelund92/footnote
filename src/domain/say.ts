@@ -7,12 +7,11 @@ import type { ResolvedScope, ScopeIssue } from './scope.ts'
 import type { DateWindow } from './validity.ts'
 import { concepts as peopleConcepts } from './words.ts'
 import type { WordMeaning } from './vocabulary.ts'
-import { concepts } from './words-v1.ts'
 
 /*
   What a read result means, in two parts (FR-344). `say` is for the person: one or two plain
-  sentences an AI agent may repeat as they stand, in the voice of docs/design/voice.md and with the
-  names of src/domain/words-v1.ts, so an app that passes them on speaks as a colleague would. `next`
+  sentences an AI agent may repeat as they stand, in the voice of docs/design/copy.md and with the
+  names of src/domain/words.ts, so an app that passes them on speaks as a colleague would. `next`
   is for the AI agent: the step to take with this result, in the tool and field names it calls.
 
   Both come first in every result, so an app that drops the server instructions (FR-343) still
@@ -31,7 +30,7 @@ export type Said = { say: string; next?: string }
  * six tools of the agent contract point at each other and start with the answer line
  * (`contextVoice`), and call a written thing by the glossary's name (src/domain/words.ts), so they
  * follow when it changes. The reply a draft's preview and the evals read (`get_facts`, which is no
- * tool any more) keeps the words it had (`factVoice`).
+ * tool any more) keeps its field names and tools (`factVoice`), and speaks the same words.
  */
 export type Voice = {
   /** One written thing, and several. */
@@ -50,18 +49,18 @@ export type Voice = {
   stateFirst: boolean
 }
 export const factVoice: Voice = {
-  item: ['fact', 'facts'],
+  item: [peopleConcepts.contextItem.name, `${peopleConcepts.contextItem.name}s`],
   get: 'get_facts',
   find: 'find_facts',
   read: 'read_item',
   report: 'call report_gap',
-  cuts: 'cut_ids lists the facts left out: call again with response_format concise or a higher max_bytes to get them.',
+  cuts: 'cut_ids lists the context items left out: call again with response_format concise or a higher max_bytes to get them.',
   appliesField: 'applies_note',
   disagreesField: 'conflicts_with',
   stateFirst: false,
 }
 export const contextVoice: Voice = {
-  item: [concepts.fact.name, `${concepts.fact.name}s`],
+  item: [peopleConcepts.contextItem.name, `${peopleConcepts.contextItem.name}s`],
   get: 'get_context',
   find: 'find_context',
   read: 'read_context',
@@ -555,7 +554,7 @@ export function contextSaid(bundle: Names, c: ContextSay, voice = factVoice): Sa
     )
     next.push(
       voice === factVoice
-        ? 'Call again with response_format concise or a higher max_bytes: cut_ids lists the facts left out. Never say nothing is written down.'
+        ? 'Call again with response_format concise or a higher max_bytes: cut_ids lists the context items left out. Never say nothing is written down.'
         : `${voice.cuts} Never say nothing is written down.`,
     )
   } else {
@@ -639,7 +638,7 @@ export function findSaid(
     next = `No ${one}'s words matched, so these are the ${many} that apply to what the words name. Call ${voice.get} for other metrics, markets or dates.${more}`
   } else {
     say.push(
-      `Nothing written down${where} matches these words${scope ? `, or applies to ${scope}` : ''}.`,
+      `Nothing is written${where} that matches these words${scope ? `, or applies to ${scope}` : ''}.`,
       ...(c.withheld
         ? [
             `${count(c.withheld, `${one} matches`, `${many} match`)} but ${c.withheld === 1 ? "isn't" : "aren't"} shared with AI agents yet.`,

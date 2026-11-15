@@ -326,7 +326,7 @@ function readingOf(
       sentence: n
         ? `${count(n)} of ${count(listed.length)} ${word} ${n === 1 ? 'has' : 'have'} no domain, so no owner.`
         : `All ${count(listed.length)} ${word} have a domain, so each has an owner.`,
-      detail: n ? 'An administrator can put a metric in a domain.' : null,
+      detail: n ? 'An admin can put a metric in a domain.' : null,
       section: n
         ? {
             title: 'No domain, so no owner',

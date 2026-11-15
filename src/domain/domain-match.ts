@@ -206,7 +206,7 @@ function typoWords(name: string, typos: readonly { stored: string; wrote: string
     .join(' and ')
 }
 const renameWords =
-  'Administrators rename domains in Administration › Domains (/admin?section=domains); the id stays the same.'
+  'Admins rename domains in Administration › Domains (/admin?section=domains); the id stays the same.'
 
 /**
  * A note on a domain whose stored name looks misspelt beside its id, said as an observation,
