@@ -135,7 +135,7 @@ export function AnswerPanel({ id }: { id: string }) {
         className="mt-2 px-4 @md:px-5"
       >
         <div className="mt-2 flex flex-wrap items-center gap-2 px-4 @md:px-5">
-          <StateLine state={countedState(now.answer)} className="text-xs" />
+          <StateLine state={countedState(now.answer)} sentence className="text-xs" />
           <span className="text-xs text-muted-foreground">
             Asked {asked === null && t.atLeast ? `${t.atLeast}+` : shownCount(asked)} times{' '}
             {view.label}.
@@ -440,7 +440,7 @@ function WarningsTab({
         <li key={s} className="flex gap-3 py-3 first:pt-0 last:pb-0">
           <div className="min-w-0 text-sm">
             <div className="flex flex-wrap items-center gap-2">
-              <StateLine state={s} className="px-1.5 py-0.5 text-xs" />
+              <StateLine state={s} sentence className="px-1.5 py-0.5 text-xs" />
               <span className="text-muted-foreground">{times(counts[s])}</span>
             </div>
             <p className="text-xs text-muted-foreground">{why[s]}</p>

@@ -211,7 +211,7 @@ function AnswerSide({
       )}
     >
       <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-      <StateLine state={answer.state} />
+      <StateLine state={answer.state} sentence />
       <p
         className={cn(
           'text-base leading-relaxed text-pretty',
