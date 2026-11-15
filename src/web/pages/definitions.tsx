@@ -707,7 +707,7 @@ export function DefinitionsPage() {
             </p>
           )}
           <div className="min-w-0 shrink-0">
-            <table ref={table} className="w-full border-collapse">
+            <table ref={table} className="w-full table-fixed border-collapse">
               <thead className="sticky top-0 z-raised">
                 <tr>
                   <th
@@ -728,9 +728,9 @@ export function DefinitionsPage() {
                     sorting={sorting}
                     by="name"
                     onSort={onSort}
-                    className="w-full pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
+                    className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
                   />
-                  <Th className="hidden w-full px-2 @min-[48rem]/main:table-cell">Meaning</Th>
+                  <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
                   <Th
                     className={cn(
                       'hidden w-32 px-2',
