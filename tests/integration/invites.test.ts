@@ -142,7 +142,9 @@ describe('inviting', () => {
       role: 'member',
       areaIds: ['marketing'],
       invitedBy: people.admin,
-      expired: false,
+      standing: 'open',
+      voidBecause: null,
+      willOwn: ['marketing'],
     })
     expect(JSON.stringify(listed)).not.toContain(nina)
     // An open invite is named, not sent again.
@@ -320,7 +322,7 @@ describe('accepting', () => {
     expect((await client.query('select count(*)::int as n from people')).rows).toEqual(before.rows)
     // An expired invite lists as expired; inviting the address again replaces it.
     const [late] = (await openInvites(admin)).filter((i) => i.email === 'late@larchwood.example')
-    expect(late).toMatchObject({ expired: true })
+    expect(late).toMatchObject({ standing: 'expired', voidBecause: null })
     const again = await invite(admin, {
       emails: ['late@larchwood.example'],
       role: 'member',
@@ -372,11 +374,18 @@ describe('accepting', () => {
       [person],
     )
     expect(owns.rows).toEqual([{ area_id: 'marketing' }])
-    const open = (await openInvites(admin)).map((i) => i.email)
-    expect(open).toEqual(
-      expect.arrayContaining(['lostadmin@larchwood.example', 'lostall@larchwood.example']),
-    )
-    expect(open).not.toContain('lostone@larchwood.example')
+    // The list says the two it refused would let nobody in.
+    const open = await openInvites(admin)
+    for (const email of ['lostadmin@larchwood.example', 'lostall@larchwood.example'])
+      expect(
+        open.find((i) => i.email === email),
+        email,
+      ).toMatchObject({
+        standing: 'void',
+        voidBecause: 'sender',
+        willOwn: [],
+      })
+    expect(open.map((i) => i.email)).not.toContain('lostone@larchwood.example')
     const made = await client.query(
       "select 1 from people where email in ('lostadmin@larchwood.example','lostall@larchwood.example')",
     )
@@ -471,6 +480,70 @@ describe('an invite made at the command line', () => {
     ).toMatchObject({
       role: 'admin',
       invitedBy: null,
+    })
+  })
+})
+
+describe('an invite that would be refused', () => {
+  it('lists as void when its sender has left, and works again once an admin sends it', async () => {
+    // The author owns Marketing, invites Omar to it, and is then removed.
+    await client.query(
+      "insert into area_assignments (area_id,person_id,role) values ('marketing',$1,'owner')",
+      [people.author],
+    )
+    const [made] = await invite(author, {
+      emails: ['omar.left@larchwood.example'],
+      role: 'member',
+      areaIds: ['marketing'],
+    })
+    const first = linkOf(made!)
+    const id = (made as { invite: Invite }).invite.id
+    const removed = await call(admin, 'POST', `/members/${people.author}/remove`, {})
+    expect(removed.statusCode, removed.body).toBe(200)
+    const listed = async () =>
+      (await openInvites(admin)).find((i) => i.email === 'omar.left@larchwood.example')
+    const lookup = (token: string) =>
+      call(admin, 'GET', `/invites/lookup?token=${encodeURIComponent(token)}`)
+    // The list, the link page and the sign-in give one answer: it would let nobody in.
+    expect(await listed()).toMatchObject({ standing: 'void', voidBecause: 'sender', willOwn: [] })
+    expect((await lookup(first)).statusCode).toBe(404)
+    expect(await accept('omar.left@larchwood.example')).toBeNull()
+    // An admin sends it again and becomes its sender: the new link works, owning Marketing.
+    const resent = await call(admin, 'POST', `/invites/${id}/resend`, {})
+    expect(resent.statusCode, resent.body).toBe(200)
+    expect(resent.json<InviteResent>().invite).toMatchObject({
+      standing: 'open',
+      voidBecause: null,
+      invitedBy: people.admin,
+      willOwn: ['marketing'],
+    })
+    const page = await lookup(linkOf(resent.json<InviteResent>()))
+    expect(page.statusCode, page.body).toBe(200)
+    expect(page.json()).toMatchObject({ areas: [{ id: 'marketing', name: 'Marketing' }] })
+    const omar = await accept('omar.left@larchwood.example', 'Omar')
+    expect(omar).toMatch(/^[0-9a-f-]{36}$/)
+    const owns = await client.query(
+      "select area_id from area_assignments where person_id=$1 and role='owner' and valid_at @> now()",
+      [omar],
+    )
+    expect(owns.rows).toEqual([{ area_id: 'marketing' }])
+  })
+
+  it('lists an invite to someone who is a member already as void, and does not send it again', async () => {
+    const made = await client.query<{ id: string }>(
+      `insert into invites (email,role,area_ids,invited_by,token_hash,expires_at)
+       values ('owner@example.test','member','{}',$1,$2,now()+interval '7 days') returning id::text`,
+      [people.admin, inviteTokenHash(randomUUID())],
+    )
+    const id = made.rows[0]!.id
+    expect((await openInvites(admin)).find((i) => i.id === id)).toMatchObject({
+      standing: 'void',
+      voidBecause: 'member',
+    })
+    const resent = await call(admin, 'POST', `/invites/${id}/resend`, {})
+    expect(resent.statusCode).toBe(409)
+    expect(resent.json()).toMatchObject({
+      message: 'They are a member already. Take this invite back instead.',
     })
   })
 })

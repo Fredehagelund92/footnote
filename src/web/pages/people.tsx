@@ -29,7 +29,14 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { DomainId } from '@/model/items'
-import { emailOf, listOf, partyActions, type Allowed, type Party } from '@/model/people'
+import {
+  emailOf,
+  listOf,
+  partyActions,
+  type Allowed,
+  type Invite,
+  type Party,
+} from '@/model/people'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { domainHue } from '@/lib/tones'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
@@ -108,6 +115,22 @@ const copy = (text: string) =>
     () => toast('Copied'),
     () => toast('Copy this link', { description: text }),
   )
+
+/** An invite's standing in its row: whether its link would let them in. */
+const standingChip: Record<Invite['standing'], string> = {
+  open: 'Invited',
+  expired: 'Link expired',
+  void: "Link won't work",
+}
+
+/** What an invite's standing means, on its sheet. */
+function standingLine({ standing, voidBecause }: Invite) {
+  if (standing === 'open') return 'Invited, not signed in yet.'
+  if (standing === 'expired') return 'The link has expired. A new link works for another week.'
+  if (voidBecause === 'member') return 'They are a member already, so this link lets nobody in.'
+  if (voidBecause === 'erased') return "This person can't join again, so this link lets nobody in."
+  return 'Whoever sent this invite can no longer make it, so its link lets nobody in.'
+}
 
 /**
  * What inviting did, as a toast: the link to send each person (Heed sends no email yet), and who
@@ -326,7 +349,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
           {p.kind === 'invite' && can.resend !== 'absent' && (
             <section className="flex flex-wrap items-center gap-2 border-b p-4 text-sm">
               <MailIcon aria-hidden className="size-4 text-muted-foreground" />
-              <span className="flex-1">Invited, not signed in yet.</span>
+              <span className="flex-1">{standingLine(p)}</span>
               <Locked reason={lockOf(can.resend)}>
                 <Button
                   variant="outline"
@@ -621,7 +644,11 @@ export function People() {
           <OwnedChips owns={p.kind === 'member' ? p.owns : p.willOwn} />
         </span>
         <span className="col-span-3 col-start-2 text-xs text-muted-foreground @3xl/main:col-span-1 @3xl/main:col-start-auto @3xl/main:text-right">
-          {p.kind === 'invite' ? <TagChip tone="warn">Invited</TagChip> : p.lastActive}
+          {p.kind === 'invite' ? (
+            <TagChip tone="warn">{standingChip[p.standing]}</TagChip>
+          ) : (
+            p.lastActive
+          )}
         </span>
       </button>
     </li>

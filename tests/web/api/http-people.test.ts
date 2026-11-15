@@ -47,7 +47,9 @@ describe('the people and their domains', () => {
           invitedBy: 'p1',
           sentAt: '2026-10-23T09:00:00Z',
           expiresAt: '2026-10-30T09:00:00Z',
-          expired: false,
+          standing: 'open',
+          voidBecause: null,
+          willOwn: ['area_marketing'],
         },
       ],
     })
@@ -69,6 +71,8 @@ describe('the people and their domains', () => {
         admin: false,
         willOwn: ['area_marketing'],
         sentBy: 'p1',
+        standing: 'open',
+        voidBecause: null,
       },
     ])
   })
@@ -87,7 +91,9 @@ describe('the people and their domains', () => {
           invitedBy: null,
           sentAt: '2026-10-23T09:00:00Z',
           expiresAt: '2026-10-30T09:00:00Z',
-          expired: false,
+          standing: 'open',
+          voidBecause: null,
+          willOwn: ['area_sales'],
         },
       ],
     })
@@ -99,7 +105,35 @@ describe('the people and their domains', () => {
         admin: true,
         willOwn: ['area_sales'],
         sentBy: null,
+        standing: 'open',
+        voidBecause: null,
       },
+    ])
+  })
+
+  it('reads the domains an invite gives, and its standing, as the sign-in rules them', () => {
+    // Its sender has left: it names Marketing and would give nothing.
+    const { invites } = peopleOf({
+      now,
+      domains: [{ id: 'area_marketing', name: 'Marketing', owners: [], covers: '', text: '' }],
+      members: [],
+      invites: [
+        {
+          id: 'i3',
+          email: 'omar@larchwood.example',
+          role: 'member',
+          areaIds: ['area_marketing'],
+          invitedBy: 'p_nina',
+          sentAt: '2026-10-23T09:00:00Z',
+          expiresAt: '2026-10-30T09:00:00Z',
+          standing: 'void',
+          voidBecause: 'sender',
+          willOwn: [],
+        },
+      ],
+    })
+    expect(invites).toEqual([
+      expect.objectContaining({ willOwn: [], standing: 'void', voidBecause: 'sender' }),
     ])
   })
 })

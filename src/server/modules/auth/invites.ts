@@ -17,7 +17,9 @@ import { lockRoles } from './roles.ts'
   the start. Its link carries 256 random bits; the database keeps only their SHA-256, so neither
   a copy of the database nor its logs hold a working link. The link is shown once, to whoever
   invites or sends the invite again, and a new one replaces the old. An invite is accepted once,
-  at the first sign-in that proves its address, within a week of when it was last sent.
+  at the first sign-in that proves its address, within a week of when it was last sent, while its
+  standing (invite_standing, in the database) is open: the list, the link page and the sign-in all
+  read that one rule.
 */
 
 /** A new invite link's token: 256 random bits, as 43 URL-safe characters. */
@@ -30,10 +32,17 @@ export const inviteLink = inviteLinkOf
 const iso = (column: string) =>
   `to_char(${column} at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`
 const inviteColumns = `i.id::text, i.email, i.role, i.area_ids as "areaIds", i.invited_by::text as "invitedBy",
-  ${iso('i.sent_at')} as "sentAt", ${iso('i.expires_at')} as "expiresAt", i.expires_at <= now() as expired`
+  ${iso('i.sent_at')} as "sentAt", ${iso('i.expires_at')} as "expiresAt",
+  s.standing, s.why as "voidBecause", s.area_ids as "willOwn"`
+const invitesWithStanding = 'invites i cross join lateral invite_standing(i) s'
 const open = 'i.accepted_at is null and i.revoked_at is null'
 const resendRefused =
   'Only an admin, or the sender while they still own the domains, sends an invite again.'
+/** Why an invite is not sent again whoever asks: a new link would let nobody in either. */
+const resendPointless: Partial<Record<NonNullable<Invite['voidBecause']>, string>> = {
+  member: 'They are a member already. Take this invite back instead.',
+  erased: "This person can't join again. Take this invite back instead.",
+}
 const gone = () =>
   new ORPCError('NOT_FOUND', {
     message: "We couldn't find this invite. It may have been accepted or taken back.",
@@ -42,15 +51,23 @@ const gone = () =>
 /** The open invites, newest first. */
 export async function listInvites(tx: Queryable): Promise<Invite[]> {
   return tx.query<Invite>(
-    `select ${inviteColumns} from invites i where ${open} order by i.sent_at desc, i.id`,
+    `select ${inviteColumns} from ${invitesWithStanding} where ${open} order by i.sent_at desc, i.id`,
   )
+}
+
+async function inviteOf(tx: Queryable, id: string): Promise<Invite> {
+  const [invite] = await tx.query<Invite>(
+    `select ${inviteColumns} from ${invitesWithStanding} where i.id=$1`,
+    [id],
+  )
+  return invite!
 }
 
 /**
  * Invites each address once: one already in the workspace or with an open invite is named, not
  * invited again. An admin invites anyone as anything; an owner who is not an admin invites a
- * Member to domains they own (row security checks it again). An expired invite its sender or an
- * admin could send again is taken back and replaced.
+ * Member to domains they own (row security checks it again). An expired or void invite that its
+ * sender or an admin could send again is taken back and replaced.
  */
 export async function createInvites(
   tx: Queryable,
@@ -101,11 +118,11 @@ export async function createInvites(
       }
     }
     const [pending] = await tx.query<Invite>(
-      `select ${inviteColumns} from invites i where i.email=$1 and ${open}`,
+      `select ${inviteColumns} from ${invitesWithStanding} where i.email=$1 and ${open}`,
       [email],
     )
     if (pending) {
-      if (!pending.expired || !(actor.admin || pending.invitedBy === actor.id)) {
+      if (pending.standing === 'open' || !(actor.admin || pending.invitedBy === actor.id)) {
         results.push({ email, outcome: 'pending', invite: pending })
         continue
       }
@@ -115,29 +132,33 @@ export async function createInvites(
       await record(tx, 'invite.revoked', pending)
     }
     const token = newToken()
-    const [invite] = await tx.query<Invite>(
-      `with made as (
-         insert into invites as i (email,role,area_ids,invited_by,token_hash,expires_at)
-         values ($1,$2,$3::text[],cl_person(),$4,now() + make_interval(days => $5))
-         returning i.*)
-       select ${inviteColumns} from made i`,
+    const [made] = await tx.query<{ id: string }>(
+      `insert into invites (email,role,area_ids,invited_by,token_hash,expires_at)
+       values ($1,$2,$3::text[],cl_person(),$4,now() + make_interval(days => $5))
+       returning id::text`,
       [email, input.role, areaIds, inviteTokenHash(token), INVITE_DAYS],
     )
-    await record(tx, 'invite.created', invite!)
-    results.push({ email, outcome: 'invited', invite: invite!, link: inviteLink(webOrigin, token) })
+    const invite = await inviteOf(tx, made!.id)
+    await record(tx, 'invite.created', invite)
+    results.push({ email, outcome: 'invited', invite, link: inviteLink(webOrigin, token) })
   }
   return { results }
 }
 
 /**
  * Sends an invite again, by an admin or by its sender while they could still make it (a Member
- * invite to domains they still own): a new link for another week; the old one stops. */
+ * invite to domains they still own): a new link for another week; the old one stops. An admin who
+ * sends again an invite its sender can no longer make becomes its sender, so the new link works.
+ * One to a member already, or to someone erased, is not sent again: it would let nobody in. */
 export async function resendInvite(
   tx: Queryable,
   id: string,
   webOrigin: string,
 ): Promise<InviteResent> {
   await visibleOpen(tx, id)
+  const { voidBecause } = await inviteOf(tx, id)
+  const pointless = voidBecause && resendPointless[voidBecause]
+  if (pointless) throw new ORPCError('CONFLICT', { message: pointless })
   const [allowed] = await tx.query(
     `select 1 from invites i
       where i.id=$1 and (cl_is_admin_now()
@@ -146,14 +167,15 @@ export async function resendInvite(
   )
   if (!allowed) throw new ORPCError('FORBIDDEN', { message: resendRefused })
   const token = newToken()
-  const [invite] = await tx.query<Invite>(
-    `with sent as (
-       update invites i set token_hash=$2, sent_at=now(), expires_at=now() + make_interval(days => $3)
-        where i.id=$1 and ${open} returning i.*)
-     select ${inviteColumns} from sent i`,
+  const [sent] = await tx.query<{ id: string }>(
+    `update invites i set token_hash=$2, sent_at=now(), expires_at=now() + make_interval(days => $3),
+            invited_by = case when cl_is_admin_now() and (invite_standing(i)).why = 'sender'
+                              then cl_person() else i.invited_by end
+      where i.id=$1 and ${open} returning i.id::text`,
     [id, inviteTokenHash(token), INVITE_DAYS],
   )
-  if (!invite) throw new ORPCError('FORBIDDEN', { message: resendRefused })
+  if (!sent) throw new ORPCError('FORBIDDEN', { message: resendRefused })
+  const invite = await inviteOf(tx, sent.id)
   await record(tx, 'invite.resent', invite)
   return { invite, link: inviteLink(webOrigin, token) }
 }
@@ -161,11 +183,9 @@ export async function resendInvite(
 /** Takes an invite back, by its sender or an admin: its link stops working. */
 export async function revokeInvite(tx: Queryable, id: string): Promise<{ revoked: boolean }> {
   await visibleOpen(tx, id)
-  const [invite] = await tx.query<Invite>(
-    `with taken as (
-       update invites i set revoked_at=now(), revoked_by=cl_person()
-        where i.id=$1 and ${open} returning i.*)
-     select ${inviteColumns} from taken i`,
+  const [invite] = await tx.query<Pick<Invite, 'id' | 'role' | 'areaIds'>>(
+    `update invites i set revoked_at=now(), revoked_by=cl_person()
+      where i.id=$1 and ${open} returning i.id::text, i.role, i.area_ids as "areaIds"`,
     [id],
   )
   if (!invite)
@@ -178,8 +198,9 @@ export async function revokeInvite(tx: Queryable, id: string): Promise<{ revoked
 
 /**
  * Accepts the open invite of an address a sign-in has just proven, once (auth.accept_invite):
- * the person, made or brought back, with the invite's role and domains; null when the address has
- * no open invite still in time. Nobody is signed in yet, so it runs as the database owner.
+ * the person, made or brought back, with the invite's role and the domains its standing gives; null
+ * when the address has no invite whose standing is open. Nobody is signed in yet, so it runs as the
+ * database owner.
  */
 export async function acceptInvite(
   tx: Queryable,
@@ -198,7 +219,11 @@ async function visibleOpen(tx: Queryable, id: string) {
 }
 
 /** The history entry of a change to an invite: what and who for, never the address. */
-async function record(tx: Queryable, action: string, invite: Invite) {
+async function record(
+  tx: Queryable,
+  action: string,
+  invite: Pick<Invite, 'id' | 'role' | 'areaIds'>,
+) {
   await tx.query(
     `insert into audit_log(actor_id,actor_kind,action,subject_type,subject_id,details,source)
      values(cl_person(),'person',$1,'invite',$2,$3::jsonb,'named')`,
@@ -208,8 +233,8 @@ async function record(tx: Queryable, action: string, invite: Invite) {
 
 /**
  * What an invite link says on the sign-in screen, by its token: the address, the role and the
- * domains still there, while the invite is open and in time. Every other token, whatever the
- * reason (never sent, sent again since, taken back, used, too old), gets the same answer.
+ * domains it gives, while its standing is open. Every other token, whatever the reason (never sent,
+ * sent again since, taken back, used, too old, void), gets the same answer.
  */
 export async function lookupInvite(tx: Queryable, token: string): Promise<InviteLookup> {
   const [row] = await tx.query<{

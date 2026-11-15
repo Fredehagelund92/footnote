@@ -78,6 +78,8 @@ describe('what may be done to a member or an invite', () => {
     admin: false,
     willOwn: ['marketing'],
     sentBy: 'p_tomas',
+    standing: 'open',
+    voidBecause: null,
   }
   const cli: Party = { ...omar, id: 'i_cli', email: 'first@larchwood.example', sentBy: null }
 
@@ -135,6 +137,22 @@ describe('what may be done to a member or an invite', () => {
     const moved = { ...tomas, owns: [] }
     expect(partyActions(omar, moved, domains)).toMatchObject({
       resend: { locked: 'Only an admin or whoever sent it makes a new link' },
+      leave: 'can',
+    })
+  })
+
+  it('lets only an admin make a new link for an invite its sender can no longer make', () => {
+    const left: Party = { ...omar, willOwn: [], standing: 'void', voidBecause: 'sender' }
+    expect(partyActions(left, jon, domains).resend).toBe('can')
+    expect(partyActions(left, tomas, domains).resend).toEqual({
+      locked: 'Its sender can no longer make this invite. An admin makes a new link',
+    })
+  })
+
+  it('makes no new link for a member already: it would let nobody in', () => {
+    const member: Party = { ...omar, standing: 'void', voidBecause: 'member' }
+    expect(partyActions(member, jon, domains)).toMatchObject({
+      resend: { locked: 'A new link would not let them in. Take the invite back' },
       leave: 'can',
     })
   })

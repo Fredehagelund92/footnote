@@ -501,6 +501,32 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
   }
   const signedIn = async () => me ?? (await session()).me
 
+  /** What this tab held for the person signed in: nothing of it is shown to the next one. */
+  function forgetPerson() {
+    refs.clear()
+    sent = []
+    published = {}
+    words = undefined
+  }
+
+  /**
+   * Sends again a change the service refused for its token, with the token of the session read
+   * now. Every tab shares the cookie, so that session may be someone else's, signed in from another
+   * tab: then nothing is sent as them, and the change fails saying so.
+   */
+  async function sendAgain<T>(heldBy: string | undefined, send: (token: string) => Promise<T>) {
+    const fresh = await session()
+    if (heldBy && fresh.me.id !== heldBy) {
+      forgetPerson()
+      throw new ApiError(
+        'forbidden',
+        "You're signed in as someone else in this browser, so nothing was changed.",
+        { someoneElse: true },
+      )
+    }
+    return send(fresh.csrfToken)
+  }
+
   /**
    * A change. Its retry key stays the same for the same operation and input until the service
    * answers, so a change sent again after no answer is applied once.
@@ -515,13 +541,14 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     pendingKeys.set(id, key)
     const send = (token: string) =>
       call({ context: { headers: { 'x-heed-csrf': token, 'idempotency-key': key } } })
+    const heldBy = me?.id
     try {
       let result: T
       try {
         result = await send(csrfToken ?? (await session()).csrfToken)
       } catch (error) {
         if (!csrfRefused(error)) throw error
-        result = await send((await session()).csrfToken)
+        result = await sendAgain(heldBy, send)
       }
       pendingKeys.delete(id)
       // A term written, renamed, moved or deleted changes the words a mention is named by.
@@ -541,11 +568,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
   async function readPosted<T>(call: (options: { context: CallContext }) => Promise<T>) {
     const send = (token: string) =>
       read(() => call({ context: { headers: { 'x-heed-csrf': token }, posted: true } }))
+    const heldBy = me?.id
     try {
       return await send(csrfToken ?? (await session()).csrfToken)
     } catch (error) {
       if (!csrfRefused(error)) throw error
-      return send((await session()).csrfToken)
+      return sendAgain(heldBy, send)
     }
   }
 
@@ -1252,10 +1280,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
         name: signed.person.name,
         admin: signed.person.permissions.roles.includes('administrator'),
       }
-      refs.clear()
-      sent = []
-      published = {}
-      words = undefined
+      forgetPerson()
       return asSession(signed.person.name, signed.profileLabel)
     },
     getSignInMethod: async () => {
@@ -1633,10 +1658,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       )
       csrfToken = undefined
       me = undefined
-      refs.clear()
-      sent = []
-      published = {}
-      words = undefined
+      forgetPerson()
     },
 
     // The Inbox and the review

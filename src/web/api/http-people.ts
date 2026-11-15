@@ -4,8 +4,8 @@ import { describe, type Domain, type Domains, type Invite, type Person } from '@
 /*
   The workspace's people as the service has them (members.list and invites.list), in the app's
   shape: the members, each an Admin or a Member with the domains they own and when they last
-  signed in in words; and the open invites, each with the domains it owns once taken. An invite
-  is never among a domain's owners.
+  signed in in words; and the open invites, each with whether it would let its person in and the
+  domains it gives, by the rule the sign-in uses. An invite is never among a domain's owners.
 */
 
 const DAY = 86_400_000
@@ -48,8 +48,10 @@ export function peopleOf(input: {
     id: i.id,
     email: i.email,
     admin: i.role === 'admin',
-    willOwn: i.areaIds.filter((d) => byId[d]),
+    willOwn: i.willOwn.filter((d) => byId[d]),
     sentBy: i.invitedBy,
+    standing: i.standing,
+    voidBecause: i.voidBecause,
   }))
   return { people, invites }
 }

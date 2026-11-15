@@ -29,10 +29,17 @@ export type Invite = {
   id: string
   email: string
   admin: boolean
-  /** The domains they own once they sign in. */
+  /** The domains they own once they sign in, by the rule the sign-in uses. */
   willOwn: DomainId[]
   /** Who sent it, by id; null for one made at the command line, which has no sender. */
   sentBy: string | null
+  /** Whether it lets them in: open, expired (a new link gives another week), or void. */
+  standing: 'open' | 'expired' | 'void'
+  /**
+   * Why a void invite lets nobody in: its sender can no longer make it (an admin's new link makes
+   * the admin its sender), they are a member already, or the person was erased.
+   */
+  voidBecause: 'sender' | 'member' | 'erased' | null
 }
 
 /** Someone on the People page: a member, or an invite. */
@@ -124,11 +131,19 @@ export function partyActions(party: Party, me: Person, domains: Domains): PartyA
     return {
       role: 'absent',
       owners: 'absent',
-      // Its sender sends it again while they still own its domains.
+      // Its sender sends it again while they still own its domains; an admin, one its sender can
+      // no longer make, and becomes its sender. A new link to a member would let nobody in.
       resend:
-        me.admin || (sender && party.willOwn.every((d) => me.owns.includes(d)))
-          ? 'can'
-          : { locked: 'Only an admin or whoever sent it makes a new link' },
+        party.voidBecause === 'member' || party.voidBecause === 'erased'
+          ? { locked: 'A new link would not let them in. Take the invite back' }
+          : me.admin ||
+              (sender &&
+                party.voidBecause !== 'sender' &&
+                party.willOwn.every((d) => me.owns.includes(d)))
+            ? 'can'
+            : party.voidBecause === 'sender'
+              ? { locked: 'Its sender can no longer make this invite. An admin makes a new link' }
+              : { locked: 'Only an admin or whoever sent it makes a new link' },
       leave:
         me.admin || sender ? 'can' : { locked: 'Only an admin or whoever sent it takes it back' },
     }

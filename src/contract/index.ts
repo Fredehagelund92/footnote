@@ -1460,7 +1460,8 @@ export const contract = {
         method: 'GET',
         path: '/invites',
         tags: ['roles'],
-        summary: 'The open invites: who, as what, owning which domains, sent when and by whom',
+        summary:
+          'The open invites: who, as what, owning which domains, sent when and by whom, and whether each would let its person in',
       })
       .output(z.array(inviteSchema)),
     create: read
@@ -1485,7 +1486,10 @@ export const contract = {
         path: '/invites/{id}/resend',
         tags: ['roles'],
         summary:
-          'Send an invite again, by its sender or an admin: a new link that works for another week, and the old one stops working',
+          'Send an invite again, by its sender or an admin: a new link that works for another week, and the old one stops working. An admin who sends again an invite its sender can no longer make becomes its sender; one to a member already is not sent again',
+      })
+      .errors({
+        CONFLICT: { message: 'They are a member already. Take this invite back instead.' },
       })
       .input(inviteIdSchema)
       .output(inviteResentSchema),

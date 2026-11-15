@@ -185,6 +185,8 @@ export function createWorkspace() {
           admin,
           willOwn: owns.filter((d) => domains[d]),
           sentBy,
+          standing: 'open',
+          voidBecause: null,
         })
       }
       return result

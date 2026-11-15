@@ -132,6 +132,8 @@ export const invites: Invite[] = [
     admin: false,
     willOwn: [],
     sentBy: 'per_jon_abara',
+    standing: 'open',
+    voidBecause: null,
   },
   {
     id: 'inv_finance_lead',
@@ -139,6 +141,8 @@ export const invites: Invite[] = [
     admin: false,
     willOwn: [],
     sentBy: 'per_jon_abara',
+    standing: 'open',
+    voidBecause: null,
   },
 ]
 
