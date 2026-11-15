@@ -380,7 +380,7 @@ function InboxList({
                     type="button"
                     data-row-open={id}
                     aria-current={isSelected || undefined}
-                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, e.detail === 0)}
+                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)}
                     className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                   >
                     <span
@@ -1262,25 +1262,20 @@ export function InboxPage() {
     : (query.get('card') ?? (isMobile ? undefined : shown[0] && rowId(shown[0])))
   const selected = rows.find((r) => rowId(r) === selectedId)
   // How the card on show was picked: a pointer pick or a decision fades its body in, a key does not.
-  const [picked, setPicked] = React.useState<{ id?: string; fade: boolean }>({ fade: false })
+  const [picked, setPicked] = React.useState<{ id?: string; fade: boolean; key?: boolean }>({
+    fade: false,
+  })
+  const frameRef = React.useRef<HTMLDivElement>(null)
+  const primary = () => frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
   // Enter on a row opens the card and moves the focus to the pane's one decision.
-  const focusDecision = React.useRef<string | undefined>(undefined)
   const select = (id?: string, pointer = false, key = false) => {
-    if (key && id === selectedId) return void focusPrimary()
-    focusDecision.current = key ? id : undefined
     // On a phone the whole card slides in; its body does not fade on top of that.
-    setPicked({ id, fade: pointer && !isMobile })
+    setPicked({ id, fade: pointer && !isMobile, key })
     setQuery({ card: id ?? (isMobile ? undefined : 'none') })
   }
-  const focusPrimary = () => {
-    const button = frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
-    button?.focus()
-    return !!button
-  }
   React.useEffect(() => {
-    if (!focusDecision.current || focusDecision.current !== selectedId) return
-    if (focusPrimary()) focusDecision.current = undefined
-  })
+    if (picked.key && picked.id === selectedId) primary()?.focus()
+  }, [picked, selectedId])
   const ids = shown.map(rowId)
   const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
@@ -1312,7 +1307,6 @@ export function InboxPage() {
   }
 
   // J and K step through the list, Enter opens the selected card's primary action.
-  const frameRef = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
@@ -1322,8 +1316,7 @@ export function InboxPage() {
       // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
       // Ticked rows clear first, in the selection's own Esc.
       if (e.key === 'Escape' && selected && !sel.count) select(undefined)
-      if (e.key === 'Enter' && t === document.body)
-        frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')?.click()
+      if (e.key === 'Enter' && t === document.body) primary()?.click()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
