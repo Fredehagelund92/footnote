@@ -65,7 +65,7 @@ import {
   useDefinitions,
   useGlossary,
 } from '@/lib/definitions'
-import { closeDock, openDock, useDock } from '@/lib/dock'
+import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
 import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
 import { href, navigate, useRoute } from '@/lib/router'
@@ -118,7 +118,7 @@ const CUES: Record<Cue, string> = {
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
-const COLS = 7
+const COLS = 8
 
 /* ---------- the list ---------- */
 
@@ -301,6 +301,7 @@ export function DefinitionsPage() {
     const target = d.sameAs ? glossary.find(d.sameAs) : undefined
     const flag = flagOf(d)
     const n = about(d)
+    const meaning = plainText(glossary.meaningOf(d).definition)
     // The lock is said once, in the line above the table; a row shows only who wrote a term.
     const source = d.synced ? null : (
       <span title={`Written by ${d.by}, ${d.updated}`} className="inline-flex">
@@ -316,9 +317,9 @@ export function DefinitionsPage() {
         data-peeked={peeked === d.name || undefined}
         data-leaving={leaving.has(d.name) || undefined}
         data-vt-move
-        className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:bg-muted data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
+        className="group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
         onMouseDown={sel.onMouseDown}
-        onClick={(e) => sel.rowClick(d.name, e) || openDock('def', d.name)}
+        onClick={(e) => sel.rowClick(d.name, e) || openFromRow('def', d.name)}
       >
         <td
           className="hidden w-9.5 pr-0 pl-4 align-middle md:w-11.5 md:pl-6 @xl/main:table-cell"
@@ -344,7 +345,7 @@ export function DefinitionsPage() {
                 className="flex min-w-0 shrink text-left font-medium outline-none hover:underline"
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (!sel.titleClick(d.name, e)) openDock('def', d.name)
+                  if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
                 }}
               >
                 <TruncatedText text={d.name}>
@@ -375,6 +376,10 @@ export function DefinitionsPage() {
               </span>
             </span>
           </span>
+        </td>
+        {/* What it means, in the row: a synonym reads its target's meaning. */}
+        <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
+          <TruncatedText text={meaning || 'No meaning written yet'}>{meaning || '–'}</TruncatedText>
         </td>
         <td
           className={cn(
@@ -416,7 +421,7 @@ export function DefinitionsPage() {
         <td className="w-8 px-1 align-middle">
           {flag && (
             <span title={flag.tip} className="inline-flex text-caution">
-              <flag.icon aria-hidden className="size-4" strokeWidth={1.75} />
+              <flag.icon aria-hidden className="size-4" />
               <span className="sr-only">{flag.tip}</span>
             </span>
           )}
@@ -702,7 +707,7 @@ export function DefinitionsPage() {
             </p>
           )}
           <div className="min-w-0 shrink-0">
-            <table ref={table} className="w-full border-collapse">
+            <table ref={table} className="w-full table-fixed border-collapse">
               <thead className="sticky top-0 z-raised">
                 <tr>
                   <th
@@ -723,8 +728,9 @@ export function DefinitionsPage() {
                     sorting={sorting}
                     by="name"
                     onSort={onSort}
-                    className="w-full pr-2 pl-4 md:pl-6 @xl/main:pl-1.5"
+                    className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
                   />
+                  <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
                   <Th
                     className={cn(
                       'hidden w-32 px-2',
@@ -832,6 +838,7 @@ export function DefinitionsPage() {
                       context items about them
                     </span>
                   </td>
+                  <td className="hidden px-2 @min-[48rem]/main:table-cell" />
                   <td
                     className={cn(
                       'hidden px-2',

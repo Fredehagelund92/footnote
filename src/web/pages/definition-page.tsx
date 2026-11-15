@@ -34,7 +34,11 @@ export function DefinitionPage({ name }: { name: string }) {
   const subject = glossary.meaningOf(d)
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SiteHeader title={d.name} icon={<BookAIcon />}>
+      <SiteHeader
+        title={d.name}
+        icon={<BookAIcon />}
+        deep={{ href: href('/definitions'), label: 'Back to Definitions' }}
+      >
         {d.synced ? (
           <>
             {subject.type === 'metric' && (

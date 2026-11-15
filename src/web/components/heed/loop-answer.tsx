@@ -84,15 +84,12 @@ export function LoopProgress({ turn }: { turn: Turn }) {
           )}
         </li>
       ))}
-      {(done || !steps.length) && (
+      {/* Stopped, the notice under the reads says so, once. */}
+      {!turn.stopped && (done || !steps.length) && (
         <li className="flex items-center gap-2">
           <span aria-hidden className="size-4 shrink-0" />
           <P.ReadingLine running={!turn.stopped}>
-            {turn.stopped
-              ? 'Stopped while reading'
-              : done
-                ? 'Writing the answer…'
-                : (turn.working ?? 'Reading…')}
+            {done ? 'Writing the answer…' : (turn.working ?? 'Reading…')}
           </P.ReadingLine>
         </li>
       )}
@@ -849,9 +846,21 @@ function Overview({
 /** The plain words a Copy takes: the answer's own, its marks gone. */
 const copyOf = (answer: Answer) => answer.text.replace(/\[\d+\]/g, '')
 
-/** The state on one line with its fixed sentence, or From Heed's records for a records answer. */
+/**
+ * The state on one line with its fixed sentence; the Definition label for an answer that uses no
+ * item and is about a definition; or From Heed's records for a records answer.
+ */
 function StateRow({ loop, words }: { loop: LoopTurn; words: React.RefObject<HTMLElement | null> }) {
   const P = useParts()
+  if (!loop.state && loop.defined)
+    return (
+      <P.DefinitionHelp
+        names={loop.defined.names}
+        tool={loop.defined.tool}
+        words={words}
+        usesNoItem
+      />
+    )
   if (!loop.state)
     return loop.reads.some((r) =>
       ['records', 'agent_questions', 'inbox', 'conflicts'].includes(r.tool),

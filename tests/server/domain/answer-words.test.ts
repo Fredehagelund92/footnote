@@ -150,29 +150,42 @@ describe('the words as they stream', () => {
     expect([...shown.flat(), ...last]).toHaveLength(3)
   })
 
-  it('leaves out a second sentence that cites nothing before any that does', () => {
+  it('shows every sentence that cites nothing once a sentence that cites an item passes', () => {
     const { gate, shown, last } = stream(
       'Here is what applies to orders in Norway. Shoppers in Norway moved to other shops. Online sales stopped [1].',
       4,
     )
     expect([...shown.flat(), ...last]).toEqual([
       'Here is what applies to orders in Norway.',
+      'Shoppers in Norway moved to other shops.',
       'Online sales stopped [1].',
     ])
     expect(gate.failed).toBeNull()
-    expect(gate.dropped.map((d) => d.why)).toEqual(['a sentence that cites no item'])
+    expect(gate.dropped).toEqual([])
   })
 
-  it('leaves out a sentence that cites nothing and adds a fact, and goes on', () => {
+  it('does not leave out a sentence only because it cites nothing and shares few words with the question', () => {
+    // As the scout saw for "Which one is right?" after the Spain VAT answer (S1): the sentence
+    // that answers the question cites no item, and the question never said "conflicting".
     const { gate, shown, last } = stream(
-      'Online sales stopped [1]. Orders count the purchases placed by loyal shoppers. Order value includes store credit [2].',
+      'The context gives two conflicting statements, so it does not settle which one is right. Online sales stopped [1]. Store credit counts [2].',
       4,
     )
     expect([...shown.flat(), ...last]).toEqual([
+      'The context gives two conflicting statements, so it does not settle which one is right.',
       'Online sales stopped [1].',
-      'Order value includes store credit [2].',
+      'Store credit counts [2].',
     ])
-    expect(gate.dropped.map((d) => d.why)).toEqual(['a sentence that cites no item'])
+    expect(gate.dropped).toEqual([])
+  })
+
+  it('still ends the words at a sentence that cites nothing and holds a number it was not given', () => {
+    const { gate, shown, last } = stream(
+      'Online sales stopped [1]. Orders fell by 12 percent. Order value includes store credit [2].',
+      4,
+    )
+    expect([...shown.flat(), ...last]).toEqual(['Online sales stopped [1].'])
+    expect(gate.failed).toBe('a number it was not given (12)')
   })
 
   it('leaves out a sentence its items do not support (FR-701)', () => {
@@ -239,9 +252,7 @@ describe('the words as they stream', () => {
     const { gate, shown, last } = stream('Here is what applies to orders in Norway.', 3)
     expect([...shown.flat(), ...last]).toEqual([])
     expect(gate.failed).toBe('cites no item')
-    expect(stream('Orders fell. Nobody knows why.', 3).gate.failed).toBe(
-      'a sentence that cites no item',
-    )
+    expect(stream('Orders fell. Nobody knows why.', 3).gate.failed).toBe('cites no item')
     expect(stream('   ', 1).gate.failed).toBe('no words')
   })
 

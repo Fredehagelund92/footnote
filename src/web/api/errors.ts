@@ -38,6 +38,11 @@ export class ApiError extends Error {
   readonly findings: Finding[]
   /** For a 409 that is a word's refusal (FR-138): the word is taken. */
   readonly refusal: boolean
+  /**
+   * For a change not sent because another tab signed this browser in as someone else: the app
+   * moves to them, as a sign-in does.
+   */
+  readonly someoneElse: boolean
   /** The id the service gave the request that failed (`x-request-id`), which an admin can look up. */
   readonly requestId: string | undefined
 
@@ -49,6 +54,7 @@ export class ApiError extends Error {
       clashes?: Clash[]
       findings?: Finding[]
       refusal?: boolean
+      someoneElse?: boolean
       requestId?: string
     } = {},
   ) {
@@ -59,6 +65,7 @@ export class ApiError extends Error {
     this.clashes = details.clashes ?? []
     this.findings = details.findings ?? []
     this.refusal = details.refusal ?? false
+    this.someoneElse = details.someoneElse ?? false
     this.requestId = details.requestId
   }
 
@@ -138,3 +145,6 @@ export function toApiError(error: unknown): ApiError {
 }
 
 export const isSignedOut = (error: unknown) => toApiError(error).kind === 'signed-out'
+
+/** A change not sent because the browser is signed in as someone else now (another tab). */
+export const isSomeoneElse = (error: unknown) => toApiError(error).someoneElse

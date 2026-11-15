@@ -282,6 +282,18 @@ describe('Cube change flags, the needs-check flow and stale links', () => {
     expect(await activeFlags()).toEqual([
       { item_id: items.a, flag: 'needs_check', reason: 'Definition changed: cube:sales.count' },
     ])
+    // The owner's Due for a check card names the definition that changed, and the day it did.
+    const feed = ok<{ cards: { id: string; group: string; changed?: unknown }[] }>(
+      await call('GET', '/inbox/feed?tab=all', 'owner'),
+    )
+    const today = await client.query<{ day: string }>(
+      "select (now() at time zone 'UTC')::date::text as day",
+    )
+    expect(feed.cards.find((c) => c.id === `check:${items.a}`)).toMatchObject({
+      group: 'check',
+      reason: 'source',
+      changed: [{ name: 'Sales Count', on: today.rows[0]!.day }],
+    })
     // C18: still delivered, labelled unverified with the state needs_check.
     expect(await delivery(items.a)).toMatchObject({
       freshness: 'unverified',

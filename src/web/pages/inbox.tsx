@@ -768,6 +768,7 @@ function CardDetail({
                 <ItemFold
                   fact={fact}
                   link={primaryLabel(card, review) !== 'Open the context item'}
+                  defaultOpen={card.type === 'check'}
                 />
               )}
             </div>
@@ -1070,7 +1071,7 @@ function Setup() {
         <div className="mx-auto flex w-full max-w-3xl flex-col p-4 md:p-6">
           <div className="grid grid-cols-1 gap-px bg-border p-px">
             <Cell className="gap-0 py-0">
-              <CardHeader className="border-b px-4 py-4">
+              <CardHeader className="border-b px-4 py-4 md:px-5">
                 <CardTitle className="text-base">
                   Set up your workspace so agents can use what you know
                 </CardTitle>
@@ -1425,7 +1426,7 @@ export function InboxPage() {
   const list = (
     <div className="flex h-full min-h-0 flex-col gap-0">
       <Cell className="h-full min-h-0 gap-0 py-0">
-        <CardHeader className="border-b px-4 py-4">
+        <CardHeader className="border-b px-4 py-4 md:px-5">
           <CardTitle className="text-base">{tab === 'all' ? 'Everything' : 'Needs you'}</CardTitle>
           <CardDescription>
             {tab === 'all' ? 'Yours, waiting on others, and done.' : <WeekLine />}

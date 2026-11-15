@@ -63135,7 +63135,7 @@
     "/invites": {
       "get": {
         "operationId": "invites.list",
-        "summary": "The open invites: who, as what, owning which domains, sent when and by whom",
+        "summary": "The open invites: who, as what, owning which domains, sent when and by whom, and whether each would let its person in",
         "tags": [
           "roles"
         ],
@@ -63184,8 +63184,34 @@
                       "expiresAt": {
                         "type": "string"
                       },
-                      "expired": {
-                        "type": "boolean"
+                      "standing": {
+                        "enum": [
+                          "open",
+                          "expired",
+                          "void"
+                        ],
+                        "type": "string"
+                      },
+                      "voidBecause": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "sender",
+                              "member",
+                              "erased"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "willOwn": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       }
                     },
                     "required": [
@@ -63196,7 +63222,9 @@
                       "invitedBy",
                       "sentAt",
                       "expiresAt",
-                      "expired"
+                      "standing",
+                      "voidBecause",
+                      "willOwn"
                     ]
                   }
                 }
@@ -63553,8 +63581,34 @@
                                   "expiresAt": {
                                     "type": "string"
                                   },
-                                  "expired": {
-                                    "type": "boolean"
+                                  "standing": {
+                                    "enum": [
+                                      "open",
+                                      "expired",
+                                      "void"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "voidBecause": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "sender",
+                                          "member",
+                                          "erased"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "willOwn": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": [
@@ -63565,7 +63619,9 @@
                                   "invitedBy",
                                   "sentAt",
                                   "expiresAt",
-                                  "expired"
+                                  "standing",
+                                  "voidBecause",
+                                  "willOwn"
                                 ]
                               },
                               "link": {
@@ -63645,8 +63701,34 @@
                                   "expiresAt": {
                                     "type": "string"
                                   },
-                                  "expired": {
-                                    "type": "boolean"
+                                  "standing": {
+                                    "enum": [
+                                      "open",
+                                      "expired",
+                                      "void"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "voidBecause": {
+                                    "anyOf": [
+                                      {
+                                        "enum": [
+                                          "sender",
+                                          "member",
+                                          "erased"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "willOwn": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": [
@@ -63657,7 +63739,9 @@
                                   "invitedBy",
                                   "sentAt",
                                   "expiresAt",
-                                  "expired"
+                                  "standing",
+                                  "voidBecause",
+                                  "willOwn"
                                 ]
                               }
                             },
@@ -63939,7 +64023,7 @@
     "/invites/{id}/resend": {
       "post": {
         "operationId": "invites.resend",
-        "summary": "Send an invite again, by its sender or an admin: a new link that works for another week, and the old one stops working",
+        "summary": "Send an invite again, by its sender or an admin: a new link that works for another week, and the old one stops working. An admin who sends again an invite its sender can no longer make becomes its sender; one to a member already is not sent again",
         "tags": [
           "roles"
         ],
@@ -64000,8 +64084,34 @@
                         "expiresAt": {
                           "type": "string"
                         },
-                        "expired": {
-                          "type": "boolean"
+                        "standing": {
+                          "enum": [
+                            "open",
+                            "expired",
+                            "void"
+                          ],
+                          "type": "string"
+                        },
+                        "voidBecause": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "sender",
+                                "member",
+                                "erased"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "willOwn": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         }
                       },
                       "required": [
@@ -64012,7 +64122,9 @@
                         "invitedBy",
                         "sentAt",
                         "expiresAt",
-                        "expired"
+                        "standing",
+                        "voidBecause",
+                        "willOwn"
                       ]
                     },
                     "link": {
@@ -64227,7 +64339,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                          "default": "They are a member already. Take this invite back instead."
                         },
                         "data": {}
                       },
@@ -66819,6 +66931,24 @@
                                 ],
                                 "type": "string"
                               },
+                              "changed": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "on": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "on"
+                                  ]
+                                }
+                              },
                               "lastChecked": {
                                 "type": "object",
                                 "properties": {
@@ -66859,6 +66989,7 @@
                               "itemId",
                               "title",
                               "reason",
+                              "changed",
                               "lastChecked"
                             ]
                           }
@@ -93090,6 +93221,24 @@
                                           "tool"
                                         ]
                                       }
+                                    },
+                                    "defined": {
+                                      "type": "object",
+                                      "properties": {
+                                        "names": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "tool": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "names",
+                                        "tool"
+                                      ]
                                     },
                                     "choices": {
                                       "type": "array",

@@ -6,9 +6,9 @@ import type { AnswerState } from './answer.ts'
   sentences for the person, each sentence ending with the numbers of the items it uses. What the
   model writes is checked a sentence at a time, as it streams, before anyone sees it: a sentence
   that fails ends the words there, and with no sentence that passes the engine's own words stand.
-  A sentence must cite an item and say only what the items it cites, the definitions given and
-  the question say; one that cites none may only restate the question, what agents are told or
-  what a definition says. Pure: the service makes the call (src/server/modules/answer/words.ts).
+  A sentence that cites an item must say only what the items it cites, the definitions given and
+  the question say; one that cites none is not weighed by its words, only by its numbers, and the
+  words need at least one sentence that cites an item or says what a definition says. Pure: the service makes the call (src/server/modules/answer/words.ts).
 */
 
 /** One context item the answer gives, numbered from 1 in the order the engine gives them. */
@@ -204,7 +204,7 @@ function supportOf(input: WordsInput) {
     [item.title, item.summary, item.notToConclude ?? ''].join(' '),
   )
   const definitions = (input.definitions ?? []).map((d) => `${d.name} ${d.words}`).join(' ')
-  // What the person asked and what agents are told: what a sentence that cites nothing may restate.
+  // What the person asked and what agents are told: what a sentence that cites items may restate.
   const frame = [
     input.question,
     input.read ?? '',
@@ -218,23 +218,20 @@ function supportOf(input: WordsInput) {
 
 /**
  * The words as they stream, let through a sentence at a time (FR-701): each sentence is shown only
- * once it is complete and passes `checkSentence`, and only when it says what it may. A sentence
- * that cites items may say what those items, the definitions and the question say. One that cites
- * none may restate the question or what agents are told, or say what a definition says; before
- * any sentence that cites an item, one short lead may also say what the items say, and it waits
- * until a sentence that cites an item, or says what a definition says, has passed. A sentence that
- * says more than that, or advises in Ask's own voice, is dropped, and the words go on (`dropped`). A sentence that fails
+ * once it is complete and passes `checkSentence`. A sentence that cites items may say what those
+ * items, the definitions and the question say; one that says more is dropped, and so is one that
+ * advises in Ask's own voice, and the words go on (`dropped`). A sentence that cites none is never
+ * dropped for its words; those before the first that cites an item, or says what a definition
+ * says, wait until one has passed. A sentence that fails
  * `checkSentence` ends the words there, and nothing after it is shown. Altogether at most
  * `WORDS_MAX` characters. With no sentence let through, the engine's own words stand.
  */
 export function wordsGate(input: WordsInput) {
   const known = wordsPrompt(input)
   const support = supportOf(input)
-  const everything = [...support.items, support.definitions, support.frame].join(' ')
   let buffer = ''
   let length = 0
   let grounded = false
-  let led = false
   let failed: string | null = null
   const passed: string[] = []
   const waiting: string[] = []
@@ -265,13 +262,10 @@ export function wordsGate(input: WordsInput) {
       return []
     }
     const defined = !!support.definitions && supportedBy(check.text, support.definitions)
-    const lead = !grounded && !led && !check.cites && supportedBy(check.text, everything)
-    const stands = check.cites
-      ? cites(check.text)
-      : defined || lead || supportedBy(check.text, support.frame)
-    if (!stands) {
-      const why = check.cites ? 'says what its items do not' : 'a sentence that cites no item'
-      dropped.push({ text: check.text, why })
+    // A sentence that cites no item is not weighed by its words: the numbers and names the model
+    // may not add are checked above, and the answer check (FR-720.10) is where a claim is flagged.
+    if (check.cites && !cites(check.text)) {
+      dropped.push({ text: check.text, why: 'says what its items do not' })
       return []
     }
     if (length + (length ? 1 : 0) + check.text.length > WORDS_MAX) {
@@ -281,7 +275,6 @@ export function wordsGate(input: WordsInput) {
     length += (length ? 1 : 0) + check.text.length
     if (!grounded && !check.cites && !defined) {
       // Held until the words say something an item or a definition gives.
-      led ||= lead
       waiting.push(check.text)
       return []
     }

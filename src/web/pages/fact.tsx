@@ -190,6 +190,7 @@ export function FactPage({ id }: { id: string }) {
   return (
     <Page
       bodyRef={bodyRef}
+      deep={{ href: href('/context'), label: 'Back to Context' }}
       className="flex overflow-hidden"
       title={
         <Breadcrumb>
@@ -279,7 +280,7 @@ export function FactPage({ id }: { id: string }) {
         </>
       }
     >
-      <Canvas className="min-h-0 min-w-0 flex-1 overflow-y-auto sm:pt-3 sm:pb-2">
+      <Canvas className="min-h-0 min-w-0 flex-1 overflow-y-auto sm:pt-2 sm:pb-2">
         <Paper>
           <Loadable
             what="this context item"

@@ -671,6 +671,40 @@ describe('the reads a plan runs', () => {
     ])
   })
 
+  describe("a read of the last answer's sources", () => {
+    const spain: ChatTurn = {
+      question: 'what is net revenue in Spain?',
+      scope: null,
+      sources: ['rul_spain_vat_in', 'rul_spain_vat_out'],
+    }
+    const reread = (ids: string[], turn: ChatTurn) =>
+      plannedAnswer(planBundle, [{ kind: 'about_previous', ids, why: false }], {
+        question: 'which one is right?',
+        today: PLAN_TODAY,
+        previous: turn,
+      }).answer.state
+
+    it('reads the two sources fresh as Checked, which a Partial answer must not become (S2)', () => {
+      expect(reread(spain.sources, { ...spain, state: null })).toBe('grounded')
+      expect(reread(spain.sources, { ...spain, state: 'partial' })).toBe('partial')
+      expect(reread(spain.sources, { ...spain, state: 'conflict' })).toBe('conflict')
+    })
+
+    it("keeps a fresh state that is worse than the last answer's", () => {
+      expect(
+        reread(['rul_norway_credit', 'rul_norway_cash'], {
+          ...previous,
+          sources: ['rul_norway_credit', 'rul_norway_cash'],
+          state: 'grounded',
+        }),
+      ).toBe('conflict')
+    })
+
+    it('gives one source of a Partial answer its own state', () => {
+      expect(reread(['rul_spain_vat_in'], { ...spain, state: 'partial' })).toBe('grounded')
+    })
+  })
+
   it('says an item is due for a check when its flag is on and its date is still to come', () => {
     const read = [
       {

@@ -63,10 +63,12 @@ import {
   outcomeOf,
   outcomeOfAnswer,
   turnReducer,
+  unansweredIn,
   type Outcome,
   type Turn,
   type TurnAction,
 } from '@/model/ask-turn'
+import { isOnline } from '@/lib/send'
 import type { AskQuestion, ComposerHandle } from '@/pages/ask-composer'
 import type { Fact } from '@/model/items'
 import { useDraft } from '@/lib/draft'
@@ -172,7 +174,7 @@ export function AskChat({
       ? [
           {
             ...askedTurn('t0', failedOpening.question),
-            error: `Couldn't get an answer: ${reasonInWords(failedOpening.message)}`,
+            error: unansweredIn(failedOpening.message, isOnline()),
           },
         ]
       : (initial ?? []).map(doneTurn),
@@ -350,7 +352,7 @@ export function AskChat({
         // Nothing came back: the question stays in the chat, saying so, with Ask again.
         update(id, {
           type: 'error',
-          message: `Couldn't get an answer: ${reasonInWords(toApiError(e).message)}`,
+          message: unansweredIn(toApiError(e).message, isOnline()),
         })
       }
     })
@@ -495,7 +497,7 @@ export function AskChat({
   const width = compact ? 'max-w-none px-4' : 'max-w-176 px-4'
   const placeholder = draft
     ? 'Ask another question against the draft'
-    : 'Ask about a metric, a value or the records'
+    : 'Ask what a metric means, who owns it, or what is written about it'
 
   return (
     <Answering value={answering}>
@@ -509,10 +511,10 @@ export function AskChat({
         >
           <div ref={content} className={cn('mx-auto flex min-h-full w-full flex-col', width)}>
             {turns.length === 0 ? (
-              <div className="flex flex-1 flex-col justify-center gap-5 py-10">
+              <div className="flex flex-1 flex-col gap-5 pt-ask-greeting pb-10">
                 <div className="px-2 text-center">
                   <h2 className="text-2xl font-medium tracking-tight text-balance">
-                    What do you want to know about the numbers?
+                    What do you want to know about your metrics?
                   </h2>
                   <p className="mt-2 text-sm text-balance text-muted-foreground">
                     Answers come from checked context, the way an agent gets it, and say how sure
@@ -1396,11 +1398,4 @@ export function TryIt({ cardId, embedded }: { cardId?: string; embedded?: boolea
   const chat = <AskChat key={`${cardId}-${!!draft}`} initial={initial} draft={draft} compact />
   if (embedded) return chat
   return <DockFrame title="Try it">{chat}</DockFrame>
-}
-
-/** Why nothing came back, as plain words after the colon: an ordinary capitalised first word is lower-cased, an acronym is not. */
-function reasonInWords(message: string): string {
-  const reason = message.trim().replace(/[.!?]+$/, '') || "The service didn't reply"
-  const ordinary = /^[A-Z][a-z]/.test(reason)
-  return `${ordinary ? reason.charAt(0).toLowerCase() : reason.charAt(0)}${reason.slice(1)}.`
 }
