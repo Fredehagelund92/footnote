@@ -509,7 +509,7 @@ export function AskChat({
         >
           <div ref={content} className={cn('mx-auto flex min-h-full w-full flex-col', width)}>
             {turns.length === 0 ? (
-              <div className="flex flex-1 flex-col justify-center gap-5 py-10">
+              <div className="flex flex-1 flex-col gap-5 pt-[12vh] pb-10">
                 <div className="px-2 text-center">
                   <h2 className="text-2xl font-medium tracking-tight text-balance">
                     What do you want to know about the numbers?
