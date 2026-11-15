@@ -19,8 +19,8 @@ export const notSeen = (what: string): AnswerFooter => ({
   notSeen: `Not seen: ${what}.`,
 })
 
-const list = (names: readonly string[]) =>
-  names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+const list = (names: readonly string[], join = 'and') =>
+  names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} ${join} ${names.at(-1)}`
 
 /** Why an item may be out of date, in words. */
 const outOfDate: Record<NonNullable<Answer['items'][number]['unverifiedReason']>, string> = {
@@ -54,7 +54,9 @@ export function readsFooter(
       ? `Read the ${a.items.length} that fit best of ${a.items.length + cut} context items.`
       : null,
     notSeen:
-      a.items.length && nothing.length ? `Nothing is written about ${list(nothing)} here.` : null,
+      a.items.length && nothing.length
+        ? `Nothing general is written about ${list(nothing, 'or')}.`
+        : null,
     stale: staleLine(stale),
   }
   return footer.denominator || footer.notSeen || footer.stale ? footer : null

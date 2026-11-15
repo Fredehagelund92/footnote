@@ -32,6 +32,8 @@ askEvalSuite({
     'G25',
     'G29',
     'GP05',
+    // A follow-up that only re-reads a Partial answer's source carries Partial, not Grounded.
+    'GP11',
     'H05',
   ],
   heldPassingToday: 19,

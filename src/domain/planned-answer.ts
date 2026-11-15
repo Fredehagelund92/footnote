@@ -10,6 +10,7 @@ import {
   type AnswerBundle,
   type AnswerItem,
   type AnswerSource,
+  type AnswerState,
   type AnswerStep,
 } from './answer.ts'
 import { answerStateOf } from './answer-state.ts'
@@ -546,6 +547,12 @@ function engineRead(
   }
 }
 
+/** The states in the order the worst comes first; Not found comes last, as it has no items to doubt. */
+const worstFirst = ['failed', 'conflict', 'partial', 'stale', 'grounded', 'missing'] as const
+
+const worstState = (states: readonly AnswerState[]): AnswerState =>
+  [...states].sort((a, b) => worstFirst.indexOf(a) - worstFirst.indexOf(b))[0]!
+
 /**
  * The answer to every read of a plan together: the first read's, with the items of the others
  * after its own, once each, at most twenty. Its state is the worst of the reads' by the order the
@@ -561,11 +568,8 @@ export function combined(answers: readonly Answer[]): Answer {
     .filter((item) => !seen.has(item.id) && (seen.add(item.id), true))
     .slice(0, 20)
   const ids = new Set(items.map((i) => i.id))
-  const order = ['failed', 'conflict', 'partial', 'stale', 'grounded', 'missing'] as const
   const found = answers.filter((a) => a.items.length)
-  const worst = found.length
-    ? found.map((a) => a.state).sort((a, b) => order.indexOf(a) - order.indexOf(b))[0]!
-    : 'missing'
+  const worst = found.length ? worstState(found.map((a) => a.state)) : 'missing'
   const state =
     worst !== 'conflict' && found.length < answers.length && found.length ? 'partial' : worst
   return {
@@ -640,7 +644,7 @@ export function plannedAnswer(
   )
   const ran = runs.flatMap((r) => r.reads)
   const dated = ran.find((r) => r.kind === 'lookup' || r.kind === 'explore')
-  const answered = combined(runs.map((r) => r.answer))
+  const answered = carryingState(combined(runs.map((r) => r.answer)), ran, c.previous)
   // A metric with nothing written is still defined: its definition is the whole answer.
   const asked = answered.items.length
     ? []
@@ -679,6 +683,28 @@ export function plannedAnswer(
     ...(general.length ? { general: [...new Set(general)].map((key) => nameOf(bundle, key)) } : {}),
     cut: runs.reduce((n, r) => n + r.cut, 0),
   }
+}
+
+/**
+ * An answer that only reads again the sources of the last answer, all of them, says nothing the
+ * last answer did not: it keeps that answer's state when the fresh read is surer, so "Which one
+ * is right?" after a Partial or Conflict answer is never Checked. One source of the last answer, or
+ * more than it had, is a new question and keeps its own.
+ */
+function carryingState(
+  answered: Answer,
+  ran: readonly PlannedRead[],
+  previous: ChatTurn | null,
+): Answer {
+  const state = previous?.state
+  if (!state || !previous.sources.length) return answered
+  const ids = new Set<string>()
+  for (const read of ran) {
+    if (read.kind !== 'about_previous') return answered
+    for (const id of read.ids) ids.add(id)
+  }
+  if (!ids.size || !previous.sources.every((id) => ids.has(id))) return answered
+  return { ...answered, state: worstState([answered.state, state]) }
 }
 
 /** How many items a line about check dates names. */
