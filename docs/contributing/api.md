@@ -1165,7 +1165,7 @@ the contract is in `src/contract/alerts.ts`.
   (`look:<domain>`, group `look`) that lists them. Each raise of the five rules with no other card
   (Conflict, More questions not found, Calls fail, Model spend, A connected tool did not sync) is
   an Alert card (`alert:<raise id>`, group `alert`, in the Alerts group after Saved questions) for
-  whom it reached, for a week or until its Inbox item is archived: its title, the rule, and where
+  whom it reached, for a week: its title, the rule, and where
   its one action goes. An Alert card, a Not found card, a Saved questions card and a card for an
   item whose check date passed do not reach anyone while their rule is off, nor someone who muted
   their rule for the card's domain. An Alert card is left out only when the person muted its rule
