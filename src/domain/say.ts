@@ -1,7 +1,6 @@
 import { stateOfStatus, stateWords } from './answer-state.ts'
 import { periodWords } from './dates.ts'
 import { metricsOf } from './resolver.ts'
-import { DEFAULT_PRODUCT_NAME } from './brand.ts'
 import { SAID_MEANINGS } from './ask-chat.ts'
 import type { CannotReason } from './records-answer.ts'
 import type { ResolvedScope, ScopeIssue } from './scope.ts'
@@ -92,13 +91,21 @@ export const notLookedUp = 'Nothing was looked up yet.'
 export const offTopicSaid =
   'Ask answers questions about the business, its numbers and what is written about them. This question is outside that, so nothing was looked up.'
 
+/**
+ * The questions a refusal ends with, to press: ones Ask answers from the records on any workspace.
+ * Every sentence that says Ask will not answer is followed by these.
+ */
+export const refusalOffers: readonly string[] = ['What changed this week?', 'List the conflicts']
+
 /** What Ask says when it cannot answer the question asked, and reads nothing (FR-720). */
 export const cannotSaid: Record<CannotReason, string> = {
-  numbers: `${DEFAULT_PRODUCT_NAME} keeps no numbers, so Ask cannot work this out. An agent with your data tool can, and it reads this context first.`,
+  numbers:
+    'Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first.',
   source: 'Definitions live in your source tool, so Ask cannot change one.',
   write: 'Ask does not write context. You can start it here.',
   person: "Ask does not answer questions about one person's work.",
-  not_yet: 'Ask cannot work this out yet.',
+  not_yet:
+    'Ask cannot answer this kind of question yet. It can tell you what is written about a metric, what changed lately, and who owns a domain.',
   unread: 'Ask could not read this question just now, so nothing was looked up.',
 }
 

@@ -56,9 +56,19 @@ test('what Ask cannot do it says, with what it can show', async ({ page }) => {
   await ask(page, 'draft context for Orders in Spain')
   await expect(page.getByRole('link', { name: 'Write context' })).toBeVisible()
   await ask(page, 'which market is growing fastest?')
+  await expect(page.getByText(/^Ask does not hold the figures, only what is written/)).toBeVisible()
+  // Every refusal ends with something to press.
+  await page.getByRole('button', { name: 'What changed this week?' }).click()
+  await expect(page.getByText('Counted from the workspace')).toBeVisible()
+})
+
+test('a refusal about one person ends with questions to press', async ({ page }) => {
+  await ask(page, 'how many definitions did Ines Duarte change?')
   await expect(
-    page.getByText(/^Heed keeps no numbers, so Ask cannot work this out\. An agent/),
+    page.getByText("Ask does not answer questions about one person's work."),
   ).toBeVisible()
+  await page.getByRole('button', { name: 'What changed this week?' }).click()
+  await expect(page.getByText('Counted from the workspace')).toBeVisible()
 })
 
 test('a follow-up keeps the analysis and changes its domain', async ({ page }) => {
