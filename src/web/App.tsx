@@ -230,7 +230,8 @@ function Shell() {
     const offsets = dockScrolls.current
     offsets.clear()
     const onScroll = (e: Event) => {
-      if (e.target instanceof HTMLElement) offsets.set(e.target, [e.target.scrollTop, e.target.scrollLeft])
+      if (e.target instanceof HTMLElement)
+        offsets.set(e.target, [e.target.scrollTop, e.target.scrollLeft])
     }
     node.addEventListener('scroll', onScroll, true)
     return () => {
