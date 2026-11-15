@@ -66,6 +66,7 @@ export async function driveHost({
   const log: { seq: number; fileId: string }[] = []
   const requests: DriveRequest[] = []
   const planned: Planned[] = []
+  const held: { path: RegExp; arrived: () => void; released: Promise<void> }[] = []
   let seq = 0
   let clock = Date.parse(startAt) - 60_000
 
@@ -169,6 +170,13 @@ export async function driveHost({
     const url = new URL(request.url ?? '/', address)
     const authorization = request.headers.authorization ?? null
     requests.push({ method: request.method ?? 'GET', path: url.pathname, authorization, body })
+
+    const hold = held.findIndex((h) => h.path.test(url.pathname))
+    if (hold >= 0) {
+      const [{ arrived, released }] = held.splice(hold, 1) as [(typeof held)[number]]
+      arrived()
+      await released
+    }
 
     const plan = planned.find((p) => p.path.test(url.pathname) && p.times > 0)
     if (plan) {
@@ -392,6 +400,17 @@ export async function driveHost({
         ...(reason ? { reason } : {}),
         ...(retryAfter ? { retryAfter } : {}),
       })
+    },
+    /**
+     * The next request to a path waits until `release` is called, so a test can act while a read
+     * is out; `arrived` settles once that request has come.
+     */
+    hold(path: RegExp) {
+      let arrived!: () => void
+      let release!: () => void
+      const came = new Promise<void>((resolve) => (arrived = resolve))
+      held.push({ path, arrived, released: new Promise<void>((resolve) => (release = resolve)) })
+      return { arrived: came, release }
     },
     /** The changes in the log so far, for a test that wants the token Drive would give now. */
     startToken: () => String(seq + 1),

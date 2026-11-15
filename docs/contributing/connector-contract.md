@@ -186,11 +186,15 @@ else.
 
 ### What the core does with a read
 
-Refreshes serialize per connector in PostgreSQL. Snapshot creation and definition updates commit
-together. A complete read marks absent definitions missing without deleting their ids; a partial
-read never does; a failed read keeps every previous mark and status and changes no flag or link
-(CON-213, CON-214). A ref belongs to one connector for good: a member another source already
-reads stays with it, the read leaves it out with a `taken` warning and is partial. The read's
+Refreshes serialize per connector in PostgreSQL, without holding the source's row while the
+source is read: Pause, Save and Disconnect answer at once. A read keeps the settings revision it
+started under (`connector_snapshots.settings_revision`), and one whose source was changed, paused
+or disconnected while it was out keeps nothing; a change queues the source, so the next read runs
+under the new settings. Snapshot creation and definition updates commit together. A complete
+read marks absent definitions missing without deleting their ids; a partial read never does; a
+failed read keeps every previous mark and status and changes no flag or link (CON-213, CON-214).
+A ref belongs to one connector for good: a member another source already reads stays with it,
+the read leaves it out with a `taken` warning and is partial. The read's
 cursor is stored on its snapshot (`connector_snapshots.cursor`). The job `connectors.sync` runs
 every five minutes and reads each source that is switched on and due: the server's and those
 administrators added, loaded from the database each time, each on its own schedule
@@ -466,7 +470,7 @@ interface Context<Config> {
 - A definitions read that finds its input as the cursor names it ends with
   `end { unchanged: true }` and sends no definition. The core keeps what the last read found, as a
   new read with the same version, counts and warnings, and every definition stays seen. A cursor
-  goes to a read only after a complete read since the source's settings last changed, and for a
+  goes to a read only after a complete read under the source's current settings revision, and for a
   connector with `incremental: true` only when it was written under the same settings and scopes
   (the core ties it to a digest of them); put what your mapping depends on in it, so a new version of the mapping does not rest on an old read
   (the dbt connector's `reader`).
@@ -817,6 +821,8 @@ The core chooses what kind of read it asks for by the cursor it hands (`capabili
   changed (it may have moved in or out) ends with no cursor, so the next read is a full read. Once
   its last good full read is a week old (`FULL_READ_EVERY_DAYS`), it gets no cursor: it lists
   everything again, which finds what a change list missed, and what that read leaves out is gone.
+  So it does after any change of the source's settings: a cursor, and a full read, count only under
+  the settings revision they were read under (`readKindOf`, which both pipelines use).
 
 Each read records which it was (`connector_snapshots.full_read`). A read in part, or one with a
 document that waits, keeps the cursor it was handed, so the next read brings again what this one
