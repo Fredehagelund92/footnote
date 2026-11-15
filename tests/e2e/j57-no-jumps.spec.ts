@@ -3,7 +3,8 @@ import { expect, go, test } from './go.ts'
 
 // A page that moves after it has drawn makes people wait before they dare to read or click. The
 // browser's own layout-shift entries, from a fresh visit with no input, must add up to next to
-// nothing: the web font arriving may nudge a line (Ask, 0.0003), a panel taking its place may not.
+// nothing: the web font arriving may nudge a line or a button (Ask, 0.0003 here and 0.0013 on CI's
+// slower runners), a panel taking its place may not (those were 0.1, 0.027 and 0.016).
 
 type Shift = { v: number; t: number; src: string }
 
@@ -44,6 +45,6 @@ for (const [name, route] of [
     expect(
       found.reduce((n, s) => n + s.v, 0),
       JSON.stringify(found),
-    ).toBeLessThan(0.001)
+    ).toBeLessThan(0.005)
   })
 }

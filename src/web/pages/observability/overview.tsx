@@ -97,8 +97,7 @@ import { clicked, sortingFrom, sortingTo, type Sorting } from '@/lib/sort'
 import { useDomainList, useDomains, useMe } from '@/lib/workspace'
 import { pageKey } from '@/lib/keys'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useSettled } from '@/hooks/use-settled'
-import { useWide } from '@/hooks/use-wide'
+import { useSettled, useWide } from '@/hooks/use-wide'
 import { ObsPage } from '@/pages/observability'
 
 // Overview: what agents asked and what they got, in one view over one state in the address. The

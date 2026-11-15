@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { useSettled } from '@/hooks/use-settled'
+import { useSettled } from '@/hooks/use-wide'
 import { clamp, readWidth, saveWidth } from '@/lib/pane-width'
 
 /**
