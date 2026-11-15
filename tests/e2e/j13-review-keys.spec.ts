@@ -43,8 +43,7 @@ test('the Command-Enter hint shows only where the key acts', async ({ page }) =>
   await expect(decide.getByRole('button', { name: 'Return with a note' })).toBeVisible()
   await expect(decide.getByText('to publish')).toHaveCount(0)
   await go(page, '/inbox/sug-sofia-clash/review')
-  await expect(decide.getByRole('button', { name: 'Return with a note' })).toBeVisible()
-  await expect(decide.getByText('to publish')).toHaveCount(0)
+  await expect(decide.getByText('to publish')).toBeVisible()
 })
 
 test('Esc in the quick view clears the selection', async ({ page }) => {

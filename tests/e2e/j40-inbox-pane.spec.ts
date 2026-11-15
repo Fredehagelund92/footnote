@@ -59,7 +59,7 @@ test('a suggestion that clashes says what agents would hear if it went out as it
   await expect(a.getByText('If you publish as it is')).toBeVisible()
   // The after side's line; on the service the live items already disagree today too.
   await expect(a.getByText('Conflict', { exact: true }).last()).toBeVisible()
-  await expect(p.getByText('Publishing waits until you say how they relate')).toBeVisible()
+  await expect(p.getByText('Overlaps are answered Unrelated unless you change them')).toBeVisible()
   await p.getByRole('button', { name: 'Decide how they relate' }).click()
   await expect(page).toHaveURL(new RegExp(`/inbox/${cardIn('sug-sofia-clash')}/review`))
 })
@@ -95,12 +95,10 @@ test('a card with no answers to compare keeps its point, its folds and its decis
   await expect(p.getByRole('heading', { level: 2, name: title })).toBeVisible()
   await expect(p.getByText('Due for a check', { exact: true })).toBeVisible()
   await expect(answers(page)).toHaveCount(0)
-  // The context item folds to the Context list's row: its title, and what it is in words.
+  // The context item is open on a check, so its text is there to judge; its row says what it is.
   const item = p.getByRole('button', { name: `The context item: ${title}`, exact: true })
-  await expect(item).toHaveAttribute('aria-expanded', 'false')
-  await expect(item).toHaveAccessibleDescription(/^Context item - Rule - Sales - owned by /)
-  await item.click()
   await expect(item).toHaveAttribute('aria-expanded', 'true')
+  await expect(item).toHaveAccessibleDescription(/^Context item - Rule - Sales - owned by /)
   // Opened, it leads to the item's page, as the card's own decisions don't.
   await expect(p.getByRole('link', { name: 'Open the context item' })).toHaveAttribute(
     'href',
