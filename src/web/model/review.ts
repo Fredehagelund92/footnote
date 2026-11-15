@@ -220,14 +220,15 @@ export type Relation = 'replaces' | 'disagree' | 'unrelated'
 export const claimsToCheck = (r: Pick<Review, 'claims'>) =>
   r.claims?.rows.filter((x) => x.same !== 'same').length ?? 0
 
+/** The overlap with live context as a sentence: "About the same thing as 2 published items". */
+export const clashWords = (n: number) =>
+  `About the same thing as ${n === 1 ? '1 published item' : `${n} published items`}`
+
 /** What needs care, in a few words, for the quick view and the Inbox row: "2 claims to check". */
 export function careLine(r: Review) {
   const n = claimsToCheck(r)
   if (n) return `${n} ${n === 1 ? 'claim' : 'claims'} to check`
-  if (r.clash) {
-    const n = r.clash.items.length
-    return `About the same thing as ${n === 1 ? '1 published item' : `${n} published items`}`
-  }
+  if (r.clash) return clashWords(r.clash.items.length)
   if (r.retire?.withdrawn) return `Withdrawn by ${r.retire.withdrawn.by}`
   return undefined
 }

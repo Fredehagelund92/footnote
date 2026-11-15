@@ -138,7 +138,8 @@ function didWords(from: string, r: Review | undefined) {
       : r.mode === 'retire'
         ? 'suggests archiving an item'
         : changeWords(r.counts)
-  return from ? `${from} ${did}.` : did && `${did[0]!.toUpperCase()}${did.slice(1)}.`
+  if (!did) return from ? `From ${from}.` : ''
+  return from ? `${from} ${did}.` : `${did[0]!.toUpperCase()}${did.slice(1)}.`
 }
 
 /** What a row's suggestion needs before it can go out, from its review: "About the same thing as 2 published items". */

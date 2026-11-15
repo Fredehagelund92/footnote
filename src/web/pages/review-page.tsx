@@ -79,7 +79,7 @@ import { itemPageQuery, useInbox, useReviews, useSavedQuestions, useWrite } from
 import { useTakeBack } from '@/lib/undo'
 import { checkDraft, itemOfReview, savesQuestion } from '@/lib/saved-check'
 import { SavedLine } from '@/components/obs/saved-line'
-import { careLine, marks, readiness, type Relation, type Review } from '@/model/review'
+import { careLine, clashWords, marks, readiness, type Relation, type Review } from '@/model/review'
 import {
   decide,
   idle,
@@ -766,7 +766,7 @@ function Clash({ r }: { r: Review }) {
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />
         <Mark role="needs" icon={false} className="text-sm">
-          {careLine(r)}
+          {clashWords(items.length)}
         </Mark>
         <span className="text-sm text-muted-foreground">
           {items.length > 1
