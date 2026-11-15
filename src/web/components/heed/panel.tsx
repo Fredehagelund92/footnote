@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/heed/fold'
+import { takeDockFocus } from '@/lib/dock'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Every right-hand panel has one anatomy: a title bar (the bar's height, its title, its own actions
@@ -19,8 +20,10 @@ export function Panel({
   closeLabel = 'Close the panel',
   footer,
   label,
+  waiting,
   children,
   className,
+  bodyClassName,
 }: {
   title: React.ReactNode
   /** A peek names what it is quietly in the bar; its own title is in the body, once. */
@@ -34,9 +37,18 @@ export function Panel({
   footer?: React.ReactNode
   /** The region's name, when the title isn't plain text. */
   label?: string
+  /** A frame held while its content loads: it leaves the focus hand-off to the panel that replaces it. */
+  waiting?: boolean
   children: React.ReactNode
   className?: string
+  /** On the scrolling body only: the bar and the footer stay as they are. */
+  bodyClassName?: string
 }) {
+  const heading = React.useRef<HTMLHeadingElement>(null)
+  // Opened from a list row by the keyboard, the panel takes focus on its title.
+  React.useEffect(() => {
+    if (!waiting && takeDockFocus()) heading.current?.focus({ preventScroll: true })
+  }, [waiting])
   return (
     <section
       aria-label={label ?? (typeof title === 'string' ? title : 'Side panel')}
@@ -45,8 +57,10 @@ export function Panel({
       <div className="flex h-bar shrink-0 items-center gap-1 border-b px-2 md:px-4">
         {leading}
         <h2
+          ref={heading}
+          tabIndex={-1}
           className={cn(
-            'min-w-0 flex-1 truncate px-1 text-sm font-medium',
+            'min-w-0 flex-1 truncate px-1 text-sm font-medium outline-none',
             quietTitle && 'text-sm font-normal text-muted-foreground',
           )}
         >
@@ -66,7 +80,9 @@ export function Panel({
           </Tooltip>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+      <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}>
+        {children}
+      </div>
       {footer && <div className="shrink-0 border-t bg-background">{footer}</div>}
     </section>
   )

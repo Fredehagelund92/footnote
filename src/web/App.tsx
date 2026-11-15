@@ -3,13 +3,20 @@ import { Outlet } from '@tanstack/react-router'
 import { QueryClientProvider, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { mockControls } from '@/api'
 import { createQueryClient } from '@/api/query-client'
-import { InDock, isPageQuery, sessionQuery, sharedQueries, useSession } from '@/api/queries'
+import {
+  afterSomeoneElse,
+  InDock,
+  isPageQuery,
+  sessionQuery,
+  sharedQueries,
+  useSession,
+} from '@/api/queries'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { DOCK_TITLE, useDock } from '@/lib/dock'
+import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/heed/definition-peek'
@@ -129,7 +136,22 @@ function SafeDock() {
       frame={(body) => <DockFrame title={title}>{body}</DockFrame>}
     >
       <InDock.Provider value>
-        <div className="h-full dock-swap">
+        <div
+          className="h-full dock-swap"
+          onKeyDown={(e) => {
+            // A list row's peek closes on Escape from inside; a field, menu or dialog in it keeps its own Escape.
+            if (e.key !== 'Escape' || e.defaultPrevented) return
+            if (dock?.kind !== 'context' && dock?.kind !== 'def') return
+            if (
+              (e.target as HTMLElement).closest(
+                'input, textarea, [contenteditable], [role=menu], [role=listbox], [role=dialog]',
+              )
+            )
+              return
+            e.preventDefault()
+            closeDock()
+          }}
+        >
           <DockContent />
         </div>
       </InDock.Provider>
@@ -185,6 +207,11 @@ function Shell() {
   const dock = useDock()
   const isMobile = useIsMobile()
   const { parts } = useRoute()
+  // Closed, the dock gives focus back to the list row it opened from.
+  const dockOpen = !!dock
+  React.useEffect(() => {
+    if (!dockOpen) returnFromDock()
+  }, [dockOpen])
   // The sidebar folds to its rail while the dock is open or a review is on screen, and comes back
   // when they close. A page that loads that way starts folded, so nothing jumps after the first paint.
   const hasDock = !!dock || (parts[0] === 'inbox' && parts[2] === 'review')
@@ -211,6 +238,18 @@ function Shell() {
     }
   }
 
+  React.useEffect(() => {
+    if (!auto) return
+    let second = 0
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setAuto(false))
+    })
+    return () => {
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [auto])
+
   return (
     <SidebarProvider
       open={open}
@@ -225,14 +264,13 @@ function Shell() {
       {/* The first stop for the keyboard: past the sidebar, straight to the page. A button, since a #link would change the address. */}
       <button
         type="button"
-        className="sr-only fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium shadow-md ring-3 ring-ring/50 focus-visible:not-sr-only"
+        className="pointer-events-none fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium opacity-0 shadow-md ring-3 ring-ring/50 focus-visible:pointer-events-auto focus-visible:opacity-100"
         onClick={() => {
           // A page can name where it starts (Ask: the box to ask in); otherwise the page itself.
-          const target = document.querySelector<HTMLElement>('[data-skip-target]')
-          if (target) return target.focus()
           const main = document.querySelector<HTMLElement>('[data-slot=sidebar-inset]')
+          const target = document.querySelector<HTMLElement>('[data-skip-target]') ?? main
           main?.setAttribute('tabindex', '-1')
-          main?.focus()
+          target?.focus()
         }}
       >
         Skip to the content
@@ -382,6 +420,8 @@ function AppToaster() {
 const queryClient = createQueryClient({
   // A session that ended: everything cached was the person's, and the sign-in page comes next.
   onSignedOut: () => void queryClient.invalidateQueries({ queryKey: sessionQuery().queryKey }),
+  // Another tab signed this browser in as someone else: the app moves to them.
+  onSomeoneElse: () => void afterSomeoneElse(queryClient),
 })
 
 export default function App() {

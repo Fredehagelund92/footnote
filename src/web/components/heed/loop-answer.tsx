@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { LoopBlock, LoopItem, LoopOverview, LoopTurn } from '@contract/answer'
+import type { LoopBlock, LoopItem, LoopOverview, LoopRun, LoopTurn } from '@contract/answer'
 import type { LucideIcon } from '@/components/icons'
 import {
   ItemRow,
@@ -84,15 +84,12 @@ export function LoopProgress({ turn }: { turn: Turn }) {
           )}
         </li>
       ))}
-      {(done || !steps.length) && (
+      {/* Stopped, the notice under the reads says so, once. */}
+      {!turn.stopped && (done || !steps.length) && (
         <li className="flex items-center gap-2">
           <span aria-hidden className="size-4 shrink-0" />
           <P.ReadingLine running={!turn.stopped}>
-            {turn.stopped
-              ? 'Stopped while reading'
-              : done
-                ? 'Writing the answer…'
-                : (turn.working ?? 'Reading…')}
+            {done ? 'Writing the answer…' : (turn.working ?? 'Reading…')}
           </P.ReadingLine>
         </li>
       )}
@@ -193,35 +190,84 @@ function Body({
   byId: ReadonlyMap<string, LoopItem>
   seen: Set<string>
 }) {
+  const [all, setAll] = React.useState(false)
+  // One sentence to a line, and the short lists' lines as they are; only five show before Show more.
+  const lines = body.map((b) => (b.t === 'p' ? sentencesOf(b.runs) : b.t === 'ul' ? b.items : []))
+  const total = lines.reduce((n, l) => n + l.length, 0)
+  const shown = all ? total : SENTENCES_SHOWN
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
-      {body.map((b, i) =>
-        b.t === 'p' ? (
-          <p key={i}>
-            <Runs runs={b.runs} nouns={nouns} items={numbered} seen={seen} />
-          </p>
-        ) : b.t === 'ul' ? (
-          <ul key={i} className="ml-6 list-disc space-y-1.5 marker:text-muted-foreground">
-            {b.items.map((runs, j) => (
-              <li key={j}>
-                <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
-              </li>
-            ))}
-          </ul>
+      {body.map((b, i) => {
+        if (b.t === 'list')
+          return (
+            <Rows
+              key={i}
+              items={b.rows.flatMap((id) => {
+                const item = byId.get(id)
+                return item ? [item] : []
+              })}
+              nouns={nouns}
+              more={b.more}
+            />
+          )
+        const before = lines.slice(0, i).reduce((n, l) => n + l.length, 0)
+        const kept = (lines[i] ?? []).slice(0, Math.max(0, shown - before))
+        if (!kept.length) return null
+        const Line = b.t === 'p' ? 'p' : 'li'
+        const rows = kept.map((runs, j) => (
+          <Line key={j}>
+            <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
+          </Line>
+        ))
+        return b.t === 'p' ? (
+          <div key={i} className="flex flex-col gap-1.5">
+            {rows}
+          </div>
         ) : (
-          <Rows
-            key={i}
-            items={b.rows.flatMap((id) => {
-              const item = byId.get(id)
-              return item ? [item] : []
-            })}
-            nouns={nouns}
-            more={b.more}
-          />
-        ),
+          <ul key={i} className="ml-6 list-disc space-y-1.5 marker:text-muted-foreground">
+            {rows}
+          </ul>
+        )
+      })}
+      {!all && total > SENTENCES_SHOWN && (
+        <button
+          type="button"
+          onClick={() => setAll(true)}
+          className="w-fit rounded-sm text-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          Show {total - SENTENCES_SHOWN} more
+        </button>
       )}
     </div>
   )
+}
+
+/** How many sentences the words show before Show more. */
+const SENTENCES_SHOWN = 5
+
+/**
+ * A paragraph's runs as sentences: a sentence ends in a text run that ends in . ! or ?, and the
+ * citations that follow it stay with it.
+ */
+function sentencesOf(runs: readonly LoopRun[]): LoopRun[][] {
+  const out: LoopRun[][] = []
+  let open: LoopRun[] = []
+  let closed = false
+  for (const run of runs) {
+    if (closed && run.t === 'cite') {
+      open.push(run)
+      continue
+    }
+    if (closed) {
+      out.push(open)
+      open = []
+      closed = false
+    }
+    open.push(run)
+    if (run.t === 'text' && /[.!?]\s*$/.test(run.text)) closed = true
+  }
+  if (open.length) out.push(open)
+  return out
 }
 
 /** Rows of items, each told apart from another with the same title. */
@@ -1017,7 +1063,7 @@ function Finished({
               )}
             </div>
           )}
-          {loop.state === 'partial' && !!loop.subject?.uncovered.length && (
+          {loop.state === 'partial' && !!loop.subject?.uncovered.length && !loop.sources.length && (
             <p className="text-xs leading-6 text-muted-foreground">
               Nothing is written about <Subject ids={loop.subject.uncovered} nouns={maps.nouns} />{' '}
               yet.

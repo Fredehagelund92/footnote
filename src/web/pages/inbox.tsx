@@ -92,6 +92,8 @@ import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments
 import {
   groupOf,
   INBOX_GROUPS,
+  startsFolded,
+  type InboxGroup,
   needs,
   rowId,
   rowTitle,
@@ -245,14 +247,20 @@ function NewReply({ id }: { id: string }) {
 
 function InboxList({
   rows,
+  folded,
+  onFold,
   selected,
   onSelect,
   sel,
   list,
 }: {
   rows: InboxRow[]
+  /** The groups whose rows are folded away; their header stays, with the count. */
+  folded: ReadonlySet<InboxGroup>
+  onFold: (group: InboxGroup) => void
   selected?: string
-  onSelect: (id: string) => void
+  /** `pointer` is false for a key (a click with detail 0), which keeps the pane change instant. */
+  onSelect: (id: string, pointer: boolean, key?: boolean) => void
   sel: RowSelection
   list: React.RefObject<HTMLUListElement | null>
 }) {
@@ -311,12 +319,23 @@ function InboxList({
         return (
           <React.Fragment key={id}>
             {firstOfGroup && (
-              <li className="flex h-8 items-end gap-1.5 px-4 pb-1.5 text-xs font-medium text-muted-foreground @md:px-6">
-                {INBOX_GROUPS.find((g) => g.id === group)!.label}
-                <span className="font-normal tabular-nums">{inGroup}</span>
+              <li>
+                <button
+                  type="button"
+                  aria-expanded={!folded.has(group)}
+                  onClick={() => onFold(group)}
+                  className="flex h-8 w-full items-end gap-1.5 px-4 pb-1.5 text-left text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
+                >
+                  {INBOX_GROUPS.find((g) => g.id === group)!.label}
+                  <span className="font-normal tabular-nums">{inGroup}</span>
+                  <ChevronDownIcon
+                    aria-hidden
+                    className={cn('size-3.5 self-center', folded.has(group) && '-rotate-90')}
+                  />
+                </button>
               </li>
             )}
-            {firstOfRead && (
+            {firstOfRead && !folded.has(group) && (
               <li className="flex h-10 items-center gap-2 bg-band px-4 text-xs @md:px-6">
                 <ToolLogo c={lookOf(source.connector)} size="sm" />
                 <span className="truncate font-medium">
@@ -333,86 +352,88 @@ function InboxList({
                 </a>
               </li>
             )}
-            <li
-              data-row={id}
-              data-leaving={leaving.has(id) || undefined}
-              onMouseDown={sel.onMouseDown}
-              className={cn(
-                'group/row row-presence hover:bg-muted/50 has-[[data-row-open]:active]:bg-muted has-[[data-row-open]:focus-visible]:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset',
-                ticked &&
-                  'bg-primary/[0.06] hover:bg-primary/10 dark:bg-primary/12 dark:hover:bg-primary/16',
-                isSelected && 'bg-muted hover:bg-muted',
-              )}
-            >
-              <div className="flex">
-                {/* On a wide list each row has a checkbox, as in Context: shown on a hover, and on every row while rows are ticked. */}
-                <span className="hidden shrink-0 items-center pr-1 pl-5 @md:flex">
-                  <Checkbox
-                    aria-label={`Select ${rowTitle(row)}`}
-                    {...sel.checkbox(id)}
-                    className={cn(
-                      'transition-opacity group-hover/row:opacity-100',
-                      !sel.count && !ticked && 'opacity-0 focus-visible:opacity-100',
-                    )}
-                  />
-                </span>
-                <button
-                  type="button"
-                  data-row-open={id}
-                  aria-current={isSelected || undefined}
-                  onClick={(e) => sel.rowClick(id, e) || onSelect(id)}
-                  className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
-                >
-                  <span
-                    aria-hidden={!care}
-                    className={cn(
-                      'flex size-10 shrink-0 items-center justify-center [&_svg]:size-4',
-                      done && 'text-muted-foreground',
-                    )}
-                  >
-                    {care ? (
-                      <TriangleAlertIcon aria-label={care} className="text-caution" />
-                    ) : source ? (
-                      <ToolLogo c={lookOf(source.connector)} size="sm" />
-                    ) : (
-                      <Icon />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1 space-y-1">
-                    <TruncatedText
-                      text={rowTitle(row)}
-                      lines={2}
+            {!folded.has(group) && (
+              <li
+                data-row={id}
+                data-leaving={leaving.has(id) || undefined}
+                onMouseDown={sel.onMouseDown}
+                className={cn(
+                  'group/row row-presence hover:bg-muted/50 has-[[data-row-open]:active]:bg-muted has-[[data-row-open]:focus-visible]:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset',
+                  ticked &&
+                    'bg-primary/[0.06] hover:bg-primary/10 dark:bg-primary/12 dark:hover:bg-primary/16',
+                  isSelected && 'bg-muted hover:bg-muted',
+                )}
+              >
+                <div className="flex">
+                  {/* On a wide list each row has a checkbox, as in Context: shown on a hover, and on every row while rows are ticked. */}
+                  <span className="hidden shrink-0 items-center pr-1 pl-5 @md:flex">
+                    <Checkbox
+                      aria-label={`Select ${rowTitle(row)}`}
+                      {...sel.checkbox(id)}
                       className={cn(
-                        'text-sm leading-snug',
-                        done ? 'text-muted-foreground' : 'text-foreground',
+                        'transition-opacity group-hover/row:opacity-100',
+                        !sel.count && !ticked && 'opacity-0 focus-visible:opacity-100',
                       )}
                     />
-                    <RowMeta row={row} plain={plain} />
                   </span>
-                  <span className="flex shrink-0 flex-col items-end gap-1.5 self-center">
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {row.note
-                        ? row.note.when.replace(/^Today, /, '')
-                        : row.kind === 'card'
-                          ? row.done
-                            ? ''
-                            : row.card.when
-                          : row.kind === 'waiting'
-                            ? (row.item.returned?.when.replace(/^Today, /, '') ?? row.item.sent)
-                            : ''}
+                  <button
+                    type="button"
+                    data-row-open={id}
+                    aria-current={isSelected || undefined}
+                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)}
+                    className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
+                  >
+                    <span
+                      aria-hidden={!care}
+                      className={cn(
+                        'flex size-10 shrink-0 items-center justify-center [&_svg]:size-4',
+                        done && 'text-muted-foreground',
+                      )}
+                    >
+                      {care ? (
+                        <TriangleAlertIcon aria-label={care} className="text-caution" />
+                      ) : source ? (
+                        <ToolLogo c={lookOf(source.connector)} size="sm" />
+                      ) : (
+                        <Icon />
+                      )}
                     </span>
-                    {unread ? (
-                      <span
-                        className="size-1.5 rounded-full bg-foreground"
-                        aria-label="Not opened yet"
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <TruncatedText
+                        text={rowTitle(row)}
+                        lines={2}
+                        className={cn(
+                          'text-sm leading-snug',
+                          done ? 'text-muted-foreground' : 'text-foreground',
+                        )}
                       />
-                    ) : (
-                      <span className="size-1.5" />
-                    )}
-                  </span>
-                </button>
-              </div>
-            </li>
+                      <RowMeta row={row} plain={plain} />
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1.5 self-center">
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {row.note
+                          ? row.note.when.replace(/^Today, /, '')
+                          : row.kind === 'card'
+                            ? row.done
+                              ? ''
+                              : row.card.when
+                            : row.kind === 'waiting'
+                              ? (row.item.returned?.when.replace(/^Today, /, '') ?? row.item.sent)
+                              : ''}
+                      </span>
+                      {unread ? (
+                        <span
+                          className="size-1.5 rounded-full bg-foreground"
+                          aria-label="Not opened yet"
+                        />
+                      ) : (
+                        <span className="size-1.5" />
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </li>
+            )}
           </React.Fragment>
         )
       })}
@@ -458,6 +479,8 @@ type PaneNav = {
   onBack?: () => void
   /** "3 of 20 in Needs me". */
   position?: string
+  /** The new card's body fades in (a pointer pick or a decision); J and K stay at once. */
+  fade?: boolean
 }
 
 /**
@@ -466,7 +489,7 @@ type PaneNav = {
  */
 function InboxPanel({
   label,
-  nav: { onStep, onBack, position },
+  nav: { onStep, onBack, position, fade },
   foot,
   children,
 }: {
@@ -481,6 +504,7 @@ function InboxPanel({
       title={position ?? label}
       quietTitle
       className="group/pane"
+      bodyClassName={fade ? 'dock-swap' : undefined}
       leading={
         onBack && (
           <Button variant="ghost" size="icon" aria-label="Back to the list" onClick={onBack}>
@@ -744,6 +768,7 @@ function CardDetail({
                 <ItemFold
                   fact={fact}
                   link={primaryLabel(card, review) !== 'Open the context item'}
+                  defaultOpen={card.type === 'check'}
                 />
               )}
             </div>
@@ -1141,9 +1166,18 @@ function WeekLine() {
   )
 }
 
-function AllDone({ waitingCount }: { waitingCount: number }) {
+function AllDone({
+  waitingCount,
+  arrive,
+  onShown,
+}: {
+  waitingCount: number
+  arrive: boolean
+  onShown: () => void
+}) {
+  React.useEffect(onShown, [onShown])
   return (
-    <Empty className="py-10">
+    <Empty className="done-arrive py-10" data-arrive={arrive || undefined}>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <CircleCheckIcon />
@@ -1188,20 +1222,62 @@ export function InboxPage() {
   const { needing, rows, waiting: mineWaiting } = useInboxRows(decided)
   const tab = query.get('tab') === 'all' ? 'all' : 'needs'
   const [search, setSearch] = React.useState('')
+  // The last card leaving while the page is open ends on a calm "Nothing needs you"; a page that
+  // opens already empty just shows it.
+  const emptied = needing.length === 0
+  const [wasEmptied, setWasEmptied] = React.useState(emptied)
+  const [arrive, setArrive] = React.useState(false)
+  if (emptied !== wasEmptied) {
+    setWasEmptied(emptied)
+    setArrive(emptied)
+  }
+  // Once shown, the entrance is spent. Cleared in a transition: an urgent render would drop the
+  // in-flight optimistic decision and flip `emptied` back and forth.
+  const onShown = React.useCallback(() => {
+    React.startTransition(() => setArrive(false))
+  }, [])
 
   const visible = rows.filter((r) => {
     if (tab === 'needs' && !needs(r)) return false
     const text = r.kind === 'card' ? `${r.card.title} ${r.card.line}` : rowTitle(r)
     return text.toLowerCase().includes(search.toLowerCase())
   })
+  // Groups fold by hand; a long run of checks starts folded, unless a link points into it. A
+  // search shows every match.
+  const [byHand, setByHand] = React.useState<Partial<Record<InboxGroup, boolean>>>({})
+  const linked = rows.find((r) => rowId(r) === query.get('card'))
+  const linkedGroup = linked && groupOf(linked)
+  const folded = new Set(
+    INBOX_GROUPS.map((g) => g.id).filter((id) => {
+      const count = visible.filter((r) => groupOf(r) === id).length
+      return count && (byHand[id] ?? (!(search || linkedGroup === id) && startsFolded(id, count)))
+    }),
+  )
+  const toggleFold = (g: InboxGroup) => setByHand((b) => ({ ...b, [g]: !folded.has(g) }))
+  // What the list shows, and so what the arrow keys, J and K, and a select-all walk through.
+  const shown = visible.filter((r) => !folded.has(groupOf(r)))
   // ?card=none is the cleared selection (Esc): the pane says so instead of opening the first card.
   const cleared = query.get('card') === 'none'
   const selectedId = cleared
     ? undefined
-    : (query.get('card') ?? (isMobile ? undefined : visible[0] && rowId(visible[0])))
+    : (query.get('card') ?? (isMobile ? undefined : shown[0] && rowId(shown[0])))
   const selected = rows.find((r) => rowId(r) === selectedId)
-  const select = (id?: string) => setQuery({ card: id ?? (isMobile ? undefined : 'none') })
-  const ids = visible.map(rowId)
+  // How the card on show was picked: a pointer pick or a decision fades its body in, a key does not.
+  const [picked, setPicked] = React.useState<{ id?: string; fade: boolean; key?: boolean }>({
+    fade: false,
+  })
+  const frameRef = React.useRef<HTMLDivElement>(null)
+  const primary = () => frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
+  // Enter on a row opens the card and moves the focus to the pane's one decision.
+  const select = (id?: string, pointer = false, key = false) => {
+    // On a phone the whole card slides in; its body does not fade on top of that.
+    setPicked({ id, fade: pointer && !isMobile, key })
+    setQuery({ card: id ?? (isMobile ? undefined : 'none') })
+  }
+  React.useEffect(() => {
+    if (picked.key && picked.id === selectedId) primary()?.focus()
+  }, [picked, selectedId])
+  const ids = shown.map(rowId)
   const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
   const sel = useSelection(ids, { scope: listRef })
@@ -1227,11 +1303,11 @@ export function InboxPage() {
   // After acting on a card, move to the next one that needs you.
   const next = () => {
     const rest = needing.filter((r) => rowId(r) !== selectedId)
+    setPicked({ id: rest[0] && rowId(rest[0]), fade: true })
     setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined })
   }
 
   // J and K step through the list, Enter opens the selected card's primary action.
-  const frameRef = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
@@ -1241,8 +1317,7 @@ export function InboxPage() {
       // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
       // Ticked rows clear first, in the selection's own Esc.
       if (e.key === 'Escape' && selected && !sel.count) select(undefined)
-      if (e.key === 'Enter' && t === document.body)
-        frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')?.click()
+      if (e.key === 'Enter' && t === document.body) primary()?.click()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -1301,6 +1376,7 @@ export function InboxPage() {
   const nav: PaneNav = {
     onStep: step,
     onBack: back,
+    fade: !!selectedId && picked.id === selectedId && picked.fade,
     position:
       at < 0 ? undefined : `${at + 1} of ${ids.length} in ${tab === 'all' ? 'All' : 'Needs me'}`,
   }
@@ -1386,12 +1462,14 @@ export function InboxPage() {
         {/* The rows take focus, not the box they scroll in: no stop without a ring. */}
         <div tabIndex={-1} className="@container min-h-0 flex-1 overflow-y-auto outline-none">
           {allDone ? (
-            <AllDone waitingCount={mineWaiting.length} />
+            <AllDone waitingCount={mineWaiting.length} arrive={arrive} onShown={onShown} />
           ) : visible.length === 0 ? (
             <p className="px-6 py-4 text-sm text-muted-foreground">No cards match “{search}”.</p>
           ) : (
             <InboxList
               rows={visible}
+              folded={folded}
+              onFold={toggleFold}
               selected={selectedId}
               onSelect={select}
               sel={sel}
@@ -1422,7 +1500,12 @@ export function InboxPage() {
   )
 
   const panes = isMobile ? (
-    <div className="h-full min-h-0">{selected ? detail : list}</div>
+    <div
+      key={selected ? 'card' : 'list'}
+      className={cn('h-full min-h-0', selected ? 'dock-enter' : !allDone && 'dock-swap')}
+    >
+      {selected ? detail : list}
+    </div>
   ) : allDone || dock ? (
     <div className="h-full min-h-0">{list}</div>
   ) : (

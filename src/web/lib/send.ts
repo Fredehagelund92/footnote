@@ -19,11 +19,11 @@ function subscribe(onChange: () => void) {
   }
 }
 
-const online = () => navigator.onLine && !mockControls?.offline()
+export const isOnline = () => navigator.onLine && !mockControls?.offline()
 
 /** Whether the app can reach the service: the browser's own signal, and the mock's offline flag. */
 export function useOnline() {
-  return React.useSyncExternalStore(subscribe, online)
+  return React.useSyncExternalStore(subscribe, isOnline)
 }
 
 export type SendState = 'idle' | 'sending' | 'failed'

@@ -46,11 +46,11 @@ it('compiles and stores real metadata through the API role, without editing voca
     visibleGroups: null,
     missingSinceSnapshot: null,
   })
-  expect(await service.changesSince('cube', result.snapshotId)).toEqual({
+  expect(await service.changesSince('cube', result.snapshotId!)).toEqual({
     changed: [],
     missing: [],
   })
-  await expect(service.changesSince('demo', result.snapshotId)).rejects.toThrow(
+  await expect(service.changesSince('demo', result.snapshotId!)).rejects.toThrow(
     'Unknown successful connector snapshot',
   )
   const persisted = await client.query<{ data: string }>(
@@ -76,7 +76,7 @@ it('keeps marks across failures and partial reads, records changes and removals,
   const initial = await service.sync('demo')
   const before = await service.list('demo')
   const unchanged = await service.sync('demo')
-  expect(await service.changesSince('demo', initial.snapshotId)).toEqual({
+  expect(await service.changesSince('demo', initial.snapshotId!)).toEqual({
     changed: [],
     missing: [],
   })
@@ -96,7 +96,7 @@ it('keeps marks across failures and partial reads, records changes and removals,
     [failed.snapshotId],
   )
   expect(failedRow.rows[0]!.error).toBe('Definition source could not be read')
-  await expect(service.changesSince('demo', failed.snapshotId)).rejects.toThrow()
+  await expect(service.changesSince('demo', failed.snapshotId!)).rejects.toThrow()
   fail = false
   snapshot = {
     ...snapshot,
@@ -120,7 +120,7 @@ it('keeps marks across failures and partial reads, records changes and removals,
     ],
   }
   const changed = await service.sync('demo')
-  expect(await service.changesSince('demo', initial.snapshotId)).toEqual({
+  expect(await service.changesSince('demo', initial.snapshotId!)).toEqual({
     changed: ['semlayer:revenue'],
     missing: ['semlayer:country'],
   })
@@ -138,11 +138,43 @@ it('keeps marks across failures and partial reads, records changes and removals,
   snapshot = await createDemoSource().read()
   await service.sync('demo')
   expect(await service.exists('semlayer:country')).toBe(true)
-  expect(await service.changesSince('demo', changed.snapshotId)).toEqual({
+  expect(await service.changesSince('demo', changed.snapshotId!)).toEqual({
     changed: ['semlayer:country', 'semlayer:revenue'],
     missing: [],
   })
   expect((await client.query('select * from overlay_events')).rowCount).toBe(0)
+})
+
+it('holds no row while a read is out, and keeps nothing a change of its settings made stale', async () => {
+  const demo = createDemoSource()
+  let arrived!: () => void
+  let release!: () => void
+  const out = new Promise<void>((resolve) => (arrived = resolve))
+  const source: DefinitionSource = {
+    ...demo,
+    read: async () => {
+      arrived()
+      await new Promise<void>((resolve) => (release = resolve))
+      return demo.read()
+    },
+  }
+  const service = new ConnectorService(database, new ConnectorRegistry([source]))
+  const plain = new ConnectorService(database, new ConnectorRegistry([demo]))
+  expect(await plain.sync('demo')).toMatchObject({ status: 'ok' })
+  const reads = async () =>
+    (await client.query("select id from connector_snapshots where connector_id='demo'")).rowCount
+  const before = await reads()
+  const reading = service.sync('demo')
+  await out
+  // A change of settings takes the source's row while the read is out.
+  await client.query(
+    `begin; set local lock_timeout = '2s';
+     update connectors set revision = revision + 1, changed_at = now() where id = 'demo'; commit`,
+  )
+  release()
+  await expect(reading).resolves.toMatchObject({ status: 'discarded', snapshotId: null })
+  expect(await reads()).toBe(before)
+  expect(await plain.sync('demo')).toMatchObject({ status: 'ok' })
 })
 
 it('serializes refreshes for a connector and leaves members another source reads with it', async () => {

@@ -64,7 +64,7 @@ import {
   type AskedDefinition,
   type QuestionPart,
 } from '@/model/ask'
-import { isLive, type Turn } from '@/model/ask-turn'
+import { drawnByLoop, isLive, type Turn } from '@/model/ask-turn'
 import { MentionChip } from '@/components/heed/mention-chip'
 import type { Fact } from '@/model/items'
 import { closeDock, openDock, useDock } from '@/lib/dock'
@@ -332,7 +332,7 @@ function LookupCard({
   shown: ShownStage
   children?: React.ReactNode
 }) {
-  const { stage, stopped } = turn
+  const { stopped } = turn
   const answered = shown === 'answered'
   const scope = answer.reading?.words || scopeText(answer) || 'Nothing matched'
   const raw = agentReply(answer, facts)
@@ -353,33 +353,30 @@ function LookupCard({
   // One quiet line that says what the look-up is doing; opened, the card in the chat's soft surface.
   // A look-up that answers within moments shows none: the answer comes instead.
   if (shown === 'quiet' && !stopped) return null
-  const line =
-    stopped && !answered
-      ? stage === 'looking'
-        ? 'Stopped while looking up'
-        : 'Stopped while reading'
-      : running
-        ? shown === 'looking'
-          ? still
-            ? 'Still looking up…'
-            : (turn.working ?? 'Looking up context…')
-          : found
-            ? `Reading ${found} context ${found === 1 ? 'item' : 'items'}…`
-            : 'Found no context items'
-        : answer.read
-          ? // Ask's loop: what it cited, else that it read, from its own reads.
-            facts.length
-            ? `Used ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}`
-            : answer.read.length
-              ? 'What Ask read'
-              : 'Nothing was looked up'
-          : answer.state === null
-            ? 'Nothing was looked up'
-            : answer.state === 'failed'
-              ? 'The look-up failed'
-              : facts.length
-                ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}${linkWords}`
-                : 'Looked up: no context items'
+  // Stopped before an answer, the notice under it says so, once.
+  if (stopped && !answered) return null
+  const line = running
+    ? shown === 'looking'
+      ? still
+        ? 'Still looking up…'
+        : (turn.working ?? 'Looking up context…')
+      : found
+        ? `Reading ${found} context ${found === 1 ? 'item' : 'items'}…`
+        : 'Found no context items'
+    : answer.read
+      ? // Ask's loop: what it cited, else that it read, from its own reads.
+        facts.length
+        ? `Used ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}`
+        : answer.read.length
+          ? 'What Ask read'
+          : 'Nothing was looked up'
+      : answer.state === null
+        ? 'Nothing was looked up'
+        : answer.state === 'failed'
+          ? 'The look-up failed'
+          : facts.length
+            ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}${linkWords}`
+            : 'Looked up: no context items'
   if (!answered)
     return (
       <p className="flex min-h-6 items-center">
@@ -1359,7 +1356,7 @@ export function AnswerBody(props: AnswerBodyProps) {
   const { records } = props.turn.answer
   if (props.turn.error) return <Unanswered error={props.turn.error} onRetry={props.onRetry} />
   // Ask's loop: from its first read's step to its answer, drawn by its own body.
-  if (props.turn.answer.loop || props.turn.reads)
+  if (drawnByLoop(props.turn))
     return (
       <React.Suspense
         fallback={<ReadingLine running>{props.turn.working ?? 'Reading…'}</ReadingLine>}

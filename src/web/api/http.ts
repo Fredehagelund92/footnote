@@ -461,6 +461,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
   let csrfToken: string | undefined
   /** Who is signed in, as the latest session read says. */
   let me: { id: string; name: string; admin: boolean } | undefined
+  /** The person this tab shows and sends changes as; only the app moving to someone else changes it. */
+  let shownFor: string | undefined
+  /** The person another tab signed in as, until the app has moved to them. */
+  let movingTo: string | undefined
   /** Who the sign-in offers, by name, so a name signs in as that person's address. */
   let offered: { name: string; email: string }[] = []
   /** What a review's decisions need, by the card it is reviewed from. */
@@ -489,17 +493,50 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     }
   }
 
-  async function session() {
+  /**
+   * The session as the service has it now. Every tab shares the cookie, so it may name someone
+   * other than the person this tab shows: then this tab forgets what it held for them and fails
+   * saying so, so the app moves, and only that move (`shows`, the session read) takes them on.
+   */
+  async function session(shows = false) {
     const current = await read(() => client.auth.session())
+    const id = current.person.id
+    if (shownFor && shownFor !== id && !(shows && movingTo === id)) {
+      forgetPerson()
+      movingTo = id
+      throw new ApiError(
+        'forbidden',
+        "You're signed in as someone else in this browser, so nothing was changed.",
+        { someoneElse: true },
+      )
+    }
+    shownFor = id
+    movingTo = undefined
     csrfToken = current.csrfToken
     me = {
-      id: current.person.id,
+      id,
       name: current.person.name,
       admin: current.person.permissions.roles.includes('administrator'),
     }
     return { ...current, me }
   }
   const signedIn = async () => me ?? (await session()).me
+
+  /** What this tab held for the person signed in: nothing of it is shown to the next one. */
+  function forgetPerson() {
+    refs.clear()
+    sent = []
+    published = {}
+    words = undefined
+  }
+
+  /**
+   * Sends again a change the service refused for its token, with the token of the session read
+   * now: when that session is someone else's, the read fails and nothing is sent as them.
+   */
+  async function sendAgain<T>(send: (token: string) => Promise<T>) {
+    return send((await session()).csrfToken)
+  }
 
   /**
    * A change. Its retry key stays the same for the same operation and input until the service
@@ -521,7 +558,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
         result = await send(csrfToken ?? (await session()).csrfToken)
       } catch (error) {
         if (!csrfRefused(error)) throw error
-        result = await send((await session()).csrfToken)
+        result = await sendAgain(send)
       }
       pendingKeys.delete(id)
       // A term written, renamed, moved or deleted changes the words a mention is named by.
@@ -545,7 +582,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       return await send(csrfToken ?? (await session()).csrfToken)
     } catch (error) {
       if (!csrfRefused(error)) throw error
-      return send((await session()).csrfToken)
+      return sendAgain(send)
     }
   }
 
@@ -1002,6 +1039,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       const failure = toApiError(error)
       // Nothing is shared with agents yet: no context, so nothing applies.
       if (failure.status === 412) return { ...nothingLiveAnswer(words), ...extra }
+      // Offline nothing was checked at all: the chat says so, with Ask again, not that a check failed.
+      if (failure.kind === 'unanswered' && !navigator.onLine) throw failure
       // The check could not run: Not checked, which is not the same as nothing written down.
       if (failure.kind === 'failed' || failure.kind === 'unanswered')
         return { ...failedAnswer(words), ...extra }
@@ -1222,12 +1261,14 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     // checklist until it is done (docs/product.md, FR-816).
     getSession: async () => {
       try {
-        const { me: who, profileLabel } = await session()
+        const { me: who, profileLabel } = await session(true)
         const setup = await read(() => client.setup.state())
         return { ...asSession(who.name, profileLabel), install: setup.done ? 'normal' : 'new' }
       } catch (error) {
         if (toApiError(error).kind === 'signed-out') {
           me = undefined
+          shownFor = undefined
+          movingTo = undefined
           return { user: null, install: 'normal', fresh: false, profileLabel: null }
         }
         throw error
@@ -1247,15 +1288,14 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
         client.auth.signIn({ email }, { context: { headers: { 'x-heed-csrf': 'dev-sign-in' } } }),
       )
       csrfToken = signed.csrfToken
+      shownFor = signed.person.id
+      movingTo = undefined
       me = {
         id: signed.person.id,
         name: signed.person.name,
         admin: signed.person.permissions.roles.includes('administrator'),
       }
-      refs.clear()
-      sent = []
-      published = {}
-      words = undefined
+      forgetPerson()
       return asSession(signed.person.name, signed.profileLabel)
     },
     getSignInMethod: async () => {
@@ -1633,10 +1673,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       )
       csrfToken = undefined
       me = undefined
-      refs.clear()
-      sent = []
-      published = {}
-      words = undefined
+      shownFor = undefined
+      movingTo = undefined
+      forgetPerson()
     },
 
     // The Inbox and the review
