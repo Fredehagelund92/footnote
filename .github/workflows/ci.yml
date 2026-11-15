@@ -145,6 +145,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit under test and its first parent, the base the first load growth rule
+          # measures against.
+          fetch-depth: 2
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -155,10 +159,22 @@ jobs:
       - run: npm ci
       - name: Unit, service and guard rail tests
         run: npm test
+      # The first load may grow by at most 1 KB over the base the change is checked against: the
+      # first parent of the commit under test, which is main for a pull request and the queue
+      # ahead for a merge queue entry. The base is built here, on the same runner, so both sizes
+      # come from the same gzip. Pushes to main and the nightly run check the ceilings only.
+      - name: Build the base the change is checked against (for the first load growth rule)
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" HEAD^1
+          cd "$RUNNER_TEMP/base"
+          npm ci
+          VITE_API_MODE=http npx vite build
+          echo "SIZE_BASE=$RUNNER_TEMP/base/dist/web" >> "$GITHUB_ENV"
       # npm run size builds the web app as it ships (http mode), as it does locally. The measured
-      # sizes, the budget and the margin also go to the job's summary page.
+      # sizes, the growth, the ceilings and the margins also go to the job's summary page.
       - name: Build the web app as it ships (http mode) and check the first load budget
-        run: npm run size
+        run: npm run size -- ${SIZE_BASE:+--base "$SIZE_BASE"}
       # apps/docs is its own package, so the docs framework stays out of the app's packages.
       - name: The public docs site (apps/docs), built, with every link checked
         working-directory: apps/docs
