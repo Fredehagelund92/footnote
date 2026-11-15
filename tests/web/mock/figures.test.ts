@@ -49,7 +49,7 @@ describe('figures in an answer', () => {
     expect(v?.kind).toBe('none')
     if (v?.kind === 'none')
       expect(v.why).toBe(
-        'No connected integration defines net promoter score, so no figure is read for it.',
+        'No connected integration defines Net promoter score, so no figure is read for it.',
       )
   })
 

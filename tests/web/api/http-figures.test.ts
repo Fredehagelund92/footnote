@@ -66,7 +66,7 @@ describe('no figure read on the service', () => {
       figureViewOf(none({ dates: ['Invoice day', 'Order day', 'Ship day'] }), asked, known, now),
     ).toEqual({
       kind: 'none',
-      why: 'Cube has 3 dates for revenue: Invoice day, Order day and Ship day. Which one should figures use? The data team names it in the model.',
+      why: 'Cube has 3 dates for Revenue: Invoice day, Order day and Ship day. Which one should figures use? The data team names it in the model.',
       closest: [],
     })
   })
@@ -75,13 +75,13 @@ describe('no figure read on the service', () => {
     expect(
       figureViewOf(none({ reason: 'failed', failure: 'not_allowed' }), asked, known, now),
     ).toMatchObject({
-      why: "Cube doesn't let the integration's token read revenue, so no figure is read for it.",
+      why: "Cube doesn't let the integration's token read Revenue, so no figure is read for it.",
     })
   })
 
   it('says there is no date when the view has none', () => {
     expect(figureViewOf(none({}), asked, known, now)).toMatchObject({
-      why: 'Cube has no date for revenue, so no figure is read for these days.',
+      why: 'Cube has no date for Revenue, so no figure is read for these days.',
     })
   })
 })

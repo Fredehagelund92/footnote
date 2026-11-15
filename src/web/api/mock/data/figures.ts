@@ -84,7 +84,7 @@ export function figureFor(a: Asked, enabled: (id: string) => boolean): FigureVie
     if (!enabled(DEMO_DEFINITIONS)) return null
     return {
       kind: 'none',
-      why: `No connected integration defines ${a.metric.toLowerCase()}, so no figure is read for it.`,
+      why: `No connected integration defines ${a.metric}, so no figure is read for it.`,
       closest: ['Repeat purchase rate', 'Churn rate', 'Support contacts'],
     }
   }
@@ -103,7 +103,7 @@ export function figureFor(a: Asked, enabled: (id: string) => boolean): FigureVie
   if (a.values?.some((v) => !v.startsWith('val:market/')))
     return {
       kind: 'none',
-      why: `${demoTool(source)} can't split ${a.metric.toLowerCase()} the way the question does, so no figure is read for it.`,
+      why: `${demoTool(source)} can't split ${a.metric} the way the question does, so no figure is read for it.`,
       closest: [],
     }
   const figure = fixtures[`${a.metric}|${a.markets.join(',')}|${a.dates}`]

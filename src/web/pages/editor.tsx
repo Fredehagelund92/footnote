@@ -160,7 +160,7 @@ const scopeOf = (f: Fact, vocabulary: Vocabulary) => f.scope ?? termsOfNames(f.w
 
 /** The words of "Applies to" in a sentence: "Orders in any market". */
 const scopeWords = (terms: ScopeTerm[]) =>
-  terms.map((t) => (t.kind === 'dimension' ? `any ${t.name.toLowerCase()}` : t.name)).join(' in ')
+  terms.map((t) => (t.kind === 'dimension' ? `any ${t.name}` : t.name)).join(' in ')
 
 function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
   // From the stored dates, so the editor shows the real ones.

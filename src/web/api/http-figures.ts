@@ -97,7 +97,7 @@ type Asked = { metric: string; markets: string[]; dates?: string }
 /** Why there is no figure, in words. */
 function whyNot(read: Extract<FigureRead, { state: 'none' }>, metric: string, scope: string) {
   const tool = read.source?.tool ?? 'The integration'
-  const what = metric.toLowerCase()
+  const what = metric
   switch (read.reason) {
     case 'undefined':
       return `No connected integration defines ${what}, so no figure is read for it.`

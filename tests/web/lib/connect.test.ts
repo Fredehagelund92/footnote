@@ -122,9 +122,9 @@ describe('access keys on Connected agents', () => {
     expect(connectedLine([key('k1'), key('k2')])).toBe('2 access keys.')
   })
 
-  it('says a key no agent used yet was never used', () => {
-    expect(usedLine(key('k1'))).toBe('never used')
-    expect(usedLine(agent)).toBe('used yesterday')
+  it('says when a key was last used, and that one no agent used yet never was', () => {
+    expect(usedLine(key('k1'))).toBe('Never used')
+    expect(usedLine(agent)).toBe('Last used: Yesterday')
   })
 
   it('lists named keys in the mock, renames one, revokes it alone, and keeps the agents', async () => {
