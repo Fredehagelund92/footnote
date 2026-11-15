@@ -517,6 +517,7 @@
   --spacing-safe-sm: max(0.75rem, env(safe-area-inset-bottom));
   --spacing-safe-area: env(safe-area-inset-bottom);
   --spacing-palette: max(1rem, 10vh);
+  --spacing-ask-greeting: 12vh;
   --spacing-bottom-sheet: 85svh;
   --spacing-bottom-sheet-tall: 90svh;
   --spacing-bottom-sheet-phone: min(50svh, var(--sheet-max, 50svh));
