@@ -1,4 +1,4 @@
-import { card, claimsToCheck, expect, go, inHttpOnly, signInAs, test } from './go.ts'
+import { card, claimsToCheck, expect, go, inHttpOnly, onMockOnly, signInAs, test } from './go.ts'
 
 // J16, saying what needs care before anyone publishes: the quick view and the Inbox row show the
 // claims to check; an edit's Ready line says its numbers weren't checked; a withdrawn retirement
@@ -21,10 +21,12 @@ test('a suggestion row says what changed and how often agents asked, in whole se
 }) => {
   await go(page, '/inbox')
   const row = page.locator(`[data-row="${card('sug-ines')}"]`)
-  await expect(row).toContainText(
-    /^.*Ines Duarte (changed|moved) .+\. Agents asked about this (once|\d+ times) this week\./s,
-  )
+  await expect(row).toContainText(/Ines Duarte (changed|moved) .+\./)
   await expect(row).not.toContainText(/ - \d+ questions?/)
+  // The service counts the questions a suggestion would answer from what agents really asked.
+  await onMockOnly('count of questions a week', async () => {
+    await expect(row).toContainText(/Agents asked about this (once|\d+ times) this week\./)
+  })
 })
 
 test("a new date with no source says it isn't checked; one with a new source page doesn't", async ({
