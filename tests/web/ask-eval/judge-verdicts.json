@@ -1,9 +1,11 @@
 {
-  "digest": "849b521e22468abd",
+  "digest": "0f8e4e2160036170",
   "model": "anthropic/claude-haiku-5.5",
   "verdicts": {
     "J01": {
-      "advice": ["Check which rule your comparison assumes, because it changes the order total."],
+      "advice": [
+        "Check which rule your comparison assumes, because it changes the order total."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -25,12 +27,16 @@
       "unsupported": []
     },
     "J05": {
-      "advice": ["Leave out the last day whenever you compare weeks."],
+      "advice": [
+        "Leave out the last day whenever you compare weeks."
+      ],
       "verdict": [],
       "unsupported": []
     },
     "J06": {
-      "advice": ["You should not flag one good week to the board."],
+      "advice": [
+        "You should not flag one good week to the board."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -45,12 +51,16 @@
       "unsupported": []
     },
     "J09": {
-      "advice": ["I'd check the file dates before you explain it."],
+      "advice": [
+        "I'd check the file dates before you explain it."
+      ],
       "verdict": [],
       "unsupported": []
     },
     "J10": {
-      "advice": ["So you should compare only months from 19 January 2026 onwards."],
+      "advice": [
+        "So you should compare only months from 19 January 2026 onwards."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -65,7 +75,9 @@
       "unsupported": []
     },
     "J13": {
-      "advice": ["That figure should be checked in your reporting tool."],
+      "advice": [
+        "That figure should be checked in your reporting tool."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -87,8 +99,10 @@
       "unsupported": []
     },
     "J17": {
-      "advice": ["No."],
-      "verdict": ["No."],
+      "advice": [
+        "No. The regulator's pause on price promotions in Norway is still in place [1]."
+      ],
+      "verdict": [],
       "unsupported": []
     },
     "J18": {
@@ -98,7 +112,9 @@
     },
     "J19": {
       "advice": [],
-      "verdict": ["The 12 May date has more support in the record [3]."],
+      "verdict": [
+        "The 12 May date has more support in the record [3]."
+      ],
       "unsupported": []
     },
     "J20": {
@@ -120,8 +136,12 @@
     },
     "J23": {
       "advice": [],
-      "verdict": ["Sales will probably come back once the rule is lifted."],
-      "unsupported": ["Sales will probably come back once the rule is lifted."]
+      "verdict": [
+        "Sales will probably come back once the rule is lifted."
+      ],
+      "unsupported": [
+        "Sales will probably come back once the rule is lifted."
+      ]
     },
     "J24": {
       "advice": [],
@@ -138,7 +158,9 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": ["so 12 May was only the plan [1]"]
+      "unsupported": [
+        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
+      ]
     },
     "J27": {
       "advice": [],
@@ -150,7 +172,9 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["but the owners have not marked them as conflicting"]
+      "unsupported": [
+        "but the owners have not marked them as conflicting"
+      ]
     },
     "J29": {
       "advice": [],
@@ -167,12 +191,16 @@
     "J31": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Nothing is written about returns in Norway."]
+      "unsupported": [
+        "Nothing is written about returns in Norway."
+      ]
     },
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway"]
+      "unsupported": [
+        "Seven items are about Norway, and one of them is archived."
+      ]
     },
     "J33": {
       "advice": [],
@@ -197,7 +225,9 @@
     "J37": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["The fall most likely comes from card payment failures that week."]
+      "unsupported": [
+        "The fall most likely comes from card payment failures that week."
+      ]
     },
     "J38": {
       "advice": [],
@@ -214,7 +244,9 @@
     "J40": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["The Italy item is owned by Priya Nair, who last checked it on 20 June 2026."]
+      "unsupported": [
+        "The Italy item is owned by Priya Nair, who last checked it on 20 June 2026."
+      ]
     },
     "J41": {
       "advice": [],
@@ -224,14 +256,15 @@
     "J42": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Yes, it is due for a check: Jon Abara last checked it on 3 October 2026."]
+      "unsupported": [
+        "Yes, it is due for a check: Jon Abara last checked it on 3 October 2026."
+      ]
     },
     "J43": {
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "I searched every domain, including archived items and drafts",
-        "nothing is written about Black Friday"
+        "I searched every domain, including archived items and drafts, and nothing is written about Black Friday."
       ]
     },
     "J45": {
@@ -240,7 +273,9 @@
       "unsupported": []
     },
     "J46": {
-      "advice": ["Do not report it weekly [1]."],
+      "advice": [
+        "Do not report it weekly [1]."
+      ],
       "verdict": [],
       "unsupported": []
     },
