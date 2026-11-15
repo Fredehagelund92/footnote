@@ -1616,7 +1616,7 @@ export type PlannerAsker = { admin: boolean; owns: readonly { id: string; name: 
 
 const askedBy = ({ admin, owns }: PlannerAsker) => {
   const domains = owns.map((d) => `${d.id} ${d.name}`).join('; ')
-  return `Asked by: ${admin ? 'an admin' : 'a person'} who owns ${domains || 'no domain'}`
+  return `Asked by: ${admin ? 'an administrator' : 'a person'} who owns ${domains || 'no domain'}`
 }
 
 /** The question and the chat, as the planner reads them, under the vocabulary. */
