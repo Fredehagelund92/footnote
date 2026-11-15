@@ -24,7 +24,9 @@ test.describe('at 1440 px', () => {
       await go(page, route)
       await expect(page.locator('[data-row-open]').first()).toBeVisible()
       const weights = await page.evaluate(() =>
-        [...document.querySelectorAll('svg.lucide')].map((icon) => icon.getAttribute('stroke-width')),
+        [...document.querySelectorAll('svg.lucide')].map((icon) =>
+          icon.getAttribute('stroke-width'),
+        ),
       )
       expect(weights.length).toBeGreaterThan(0)
       expect([...new Set(weights)]).toEqual(['2'])
@@ -59,7 +61,10 @@ test.describe('at 1440 px', () => {
   test('a list row is 36 px', async ({ page }) => {
     await go(page, '/context')
     await expect(page.locator('[data-row-open]').first()).toBeVisible()
-    const height = await page.locator('tbody tr').first().evaluate((row) => row.getBoundingClientRect().height)
+    const height = await page
+      .locator('tbody tr')
+      .first()
+      .evaluate((row) => row.getBoundingClientRect().height)
     expect(height).toBe(36)
   })
 })
