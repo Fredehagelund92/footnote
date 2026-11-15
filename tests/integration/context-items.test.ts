@@ -225,46 +225,57 @@ describe('publishing in one step (FR-137)', () => {
     ).toBe(404)
   })
 
-  it('waits for how it relates to each live item it clashes with, and leaves out answers for others', async () => {
+  it('answers a clash the editor left alone as unrelated, keeps the answers it gave, and leaves out answers for others', async () => {
     const { scope } = draft()
     const there = await live({ scope })
     const elsewhere = await live()
-    const waits = await call('POST', '/items/publish', 'owner', { draft: draft({ scope }) })
-    expect(waits.statusCode).toBe(422)
-    expect(waits.json<{ message: string }>().message).toMatch(/^Say how this relates to/)
-    // It names each item it waits for, so the editor can ask about it in place.
-    expect(
-      waits.json<{ data: { clashes: { itemId: string }[] } }>().data.clashes.map((c) => c.itemId),
-    ).toEqual([there])
+    const other = draft().scope
+    const sibling = await live({ scope: other })
+    const related = (proposalId: string) =>
+      client
+        .query<{ item_id: string; relation: string }>(
+          'select item_id, relation::text from proposal_relations where proposal_id = $1',
+          [proposalId],
+        )
+        .then((r) => r.rows)
+    // The editor's panel reads an overlap left alone as unrelated: the service does too, so a
+    // clash its panel never listed does not refuse the publish.
+    const alone = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'owner', { draft: draft({ scope }) }),
+    )
+    expect(alone).toMatchObject({ published: true })
+    if (!alone.published) return
+    expect(await related(alone.proposalId)).toEqual([{ item_id: there, relation: 'unrelated' }])
     const r = await ok<PublishItemResult>(
       call('POST', '/items/publish', 'owner', {
-        draft: draft({ scope }),
+        draft: draft({ scope: other }),
         relations: [
-          { itemId: there, relation: 'disagrees' },
+          { itemId: sibling, relation: 'disagrees' },
           { itemId: elsewhere, relation: 'unrelated' },
         ],
       }),
     )
     expect(r).toMatchObject({ published: true })
     if (!r.published) return
-    const relations = await client.query<{ item_id: string; relation: string }>(
-      'select item_id, relation::text from proposal_relations where proposal_id = $1',
-      [r.proposalId],
-    )
-    expect(relations.rows).toEqual([{ item_id: there, relation: 'disagrees' }])
+    expect(await related(r.proposalId)).toEqual([{ item_id: sibling, relation: 'disagrees' }])
   })
 
   it('finds the clash of an item that holds from the beginning, as it does for one that starts today', async () => {
     // What the editor sends for "always": the service keeps a start for every item.
     const { scope } = draft()
     const there = await live({ scope })
-    const waits = await call('POST', '/items/publish', 'owner', {
-      draft: draft({ scope, validity: { start: anyDate.start, end: null } }),
-    })
-    expect(waits.statusCode).toBe(422)
-    expect(
-      waits.json<{ data: { clashes: { itemId: string }[] } }>().data.clashes.map((c) => c.itemId),
-    ).toEqual([there])
+    const r = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'owner', {
+        draft: draft({ scope, validity: { start: anyDate.start, end: null } }),
+      }),
+    )
+    expect(r).toMatchObject({ published: true })
+    if (!r.published) return
+    const rows = await client.query<{ item_id: string }>(
+      'select item_id from proposal_relations where proposal_id = $1',
+      [r.proposalId],
+    )
+    expect(rows.rows.map((x) => x.item_id)).toEqual([there])
   })
 
   it('refuses a draft the checks refuse, and keeps nothing', async () => {
