@@ -296,7 +296,6 @@
       "gap": 1
     },
     "src/web/components/heed/list.tsx": {
-      "gap": 1,
       "needs checking": 1
     },
     "src/web/components/heed/load-state.tsx": {
@@ -319,7 +318,7 @@
       "gap": 1
     },
     "src/web/components/heed/source-threads.tsx": {
-      "thread": 9
+      "thread": 7
     },
     "src/web/components/obs/facet-rail.tsx": {
       "facet": 1
@@ -335,9 +334,6 @@
     },
     "src/web/components/obs/topic-table.tsx": {
       "gap": 1
-    },
-    "src/web/components/templates/comment-box/index.tsx": {
-      "thread": 2
     },
     "src/web/lib/agents.ts": {
       "url": 1
@@ -407,71 +403,7 @@
       "thread": 1
     }
   },
-  "copy/errors-say-three-things": {
-    "src/server/http/api.ts": {
-      "nomessage": 12
-    },
-    "src/server/modules/agents/policies.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/answer/service.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/auth/invites.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/auth/members.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/comments/service.ts": {
-      "nomessage": 6
-    },
-    "src/server/modules/conflicts/service.ts": {
-      "nomessage": 5
-    },
-    "src/server/modules/context/service.ts": {
-      "nomessage": 4
-    },
-    "src/server/modules/inbox/service.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/observability/service.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/proposals/preview.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/proposals/service.ts": {
-      "nomessage": 6
-    },
-    "src/server/modules/reports/service.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/review/path.ts": {
-      "nomessage": 5
-    },
-    "src/server/modules/review/records.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/review/service.ts": {
-      "nomessage": 1
-    },
-    "src/server/modules/saved-questions/service.ts": {
-      "nomessage": 2
-    },
-    "src/server/modules/terms/service.ts": {
-      "nomessage": 4
-    },
-    "src/web/components/heed/source-threads.tsx": {
-      "nonextstep": 1
-    },
-    "src/web/components/templates/comment-box/index.tsx": {
-      "nonextstep": 1
-    },
-    "src/web/components/view-as.tsx": {
-      "nonextstep": 1
-    }
-  },
+  "copy/errors-say-three-things": {},
   "copy/no-fixed-locale": {
     "src/web/api/http-alerts.ts": {
       "month": 1
