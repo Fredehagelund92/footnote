@@ -8,7 +8,7 @@ import { expect, go, test } from './go.ts'
 test('an owner accepts the ready names with one press, and looks at the rest', async ({ page }) => {
   await go(page, '/inbox?demo=names')
   const main = page.getByRole('main')
-  await expect(main.getByText('5 names from dbt').first()).toBeVisible()
+  await expect(main.getByText('5 new metrics and dimensions from dbt').first()).toBeVisible()
   await expect(main.getByText('2 ready to publish, 3 to look at first.')).toBeVisible()
 
   // It is the first card, and it opens on its own.

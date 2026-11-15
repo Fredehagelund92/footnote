@@ -30,7 +30,7 @@ test('the Inbox marks what a suggestion needs, once on its row, and only on the 
   const rows = page.locator('li[data-row]')
   await expect(rows.first()).toBeVisible()
   const clash = page.locator(`[data-row="${card('sug-sofia-clash')}"]`)
-  await expect(clash.locator('mark[data-mark=needs]')).toHaveText('Overlaps live context')
+  await expect(clash.locator('mark[data-mark=needs]')).toHaveText(/^About the same thing as \d+ published items?$/)
   // The row's triangle is the mark's icon, so the words carry no second one.
   await expect(clash.locator('mark svg')).toHaveCount(0)
   const marked = rows.filter({ has: page.locator('mark') })
@@ -40,15 +40,15 @@ test('the Inbox marks what a suggestion needs, once on its row, and only on the 
   await noFills(page.locator('mark'))
   // The quick view says it again, in its own card, with the live item it overlaps.
   await clash.getByRole('button').first().click()
-  await expect(page.getByText(/^Overlaps live context: \S/)).toBeVisible()
-  const overlaps = page.locator('mark[data-mark=needs]', { hasText: 'Overlaps live context' })
+  await expect(page.getByText(/^About the same thing as \d+ published items?: \S/)).toBeVisible()
+  const overlaps = page.locator('mark[data-mark=needs]', { hasText: /^About the same thing as/ })
   const onRows = await rows.filter({ has: overlaps }).count()
   await expect(overlaps).toHaveCount(onRows + 1)
 })
 
 test("a review's clash says what to do, marked once", async ({ page }) => {
   await go(page, `/inbox/${card('sug-sofia-clash')}/review`)
-  const clash = page.locator('mark[data-mark=needs]', { hasText: /^Overlaps live context/ })
+  const clash = page.locator('mark[data-mark=needs]', { hasText: /^About the same thing as/ })
   await expect(clash).toBeVisible()
   await expect(clash).toHaveCount(1)
 })

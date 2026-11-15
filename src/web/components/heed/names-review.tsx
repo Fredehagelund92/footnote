@@ -177,7 +177,7 @@ export default function NamesReview({
   const body = (
     <>
       <PaneHead
-        state={{ label: 'Names', icon: 'names', tone: 'neutral' }}
+        state={{ label: 'New metrics and dimensions', icon: 'names', tone: 'neutral' }}
         title={namesWords({ ready: ready.length, flagged: flagged.length, tools }).title}
         summary="A read made these from your definitions. Publish them and context can apply to them, and agents can use them."
       />

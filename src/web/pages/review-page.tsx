@@ -766,7 +766,7 @@ function Clash({ r }: { r: Review }) {
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />
         <Mark role="needs" icon={false} className="text-sm">
-          Overlaps live context
+          {careLine(r)}
         </Mark>
         <span className="text-sm text-muted-foreground">
           {items.length > 1
