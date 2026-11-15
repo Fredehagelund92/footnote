@@ -48,6 +48,7 @@ const MEANING = new Map<string, Pattern | null>([
   ['Ask knows only what is written here, not what others do.', ONLY_WRITTEN],
   ['keeps no numbers, so Ask cannot work this out\\.', NO_NUMBERS],
   ['keeps no numbers', NO_NUMBERS],
+  ['Ask does not hold the figures, only what is written about them\\.', NO_NUMBERS],
   ['Definitions live in your source tool, so Ask cannot change one.', SOURCE_TOOL],
   ['Ask does not write context. You can start it here.', NOT_ASK_TO_WRITE],
   ['Not seen:', null],

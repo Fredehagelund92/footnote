@@ -126,7 +126,8 @@ test('a question off topic gets its own sentence, not the one about names', asyn
   ).toBeVisible()
   await expect(turn.getByText("The question doesn't name a metric or a market.")).toHaveCount(0)
   await expect(turn.getByText(/^Ask answers three kinds of question/)).toHaveCount(0)
-  await suggestsNothing(page)
+  // A refusal ends with a question to press.
+  await expect(turn.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 /** Picks a name from the @ list as a person does. */
@@ -187,7 +188,7 @@ test('a message with nothing to repeat gets one sentence, and no search', async 
   ).toBeVisible()
   await expect(turn.getByText(/^Ask answers three kinds of question/)).toHaveCount(0)
   await expect(turn.getByRole('button', { name: /^Source \d+/ })).toHaveCount(0)
-  await suggestsNothing(page)
+  await expect(turn.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 test('a follow-up says how it reads on its own', async ({ page }) => {
