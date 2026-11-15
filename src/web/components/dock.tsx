@@ -15,6 +15,7 @@ export function DockFrame({
   actions,
   footer,
   foot,
+  waiting,
   children,
 }: {
   title: ReactNode
@@ -24,6 +25,8 @@ export function DockFrame({
   footer?: ReactNode
   /** A footer that lays itself out, such as the review quick view's decision and what follows. */
   foot?: ReactNode
+  /** While the dock's code loads. */
+  waiting?: boolean
   children: ReactNode
 }) {
   const isMobile = useIsMobile()
@@ -32,6 +35,7 @@ export function DockFrame({
     <Panel
       title={title}
       quietTitle={quietTitle}
+      waiting={waiting}
       leading={
         isMobile && (
           <Button variant="ghost" size="icon" aria-label="Back" onClick={closeDock}>
@@ -88,7 +92,7 @@ export function DockMissing({ children }: { children: ReactNode }) {
  */
 export function DockWaiting({ title }: { title: string }) {
   return (
-    <DockFrame title={title}>
+    <DockFrame title={title} waiting>
       <div role="status" aria-busy="true" aria-label="Loading" className="min-h-24" />
     </DockFrame>
   )

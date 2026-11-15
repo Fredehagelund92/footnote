@@ -16,7 +16,7 @@ import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { DOCK_TITLE, useDock } from '@/lib/dock'
+import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/heed/definition-peek'
@@ -136,7 +136,22 @@ function SafeDock() {
       frame={(body) => <DockFrame title={title}>{body}</DockFrame>}
     >
       <InDock.Provider value>
-        <div className="h-full dock-swap">
+        <div
+          className="h-full dock-swap"
+          onKeyDown={(e) => {
+            // A list row's peek closes on Escape from inside; a field, menu or dialog in it keeps its own Escape.
+            if (e.key !== 'Escape' || e.defaultPrevented) return
+            if (dock?.kind !== 'context' && dock?.kind !== 'def') return
+            if (
+              (e.target as HTMLElement).closest(
+                'input, textarea, [contenteditable], [role=menu], [role=listbox], [role=dialog]',
+              )
+            )
+              return
+            e.preventDefault()
+            closeDock()
+          }}
+        >
           <DockContent />
         </div>
       </InDock.Provider>
@@ -192,6 +207,11 @@ function Shell() {
   const dock = useDock()
   const isMobile = useIsMobile()
   const { parts } = useRoute()
+  // Closed, the dock gives focus back to the list row it opened from.
+  const dockOpen = !!dock
+  React.useEffect(() => {
+    if (!dockOpen) returnFromDock()
+  }, [dockOpen])
   // The sidebar folds to its rail while the dock is open or a review is on screen, and comes back
   // when they close. A page that loads that way starts folded, so nothing jumps after the first paint.
   const hasDock = !!dock || (parts[0] === 'inbox' && parts[2] === 'review')
