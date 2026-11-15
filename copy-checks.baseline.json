@@ -124,8 +124,7 @@
       "thread": 1
     },
     "src/web/api/mock/data/alerts.ts": {
-      "sync": 1,
-      "synced": 1
+      "sync": 1
     },
     "src/web/api/mock/data/integrations.ts": {
       "a read": 1
@@ -146,12 +145,10 @@
       "gap": 1
     },
     "src/web/components/heed/definition-peek.tsx": {
-      "read-only": 1,
-      "synced": 1
+      "read-only": 1
     },
     "src/web/components/heed/definition.tsx": {
-      "read-only": 3,
-      "synced": 1
+      "read-only": 3
     },
     "src/web/components/heed/field-controls.tsx": {
       "gap": 1
@@ -171,9 +168,6 @@
     "src/web/components/heed/mention-chip.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/names-review.tsx": {
-      "a read": 1
-    },
     "src/web/components/heed/scope-field.tsx": {
       "gap": 1
     },
@@ -190,8 +184,7 @@
       "url": 1
     },
     "src/web/lib/bulk.ts": {
-      "read-only": 1,
-      "synced": 2
+      "read-only": 1
     },
     "src/web/lib/emoji.ts": {
       "flag": 2
@@ -207,10 +200,6 @@
     },
     "src/web/pages/definition-editor.tsx": {
       "retry": 1
-    },
-    "src/web/pages/definitions.tsx": {
-      "read-only": 1,
-      "synced": 2
     },
     "src/web/pages/editor.tsx": {
       "retry": 1
