@@ -46,7 +46,7 @@ export const markRoles: Record<
 export const markText = (role: MarkRole) => markRoles[role].text
 
 /**
- * Words with a meaning: "Overlaps live context" as the thing to do, "Failed" as what went wrong.
+ * Words with a meaning: "About the same thing as 2 published items" as the thing to do, "Failed" as what went wrong.
  * `icon={false}` where the icon already sits beside the words, such as an Inbox row's own triangle.
  */
 export function Mark({

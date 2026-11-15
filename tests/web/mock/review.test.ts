@@ -39,7 +39,7 @@ describe('the Ready line', () => {
     expect(readyOf(checked)).toMatchObject({ ok: true, title: 'Ready' })
     expect(careLine(agent)).toBe('2 details to compare with the source')
     expect(needsCare(agent)).toBe(true)
-    expect(careLine(r('sug-sofia-clash'))).toBe('Overlaps live context')
+    expect(careLine(r('sug-sofia-clash'))).toBe('About the same thing as 3 published items')
     expect(careLine(r('sug-ines'))).toBeUndefined()
   })
 

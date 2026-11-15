@@ -1369,8 +1369,40 @@ export function AnswerBody(props: AnswerBodyProps) {
     <React.Suspense
       fallback={<ReadingLine running>Counting from the workspace&apos;s records…</ReadingLine>}
     >
-      <RecordsAnswerBody parts={recordsParts} records={records} />
+      <div className="flex min-w-0 flex-col gap-3">
+        <RecordsAnswerBody parts={recordsParts} records={records} />
+        {/* A refusal ends with the questions Ask can answer instead. */}
+        {records.refused && <QuestionChoices choices={records.offers} onAsk={props.onAsk} />}
+      </div>
     </React.Suspense>
+  )
+}
+
+/** Questions to press, each sent as the next question; on an earlier turn they only show. */
+function QuestionChoices({
+  choices,
+  onAsk,
+}: {
+  choices: readonly string[]
+  onAsk: ((question: string) => void) | undefined
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {choices.map((choice) =>
+        onAsk ? (
+          <Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
+            {choice}
+          </Button>
+        ) : (
+          <span
+            key={choice}
+            className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+          >
+            {choice}
+          </span>
+        ),
+      )}
+    </div>
   )
 }
 
@@ -1618,22 +1650,7 @@ function ContextAnswerBody({
       )}
       {/* A question back's readings, under it: the last one's send the choice as the reply. */}
       {answered && !!answer.choices?.length && (
-        <div className="flex flex-wrap gap-2">
-          {answer.choices.map((choice) =>
-            onAsk ? (
-              <Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
-                {choice}
-              </Button>
-            ) : (
-              <span
-                key={choice}
-                className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
-              >
-                {choice}
-              </span>
-            ),
-          )}
-        </div>
+        <QuestionChoices choices={answer.choices} onAsk={onAsk} />
       )}
       {answered && answer.write && (
         <p className="text-sm">

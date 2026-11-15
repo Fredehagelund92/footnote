@@ -125,20 +125,20 @@ A count of what agents asked says what the reader's own Observability says: a fl
 
 When Ask cannot answer the question asked, it says so in a fixed sentence (FR-720). A limit sentence comes first, and what is written follows it. A cannot sentence stands alone: nothing was looked up, so it has no state.
 
-| Exit             | Sentence                                                                                                               |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `limit:advice`   | What to do is not written down. Here is what is.                                                                       |
-| `limit:forecast` | What happens next is not written down. Here is what is.                                                                |
-| `limit:outside`  | Ask knows only what is written here, not what others do. Here is what is.                                              |
-| `limit:numbers`  | Heed keeps no numbers, so Ask cannot work this out. Here is what is written.                                           |
-| `limit:partly`   | Ask could read only part of this question. Here is what is written about what it names.                                |
-| `limit:general`  | Nothing is written about Poland in particular. Here is what is written in general.                                     |
-| `cannot:numbers` | Heed keeps no numbers, so Ask cannot work this out. An agent with your data tool can, and it reads this context first. |
-| `cannot:source`  | Definitions live in your source tool, so Ask cannot change one.                                                        |
-| `cannot:write`   | Ask does not write context. You can start it here.                                                                     |
-| `cannot:person`  | Ask does not answer questions about one person's work.                                                                 |
-| `cannot:not_yet` | Ask cannot work this out yet.                                                                                          |
-| Plan not used    | Ask could not read this question just now, so nothing was looked up.                                                   |
+| Exit             | Sentence                                                                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `limit:advice`   | What to do is not written down. Here is what is.                                                                                                                                        |
+| `limit:forecast` | What happens next is not written down. Here is what is.                                                                                                                                 |
+| `limit:outside`  | Ask knows only what is written here, not what others do. Here is what is.                                                                                                               |
+| `limit:numbers`  | Heed keeps no numbers, so Ask cannot work this out. Here is what is written.                                                                                                            |
+| `limit:partly`   | Ask could read only part of this question. Here is what is written about what it names.                                                                                                 |
+| `limit:general`  | Nothing is written about Poland in particular. Here is what is written in general.                                                                                                      |
+| `cannot:numbers` | Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first. |
+| `cannot:source`  | Definitions live in your source tool, so Ask cannot change one.                                                                                                                         |
+| `cannot:write`   | Ask does not write context. You can start it here.                                                                                                                                      |
+| `cannot:person`  | Ask does not answer questions about one person's work.                                                                                                                                  |
+| `cannot:not_yet` | Ask cannot answer this kind of question yet. It can tell you what is written about a metric, what changed lately, and who owns a domain.                                                |
+| Plan not used    | Ask could not read this question just now, so nothing was looked up.                                                                                                                    |
 
 A period a records read keeps no history for is said, never dropped: "This is how it stands today, not in 2025: the records keep no count by date." What the records keep about what an answer found stands in fixed sentences under its words: "Jon Abara and Sofia Brandt own Sales.", "Returns changed definition on 28 April 2026: check date 2 Oct 2026, due for a check, last checked 20 Oct 2026."
 
