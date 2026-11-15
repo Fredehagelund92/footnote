@@ -30,7 +30,9 @@ test('the Inbox marks what a suggestion needs, once on its row, and only on the 
   const rows = page.locator('li[data-row]')
   await expect(rows.first()).toBeVisible()
   const clash = page.locator(`[data-row="${card('sug-sofia-clash')}"]`)
-  await expect(clash.locator('mark[data-mark=needs]')).toHaveText(/^About the same thing as \d+ published items?$/)
+  await expect(clash.locator('mark[data-mark=needs]')).toHaveText(
+    /^About the same thing as \d+ published items?$/,
+  )
   // The row's triangle is the mark's icon, so the words carry no second one.
   await expect(clash.locator('mark svg')).toHaveCount(0)
   const marked = rows.filter({ has: page.locator('mark') })
