@@ -45,6 +45,13 @@ export function pictureOf(
   return { node: copy, width, scrolls }
 }
 
+function restoreScrolls({ scrolls }: DockPicture) {
+  for (const [dst, top, left] of scrolls) {
+    dst.scrollTop = top
+    dst.scrollLeft = left
+  }
+}
+
 let current: DockPicture | null = null
 const listeners = new Set<() => void>()
 const subscribe = (l: () => void) => {
@@ -69,10 +76,7 @@ export function DockLeaving({ picture }: { picture: DockPicture }) {
     const el = host.current
     if (!el) return
     el.appendChild(picture.node)
-    for (const [dst, top, left] of picture.scrolls) {
-      dst.scrollTop = top
-      dst.scrollLeft = left
-    }
+    restoreScrolls(picture)
     // Painted once where the dock was, then sent on its way: the transition needs a first frame.
     void el.offsetWidth
     el.setAttribute('data-leaving', '')
