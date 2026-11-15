@@ -211,6 +211,18 @@ function Shell() {
     }
   }
 
+  React.useEffect(() => {
+    if (!auto) return
+    let second = 0
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setAuto(false))
+    })
+    return () => {
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [auto])
+
   return (
     <SidebarProvider
       open={open}
