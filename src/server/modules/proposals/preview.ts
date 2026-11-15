@@ -13,6 +13,7 @@ import {
   type ServingBundle,
   type ServingItem,
 } from '../editions/index.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 type Head = { seq: string; label: string; overlay: string }
 
@@ -27,7 +28,7 @@ export async function draftBundle(
   load: (head: Head) => Promise<ServingBundle> = (head) => loadServingBundle(tx, head),
 ): Promise<{ bundle: ServingBundle; item: string }> {
   if (p.subject !== 'item' || !['create', 'change'].includes(p.action))
-    throw new ORPCError('NOT_FOUND')
+    throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
   const checked = previewVersion(p.draft, p.proposerId, p.channel)
   if (!checked.version)
     throw new ORPCError('UNPROCESSABLE_CONTENT', {

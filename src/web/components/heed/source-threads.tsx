@@ -197,7 +197,10 @@ export function useSourceNotes({
         if (resolved)
           toast('Resolved', { description: 'It stays here, folded, for anyone who looks.' })
       },
-      () => toast.error(resolved ? "The thread wasn't resolved" : "The thread wasn't reopened"),
+      () =>
+        toast.error(resolved ? "The comment wasn't resolved" : "The comment wasn't reopened", {
+          description: 'Nothing was changed. Try again.',
+        }),
     )
   }
 
@@ -224,7 +227,7 @@ export function useSourceNotes({
               <Composer
                 author={me}
                 autoFocus
-                label={`Comment on ${placeLabel(at).toLowerCase()}`}
+                label={`Comment on ${placeLabel(at)}`}
                 placeholder={'field' in at ? 'Comment on this field' : 'Comment on this line'}
                 initialContent={drafts.current[key]}
                 clearOnPost={false}

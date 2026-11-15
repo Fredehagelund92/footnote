@@ -29,7 +29,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'web')
 // summary, never a local build. Never lower it so far that CI's own margin is under 2 percent.
 // Raising it is the opposite case: only on purpose, in a pull request that says why. The pipeline's
 // automatic repairs may not edit this file (protected_paths in .no-mistakes.yaml).
-const budgetKb = { js: 441, css: 33 }
+// Raised on 15 Nov 2026, 441 to 443 KB, on purpose: the motion audit's pieces each added a
+// little, and CI read 451934 bytes (441.3 KB) of first load script for the sidebar highlight
+// and press. 443 KB leaves CI about 1.7 KB of room.
+const budgetKb = { js: 443, css: 33 }
 
 const html = readFileSync(join(root, 'index.html'), 'utf8')
 const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(js|css))"/g)].map((match) => ({
