@@ -190,6 +190,7 @@ export function FactPage({ id }: { id: string }) {
   return (
     <Page
       bodyRef={bodyRef}
+      deep={{ href: href('/context'), label: 'Back to Context' }}
       className="flex overflow-hidden"
       title={
         <Breadcrumb>

@@ -1,20 +1,10 @@
-import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, go, test } from './go.ts'
 
 // J36, writing a first context item: the editor starts in a domain that exists and says by name
 // everything the service needs before Publish works (where it applies, a source and a sentence
 // from it). A publish the service refuses says why in its own words, with Retry only where trying
-// again can help; the live items it clashes with are answered right there, and it publishes.
-
-async function violations(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
-    .analyze()
-  return results.violations.map(
-    (v) => `${v.impact}: ${v.id} (${v.nodes.map((n) => n.target.join(' ')).join(', ')})`,
-  )
-}
+// again can help; the live items it clashes with are read as unrelated unless the panel said more.
 
 const publish = (page: Page) => page.getByRole('button', { name: 'Publish', exact: true })
 
@@ -73,21 +63,6 @@ async function writeComplete(page: Page) {
   await expect(publish(page)).not.toHaveAttribute('aria-disabled', 'true')
 }
 
-/** No axe finding in the light theme or the dark one. */
-async function readsInBothThemes(page: Page) {
-  for (const dark of [false, true]) {
-    await page.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark)
-    // Colours ease into the theme: axe reads them once they have arrived.
-    await page.waitForFunction(() =>
-      document
-        .getAnimations()
-        .every((a) => a.playState !== 'running' || a.timeline !== document.timeline),
-    )
-    expect(await violations(page)).toEqual([])
-  }
-  await page.evaluate(() => document.documentElement.classList.remove('dark'))
-}
-
 /** The side panel, opened from the More menu when it is not open already (it opens by itself only for an overlap). */
 async function sidePanel(page: Page) {
   const panel = page.getByRole('complementary', { name: 'What agents get' })
@@ -136,41 +111,15 @@ test('an item opened to edit and left alone is not ready, in the footer and the 
   await expect(panel.getByText('Ready.', { exact: true })).toHaveCount(0)
 })
 
-test('a refused publish says why, and its clash is answered in place', async ({ page }) => {
+test('an overlap the panel never listed does not refuse the publish', async ({ page }) => {
   await writeComplete(page)
 
-  // Other live items about Orders reach the same questions: the service asks how this relates to
-  // them first, in its own words, and Retry, which would send the same thing again, is not offered.
-  await publish(page).click()
-  const before = page.getByRole('region', { name: 'Before it can be published' })
-  await expect(before.getByRole('alert')).toContainText("Couldn't publish. Say how this relates to")
-  await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
-  await expect(page.getByText('Not published')).toBeVisible()
-  const groups = before.getByRole('radiogroup')
-  await expect(groups.first()).toBeVisible()
-  await expect(publish(page)).toHaveAttribute('aria-disabled', 'true')
-  await expect(publish(page)).toHaveAccessibleDescription(/^Say how this relates to “.+” first\.$/)
-  // The text is kept, and the answers make it publishable.
-  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue(
-    'Orders are counted when they ship',
-  )
-  await readsInBothThemes(page)
-  for (const group of await groups.all())
-    await group.getByRole('radio', { name: 'Unrelated' }).click()
-  await expect(before.getByRole('alert')).toHaveCount(0)
+  // Other live items about Orders reach the same questions. The panel reads an overlap left alone
+  // as unrelated, and so does the service: Publish goes through the first time it is pressed.
   await publish(page).click()
   await expect(page).toHaveURL(/\/context\/(?!new)[^/?]+$/)
   await expect(
     page.getByRole('heading', { level: 1, name: 'Orders are counted when they ship' }),
   ).toBeVisible()
-})
-
-test('on a phone the refusal and its answers are under the title', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
-  await writeComplete(page)
-  await publish(page).click()
-  const before = page.getByRole('region', { name: 'Before it can be published' })
-  await expect(before.getByRole('alert')).toBeInViewport()
-  await expect(before.getByRole('radiogroup').first()).toBeVisible()
-  await readsInBothThemes(page)
+  await expect(page.getByRole('alert')).toHaveCount(0)
 })

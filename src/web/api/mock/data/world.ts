@@ -131,14 +131,20 @@ export const invites: Invite[] = [
     email: 'aleksandra.konstantinopoulou-whitfield@larchwood.example',
     admin: false,
     willOwn: [],
+    sentTo: [],
     sentBy: 'per_jon_abara',
+    standing: 'open',
+    voidBecause: null,
   },
   {
     id: 'inv_finance_lead',
     email: 'finance.lead@larchwood.example',
     admin: false,
     willOwn: [],
+    sentTo: [],
     sentBy: 'per_jon_abara',
+    standing: 'open',
+    voidBecause: null,
   },
 ]
 

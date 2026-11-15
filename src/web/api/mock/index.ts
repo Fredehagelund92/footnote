@@ -655,24 +655,7 @@ export function createMockApi() {
     draftFromText: () => now(() => withScope(norwayDraft)),
     saveItem: ({ fact, isNew, relations = {}, gap, setup }) =>
       now(() => {
-        // As the service: a live item agents would get in the same answer needs an answer first.
-        const clashes = factsOf(state)
-          .filter(
-            (f) =>
-              f.id !== fact.id &&
-              f.title !== fact.title &&
-              !relations[f.id] &&
-              servedToAgents(f) &&
-              fact.where.length > 0 &&
-              fact.where.every((w) => f.where.includes(w)),
-          )
-          .map((f) => ({ itemId: f.id, title: f.title }))
-        if (clashes.length)
-          throw new ApiError(
-            'invalid',
-            `Say how this relates to “${clashes[0]!.title}” first: it replaces it, they disagree, or they are unrelated.`,
-            { status: 422, clashes },
-          )
+        // As the service: an overlap left alone is unrelated, so none refuses a publish.
         const id = isNew ? `itm_new_${Date.now().toString(36)}` : fact.id
         // What the owner said of an overlap is kept on the item, as a published suggestion's is.
         const related = Object.entries(relations)
@@ -867,7 +850,7 @@ export function createMockApi() {
     ask: (input, live) => {
       // Ask's loop answers, as the service wrote them on the demo week: shown by address only.
       if (input.example?.startsWith('loop-')) return loopExample(input.example)
-      // ?loop=1: a typed question is answered as Ask's loop answers it, so a chat is kept with it.
+      // ?loop=1: a typed question is answered as Ask's loop answers it.
       if (scenario.address().query.loop === '1' && input.question) {
         const question = input.question
         const looped = loopExample('loop-checked').then((a) => ({ ...a, id: 'custom', question }))

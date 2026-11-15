@@ -91,8 +91,18 @@ export const inviteSchema = z.object({
   invitedBy: z.nullable(z.string()),
   sentAt: z.string(),
   expiresAt: z.string(),
-  /** Past its expiry: sending it again gives it a new link and a new expiry. */
-  expired: z.boolean(),
+  /**
+   * Whether it lets its person in, by the rule the sign-in uses (invite_standing): open; expired,
+   * when sending it again gives it a new link and a new week; or void, when it would let nobody in.
+   */
+  standing: z.enum(['open', 'expired', 'void']),
+  /**
+   * Why a void invite lets nobody in: its sender can no longer make it (an admin who sends it again
+   * becomes its sender), the address is a member already, or the person was erased.
+   */
+  voidBecause: z.nullable(z.enum(['sender', 'member', 'erased'])),
+  /** The domains it gives at sign-in: those it names that still exist and its sender may still give. */
+  willOwn: z.array(z.string()),
 })
 
 /**

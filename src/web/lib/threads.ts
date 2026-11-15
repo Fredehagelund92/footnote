@@ -19,7 +19,7 @@ export function useThreadActions() {
   return {
     /** A chat the person just started, at the top of Today. */
     add: (id: string, question: string) => void write('saveChat', { id, question }),
-    /** Ask's loop: keeps a chat's finished answers with it, so opening it asks nothing again. */
+    /** Keeps a chat's finished answers with it, so opening it asks nothing again. */
     keep: (id: string, question: string, answers: Answer[]) =>
       void write('saveChat', { id, question, answers }),
     rename: (id: string, title: string) => void write('renameChat', { id, title }),
