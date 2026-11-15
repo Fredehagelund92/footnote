@@ -800,9 +800,10 @@ export function stateOf(
   made: readonly MadeRead[],
   cited: readonly string[],
   items: ReturnType<typeof itemsRead>,
+  earlier: readonly MadeRead[] = [],
 ): AnswerState | null {
   const state = readsState(made, cited, items)
-  const nearby = new Set(nearbyOf(made))
+  const nearby = new Set(nearbyOf([...made, ...earlier]))
   return state === 'missing' && cited.some((id) => items.has(id) && !nearby.has(id))
     ? 'partial'
     : state
@@ -1218,7 +1219,7 @@ function evidenceOf(
   // turn, is about those reads.
   const fromEarlier = !made.length && order.length > 0
   const about = fromEarlier ? earlier : made
-  const state = hasText || order.length ? stateOf(about, order, items) : null
+  const state = hasText || order.length ? stateOf(about, order, items, earlier) : null
   const subject = subjectOf(about, fromEarlier) ?? (made.length ? null : subjectOf(earlier, true))
   return { items, about, state, subject, fromEarlier }
 }

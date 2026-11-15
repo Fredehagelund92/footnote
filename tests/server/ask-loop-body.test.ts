@@ -262,6 +262,8 @@ describe("the model's words, checked against the reads", () => {
     expect(turnOf('It applies [itm_aaaa1111] [itm_aaaa1111].', made, []).text).toBe(
       'It applies.[1] [1]',
     )
+    // A sentence of only citations has nothing to move the stop before.
+    expect(turnOf('[itm_aaaa1111].', made, []).text).toBe('[1].')
     // A list of citations the words lead into ends the sentence: its stop stays, never adrift.
     const two = [lookup('grounded', [row('itm_aaaa1111', []), row('itm_bbbb2222', [])])]
     expect(turnOf('Two apply, [itm_aaaa1111] and [itm_bbbb2222] .', two, []).text).toBe(

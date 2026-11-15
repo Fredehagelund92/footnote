@@ -152,6 +152,16 @@ describe('what code writes from the reads', () => {
     expect(t.closest).toBeNull()
   })
 
+  it("keeps Not found when a turn cites an item an earlier turn's subject read gave as nearby", () => {
+    const t = turnOf(
+      'Still nothing about orders in Poland. Germany lags [itm_germany01].',
+      [get('missing', [])],
+      [get('missing', [], ['itm_germany01'])],
+    )
+    expect(t.state).toBe('missing')
+    expect(t.sources).toEqual([])
+  })
+
   it('takes what the cited items are when a search found what the subject read did not', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',

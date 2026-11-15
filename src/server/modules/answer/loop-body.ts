@@ -359,9 +359,9 @@ function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
       r.text = r.text.trimStart()
       continue
     }
+    if (before?.t !== 'text') continue
     r.text = r.text.slice(stop[0].length)
-    if (before?.t === 'text') before.text = before.text.trimEnd() + stop[1]
-    else out.splice(first, 0, { t: 'text', text: stop[1]! })
+    before.text = before.text.trimEnd() + stop[1]
   }
   return out.filter((r) => r.t !== 'text' || r.text)
 }
