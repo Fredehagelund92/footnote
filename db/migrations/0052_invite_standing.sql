@@ -61,8 +61,8 @@ begin
   if (new.email, new.role, new.area_ids, new.created_at)
      is distinct from (old.email, old.role, old.area_ids, old.created_at)
      or (new.invited_by is distinct from old.invited_by
-         and not (new.invited_by = cl_person() and cl_is_admin_now()
-                  and (invite_standing(old)).why = 'sender')) then
+         and not coalesce(new.invited_by = cl_person() and cl_is_admin_now()
+                          and (invite_standing(old)).why = 'sender', false)) then
     raise exception 'invite % may only be sent again, revoked or accepted', old.id
       using errcode = 'check_violation';
   end if;
