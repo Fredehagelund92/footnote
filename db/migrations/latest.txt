@@ -1,1 +1,1 @@
-0052_read_settings_revision.sql
+0053_invite_standing.sql

@@ -655,24 +655,7 @@ export function createMockApi() {
     draftFromText: () => now(() => withScope(norwayDraft)),
     saveItem: ({ fact, isNew, relations = {}, gap, setup }) =>
       now(() => {
-        // As the service: a live item agents would get in the same answer needs an answer first.
-        const clashes = factsOf(state)
-          .filter(
-            (f) =>
-              f.id !== fact.id &&
-              f.title !== fact.title &&
-              !relations[f.id] &&
-              servedToAgents(f) &&
-              fact.where.length > 0 &&
-              fact.where.every((w) => f.where.includes(w)),
-          )
-          .map((f) => ({ itemId: f.id, title: f.title }))
-        if (clashes.length)
-          throw new ApiError(
-            'invalid',
-            `Say how this relates to “${clashes[0]!.title}” first: it replaces it, they disagree, or they are unrelated.`,
-            { status: 422, clashes },
-          )
+        // As the service: an overlap left alone is unrelated, so none refuses a publish.
         const id = isNew ? `itm_new_${Date.now().toString(36)}` : fact.id
         // What the owner said of an overlap is kept on the item, as a published suggestion's is.
         const related = Object.entries(relations)
@@ -1037,6 +1020,20 @@ export function createMockApi() {
         if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         checkConnect(tool.id, { chosen, reason })
+        // ?change=fail: someone else saves the tool's settings, as they are, just before this.
+        if (scenario.failsOnce('change', tool.id)) {
+          const theirs = connectFormFor(
+            tool.id,
+            settings.read(scenario.address()).connected,
+            kept.get(tool.id),
+          )!
+          kept.set(tool.id, {
+            config: Object.fromEntries(theirs.fields.map((f) => [f.key, f.value])),
+            chosen: theirs.chosen,
+            readsAll: theirs.readsAll,
+            revision: (kept.get(tool.id)?.revision ?? 1) + 1,
+          })
+        }
         const current = kept.get(tool.id)?.revision ?? 1
         if (revision !== current)
           throw new ApiError(

@@ -30,6 +30,7 @@ export function ConflictPage({ pairKey }: { pairKey: string }) {
   const topic = pair.data?.topic
   return (
     <Page
+      deep={{ href: href(CONFLICTS_LIST), label: 'Back to Context' }}
       title={
         <Breadcrumb>
           <BreadcrumbList>

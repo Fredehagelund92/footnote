@@ -362,6 +362,23 @@ export function createInboxFeedService(
       [due.map((item) => item.id)],
     )
     const lastChecked = new Map(reviews.map((r) => [r.id, { on: r.on, by: r.by }]))
+    // A definition changed when its mark first read as it does now, after the last other mark.
+    const moved = await tx.query<{ id: string; name: string; on: string }>(
+      `select s.item_id as id, coalesce(d.title, d.name) as name,
+              (select min(k.fetched_at at time zone 'UTC')::date::text
+                 from definition_marks m join connector_snapshots k on k.id = m.snapshot_id
+                where m.definition_ref = d.ref and m.change_mark = d.change_mark
+                  and k.fetched_at > coalesce((select max(o.fetched_at)
+                        from definition_marks p join connector_snapshots o on o.id = p.snapshot_id
+                       where p.definition_ref = d.ref and p.change_mark <> d.change_mark),
+                      '-infinity')) as on
+         from item_version_service s
+         join item_version_refs r on r.version_id = s.version_id
+         join definitions d on d.ref = r.definition_ref and d.change_mark <> r.change_mark
+        where s.item_id = any($1::text[]) and upper_inf(s.editions)
+        order by s.item_id, name collate "C"`,
+      [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
+    )
     return due.map((item) => ({
       id: cardKey.check(item.id),
       group: 'check',
@@ -372,6 +389,7 @@ export function createInboxFeedService(
       itemId: item.id,
       title: item.title,
       reason: item.checkFlag === null ? 'date' : 'source',
+      changed: moved.filter((m) => m.id === item.id).map(({ name, on }) => ({ name, on })),
       lastChecked: lastChecked.get(item.id) ?? { on: null, by: null },
     }))
   }
@@ -423,6 +441,7 @@ export function createInboxFeedService(
           itemId: p.itemId,
           title: p.title,
           reason: 'date',
+          changed: [],
           lastChecked: { on: row.at.slice(0, 10), by: null },
         })
         continue

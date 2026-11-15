@@ -65,7 +65,7 @@ import {
   useDefinitions,
   useGlossary,
 } from '@/lib/definitions'
-import { closeDock, openDock, useDock } from '@/lib/dock'
+import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
 import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
 import { href, navigate, useRoute } from '@/lib/router'
@@ -317,9 +317,9 @@ export function DefinitionsPage() {
         data-peeked={peeked === d.name || undefined}
         data-leaving={leaving.has(d.name) || undefined}
         data-vt-move
-        className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:bg-muted data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
+        className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
         onMouseDown={sel.onMouseDown}
-        onClick={(e) => sel.rowClick(d.name, e) || openDock('def', d.name)}
+        onClick={(e) => sel.rowClick(d.name, e) || openFromRow('def', d.name)}
       >
         <td
           className="hidden w-9.5 pr-0 pl-4 align-middle md:w-11.5 md:pl-6 @xl/main:table-cell"
@@ -345,7 +345,7 @@ export function DefinitionsPage() {
                 className="flex min-w-0 shrink text-left font-medium outline-none hover:underline"
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (!sel.titleClick(d.name, e)) openDock('def', d.name)
+                  if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
                 }}
               >
                 <TruncatedText text={d.name}>

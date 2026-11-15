@@ -617,9 +617,9 @@ function Preview({ r }: { r: Review }) {
 }
 
 /**
- * The change: first what must be decided or known, the same in every view (a withdrawal, the
- * item to archive, where a synced suggestion came from, the claim check, the clash gate), then
- * the source or its preview. No view can hide the gate.
+ * The change: first what must be known, the same in every view (a withdrawal, the item to
+ * archive, where a synced suggestion came from, the claim check), then the source or its preview,
+ * then the live items it overlaps. No view can hide the claim check or the overlaps.
  */
 function TheChange({
   r,
@@ -636,7 +636,7 @@ function TheChange({
   const { cards } = useInbox()
   const item = itemOfReview(r, cards)
   const fact = facts.find((f) => f.id === item)
-  const gate = !!(r.claims || r.clash)
+  const gate = !!r.claims
   return (
     <div className="flex flex-col">
       {r.retire?.withdrawn && (
@@ -685,10 +685,14 @@ function TheChange({
       )}
       {r.synced && <SyncedFrom r={r} />}
       {r.claims && <ClaimCheck claims={r.claims} from={r.from} drafted={!!r.drafted} />}
-      {r.clash && <Clash r={r} />}
       <div className={cn((gate || r.retire) && 'mt-6 border-t pt-4')}>
         {view === 'source' ? <SourceReview r={r} me={me} owners={owners} /> : <Preview r={r} />}
       </div>
+      {r.clash && (
+        <div className="mt-6 border-t pt-4">
+          <Clash r={r} />
+        </div>
+      )}
     </div>
   )
 }
@@ -765,8 +769,8 @@ function Clash({ r }: { r: Review }) {
         </Mark>
         <span className="text-sm text-muted-foreground">
           {items.length > 1
-            ? `${words.length} of ${items.length} say something about the same thing. Answer for each.`
-            : 'Publish waits for your answer.'}
+            ? `${words.length} of ${items.length} say something about the same thing. Each starts as Unrelated.`
+            : 'Starts as Unrelated; change it if they relate.'}
         </span>
       </header>
       {shown.map(({ item, pair }, i) => {
@@ -796,7 +800,7 @@ function Clash({ r }: { r: Review }) {
                 onChange={(v) => answer(item.factId, v)}
               />
               <p className="text-xs text-muted-foreground">
-                {relation ? relationText[relation].hint : 'Choose one of the three.'}
+                {relation ? relationText[relation].hint : 'Pick how they relate.'}
               </p>
             </fieldset>
           </div>
@@ -1631,12 +1635,13 @@ export function ReviewPage({ id }: { id: string }) {
   const hold = React.useRef({ timer: 0, left: 0, since: 0 })
   const [paused, setPaused] = React.useState(false)
   React.useEffect(() => () => window.clearTimeout(hold.current.timer), [])
-  // The owner's answers to a clash, over the ones the service already has.
+  // The owner's answers to a clash, over the ones the service already has; an overlap with none
+  // arrives answered Unrelated, as the editor's panel reads one left alone.
   const [chosen, setChosen] = React.useState<Record<string, Relation>>({})
   const answers = React.useMemo(
     () => ({
       ...Object.fromEntries(
-        (r?.clash?.items ?? []).flatMap((c) => (c.relation ? [[c.factId, c.relation]] : [])),
+        (r?.clash?.items ?? []).map((c) => [c.factId, c.relation ?? 'unrelated']),
       ),
       ...chosen,
     }),
@@ -1944,6 +1949,7 @@ export function ReviewPage({ id }: { id: string }) {
       {/* Under a finger every control is at least 40px; the phone bar's actions are 44px. */}
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
+          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
@@ -1970,9 +1976,14 @@ export function ReviewPage({ id }: { id: string }) {
           }
         >
           {isMobile && (
-            <Button variant="outline" className="gap-1.5" onClick={() => setQueueOpen(true)}>
-              <ListIcon data-icon="inline-start" />
-              Queue
+            // The icon alone, named for a screen reader: the title keeps the room.
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Queue"
+              onClick={() => setQueueOpen(true)}
+            >
+              <ListIcon />
             </Button>
           )}
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
