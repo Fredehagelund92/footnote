@@ -118,7 +118,7 @@ const CUES: Record<Cue, string> = {
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
-const COLS = 7
+const COLS = 8
 
 /* ---------- the list ---------- */
 
@@ -301,6 +301,7 @@ export function DefinitionsPage() {
     const target = d.sameAs ? glossary.find(d.sameAs) : undefined
     const flag = flagOf(d)
     const n = about(d)
+    const meaning = plainText(glossary.meaningOf(d).definition)
     // The lock is said once, in the line above the table; a row shows only who wrote a term.
     const source = d.synced ? null : (
       <span title={`Written by ${d.by}, ${d.updated}`} className="inline-flex">
@@ -375,6 +376,10 @@ export function DefinitionsPage() {
               </span>
             </span>
           </span>
+        </td>
+        {/* What it means, in the row: a synonym reads its target's meaning. */}
+        <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
+          <TruncatedText text={meaning || 'No meaning written yet'}>{meaning || '–'}</TruncatedText>
         </td>
         <td
           className={cn(
@@ -702,7 +707,7 @@ export function DefinitionsPage() {
             </p>
           )}
           <div className="min-w-0 shrink-0">
-            <table ref={table} className="w-full border-collapse">
+            <table ref={table} className="w-full table-fixed border-collapse">
               <thead className="sticky top-0 z-raised">
                 <tr>
                   <th
@@ -723,8 +728,9 @@ export function DefinitionsPage() {
                     sorting={sorting}
                     by="name"
                     onSort={onSort}
-                    className="w-full pr-2 pl-4 md:pl-6 @xl/main:pl-1.5"
+                    className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
                   />
+                  <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
                   <Th
                     className={cn(
                       'hidden w-32 px-2',
@@ -832,6 +838,7 @@ export function DefinitionsPage() {
                       context items about them
                     </span>
                   </td>
+                  <td className="hidden px-2 @min-[48rem]/main:table-cell" />
                   <td
                     className={cn(
                       'hidden px-2',
