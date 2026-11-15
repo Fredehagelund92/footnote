@@ -47,15 +47,15 @@ A short reply looks like this, cut down here to the main fields:
 
 Pass on `say`, which starts with the [answer line](../help/answer-lines.md). If the reply has `next`, follow it: it is the step for the agent. Keep `reply_id` to send a `report`.
 
-| `status`           | Answer line | What it means                                                           |
-| ------------------ | ----------- | ----------------------------------------------------------------------- |
-| `matched`          | Checked     | Context covers the question                                             |
-| `partial`          | Partial     | No item covers all of it, or a question with no dates was read at today |
-| `no_match`         | Not found   | Nothing applies                                                         |
-| `conflict`         | Conflict    | Two items that apply disagree                                           |
-| `stale`            | Outdated    | An item's check date passed, or its source changed                      |
-| `check_failed`     | Not checked | The checks could not run                                                |
-| `need_more_detail` | None        | The question could not be read, so nothing was looked up                |
+| `status`           | Answer line   | What it means                                                           |
+| ------------------ | ------------- | ----------------------------------------------------------------------- |
+| `matched`          | Checked       | Context covers the question                                             |
+| `partial`          | Partial       | No item covers all of it, or a question with no dates was read at today |
+| `no_match`         | Not found     | Nothing applies                                                         |
+| `conflict`         | Conflict      | Two items that apply disagree                                           |
+| `stale`            | Outdated      | An item's check date passed, or its source changed                      |
+| `check_failed`     | Not looked up | The checks could not run                                                |
+| `need_more_detail` | None          | The question could not be read, so nothing was looked up                |
 
 ## Other fields you may see
 

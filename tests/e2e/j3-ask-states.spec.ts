@@ -39,8 +39,8 @@ const states = [
     sources: 1,
   },
   {
-    label: 'Not checked',
-    sentence: 'The check did not run.',
+    label: 'Not looked up',
+    sentence: 'Ask could not look this up just now.',
     question: 'What changed in returns in the United Kingdom this week?',
     sources: 0,
   },
@@ -60,7 +60,7 @@ async function coversNothing(page: Page, turn: number, label: string) {
   const log = page.getByRole('log')
   const badge = log
     .locator(`[data-turn="${turn}"]`)
-    .getByRole('button', { name: label, exact: true })
+    .locator('[data-slot="popover-trigger"]', { hasText: label })
   const card = page.getByRole('dialog', { name: `What ${label} means` })
   await expect(card).toBeVisible()
   // Settled where it goes: in, and no longer moving.
@@ -79,7 +79,10 @@ async function ask(page: Page, question: string) {
   await box.click()
   await box.pressSequentially(question)
   await box.press('Enter')
-  await expect(turns.nth(n).getByRole('button', { name: badgeName })).toBeVisible()
+  // The failed look-up's fold carries the same words, so the badge is the one that opens a card.
+  await expect(
+    turns.nth(n).locator('[data-slot="popover-trigger"]').getByText(badgeName),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
   await expect(
     turns
@@ -96,12 +99,13 @@ for (const s of states)
     await go(page, `/ask?n=${Date.now()}`)
     await ask(page, s.question)
     const log = page.getByRole('log')
-    const badge = log.getByRole('button', { name: s.label, exact: true })
+    const badge = log.locator('[data-slot="popover-trigger"]', { hasText: s.label })
     await expect(badge).toBeVisible()
     await expect(badge).toHaveAttribute('aria-haspopup', 'dialog')
     // A 24 px badge, and nothing beside or under it says what it means: its card does.
     expect((await badge.boundingBox())!.height).toBe(24)
-    await expect(log.getByText(s.sentence)).toHaveCount(0)
+    // A failed look-up has no card to say it twice: its chat note says it beside the badge.
+    await expect(log.getByText(s.sentence)).toHaveCount(s.label === 'Not looked up' ? 1 : 0)
     await expect(log.getByText('These two disagree')).toHaveCount(0)
 
     // Hovered, the card opens above the badge, 8 px away, and says what it means.
@@ -118,7 +122,7 @@ for (const s of states)
 
     // The words at 16 px on 26 px lines, inside the 60ch measure.
     const words = log.locator('[data-answer-words]')
-    if (s.label !== 'Not checked') {
+    if (s.label !== 'Not looked up') {
       const type = await words.evaluate((el) => {
         const style = getComputedStyle(el)
         return { size: style.fontSize, line: style.lineHeight, width: el.clientWidth }
@@ -130,18 +134,20 @@ for (const s of states)
 
     // The sources as numbered chips, with what was looked up beside them; no helper lines.
     await expect(log.getByRole('button', { name: /^Source \d+: / })).toHaveCount(s.sources)
-    await expect(log.getByRole('button', { name: /^(Looked up|The look-up)/ })).toBeVisible()
+    await expect(
+      log.locator('[data-slot="collapsible-trigger"]', { hasText: /^(Looked up|Not looked up)/ }),
+    ).toBeVisible()
     await expect(log.getByText('Select a sentence to see where it says that.')).toHaveCount(0)
     await expect(log.getByText(/^\d+ sources?$/)).toHaveCount(0)
 
     // One row of icons, the last answer's always on show: Copy, Good, Bad, Ask again and More.
     const actions = log.getByRole('group', { name: 'Answer actions' })
-    await expect(actions).toHaveCount(s.label === 'Not checked' ? 0 : 1)
+    await expect(actions).toHaveCount(s.label === 'Not looked up' ? 0 : 1)
     const names = await actions
       .getByRole('button')
       .evaluateAll((all) => all.map((b) => b.getAttribute('aria-label')))
     // A check that did not run has its own Ask again, and nothing to rate, copy or report.
-    if (s.label === 'Not checked') {
+    if (s.label === 'Not looked up') {
       expect(names).toEqual([])
       await expect(log.getByRole('button', { name: 'Ask again', exact: true })).toHaveCount(1)
     } else {

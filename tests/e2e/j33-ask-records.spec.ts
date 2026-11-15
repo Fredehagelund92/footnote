@@ -23,7 +23,9 @@ test('a question about the records gets a records answer, never Not found', asyn
   await ask(page, 'give me context created in last 24 hours?')
   const log = page.getByRole('log')
   await expect(log.getByText('Records', { exact: true })).toBeVisible()
-  await expect(log.getByText("Counted from the workspace's records.")).toBeVisible()
+  await expect(
+    log.getByText("From the app's own list of what was written and changed."),
+  ).toBeVisible()
   await expect(
     log.getByText(
       /^(Nothing was created in the last 24 hours\.|[\d,]+ context items? (was|were) created in the last 24 hours\.)$/,

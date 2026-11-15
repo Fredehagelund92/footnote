@@ -104,7 +104,7 @@ export function Legend({ how }: { how: Compared['how'] }) {
 export function SaysBox({ said, className }: { said: Said; className?: string }) {
   return (
     <div className={cn('flex flex-col gap-2 rounded-frame border bg-muted/40 p-3', className)}>
-      <StateLine state={said.state} tip={false} />
+      <StateLine state={said.state} tip={false} sentence />
       <p className="text-sm leading-relaxed text-pretty">{said.text}</p>
     </div>
   )

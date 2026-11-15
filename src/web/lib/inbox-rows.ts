@@ -25,7 +25,7 @@ export const INBOX_GROUPS = [
   { id: 'names', label: 'New metrics and dimensions' },
   { id: 'mention', label: 'Mentioned you' },
   { id: 'suggestion', label: 'Suggestions' },
-  { id: 'gap', label: 'Not found' },
+  { id: 'gap', label: 'Nothing written yet' },
   { id: 'flag', label: 'Reported' },
   { id: 'look', label: 'Saved questions' },
   { id: 'alert', label: 'Alerts' },

@@ -292,8 +292,8 @@ export function HelpPage() {
             <Nothing q={q} onTry={(t) => (setQ(t), setQuery({ q: t }))} />
           ) : (
             <Frame>
-              <AnswerLines q={q} />
               <Words q={q} />
+              <AnswerLines q={q} />
               <HowAgentsUseIt q={q} />
               {q ? (
                 <FrameFooter className="justify-between">

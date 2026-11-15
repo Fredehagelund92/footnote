@@ -41,7 +41,7 @@ const world =
       }
 
 /** The six state words, as a line says one. */
-const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
+const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 
 test('Share copies an answer for Slack with its state and sources, or as a card; a link is for later', async ({
   page,
