@@ -1,5 +1,5 @@
 import { MutationCache, notifyManager, QueryCache, QueryClient } from '@tanstack/react-query'
-import { isSignedOut, toApiError } from './errors'
+import { isSignedOut, isSomeoneElse, toApiError } from './errors'
 
 export type QueryClientOptions = {
   /**
@@ -7,6 +7,11 @@ export type QueryClientOptions = {
    * the sign-in page instead of showing an empty or failed screen.
    */
   onSignedOut?: () => void
+  /**
+   * Called when a change was not sent because another tab signed this browser in as someone else,
+   * so the app can move to them as a sign-in does.
+   */
+  onSomeoneElse?: () => void
 }
 
 /** Only a request that got no answer is tried again; a refusal or a failure would come back the same. */
@@ -20,15 +25,17 @@ notifyManager.setScheduler(queueMicrotask)
 const signedOutBy = new WeakMap<QueryClient, (error: unknown) => void>()
 
 /**
- * A change made outside a mutation (`useWrite`) answers a 401 the same way a mutation's error
- * handler does: the app opens sign-in instead of showing a failed screen.
+ * A change made outside a mutation (`useWrite`) answers a 401, or a session that is someone
+ * else's now, the same way a mutation's error handler does: the app opens sign-in instead of
+ * showing a failed screen, or moves to the person signed in.
  */
 export const reportSignedOut = (client: QueryClient, error: unknown) =>
   signedOutBy.get(client)?.(error)
 
-export function createQueryClient({ onSignedOut }: QueryClientOptions = {}) {
+export function createQueryClient({ onSignedOut, onSomeoneElse }: QueryClientOptions = {}) {
   const signedOut = (error: unknown) => {
     if (isSignedOut(error)) onSignedOut?.()
+    else if (isSomeoneElse(error)) onSomeoneElse?.()
   }
   const client = new QueryClient({
     queryCache: new QueryCache({ onError: signedOut }),

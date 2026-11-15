@@ -3,7 +3,14 @@ import { Outlet } from '@tanstack/react-router'
 import { QueryClientProvider, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { mockControls } from '@/api'
 import { createQueryClient } from '@/api/query-client'
-import { InDock, isPageQuery, sessionQuery, sharedQueries, useSession } from '@/api/queries'
+import {
+  afterSomeoneElse,
+  InDock,
+  isPageQuery,
+  sessionQuery,
+  sharedQueries,
+  useSession,
+} from '@/api/queries'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
@@ -257,14 +264,13 @@ function Shell() {
       {/* The first stop for the keyboard: past the sidebar, straight to the page. A button, since a #link would change the address. */}
       <button
         type="button"
-        className="sr-only fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium shadow-md ring-3 ring-ring/50 focus-visible:not-sr-only"
+        className="pointer-events-none fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium opacity-0 shadow-md ring-3 ring-ring/50 focus-visible:pointer-events-auto focus-visible:opacity-100"
         onClick={() => {
           // A page can name where it starts (Ask: the box to ask in); otherwise the page itself.
-          const target = document.querySelector<HTMLElement>('[data-skip-target]')
-          if (target) return target.focus()
           const main = document.querySelector<HTMLElement>('[data-slot=sidebar-inset]')
+          const target = document.querySelector<HTMLElement>('[data-skip-target]') ?? main
           main?.setAttribute('tabindex', '-1')
-          main?.focus()
+          target?.focus()
         }}
       >
         Skip to the content
@@ -414,6 +420,8 @@ function AppToaster() {
 const queryClient = createQueryClient({
   // A session that ended: everything cached was the person's, and the sign-in page comes next.
   onSignedOut: () => void queryClient.invalidateQueries({ queryKey: sessionQuery().queryKey }),
+  // Another tab signed this browser in as someone else: the app moves to them.
+  onSomeoneElse: () => void afterSomeoneElse(queryClient),
 })
 
 export default function App() {

@@ -59,7 +59,7 @@ test('a suggestion that clashes says what agents would hear if it went out as it
   await expect(a.getByText('If you publish as it is')).toBeVisible()
   // The after side's line; on the service the live items already disagree today too.
   await expect(a.getByText('Conflict', { exact: true }).last()).toBeVisible()
-  await expect(p.getByText('Publishing waits until you say how they relate')).toBeVisible()
+  await expect(p.getByText('Overlaps are answered Unrelated unless you change them')).toBeVisible()
   await p.getByRole('button', { name: 'Decide how they relate' }).click()
   await expect(page).toHaveURL(new RegExp(`/inbox/${cardIn('sug-sofia-clash')}/review`))
 })
