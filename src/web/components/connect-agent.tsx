@@ -232,7 +232,7 @@ function LiveLine({
         )}
         {(phase === 'hint' || phase === 'timeout' || phase === 'declined') && (
           <div className="flex flex-wrap gap-2 pt-1">
-            {phase === 'timeout' && <Button onClick={onAgain}>Check again</Button>}
+            {phase === 'timeout' && <Button onClick={onAgain}>Keep waiting</Button>}
             <Button variant="outline" onClick={onCopyAgain}>
               <CopyIcon data-icon="inline-start" />
               Copy prompt again

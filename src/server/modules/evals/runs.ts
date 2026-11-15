@@ -52,14 +52,7 @@ export type EvalDeps = { port: ModelPort; clock: Clock }
 /** `held_out`: the sealed held-out questions of an area, run with nothing of them kept. */
 export type RunKind = 'impact' | 'full' | 'scheduled' | 'links' | 'held_out'
 export type RunState =
-  | 'estimated'
-  | 'awaiting_approval'
-  | 'queued'
-  | 'running'
-  | 'finished'
-  | 'failed'
-  | 'cancelled'
-  | 'incomplete'
+  'awaiting_approval' | 'queued' | 'running' | 'finished' | 'failed' | 'cancelled' | 'incomplete'
 export type AnswerLevel = 'answer_impact' | 'answer_full'
 /** Why a full run was queued without a person: a change that bypasses the review gate. */
 export type RunTrigger = 'source_sync' | 'tool_descriptions' | 'date_expiry'

@@ -23,7 +23,7 @@ import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/heed/tool-logo'
 import { pairOfKey } from '@/model/conflicts'
 import { integrationHref, lookOf } from '@/model/integrations'
-import { careLine, countWord, type Review } from '@/model/review'
+import { askedWords, careLine, changeWords, type Review } from '@/model/review'
 import { QuickHead, QuickReview } from '@/pages/review'
 import {
   AskedAbout,
@@ -126,20 +126,23 @@ function Cell({ className, ...props }: React.ComponentProps<typeof Card>) {
 
 /* ---------- the list ---------- */
 
-/** How big a suggestion is, from its review: "2 wording, 1 link - 12 questions". */
-function evidence(r: Review | undefined) {
-  if (!r) return ''
-  const size =
+/**
+ * What a suggestion does, from its review, in a sentence that starts with who it is from:
+ * "Ines Duarte changed 2 sentences and 2 links."
+ */
+function didWords(from: string, r: Review | undefined) {
+  if (!r) return from ? `From ${from}.` : ''
+  const did =
     r.mode === 'new'
-      ? 'New item'
+      ? 'suggests a new item'
       : r.mode === 'retire'
-        ? 'Archives an item'
-        : r.counts.map((c) => `${c.n} ${countWord(c.kind, c.n)}`).join(', ')
-  const reach = r.tryIt.reach
-  return reach ? [size, `${reach} ${reach === 1 ? 'question' : 'questions'}`].join(' - ') : size
+        ? 'suggests archiving an item'
+        : changeWords(r.counts)
+  if (!did) return from ? `From ${from}.` : ''
+  return from ? `${from} ${did}.` : `${did[0]!.toUpperCase()}${did.slice(1)}.`
 }
 
-/** What a row's suggestion needs before it can go out, from its review: "Overlaps live context". */
+/** What a row's suggestion needs before it can go out, from its review: "About the same thing as 2 published items". */
 function rowCare(row: InboxRow, reviews: Review[]) {
   if (row.kind !== 'card' || row.done) return undefined
   const review = reviews.find((r) => r.id === row.card.id)
@@ -167,17 +170,19 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
         ? `${s.agent}, with ${s.from}'s OK`
         : s.from
       : ''
-  if (s || card.source)
-    return [from, care, evidence(reviews.find((r) => r.id === card.id))]
-      .filter(Boolean)
-      .map((part, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && ' - '}
-          {part}
-        </React.Fragment>
-      ))
+  if (s || card.source) {
+    const review = reviews.find((r) => r.id === card.id)
+    const reach = review?.tryIt.reach
+    return (
+      <>
+        {didWords(from, review)}
+        {care && <> {care}.</>}
+        {reach ? ` ${askedWords(reach)}` : ''}
+      </>
+    )
+  }
   if (card.gap)
-    return `${card.gap.times === 0 ? 'Found nothing, not asked this week' : `Asked ${card.gap.times} times this week, found nothing`}${card.gap.acrossMonths ? ', across a month edge' : ''}`
+    return `${card.gap.times === 0 ? 'Agents found nothing, and did not ask this week.' : `${askedWords(card.gap.times)} They found nothing.`}${card.gap.acrossMonths ? ' Counted across two months.' : ''}`
   if (card.flag) return `Reported as ${card.flag.reason}: “${card.flag.note}”`
   if (card.look) return 'Raised by an alert: saved questions answer worse'
   if (card.alert) return `Raised by an alert: ${card.alert.name}`

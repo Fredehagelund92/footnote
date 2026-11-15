@@ -315,7 +315,7 @@ The job specs, one line each:
 | J9  | Domains are documents; an empty one can be deleted, one with context cannot.                                                                                                    |
 | J10 | People: invites with roles and domains; the last owner cannot leave; owners add owners to their own domain.                                                                     |
 | J11 | Figures in Ask: off by default, one figure with source and freshness when on, the definition decides.                                                                           |
-| J12 | Connect an agent: prompt, live line, hint after 2 minutes, stop at 10, Check again.                                                                                             |
+| J12 | Connect an agent: prompt, live line, hint after 2 minutes, stop at 10, Keep waiting.                                                                                            |
 | J13 | The review's keys never act while you type; Esc order; the key hint shows only where the key acts.                                                                              |
 | J14 | Deciding with no connection: Publish waits and says why; a failed try changes nothing; a returned note is kept.                                                                 |
 | J15 | "Publish the ones you've read": opening is not reading; Undo puts all of them back.                                                                                             |

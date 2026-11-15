@@ -60,7 +60,7 @@ export const OBS_PURPOSE: Record<ObsSection, string> = {
   overview:
     'What agents asked and what they got, by topic: a metric, the values asked about and the month. Counts only: never the words, never who asked.',
   quality:
-    'Saved questions are checked against every change. Free, no model key needed. It checks what agents get, not how an agent words it.',
+    'Saved questions are answered again after every change. Free, no model key needed. It reads what agents get, not how an agent words it.',
   feedback:
     'What people and agents said about answers. Open reports wait in the Inbox, which is the queue: nothing is scored here.',
   usage:

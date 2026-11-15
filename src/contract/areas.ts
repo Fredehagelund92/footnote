@@ -194,7 +194,7 @@ export const deleteEmptyAreaSchema = z.strictObject({ id: areaIdField })
 
 export const areaRemovedSchema = z.object({
   outcome: z.enum(['deleted', 'archived']),
-  /** The domain as it was, so the person can undo: create it again, or restore it. */
+  /** The domain as it was, so the person can create it again. */
   area: areaDetailSchema,
   /** The edition that stopped delivery of its items and terms; null when it served nothing. */
   edition: z.nullable(editionSchema),
@@ -203,7 +203,7 @@ export const areaRemovedSchema = z.object({
 })
 export type AreaRemoved = z.infer<typeof areaRemovedSchema>
 
-/** A deleted domain that history keeps, which an administrator may restore at any time. */
+/** A deleted domain that history keeps: it holds its id and name for good. */
 export const archivedAreaSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -211,11 +211,5 @@ export const archivedAreaSchema = z.object({
   summary: z.string(),
   /** When it was deleted. */
   archivedAt: z.string(),
-  /** The people whose roles ended when it was deleted; restoring gives them back. */
-  team: z.number(),
-  /** The terms deleting it retired or took it from; restoring serves them again. */
-  terms: z.number(),
-  /** Its items still in the Bin, which come back through the Bin's Restore. */
-  binnedItems: z.number(),
 })
 export type ArchivedArea = z.infer<typeof archivedAreaSchema>

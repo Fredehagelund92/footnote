@@ -145,8 +145,7 @@ export const answerText = (a: SavedAnswer) =>
 /** What starts a check, from the reason the newest edition was published for (editions/release.ts). */
 export function triggerOfEdition(reason: string): CheckTrigger {
   if (reason === 'item_retired' || reason === 'area_deleted') return 'archive'
-  if (reason === 'item_restored' || reason === 'area_restored' || reason === 'decision_undone')
-    return 'restore'
+  if (reason === 'item_restored' || reason === 'decision_undone') return 'restore'
   if (reason === 'vocabulary_changed') return 'sync'
   return 'publish'
 }
