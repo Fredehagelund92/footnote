@@ -308,7 +308,9 @@ function DatesTimeline({ span }: { span: NonNullable<Extract<Block, { kind: 'Dat
       </div>
       <p className="text-xs text-muted-foreground">
         {longer
-          ? `${high - low === 7 ? 'One more week: a' : 'A'}gents get it for questions about ${days} too.`
+          ? high - low === 7
+            ? `One more week: agents get it for questions about ${days} too.`
+            : `Agents get it for questions about ${days} too.`
           : `Agents no longer get it for questions about ${days}.`}
       </p>
     </>
