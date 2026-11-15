@@ -4,7 +4,7 @@ import { todayMs } from './today'
 // When a context item holds and how fresh its check is, in the fixed vocabulary of the
 // list columns' design B: five time frames (Always, Ongoing, Since X, Until X, X to Y),
 // a short date for each, and one freshness level for the dot: fresh up to 30 days, ageing up to
-// 90, overdue after that or when a definition changed.
+// 90, due for a check after that or when a definition changed.
 
 const DAY = 86400000
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

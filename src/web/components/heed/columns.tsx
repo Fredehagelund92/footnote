@@ -26,7 +26,7 @@ import {
 
 // The cells of the list columns' design B, as chosen: icons and short labels.
 // The kind as an icon before the title, the status as a circle icon, the time frame as a glyph
-// and a short date, and freshness as a dot (filled fresh, half ageing, hollow overdue). The only
+// and a short date, and freshness as a dot (filled fresh, half ageing, hollow due for a check). The only
 // words beside the title are dates; the exact value is one hover away.
 
 /**
