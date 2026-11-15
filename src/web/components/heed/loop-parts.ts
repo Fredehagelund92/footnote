@@ -29,7 +29,7 @@ import { PersonAvatar } from '@/components/heed/bits'
 import { FoldTrigger } from '@/components/heed/fold'
 import { kindIcons } from '@/components/heed/kind-icons'
 import { ReadingLine } from '@/components/heed/reading'
-import { StateHelp } from '@/components/heed/state-help'
+import { DefinitionHelp, StateHelp } from '@/components/heed/state-help'
 import { useWrite } from '@/api/queries'
 import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
@@ -83,6 +83,7 @@ export const loopParts = {
   FoldTrigger,
   kindIcons,
   ReadingLine,
+  DefinitionHelp,
   StateHelp,
   useWrite,
   PRODUCT,

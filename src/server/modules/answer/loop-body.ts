@@ -15,8 +15,9 @@ import { isCalendarDate } from '../../../domain/validity.ts'
   reference to it (`[#r1.count]`), cites items by id as before, asks for a read's items as a list
   (`[list:r1]`), and may write a short list as lines that start with "- ". Code checks every one
   against the reads of this chat: a mention no read named is plain words, never a chip; a
-  reference no read holds leaves its sentence out; and what the check found is kept in `checks`,
-  never shown as the answer's words. A set the person asked for as a whole is an overview: the
+  reference to a read's words is those words, and one no read holds is left out of its sentence,
+  which stays (code repairs the words and never deletes a sentence); and what the check found is
+  kept in `checks`, never shown as the answer's words. A set the person asked for as a whole is an overview: the
   groups of one read, by code.
 
   Nothing here knows a dimension, a domain or a person by name: the nouns come from the reads.
@@ -306,11 +307,50 @@ function pushRun(runs: LoopRun[], run: LoopRun) {
 }
 
 /**
+ * How many characters at the start of `after` repeat the noun of what a count is out of, which
+ * its run already says ("[#r1.outOf] context items changed": "23 published context items you may
+ * read" then "changed"): a last part of the words before "you", "in" or "of" in it.
+ */
+function ownNoun(run: LoopRun, after: string): number {
+  if (run.t !== 'count' || !run.of) return 0
+  const noun = run.of
+    .split(/\s+(?:you|in|of|that|which)\b/)[0]!
+    .split(/\s+/)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  for (let i = 0; i < noun.length; i++) {
+    const m = new RegExp(`^\\s+${noun.slice(i).join('\\s+')}(?![\\p{L}\\p{N}])`, 'iu').exec(after)
+    if (m) return m[0].length
+  }
+  return 0
+}
+
+/**
+ * A sentence's runs with its full stop before the citations the model wrote ahead of it: "owned
+ * by Ada [1]." reads "owned by Ada.[1]", so the number never sits before a stop of its own.
+ */
+function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
+  const out = runs.map((r) => ({ ...r }))
+  for (let i = 0; i < out.length; i++) {
+    const r = out[i]!
+    if (r.t !== 'text' || i === 0 || out[i - 1]!.t !== 'cite') continue
+    const stop = /^[ \t]*([.!?]+)/.exec(r.text)
+    if (!stop) continue
+    let first = i - 1
+    while (first > 0 && out[first - 1]!.t === 'cite') first--
+    r.text = r.text.slice(stop[0].length)
+    const before = out[first - 1]
+    if (before?.t === 'text') before.text = before.text.trimEnd() + stop[1]
+    else out.splice(first, 0, { t: 'text', text: stop[1]! })
+  }
+  return out.filter((r) => r.t !== 'text' || r.text)
+}
+
+/**
  * The model's words checked and drawn (FR-720.2, FR-720.3): paragraphs, the short lists it wrote,
- * the lists of reads it asked for, and in each sentence its nouns, numbers and citations. A
- * sentence whose number no read holds is left out whole; a long enumeration after a colon becomes
- * a list. `cited` grows as items are cited, the first cited first, and the rows of a list of a read
- * are cited as they come.
+ * the lists of reads it asked for, and in each sentence its nouns, numbers and citations. Every
+ * sentence is kept: a number no read holds is left out of it, flagged; a long enumeration after a
+ * colon becomes a list. `cited` grows as items are cited, the first cited first, and the rows of a
+ * list of a read are cited as they come.
  */
 export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): Words {
   const checks: Check[] = []
@@ -321,12 +361,27 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
   const check = (kind: string, words: string) => {
     if (!checks.some((c) => c.kind === kind && c.words === words)) checks.push({ kind, words })
   }
-  /** One sentence's runs, or null when a number in it is not one a read holds. */
-  const sentence = (words: string): LoopRun[] | null => {
+  /** A mention by its id, or by the name the model wrote in its place: a chip, else the name. */
+  const mention = (runs: LoopRun[], written: string) => {
+    const id = typedId(written)
+    const kind = id.slice(0, id.indexOf(':'))
+    const words = id.slice(id.indexOf(':') + 1)
+    const named = /\s/.test(words)
+      ? [...ctx.nouns.values()].find(
+          (n) => n.id.startsWith(`${kind}:`) && n.name.toLowerCase() === words.toLowerCase(),
+        )?.id
+      : undefined
+    if (ctx.nouns.has(named ?? id)) pushRun(runs, { t: 'noun', id: named ?? id })
+    else if (ITEM_ID.test(id) && ctx.known.has(id)) pushRun(runs, { t: 'cite', n: cite(id) })
+    else {
+      check('mention', written)
+      pushRun(runs, { t: 'text', text: /\s/.test(words) ? words : plainName(id, ctx.nouns) })
+    }
+  }
+  /** One sentence's runs, every one kept. */
+  const sentence = (words: string): LoopRun[] => {
     const runs: LoopRun[] = []
-    const citedBefore = cited.length
     let at = 0
-    let failed = false
     for (const m of words.matchAll(TOKEN)) {
       pushRun(runs, { t: 'text', text: words.slice(at, m.index) })
       at = m.index + m[0].length
@@ -339,17 +394,14 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       const kind = typed ? nounKindOf(typedId(typed)) : null
       const needed =
         kind === 'person' || /^\s*[\p{L}\p{N}]/u.test(words.slice(m.index + whole.length))
-      const mention = written ?? (typed && kind && needed ? typed : undefined)
-      if (mention !== undefined) {
-        const id = typedId(mention)
+      // A mention with the name written in place of its id (`[@person:Ada Okafor]`).
+      const byName = inner?.match(/^@([a-z]+:.*\S)$/)?.[1]
+      const asWritten = written ?? (byName && nounKindOf(byName) ? byName : undefined)
+      if (asWritten !== undefined) mention(runs, asWritten)
+      else if (typed && kind && needed) {
+        const id = typedId(typed)
         const name = ctx.nouns.get(id)?.name ?? plainName(id, ctx.nouns)
-        if (written === undefined && nameIn(name).test(words.slice(0, m.index))) continue
-        if (ctx.nouns.has(id)) pushRun(runs, { t: 'noun', id })
-        else if (ITEM_ID.test(id) && ctx.known.has(id)) pushRun(runs, { t: 'cite', n: cite(id) })
-        else {
-          check('mention', mention)
-          pushRun(runs, { t: 'text', text: name })
-        }
+        if (!nameIn(name).test(words.slice(0, m.index))) mention(runs, typed)
       } else if (ref !== undefined && path !== undefined) {
         const read = ctx.reads.find((r) => r.ref === ref)
         const value = read ? valueAt(read.result, path.slice(1).split('.')) : undefined
@@ -357,11 +409,16 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         // A reference to an item's id that a read returned is that item's citation, not a number.
         if (typeof value === 'string' && ITEM_ID.test(value) && ctx.known.has(value))
           pushRun(runs, { t: 'cite', n: cite(value) })
-        else if (!run) {
-          check('number', whole)
-          failed = true
-        } else if (saidAlready(runs, run)) check('twice', whole)
-        else pushRun(runs, run)
+        // A reference to a read's own words (a period, a title) is those words.
+        else if (!run && typeof value === 'string' && value.trim())
+          pushRun(runs, { t: 'text', text: value.trim() })
+        // One to nothing a read holds as words or a number is left out: its sentence stays.
+        else if (!run) check('number', whole)
+        else if (saidAlready(runs, run)) check('twice', whole)
+        else {
+          pushRun(runs, run)
+          at += ownNoun(run, words.slice(at))
+        }
       } else if (list !== undefined) check('list', whole)
       else if (inner !== undefined) {
         // A mark cites items; any other id in one (a definition's) is no source, and is left out.
@@ -373,10 +430,6 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       }
     }
     pushRun(runs, { t: 'text', text: words.slice(at) })
-    if (failed) {
-      cited.length = citedBefore
-      return null
-    }
     // A citation sits right after what it supports: three or more at a sentence's end are a pile.
     let piled = 0
     for (let i = runs.length - 1; i >= 0; i--) {
@@ -391,7 +444,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         for (const d of r.text.match(/\d+(?:[.,]\d+)*/g) ?? [])
           if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
     // A name the words give is said once: a mention after it is drawn on it (FR-720.3).
-    return placed(runs, ctx.nouns)
+    return stopBeforeCites(placed(runs, ctx.nouns))
   }
   /** A paragraph's sentences; a long enumeration after a colon as a lead and a list. */
   const paragraph = (words: string): LoopBlock[] => {
@@ -405,22 +458,15 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     for (const said of words.split(SENTENCE_END).filter((x) => x.trim())) {
       const parts = enumeration(said)
       if (parts) {
-        const citedBefore = cited.length
-        const checksBefore = checks.length
         const lead = sentence(parts.lead)
         const items = parts.items.map(sentence)
-        if (lead && items.every(Boolean)) {
-          if (runs.length) pushRun(runs, { t: 'text', text: ' ' })
-          for (const r of lead) pushRun(runs, r)
-          flush()
-          blocks.push({ t: 'ul', items: items.map((i) => trimRuns(i!)) })
-          continue
-        }
-        cited.length = citedBefore
-        checks.length = checksBefore
+        if (runs.length) pushRun(runs, { t: 'text', text: ' ' })
+        for (const r of lead) pushRun(runs, r)
+        flush()
+        blocks.push({ t: 'ul', items: items.map(trimRuns) })
+        continue
       }
       const one = sentence(said)
-      if (!one) continue
       if (said.split(',').length >= 6) check('enumeration', runWords(one, ctx.nouns))
       if (runs.length) pushRun(runs, { t: 'text', text: ' ' })
       for (const r of one) pushRun(runs, r)
@@ -438,11 +484,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     }
     const endBullets = () => {
       if (bullets.length) {
-        const items = bullets.flatMap((b) => {
-          const runs = sentence(b)
-          return runs ? [trimRuns(runs)] : []
-        })
-        if (items.length) body.push({ t: 'ul', items })
+        body.push({ t: 'ul', items: bullets.map((b) => trimRuns(sentence(b))) })
       }
       bullets = []
     }
@@ -893,107 +935,6 @@ export function withoutLastSentence(runs: readonly LoopRun[]): LoopRun[] | null 
     return kept.length ? kept : null
   }
   return null
-}
-
-/** The words that only lead into a list of citations, at the end of some words. */
-const LEAD_WORDS =
-  /(?:such as|including|for example|for instance|namely|like|see(?: also)?|as in|e\.g\.)$/i
-
-/**
- * Where the words that lead into a list at the end of `text` start, read from its end one part
- * at a time (so no pattern backtracks): ", such as ", " (see ", ": "; and whether they open a
- * bracket. `at` is the end of `text` when nothing leads into it.
- */
-function leadInto(text: string): { at: number; paren: boolean } {
-  let at = text.length
-  const space = () => {
-    while (at > 0 && /\s/.test(text[at - 1]!)) at--
-  }
-  const take = (c: string) => text[at - 1] === c && at-- > 0
-  space()
-  take(':')
-  space()
-  const word = LEAD_WORDS.exec(text.slice(Math.max(0, at - 16), at))
-  if (word && !/[\p{L}\p{N}]/u.test(text[at - word[0].length - 1] ?? '')) at -= word[0].length
-  space()
-  const paren = take('(')
-  space()
-  if (!take(',')) take(';')
-  return text.slice(at).trim() ? { at, paren } : { at: text.length, paren: false }
-}
-
-/** Between two citations of one list: commas, "and" or "or". */
-const BETWEEN = /^[\s,;]*(?:(?:and|or|&)[\s,;]*)?$/i
-
-/**
- * A sentence's runs without its citations, as under Not found, with the words that only listed
- * them: "own items, such as [1], [2] and [3]." reads "own items.", not "own items, such as, and.".
- */
-export function withoutCites(runs: readonly LoopRun[]): LoopRun[] {
-  const out: LoopRun[] = []
-  for (let i = 0; i < runs.length; i++) {
-    const r = runs[i]!
-    if (r.t !== 'cite') {
-      out.push({ ...r })
-      continue
-    }
-    // The whole list of citations: those after it with only commas, "and" or "or" between.
-    let end = i
-    for (let j = i + 1; j < runs.length; j++) {
-      const x = runs[j]!
-      if (x.t === 'cite') end = j
-      else if (x.t !== 'text' || !BETWEEN.test(x.text)) break
-    }
-    i = end
-    const before = out.at(-1)
-    // Only a list the words led into goes with them; one that sits after its claim leaves it be.
-    const lead = before?.t === 'text' ? leadInto(before.text) : null
-    if (before?.t === 'text' && lead && lead.at < before.text.length) {
-      before.text = before.text.slice(0, lead.at)
-      const next = runs[i + 1]
-      if (lead.paren && next?.t === 'text') {
-        out.push({ ...next, text: next.text.replace(/^\s*\)/, '') })
-        i++
-      }
-    }
-  }
-  return out.filter((r) => r.t !== 'text' || r.text)
-}
-
-/**
- * The words as the page shows them beside code's evidence (FR-720), from the blocks as written:
- * each noun's chip where its sentence names it first; under Not found, no citation, since nothing
- * cited is a source, and no list of the items the closest written show below it, nor the line
- * that leads into one. What the chat sends back and what is graded keep the words as written.
- */
-export function shownBody(
-  written: readonly LoopBlock[],
-  nouns: ReadonlyMap<string, Noun>,
-  notFound: { cited: readonly string[]; closest: ReadonlySet<string> } | null,
-): LoopBlock[] {
-  const out: LoopBlock[] = []
-  const closest = (runs: readonly LoopRun[]) =>
-    runs.some((r) => r.t === 'cite' && notFound?.closest.has(notFound.cited[r.n - 1] ?? ''))
-  for (const b of written) {
-    if (
-      notFound &&
-      (b.t === 'list' || (b.t === 'ul' && b.items.filter(closest).length * 2 >= b.items.length))
-    ) {
-      const lead = out.at(-1)
-      const last = lead?.t === 'p' ? lead.runs.at(-1) : undefined
-      if (lead?.t === 'p' && last?.t === 'text' && /:\s*$/.test(last.text)) {
-        const rest = withoutLastSentence(lead.runs)
-        if (rest) lead.runs = rest
-        else out.pop()
-      }
-      continue
-    }
-    const shown = (runs: readonly LoopRun[]) => placed(notFound ? withoutCites(runs) : runs, nouns)
-    if (b.t === 'p') out.push({ ...b, runs: shown(b.runs) })
-    else if (b.t === 'ul') out.push({ ...b, items: b.items.map(shown) })
-    else out.push(b)
-  }
-  return out
 }
 
 /** The blocks in plain words: paragraphs, then each list's lines with "- ". */
