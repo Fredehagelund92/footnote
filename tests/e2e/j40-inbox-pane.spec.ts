@@ -95,12 +95,10 @@ test('a card with no answers to compare keeps its point, its folds and its decis
   await expect(p.getByRole('heading', { level: 2, name: title })).toBeVisible()
   await expect(p.getByText('Due for a check', { exact: true })).toBeVisible()
   await expect(answers(page)).toHaveCount(0)
-  // The context item folds to the Context list's row: its title, and what it is in words.
+  // The context item is open on a check, so its text is there to judge; its row says what it is.
   const item = p.getByRole('button', { name: `The context item: ${title}`, exact: true })
-  await expect(item).toHaveAttribute('aria-expanded', 'false')
-  await expect(item).toHaveAccessibleDescription(/^Context item - Rule - Sales - owned by /)
-  await item.click()
   await expect(item).toHaveAttribute('aria-expanded', 'true')
+  await expect(item).toHaveAccessibleDescription(/^Context item - Rule - Sales - owned by /)
   // Opened, it leads to the item's page, as the card's own decisions don't.
   await expect(p.getByRole('link', { name: 'Open the context item' })).toHaveAttribute(
     'href',

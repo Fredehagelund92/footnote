@@ -133,6 +133,8 @@ export const cardSchema = z.union([
     title: z.string(),
     /** Its check date passed, or a definition it relies on changed at its source. */
     reason: z.enum(['date', 'source']),
+    /** The definitions that changed at their source since the item was checked, with the day each changed; empty for a date. */
+    changed: z.array(z.object({ name: z.string(), on: z.string() })),
     lastChecked: z.object({ on: z.nullable(z.string()), by: z.nullable(z.string()) }),
   }),
 ])

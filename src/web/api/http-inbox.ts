@@ -284,10 +284,10 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         type: 'check',
         due: card.reason,
         title: card.title,
-        // The card does not say which tool the definition is from, so the line names none.
+        // The line names the definitions and the day each changed; not the tool, which the card lacks.
         line:
           card.reason === 'source'
-            ? 'A definition it relies on changed in its tool, after this context item was checked.'
+            ? changedLine(card.changed)
             : `Its check date passed on ${dayWords(card.at)}. Agents are told it may be out of date.`,
         detail:
           by && on
@@ -299,6 +299,18 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
       }
     }
   }
+}
+
+/** Which definitions changed in their tool and when, in the line a Due for a check card opens with. */
+function changedLine(changed: Extract<Card, { group: 'check' }>['changed']): string {
+  const after = 'after this context item was checked'
+  const [one] = changed
+  if (!one) return `A definition it relies on changed in its tool, ${after}.`
+  if (changed.length === 1)
+    return `The definition of ${one.name} changed in its tool on ${dayWords(one.on)}, ${after}.`
+  return `${changed.length} definitions it relies on changed in their tool, ${after}: ${changed
+    .map((c) => `${c.name} on ${dayWords(c.on)}`)
+    .join(', ')}.`
 }
 
 /** What the Inbox shows of the person's own suggestions that wait on an owner. */

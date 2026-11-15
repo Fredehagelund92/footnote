@@ -748,6 +748,7 @@ function CardDetail({
                 <ItemFold
                   fact={fact}
                   link={primaryLabel(card, review) !== 'Open the context item'}
+                  defaultOpen={card.type === 'check'}
                 />
               )}
             </div>

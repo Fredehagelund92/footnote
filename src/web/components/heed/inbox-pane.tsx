@@ -305,14 +305,23 @@ export function Fold({
  * The context item a card is about, folded to the row the Context list draws: its kind, its title
  * and what it is in words, and from 560 px of pane its status, when and freshness. Opened, its
  * text, its Details, and the way to its page, unless the card's own decision already leads there.
+ * A card that asks whether the item is still true opens it, since the text is what to judge.
  */
-export function ItemFold({ fact, link = true }: { fact: Fact; link?: boolean }) {
+export function ItemFold({
+  fact,
+  link = true,
+  defaultOpen = false,
+}: {
+  fact: Fact
+  link?: boolean
+  defaultOpen?: boolean
+}) {
   const domains = useDomains()
   const id = React.useId()
   const Kind = kindIcons[fact.kind]
   const time = parseWhen(fact.when)
   return (
-    <Collapsible render={<section className="border-t" />}>
+    <Collapsible defaultOpen={defaultOpen} render={<section className="border-t" />}>
       <h3 className="-mx-4 @md:-mx-7">
         {/* Its name is the type and the title, as a screen reader hears it; the line under the
             title and the marks are its description. */}

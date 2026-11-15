@@ -66819,6 +66819,24 @@
                                 ],
                                 "type": "string"
                               },
+                              "changed": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "on": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "on"
+                                  ]
+                                }
+                              },
                               "lastChecked": {
                                 "type": "object",
                                 "properties": {
@@ -66859,6 +66877,7 @@
                               "itemId",
                               "title",
                               "reason",
+                              "changed",
                               "lastChecked"
                             ]
                           }
