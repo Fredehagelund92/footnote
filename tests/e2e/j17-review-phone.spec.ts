@@ -11,7 +11,9 @@ test('the bar says the state and the place, with full-size actions', async ({ pa
   await go(page, '/inbox/sug-agent/review')
   const publish = page.getByRole('button', { name: 'Publish anyway' }).last()
   await expect(publish).toBeVisible()
-  await expect(page.getByText(`${claimsToCheck('sug-agent')} claims to check`).last()).toBeVisible()
+  await expect(
+    page.getByText(`${claimsToCheck('sug-agent')} details to compare with the source`).last(),
+  ).toBeVisible()
   await expect(page.getByText(place('sug-agent')).last()).toBeVisible()
   expect((await publish.boundingBox())!.height).toBeGreaterThanOrEqual(44)
   await page.getByRole('button', { name: 'Next suggestion' }).click()

@@ -161,6 +161,20 @@ describe('copy/one-word-one-thing', () => {
     expect(copy('one-word-one-thing', "export const a = 'Try again'")).toEqual([])
   })
 
+  it('keeps check for the owner’s job', () => {
+    for (const text of [
+      'Claim check',
+      '2 claims to check',
+      'Check now',
+      'Check again',
+      'Check the chain',
+      'The heavy checks',
+    ])
+      expect(copy('one-word-one-thing', `export const a = '${text}'`), text).toEqual(['second'])
+    expect(copy('one-word-one-thing', "export const a = 'Check again by 31 Jan 2027'")).toEqual([])
+    expect(copy('one-word-one-thing', "export const a = 'Due for a check'")).toEqual([])
+  })
+
   it('reads the lower case of gap and flag, which the capital check misses', () => {
     expect(copy('one-word-one-thing', "export const a = 'flag and suggest'")).toEqual(['second'])
   })

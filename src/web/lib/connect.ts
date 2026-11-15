@@ -1,6 +1,6 @@
-// Connecting an agent, as the page sees it. After a copy or a quick link the page checks every
+// Connecting an agent, as the page sees it. After a copy or a quick link the page looks every
 // 3 seconds whether an agent signed in; after 2 minutes it shows what usually goes wrong, and after
-// 10 minutes it stops checking until Check again. In the demo an agent signs in 8 seconds after the
+// 10 minutes it stops waiting until Keep waiting. In the demo an agent signs in 8 seconds after the
 // copy (the mock binding plays it), and its review flag ?connect= shows each state.
 
 import type { AgentKind, AgentToolName } from '@domain/agents'

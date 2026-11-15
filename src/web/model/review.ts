@@ -181,10 +181,10 @@ export type Relation = 'replaces' | 'disagree' | 'unrelated'
 export const claimsToCheck = (r: Pick<Review, 'claims'>) =>
   r.claims?.rows.filter((x) => x.same !== 'same').length ?? 0
 
-/** What needs care, in a few words, for the quick view and the Inbox row: "2 claims to check". */
+/** What needs care, in a few words, for the quick view and the Inbox row: "2 details to compare with the source". */
 export function careLine(r: Review) {
   const n = claimsToCheck(r)
-  if (n) return `${n} ${n === 1 ? 'claim' : 'claims'} to check`
+  if (n) return `${n} ${n === 1 ? 'detail' : 'details'} to compare with the source`
   if (r.clash) return 'Overlaps live context'
   if (r.retire?.withdrawn) return `Withdrawn by ${r.retire.withdrawn.by}`
   return undefined

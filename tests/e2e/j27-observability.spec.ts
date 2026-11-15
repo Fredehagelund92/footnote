@@ -352,14 +352,14 @@ test('Quality: the one list, grouped by result, with before and now and Keep the
   await expect(page.getByRole('region', { name: 'Changed' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(page.getByRole('region', { name: 'Changed' })).toHaveCount(1)
-  // Check now runs, publishes nothing, and says so. The service checks twelve questions at once:
+  // Run now runs, publishes nothing, and says so. The service checks twelve questions at once:
   // its answer comes slowly here, so the line that waits on it can be read.
   if (mode === 'http')
     await page.route('**/api/v1/saved-questions/check', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 1500))
       await route.continue()
     })
-  await page.getByRole('button', { name: 'Check now' }).click()
+  await page.getByRole('button', { name: 'Run now' }).click()
   await expect(
     page.getByText(/Checking \d+ saved questions\. Nothing is published\./),
   ).toBeVisible()
@@ -374,7 +374,7 @@ test('Quality: no saved questions yet, a failed check, and offline', async ({ pa
     'The check did not finish. It stopped after 8 of 12 questions. Nothing was changed',
   )
   await go(page, '/observability/quality?state=offline')
-  await expect(page.getByRole('button', { name: 'Check now' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Run now' })).toHaveAttribute(
     'aria-disabled',
     'true',
   )
