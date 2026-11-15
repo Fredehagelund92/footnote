@@ -54,7 +54,7 @@ test('an overlap with several live items asks about each, and archives only the 
   const overlaps = await page.getByText('Overlaps live context').boundingBox()
   expect(asked!.y).toBeLessThan(overlaps!.y)
   await expect(page.getByText('Marked unrelated')).toBeVisible()
-  await expect(decide.getByText('Not ready: choose how they relate.')).toHaveCount(0)
+  await expect(decide.getByText('Check how they relate.')).toHaveCount(0)
   await expect(decide.getByRole('button', { name: 'Publish' })).toBeEnabled()
   // One answer is not an answer for the others.
   await relate(credit, 'This replaces it')

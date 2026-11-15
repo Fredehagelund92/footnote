@@ -85,7 +85,7 @@ test('Preview shows the item, and the clash gate stays in both views', async ({ 
   await expect(gate.first()).toBeVisible()
   const relations = await gate.count()
   expect(relations).toBeGreaterThan(0)
-  await expect(decide.getByText('Not ready: choose how they relate.')).toBeVisible()
+  await expect(decide.getByText('Check how they relate.')).toBeVisible()
 
   const preview = page.getByRole('button', { name: 'Show the preview' })
   await preview.click()
