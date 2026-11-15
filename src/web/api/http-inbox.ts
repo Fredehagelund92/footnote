@@ -476,7 +476,7 @@ function timelineOf(
     from: day(from),
     was: day(last(was)),
     now: day(last(now)),
-    month: monthShort(month),
+    month: monthShort(`${month}-15`),
   }
 }
 
