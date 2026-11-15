@@ -75,7 +75,7 @@ describe('no figure read on the service', () => {
     expect(
       figureViewOf(none({ reason: 'failed', failure: 'not_allowed' }), asked, known, now),
     ).toMatchObject({
-      why: "Cube doesn't let the integration's token read "Revenue", so no figure is read for it.",
+      why: `Cube doesn't let the integration's token read "Revenue", so no figure is read for it.`,
     })
   })
 
