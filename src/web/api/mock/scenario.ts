@@ -16,6 +16,8 @@ import type { ObsState } from '@/model/observability'
 // - ?decide=fail fails each Inbox card's first save, ?bulk=fail the first change to many rows.
 // - ?replay=fail fails each Observability topic's first replay, so the answer panel's failed read
 //   can be seen, and Retry brings it back.
+// - ?change=fail has someone else save a connected tool's settings just before its first change
+//   is sent, so that change is refused as a conflict.
 //
 // Integrations keep their own ?state for a sync, and Observability its own for its data, so only
 // offline counts there. Only the reads a screen's loading state shows (pageReads) wait or fail;
@@ -145,7 +147,7 @@ export function createScenario() {
     },
 
     /** Whether a ?<flag>=fail address fails this kind of change: once, on its first try. */
-    failsOnce(flag: 'decide' | 'bulk' | 'replay', key = ''): boolean {
+    failsOnce(flag: 'decide' | 'bulk' | 'replay' | 'change', key = ''): boolean {
       const kind = `${flag}:${key}`
       if (address.query[flag] !== 'fail' || failedOnce.has(kind)) return false
       failedOnce.add(kind)

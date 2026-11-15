@@ -21,21 +21,21 @@
 
 **The numbers to remember.**
 
-| Topic     | Decision                                                                                                                                                                    |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bars      | One bar height, 48 px (`--spacing-bar`): the page header, the sidebar's logo row and user block, and every bottom bar. The editor toolbar is a 40 px row (`--spacing-tool`) |
-| Rows      | 36 px at one density. The header band of a table is 36 px and sticky. There is no density preference                                                                        |
-| Widths    | Document sheet 56rem with a 60ch prose measure. Lists, Inbox and Settings use an 80rem frame. The Ask thread is 44rem. The palette is about 640 px                          |
-| Shell     | Sidebar 16rem, resizable from 200 to 360 px, rail 3rem. Dock 480, 560 or 720 px, resizable from 400 to 960                                                                  |
-| Scroll    | One scroll owner per view                                                                                                                                                   |
-| Chip      | One chip: 24 px, 6 px radius, the type's icon, tinted by what it names                                                                                                      |
-| Type      | Six sizes, one line height each: 12/16, 14/20, 16/24, 20/28, 24/30 and 30/38 px. Two greys of text, ink and muted                                                           |
-| Colour    | One colour per meaning: blue to act, green checked, amber look at this, red broken. A soft fill is the colour at 8 percent                                                  |
-| Switching | No tabs anywhere. Four small components, one per job (section 5.9)                                                                                                          |
-| Focus     | A border in the ring colour plus a 3 px ring at 50 percent                                                                                                                  |
-| Touch     | Every target under a finger is 44 px                                                                                                                                        |
-| Motion    | Tokens only: 90, 150 and 220 ms for explained change, three tiers, no page transitions, one reduced-motion block                                                            |
-| Words     | One product-name constant, never inside a sentence. Plain English for people who read it as a second language                                                               |
+| Topic     | Decision                                                                                                                                                                     |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bars      | One bar height, 48 px (`--spacing-bar`): the page header, the sidebar's logo row and user block, and every bottom bar. The editor toolbar is a 40 px row (`--spacing-tool`)  |
+| Rows      | 36 px at one density (`--spacing-row`; a settings table row is 44 px, `--spacing-row-table`). The header band of a table is 36 px and sticky. There is no density preference |
+| Widths    | Document sheet 56rem with a 60ch prose measure. Lists, Inbox and Settings use an 80rem frame. The Ask thread is 44rem. The palette is about 640 px                           |
+| Shell     | Sidebar 16rem, resizable from 200 to 360 px, rail 3rem. Dock 480, 560 or 720 px, resizable from 400 to 960                                                                   |
+| Scroll    | One scroll owner per view                                                                                                                                                    |
+| Chip      | One chip: 24 px, 6 px radius, the type's icon, tinted by what it names                                                                                                       |
+| Type      | Six sizes, one line height each: 12/16, 14/20, 16/24, 20/28, 24/30 and 30/38 px. Two greys of text, ink and muted                                                            |
+| Colour    | One colour per meaning: blue to act, green checked, amber look at this, red broken. A soft fill is the colour at 8 percent                                                   |
+| Switching | No tabs anywhere. Four small components, one per job (section 5.9)                                                                                                           |
+| Focus     | A border in the ring colour plus a 3 px ring at 50 percent                                                                                                                   |
+| Touch     | Every target under a finger is 44 px                                                                                                                                         |
+| Motion    | Tokens only: 90, 150 and 220 ms for explained change, three tiers, no page transitions, one reduced-motion block                                                             |
+| Words     | One product-name constant, never inside a sentence. Plain English for people who read it as a second language                                                                |
 
 **What changed from Draft 1.** Section 11 lists the rules this version withdraws, and section 12 maps the old section numbers to the new ones.
 
@@ -249,7 +249,7 @@ Avatars are a soft pastel tint picked from the person's name (dark initials, 6.4
 ### 3.1 The shell
 
 - **Sidebar.** 16rem, resizable from 200 to 360 px, folding to a 3rem icon rail (Command B, and a toggle in every header). It sits on the page background, divided by a hairline. Four places (Inbox, Ask, Context, Definitions), a search field at the top (a lone magnifier in the rail and on a phone's top bar), and at the foot Help, Observability and Settings. Help opens a small menu. The user menu is the last block.
-- **Header.** 48 px. The way back, a 14 px title (cut with an ellipsis, in full on hover or focus), then the page's actions and, at the right end, the theme menu (light, dark, system).
+- **Header.** 48 px. The way back, a 14 px title (cut with an ellipsis, in full on hover or focus), then the page's actions and, at the right end, the theme menu (light, dark, system). On a phone, an item, definition, review or conflict page has a back arrow to its list and gives up search and the theme (the sidebar sheet's search and the user menu have both), so its title keeps room.
 - **Area menus.** Settings and Observability swap the sidebar for their own menu, with Back to app on top. Both lead back to the app, never to a workspace's name.
 - **Phone.** Below 768 px the sidebar is a sheet. Lists, detail and the dock are each a full screen. Bottom bars carry the decision.
 

@@ -92,6 +92,17 @@ export const doneTurn = (answer: Answer): Turn => ({
   sentences: [],
 })
 
+/**
+ * What a question that got no answer says in the thread. Offline it says that, and what to do; online
+ * it says why after the colon, an ordinary capitalised first word lower-cased and an acronym not.
+ */
+export function unansweredIn(message: string, online: boolean): string {
+  if (!online) return "You're offline. Ask again when you're back."
+  const reason = message.trim().replace(/[.!?]+$/, '') || "The service didn't reply"
+  const ordinary = /^[A-Z][a-z]/.test(reason)
+  return `Couldn't get an answer: ${ordinary ? reason.charAt(0).toLowerCase() : reason.charAt(0)}${reason.slice(1)}.`
+}
+
 /** Whether the turn is still on its way: neither done, stopped nor failed. */
 export const isLive = (turn: Turn) => turn.stage !== 'done' && !turn.stopped && !turn.error
 

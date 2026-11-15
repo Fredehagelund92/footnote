@@ -122,6 +122,7 @@ export function SiteHeader({
   children,
   className,
   back,
+  deep,
   bare,
 }: {
   /**
@@ -135,11 +136,19 @@ export function SiteHeader({
   className?: string
   /** A way back, left of the title (an editor goes back to what it edits). */
   back?: { href: string; label: string }
+  /**
+   * A page reached from a list or a link (an item, a definition, a review, a conflict). On a phone
+   * its crumbs are gone, so it gets the way back, and it gives up search and the theme (the menu
+   * has both) so the title keeps room to be read. A laptop's header is unchanged.
+   */
+  deep?: { href: string; label: string }
   /** Leaves out search and the theme: the page's own More menu has them, so the title keeps its room. */
   bare?: boolean
 }) {
   const { isMobile } = useSidebar()
   const { profileLabel } = useSession()
+  const lean = !!deep && isMobile
+  const way = back ?? (lean ? deep : undefined)
   // The tab says the page's heading: the header's, or the page's own under it (an item's title).
   const ref = React.useRef<HTMLElement>(null)
   // An item's heading arrives with its data, after this header has rendered, so the title also
@@ -162,7 +171,7 @@ export function SiteHeader({
       <header
         ref={ref}
         className={cn(
-          'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 border-b px-4 md:px-6',
+          'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 px-4 shadow-hairline-bottom md:px-6',
           'bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50',
           className,
         )}
@@ -171,24 +180,25 @@ export function SiteHeader({
           <NavToggle />
           <Separator
             orientation="vertical"
-            className={cn('h-4 data-vertical:self-center', back ? 'max-sm:hidden' : 'mr-2')}
+            className={cn('h-4 data-vertical:self-center', way ? 'max-sm:hidden' : 'mr-2')}
           />
-          {back && (
+          {way && (
             <Tooltip>
               <TooltipTrigger
                 render={
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={back.label}
+                    aria-label={way.label}
+                    className="pointer-coarse:min-w-11"
                     nativeButton={false}
-                    render={<a href={back.href} />}
+                    render={<a href={way.href} />}
                   />
                 }
               >
                 <ArrowLeftIcon />
               </TooltipTrigger>
-              <TooltipContent>{back.label}</TooltipContent>
+              <TooltipContent>{way.label}</TooltipContent>
             </Tooltip>
           )}
           {typeof title === 'string' ? (
@@ -206,7 +216,7 @@ export function SiteHeader({
         </div>
         <div data-header-actions className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* On a phone the sidebar is a sheet, so search lives here, as a magnifier. */}
-          {isMobile && !bare && (
+          {isMobile && !bare && !lean && (
             <Button
               variant="outline"
               size="icon"
@@ -219,9 +229,9 @@ export function SiteHeader({
           {children}
           {/* Which install this is, when it is named: last but the theme, so it never moves. */}
           <ProfileLabel label={profileLabel} className="max-sm:max-w-28" />
-          {!bare && <ThemeMenu />}
+          {!bare && !lean && <ThemeMenu />}
           {/* The demo's switch between its people, in the corner: nothing anywhere else. */}
-          {!bare && <ViewAs />}
+          {!bare && !lean && <ViewAs />}
         </div>
       </header>
       {/* Offline, one quiet line right under the header, so the header keeps its line with the sidebar. */}
@@ -238,10 +248,13 @@ export function Page({
   children,
   className,
   bodyRef,
+  deep,
 }: {
   title: ReactNode
   icon?: ReactNode
   actions?: ReactNode
+  /** See SiteHeader. */
+  deep?: { href: string; label: string }
   children: ReactNode
   className?: string
   /** The scrolling body, for a page that measures its own width. */
@@ -249,7 +262,7 @@ export function Page({
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SiteHeader title={title} icon={icon}>
+      <SiteHeader title={title} icon={icon} deep={deep}>
         {actions}
       </SiteHeader>
       <div

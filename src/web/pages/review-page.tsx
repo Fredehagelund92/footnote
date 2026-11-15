@@ -102,6 +102,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { navigate } from '@/lib/router'
 import { useDomains, useFacts } from '@/lib/workspace'
+import { useInboxRows } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
 import { Summary } from '@/pages/review'
 import { TruncatedText } from '@/components/heed/truncated'
@@ -1587,6 +1588,7 @@ export function ReviewPage({ id }: { id: string }) {
   const r = reviews.find((x) => x.id === id)
   const me = useMe()
   const state = useInbox()
+  const { waiting: sent } = useInboxRows()
   const domains = useDomains()
   const write = useWrite()
   const takeBack = useTakeBack()
@@ -1745,16 +1747,19 @@ export function ReviewPage({ id }: { id: string }) {
   }, [at, go, leave, returning, finished, moveOn, reviews, step])
 
   if (!r) {
-    // An old link: say why it is empty, and offer the next suggestion that still waits.
+    // An old link: say why it is empty, and offer the next suggestion that still waits. The sender
+    // of one that waits on others is told who can review it.
     const waiting = reviews.find((x) => !state.done[x.id])
+    const own = sent.find((w) => w.card === id || w.id === id)
     return (
       <div className="flex h-full min-h-0 flex-col">
         <SiteHeader title="Review" />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="font-medium">Nothing to review here</p>
+          <p className="font-medium">{own ? 'Not yours to review' : 'Nothing to review here'}</p>
           <p className="max-w-sm text-sm text-pretty text-muted-foreground">
-            This suggestion was probably published, returned or withdrawn, or the link is from
-            before it was.
+            {own
+              ? `${own.title} is waiting for ${own.waitingFor}, who can review it. You'll see in your Inbox when it is published or returned.`
+              : 'This suggestion is not waiting for you. It may be published, returned or withdrawn, or the link is from before it was.'}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {waiting && <Button onClick={() => go(waiting.id)}>Open the next suggestion</Button>}
@@ -1949,6 +1954,7 @@ export function ReviewPage({ id }: { id: string }) {
       {/* Under a finger every control is at least 40px; the phone bar's actions are 44px. */}
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
+          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
@@ -1975,9 +1981,14 @@ export function ReviewPage({ id }: { id: string }) {
           }
         >
           {isMobile && (
-            <Button variant="outline" className="gap-1.5" onClick={() => setQueueOpen(true)}>
-              <ListIcon data-icon="inline-start" />
-              Queue
+            // The icon alone, named for a screen reader: the title keeps the room.
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Queue"
+              onClick={() => setQueueOpen(true)}
+            >
+              <ListIcon />
             </Button>
           )}
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
