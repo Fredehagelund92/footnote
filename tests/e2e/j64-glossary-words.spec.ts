@@ -50,14 +50,16 @@ test('a metric peek says it is read from its tool, and calls other names another
 })
 
 test('the new names card says where they were found', async ({ page }) => {
-  await go(page, '/inbox?demo=names')
-  const main = page.getByRole('main')
-  await expect(
-    main.getByText(
-      'Publish them, and people can write context about them and agents can use them.',
-    ),
-  ).toBeVisible()
-  await expect(main.getByText('A read made these')).toHaveCount(0)
+  await onMockOnly('?demo=names has no http meaning yet', async () => {
+    await go(page, '/inbox?demo=names')
+    const main = page.getByRole('main')
+    await expect(
+      main.getByText(
+        'Publish them, and people can write context about them and agents can use them.',
+      ),
+    ).toBeVisible()
+    await expect(main.getByText('A read made these')).toHaveCount(0)
+  })
 })
 
 test('Integrations asks for an integration, not a connector', async ({ page }) => {
