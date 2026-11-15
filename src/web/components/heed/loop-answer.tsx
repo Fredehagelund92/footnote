@@ -195,18 +195,12 @@ function Body({
 }) {
   const [all, setAll] = React.useState(false)
   // One sentence to a line, and the short lists' lines as they are; only five show before Show more.
-  const blocks = body.map((b) =>
-    b.t === 'p'
-      ? { ...b, lines: sentencesOf(b.runs) }
-      : b.t === 'ul'
-        ? { ...b, lines: b.items }
-        : { ...b, lines: [] },
-  )
-  const total = blocks.reduce((n, b) => n + b.lines.length, 0)
-  const before = (i: number) => blocks.slice(0, i).reduce((n, b) => n + b.lines.length, 0)
+  const lines = body.map((b) => (b.t === 'p' ? sentencesOf(b.runs) : b.t === 'ul' ? b.items : []))
+  const total = lines.reduce((n, l) => n + l.length, 0)
+  const shown = all ? total : SENTENCES_SHOWN
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
-      {blocks.map((b, i) => {
+      {body.map((b, i) => {
         if (b.t === 'list')
           return (
             <Rows
@@ -219,23 +213,22 @@ function Body({
               more={b.more}
             />
           )
-        const lines = all ? b.lines : b.lines.slice(0, Math.max(0, SENTENCES_SHOWN - before(i)))
-        if (!lines.length) return null
+        const before = lines.slice(0, i).reduce((n, l) => n + l.length, 0)
+        const kept = (lines[i] ?? []).slice(0, Math.max(0, shown - before))
+        if (!kept.length) return null
+        const Line = b.t === 'p' ? 'p' : 'li'
+        const rows = kept.map((runs, j) => (
+          <Line key={j}>
+            <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
+          </Line>
+        ))
         return b.t === 'p' ? (
           <div key={i} className="flex flex-col gap-1.5">
-            {lines.map((runs, j) => (
-              <p key={j}>
-                <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
-              </p>
-            ))}
+            {rows}
           </div>
         ) : (
           <ul key={i} className="ml-6 list-disc space-y-1.5 marker:text-muted-foreground">
-            {lines.map((runs, j) => (
-              <li key={j}>
-                <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
-              </li>
-            ))}
+            {rows}
           </ul>
         )
       })}
