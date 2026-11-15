@@ -100,10 +100,10 @@ export const ANSWER_LINES: readonly AnswerLine[] = [
   {
     state: 'failed',
     status: 'check_failed',
-    label: 'Not checked',
-    long: 'Could not check',
-    sentence: 'The check did not run.',
-    means: 'The check could not run just now. It is not the same as Not found.',
+    label: 'Not looked up',
+    long: 'Could not look up',
+    sentence: 'Ask could not look this up just now.',
+    means: 'Ask could not look this up just now. That does not mean nothing is written.',
     todo: 'Ask again in a minute.',
   },
 ]

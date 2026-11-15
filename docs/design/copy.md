@@ -100,14 +100,14 @@ Each list below is one source in the code (a map or a constant), drawn by every 
 
 The six states of an answer. One or two words, an icon and a tint, one short sentence under every line but Checked. In the Ask chat the badge stands alone and its sentence opens in its card.
 
-| State key | Label           | Sentence                           | Long form (tooltip, Help) |
-| --------- | --------------- | ---------------------------------- | ------------------------- |
-| grounded  | **Checked**     | (none)                             | Based on checked context  |
-| partial   | **Partial**     | Only part of this is written down. | Covers part of it         |
-| missing   | **Not found**   | Nothing is written about this yet. | Nothing written down      |
-| conflict  | **Conflict**    | Two items say different things.    | Context disagrees         |
-| stale     | **Outdated**    | Some of this may be old.           | May be out of date        |
-| failed    | **Not checked** | The check did not run.             | Could not check           |
+| State key | Label             | Sentence                             | Long form (tooltip, Help) |
+| --------- | ----------------- | ------------------------------------ | ------------------------- |
+| grounded  | **Checked**       | (none)                               | Based on checked context  |
+| partial   | **Partial**       | Only part of this is written down.   | Covers part of it         |
+| missing   | **Not found**     | Nothing is written about this yet.   | Nothing written down      |
+| conflict  | **Conflict**      | Two items say different things.      | Context disagrees         |
+| stale     | **Outdated**      | Some of this may be old.             | May be out of date        |
+| failed    | **Not looked up** | Ask could not look this up just now. | Could not look up         |
 
 A draft answer says "Based on this draft". The long forms are the only place the older labels may still appear.
 
@@ -163,15 +163,15 @@ Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives th
 
 ### Inbox cards and groups
 
-| Card kind    | Group label         | Row evidence                                       |
-| ------------ | ------------------- | -------------------------------------------------- |
-| `gap`        | **Not found**       | How often a question found nothing                 |
-| `flag`       | **Reported**        | What was reported                                  |
-| `look`       | **Saved questions** | How many need a look                               |
-| mention      | **Mentioned you**   | Who, and where                                     |
-| returned     | **Returned to you** | Who returned it: "Returned by Jon Abara"           |
-| `check`      | **Due for a check** | The check date that passed                         |
-| `suggestion` | **Suggestion**      | Size and reach, "2 wording, 1 link - 12 questions" |
+| Card kind    | Group label             | Row evidence                                       |
+| ------------ | ----------------------- | -------------------------------------------------- |
+| `gap`        | **Nothing written yet** | How often a question found nothing                 |
+| `flag`       | **Reported**            | What was reported                                  |
+| `look`       | **Saved questions**     | How many need a look                               |
+| mention      | **Mentioned you**       | Who, and where                                     |
+| returned     | **Returned to you**     | Who returned it: "Returned by Jon Abara"           |
+| `check`      | **Due for a check**     | The check date that passed                         |
+| `suggestion` | **Suggestion**          | Size and reach, "2 wording, 1 link - 12 questions" |
 
 Under All: **Waiting on others** and **Done**. Never "Gap" or "Flag" as a card name.
 
