@@ -326,7 +326,9 @@ function ownNoun(run: LoopRun, after: string): number {
 
 /**
  * A sentence's runs with its full stop before the citations the model wrote ahead of it: "owned
- * by Ada [1]." reads "owned by Ada.[1]", so the number never sits before a stop of its own.
+ * by Ada [1]." reads "owned by Ada.[1]", so the number never sits before a stop of its own. A list
+ * of citations the words lead into ("such as [1], [2] and [3].") ends the sentence itself: its stop
+ * stays after it, with no space before it.
  */
 function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
   const out = runs.map((r) => ({ ...r }))
@@ -335,10 +337,19 @@ function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
     if (r.t !== 'text' || i === 0 || out[i - 1]!.t !== 'cite') continue
     const stop = /^[ \t]*([.!?]+)/.exec(r.text)
     if (!stop) continue
+    // The citations it follows, with only spaces between them.
     let first = i - 1
-    while (first > 0 && out[first - 1]!.t === 'cite') first--
-    r.text = r.text.slice(stop[0].length)
+    for (let j = first - 1; j >= 0; j--) {
+      const x = out[j]!
+      if (x.t === 'cite') first = j
+      else if (x.t !== 'text' || x.text.trim()) break
+    }
     const before = out[first - 1]
+    if (before?.t === 'text' && /(?:[,;&]|\b(?:and|or))\s*$/i.test(before.text)) {
+      r.text = r.text.trimStart()
+      continue
+    }
+    r.text = r.text.slice(stop[0].length)
     if (before?.t === 'text') before.text = before.text.trimEnd() + stop[1]
     else out.splice(first, 0, { t: 'text', text: stop[1]! })
   }

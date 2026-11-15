@@ -247,6 +247,15 @@ describe("the model's words, checked against the reads", () => {
       },
     ])
     expect(t.text).toBe('Billing counts once.[1] It is owned by Ada Okafor.[1] That is all.')
+    // Several citations before it, spaces between them, stay together after it.
+    expect(turnOf('It applies [itm_aaaa1111] [itm_aaaa1111].', made, []).text).toBe(
+      'It applies.[1] [1]',
+    )
+    // A list of citations the words lead into ends the sentence: its stop stays, never adrift.
+    const two = [lookup('grounded', [row('itm_aaaa1111', []), row('itm_bbbb2222', [])])]
+    expect(turnOf('Two apply, [itm_aaaa1111] and [itm_bbbb2222] .', two, []).text).toBe(
+      'Two apply, [1] and [2].',
+    )
   })
 
   it('cites an item the words name by a reference to its id, and keeps the sentence', () => {
