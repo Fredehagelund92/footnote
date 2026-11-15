@@ -328,7 +328,7 @@ const heldOut: PlanCase[] = [
       plan: ['cannot'],
       cannot: 'numbers',
       state: null,
-      must: ['keeps no numbers'],
+      must: ['does not hold the figures'],
       refuse: [/VAT/],
     },
   },

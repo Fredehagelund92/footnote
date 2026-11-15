@@ -439,7 +439,6 @@ export async function deleteEmptyArea(
   if (holdings.items || holdings.terms || holdings.sourceMembers)
     throw new ORPCError('CONFLICT', {
       message:
-        // eslint-disable-next-line heed/plain-words -- Heed v1's word: the terms written in Definitions
         'Only an empty domain can be deleted. Move its context and terms to another domain first.',
       data: { holdings },
     })

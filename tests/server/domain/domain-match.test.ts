@@ -133,7 +133,7 @@ describe('saying how a domain was read', () => {
       domain: 'Stores & Suplliers',
       kind: 'close',
       misspelt: true,
-      note: '"Stores & Suppliers" was read as the domain Stores & Suplliers (stores_suppliers), the domain whose name is closest. The domain\'s stored name looks misspelt: "Suplliers" for "Suppliers". Administrators rename domains in Administration › Domains (/admin?section=domains); the id stays the same.',
+      note: '"Stores & Suppliers" was read as the domain Stores & Suplliers (stores_suppliers), the domain whose name is closest. The domain\'s stored name looks misspelt: "Suplliers" for "Suppliers". Admins rename domains in Administration › Domains (/admin?section=domains); the id stays the same.',
     })
     expect(note!.note).not.toMatch(/you|your|typo by/i)
   })
@@ -162,7 +162,7 @@ describe('a stored name beside its id', () => {
       { stored: 'suplliers', wrote: 'suppliers' },
     ])
     expect(storedNameNote(areas[0]!)).toBe(
-      'The domain\'s stored name looks misspelt: "Suplliers" for "Suppliers", as its id stores_suppliers reads. Administrators rename domains in Administration › Domains (/admin?section=domains); the id stays the same.',
+      'The domain\'s stored name looks misspelt: "Suplliers" for "Suppliers", as its id stores_suppliers reads. Admins rename domains in Administration › Domains (/admin?section=domains); the id stays the same.',
     )
   })
 

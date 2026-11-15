@@ -186,7 +186,7 @@ async function suggestsNothing(page: Page) {
   await expect(page.getByRole('list', { name: 'Questions Ask can answer' })).toHaveCount(0)
 }
 
-test('once a message is sent, nothing in the chat suggests what to ask, whatever the answer', async ({
+test('once a message is sent, nothing in the chat suggests what to ask, except at the end of a refusal', async ({
   page,
 }) => {
   // Checked.
@@ -211,12 +211,12 @@ test('once a message is sent, nothing in the chat suggests what to ask, whatever
   await expect(log.getByText('Nothing was looked up').last()).toBeVisible()
   await expect(log.getByText(/^Ask answers three kinds of question/).last()).toBeVisible()
   await suggestsNothing(page)
-  // A question about one person's work is refused, and says what Ask can tell instead, in words.
+  // A question about one person's work is refused, and ends with questions to press.
   await follow('what did Tomas Eriksen write this week?')
   await expect(
     log.getByText("Ask does not answer questions about one person's work."),
   ).toBeVisible()
-  await suggestsNothing(page)
+  await expect(log.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 test('someone who does not own the domain gets no unfinished control under Not found', async ({

@@ -96,7 +96,7 @@ export async function importItems(
         findings.push({
           code: 'duplicate_item',
           field: 'id',
-          message: 'This fact is in the file twice. Keep one of them.',
+          message: 'This context item is in the file twice. Keep one of them.',
           severity: 'error',
         })
       seen.add(read.itemId)

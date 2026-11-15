@@ -5,7 +5,7 @@ import {
   type ChatTurn,
   type HeldReading,
 } from '@domain/ask-chat'
-import { notLookedUp } from '@domain/say'
+import { notLookedUp, refusalOffers } from '@domain/say'
 import type { AnswerFooter, AnswerLimit, RecordsAnswer } from '@domain/records-answer'
 import { nameSimilarity, normalizeName, suggestTerms, type Term } from '@domain/vocabulary'
 import type { LoopTurn } from '@contract/answer'
@@ -355,6 +355,8 @@ export const replyAnswer = (
     : {}),
   ...(reply.write ? { write: reply.write } : {}),
   ...(reply.held ? { held: reply.held } : {}),
+  // Every refusal ends with questions to press; a question back already has its readings.
+  ...(reply.kind === 'clarify' ? {} : { choices: [...refusalOffers] }),
 })
 
 /** A metric's definition, as the definition source gives it. */
