@@ -324,6 +324,16 @@ function ownNoun(run: LoopRun, after: string): number {
   return 0
 }
 
+/** A read's words after the runs so far, without a first word the runs end with ("from From 1 May"). */
+function withoutRepeat(runs: readonly LoopRun[], words: string): string {
+  const last = runs.at(-1)
+  const before = last?.t === 'text' ? /([\p{L}]+)\s*$/u.exec(last.text)?.[1] : undefined
+  const first = /^([\p{L}]+)\s+/u.exec(words)
+  return before && first && first[1]!.toLowerCase() === before.toLowerCase()
+    ? words.slice(first[0].length)
+    : words
+}
+
 /**
  * A sentence's runs with its full stop before the citations the model wrote ahead of it: "owned
  * by Ada [1]." reads "owned by Ada.[1]", so the number never sits before a stop of its own. A list
@@ -421,8 +431,10 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         if (typeof value === 'string' && ITEM_ID.test(value) && ctx.known.has(value))
           pushRun(runs, { t: 'cite', n: cite(value) })
         // A reference to a read's own words (a period, a title) is those words.
-        else if (!run && typeof value === 'string' && value.trim())
-          pushRun(runs, { t: 'text', text: value.trim() })
+        else if (!run && typeof value === 'string' && value.trim()) {
+          check('words', whole)
+          pushRun(runs, { t: 'text', text: withoutRepeat(runs, value.trim()) })
+        }
         // One to nothing a read holds as words or a number is left out: its sentence stays.
         else if (!run) check('number', whole)
         else if (saidAlready(runs, run)) check('twice', whole)

@@ -334,7 +334,9 @@ describe('the instructions', () => {
     expect(system).toContain('of yourself as Ask, never as I or me')
     expect(system).toContain('never write “the person asking”')
     expect(system).toMatch(/Never say how you read the question/)
-    expect(system).toMatch(/what something is or means, give its definition in one sentence/)
+    expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
+    expect(system).toContain('in every language')
+    expect(system).toContain('answer the likelier reading without saying which one you chose')
     // Nothing left that asks for the third person or forbids the definition.
     expect(system).not.toMatch(/third person|never restate a definition|The person asking is/)
   })

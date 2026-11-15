@@ -195,7 +195,18 @@ describe("the model's words, checked against the reads", () => {
     expect(t.text).toBe(
       'Nothing written gives ticket counts for any date, only what is written about them.',
     )
-    expect(t.checks).toEqual([])
+    // Repaired, and flagged for the answer check: the words may not read as the model meant.
+    expect(t.checks).toEqual([{ kind: 'words', words: '[#r1.read.period]' }])
+    // Words that start with the word written before the reference say it once.
+    const dated: MadeRead = {
+      tool: 'read_context',
+      ref: 'r2',
+      input: {},
+      result: { item: { valid: 'From 1 January 2026 on' }, names: [], ids: [] },
+    }
+    expect(turnOf('Both apply from [#r2.item.valid].', [...made, dated], []).text).toBe(
+      'Both apply from 1 January 2026 on.',
+    )
     // A reference to something that is not words or a number is left out, never its sentence.
     expect(turnOf('It is [#r1.read] read.', made, []).text).toBe('It is read.')
   })
