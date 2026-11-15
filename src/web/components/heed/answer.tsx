@@ -373,7 +373,7 @@ function LookupCard({
       : answer.state === null
         ? 'Nothing was looked up'
         : answer.state === 'failed'
-          ? 'The look-up failed'
+          ? 'Not looked up'
           : facts.length
             ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}${linkWords}`
             : 'Looked up: no context items'

@@ -394,7 +394,7 @@ next, and until it ships the router serves everyone.
   the groups add up to, and the page's own count beside it, with why, when the two differ. Nothing
   in the tools, the prompt or the page knows a dimension, a domain or a person by name. Ask on the
   web keeps a chat's finished answers, the loop's or the engine's, in the browser with the chat, so
-  opening it again shows them and asks nothing. A Not checked answer is not kept.
+  opening it again shows them and asks nothing. A Not looked up answer is not kept.
 - **The pool.** The request ends before the model's first step. Each read, spending check and meter
   line is a transaction of its own as the person, and a turn's reads take one connection at a
   time, so no turn holds a connection while its model works or while it waits for another.

@@ -57,7 +57,7 @@ export function AskedThisWeek({ onPick }: { onPick: (question: string) => void }
                 className="flex min-h-14 min-w-0 flex-1 flex-col items-start justify-center gap-1 rounded-md px-1.5 py-1.5 text-left transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:bg-transparent"
               >
                 <span className="text-sm font-medium">{r.title}</span>
-                <StateLine state={r.state} tip={false} className="px-1.5 py-0.5 text-xs" />
+                <StateLine state={r.state} tip={false} sentence className="px-1.5 py-0.5 text-xs" />
               </button>
               <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                 {r.count} times

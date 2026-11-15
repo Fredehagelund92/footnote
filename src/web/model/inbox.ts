@@ -13,7 +13,7 @@ export type CardType = 'names' | 'suggestion' | 'gap' | 'flag' | 'check' | 'look
 export const cardTypeLabel: Record<CardType, string> = {
   names: 'Names',
   suggestion: 'Suggestion',
-  gap: 'Not found',
+  gap: 'Nothing written yet',
   flag: 'Reported',
   check: 'Due for a check',
   look: 'Needs a look',

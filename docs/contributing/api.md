@@ -76,7 +76,7 @@ that data. Its default reply is short:
 `status` carries the answer state (`src/domain/answer-state.ts`): `matched` (Checked), `partial`
 (Partial: no item covers the whole question, or `get_context` read a question with no dates at today), `no_match` (Not found), `conflict` (Conflict: two
 items that apply disagree), `stale` (Outdated: an item's check date passed or its source changed)
-and `check_failed` (Not checked); `need_more_detail` means the question could not be read, which is
+and `check_failed` (Not looked up); `need_more_detail` means the question could not be read, which is
 no answer state. `say` starts with the answer line, its label and, but for Checked, its sentence.
 `next` comes only when there is a step to take. Each item's `kind` is the label agents read
 (`event`, `warning`, `rule`, `guide`), `when` and `applies` say when and where it applies, `checked`

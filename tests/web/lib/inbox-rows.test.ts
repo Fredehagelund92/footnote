@@ -25,7 +25,11 @@ describe('the order of the groups', () => {
     expect(ids.slice(0, 3)).toEqual(['names', 'mention', 'suggestion'])
   })
 
-  it('lists a suggestion before a Not found card, whatever order the read gave', () => {
+  it('names the group of unanswered topics Nothing written yet, never a lone Not found', () => {
+    expect(INBOX_GROUPS.find((g) => g.id === 'gap')?.label).toBe('Nothing written yet')
+  })
+
+  it('lists a suggestion before a Nothing written yet card, whatever order the read gave', () => {
     const { rows } = inboxRows(inbox(), jon.name, {})
     const groups = rows.map(groupOf)
     const firstChore = groups.findIndex((g) => g !== 'mention' && g !== 'suggestion')

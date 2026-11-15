@@ -158,7 +158,7 @@ const still: Record<AnswerState, string> = {
   stale: 'Still may be out of date.',
   conflict: 'Still two items disagree.',
   missing: 'Still nothing written down.',
-  failed: 'Still not checked.',
+  failed: 'Still not looked up.',
 }
 const outdated: Record<NonNullable<SavedItem['unverified']>, string> = {
   past_review_date: 'The item it answers from has a check date that passed.',
