@@ -564,7 +564,7 @@ function useActions(card: InboxCard) {
         return run({
           outcome: 'Checked',
           message: 'Checked: still true',
-          description: 'The next check is due on 20 Jan 2027.',
+          description: 'It comes back when it is due for a check.',
           patch: {
             status: 'Live',
             outOfDate: undefined,

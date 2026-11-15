@@ -669,8 +669,7 @@ export function DefinitionsPage() {
             <ToolLogo c={source} size="sm" className="mt-0.5" />
             <span>
               Metrics and dimensions are synced from {tool ?? 'the definitions tools connected'},
-              read today at 06:00, and read-only here. Terms are written here, by the owner of their
-              domain.{' '}
+              and read-only here. Terms are written here, by the owner of their domain.{' '}
               <a
                 href={integrationHref(source?.id)}
                 className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

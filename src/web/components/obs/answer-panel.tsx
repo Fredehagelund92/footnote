@@ -466,7 +466,7 @@ function WarningsTab({
                 <LightbulbIcon className="size-3.5 shrink-0" aria-hidden />
                 <span className="flex-1">
                   {t.gap.label === 'Draft ready'
-                    ? "A draft is ready in the Inbox, from a payment provider's status page."
+                    ? 'A draft is ready in the Inbox.'
                     : 'A suggestion about it waits in the Inbox.'}
                 </span>
                 <a
