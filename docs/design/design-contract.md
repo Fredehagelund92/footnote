@@ -353,7 +353,7 @@ The quick view, in the Inbox pane and the dock, opens on the card's head: its st
 - **Try it**: what agents say before and after, as Draft or Published, then "Agents now say" once published;
 - the **Ready line**, which never says more than was checked: a new number or date without a source says "not compared with a source", and only then;
 - **Overlaps** and a **clash panel**, after the source and never hidden by a view: each live item the suggestion clashes with starts as unrelated, so Publish is live, and the owner changes it to replaces or disagrees with where the two relate;
-- the **decision**: Publish, Edit, Return with a note, or Archive (which always asks first);
+- the **decision**: Publish, Edit, Send back with a note, or Archive (which always asks first);
 - "**Publish the N you've read**": only plain changes whose end was on screen for 1.5 to 8 seconds by its length (or marked as read) are published together. A change that needs its own look (a detail to compare, an overlap, a retirement, an unchecked value, a new link) stays out. Its toast has Undo that puts back exactly those.
 
 After a decision the outcome shows in place with Undo for 6 seconds and a short countdown bar, then the next suggestion opens. A letter key moves on at once; the pointer or focus on the outcome holds it; with reduced motion it waits for Next. After the last decision the review says "All N handled" with Undo for the last one. Focus moves to the change's heading after J, K or a decision, and the new suggestion is announced. On a phone the decision bar says the state in words, "8 of 12" with previous and next, and its actions are 44 px.
@@ -378,7 +378,7 @@ One `@` picker for Ask, the document editors and comments: a Command list under 
 
 ### 5.7 Comments and reactions
 
-A thread under each suggestion in the review and inside each context item's page. Five reactions, each with one meaning: 👍 Agree, 👀 Looking, ✅ Done, 🤔 Not sure, 🙏 Thanks. A count shows from two, and the tooltip names who. Anyone signed in can comment; people edit and delete their own. "Return with a note" keeps its name and the note becomes the first comment. A reply brings the card back to Needs you. The heading says "Comments are not part of what agents get". The box is flat: no card, hairlines between threads, a hairline stem for replies. It loads on its own so the editor stays out of the first load.
+A thread under each suggestion in the review and inside each context item's page. Five reactions, each with one meaning: 👍 Agree, 👀 Looking, ✅ Done, 🤔 Not sure, 🙏 Thanks. A count shows from two, and the tooltip names who. Anyone signed in can comment; people edit and delete their own. "Send back with a note" keeps its name and the note becomes the first comment. A reply brings the card back to Needs you. The heading says "Comments are not part of what agents get". The box is flat: no card, hairlines between threads, a hairline stem for replies. It loads on its own so the editor stays out of the first load.
 
 ### 5.8 State line, loading, empty, failed, offline
 
