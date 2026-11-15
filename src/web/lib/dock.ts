@@ -58,8 +58,9 @@ let intoPanel = false
 
 /** Opens a list row's peek and takes focus into it. */
 export function openFromRow(kind: DockKind, id: string) {
+  const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
   fromRow = id
-  intoPanel = true
+  intoPanel = !already
   openDock(kind, id)
 }
 
