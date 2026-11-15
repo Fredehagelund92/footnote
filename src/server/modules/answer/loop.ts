@@ -41,6 +41,8 @@ import {
   overviewOf,
   overviewProblem,
   overviewWords,
+  shownBody,
+  withoutCites,
   withoutLastSentence,
   wordsOf,
   type NumberedRead,
@@ -790,8 +792,9 @@ function foundIds(m: MadeRead, whole = false): string[] {
  * that uses none carries the subject read's state when the turn made one, Not found after a
  * search, and none after no read at all. A subject read that could not read a value its words
  * name ("orders in jordan") is a read that found nothing: Not found. A turn that cites an item a
- * read of this chat returned is never Not found: what it rests on is written, though it may not
- * cover the whole subject (Partial).
+ * read of this chat returned, other than one a subject read gave as nearby (which does not apply),
+ * is never Not found: what it rests on is written, though it may not cover the whole subject
+ * (Partial).
  */
 export function stateOf(
   made: readonly MadeRead[],
@@ -799,7 +802,10 @@ export function stateOf(
   items: ReturnType<typeof itemsRead>,
 ): AnswerState | null {
   const state = readsState(made, cited, items)
-  return state === 'missing' && cited.some((id) => items.has(id)) ? 'partial' : state
+  const nearby = new Set(nearbyOf(made))
+  return state === 'missing' && cited.some((id) => items.has(id) && !nearby.has(id))
+    ? 'partial'
+    : state
 }
 
 function readsState(
@@ -1062,22 +1068,24 @@ function gives(text: string, definition: string) {
 
 /**
  * What an answer that cites no item defines (decision 3): the definitions its reads returned of
- * what the question was read as, when the question asks what they are, or the words give one.
- * Such an answer shows the Definition label in place of a state.
+ * what the question was read as, when the question asks what they are, or the words give one of
+ * a subject something is written about (one nothing covers stays Not found). Such an answer shows
+ * the Definition label in place of a state.
  */
 function definedOf(
   question: string,
   text: string,
   read: ReturnType<typeof definitionsRead>,
   subject: LoopTurn['subject'],
+  state: AnswerState | null,
 ): LoopTurn['defined'] {
   const about = new Set(subject?.about ?? [])
   const candidates = [...read.values()].filter(
     (d) => d.words && (!about.size || (d.id !== undefined && about.has(d.id))),
   )
   if (!candidates.length) return undefined
-  if (!asksDefinitionInAsk(question) && !candidates.some((d) => gives(text, d.words!)))
-    return undefined
+  const given = state !== 'missing' && candidates.some((d) => gives(text, d.words!))
+  if (!asksDefinitionInAsk(question) && !given) return undefined
   return { names: candidates.map((d) => d.name), tool: candidates[0]!.tool }
 }
 
@@ -1226,8 +1234,8 @@ const rowsOf = (ids: readonly string[], ctx: WordsContext, cited: readonly strin
  * A finished answer as Ask shows it (FR-720): the model's words checked and drawn, each citation
  * held to the ids the chat's reads returned (FR-720.2) and numbered in the order first cited, [n]
  * for the nth source; each noun held to what a read named and each number to a read's value
- * (FR-720.3). Every citation the words keep is a source, and the items written nearest are listed
- * under Not found (FR-720.4). An answer that cites no item and is about a definition shows that
+ * (FR-720.3). Every citation the words keep is a source, except under Not found, where they cite
+ * only what does not apply: no source, and the items written nearest are listed (FR-720.4). An answer that cites no item and is about a definition shows that
  * definition's label, no state (decision 3); one that read nothing new and cites nothing, a reply
  * to the chat ("thanks!"), shows none of the evidence. The state, the footer, what was read and
  * the evidence are code's.
@@ -1240,19 +1248,29 @@ export function turnOf(
 ): LoopTurn {
   const ctx = wordsContext(question, made, earlier)
   const words = wordsOf(text, ctx)
-  const sources = words.cited
-  const { items, about, state, subject } = evidenceOf(made, earlier, sources, true)
+  const { items, about, state, subject } = evidenceOf(made, earlier, words.cited, true)
   const missing = state === 'missing'
-  const plain = bodyWords(words.body, ctx.nouns, ctx.items, sources)
+  // Under Not found the words cite only what does not apply: nearby, not used, and no source.
+  const stripped: LoopBlock[] = missing
+    ? words.body.flatMap((b): LoopBlock[] =>
+        b.t === 'list'
+          ? []
+          : b.t === 'p'
+            ? [{ ...b, runs: withoutCites(b.runs) }]
+            : [{ ...b, items: b.items.map(withoutCites) }],
+      )
+    : words.body
+  const sources = missing ? [] : words.cited
+  const plain = bodyWords(stripped, ctx.nouns, ctx.items, sources)
     .replace(/[ \t]+([.,;:!?)])/g, '$1')
     .replace(/[ \t]{2,}/g, ' ')
     .trim()
   const closest = missing ? closestOf(about, subject, ctx.items, []) : null
-  const listed = words.body.flatMap((b) => (b.t === 'list' ? b.rows : []))
+  const listed = stripped.flatMap((b) => (b.t === 'list' ? b.rows : []))
   const replyOnly = !made.length && !sources.length
-  const defined = sources.length
+  const defined = words.cited.length
     ? undefined
-    : definedOf(question, plain, definitionsRead(about.map((m) => m.result)), subject)
+    : definedOf(question, plain, definitionsRead(about.map((m) => m.result)), subject, state)
   return {
     kind: 'answer',
     text: plain,
@@ -1261,7 +1279,7 @@ export function turnOf(
     footer: replyOnly ? emptyFooter : footerOf(about, sources, items),
     read: replyOnly ? [] : [...againLine(earlier), ...readLines(made)],
     subject: replyOnly ? null : subject,
-    nearby: missing ? [...new Set(nearbyOf(about))] : [],
+    nearby: missing ? [...new Set([...words.cited, ...nearbyOf(about)])] : [],
     conflict: state === 'conflict' ? disagreeing(about, sources) : [],
     definitions: replyOnly
       ? []
@@ -1275,9 +1293,15 @@ export function turnOf(
     choices: [],
     reads: readsBack(made),
     stopped: null,
-    body: words.body,
-    // The words as the model wrote them, with what they cite, by id: what it said.
-    said: bodyMarkup(words.body, ctx.nouns, ctx.items, sources),
+    // The page draws the words beside the evidence: under Not found, not the items the closest
+    // written list again (FR-720).
+    body: shownBody(
+      words.body,
+      ctx.nouns,
+      missing ? { cited: words.cited, closest: new Set(closest?.items ?? []) } : null,
+    ),
+    // The words as the model wrote them, with what they cite, nearby items too: what it said.
+    said: bodyMarkup(words.body, ctx.nouns, ctx.items, words.cited),
     nouns: [...ctx.nouns.values()],
     items: rowsOf([...sources, ...listed, ...(closest?.items ?? [])], ctx, sources),
     closest,

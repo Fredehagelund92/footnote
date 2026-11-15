@@ -371,8 +371,8 @@ next, and until it ships the router serves everyone.
   reads returned and numbered as a source; a mark to an id no read returned is dropped. The state
   comes from the get_context reads about the question's subject, the least sure of several; an
   answer whose items only the records listed carries none; under Not found, what the reads found
-  nearby is listed and not used, and an answer that cites an item the chat's reads returned is
-  never Not found (Partial at most). An answer that cites no item and gives or is asked for a
+  nearby is listed and not used, and an answer that cites any other item the chat's reads returned
+  is never Not found (Partial at most). An answer that cites no item and gives or is asked for a
   definition its reads returned carries the Definition label in place of a state; a reply that
   read nothing new and cites nothing ("thanks!") carries none of the evidence. Then the footer, what was read line by line, and a step as each
   read starts and once it is done.
@@ -391,7 +391,8 @@ next, and until it ships the router serves everyone.
   the words in plain words (`text`, what the graders read), as the model wrote them with what they
   cite, by id (`said`, what the chat sends back), and as blocks the page draws beside the evidence
   (`body`): a mention that trails its clause or follows its own name is drawn on the words that
-  give its name, and every citation the words keep is shown. Then the nouns, the item rows, the closest
+  give its name, and under Not found, where the words cite only items written nearby, nothing is
+  cited and a list of the items the closest written show is left out, with its lead. Then the nouns, the item rows, the closest
   written under Not found (counted by each other value of whichever dimension the question
   narrowed), the owners, and the definition only when the question asks what it is or turns on a
   word of it. A set asked for as a whole ends the turn with `show_overview`: the groups of an

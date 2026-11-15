@@ -226,7 +226,7 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(a.footer?.denominator).toBe('Out of 21 published context items you may read.')
   })
 
-  it('keeps what the words cite of the items written nearest: their sources, and not Not found', async () => {
+  it('under Not found, leaves out the words that only listed what it cited', async () => {
     const a = await asked(
       'Give me all about orders in poland',
       [{ toolName: 'get_context', input: { about: 'orders in poland' } }],
@@ -235,10 +235,10 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
         return `Nothing written covers orders in Poland. Other markets each have their own items, such as [${near[0]}], [${near[1]}] and [${near[2] ?? near[0]}].`
       },
     )
-    expect(a.state).toBe('partial')
-    expect(a.sources).toHaveLength(3)
+    expect(a.state).toBe('missing')
+    expect(a.sources).toEqual([])
     expect(a.text).toBe(
-      'Nothing written covers orders in Poland. Other markets each have their own items, such as [1], [2] and [3].',
+      'Nothing written covers orders in Poland. Other markets each have their own items.',
     )
   })
 

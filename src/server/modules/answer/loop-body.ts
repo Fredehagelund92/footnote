@@ -960,6 +960,107 @@ export function withoutLastSentence(runs: readonly LoopRun[]): LoopRun[] | null 
   return null
 }
 
+/** The words that only lead into a list of citations, at the end of some words. */
+const LEAD_WORDS =
+  /(?:such as|including|for example|for instance|namely|like|see(?: also)?|as in|e\.g\.)$/i
+
+/**
+ * Where the words that lead into a list at the end of `text` start, read from its end one part
+ * at a time (so no pattern backtracks): ", such as ", " (see ", ": "; and whether they open a
+ * bracket. `at` is the end of `text` when nothing leads into it.
+ */
+function leadInto(text: string): { at: number; paren: boolean } {
+  let at = text.length
+  const space = () => {
+    while (at > 0 && /\s/.test(text[at - 1]!)) at--
+  }
+  const take = (c: string) => text[at - 1] === c && at-- > 0
+  space()
+  take(':')
+  space()
+  const word = LEAD_WORDS.exec(text.slice(Math.max(0, at - 16), at))
+  if (word && !/[\p{L}\p{N}]/u.test(text[at - word[0].length - 1] ?? '')) at -= word[0].length
+  space()
+  const paren = take('(')
+  space()
+  if (!take(',')) take(';')
+  return text.slice(at).trim() ? { at, paren } : { at: text.length, paren: false }
+}
+
+/** Between two citations of one list: commas, "and" or "or". */
+const BETWEEN = /^[\s,;]*(?:(?:and|or|&)[\s,;]*)?$/i
+
+/**
+ * A sentence's runs without its citations, as under Not found, with the words that only listed
+ * them: "own items, such as [1], [2] and [3]." reads "own items.", not "own items, such as, and.".
+ */
+export function withoutCites(runs: readonly LoopRun[]): LoopRun[] {
+  const out: LoopRun[] = []
+  for (let i = 0; i < runs.length; i++) {
+    const r = runs[i]!
+    if (r.t !== 'cite') {
+      out.push({ ...r })
+      continue
+    }
+    // The whole list of citations: those after it with only commas, "and" or "or" between.
+    let end = i
+    for (let j = i + 1; j < runs.length; j++) {
+      const x = runs[j]!
+      if (x.t === 'cite') end = j
+      else if (x.t !== 'text' || !BETWEEN.test(x.text)) break
+    }
+    i = end
+    const before = out.at(-1)
+    // Only a list the words led into goes with them; one that sits after its claim leaves it be.
+    const lead = before?.t === 'text' ? leadInto(before.text) : null
+    if (before?.t === 'text' && lead && lead.at < before.text.length) {
+      before.text = before.text.slice(0, lead.at)
+      const next = runs[i + 1]
+      if (lead.paren && next?.t === 'text') {
+        out.push({ ...next, text: next.text.replace(/^\s*\)/, '') })
+        i++
+      }
+    }
+  }
+  return out.filter((r) => r.t !== 'text' || r.text)
+}
+
+/**
+ * The words as the page shows them beside code's evidence (FR-720), from the blocks as written:
+ * each noun's chip where its sentence names it first; under Not found, no citation, since nothing
+ * cited is a source, and no list of the items the closest written show below it, nor the line
+ * that leads into one. What the chat sends back and what is graded keep the words as written.
+ */
+export function shownBody(
+  written: readonly LoopBlock[],
+  nouns: ReadonlyMap<string, Noun>,
+  notFound: { cited: readonly string[]; closest: ReadonlySet<string> } | null,
+): LoopBlock[] {
+  const out: LoopBlock[] = []
+  const closest = (runs: readonly LoopRun[]) =>
+    runs.some((r) => r.t === 'cite' && notFound?.closest.has(notFound.cited[r.n - 1] ?? ''))
+  for (const b of written) {
+    if (
+      notFound &&
+      (b.t === 'list' || (b.t === 'ul' && b.items.filter(closest).length * 2 >= b.items.length))
+    ) {
+      const lead = out.at(-1)
+      const last = lead?.t === 'p' ? lead.runs.at(-1) : undefined
+      if (lead?.t === 'p' && last?.t === 'text' && /:\s*$/.test(last.text)) {
+        const rest = withoutLastSentence(lead.runs)
+        if (rest) lead.runs = rest
+        else out.pop()
+      }
+      continue
+    }
+    const shown = (runs: readonly LoopRun[]) => placed(notFound ? withoutCites(runs) : runs, nouns)
+    if (b.t === 'p') out.push({ ...b, runs: shown(b.runs) })
+    else if (b.t === 'ul') out.push({ ...b, items: b.items.map(shown) })
+    else out.push(b)
+  }
+  return out
+}
+
 /** The blocks in plain words: paragraphs, then each list's lines with "- ". */
 export function bodyWords(
   body: readonly LoopBlock[],

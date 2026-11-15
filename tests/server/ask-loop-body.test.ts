@@ -573,6 +573,54 @@ describe('the words as the page shows them, beside the evidence', () => {
     ])
   })
 
+  it('leaves out, under Not found, a list of the items the closest written show, and its lead', () => {
+    const nearby = [
+      { id: 'itm_pppp1111', about: ['metric:tickets_closed', 'value:team/platform'] },
+      { id: 'itm_qqqq1111', about: ['metric:tickets_closed', 'value:sprint/s41'] },
+    ]
+    const t = turnOf(
+      'Nothing written covers [@metric:tickets_closed] for [@value:team/billing]. The nearest items are about other teams:\n- Platform closes merged tickets once [itm_pppp1111]\n- Sprint 41 ran a day short [itm_qqqq1111]\n\nThat is all [itm_pppp1111].',
+      [lookup('missing', [], nearby)],
+      [],
+    )
+    expect(t.state).toBe('missing')
+    expect(t.closest?.items).toEqual(['itm_pppp1111', 'itm_qqqq1111'])
+    expect(t.body).toEqual([
+      {
+        t: 'p',
+        runs: [
+          { t: 'text', text: 'Nothing written covers ' },
+          { t: 'noun', id: 'metric:tickets_closed' },
+          { t: 'text', text: ' for ' },
+          { t: 'noun', id: 'value:team/billing' },
+          { t: 'text', text: '.' },
+        ],
+      },
+      // Nothing cited under Not found is a source.
+      { t: 'p', runs: [{ t: 'text', text: 'That is all.' }] },
+    ])
+    // The graded words keep the list; the chat's copy keeps what each line cited, by id.
+    expect(t.text).toContain('- Platform closes merged tickets once')
+    expect(t.said).toContain('- Platform closes merged tickets once [itm_pppp1111]')
+  })
+
+  it('leaves out, under Not found, the words that only listed what it cited', () => {
+    const nearby = [
+      { id: 'itm_pppp1111', about: ['metric:tickets_closed', 'value:team/platform'] },
+      { id: 'itm_qqqq1111', about: ['metric:tickets_closed', 'value:sprint/s41'] },
+    ]
+    const t = turnOf(
+      'Nothing written covers tickets closed for Billing. Other teams each have their own items, such as [itm_pppp1111], [itm_qqqq1111] and [itm_pppp1111]. Sprints are counted apart (see [itm_qqqq1111]). Platform closes merged tickets once [itm_pppp1111], so it counts them once.',
+      [lookup('missing', [], nearby)],
+      [],
+    )
+    expect(t.state).toBe('missing')
+    const words =
+      'Nothing written covers tickets closed for Billing. Other teams each have their own items. Sprints are counted apart. Platform closes merged tickets once, so it counts them once.'
+    expect(t.body).toEqual([{ t: 'p', runs: [{ t: 'text', text: words }] }])
+    expect(t.text).toBe(words)
+  })
+
   it('keeps a mention the words lead into where it is, not on the same name earlier', () => {
     const t = turnOf(
       'Platform paused the merge, so both items are about Tickets closed in [@value:team/platform].',

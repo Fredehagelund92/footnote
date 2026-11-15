@@ -119,20 +119,23 @@ describe('what code writes from the reads', () => {
     expect(t.sources).toEqual(['itm_germany01'])
   })
 
-  it('takes the state from the read about the subject: Not found, its nearby items listed', () => {
+  it('takes the state from the read about the subject: Not found, its nearby items listed and not used', () => {
+    // The subject read found nothing; the words cite only items it gave as nearby: they do not
+    // apply, so they are no sources, and their numbers go.
     const t = turnOf(
-      'Nothing is written about orders in Poland.',
+      'Nothing is written about orders in Poland. Germany lags (by a day [itm_germany01]).',
       [get('missing', [], ['itm_germany01', 'itm_norway001'])],
       [],
     )
     expect(t.state).toBe('missing')
     expect(t.sources).toEqual([])
+    expect(t.text).toBe('Nothing is written about orders in Poland. Germany lags (by a day).')
     expect(t.nearby).toEqual(['itm_germany01', 'itm_norway001'])
   })
 
-  it('keeps the citations of what the reads returned, and a turn that cites one is not Not found', () => {
-    // The subject read found nothing; the words cite items it gave as nearby, and items a search
-    // matched on some of its words only: they are still what the words rest on.
+  it('keeps the citations of what the reads returned, and a turn that cites one that is not nearby is not Not found', () => {
+    // The subject read found nothing; the words cite an item it gave as nearby, and one a search
+    // matched on some of its words only, which the words rest on.
     const t = turnOf(
       'Nothing is written about orders in Poland. Germany lags (by a day [itm_germany01]) and France switched [itm_france001].',
       [
@@ -289,6 +292,20 @@ describe('a turn that uses no context item', () => {
     )
     expect(notAbout.state).toBe('missing')
     expect(notAbout.defined).toBeUndefined()
+    // Words that give a definition while answering about something nothing covers stay Not found.
+    const notFound = turnOf(
+      'Nothing written covers orders here. Orders is the value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
+      [
+        subject('missing'),
+        definitions(
+          'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
+        ),
+      ],
+      [],
+      'Give me all about orders in poland',
+    )
+    expect(notFound.state).toBe('missing')
+    expect(notFound.defined).toBeUndefined()
     const none = turnOf(
       'Nothing is written.',
       [subject('missing'), definitions(null)],
@@ -547,10 +564,9 @@ describe("Ask's loop on a scripted model", () => {
     expect(seenChat).toContain('Nothing on Poland. Germany lags [itm_germany01].')
     expect(seenChat).not.toContain('said more')
     expect(seenChat).not.toContain('itm_hidden0001')
-    // The earlier read, made again, gives the item only as nearby to a subject with nothing
-    // written: cited, it is still a source, and the turn is not Not found.
-    expect(turn).toMatchObject({ sources: ['itm_germany01'], state: 'partial' })
-    // What the turn sends back as its own reply cites by id: what it wrote.
+    // The earlier read, made again, gives the item only as nearby to a subject with nothing written.
+    expect(turn).toMatchObject({ sources: [], state: 'missing', nearby: ['itm_germany01'] })
+    // What the turn sends back as its own reply cites by id, a nearby item too: what it wrote.
     expect(turn.said).toBe('Still nothing, as before.[itm_germany01]')
   })
 
