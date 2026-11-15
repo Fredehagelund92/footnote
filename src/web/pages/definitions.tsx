@@ -301,7 +301,7 @@ export function DefinitionsPage() {
     const target = d.sameAs ? glossary.find(d.sameAs) : undefined
     const flag = flagOf(d)
     const n = about(d)
-    const meaning = glossary.meaningOf(d).definition
+    const meaning = plainText(glossary.meaningOf(d).definition)
     // The lock is said once, in the line above the table; a row shows only who wrote a term.
     const source = d.synced ? null : (
       <span title={`Written by ${d.by}, ${d.updated}`} className="inline-flex">
