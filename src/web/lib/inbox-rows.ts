@@ -18,24 +18,31 @@ export const rowId = (r: InboxRow) =>
 export const rowTitle = (r: InboxRow) =>
   r.kind === 'card' ? r.card.title : r.kind === 'waiting' ? r.item.title : r.title
 /**
- * The Inbox's groups, in the order of need: the names a read made first, then what agents couldn't
- * answer, suggestions after.
+ * The Inbox's groups, in the order of need: what people wait on first (a mention of you, then
+ * suggestions), then the names a read made first, what agents couldn't answer, and the upkeep.
  */
 export const INBOX_GROUPS = [
+  { id: 'mention', label: 'Mentioned you' },
+  { id: 'suggestion', label: 'Suggestions' },
   { id: 'names', label: 'Names' },
   { id: 'gap', label: 'Not found' },
   { id: 'flag', label: 'Reported' },
   { id: 'look', label: 'Saved questions' },
   { id: 'alert', label: 'Alerts' },
-  { id: 'mention', label: 'Mentioned you' },
   { id: 'returned', label: 'Returned to you' },
   { id: 'check', label: 'Due for a check' },
-  { id: 'suggestion', label: 'Suggestions' },
   { id: 'waiting', label: 'Waiting on others' },
   { id: 'done', label: 'Done' },
 ] as const
 
 export type InboxGroup = (typeof INBOX_GROUPS)[number]['id']
+
+/** A run of checks longer than this starts folded: upkeep must not bury what people wait on. */
+export const CHECKS_FOLDED_ABOVE = 10
+
+/** Whether a group starts folded, from how many rows it holds. Every group can be folded by hand. */
+export const startsFolded = (group: InboxGroup, count: number) =>
+  group === 'check' && count > CHECKS_FOLDED_ABOVE
 
 export const groupOf = (r: InboxRow): InboxGroup =>
   r.kind === 'mention'
