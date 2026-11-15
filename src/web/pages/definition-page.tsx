@@ -8,6 +8,7 @@ import { definitionPageQuery } from '@/api/queries'
 import { kindName, sourceUrl, useGlossary } from '@/lib/definitions'
 import { href, navigate } from '@/lib/router'
 import { Loadable, PageSkeleton } from '@/components/heed/load-state'
+import { NotFound } from '@/components/heed/not-found'
 
 // A definition's own page, read-only like its peek, on the same paper sheet as a context item's
 // page. A synced metric or dimension can't be edited here at all: its page says where to change it.
@@ -22,10 +23,12 @@ export function DefinitionPage({ name }: { name: string }) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <SiteHeader title="Definitions" icon={<BookAIcon />} />
-        <p className="p-6 text-sm text-muted-foreground">
-          There is no definition called “{name}”. It may have been renamed; search Definitions for
-          it.
-        </p>
+        <NotFound
+          title="There is no definition here"
+          way={{ href: '/definitions', label: 'Open Definitions' }}
+        >
+          Nothing is called “{name}”. It may have been renamed.
+        </NotFound>
       </div>
     )
   const subject = glossary.meaningOf(d)

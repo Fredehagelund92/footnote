@@ -138,7 +138,7 @@ export function AppSidebar({
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent label="Main">
             {/* Search is a field, not a page: set apart above the list. In the icon rail it is one
                 magnifier with a gap under it. Both open the search palette. */}
             <SidebarGroup className="pb-1">

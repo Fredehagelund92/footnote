@@ -44,6 +44,7 @@ import {
   searchDocs,
   type DocPage,
 } from '@/lib/docs'
+import { NotFound } from '@/components/heed/not-found'
 import { wordOf } from '@/lib/docs-includes'
 import type { DocBlock, DocInline, DocTarget } from '@domain/docs'
 
@@ -868,6 +869,16 @@ export function DocsSite({ slug, query, go }: DocsPlace) {
             <Changelog />
           ) : page ? (
             <Article page={page} />
+          ) : slug ? (
+            <div className="px-4 py-16">
+              <NotFound
+                heading
+                title="There is no documentation page here"
+                way={{ href: DOCS_HOME, label: 'Open the documentation' }}
+              >
+                Nothing in the documentation is called “{slug}”. The link may be old.
+              </NotFound>
+            </div>
           ) : (
             <Landing onSearch={() => setSearching(true)} />
           )}

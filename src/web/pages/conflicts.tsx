@@ -38,9 +38,11 @@ export function ConflictPage({ pairKey }: { pairKey: string }) {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage className="truncate">
-                Conflict{topic ? `: ${topic}` : ''}
-              </BreadcrumbPage>
+              <h1 className="flex min-w-0">
+                <BreadcrumbPage className="truncate">
+                  Conflict{topic ? `: ${topic}` : ''}
+                </BreadcrumbPage>
+              </h1>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
