@@ -13,9 +13,7 @@
   (eslint.plain-words.js) with no baseline. What people read outside the web app (src/domain, the
   contract, the connectors' forms, the demo's fixtures and the message of every error the service
   answers with) is held to it too, as a ratchet: `npm run lint:words` counts the old words in
-  copy-checks.baseline.json and fails on a rise. The server's own sentences and the help pages the
-  in-app assistant reads still follow the earlier glossary (src/domain/words-v1.ts,
-  docs/design/voice.md) until each moves to this one.
+  copy-checks.baseline.json and fails on a rise.
 
   tests/server/domain/words.test.ts keeps the list consistent: one concept per name, every banned word with
   something to write instead, no name, definition or replacement that uses a banned word, and the

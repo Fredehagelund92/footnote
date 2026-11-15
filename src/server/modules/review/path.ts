@@ -613,7 +613,7 @@ export function createReviewPath(
     for (const itemId of given.keys())
       if (!r.clashes.includes(itemId))
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
-          message: 'Answer only for the live facts this suggestion clashes with.',
+          message: 'Answer only for the live context items this suggestion clashes with.',
         })
     const known = await relationsOf(r)
     if (clashesOnly)
@@ -822,7 +822,7 @@ export function createReviewPath(
         // An archive: the archived version comes back, unless something else is live for it now.
         if (await liveVersionId(tx, d.itemId))
           throw new ORPCError('CONFLICT', {
-            message: 'This fact changed since it was archived, so the archive stays.',
+            message: 'This context item changed since it was archived, so the archive stays.',
           })
         serve.push(d.versionId)
         continue
@@ -833,7 +833,7 @@ export function createReviewPath(
         })
       if ((await liveVersionId(tx, d.itemId)) !== d.versionId)
         throw new ORPCError('CONFLICT', {
-          message: 'This fact changed since then, so the publish stays.',
+          message: 'This context item changed since then, so the publish stays.',
         })
       const [before] = await tx.query<{ id: string | null }>(
         `select s.version_id::text as id from item_version_service s

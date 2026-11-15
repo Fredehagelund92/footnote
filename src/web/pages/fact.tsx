@@ -131,7 +131,7 @@ export function FactPage({ id }: { id: string }) {
     (f) =>
       f.id !== fact.id &&
       (f.id === fact.disagreesWith || f.disagreesWith === fact.id) &&
-      (f.status === 'Live' || f.status === 'Needs checking'),
+      (f.status === 'Live' || f.status === 'Due for a check'),
   )
 
   // What needs a decision: in the side when there is room, and in the document itself on a phone,
@@ -139,7 +139,7 @@ export function FactPage({ id }: { id: string }) {
   const attention = (fact.outOfDate || other) && (
     <>
       {fact.outOfDate && (
-        <SideSection title="Outdated" description={fact.outOfDate}>
+        <SideSection title="Due for a check" description={fact.outOfDate}>
           {owner && (
             <Button
               variant="outline"
@@ -223,7 +223,7 @@ export function FactPage({ id }: { id: string }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuGroup>
-                {owner && fact.status === 'Needs checking' && (
+                {owner && fact.status === 'Due for a check' && (
                   <DropdownMenuItem
                     onClick={() =>
                       void write('editItem', {

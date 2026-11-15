@@ -115,6 +115,6 @@ describe('the import commands of the templates', () => {
 
     const stranger = await heed(['import-tests', file], 'per_maria@example.test')
     expect(stranger.code).toBe(1)
-    expect(stranger.err).toContain('Test questions are kept by owners, deputies and administrators')
+    expect(stranger.err).toContain('Test questions are kept by owners, deputies and admins')
   })
 })

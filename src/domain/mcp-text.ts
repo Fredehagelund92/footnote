@@ -1,7 +1,7 @@
 import { aboutBusinessBlock } from './about-business.ts'
 import { ANSWER_LINES } from './answer-state.ts'
 import type { ItemKind } from './item.ts'
-import { concepts } from './words-v1.ts'
+import { concepts } from './words.ts'
 
 /*
   What the MCP server tells an agent in words, in one place: the six tools as people read them,
@@ -12,7 +12,7 @@ import { concepts } from './words-v1.ts'
 
   People read some of it: an AI agent shows a tool's title when it calls it, the Connect page shows
   the title and its line, and the instructions set the words an AI agent uses with people. So the
-  titles and lines are in the voice of docs/design/voice.md, with the names of src/domain/words-v1.ts.
+  titles and lines are in the voice of docs/design/copy.md, with the names of src/domain/words.ts.
   The instructions are for models: they keep the field and status names a model reads in a reply
   (item, scope, no_match) and tell it to say the plain words to people.
 
@@ -33,9 +33,9 @@ export const agentToolNames = [
 export type AgentToolName = (typeof agentToolNames)[number]
 
 /** The glossary's words the tools use with people. */
-const fact = concepts.fact.name
+const fact = concepts.contextItem.name
 const facts = `${fact}s`
-const notToConclude = concepts.whatNotToConclude.name
+const notToConclude = concepts.dontConclude.name
 
 /**
  * Each tool as people read it (FR-407): a title an agent shows when it calls the tool, what it does,
@@ -128,7 +128,7 @@ export const askFirstLine =
 export const absenceRule =
   'no_match does not prove that no caveat exists: say nothing is written down only for exactly what you asked, never the whole topic.'
 
-/** How a model tells a person about an item (docs/design/voice.md). */
+/** How a model tells a person about an item (docs/design/copy.md). */
 export const contextRule = `Tell the person it is a ${fact}, the owner of its domain checked it, its source, and its ${notToConclude} line.`
 
 /**
@@ -180,7 +180,7 @@ export const statusRuleWords = (rule: (typeof statusRules)[number]) =>
 export const answerLineRule =
   'say starts with the answer line, the label beside each status below: say it to the person.'
 
-/** How a model names things to people, apart from the field names it reads (docs/design/voice.md). */
+/** How a model names things to people, apart from the field names it reads (docs/design/copy.md). */
 export const plainWordsRule =
   "With people, say the metric, market and dates, not status, scope, edition or reply_id, which name a reply's fields."
 

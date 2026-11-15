@@ -416,11 +416,11 @@ export function definitionOf(
             : `${described!.tool} defines it (${described!.ref}, read through Sources), but gives no description.`,
           ...(state === 'changed'
             ? [
-                `${described!.tool} changed this definition after some facts about it were checked: those facts need checking until an owner of the domain checks them.`,
+                `${described!.tool} changed this definition after some context items about it were checked: those context items need checking until an owner of the domain checks them.`,
               ]
             : state === 'missing'
               ? [
-                  `${described!.tool} no longer lists this definition: these are the last words read from it, and the facts about it are marked for a check.`,
+                  `${described!.tool} no longer lists this definition: these are the last words read from it, and the context items about it are marked for a check.`,
                 ]
               : []),
         ].join(' ')
@@ -429,12 +429,12 @@ export function definitionOf(
         : `Neither a definition source nor the library describes ${term.name}.${domain ? ` Ask ${ownerRole(domain)}: they can say what it means.` : ''}`
   const issues = activeIssues(about, today)
   const adds = about.length
-    ? `AI agents get ${plural(about.length, 'checked fact', 'checked facts')} about ${term.name} with their data: ${kindWords(about)}.${issues ? ` ${plural(issues, 'issue still applies', 'issues still apply')} today.` : ''}`
-    : `AI agents get no facts about ${term.name} yet.`
+    ? `AI agents get ${plural(about.length, 'checked context item', 'checked context items')} about ${term.name} with their data: ${kindWords(about)}.${issues ? ` ${plural(issues, 'issue still applies', 'issues still apply')} today.` : ''}`
+    : `AI agents get no context items about ${term.name} yet.`
   // The catalogue's count goes beside it whenever the two differ, with what each one counts.
   const counted =
     items.about > about.length
-      ? ` The library holds ${plural(items.about, 'fact', 'facts')} about ${term.name}, the count its catalogue shows; ${agentsGetWords(items)}.`
+      ? ` The library holds ${plural(items.about, 'context item', 'context items')} about ${term.name}, the count its catalogue shows; ${agentsGetWords(items)}.`
       : ''
   return {
     term: term.name,
