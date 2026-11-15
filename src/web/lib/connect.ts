@@ -77,9 +77,9 @@ export function toolsLine(r: Pick<Connected, 'tools'>) {
   return on === 0 ? 'Off' : on === all ? `All ${all} tools` : `${on} of ${all} tools`
 }
 
-/** When a row was last used, as its line ends: "used today", or "never used" for a new key. */
+/** When a row was last used, as its line ends: "Last used: Today", or "Never used" for a new key. */
 export const usedLine = (r: Pick<Connected, 'used'>) =>
-  r.used === 'Never' ? 'never used' : `used ${r.used.toLowerCase()}`
+  r.used === 'Never' ? 'Never used' : `Last used: ${r.used}`
 
 /** What Connected agents says above its rows: "3 agents people have connected, and 1 access key." */
 export function connectedLine(rows: readonly Connected[]) {

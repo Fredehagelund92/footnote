@@ -35,6 +35,7 @@ import { GroupMenu, SaveView, ViewSwitch, cleared, viewCount } from '@/component
 import {
   dayLabel,
   groupCount,
+  groupCountInSentence,
   HIDE_UNDER,
   share,
   SHOWN,
@@ -831,7 +832,7 @@ function Numbers({
             sub={
               totals.checked.visible === null && !totals.checked.shown
                 ? HIDDEN
-                : `${groupCount(totals.checked)} of ${groupCount(totals.asked).toLowerCase()} asked`
+                : `${groupCount(totals.checked)} of ${groupCountInSentence(totals.asked)} asked`
             }
             href={drill('grounded')}
           />
@@ -953,9 +954,7 @@ function ChosenNumbers({
         value={
           checked.share !== null ? <CountUp value={checked.share} suffix="%" /> : checked.value
         }
-        sub={
-          checked.sub ?? `${groupCount(checked.part)} of ${groupCount(asked).toLowerCase()} asked`
-        }
+        sub={checked.sub ?? `${groupCount(checked.part)} of ${groupCountInSentence(asked)} asked`}
         href={drill('grounded')}
       />
       <Kpi
@@ -966,7 +965,7 @@ function ChosenNumbers({
           nothing.sub ??
           (nothing.share !== null
             ? `${nothing.share}% of questions`
-            : `${groupCount(nothing.part)} of ${groupCount(asked).toLowerCase()} asked`)
+            : `${groupCount(nothing.part)} of ${groupCountInSentence(asked)} asked`)
         }
         href={drill('missing')}
       />

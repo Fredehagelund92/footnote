@@ -133,14 +133,10 @@
     "src/web/api/http-integrations.ts": {
       "plural": 15
     },
-    "src/web/api/mock/data/figures.ts": {
-      "lowercased": 2
-    },
     "src/web/api/mock/data/integrations.ts": {
       "plural": 3
     },
     "src/web/api/mock/integrations.ts": {
-      "lowercased": 1,
       "plural": 5
     },
     "src/web/components/heed/answer.tsx": {
@@ -149,57 +145,23 @@
     "src/web/components/heed/conflict-view.tsx": {
       "plural": 1
     },
-    "src/web/components/heed/definition-peek.tsx": {
-      "lowercased": 1
-    },
     "src/web/components/heed/review-parts.tsx": {
       "plural": 1
     },
-    "src/web/components/heed/source-review.tsx": {
-      "lowercased": 1
-    },
-    "src/web/components/heed/source-threads.tsx": {
-      "lowercased": 1
-    },
-    "src/web/components/obs/answer-panel.tsx": {
-      "lowercased": 1
-    },
     "src/web/components/obs/filter-picker.tsx": {
-      "lowercased": 2,
       "plural": 10
-    },
-    "src/web/components/resizable-aside.tsx": {
-      "lowercased": 1
     },
     "src/web/components/templates/comment-box/utils.ts": {
       "plural": 1
     },
-    "src/web/lib/connect.ts": {
-      "lowercased": 1
-    },
-    "src/web/lib/definitions.ts": {
-      "lowercased": 1
-    },
-    "src/web/model/replay.ts": {
-      "lowercased": 1
-    },
     "src/web/pages/definitions.tsx": {
       "plural": 5
-    },
-    "src/web/pages/editor.tsx": {
-      "lowercased": 1
     },
     "src/web/pages/inbox.tsx": {
       "plural": 1
     },
     "src/web/pages/integrations.tsx": {
       "plural": 22
-    },
-    "src/web/pages/observability/overview.tsx": {
-      "lowercased": 3
-    },
-    "src/web/pages/people.tsx": {
-      "lowercased": 1
     },
     "src/web/pages/review.tsx": {
       "plural": 1
