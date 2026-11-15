@@ -83,7 +83,11 @@ export function createWorkspace() {
     owns: [...p.owns],
     lastActive: p.lastActive ?? seen[p.name] ?? 'A while ago',
   }))
-  const invites: Invite[] = seedInvites.map((i) => ({ ...i, willOwn: [...i.willOwn] }))
+  const invites: Invite[] = seedInvites.map((i) => ({
+    ...i,
+    willOwn: [...i.willOwn],
+    sentTo: [...i.sentTo],
+  }))
   let made = 0
 
   /** Ownership lives on the domain; each person's list and line follow from it. */
@@ -184,7 +188,10 @@ export function createWorkspace() {
           email,
           admin,
           willOwn: owns.filter((d) => domains[d]),
+          sentTo: [...owns],
           sentBy,
+          standing: 'open',
+          voidBecause: null,
         })
       }
       return result
