@@ -188,6 +188,34 @@ describe("Ask's loop answer, state by state", () => {
     for (const line of lines) expect(buttons(line, /^Source \d+: /).length).toBe(1)
   })
 
+  it('A long paragraph: one sentence a line, five at most, then Show more; no "Nothing is written" once items were found', () => {
+    const base = example('loop-checked')
+    const turn: LoopTurn = {
+      ...base,
+      state: 'partial',
+      subject: { ...base.subject!, uncovered: ['metric:orders'] },
+      body: [
+        {
+          t: 'p',
+          runs: Array.from({ length: 8 }, (_, i) => [
+            { t: 'text' as const, text: `Sentence ${i + 1} of the answer` },
+            { t: 'cite' as const, n: 1 },
+            { t: 'text' as const, text: '. ' },
+          ]).flat(),
+        },
+      ],
+    }
+    const el = render(turn)
+    const lines = () => [...el.querySelectorAll('[data-answer-words] p')]
+    expect(lines()).toHaveLength(5)
+    expect(text(el)).not.toContain('Nothing is written about')
+    const more = [...el.querySelectorAll('button')].find((b) => text(b) === 'Show 3 more')
+    expect(more).toBeDefined()
+    act(() => more!.click())
+    expect(lines()).toHaveLength(8)
+    expect(text(el)).not.toMatch(/Show \d+ more/)
+  })
+
   it('A question back: the question and its readings as choices, with no state', () => {
     const el = render(example('loop-question'))
     expect(text(el)).toContain('Which switch do you mean?')
