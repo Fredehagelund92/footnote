@@ -42,7 +42,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { NotFound } from '@/components/heed/not-found'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Kbd } from '@/components/ui/kbd'
 import { servedToAgents } from '@/model/items'
@@ -137,14 +137,12 @@ export function DomainPage({
     return (
       <div className="flex h-full min-h-0 flex-col">
         <SiteHeader title={crumbs('Domain')} />
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>No such domain</EmptyTitle>
-            <EmptyDescription>
-              It may have been deleted. The domains are under Settings, Domains and owners.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <NotFound
+          title="There is no domain here"
+          way={{ href: '/settings/domains', label: 'Open Domains and owners' }}
+        >
+          It may have been deleted, or the link may be old.
+        </NotFound>
       </div>
     )
 
