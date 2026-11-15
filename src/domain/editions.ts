@@ -132,8 +132,6 @@ function whoChanged(input: SentenceInput): string {
       return `Restored from the Bin ${by}`
     case 'area_deleted':
       return `Domain deleted ${by}`
-    case 'area_restored':
-      return `Domain restored ${by}`
     case 'decision_undone':
       return `A decision undone ${by}`
     case 'rollback':

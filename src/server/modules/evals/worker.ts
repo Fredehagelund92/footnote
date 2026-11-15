@@ -147,7 +147,7 @@ async function housekeeping(database: Database, options: WorkOptions, summary: W
   const expired = await database.query<{ id: string; area_id: string }>(
     `update eval_runs set state='failed',finished_at=now(),failure='The scheduled run did not finish within 24 hours',
             worker=null,lease_until=null
-      where kind='scheduled' and state in ('estimated','awaiting_approval','queued','running','incomplete')
+      where kind='scheduled' and state in ('awaiting_approval','queued','running','incomplete')
         and created_at < now() - interval '24 hours' returning id::text,area_id`,
   )
   for (const run of expired)

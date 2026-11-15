@@ -287,7 +287,7 @@ async function removeArea(
       data: { reason: DOMAIN_DELETED_REASON },
     })),
   )
-  // The team's roles end at the instant the domain is archived, so restoring finds them.
+  // The team's roles end at the instant the domain is archived.
   const ended: GrantChange[] = plan.team.map(({ personId, role }) => ({
     op: 'revoke' as const,
     personId,
@@ -412,10 +412,8 @@ async function removeArea(
 }
 
 /** When a deleted domain was deleted: its deletion record, or for one archived before, the row. */
-const deletedAt = `coalesce((select d.deleted_at from area_deletions d
-  where d.area_id=a.id and d.restored_at is null),a.archived_at)`
+const deletedAt = `coalesce((select d.deleted_at from area_deletions d where d.area_id=a.id),a.archived_at)`
 
-/** The deleted domains history keeps, newest first, with what restoring gives back. */
 /**
  * Deleting a domain from its page (FR-815): only one that holds no context items and no terms,
  * and never the sandbox. What is left under it (open suggestions, drafts, its owners) goes as
@@ -446,17 +444,12 @@ export async function deleteEmptyArea(
   return removeArea(tx, { id: input.id, revision: area.revision, confirm: DELETE_DOMAIN_PHRASE })
 }
 
+/** The deleted domains history keeps, newest first. */
 export async function archivedAreas(tx: Queryable): Promise<ArchivedArea[]> {
   await adminOnly(tx)
   return tx.query<ArchivedArea>(
     `select a.id, a.name, a.label, a.summary,
-       to_char(${deletedAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as "archivedAt",
-       (select count(*)::int from area_assignments x
-         where x.area_id = a.id and upper(x.valid_at) = a.archived_at) as team,
-       coalesce((select jsonb_array_length(d.contents->'terms') + jsonb_array_length(d.contents->'sourceTerms')
-         from area_deletions d where d.area_id=a.id and d.restored_at is null), 0) as terms,
-       (select count(*)::int from item_bin b where b.area_id = a.id and b.restored_at is null)
-         as "binnedItems"
+       to_char(${deletedAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as "archivedAt"
      from areas a where a.archived_at is not null
      order by a.archived_at desc, a.id`,
   )

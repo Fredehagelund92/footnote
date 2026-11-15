@@ -932,7 +932,6 @@ describe('weekly scorecard and baseline', () => {
 
   it('refuses in the database every move of a run its transition table does not list (#194)', async () => {
     const states = [
-      'estimated',
       'awaiting_approval',
       'queued',
       'running',
@@ -942,8 +941,6 @@ describe('weekly scorecard and baseline', () => {
       'incomplete',
     ]
     const allowed = [
-      'estimated>failed',
-      'estimated>cancelled',
       'awaiting_approval>queued',
       'awaiting_approval>failed',
       'awaiting_approval>cancelled',
