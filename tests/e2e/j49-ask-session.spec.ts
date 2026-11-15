@@ -253,7 +253,8 @@ test('a first question that comes back Not looked up does not join; Ask again th
   await go(page, '/ask?n=j49h')
   const log = page.getByRole('log')
   await ask(page, QUESTION)
-  await expect(log.getByText('Not looked up', { exact: true })).toHaveCount(1)
+  // The state chip and the look-up line both say it.
+  await expect(log.getByText('Not looked up', { exact: true })).toHaveCount(2)
   // Not looked up is not an answer: the chat stays as it was, out of the history.
   await expect(chats(page).getByText(QUESTION)).toHaveCount(0)
   expect(chatParam(page)).toBeNull()

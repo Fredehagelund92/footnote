@@ -16,7 +16,7 @@ test('suggestions come before the chores', async ({ page }) => {
   const names = (await headers(page).allInnerTexts()).map((t) => t.replace(/\s*\d+$/, ''))
   const at = (n: string) => names.indexOf(n)
   expect(at('Suggestions')).toBeGreaterThanOrEqual(0)
-  expect(at('Suggestions')).toBeLessThan(at('Not found'))
+  expect(at('Suggestions')).toBeLessThan(at('Nothing written yet'))
   expect(at('Suggestions')).toBeLessThan(at('Due for a check'))
 })
 
