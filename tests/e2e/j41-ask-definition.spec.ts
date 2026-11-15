@@ -20,7 +20,7 @@ const definitions = {
     'Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.',
 }
 
-const head = /^(Definition|Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
+const head = /^(Definition|Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 
 /** Asks, and waits until the answer is finished: Stop gone and its row of icons in. */
 async function ask(page: Page, question: string) {

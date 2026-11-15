@@ -11,6 +11,7 @@ import type { Term } from '@domain/vocabulary'
 import { plainText as wordsOfMarkdown } from '@domain/doc-diff'
 import { shiftDate } from '@domain/validity'
 import { windowWords } from '@domain/dates'
+import { lookupFailedNote } from '@domain/words'
 import { plainText } from '@/lib/mentions'
 import { ALL_VALUES } from '@/model/observability'
 import type { Answer, AnswerLinks, AskedRow, AskedWeek, Example, Thread } from '@/model/ask'
@@ -264,7 +265,7 @@ function engineAnswerOf(
   if (a.state === 'failed')
     return {
       ...base,
-      note: "The check couldn't run just now. That is not the same as nothing written down: ask again in a minute.",
+      note: lookupFailedNote,
       text: '',
     }
   // A market on its own: what it has is written for a metric, so say so, naming them.
@@ -340,7 +341,7 @@ export const failedAnswer = (question: string): Answer => ({
   metric: '',
   markets: [],
   state: 'failed',
-  note: "The check couldn't run just now. That is not the same as nothing written down: ask again in a minute.",
+  note: lookupFailedNote,
   text: '',
   sources: [],
   said: "The check failed. Do not say that nothing is known; say that the check couldn't run.",
