@@ -328,13 +328,19 @@ describe('the Inbox', () => {
       itemId: 'itm_a',
       title: 'Returns changed definition on 28 April 2026',
       reason: 'date',
+      changed: [],
       lastChecked: { on: '2026-07-02', by: 'Jon Abara' },
       ...patch,
     })
     const [due, changed] = inboxOf(
       feed([
         check({ at: '2026-10-02' }),
-        check({ id: 'check:itm_b', reason: 'source', lastChecked: { on: null, by: null } }),
+        check({
+          id: 'check:itm_b',
+          reason: 'source',
+          changed: [{ name: 'Gross margin', on: '2026-10-07' }],
+          lastChecked: { on: null, by: null },
+        }),
       ]),
       'Jon Abara',
       domains,
@@ -350,7 +356,9 @@ describe('the Inbox', () => {
       factId: 'itm_a',
     })
     expect(changed).toMatchObject({ when: 'Today', detail: 'Not checked yet.', due: 'source' })
-    expect(changed?.line).toMatch(/A definition it relies on changed/)
+    expect(changed?.line).toBe(
+      'The definition of Gross margin changed in its tool on 7 Oct 2026, after this context item was checked.',
+    )
   })
 
   it('reads the saved-question alert as one card for the domain, with its questions', () => {

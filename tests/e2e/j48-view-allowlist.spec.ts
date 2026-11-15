@@ -137,3 +137,68 @@ test('stepping Back to the settings and on again keeps the views chosen', async 
   await expect(page).toHaveURL(/step=3/)
   await expect(counted).toHaveText('7 of 455 views chosen')
 })
+
+/** Chooses the 7 coast_orders views of the many, on step 3. */
+async function chooseSeven(page: Page) {
+  const button = (label: string) => page.getByRole('button', { name: label, exact: true })
+  const counted = page.locator('p[aria-live=polite]')
+  await expect(counted).toHaveText('455 of 455 views chosen')
+  await button('Clear').click()
+  await page.getByRole('searchbox', { name: 'Search views' }).fill('coast_orders')
+  await button('Choose 7 shown').click()
+  await page.getByRole('searchbox', { name: 'Search views' }).fill('')
+  await expect(counted).toHaveText('7 of 455 views chosen')
+}
+
+test('stepping Back to change a setting and testing again keeps the views chosen', async ({
+  page,
+}) => {
+  await go(page, '/settings/integrations/cube/connect?step=3&views=many')
+  const button = (label: string) => page.getByRole('button', { name: label, exact: true })
+  await chooseSeven(page)
+  await button('Back').click()
+  await expect(page).toHaveURL(/step=2/)
+  // A changed setting asks for a new test; what was chosen waits for it, as it was.
+  await page.getByLabel('Branch, tag or commit').fill('release')
+  await expect(button('Continue')).toBeDisabled()
+  await button('Test connection').click()
+  await button('Continue').click()
+  await expect(page).toHaveURL(/step=3/)
+  await expect(page.locator('p[aria-live=polite]')).toHaveText('7 of 455 views chosen')
+  await expect(page.getByRole('radio', { name: /^Only the views you choose/ })).toBeChecked()
+})
+
+test('a save refused because someone saved first loads theirs and keeps the views chosen', async ({
+  page,
+}) => {
+  // ?change=fail: someone else saves Cube's settings just before this change is sent.
+  await go(page, '/settings/integrations/cube/connect?step=3&views=many&change=fail')
+  const button = (label: string) => page.getByRole('button', { name: label, exact: true })
+  await chooseSeven(page)
+  await button('Continue').click()
+  await button('Continue').click()
+  await page.getByLabel('Why are you changing it?').fill('Only the coast views')
+  const left = page.getByRole('region', { name: /^It stops reading/ })
+  await left.getByRole('checkbox').check()
+  await button('Save changes').click()
+  // Refused: the flow says so and offers the way on, instead of a Save that is refused again.
+  const refused = page.getByRole('alert').filter({ hasText: 'Someone changed this source' })
+  await expect(refused).toBeVisible()
+  await expect(button('Save changes')).toBeDisabled()
+  await button('Load the latest version').click()
+  await expect(refused).toBeHidden()
+  // The choices stay as they were, on the latest version.
+  await button('Back').click()
+  await button('Back').click()
+  await expect(page.locator('p[aria-live=polite]')).toHaveText('7 of 455 views chosen')
+  await button('Continue').click()
+  await button('Continue').click()
+  await expect(page.getByLabel('Why are you changing it?')).toHaveValue('Only the coast views')
+  await page
+    .getByRole('region', { name: /^It stops reading/ })
+    .getByRole('checkbox')
+    .check()
+  await button('Save changes').click()
+  await expect(page).toHaveURL(/\/settings\/integrations\/cube$/)
+  await expect(page.getByRole('table').getByRole('row')).toHaveCount(8)
+})

@@ -24,6 +24,7 @@ export function useSelection(
     scope,
     keys = true,
     initial,
+    state,
   }: {
     /** Where Cmd or Ctrl and A works besides an unfocused page: the list, with its header. */
     scope?: React.RefObject<HTMLElement | null>
@@ -31,11 +32,14 @@ export function useSelection(
     keys?: boolean
     /** The rows ticked to begin with. */
     initial?: string[]
+    /** The selection kept above the list, as a flow that outlives it does; `initial` then is unused. */
+    state?: [Selection, (update: (s: Selection) => Selection) => void]
   } = {},
 ) {
-  const [s, set] = React.useState<Selection>(() =>
+  const own = React.useState<Selection>(() =>
     initial ? { ...NONE, ids: initial, base: initial } : NONE,
   )
+  const [s, set] = state ?? own
   // The newest order, so an update always draws its range over the rows on screen now.
   const orderRef = React.useRef(order)
   React.useLayoutEffect(() => {
@@ -47,12 +51,15 @@ export function useSelection(
   const count = s.ids.length
   const allShown = order.length > 0 && order.every((id) => ticked.has(id))
 
-  const one = React.useCallback((id: string) => set((x) => toggle(x, id)), [])
-  const range = React.useCallback((id: string) => set((x) => extend(x, orderRef.current, id)), [])
+  const one = React.useCallback((id: string) => set((x) => toggle(x, id)), [set])
+  const range = React.useCallback(
+    (id: string) => set((x) => extend(x, orderRef.current, id)),
+    [set],
+  )
   const clear = React.useCallback(() => {
-    set(NONE)
+    set(() => NONE)
     setPicking(false)
-  }, [])
+  }, [set])
   // What Delete or Backspace on a selection does: set by the list's bulk bar, which owns the confirmation.
   const deleteKey = React.useRef<() => void>(undefined)
   const bindDeleteKey = React.useCallback((ask: () => void) => {
@@ -61,7 +68,7 @@ export function useSelection(
       deleteKey.current = undefined
     }
   }, [])
-  const selectAll = React.useCallback(() => set(() => all(orderRef.current)), [])
+  const selectAll = React.useCallback(() => set(() => all(orderRef.current)), [set])
 
   /** A click with Shift, Cmd or Ctrl picks rather than opens. Returns whether it did. */
   const pick = (id: string, e: React.MouseEvent) => {
@@ -122,7 +129,7 @@ export function useSelection(
     /** The bar's confirmation for the Delete key, which asks the same way its button does. Returns the way to unbind. */
     bindDeleteKey,
     /** These rows, and only these: "Select all 23 matching", or what failed, kept for a retry. */
-    select: (ids: string[]) => set(all(ids)),
+    select: (ids: string[]) => set(() => all(ids)),
     picking,
     setPicking,
     /** A row's checkbox: Shift draws a range, anything else ticks the one row. */
