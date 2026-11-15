@@ -160,18 +160,21 @@ migration.
 
 ## The first-load budget
 
-The first load of the web app, the scripts and styles `index.html` loads, is held to **439 KB of
-script and 33 KB of CSS**, gzipped. The budget is a ratchet: a change that makes the first load
-smaller may lower it, and it is raised only on purpose, in a pull request that says why. Load route code on demand instead: every page but the Inbox and
-Ask is a lazy route (`routes/**/*.lazy.tsx`), and so should heavy parts be. How and when it moves is
-in `scripts/check-bundle-size.mjs`.
+The first load of the web app, the scripts and styles `index.html` loads, is held by two rules,
+gzipped. A pull request may add at most **1 KB of script** over `main` as CI builds it for that
+pull request, so a pull request that merges first never fails the others by a few bytes. And the
+first load may never pass a hard ceiling of **443 KB of script and 33 KB of CSS**, which the
+maintainer raises only on purpose, in a pull request that says why. Load route code on demand
+instead: every page but the Inbox and Ask is a lazy route (`routes/**/*.lazy.tsx`), and so should
+heavy parts be. The rules are in `scripts/check-bundle-size.mjs`.
 
 ```sh
 npm run size      # builds the web app as it ships (http mode), as CI does, and checks it
 ```
 
-It prints the bytes, the budget and the margin. CI counts 1.3 to 1.8 KB more script than a Mac
-for the same build, so go by the margin CI prints.
+It prints the bytes, the ceilings and the margins; `npm run size -- --base <dir>` also checks the
+growth over another build's `dist/web`. CI counts 1.3 to 1.8 KB more script than a Mac for the
+same build, so go by the numbers CI prints.
 
 ## How reviews work
 

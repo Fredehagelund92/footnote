@@ -68,7 +68,7 @@ function AddNote({
     <button
       type="button"
       tabIndex={-1}
-      aria-label={`Comment on ${placeLabel(at).toLowerCase()}`}
+      aria-label={`Comment on ${placeLabel(at)}`}
       onClick={() => notes.comment(at)}
       className={cn(
         'absolute z-raised flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 transition-opacity duration-(--dur-1) outline-none group-hover/row:opacity-100 pointer-coarse:hidden',

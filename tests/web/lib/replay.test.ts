@@ -59,7 +59,7 @@ describe('a replay', () => {
   it('says what happened after, never who and never a count under 5', () => {
     const spain = page.topics.find((t) => t.id === 'orders-spain')!
     expect(afterAnswer(spain)).toBe(
-      'Nobody reported an answer about it. It found nothing 5 or more times, so it waits in the Inbox: draft ready.',
+      'Nobody reported an answer about it. It found nothing 5 or more times, so it waits in the Inbox. Its state there: Draft ready.',
     )
     const revenue = page.topics.find((t) => t.id === 'net-revenue-norway')!
     expect(afterAnswer(revenue)).toBe('Someone reported an answer about it.')

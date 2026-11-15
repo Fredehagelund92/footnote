@@ -222,7 +222,7 @@ export function DefinitionPeek({ name }: { name: string }) {
                   openDock('ask', undefined, {
                     q:
                       subject.type === 'dimension'
-                        ? `How did orders change by ${subject.name.toLowerCase()} last month?`
+                        ? `How did orders change by "${subject.name}" last month?`
                         : `How did ${subject.name} change last month?`,
                   })
                 }

@@ -136,7 +136,9 @@ export function SignInPage() {
         <SignInMark method={provider} />
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Sign in to {PRODUCT}</CardTitle>
+            <CardTitle role="heading" aria-level={1} className="text-xl">
+              Sign in to {PRODUCT}
+            </CardTitle>
             <CardDescription>With your company account.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -199,7 +201,9 @@ function PickerSignIn({ token, method }: { token: string | null; method: SignInM
         <SignInMark method={method} />
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Sign in to {PRODUCT}</CardTitle>
+            <CardTitle role="heading" aria-level={1} className="text-xl">
+              Sign in to {PRODUCT}
+            </CardTitle>
             <CardDescription>
               {method.demo ? 'This is a demo. Pick who you are.' : 'Pick who you are.'}
             </CardDescription>
