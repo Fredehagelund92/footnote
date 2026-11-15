@@ -21,11 +21,10 @@ The mockup is a clickable version of every screen and state as it was designed, 
 
 Older design pages that still apply:
 
-| Page                               | What it says                                                                                      |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [Voice guide](design/voice.md)     | The earlier voice guide, for the service's own sentences. [Copy](design/copy.md) is the web app's |
-| [Demo world](design/demo-world.md) | Larchwood Outdoor, the invented company that all demo text tells                                  |
-| [Logo](design/logo.md)             | The two-blade logo and how to use it                                                              |
+| Page                               | What it says                                                     |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| [Demo world](design/demo-world.md) | Larchwood Outdoor, the invented company that all demo text tells |
+| [Logo](design/logo.md)             | The two-blade logo and how to use it                             |
 
 ## Use Heed
 

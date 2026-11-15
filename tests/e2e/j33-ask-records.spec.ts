@@ -70,12 +70,11 @@ test("a question about one person's work is refused, with what Ask can say inste
     log.getByText("Ask does not answer questions about one person's work."),
   ).toBeVisible()
   await expect(log.getByText('Nothing was looked up')).toBeVisible()
-  // What it can say instead is in words: nothing in the chat suggests a question to ask.
+  // What it can say instead is in words, and the refusal ends with questions to press.
   await expect(
     log.getByText(/^It can tell you what changed this week, and who owns a domain\./),
   ).toBeVisible()
-  await expect(log.getByRole('button', { name: /^(?!Something wrong\?$).*\?$/ })).toHaveCount(0)
-  await expect(page.getByRole('group', { name: 'Questions Ask can answer' })).toHaveCount(0)
+  await expect(log.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 test('a question about what Definitions lists gets the names and exact counts, never Not found', async ({

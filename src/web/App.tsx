@@ -18,6 +18,7 @@ import { ReportDialog } from '@/components/report-dialog'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
+import { DockLeaving, pictureOf, setLeavingDock, useLeavingDock } from '@/components/dock-leaving'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/heed/definition-peek'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
@@ -212,6 +213,43 @@ function Shell() {
   React.useEffect(() => {
     if (!dockOpen) returnFromDock()
   }, [dockOpen])
+  // A dock that closes leaves as a picture of itself over the page, which has already widened.
+  const dockNode = React.useRef<HTMLDivElement | null>(null)
+  const dockWidth = React.useRef(0)
+  const dockScrolls = React.useRef(new Map<HTMLElement, [number, number]>())
+  const leaving = useLeavingDock()
+  React.useLayoutEffect(() => {
+    const node = dockNode.current
+    if (!dockOpen || !node || isMobile) return
+    const watch = new ResizeObserver(([entry]) => {
+      dockWidth.current = entry?.borderBoxSize?.[0]?.inlineSize ?? node.offsetWidth
+    })
+    dockWidth.current = node.offsetWidth
+    watch.observe(node)
+    // Scroll offsets are read while the panel is attached; once it is removed they read 0.
+    const offsets = dockScrolls.current
+    offsets.clear()
+    const onScroll = (e: Event) => {
+      if (e.target instanceof HTMLElement)
+        offsets.set(e.target, [e.target.scrollTop, e.target.scrollLeft])
+    }
+    node.addEventListener('scroll', onScroll, true)
+    return () => {
+      watch.disconnect()
+      node.removeEventListener('scroll', onScroll, true)
+    }
+  }, [dockOpen, dock?.width, isMobile])
+  React.useLayoutEffect(() => {
+    if (dockOpen) {
+      setLeavingDock(null)
+      return
+    }
+    // React clears the ref when the panel unmounts; the node itself keeps what it showed.
+    const node = dockNode.current
+    dockNode.current = null
+    if (!node || isMobile || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    setLeavingDock(pictureOf(node, dockWidth.current, dockScrolls.current))
+  }, [dockOpen, isMobile])
   // The sidebar folds to its rail while the dock is open or a review is on screen, and comes back
   // when they close. A page that loads that way starts folded, so nothing jumps after the first paint.
   const hasDock = !!dock || (parts[0] === 'inbox' && parts[2] === 'review')
@@ -306,13 +344,19 @@ function Shell() {
                 onResize={(size) => saveWidth(`dock-${dock.width}`, size.inPixels)}
               >
                 {/* The dock arrives: a 16px slide and a fade in 220ms; its content changing (peek to peek) only fades. */}
-                <div className="h-full dock-enter">
+                <div
+                  className="h-full dock-enter"
+                  ref={(node) => {
+                    if (node) dockNode.current = node
+                  }}
+                >
                   <SafeDock />
                 </div>
               </ResizablePanel>
             )}
           </ResizablePanelGroup>
         )}
+        {leaving && <DockLeaving picture={leaving} />}
         {isMobile && dock && (
           <div className="fixed inset-0 z-dock dock-enter bg-background">
             <SafeDock />
