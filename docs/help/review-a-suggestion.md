@@ -11,7 +11,7 @@ A suggestion waits in its owner's Inbox. The quick view says what changes; the r
 
 ## The quick view
 
-Select a suggestion in the Inbox to see, side by side, what agents say today and what they will say after you publish. It also shows who sent it, and anything that needs care, such as claims to check.
+Select a suggestion in the Inbox to see, side by side, what agents say today and what they will say after you publish. It also shows who sent it, and anything that needs care, such as details to compare with the source.
 
 - A suggestion that clashes with live context shows what agents would hear if you publish it as it is.
 - A suggestion to archive shows what they will say after you archive.
@@ -31,7 +31,7 @@ The words beside it say what follows. The other buttons say what they do, such a
 - The change, as agents will read it: the fields that change as a table, then the text with what was taken out and what was added. N and P step through the changes.
 - Preview: the item as its page will read once you publish it. The review keeps to the source or the preview as you go through the queue.
 - Try it: what agents will say with the draft, and what they say now.
-- The Ready line, which never says more than was checked: new numbers in an edit read Ready, not checked against a source.
+- The Ready line, which never says more than was checked: new numbers in an edit read Ready, not compared with a source.
 - Comments on a line or a field: point at a line of the text or a row of the fields and choose the + beside it, or press C, or tap it on a phone. The thread hangs there.
 
   Type @ to mention someone, or : for an emoji. Anyone who reads the suggestion can resolve it, or reopen it, and the thread says who did and when. The side panel counts the open ones and goes to each. Open threads never hold Publish.

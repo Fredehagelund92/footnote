@@ -1,13 +1,13 @@
 import { card, claimsToCheck, expect, go, inHttpOnly, onMockOnly, signInAs, test } from './go.ts'
 
 // J16, saying what needs care before anyone publishes: the quick view and the Inbox row show the
-// claims to check; an edit's Ready line says its numbers weren't checked; a withdrawn retirement
+// details to compare with the source; an edit's Ready line says its numbers weren't compared; a withdrawn retirement
 // shows the thread's outcome, and archiving always asks first, from the button or the key. Its
 // sender takes it back, or lets it stand, with a comment of theirs. A suggestion that overlaps
 // several live items asks how it relates to each, and Publish acts on each answer alone.
 
-test('the quick view and the row show the claims to check before Review', async ({ page }) => {
-  const claims = `${claimsToCheck('sug-agent')} claims to check`
+test('the quick view and the row show the details to compare before Review', async ({ page }) => {
+  const claims = `${claimsToCheck('sug-agent')} details to compare with the source`
   await go(page, '/inbox?card=sug-agent')
   await expect(page.getByText(`${claims} before publishing`)).toBeVisible()
   await expect(page.locator(`[data-row="${card('sug-agent')}"]`).getByLabel(claims)).toBeVisible()
@@ -34,7 +34,7 @@ test("a new date with no source says it isn't checked; one with a new source pag
 }) => {
   await go(page, '/inbox/sug-ines-dates/review')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  await expect(decide.getByText('Ready, not checked against a source.')).toBeVisible()
+  await expect(decide.getByText('Ready, not compared with a source.')).toBeVisible()
   await go(page, '/inbox/sug-ines/review')
   await expect(decide.getByText('not checked')).toHaveCount(0)
   await expect(decide.getByText(/Complete/)).toHaveCount(0)

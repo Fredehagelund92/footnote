@@ -451,7 +451,7 @@ that can be taken back answers with an `undo` token for `POST /decisions/undo`.
   version (FR-226); a version that is no longer the one under review is 409.
   `POST /review/publish-read` takes `{ ids }` (up to 50) and publishes each suggestion the
   person read that needs no look of its own, each as Publish would: a plain change, with no
-  clash, no claim to check, no new source and no new value without one. A retirement and a
+  clash, no detail to compare, no new source and no new value without one. A retirement and a
   draft for a Not found card always get their own look. It names every one it left out, with a code
   (`not_read`, `needs_care`, `not_waiting`, `not_allowed` or `refused`), and one token undoes
   them all.
@@ -1076,7 +1076,7 @@ Heed v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read and ch
   groups, each with Default (the first version, which the install wrote) or Changed and who changed
   it last: the person, or an update or a script when no person wrote the version. It also reads what
   was deleted (`GET /context/deleted`, `GET /terms/deleted`), the history log's latest entries
-  (`GET /audit`), the jobs (`GET /operations`) and the editions (`GET /editions`). Check the chain
+  (`GET /audit`), the jobs (`GET /operations`) and the editions (`GET /editions`). Verify the log
   is `GET /audit/verify`; the exports are `GET /audit/export` and the live edition's
   `GET /editions/{label}/export`.
 
@@ -1117,7 +1117,7 @@ the change, in its own transactions.
   for whoever kept it, once.
 - `DELETE /saved-questions/{id}`: removes it; it is kept, marked removed, out of every list and
   check.
-- `POST /saved-questions/check` (`{ areaId? }`, Check now): checks every saved question the person
+- `POST /saved-questions/check` (`{ areaId? }`, Run now): checks every saved question the person
   manages, or one domain's, counting as it goes, and answers with the run and how many are Same,
   Changed and Needs a look. Nothing is published.
 - `GET /saved-questions/status` (`areaId` to narrow): the newest run the person started or the job

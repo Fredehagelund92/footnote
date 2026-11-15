@@ -579,7 +579,7 @@ const sheet = (patch: Partial<ReviewSheet> = {}, diff: Partial<Diff> = {}): Revi
     unsourced: [],
     relation: null,
     title: 'Ready',
-    text: 'The new values come with a new source page. Open it to check them.',
+    text: 'The new values come with a new source page. Open it to compare them.',
   },
   readMs: 2800,
   read: { opened: false, read: false },
@@ -666,7 +666,7 @@ describe('the review', () => {
       ok: true,
       bulk: false,
       title: 'Ready',
-      text: 'The new values come with a new source page. Open it to check them.',
+      text: 'The new values come with a new source page. Open it to compare them.',
     })
     expect(readTime(r)).toBe(2800)
     expect(refOf(sheet())).toEqual({

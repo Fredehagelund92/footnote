@@ -19,14 +19,14 @@ export function ClaimCheck({
 }) {
   const verdict = {
     same: { icon: CircleCheckIcon, label: 'Same', cls: 'text-foreground' },
-    check: { icon: CircleHelpIcon, label: 'Same? Check', cls: 'text-caution' },
+    check: { icon: CircleHelpIcon, label: 'Not sure. Compare them.', cls: 'text-caution' },
     different: { icon: CircleXIcon, label: 'Different', cls: 'text-destructive' },
   } as const
   return (
     <section className="flex flex-col gap-3 py-2">
       <header className="flex items-center gap-2">
         <KindLabel kind="Added" />
-        <span className="text-xs text-muted-foreground">Claim check</span>
+        <span className="text-xs text-muted-foreground">Compared with the source</span>
       </header>
       <p className="text-sm text-muted-foreground">
         {drafted

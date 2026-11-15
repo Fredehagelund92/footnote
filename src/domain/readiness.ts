@@ -2,11 +2,11 @@
   The Ready line of the review (design contract, section 5.3): what can honestly be said about a
   suggestion before it is published, from its difference (doc-diff.ts), its claims against the
   copied sentence (claim-check.ts) and any clash with live context. It never says more than was
-  checked: a new number or date without a new source says "not checked against a source", and
+  checked: a new number or date without a new source says "not compared with a source", and
   only then.
 
   It also decides two rules of publishing:
-  - only a clash with no answer holds Publish (FR-225): an unverified claim, a draft or a
+  - only a clash with no answer holds Publish (FR-225): a detail to compare, a draft or a
     withdrawn retirement may still be published, by an owner who knows it is right;
   - "Publish the N you've read" takes only plain changes (FR-226): never a draft, a claim, a
     clash, a retirement, an unchecked value or a new link.
@@ -144,7 +144,7 @@ export function readinessFrom(facts: ReadinessFacts): Readiness {
 /** What can be said of a suggestion before it is published, and what publishing it may do. */
 export const readiness = (input: ReadinessInput): Readiness => readinessFrom(readinessFacts(input))
 
-/** Whether it needs care before publishing: a claim to check, or a clash with live context. */
+/** Whether it needs care before publishing: a detail to compare, or a clash with live context. */
 export const needsCare = (r: Pick<Readiness, 'claimsToCheck' | 'state' | 'relation'>) =>
   r.claimsToCheck > 0 || r.state === 'clash' || r.state === 'related'
 
@@ -166,12 +166,12 @@ export function readinessWords(
     case 'draft':
       return {
         title: 'A draft to check',
-        text: 'Nobody has checked it yet. Read each claim against the source, edit what is off, then publish.',
+        text: 'Nobody has checked it yet. Read each detail against the source, edit what is off, then publish.',
       }
     case 'claims':
       return {
-        title: `Ready, with ${n === 1 ? 'a claim' : `${n} claims`} to check`,
-        text: `${n === 1 ? "One claim isn't" : `${n} claims aren't`} plainly in the copied sentence. Return it with a note, or publish anyway if you know it's right.`,
+        title: `Compare ${n === 1 ? '1 detail' : `${n} details`} with the source first`,
+        text: `${n === 1 ? "One detail isn't" : `${n} details aren't`} plainly in the copied sentence. Return it with a note, or publish anyway if you know it's right.`,
       }
     case 'clash':
       return {
@@ -195,15 +195,15 @@ export function readinessWords(
       }
     case 'unsourced':
       return {
-        title: 'Ready, not checked against a source',
-        text: `Nothing compares ${list(r.unsourced)} with a source. Check it, or return it with a note.`,
+        title: 'Ready, not compared with a source',
+        text: `Nothing compares ${list(r.unsourced)} with a source. Compare it yourself, or return it with a note.`,
       }
     case 'link':
       return {
         title: 'Ready',
         text: context.diff?.counts.every((c) => c.kind === 'link')
-          ? 'The words are the same. Open the new page to check it says the same thing.'
-          : 'The new values come with a new source page. Open it to check them.',
+          ? 'The words are the same. Open the new page to see that it says the same thing.'
+          : 'The new values come with a new source page. Open it to compare them.',
       }
     case 'layout':
       return { title: 'Ready', text: 'The words are the same; only the layout changes.' }
