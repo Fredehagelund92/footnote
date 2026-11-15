@@ -317,7 +317,7 @@ export function DefinitionsPage() {
         data-peeked={peeked === d.name || undefined}
         data-leaving={leaving.has(d.name) || undefined}
         data-vt-move
-        className="group/row h-9 cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
+        className="group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
         onMouseDown={sel.onMouseDown}
         onClick={(e) => sel.rowClick(d.name, e) || openFromRow('def', d.name)}
       >
@@ -421,7 +421,7 @@ export function DefinitionsPage() {
         <td className="w-8 px-1 align-middle">
           {flag && (
             <span title={flag.tip} className="inline-flex text-caution">
-              <flag.icon aria-hidden className="size-4" strokeWidth={1.75} />
+              <flag.icon aria-hidden className="size-4" />
               <span className="sr-only">{flag.tip}</span>
             </span>
           )}

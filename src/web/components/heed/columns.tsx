@@ -80,7 +80,7 @@ export function KindIcon({ kind, className }: { kind: Kind; className?: string }
       detail={kindHint[kind]}
       className={cn('text-muted-foreground', className)}
     >
-      <Icon aria-hidden className="size-4" strokeWidth={1.75} />
+      <Icon aria-hidden className="size-4" />
     </Tip>
   )
 }
@@ -117,7 +117,7 @@ export function StatusIcon({
   const s = statusLook[status]
   return (
     <Tip label={status} detail={s.hint} plain={plain} className={cn(s.tone, className)}>
-      <s.icon aria-hidden className="size-4" strokeWidth={1.75} />
+      <s.icon aria-hidden className="size-4" />
     </Tip>
   )
 }
@@ -140,7 +140,7 @@ export function TimeGlyph({ time, plain }: { time: TimeFrame; plain?: boolean })
       plain={plain}
       className="items-center gap-1.5 text-sm whitespace-nowrap"
     >
-      <Icon aria-hidden className="size-3.5 text-muted-foreground" strokeWidth={1.75} />
+      <Icon aria-hidden className="size-3.5 text-muted-foreground" />
       <span>{timeDate(time)}</span>
     </Tip>
   )

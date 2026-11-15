@@ -242,7 +242,7 @@ function DataTable({
                 <td
                   key={j}
                   className={cn(
-                    'h-11 px-4 align-middle md:px-5',
+                    'h-row-table px-4 align-middle md:px-5',
                     align?.[j] === 'right' && 'text-right tabular-nums',
                   )}
                 >
@@ -2092,6 +2092,33 @@ function Recipe({ recipe }: { recipe: NonNullable<ConnectOption['recipe']> }) {
   )
 }
 
+/**
+ * A tool with no form to fill: not ready, unknown, or set where the server runs. The last says
+ * which setting holds it and goes back to the tool's page, where what is set shows.
+ */
+function ServerSet({ c }: { c: Connector | undefined }) {
+  const line = !c
+    ? 'There is no such integration.'
+    : c.soon
+      ? `${c.name} isn't ready to connect yet.`
+      : `${c.name}'s settings are set where the server runs${c.serverSetting ? `, in ${c.serverSetting}` : ''}, by whoever runs it. They can't be changed here.`
+  return (
+    <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
+      <p>{line}</p>
+      <div className="flex gap-2">
+        {c && !c.soon && (
+          <a href={`/settings/integrations/${c.id}`} className={buttonVariants()}>
+            Back to {c.name}
+          </a>
+        )}
+        <a href="/settings/integrations" className={buttonVariants({ variant: 'outline' })}>
+          Integrations
+        </a>
+      </div>
+    </div>
+  )
+}
+
 /** Settings › Integrations › a tool › Connect: five steps on a full page, and Change settings. */
 export function ConnectFlow({ id }: { id: string }) {
   const load = useQuery(connectFormQuery(id))
@@ -2108,13 +2135,7 @@ export function ConnectFlow({ id }: { id: string }) {
     >
       <Loadable what="The connect form" skeleton={<RowsSkeleton rows={6} />} query={load}>
         {form === null || (c && c.soon) ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            {c && c.soon
-              ? `${c.name} isn't ready to connect yet.`
-              : c
-                ? `${c.name}'s settings are set where the server runs.`
-                : 'There is no such integration.'}
-          </p>
+          <ServerSet c={c} />
         ) : (
           form &&
           c && (

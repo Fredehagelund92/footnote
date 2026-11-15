@@ -97,7 +97,7 @@ import { clicked, sortingFrom, sortingTo, type Sorting } from '@/lib/sort'
 import { useDomainList, useDomains, useMe } from '@/lib/workspace'
 import { pageKey } from '@/lib/keys'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useWide } from '@/hooks/use-wide'
+import { useSettled, useWide } from '@/hooks/use-wide'
 import { ObsPage } from '@/pages/observability'
 
 // Overview: what agents asked and what they got, in one view over one state in the address. The
@@ -357,6 +357,7 @@ function Explorer({
   // The facets sit beside the topics where there is room for them, and the device remembers
   // whether they are shown; on a narrow page they open in a sheet.
   const [setBody, wide] = useWide<HTMLDivElement>(FACETS_FROM)
+  const settled = useSettled()
   const [facetsOn, setFacetsOn] = React.useState(() => readFacets())
   const [sheet, setSheet] = React.useState(false)
   const rail = wide && facetsOn
@@ -477,7 +478,8 @@ function Explorer({
       <div
         ref={setBody}
         className={cn(
-          'grid border-t transition-[grid-template-columns] duration-(--dur-3) ease-panel',
+          'grid border-t',
+          settled && 'transition-[grid-template-columns] duration-(--dur-3) ease-panel',
           !wide
             ? 'grid-cols-1'
             : rail

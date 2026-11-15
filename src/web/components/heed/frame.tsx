@@ -267,7 +267,7 @@ export function FrameTable({
                 <td
                   key={j}
                   className={cn(
-                    'h-11 px-4 py-2 align-middle first:md:pl-5 last:md:pr-5',
+                    'h-row-table px-4 py-2 align-middle first:md:pl-5 last:md:pr-5',
                     columns[j]?.align === 'right' && 'text-right tabular-nums',
                     columns[j]?.className,
                     columns[j]?.cell,

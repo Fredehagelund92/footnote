@@ -18,3 +18,16 @@ export function useWide<T extends HTMLElement>(min = 1024) {
   }, [el, min])
   return [setEl, wide] as const
 }
+
+/**
+ * False until the first frame has been painted, then true for good. A panel that measures its room
+ * on arrival changes its size once before the first paint; that change is the page taking its
+ * place, so it must not animate. Gate the transition on this and only later changes move.
+ */
+export function useSettled() {
+  const [settled, setSettled] = React.useState(false)
+  React.useEffect(() => {
+    requestAnimationFrame(() => setSettled(true))
+  }, [])
+  return settled
+}
