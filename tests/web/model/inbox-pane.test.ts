@@ -68,7 +68,9 @@ describe('the one button', () => {
 describe('the words beside the button', () => {
   it('say what follows from it', () => {
     expect(pane('sug-ines').follows).toBe('12 questions a week would get the new answer')
-    expect(pane('sug-sofia-clash').follows).toBe('Publishing waits until you say how they relate')
+    expect(pane('sug-sofia-clash').follows).toBe(
+      'Overlaps are answered Unrelated unless you change them',
+    )
     expect(pane('gap-spain').follows).toBe('Check the 2 claims, then publish')
     expect(pane('sug-agent').follows).toMatch(/^Check the \d+ claims, then publish$/)
     expect(pane('sug-lars-retire').follows).toBe('Lars Dahl took it back in the comments')

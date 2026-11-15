@@ -244,14 +244,13 @@ function Shell() {
       {/* The first stop for the keyboard: past the sidebar, straight to the page. A button, since a #link would change the address. */}
       <button
         type="button"
-        className="sr-only fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium shadow-md ring-3 ring-ring/50 focus-visible:not-sr-only"
+        className="pointer-events-none fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium opacity-0 shadow-md ring-3 ring-ring/50 focus-visible:pointer-events-auto focus-visible:opacity-100"
         onClick={() => {
           // A page can name where it starts (Ask: the box to ask in); otherwise the page itself.
-          const target = document.querySelector<HTMLElement>('[data-skip-target]')
-          if (target) return target.focus()
           const main = document.querySelector<HTMLElement>('[data-slot=sidebar-inset]')
+          const target = document.querySelector<HTMLElement>('[data-skip-target]') ?? main
           main?.setAttribute('tabindex', '-1')
-          main?.focus()
+          target?.focus()
         }}
       >
         Skip to the content

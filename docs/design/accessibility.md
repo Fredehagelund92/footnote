@@ -27,8 +27,8 @@ Every mark has an icon, a shape or a word as well.
 
 ## 3. Keyboard
 
-- Every flow works without a mouse, in visual order, with no trap. A **skip link** comes first on every page.
-- Lists have a keyboard cursor (J, K, Enter, X, Shift and arrows). Each control's tooltip shows its key.
+- Every flow works without a mouse, in visual order, with no trap. A **skip link** comes first on every page; it is drawn over the page when focused and moves nothing.
+- Lists have a keyboard cursor (J, K, Enter, X, Shift and arrows). Enter on an Inbox card opens it and moves focus to the pane's one decision, so Enter again takes it. Each control's tooltip shows its key.
 - Single-key shortcuts are off while someone types: in a field, a rich-text editor (a note, a comment), an open list, a menu or a dialog. They never act on a key held with a modifier they do not use.
 - `?` opens the keys from anywhere nobody is typing. Cmd or Ctrl K searches. Cmd or Ctrl Enter publishes, sends or saves where it is the main action. Esc closes the top layer, then goes back.
 - **Focus moves on purpose.** After J, K or a decision in the review, focus moves to the change's heading. After a dock closes, focus returns to what opened it. A popover or dialog traps focus while open and gives it back on close.
