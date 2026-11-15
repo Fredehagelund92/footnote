@@ -2,9 +2,11 @@ import type { Locator, Page } from '@playwright/test'
 import { expect, go, mode, test } from './go.ts'
 
 // J49, the Ask chat session: a chat joins the history with its first answered turn, whichever
-// button asked it; a chat this page started opens again, on Back, as the history opens it; and
-// one stopped turn does not stop the rest of a chat being kept (the loop's, on the mock: ?loop=1).
-// Time stands still, so a stop lands while the answer is on its way.
+// button asked it; a chat this page started opens again, on Back, as the history opens it; one
+// stopped turn does not stop the rest of a chat being kept (the loop's, on the mock: ?loop=1); a
+// chat keeps its first answer, so a reload asks nothing; and Not checked is not an answer: it does
+// not join, and Ask again that gets it keeps the answer the turn had. Time stands still in the
+// first six, so a stop lands while the answer is on its way.
 
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
 const QUESTION = 'Why did orders in Norway really drop in August?'
@@ -166,4 +168,86 @@ test('one stopped turn does not stop the rest of a chat being kept', async ({ pa
   await expect(log.getByText(QUESTION)).toHaveCount(1)
   await expect(log.getByText(LAST)).toHaveCount(1)
   await expect(log.getByText(FOLLOW_UP)).toHaveCount(0)
+})
+
+/**
+ * The service's look-ups, counted. While `fail` is on, each one answers 502, as the service does
+ * during a deploy: the chat says Not checked.
+ */
+async function lookups(page: Page) {
+  const seen = { count: 0, fail: false }
+  await page.route('**/api/v1/ask/lookup', async (r) => {
+    seen.count++
+    if (seen.fail) await r.fulfill({ status: 502, contentType: 'application/json', body: '{}' })
+    else await r.continue()
+  })
+  return seen
+}
+/** Whether the browser keeps a chat's answers with it yet. */
+const keptInBrowser = (page: Page) =>
+  page.evaluate(() =>
+    Object.keys(localStorage).some(
+      (k) => k.startsWith('heed.ask.chats.') && localStorage.getItem(k)!.includes('"answers"'),
+    ),
+  )
+
+test('a chat keeps its first answer, so opening it again after a reload asks nothing', async ({
+  page,
+}) => {
+  test.skip(mode !== 'http', 'the mock keeps its chats only until the page reloads')
+  const seen = await lookups(page)
+  await go(page, '/ask?n=j49g')
+  const log = page.getByRole('log')
+  await ask(page, QUESTION)
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(1)
+  await expect.poll(() => keptInBrowser(page)).toBe(true)
+  expect(seen.count).toBe(1)
+
+  await page.reload()
+  await expect(log.getByText(QUESTION)).toHaveCount(1)
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  expect(seen.count).toBe(1)
+})
+
+test('a first question that comes back Not checked does not join; Ask again that answers does', async ({
+  page,
+}) => {
+  test.skip(mode !== 'http', 'the mock has no failing service')
+  const seen = await lookups(page)
+  seen.fail = true
+  await go(page, '/ask?n=j49h')
+  const log = page.getByRole('log')
+  await ask(page, QUESTION)
+  await expect(log.getByText('Not checked', { exact: true })).toHaveCount(1)
+  // Not checked is not an answer: the chat stays as it was, out of the history.
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(0)
+  expect(chatParam(page)).toBeNull()
+
+  seen.fail = false
+  await log.getByRole('button', { name: 'Ask again', exact: true }).click()
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(1)
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  await expect(log.getByText('Not checked', { exact: true })).toHaveCount(0)
+  expect(chatParam(page)).not.toBeNull()
+})
+
+test('Ask again that comes back Not checked keeps the answer the turn had', async ({ page }) => {
+  test.skip(mode !== 'http', 'the mock has no failing service')
+  const seen = await lookups(page)
+  await go(page, '/ask?n=j49i')
+  const log = page.getByRole('log')
+  await ask(page, QUESTION)
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  const had = await log.getByText(STATE).innerText()
+  expect(had).not.toBe('Not checked')
+
+  seen.fail = true
+  await log
+    .getByRole('group', { name: 'Answer actions' })
+    .getByRole('button', { name: 'Ask again', exact: true })
+    .click()
+  await expect(page.getByText("Couldn't ask that again")).toBeVisible()
+  await expect(log.getByText(STATE)).toHaveText(had)
+  expect(seen.count).toBe(2)
 })

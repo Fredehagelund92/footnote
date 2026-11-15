@@ -14,6 +14,7 @@ import type { Database, Queryable } from '../../db/database.ts'
 import { draftVocabulary } from '../../mcp/draft-tool.ts'
 import { createSourceProposals } from '../proposals/index.ts'
 import type { ContentSource } from './platform.ts'
+import { holdRead, readKindOf, stillCurrent } from './read-kind.ts'
 import { scheduleOf } from './schedule.ts'
 import { SourceReadError, type SourceWarning } from './types.ts'
 
@@ -36,17 +37,20 @@ import { SourceReadError, type SourceWarning } from './types.ts'
   A document that is deleted, or leaves the chosen scopes, withdraws its open suggestion, and an
   item it became is listed for its owners (CON-609). Owners are told once per source per read.
 
-  The core chooses what kind of read it asks for by the cursor it hands. A connector that lists
-  everything (`full-listing`) lists everything each time, so a document it leaves out is gone. A
-  connector that reads changes since its cursor and sends tombstones (`both`) gets its cursor,
-  and absence means nothing; once its last full read is older than `FULL_READ_EVERY_DAYS`, it is
-  handed none, and lists everything again, which finds what a change list missed.
+  The core chooses what kind of read it asks for by the cursor it hands (`readKindOf`). A
+  connector that lists everything (`full-listing`) lists everything each time, so a document it
+  leaves out is gone. A connector that reads changes since its cursor and sends tombstones
+  (`both`) gets its cursor, and absence means nothing; once its last full read is older than
+  `FULL_READ_EVERY_DAYS`, or its settings changed since, it is handed none, and lists everything
+  again, which finds what a change list missed. A read holds no row while it is out, and keeps
+  nothing when its source was changed, paused or disconnected meanwhile.
 */
 
 /** What one read of a content source did, for the job's summary and the source's page. */
 export interface ContentResult {
-  readId: string
-  status: 'ok' | 'partial' | 'failed'
+  /** None for a read that kept nothing because its source changed while it was out. */
+  readId: string | null
+  status: 'ok' | 'partial' | 'failed' | 'discarded'
   documentsSeen: number
   suggested: number
   replaced: number
@@ -64,8 +68,6 @@ export const REMOVAL_SHARE_MAX = 0.5
 export const REMOVAL_FLOOR = 5
 /** Suggestions a source makes in a day when its manifest says nothing (CON-607). */
 export const DRAFTS_PER_DAY = 20
-/** How often a connector that reads changes lists everything again, in days. */
-export const FULL_READ_EVERY_DAYS = 7
 
 interface Known {
   document_id: string
@@ -139,6 +141,18 @@ export async function withdrawDisconnected(
   )
 }
 
+/** A read whose source was changed, paused or disconnected while it was out: it kept nothing. */
+const discarded: ContentResult = {
+  readId: null,
+  status: 'discarded',
+  documentsSeen: 0,
+  suggested: 0,
+  replaced: 0,
+  withdrawn: 0,
+  waiting: 0,
+  skipped: 0,
+}
+
 export class ContentPipeline {
   readonly #database: Database
   readonly #clock: Clock
@@ -156,8 +170,9 @@ export class ContentPipeline {
 
   async #sync(tx: Queryable, source: ContentSource): Promise<ContentResult> {
     const clock = this.#clock
+    await holdRead(tx, source.id)
     const [registered] = await tx.query<{ enabled: boolean; type: string; kind: string }>(
-      'select enabled, type, kind::text as kind from connectors where id=$1 for update',
+      'select enabled, type, kind::text as kind from connectors where id=$1',
       [source.id],
     )
     if (!registered) throw new Error(`Unknown connector: ${source.id}`)
@@ -165,39 +180,28 @@ export class ContentPipeline {
     if (registered.type !== source.type || registered.kind !== 'context_source')
       throw new Error('Connector type does not match registry')
     const { manifest } = source
-    const schedule = await scheduleOf(tx, source.id, manifest)
-    const [last] = await tx.query<{ cursor: string | null; full: boolean }>(
-      `select s.cursor,
-              exists (select 1 from connector_snapshots f where f.connector_id=$1 and f.status='ok'
-                        and f.full_read and f.fetched_at > now() - make_interval(days => $2)
-                        and (c.changed_at is null or f.fetched_at > c.changed_at)) as full
-         from connector_snapshots s join connectors c on c.id = s.connector_id
-        where s.connector_id=$1 and s.status <> 'failed'
-        order by s.fetched_at desc limit 1`,
-      [source.id, FULL_READ_EVERY_DAYS],
-    )
-    const { deletions } = manifest.capabilities
-    // A connector that reads changes lists everything again now and then, and after any change of
-    // its settings (a folder just ticked has no changes to read): it is handed no cursor.
-    const cursor = deletions === 'both' && !last?.full ? null : (last?.cursor ?? null)
-    // Whether what the read leaves out is gone: a full listing, or a read from no cursor.
-    const fullRead = deletions === 'full-listing' || (deletions === 'both' && cursor === null)
+    const kind = await readKindOf(tx, source.id, manifest.capabilities.deletions)
+    const { cursor, full: fullRead } = kind
     const started = performance.now()
     let read
     try {
       read = await source.read({ cursor })
     } catch (error) {
       if (!(error instanceof SourceReadError)) throw error
+      if (!(await stillCurrent(tx, source.id, kind))) return discarded
+      const schedule = await scheduleOf(tx, source.id, manifest)
       const [failed] = await tx.query<{ id: string }>(
         `insert into connector_snapshots
-           (connector_id, status, fetched_at, duration_ms, warnings, error, connector_version)
-         values ($1, 'failed', clock_timestamp(), $2, $3, 'Content source could not be read', $4)
+           (connector_id, status, fetched_at, duration_ms, warnings, error, connector_version,
+            settings_revision)
+         values ($1, 'failed', clock_timestamp(), $2, $3, 'Content source could not be read', $4, $5)
          returning id`,
         [
           source.id,
           Math.round(performance.now() - started),
           JSON.stringify(error.warnings),
           manifest.version,
+          kind.revision,
         ],
       )
       const failures = schedule.failures + 1
@@ -222,12 +226,14 @@ export class ContentPipeline {
         skipped: 0,
       }
     }
+    if (!(await stillCurrent(tx, source.id, kind))) return discarded
+    const schedule = await scheduleOf(tx, source.id, manifest)
     const warnings: SourceWarning[] = [...read.warnings]
     const [saved] = await tx.query<{ id: string }>(
       `insert into connector_snapshots
          (connector_id, source_version, status, fetched_at, duration_ms, warnings, connector_version,
-          documents_seen, cursor, full_read)
-       values ($1, $2, $3, clock_timestamp(), $4, '[]', $5, $6, $7, $8) returning id`,
+          documents_seen, cursor, full_read, settings_revision)
+       values ($1, $2, $3, clock_timestamp(), $4, '[]', $5, $6, $7, $8, $9) returning id`,
       [
         source.id,
         read.version,
@@ -237,6 +243,7 @@ export class ContentPipeline {
         read.documents.length + read.unread.length,
         read.cursor ?? null,
         fullRead,
+        kind.revision,
       ],
     )
     const readId = saved!.id

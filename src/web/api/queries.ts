@@ -697,6 +697,27 @@ const inPlace: {
     ),
 }
 
+/**
+ * Someone else now: a read still under way for the last person must not land in the new one's
+ * cache, and what was read for them is not shown again. The sign-in page's own reads stay.
+ */
+async function forgetLastPerson(queryClient: QueryClient) {
+  await queryClient.cancelQueries()
+  queryClient.removeQueries({ type: 'inactive' })
+}
+
+/**
+ * Another tab signed this browser in as someone else, and a change here was not sent as them:
+ * the app moves to them as a sign-in does, so no screen keeps the last person's reads.
+ */
+export async function afterSomeoneElse(queryClient: QueryClient) {
+  await forgetLastPerson(queryClient)
+  await queryClient.refetchQueries({ queryKey: queryKeys.session })
+  await queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] !== queryKeys.session[0],
+  })
+}
+
 /** Marks every cache a write made stale, so open screens fetch them again. */
 export async function invalidateAfter<K extends WriteOperation>(
   queryClient: QueryClient,
@@ -704,12 +725,7 @@ export async function invalidateAfter<K extends WriteOperation>(
   input: WriteInput<K>,
   result: WriteResult<K>,
 ) {
-  // Someone else now: a read still under way for the last person must not land in the new one's
-  // cache, and what was read for them is not shown again. The sign-in page's own reads stay.
-  if (operation === 'signIn') {
-    await queryClient.cancelQueries()
-    queryClient.removeQueries({ type: 'inactive' })
-  }
+  if (operation === 'signIn') await forgetLastPerson(queryClient)
   inPlace[operation]?.(queryClient, input)
   const keys = coveringKeys(invalidations[operation](input, result))
   await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })))

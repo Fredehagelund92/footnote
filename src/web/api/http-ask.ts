@@ -470,7 +470,7 @@ type StoredChat = {
   question: string
   at: number
   preview: string
-  /** Ask's loop: its finished answers, for the newest chats only (`KEPT_ANSWERS`). */
+  /** Its finished answers, for the newest chats only (`KEPT_ANSWERS`). */
   answers?: Answer[]
 }
 
@@ -564,8 +564,8 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
       ])
     },
     /**
-     * The finished answers of a chat of Ask's loop, kept with it: the newest chats keep theirs, so
-     * what the browser holds stays small.
+     * The finished answers of a chat, kept with it: the newest chats keep theirs, so what the
+     * browser holds stays small.
      */
     keep(person: string, id: string, question: string, answers: Answer[]) {
       const chats = read(person)

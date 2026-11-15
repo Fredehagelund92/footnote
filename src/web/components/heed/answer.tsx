@@ -64,7 +64,7 @@ import {
   type AskedDefinition,
   type QuestionPart,
 } from '@/model/ask'
-import { isLive, type Turn } from '@/model/ask-turn'
+import { drawnByLoop, isLive, type Turn } from '@/model/ask-turn'
 import { MentionChip } from '@/components/heed/mention-chip'
 import type { Fact } from '@/model/items'
 import { closeDock, openDock, useDock } from '@/lib/dock'
@@ -1359,7 +1359,7 @@ export function AnswerBody(props: AnswerBodyProps) {
   const { records } = props.turn.answer
   if (props.turn.error) return <Unanswered error={props.turn.error} onRetry={props.onRetry} />
   // Ask's loop: from its first read's step to its answer, drawn by its own body.
-  if (props.turn.answer.loop || props.turn.reads)
+  if (drawnByLoop(props.turn))
     return (
       <React.Suspense
         fallback={<ReadingLine running>{props.turn.working ?? 'Reading…'}</ReadingLine>}

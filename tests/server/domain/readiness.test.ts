@@ -133,12 +133,12 @@ describe('the Ready line', () => {
       bulk: false,
     })
     expect(readinessWords(readiness(clash))).toEqual({
-      title: 'Not ready: choose how they relate',
-      text: 'Publish waits until you say how this relates to the live item.',
+      title: 'Check how they relate',
+      text: 'It overlaps a live item, answered Unrelated unless you change it.',
     })
     // Several live items: each needs its own answer, and the line says so.
     expect(readinessWords(readiness(clash), { clashes: 3 }).text).toBe(
-      'Publish waits until you say how this relates to each of the 3 live items.',
+      'It overlaps 3 live items, each answered Unrelated unless you change it.',
     )
     for (const relation of ['replaces', 'disagrees', 'unrelated'] as const) {
       const answered = readiness({ ...clash, clash: { itemId: 'itm_gift', relation } })
@@ -239,8 +239,8 @@ describe('the Ready line from its facts', () => {
     const waiting = readinessFrom({ ...facts, clash: { relation: null } })
     expect(waiting).toMatchObject({ state: 'clash', ok: false, publishable: false })
     expect(readinessWords(waiting, { clashes: 3 })).toEqual({
-      title: 'Not ready: choose how they relate',
-      text: 'Publish waits until you say how this relates to each of the 3 live items.',
+      title: 'Check how they relate',
+      text: 'It overlaps 3 live items, each answered Unrelated unless you change it.',
     })
   })
 })

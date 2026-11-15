@@ -54,7 +54,7 @@ export function reviewFollows(r: Review): string {
     return r.mode === 'retire'
       ? 'The item changed since: close it, with a reason'
       : 'The item changed since: return it to its sender'
-  if (r.clash) return 'Publishing waits until you say how they relate'
+  if (r.clash) return 'Overlaps are answered Unrelated unless you change them'
   if (claims)
     return claims === 1
       ? 'Check the claim, then publish'

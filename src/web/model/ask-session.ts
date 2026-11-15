@@ -1,5 +1,5 @@
 import type { Answer, AskInput, Example, Thread } from './ask'
-import { isLive, type Turn } from './ask-turn'
+import { effectsOf, isLive, outcomeOf, type Turn } from './ask-turn'
 
 // Which chat a thread in Ask is, and whether it has joined the history. One value per mounted
 // thread: it is made when the thread mounts and goes with it, so a thread that was left and comes
@@ -10,7 +10,8 @@ import { isLive, type Turn } from './ask-turn'
 //   fresh   an empty thread: nothing is answered yet
 //   example an example, opened on its own answer; it is in the history already
 //   history a chat opened from the history, a reload, Back or Forward: its kept answers, or else
-//           its first question asked again
+//           (a chat kept before its answers were, or one past the newest kept) its first question
+//           asked again
 //   live    a thread in which a turn was answered: the thread shows itself, nothing is read for it
 
 /** Where the address points: an example, a chat, or neither (a new chat). */
@@ -23,7 +24,7 @@ export type Session =
       kind: 'history'
       chat: string
       question: string
-      /** What Ask's loop kept with the chat; none, and its first question is asked again. */
+      /** What was kept with the chat; none, and its first question is asked again. */
       answers: Answer[] | null
     }
   | { kind: 'live'; chat: string }
@@ -113,14 +114,17 @@ export function reduce(
 }
 
 /**
- * Ask's loop keeps a chat's answers with it, so it opens again as it was: every turn that is done,
- * once none is on its way. A stopped or failed turn is left out and does not stop the rest being
- * kept. None when a done turn is not the loop's: the chat then opens on its first question.
+ * A chat keeps its answers with it, so it opens again as it was and asks nothing: every turn whose
+ * outcome is kept, once none is on its way. A stopped, refused or Not checked turn is left out and
+ * does not stop the rest being kept. None when no turn is kept.
  */
 export function keptAnswers(turns: readonly Turn[]): Answer[] | null {
   if (turns.some(isLive)) return null
-  const done = turns.filter((t) => t.stage === 'done' && !t.error && !t.stopped)
-  return done.length > 0 && done.every((t) => !!t.answer.loop) ? done.map((t) => t.answer) : null
+  const kept = turns.filter((t) => {
+    const outcome = outcomeOf(t)
+    return !!outcome && effectsOf(outcome).kept
+  })
+  return kept.length > 0 ? kept.map((t) => t.answer) : null
 }
 
 /** The id for the next turn: `t<n>`, past every id the chat already holds (kept turns can skip). */
