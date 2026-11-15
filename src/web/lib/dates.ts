@@ -78,15 +78,24 @@ export const monthYear = (when: Input, style: Style = {}) =>
   format({ month: 'short', year: 'numeric', ...zone(when, style) }).format(at(when))
 
 /** The twelve months' names in a locale, long and short, lower-cased and without dots. */
-const monthNames = (locale: string | undefined) =>
-  [...Array(12).keys()].map((m) =>
-    (['long', 'short'] as const).map((month) =>
-      new Intl.DateTimeFormat(locale, { month, timeZone: 'UTC' })
-        .format(Date.UTC(2026, m, 15))
-        .toLowerCase()
-        .replace(/\./g, ''),
-    ),
-  )
+const names = new Map<string, string[][]>()
+const monthNames = (locale: string | undefined) => {
+  const key = String(locale)
+  let found = names.get(key)
+  if (!found)
+    names.set(
+      key,
+      (found = [...Array(12).keys()].map((m) =>
+        (['long', 'short'] as const).map((month) =>
+          new Intl.DateTimeFormat(locale, { month, timeZone: 'UTC' })
+            .format(Date.UTC(2026, m, 15))
+            .toLowerCase()
+            .replace(/\./g, ''),
+        ),
+      )),
+    )
+  return found
+}
 
 /**
  * The month (0 to 11) a typed name stands for, in the reader's locale or in English; -1 for

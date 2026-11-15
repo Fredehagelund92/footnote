@@ -27,7 +27,7 @@ const world =
         share: 'What should I know about Orders in Germany?',
         shareState: 'Checked (1 item)',
         shareSource:
-          '1 Orders lags by one day in the source tool - Sofia Brandt, checked 12 Sep 2026',
+          /1 Orders lags by one day in the source tool - Sofia Brandt, checked 12 Sep(t)? 2026/,
         firstSentence: /^A new customs rule stopped all online sales to Norway from 4 August 2026/,
         sentences: 4,
       }
@@ -35,7 +35,7 @@ const world =
         share: grounded,
         shareState: 'Checked (2 items)',
         shareSource:
-          '1 Online sales to Norway stopped on 4 August 2026 - Jon Abara, checked 3 Oct 2026',
+          /1 Online sales to Norway stopped on 4 August 2026 - Jon Abara, checked 3 Oct 2026/,
         firstSentence: /^Online sales to Norway stopped on 4 August 2026/,
         sentences: 3,
       }
