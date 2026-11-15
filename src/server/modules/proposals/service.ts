@@ -19,6 +19,7 @@ import type { Queryable } from '../../db/database.ts'
 import { forReader } from '../library/index.ts'
 import { checkDraft } from './checks.ts'
 import { insertVersion } from './versions.ts'
+import { missing, notAllowed } from '../../../contract/refusals.ts'
 
 const fields = `id::text,number::float8,subject,action,state,area_id as "areaId",item_id as "itemId",
  vocab_version_id::text as "vocabularyVersionId",reason,
@@ -163,13 +164,13 @@ function proposalsService(
       `select ${fields} from proposals where id=$1 and discarded_at is null${lock ? ' for update' : ''}`,
       [id],
     )
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     return record(row)
   }
   async function getItem(id: string, lock = false) {
     const p = await get(id, lock)
     if (p.subject !== 'item' || !['create', 'change'].includes(p.action) || !p.areaId)
-      throw new ORPCError('NOT_FOUND')
+      throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     return { ...p, areaId: p.areaId }
   }
   function conflict(proposal: ProposalRecord): never {
@@ -185,7 +186,10 @@ function proposalsService(
     return proposal
   }
   function proposerOnly(p: ProposalRecord) {
-    if (p.proposerId !== personId) throw new ORPCError('FORBIDDEN')
+    if (p.proposerId !== personId)
+      throw new ORPCError('FORBIDDEN', {
+        message: notAllowed('change a suggestion someone else wrote', 'the person who wrote it'),
+      })
   }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
     await tx.query(
@@ -365,7 +369,7 @@ function proposalsService(
       where s.item_id=$1 and s.editions @> (select seq from live_edition) and cl_audience_allows(v.audience_groups)`,
       [id],
     )
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
     // The new draft starts from what the person may read of the item: not a link to a hidden one.
     const [draft] = await forReader(tx, [row.draft])
     return draft!
@@ -606,7 +610,10 @@ function proposalsService(
           : await current(id, revision)
       proposerOnly(p)
       if (!['submitted', 'in_review', 'changes_requested'].includes(p.state))
-        throw new ORPCError('CONFLICT')
+        throw new ORPCError('CONFLICT', {
+          message:
+            'This suggestion was decided already. Nothing was changed. Open it to see what happened.',
+        })
       rejectSensitive(reason)
       rejectMentions(reason)
       await tx.query(
@@ -633,7 +640,8 @@ function proposalsService(
           'select cl_is_admin_now() or ($2 and cl_is_owner_now($1)) as ok',
           [p.areaId, byDomainOwners],
         )
-        if (!may?.ok) throw new ORPCError('FORBIDDEN')
+        if (!may?.ok)
+          throw new ORPCError('FORBIDDEN', { message: notAllowed('decide this suggestion') })
       }
       if (p.state !== 'draft')
         throw new ORPCError('CONFLICT', {

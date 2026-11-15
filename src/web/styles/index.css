@@ -485,6 +485,35 @@
   }
 }
 
+/* The place you are in a sidebar menu: one highlight behind the places, 32px tall as they are, that
+   travels to the place pressed in 150ms on the move curve. Translate only, so it keeps moving while
+   the main thread draws the new page, and nothing resizes or fades. It is simply in its new place
+   on the first paint, for a keyboard press and for Back and Forward: it travels only while
+   data-travel is set, which a pointer press on a place sets (components/ui/sidebar.tsx). With
+   reduced motion --dur-2 is 0 and it is there at once. */
+@utility nav-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--space-8);
+  border-radius: var(--radius-md);
+  background: var(--sidebar-accent);
+  translate: 0 calc(var(--selected) * var(--space-8));
+
+  &[data-travel] {
+    transition-property: translate;
+    transition-duration: var(--dur-2);
+    transition-timing-function: var(--ease-move);
+  }
+}
+
+/* A menu with that one highlight gives up each place's own grey, so the grey travels instead of
+   turning off here and on there. */
+[data-slot='sidebar-menu'][data-highlight] [data-slot='sidebar-menu-button'][data-active] {
+  background: transparent;
+}
+
 /* The Inbox saying the work is done: the block fades in and rises 8px in 220ms, the tick icon coming
    from 97 percent, starting once the last row's 150ms collapse is done, only when the last card left
    while the page was open (data-arrive is set at the first draw, never on a page that is already
