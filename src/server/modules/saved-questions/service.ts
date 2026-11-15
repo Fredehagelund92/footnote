@@ -19,6 +19,7 @@ import type { Clock } from '../../clock.ts'
 import type { Database, Queryable } from '../../db/database.ts'
 import type { BundleCache } from '../answer/index.ts'
 import type { ServingBundle } from '../editions/index.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /**
  * Saved questions and the free check on the service (FR-526, src/domain/saved-check.ts). A saved
@@ -309,7 +310,7 @@ export function createSavedQuestionsService(
 ): SavedQuestionsService {
   async function one(id: string): Promise<SavedQuestionRecord> {
     const [row] = await tx.query<ListRow>(`select ${listFields} ${listFrom} and q.id = $1`, [id])
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this saved question') })
     return recordOf(row)
   }
 
@@ -319,7 +320,7 @@ export function createSavedQuestionsService(
               exists (select 1 from areas where id = $1 and archived_at is null) as exists`,
       [areaId],
     )
-    if (!row?.exists) throw new ORPCError('NOT_FOUND')
+    if (!row?.exists) throw new ORPCError('NOT_FOUND', { message: missing('this domain') })
     if (!row.manages)
       throw new ORPCError('FORBIDDEN', {
         message: 'Owners of the domain and admins save questions about it.',

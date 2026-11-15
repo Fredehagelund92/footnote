@@ -93222,6 +93222,24 @@
                                         ]
                                       }
                                     },
+                                    "defined": {
+                                      "type": "object",
+                                      "properties": {
+                                        "names": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "tool": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "names",
+                                        "tool"
+                                      ]
+                                    },
                                     "choices": {
                                       "type": "array",
                                       "items": {

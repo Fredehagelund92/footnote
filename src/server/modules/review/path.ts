@@ -50,6 +50,7 @@ import {
 } from './records.ts'
 import type { CommentsService } from '../comments/index.ts'
 import type { ReviewService, UnderPolicy } from './service.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /*
   The review of Heed v1 (FR-224 to FR-227): the sheet a review page reads, and its decisions.
@@ -112,7 +113,7 @@ export function createReviewPath(
   }
   async function stored(id: string): Promise<StoredVersion> {
     const version = await readVersion(tx, id)
-    if (!version) throw new ORPCError('NOT_FOUND')
+    if (!version) throw new ORPCError('NOT_FOUND', { message: missing('this version') })
     return version
   }
   async function baseOf(versionId: string): Promise<string | null> {
@@ -210,7 +211,8 @@ export function createReviewPath(
 
   /** What one suggestion is, read once: its versions, the bundles with and without it, its clashes. */
   async function reading(p: LoadedProposal) {
-    if (p.subject !== 'item') throw new ORPCError('NOT_FOUND')
+    if (p.subject !== 'item')
+      throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     const bundle = await liveBundle()
     const gapId = await gapOf(p)
     if (p.action === 'retire') {
@@ -218,7 +220,7 @@ export function createReviewPath(
       const live = p.itemId ? await liveVersionId(tx, p.itemId) : null
       const shownId = live ?? (p.itemId ? await lastServedId(p.itemId) : null)
       const version = shownId ? await stored(shownId) : null
-      if (!version) throw new ORPCError('NOT_FOUND')
+      if (!version) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
       const without: ServingBundle = {
         ...bundle,
         items: bundle.items.filter((i) => i.id !== version.itemId),
@@ -237,7 +239,7 @@ export function createReviewPath(
         standing: waits(p) ? standingOf({ written: p.itemVersionId, live }) : 'current',
       }
     }
-    if (!p.itemVersionId) throw new ORPCError('NOT_FOUND')
+    if (!p.itemVersionId) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     const after = await stored(p.itemVersionId)
     const baseId = await baseOf(after.id)
     const before = baseId ? await stored(baseId) : null
@@ -789,7 +791,8 @@ export function createReviewPath(
         where d.id=any($1::uuid[])`,
       [ids, seconds],
     )
-    if (rows.length !== new Set(ids).size) throw new ORPCError('NOT_FOUND')
+    if (rows.length !== new Set(ids).size)
+      throw new ORPCError('NOT_FOUND', { message: missing('these suggestions') })
     for (const d of rows) {
       // Nobody read a suggestion published under a policy (FR-421): an owner of its domain or an
       // admin undoes that publish later, while the item is as it published it.

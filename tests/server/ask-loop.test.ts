@@ -103,7 +103,7 @@ describe('what code writes from the reads', () => {
       ],
       [],
     )
-    expect(t.text).toBe('Germany lags [1]. Also [2]. And.')
+    expect(t.text).toBe('Germany lags.[1] Also.[2] And.')
     expect(t.sources).toEqual(['itm_germany01', 'itm_france001'])
     // A definition's id is no source, and the question asks nothing a definition adds to.
     expect(t.definitions).toEqual([])
@@ -120,8 +120,22 @@ describe('what code writes from the reads', () => {
   })
 
   it('takes the state from the read about the subject: Not found, its nearby items listed and not used', () => {
-    // The subject read found nothing; the words cite items it gave as nearby, and items a search
-    // matched on some of its words only.
+    // The subject read found nothing; the words cite only items it gave as nearby: they do not
+    // apply, so they are no sources, and their numbers go.
+    const t = turnOf(
+      'Nothing is written about orders in Poland. Germany lags (by a day [itm_germany01]).',
+      [get('missing', [], ['itm_germany01', 'itm_norway001'])],
+      [],
+    )
+    expect(t.state).toBe('missing')
+    expect(t.sources).toEqual([])
+    expect(t.text).toBe('Nothing is written about orders in Poland. Germany lags (by a day).')
+    expect(t.nearby).toEqual(['itm_germany01', 'itm_norway001'])
+  })
+
+  it('keeps the citations of what the reads returned, and a turn that cites one that is not nearby is not Not found', () => {
+    // The subject read found nothing; the words cite an item it gave as nearby, and one a search
+    // matched on some of its words only, which the words rest on.
     const t = turnOf(
       'Nothing is written about orders in Poland. Germany lags (by a day [itm_germany01]) and France switched [itm_france001].',
       [
@@ -130,12 +144,22 @@ describe('what code writes from the reads', () => {
       ],
       [],
     )
+    expect(t.state).toBe('partial')
+    expect(t.sources).toEqual(['itm_germany01', 'itm_france001'])
+    expect(t.text).toBe(
+      'Nothing is written about orders in Poland. Germany lags (by a day [1]) and France switched.[2]',
+    )
+    expect(t.closest).toBeNull()
+  })
+
+  it("keeps Not found when a turn cites an item an earlier turn's subject read gave as nearby", () => {
+    const t = turnOf(
+      'Still nothing about orders in Poland. Germany lags [itm_germany01].',
+      [get('missing', [])],
+      [get('missing', [], ['itm_germany01'])],
+    )
     expect(t.state).toBe('missing')
     expect(t.sources).toEqual([])
-    expect(t.text).toBe(
-      'Nothing is written about orders in Poland. Germany lags (by a day) and France switched.',
-    )
-    expect(t.nearby).toEqual(['itm_germany01', 'itm_france001', 'itm_norway001'])
   })
 
   it('takes what the cited items are when a search found what the subject read did not', () => {
@@ -224,6 +248,104 @@ describe('what code writes from the reads', () => {
   })
 })
 
+describe('a turn that uses no context item', () => {
+  const definitions = (words: string | null): MadeRead => ({
+    tool: 'definitions',
+    input: { names: ['Orders'] },
+    result: {
+      found: 1,
+      definitions: [{ id: 'metric:orders', name: 'Orders', words, from: 'Cube (sales.orders)' }],
+      names: [],
+      ids: ['metric:orders'],
+    },
+  })
+  const subject = (state: string): MadeRead => {
+    const read = get(state, [])
+    const result = read.result as { read: object }
+    return {
+      ...read,
+      result: {
+        ...result,
+        read: { ...result.read, about: ['metric:orders'], assumedToday: true },
+      },
+    }
+  }
+
+  it('shows the Definition label, not a state, when it is about a definition', () => {
+    const words =
+      'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
+    const t = turnOf(
+      'Orders is the value of orders customers paid for.',
+      [subject('partial'), definitions(words)],
+      [],
+      'What is orders?',
+    )
+    expect(t.state).toBeNull()
+    expect(t.defined).toEqual({ names: ['Orders'], tool: 'Cube' })
+    // The words give the definition, whatever the question's words.
+    expect(
+      turnOf(
+        `Ordrer er ${words}`,
+        [subject('partial'), definitions(words)],
+        [],
+        'Hva betyr ordrer?',
+      ).defined,
+    ).toEqual({ names: ['Orders'], tool: 'Cube' })
+  })
+
+  it('keeps its state when it is not about a definition, or no definition was read', () => {
+    const notAbout = turnOf(
+      'Nothing written covers why orders fell.',
+      [subject('missing'), definitions('The value of orders customers paid for.')],
+      [],
+      'Why did orders fall?',
+    )
+    expect(notAbout.state).toBe('missing')
+    expect(notAbout.defined).toBeUndefined()
+    // Words that give a definition while answering about something nothing covers stay Not found.
+    const notFound = turnOf(
+      'Nothing written covers orders here. Orders is the value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
+      [
+        subject('missing'),
+        definitions(
+          'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
+        ),
+      ],
+      [],
+      'Give me all about orders in poland',
+    )
+    expect(notFound.state).toBe('missing')
+    expect(notFound.defined).toBeUndefined()
+    const none = turnOf(
+      'Nothing is written.',
+      [subject('missing'), definitions(null)],
+      [],
+      'What is orders?',
+    )
+    expect(none.state).toBe('missing')
+    expect(none.defined).toBeUndefined()
+  })
+
+  it('shows none of the evidence when it read nothing new and cites nothing', () => {
+    const earlier = [subject('partial'), definitions('The value of orders customers paid for.')]
+    const t = turnOf('You are welcome.', [], earlier, 'thanks!')
+    expect(t).toMatchObject({
+      state: null,
+      subject: null,
+      definitions: [],
+      read: [],
+      footer: { denominator: null, notSeen: null, stale: null },
+    })
+    // One that cites what an earlier read returned keeps it.
+    const cites = turnOf(
+      'As before, Germany lags [itm_germany01].',
+      [],
+      [find([{ ...item('itm_germany01'), match: 'all' }], 1)],
+    )
+    expect(cites.read).toEqual(['Read the chat’s 1 earlier read again, as you, now.'])
+  })
+})
+
 describe('the instructions', () => {
   it('say who is asking by what is theirs only, and name no case', () => {
     const system = loopSystem('2026-10-23', { admin: false, owns: ['Sales'] })
@@ -231,6 +353,19 @@ describe('the instructions', () => {
     expect(system).toContain('They own the domain Sales.')
     // No example of a question, and no market or metric of the demo.
     expect(system).not.toMatch(/Poland|Norway|Orders|are you sure|"/i)
+  })
+
+  it('speak to the person as you, of Ask as Ask, and give a definition when asked what it is', () => {
+    const system = loopSystem('2026-10-23', { admin: true, owns: [] })
+    expect(system).toContain('Speak to the person as “you”')
+    expect(system).toContain('of yourself as Ask, never as I or me')
+    expect(system).toContain('never write “the person asking”')
+    expect(system).toMatch(/Never say how you read the question/)
+    expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
+    expect(system).toContain('in every language')
+    expect(system).toContain('answer the likelier reading without saying which one you chose')
+    // Nothing left that asks for the third person or forbids the definition.
+    expect(system).not.toMatch(/third person|never restate a definition|The person asking is/)
   })
 })
 
@@ -442,7 +577,7 @@ describe("Ask's loop on a scripted model", () => {
     // The earlier read, made again, gives the item only as nearby to a subject with nothing written.
     expect(turn).toMatchObject({ sources: [], state: 'missing', nearby: ['itm_germany01'] })
     // What the turn sends back as its own reply cites by id, a nearby item too: what it wrote.
-    expect(turn.said).toBe('Still nothing, as before [itm_germany01].')
+    expect(turn.said).toBe('Still nothing, as before.[itm_germany01]')
   })
 
   it("holds an earlier reply's citations by id to what the reads return now, as its [n] marks", async () => {

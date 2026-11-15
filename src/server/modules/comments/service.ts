@@ -17,6 +17,7 @@ import {
 import type { Queryable } from '../../db/database.ts'
 import { docMarkdown } from '../../../domain/doc-diff.ts'
 import { proposalEvent } from '../proposals/index.ts'
+import { missing, signedOutKept } from '../../../contract/refusals.ts'
 
 /*
   Comments, reactions and mentions (FR-817; docs/product.md, sections 4 and 9). A thread hangs on
@@ -111,7 +112,7 @@ function refusal(error: unknown): never {
   const code = (error as { code?: string }).code
   if (code === '23514' || code === '23503')
     throw invalid("This comment can't be saved there. Open the thread again, then try again.")
-  if (code === '42501') throw new ORPCError('NOT_FOUND')
+  if (code === '42501') throw new ORPCError('NOT_FOUND', { message: missing('this comment') })
   throw error
 }
 
@@ -119,12 +120,14 @@ export function createCommentsService(tx: Queryable) {
   /** A subject by its name, if the person may read it; not found otherwise. */
   async function openSubject(name: string): Promise<CommentSubject> {
     const subject = parseSubject(name)
-    if (!subject) throw new ORPCError('NOT_FOUND')
+    if (!subject)
+      throw new ORPCError('NOT_FOUND', { message: missing('what you are commenting on') })
     const [row] = await tx.query<{ open: boolean }>(
       'select cl_comment_subject_open($1,$2::uuid) as open',
       subject.kind === 'item' ? [subject.id, null] : [null, subject.id],
     )
-    if (!row?.open) throw new ORPCError('NOT_FOUND')
+    if (!row?.open)
+      throw new ORPCError('NOT_FOUND', { message: missing('what you are commenting on') })
     return subject
   }
 
@@ -133,13 +136,13 @@ export function createCommentsService(tx: Queryable) {
 
   async function loadComment(id: string): Promise<Row> {
     const [row] = await tx.query<Row>(`select ${columns} from comments c where c.id=$1`, [id])
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this comment') })
     return row
   }
 
   async function me(): Promise<string> {
     const [row] = await tx.query<{ id: string }>('select cl_person()::text as id')
-    if (!row?.id) throw new ORPCError('UNAUTHORIZED')
+    if (!row?.id) throw new ORPCError('UNAUTHORIZED', { message: signedOutKept })
     return row.id
   }
 
@@ -526,7 +529,7 @@ export function createCommentsService(tx: Queryable) {
       if (input.commentId) {
         const comment = await loadComment(input.commentId).catch(() => null)
         if (!comment || !sameSubject(subjectOfRow(comment), subject))
-          throw new ORPCError('NOT_FOUND')
+          throw new ORPCError('NOT_FOUND', { message: missing('this comment') })
         if (comment.deletedAt)
           throw new ORPCError('CONFLICT', { message: 'This comment was deleted.' })
       }

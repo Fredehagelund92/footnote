@@ -33,6 +33,7 @@ import {
   type LoadedProposal,
   type Role,
 } from './records.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 export const sourceToolQuestion =
   'Does this change a definition or the way agents choose data? That belongs in the source tool.'
@@ -58,7 +59,7 @@ function plainReason(reason: string) {
 export function createReviewService(tx: Queryable, clock: Clock) {
   async function stored(versionId: string | null): Promise<StoredVersion> {
     const version = versionId ? await readVersion(tx, versionId) : null
-    if (!version) throw new ORPCError('NOT_FOUND')
+    if (!version) throw new ORPCError('NOT_FOUND', { message: missing('this version') })
     if (version.audienceGroups !== null)
       throw new ORPCError('CONFLICT', {
         message:
