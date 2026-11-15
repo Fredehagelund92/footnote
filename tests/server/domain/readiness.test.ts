@@ -49,8 +49,8 @@ describe('the Ready line', () => {
     const dates = input({ diff: edit({ validUntil: '2026-08-27' }) })
     expect(readiness(dates)).toMatchObject({ state: 'unsourced', ok: false, bulk: false })
     expect(words(dates)).toEqual({
-      title: 'Ready, not checked against a source',
-      text: 'Nothing compares 26 August 2026 with a source. Check it, or return it with a note.',
+      title: 'Ready, not compared with a source',
+      text: 'Nothing compares 26 August 2026 with a source. Compare it yourself, or return it with a note.',
     })
     const sourced = input({
       diff: edit({
@@ -82,7 +82,7 @@ describe('the Ready line', () => {
     })
     expect(readiness(link)).toMatchObject({ state: 'link', ok: true, bulk: false })
     expect(words(link).text).toBe(
-      'The words are the same. Open the new page to check it says the same thing.',
+      'The words are the same. Open the new page to see that it says the same thing.',
     )
     const reworded = input({
       diff: edit({ summary: 'The webshop was the only way to buy in Norway: it has no stores.' }),
@@ -114,7 +114,7 @@ describe('the Ready line', () => {
       claimsToCheck: 2,
     })
     expect(needsCare(r)).toBe(true)
-    expect(readinessWords(r).title).toBe('Ready, with 2 claims to check')
+    expect(readinessWords(r).title).toBe('Compare 2 details with the source first')
     // Every claim the same: nothing to check, and it reads as ready.
     const plain = readiness(input({ diff: docDiff(null, side()), claims: [] }))
     expect(plain).toMatchObject({ state: 'ready', claimsToCheck: 0 })
@@ -218,7 +218,7 @@ describe('the Ready line from its facts', () => {
     expect(allSame).toMatchObject({ state: 'ready', claimsToCheck: 0, ok: true })
     expect(readinessWords(allSame).title).toBe('Ready')
     const two = readinessFrom({ ...facts, claimsToCheck: 2 })
-    expect(readinessWords(two).title).toBe('Ready, with 2 claims to check')
+    expect(readinessWords(two).title).toBe('Compare 2 details with the source first')
   })
 
   it('reads an answered clash as Ready with what publishing does, unless a draft or a claim comes first', () => {

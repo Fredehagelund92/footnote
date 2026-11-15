@@ -71,8 +71,10 @@ describe('the words beside the button', () => {
     expect(pane('sug-sofia-clash').follows).toBe(
       'Overlaps are answered Unrelated unless you change them',
     )
-    expect(pane('gap-spain').follows).toBe('Check the 2 claims, then publish')
-    expect(pane('sug-agent').follows).toMatch(/^Check the \d+ claims, then publish$/)
+    expect(pane('gap-spain').follows).toBe('Compare the 2 details with the source, then publish')
+    expect(pane('sug-agent').follows).toMatch(
+      /^Compare the \d+ details with the source, then publish$/,
+    )
     expect(pane('sug-lars-retire').follows).toBe('Lars Dahl took it back in the comments')
     expect(pane('sug-ines-format').follows).toBe('Agents keep the same answer')
     expect(pane('gap-germany').follows).toBe('The editor opens on Orders, Germany')

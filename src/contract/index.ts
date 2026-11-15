@@ -1219,8 +1219,7 @@ export const contract = {
         method: 'GET',
         path: '/archived-areas',
         tags: ['admin'],
-        summary:
-          'The deleted domains that history keeps, newest first, with what restoring each gives back',
+        summary: 'The deleted domains that history keeps, newest first',
       })
       .output(z.array(archivedAreaSchema)),
   },
