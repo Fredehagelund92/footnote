@@ -398,7 +398,7 @@ function FigureConnectionDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor={`${id}-token`}>Key</FieldLabel>
+              <FieldLabel htmlFor={`${id}-token`}>{c.name} token</FieldLabel>
               <Input
                 id={`${id}-token`}
                 name="token"
@@ -408,8 +408,8 @@ function FigureConnectionDialog({
                 minLength={8}
               />
               <FieldDescription>
-                A key is a long password for a program. This one is a {c.name} token. Read only.
-                Shown nowhere once saved.
+                A token is a long password for a program. This one is read only. Shown nowhere once
+                saved.
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -981,7 +981,7 @@ export function IntegrationsPage() {
           className={cn(buttonVariants({ variant: 'outline' }))}
         >
           <PlusIcon data-icon="inline-start" />
-          <span className="max-sm:sr-only">Request a connector</span>
+          <span className="max-sm:sr-only">Request an integration</span>
           <ArrowUpRightIcon data-icon="inline-end" className="max-sm:hidden" />
         </a>
       }
@@ -1119,7 +1119,7 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
             <span className="grid size-8 place-items-center rounded-md border border-dashed text-muted-foreground">
               <PlusIcon className="size-4" aria-hidden />
             </span>
-            <h4 className="mt-1 text-sm font-medium">Request a connector</h4>
+            <h4 className="mt-1 text-sm font-medium">Request an integration</h4>
             <p className="text-sm text-muted-foreground">
               Tell us which tool holds your definitions or context, in an issue on GitHub.
             </p>
@@ -2624,7 +2624,7 @@ function PickStep({ c }: { c: Connector }) {
       <p className="flex gap-2 rounded-frame bg-primary/5 p-4 text-sm">
         <InfoIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
         {keyed
-          ? 'You need a Google Cloud project to create a service account key, and the folders to share with it. Only admins can connect a source.'
+          ? 'You need a Google Cloud project to make a Google key file, and the folders to share with it. Only admins can connect a source.'
           : c.places
             ? `You need a place your ${c.name} pipeline puts its file, and a way to read it there. Only admins can connect a source.`
             : c.git

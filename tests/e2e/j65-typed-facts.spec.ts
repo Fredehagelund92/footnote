@@ -18,8 +18,14 @@ test('Still true on a check does not promise a date for the next one', async ({ 
   await expect(page.getByText('It comes back when it is due for a check.')).toBeVisible()
 })
 
-test('the Definitions note does not give the time of the last read', async ({ page }) => {
+test('a synced metric does not say when it was last read', async ({ page }) => {
   await go(page, '/definitions')
-  await expect(page.getByText(/are synced from Cube, and read-only here\./)).toBeVisible()
-  await expect(page.getByText(/06:00/)).toHaveCount(0)
+  await page
+    .locator('tbody [data-row-open]')
+    .filter({ hasText: /^Net revenue$/ })
+    .click()
+  const comes = page.getByRole('region', { name: 'Where it comes from' })
+  await expect(comes).toContainText('read-only, read from')
+  await expect(comes).not.toContainText('06:00')
+  await expect(page.getByText(/read today at 06:00/)).toHaveCount(0)
 })

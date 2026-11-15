@@ -554,7 +554,7 @@ export function DefinitionsPage() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>Synonyms</DropdownMenuLabel>
+                  <DropdownMenuLabel>Another name</DropdownMenuLabel>
                   <DropdownMenuCheckboxItem
                     checked={synonymRows}
                     onCheckedChange={(on, e) => move(e.event, () => setSynonymRows(on))}
@@ -651,7 +651,7 @@ export function DefinitionsPage() {
             )}
             {synonymRows && (
               <FilterChip
-                field="Synonyms"
+                field="Another name"
                 values={['shown as rows']}
                 onRemove={() => setSynonymRows(false)}
               />
@@ -668,8 +668,9 @@ export function DefinitionsPage() {
           <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
             <ToolLogo c={source} size="sm" className="mt-0.5" />
             <span>
-              Metrics and dimensions are synced from {tool ?? 'the definitions tools connected'},
-              and read-only here. Terms are written here, by the owner of their domain.{' '}
+              Metrics and dimensions come from {tool ?? 'your definitions tool'}. To change one,
+              change it in the tool. Terms are words your company uses. The owner of their domain
+              writes them here.{' '}
               <a
                 href={integrationHref(source?.id)}
                 className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -882,7 +883,7 @@ function AlsoCalledChips({
   return (
     <span className="flex min-w-0 items-center gap-1 @max-xl/main:hidden">
       {names.length > 0 && (
-        <span className="shrink-0 text-xs text-muted-foreground">Also called</span>
+        <span className="shrink-0 text-xs text-muted-foreground">Another name</span>
       )}
       {first.map((n) => (
         <TagChip

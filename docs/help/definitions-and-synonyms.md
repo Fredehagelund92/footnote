@@ -24,7 +24,7 @@ Another name for a metric or a dimension, such as GMV for Gross sales. Agents re
 <!-- /include -->
 
 - A term is a word with its own meaning, such as Peak season.
-- On a definition, type other names into Also called: a comma or Enter makes each one a tag.
+- On a definition, type other names into Another name: a comma or Enter makes each one a tag.
 - In a term's editor, Another name for points the word at a metric or a dimension.
 - A word that already means something else says who has it, and is never saved twice. Case, spaces and accents don't make it another word: Salés is Sales.
 - A word that looks like one in use, such as Sale beside Sales, only warns. Agents read them as two words, so you can still publish it.

@@ -339,7 +339,9 @@ function RecordsBody({
       </div>
       <div className="flex flex-col gap-1">
         <RecordsChip />
-        <p className="text-sm text-muted-foreground">Counted from the workspace&apos;s records.</p>
+        <p className="text-sm text-muted-foreground">
+          From the app&apos;s own list of what was written and changed. Not from your sales data.
+        </p>
       </div>
       {records.limit && (
         <p data-answer-limit className="text-base font-medium text-pretty">
