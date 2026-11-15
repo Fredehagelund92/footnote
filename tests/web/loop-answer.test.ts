@@ -216,6 +216,40 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).not.toMatch(/Show \d+ more/)
   })
 
+  it('Definition: the label in place of a state, for an answer that uses no item', () => {
+    const el = render(
+      {
+        ...example('loop-checked'),
+        state: null,
+        sources: [],
+        defined: { names: ['Orders'], tool: 'Cube' },
+      },
+      'What is orders?',
+    )
+    expect(text(el)).toMatch(/^Definition/)
+    expect(text(el)).not.toMatch(/Checked|Partial|Not found/)
+  })
+
+  it('A reply to the chat that read nothing and cites nothing: its words and the actions only', () => {
+    const turn: LoopTurn = {
+      ...example('loop-checked'),
+      text: 'You are welcome.',
+      body: [{ t: 'p', runs: [{ t: 'text', text: 'You are welcome.' }] }],
+      state: null,
+      sources: [],
+      subject: null,
+      definitions: [],
+      read: [],
+      footer: { denominator: null, notSeen: null, stale: null },
+      reads: [],
+      items: [],
+      owners: [],
+    }
+    const el = render(turn, 'thanks!')
+    expect(text(el)).toMatch(/^You are welcome\./)
+    expect(text(el)).not.toMatch(/What Ask read|Definition|Used|records/)
+  })
+
   it('A question back: the question and its readings as choices, with no state', () => {
     const el = render(example('loop-question'))
     expect(text(el)).toContain('Which switch do you mean?')
