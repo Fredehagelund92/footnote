@@ -617,9 +617,9 @@ function Preview({ r }: { r: Review }) {
 }
 
 /**
- * The change: first what must be decided or known, the same in every view (a withdrawal, the
- * item to archive, where a synced suggestion came from, the claim check, the clash gate), then
- * the source or its preview. No view can hide the gate.
+ * The change: first what must be known, the same in every view (a withdrawal, the item to
+ * archive, where a synced suggestion came from, the claim check), then the source or its preview,
+ * then the live items it overlaps. No view can hide the claim check or the overlaps.
  */
 function TheChange({
   r,
@@ -636,7 +636,7 @@ function TheChange({
   const { cards } = useInbox()
   const item = itemOfReview(r, cards)
   const fact = facts.find((f) => f.id === item)
-  const gate = !!(r.claims || r.clash)
+  const gate = !!r.claims
   return (
     <div className="flex flex-col">
       {r.retire?.withdrawn && (
@@ -685,10 +685,14 @@ function TheChange({
       )}
       {r.synced && <SyncedFrom r={r} />}
       {r.claims && <ClaimCheck claims={r.claims} from={r.from} drafted={!!r.drafted} />}
-      {r.clash && <Clash r={r} />}
       <div className={cn((gate || r.retire) && 'mt-6 border-t pt-4')}>
         {view === 'source' ? <SourceReview r={r} me={me} owners={owners} /> : <Preview r={r} />}
       </div>
+      {r.clash && (
+        <div className="mt-6 border-t pt-4">
+          <Clash r={r} />
+        </div>
+      )}
     </div>
   )
 }
@@ -1631,12 +1635,13 @@ export function ReviewPage({ id }: { id: string }) {
   const hold = React.useRef({ timer: 0, left: 0, since: 0 })
   const [paused, setPaused] = React.useState(false)
   React.useEffect(() => () => window.clearTimeout(hold.current.timer), [])
-  // The owner's answers to a clash, over the ones the service already has.
+  // The owner's answers to a clash, over the ones the service already has; an overlap with none
+  // arrives answered Unrelated, as the editor's panel reads one left alone.
   const [chosen, setChosen] = React.useState<Record<string, Relation>>({})
   const answers = React.useMemo(
     () => ({
       ...Object.fromEntries(
-        (r?.clash?.items ?? []).flatMap((c) => (c.relation ? [[c.factId, c.relation]] : [])),
+        (r?.clash?.items ?? []).map((c) => [c.factId, c.relation ?? 'unrelated']),
       ),
       ...chosen,
     }),

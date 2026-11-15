@@ -578,8 +578,9 @@ export function createReviewPath(
   }
 
   /**
-   * `clashesOnly` is for a publish from the editor, which lists what overlaps by its own rule: an
-   * answer for an item this does not clash with is left out instead of refused.
+   * `clashesOnly` is for a publish from the editor, which lists what overlaps by its own rule and
+   * reads one left alone as unrelated: an answer for an item this does not clash with is left out
+   * instead of refused, and a clash it never listed is answered unrelated instead of refusing.
    */
   async function publish(
     input: z.infer<typeof publishInputSchema>,
@@ -613,6 +614,8 @@ export function createReviewPath(
           message: 'Answer only for the live facts this suggestion clashes with.',
         })
     const known = await relationsOf(r)
+    if (clashesOnly)
+      for (const id of r.clashes) if (!given.has(id) && !known.has(id)) given.set(id, 'unrelated')
     const open = r.clashes.filter((id) => !given.has(id) && !known.has(id))
     if (open.length) {
       // Each one by its title, so the editor can ask how this relates to it.

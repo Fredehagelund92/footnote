@@ -48,12 +48,16 @@ test('an overlap with several live items asks about each, and archives only the 
   for (const title of [stop, cardOnly, credit])
     await expect(page.getByText(title, { exact: false }).first()).toBeVisible()
   await expect(page.getByText('1 more overlaps only by where it applies')).toBeVisible()
-  // One answer is not an answer for the others: Publish waits until each has its own.
-  await relate(credit, 'This replaces it')
-  await page.getByRole('button', { name: 'Mark it unrelated' }).click()
+  // The suggestion comes first, and every overlap arrives answered Unrelated: Publish is live, and
+  // saying more is the reviewer's choice.
+  const asked = await page.getByRole('region', { name: 'The source' }).boundingBox()
+  const overlaps = await page.getByText('Overlaps live context').boundingBox()
+  expect(asked!.y).toBeLessThan(overlaps!.y)
   await expect(page.getByText('Marked unrelated')).toBeVisible()
-  await expect(decide.getByText('Not ready: choose how they relate.')).toBeVisible()
-  await expect(decide.getByRole('button', { name: 'Publish' })).toBeDisabled()
+  await expect(decide.getByText('Not ready: choose how they relate.')).toHaveCount(0)
+  await expect(decide.getByRole('button', { name: 'Publish' })).toBeEnabled()
+  // One answer is not an answer for the others.
+  await relate(credit, 'This replaces it')
   await relate(cardOnly, 'These disagree')
   await expect(
     decide.getByText('When you publish, 1 live item is archived and 2 stay.'),
