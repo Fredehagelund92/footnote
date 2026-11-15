@@ -196,7 +196,7 @@ type Refused = { word: string; reason: string }
  */
 export function SynonymTags({
   d,
-  label = 'Also called',
+  label = 'Another name',
   canEdit,
   level = 3,
 }: {
@@ -545,7 +545,7 @@ export function DefinitionDetails({ d }: { d: Definition }) {
         <PeekFacts>
           {d.synced ? (
             <PeekFact icon={LockIcon}>
-              <b>{domain}</b> - read-only, synced from {d.tool ?? 'its tool'} {SYNCED_AT} -{' '}
+              <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} {SYNCED_AT} -{' '}
               <a
                 href={sourceUrl(d)}
                 target="_blank"

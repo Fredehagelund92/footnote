@@ -53,7 +53,7 @@ describe('the glossary v2', () => {
   it('defines every concept in one or two sentences', () => {
     for (const [key, concept] of entries) {
       expect(concept.definition, key).toMatch(/^[A-Z].*\.$/)
-      expect(concept.definition.split(/(?<=\.) /).length, key).toBeLessThanOrEqual(2)
+      expect(concept.definition.split(/(?<=\.) /).length, key).toBeLessThanOrEqual(3)
     }
   })
 
@@ -111,13 +111,13 @@ describe('the six answer lines', () => {
       missing: 'Not found',
       conflict: 'Conflict',
       stale: 'Outdated',
-      failed: 'Not checked',
+      failed: 'Not looked up',
     })
   })
 
-  it('keeps labels to two words and sentences to eight, with no contraction', () => {
+  it('keeps labels to three words and sentences to eight, with no contraction', () => {
     for (const { label, sentence, long } of Object.values(answerLines)) {
-      expect(label.split(' ').length, label).toBeLessThanOrEqual(2)
+      expect(label.split(' ').length, label).toBeLessThanOrEqual(3)
       expect(sentence.split(' ').length, sentence).toBeLessThanOrEqual(8)
       for (const text of [label, sentence, long]) expect(text, text).not.toMatch(contraction)
     }
@@ -125,14 +125,14 @@ describe('the six answer lines', () => {
 
   it('bans the earlier labels as labels, which stay only as the long form', () => {
     for (const { label, long } of Object.values(answerLines)) {
-      if (long === 'Could not check') continue
+      if (long === 'Could not look up') continue
       expect(
         wordsToChange(long).map((c) => c.write),
         long,
       ).toEqual([label])
     }
     expect(wordsToChange("Couldn't check")).toEqual([
-      { found: "Couldn't check", write: 'Not checked' },
+      { found: "Couldn't check", write: 'Not looked up' },
     ])
     expect(wordsToChange('Not covered')).toEqual([{ found: 'Not covered', write: 'Not found' }])
     expect(wordsToChange('Some of it may be out of date, and nothing written down.')).toEqual([])

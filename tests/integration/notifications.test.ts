@@ -141,10 +141,9 @@ async function inbox(who: Who) {
       subject: { type: string; id: string }
       state: string | null
       actorId: string | null
-      readAt: string | null
     }>(
       `select kind, json_build_object('type', subject_type, 'id', subject_id) as subject,
-         payload->>'state' as state, actor_id::text as "actorId", read_at::text as "readAt"
+         payload->>'state' as state, actor_id::text as "actorId"
        from inbox_items where person_id = $1 order by id desc`,
       [people[who]],
     )
@@ -171,7 +170,6 @@ describe('the outbox relay', () => {
       subject: { type: 'proposal', id: p.id },
       state: 'submitted',
       actorId: people.author,
-      readAt: null,
     })
     // The second owner reviews too; the author, the approver and others do not.
     expect(kinds(await inbox('admin'), p.id)).toEqual(['proposal.submitted'])
@@ -312,5 +310,25 @@ describe('the outbox relay', () => {
     } finally {
       await client.query('rollback')
     }
+  })
+})
+
+describe('how long an Inbox item lasts', () => {
+  it('lets the retention run delete an item 90 days after it came, whatever the person did', async () => {
+    const [old, fresh] = (
+      await client.query<{ id: string }>(
+        `insert into inbox_items (person_id, kind, subject_type, subject_id, created_at)
+         select $1, 'alert.raised', 'alert', 'retention-' || age.name, now() - age.span
+           from (values ('old', interval '91 days'), ('fresh', interval '89 days')) age(name, span)
+         returning id`,
+        [people.owner],
+      )
+    ).rows
+    await client.query('select cl_retention_run()')
+    const left = await client.query<{ id: string }>(
+      'select id from inbox_items where id = any($1)',
+      [[old!.id, fresh!.id]],
+    )
+    expect(left.rows).toEqual([{ id: fresh!.id }])
   })
 })

@@ -122,7 +122,10 @@ export const concepts = {
     definition:
       'What the workspace keeps about its context: when each item was created, changed, checked or archived, and who owns each domain. Ask counts from them, and agents never read that answer.',
     internal: ['library index'],
-    phrases: ['Records', "Counted from the workspace's records."],
+    phrases: [
+      'Records',
+      "From the app's own list of what was written and changed. Not from your sales data.",
+    ],
   },
   inbox: {
     name: 'Inbox',
@@ -221,7 +224,7 @@ export const kinds = {
   },
   note: {
     label: 'Rule',
-    hint: 'A fixed way to read the numbers, like a definition or a house rule.',
+    hint: 'A fixed way to read the numbers, like a house rule.',
   },
   guide: { label: 'Guide', hint: 'What to check before you explain a change.' },
 } as const satisfies Record<string, KindWords>
@@ -229,7 +232,7 @@ export const kinds = {
 export type Kind = keyof typeof kinds
 
 /**
- * The words of one answer line: a label of one or two words, a sentence of eight words or fewer,
+ * The words of one answer line: a label of one to three words, a sentence of eight words or fewer,
  * and the long form for a tooltip and Help. None has a contraction.
  */
 export type AnswerLineWords = {
@@ -265,8 +268,19 @@ export const answerLines = {
     long: 'Context disagrees',
   },
   stale: { label: 'Outdated', sentence: 'Some of this may be old.', long: 'May be out of date' },
-  failed: { label: 'Not checked', sentence: 'The check did not run.', long: 'Could not check' },
+  failed: {
+    label: 'Not looked up',
+    sentence: 'Ask could not look this up just now.',
+    long: 'Could not look up',
+  },
 } as const satisfies Record<string, AnswerLineWords>
+
+/**
+ * The one sentence for a look-up that could not run, wherever it shows: the answer, the chat's
+ * note and the mock. It says it is not Not found, and what to do.
+ */
+export const lookupFailedNote =
+  'Ask could not look this up just now. That does not mean nothing is written. Ask again in a minute.'
 
 export type AnswerState = keyof typeof answerLines
 
@@ -341,7 +355,7 @@ export const bannedWords: readonly BannedWord[] = [
     ['Nothing written down', 'Not found'],
     ['Context disagrees', 'Conflict'],
     ['May be out of date', 'Outdated'],
-    ["Couldn't check", 'Not checked'],
+    ["Couldn't check", 'Not looked up'],
     ['Not covered', 'Not found'],
   ].map(([word, write]): BannedWord => ({
     word: word!,

@@ -20,7 +20,6 @@ export const importReportSchema = z.object({
 })
 
 export const runStates = [
-  'estimated',
   'awaiting_approval',
   'queued',
   'running',

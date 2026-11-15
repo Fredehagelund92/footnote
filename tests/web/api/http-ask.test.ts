@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AnswerResult, Asked, LoopTurn } from '@contract/answer'
 import type { Answer } from '@/model/ask'
+import { lookupFailedNote } from '@domain/words'
 import {
   answerOf,
   askedWeekOf,
@@ -338,7 +339,8 @@ describe("Ask's answer from the engine", () => {
     )
     const failed = answerOf(result({ state: 'failed', status: 'check_failed' }), 'Orders?', names)
     expect(failed.text).toBe('')
-    expect(failed.note).toMatch(/^The check couldn't run just now/)
+    expect(failed.note).toBe(lookupFailedNote)
+    expect(failed.note).toMatch(/^Ask could not look this up just now\. .*Ask again in a minute\.$/)
   })
 
   it('counts only the sources shown in the stale note', () => {

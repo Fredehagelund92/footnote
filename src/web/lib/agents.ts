@@ -261,7 +261,7 @@ export const WAIT_HINT: Record<Via, string> = {
   other: 'Add the address to your agent, then approve the connection in the browser.',
 }
 
-/** What usually goes wrong, shown after 2 minutes and when checking stops. */
+/** What usually goes wrong, shown after 2 minutes and when waiting stops. */
 export const CHECKS = [
   'Paste the prompt into your agent and press Enter.',
   'Say yes when the agent asks to run the command.',
@@ -280,21 +280,21 @@ export function liveCopy(
     case 'idle':
       return {
         title: 'Not connected yet',
-        body: 'After you paste it, this page says Connected. It checks every few seconds.',
+        body: 'After you paste it, this page says Connected. It looks every few seconds.',
       }
     case 'waiting':
       return { title: 'Waiting for your agent to connect…', body: WAIT_HINT[via] }
     case 'hint':
       return {
         title: 'Still waiting. Nothing has signed in yet.',
-        body: 'It keeps checking for a few more minutes. What usually helps:',
+        body: 'It keeps waiting for a few more minutes. What usually helps:',
       }
     case 'connected':
       return { title: `Connected: ${agent}, ${me}` }
     case 'timeout':
       return {
-        title: 'Stopped checking after 10 minutes. Nothing has signed in.',
-        body: 'What usually helps, before you check again:',
+        title: 'Stopped waiting after 10 minutes. Nothing has signed in.',
+        body: 'What usually helps, before you keep waiting:',
       }
     case 'declined':
       return {

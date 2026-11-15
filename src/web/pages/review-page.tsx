@@ -312,7 +312,7 @@ function PublishReady({
           {unread ? `${unread} more ${unread === 1 ? 'is' : 'are'} ready but not read yet. ` : ''}
           Only what you've read, so “Checked by” stays true.
           {apart
-            ? ` ${apart} ${apart === 1 ? 'needs' : 'need'} a look of ${apart === 1 ? 'its' : 'their'} own first (a claim, a new link or an unchecked value) and ${apart === 1 ? 'stays' : 'stay'} out of it.`
+            ? ` ${apart} ${apart === 1 ? 'needs' : 'need'} a look of ${apart === 1 ? 'its' : 'their'} own first (a detail to compare, a new link or an unchecked value) and ${apart === 1 ? 'stays' : 'stay'} out of it.`
             : ''}
         </TooltipContent>
       </Tooltip>

@@ -14,7 +14,8 @@ export const setupSteps: SetupStep[] = [
   {
     id: 'domain',
     title: 'Add your first domain',
-    description: 'A part of the business with an owner. Context and names belong to one.',
+    description:
+      'A domain is a part of the business with an owner, such as Sales. Context and names belong to one.',
     action: 'Add a domain',
   },
   {

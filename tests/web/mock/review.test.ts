@@ -15,9 +15,9 @@ describe('the Ready line', () => {
   it('gives the demo’s reviews the line the domain gives for their facts', () => {
     expect(readiness(r('sug-ines-dates'))).toMatchObject({
       ok: false,
-      title: 'Ready, not checked against a source',
+      title: 'Ready, not compared with a source',
     })
-    expect(readiness(r('sug-agent')).title).toBe('Ready, with 2 claims to check')
+    expect(readiness(r('sug-agent')).title).toBe('Compare 2 details with the source first')
     expect(readiness(r('sug-lars-retire'))).toMatchObject({
       ok: false,
       title: 'Withdrawn by Lars Dahl',
@@ -37,7 +37,7 @@ describe('the Ready line', () => {
     expect(careLine(checked)).toBeUndefined()
     expect(needsCare(checked)).toBe(false)
     expect(readyOf(checked)).toMatchObject({ ok: true, title: 'Ready' })
-    expect(careLine(agent)).toBe('2 claims to check')
+    expect(careLine(agent)).toBe('2 details to compare with the source')
     expect(needsCare(agent)).toBe(true)
     expect(careLine(r('sug-sofia-clash'))).toBe('About the same thing as 3 published items')
     expect(careLine(r('sug-ines'))).toBeUndefined()

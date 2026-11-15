@@ -135,7 +135,7 @@ export function planTerms(
       skipped.push({ id: d.name, title: d.name, why, reason })
     if (d.synced)
       skip(
-        `synced from ${d.tool ?? 'its tool'}`,
+        `read from ${d.tool ?? 'its tool'}`,
         `Metrics and dimensions are read-only here: change them in ${d.tool ?? 'their tool'}.`,
       )
     else if (!canChangeTerm(d, me, domains))
