@@ -68,7 +68,7 @@ export const ANSWER_LINES: {
     label: answerLines.failed.label,
     long: answerLines.failed.long,
     sentence: answerLines.failed.sentence,
-    means: 'The check could not run just now. It is not the same as Not found.',
+    means: 'Ask could not look this up just now. That does not mean nothing is written.',
     todo: 'Ask again in a minute.',
   },
 ]

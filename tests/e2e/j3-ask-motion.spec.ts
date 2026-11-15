@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test'
 import { expect, go, mode, test } from './go.ts'
 
 /** The six state words, as an answer's line says one. */
-const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
+const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 
 // J3, how an answer arrives: the question at once, the look-up's steps, the state and sources with
 // the engine's answer, then the words a sentence at a time; stoppable, and without fades with

@@ -181,7 +181,7 @@ const afterRule: Record<AnswerState, string> = {
   missing: 'border-t-muted-foreground',
   conflict: 'border-t-caution',
   stale: 'border-t-caution',
-  failed: 'border-t-destructive',
+  failed: 'border-t-muted-foreground',
 }
 
 /** One side of the answers: its label, Heed's answer line, and the words agents give. */
@@ -211,7 +211,7 @@ function AnswerSide({
       )}
     >
       <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-      <StateLine state={answer.state} />
+      <StateLine state={answer.state} sentence />
       <p
         className={cn(
           'text-base leading-relaxed text-pretty',

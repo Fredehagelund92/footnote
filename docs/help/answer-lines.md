@@ -13,14 +13,14 @@ Every answer, in the app and in your own agent, starts with one of six lines. Ea
 
 <!-- include answer-lines -->
 
-| The line                                      | What it means                                                                                                  | What you do                                     |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Checked: This is written down and checked.    | Based on checked context. Context applies, and its owner published it with a source and a check date.          | Nothing to do.                                  |
-| Partial: Only part of this is written down.   | Covers part of it. Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
-| Not found: Nothing is written about this yet. | Nothing written down. Nobody has written anything down for this. It does not mean there is no explanation.     | Write context, or tell the owner.               |
-| Conflict: Two items say different things.     | Context disagrees. Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
-| Outdated: Some of this may be old.            | May be out of date. An item's check date has passed, or a definition it relies on changed.                     | The owner checks it: Still true, or Edit.       |
-| Not checked: The check did not run.           | Could not check. The check could not run just now. It is not the same as Not found.                            | Ask again in a minute.                          |
+| The line                                            | What it means                                                                                                  | What you do                                     |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Checked: This is written down and checked.          | Based on checked context. Context applies, and its owner published it with a source and a check date.          | Nothing to do.                                  |
+| Partial: Only part of this is written down.         | Covers part of it. Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
+| Not found: Nothing is written about this yet.       | Nothing written down. Nobody has written anything down for this. It does not mean there is no explanation.     | Write context, or tell the owner.               |
+| Conflict: Two items say different things.           | Context disagrees. Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
+| Outdated: Some of this may be old.                  | May be out of date. An item's check date has passed, or a definition it relies on changed.                     | The owner checks it: Still true, or Edit.       |
+| Not looked up: Ask could not look this up just now. | Could not look up. Ask could not look this up just now. That does not mean nothing is written.                 | Ask again in a minute.                          |
 
 <!-- /include -->
 
