@@ -3,7 +3,14 @@ import { Outlet } from '@tanstack/react-router'
 import { QueryClientProvider, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { mockControls } from '@/api'
 import { createQueryClient } from '@/api/query-client'
-import { InDock, isPageQuery, sessionQuery, sharedQueries, useSession } from '@/api/queries'
+import {
+  afterSomeoneElse,
+  InDock,
+  isPageQuery,
+  sessionQuery,
+  sharedQueries,
+  useSession,
+} from '@/api/queries'
 import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
@@ -393,6 +400,8 @@ function AppToaster() {
 const queryClient = createQueryClient({
   // A session that ended: everything cached was the person's, and the sign-in page comes next.
   onSignedOut: () => void queryClient.invalidateQueries({ queryKey: sessionQuery().queryKey }),
+  // Another tab signed this browser in as someone else: the app moves to them.
+  onSomeoneElse: () => void afterSomeoneElse(queryClient),
 })
 
 export default function App() {
