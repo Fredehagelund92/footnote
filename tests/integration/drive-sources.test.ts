@@ -363,6 +363,37 @@ describe('a read of Google Drive (CON-603 to CON-611)', () => {
     expect(refunds.map((s) => s.state)).toEqual(['submitted'])
   })
 
+  it('takes a settings change while a read is out at once, and that read is read again in full', async () => {
+    const before = await lastRead(sourceId)
+    const current = await ok<SourceSettings>(call('GET', `/sources/${sourceId}`, 'admin'))
+    const held = drive.hold(/^\/drive\/v3\//)
+    const reading = read()
+    await held.arrived
+    // The read holds no row: Save answers while Drive has not.
+    const saved = call('PUT', `/sources/${sourceId}`, 'admin', {
+      id: sourceId,
+      revision: current.revision,
+      name: 'Finance and sales drive',
+      config: config(),
+      secrets: {},
+      scopes: current.scopes,
+      reason: 'Name it for both folders',
+    })
+    const answered = await Promise.race([
+      saved.then(() => 'answered'),
+      new Promise((resolve) => setTimeout(() => resolve('waiting'), 10_000)),
+    ])
+    held.release()
+    expect(answered).toBe('answered')
+    expect((await saved).statusCode).toBe(200)
+    // What the read found was read under the old settings: it keeps nothing, and the source is
+    // queued for a read in full under the new ones.
+    expect((await reading).connectors[sourceId]).toMatchObject({ status: 'discarded' })
+    expect(await lastRead(sourceId)).toEqual(before)
+    expect((await read()).connectors[sourceId]).toMatchObject({ status: 'ok' })
+    expect(await lastRead(sourceId)).toMatchObject({ status: 'ok', full_read: true })
+  })
+
   it('takes a key gone from the secret store as a failed read, which changes nothing', async () => {
     const before = await suggestions(sourceId)
     const store = await readdir(join(secretsDir, 'store'))

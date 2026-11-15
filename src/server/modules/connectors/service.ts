@@ -8,6 +8,7 @@ import {
   type DomainChange,
 } from './flags.ts'
 import { nextReadAt } from '../../../domain/source-schedule.ts'
+import { holdRead, readKindOf, stillCurrent } from './read-kind.ts'
 import { scheduleOf } from './schedule.ts'
 import type { ConnectorRegistry } from './registry.ts'
 import {
@@ -25,8 +26,9 @@ export interface StoredDefinition extends Definition {
   renamedTo: string | null
 }
 export interface SyncResult {
-  snapshotId: string
-  status: 'ok' | 'partial' | 'failed'
+  /** None for a read that kept nothing because its source changed while it was out. */
+  snapshotId: string | null
+  status: 'ok' | 'partial' | 'failed' | 'discarded'
   definitionsSeen: number
   coverage: ReturnType<typeof domainCoverage> | null
   /** Items flagged and unflagged by this sync. A failed read changes no flag (CON-213). */
@@ -116,7 +118,8 @@ export class ConnectorService {
   /**
    * One refresh (CON-506): read the source, store a snapshot and the definitions it reports, then
    * bring item flags in line and tell owners what changed. A failed read stores only the failed
-   * snapshot and changes nothing else (CON-103, CON-213, CON-214).
+   * snapshot and changes nothing else (CON-103, CON-213, CON-214). The read holds no row while it
+   * is out, and keeps nothing when the source was changed, paused or disconnected meanwhile.
    */
   async sync(connectorId: string): Promise<SyncResult> {
     return this.syncSource(await this.#registry.find(this.#database, connectorId))
@@ -126,38 +129,37 @@ export class ConnectorService {
   async syncSource(source: DefinitionSource): Promise<SyncResult> {
     const origin = this.#registry.isServer(source.id) ? 'server' : 'workspace'
     return this.#database.transaction(null, async (tx) => {
-      // The server's own sources are registered at their first read; an added one already is.
+      await holdRead(tx, source.id)
+      // The server's own sources are registered at their first read; an added one already is. A
+      // source registered before is left alone here, so the read holds no row.
       if (origin === 'server')
         await tx.query(
           `insert into connectors (id,kind,type,name,interface_version) values ($1,'definition_source',$2,$3,$4)
-           on conflict (id) do update set interface_version=excluded.interface_version
-             where connectors.origin='server' and connectors.interface_version<>excluded.interface_version`,
+           on conflict (id) do nothing`,
           [source.id, source.type, source.name, source.interfaceVersion],
         )
       const [registered] = await tx.query<{ enabled: boolean; type: string; origin: string }>(
-        'select enabled,type,origin from connectors where id=$1 for update',
+        'select enabled,type,origin from connectors where id=$1',
         [source.id],
       )
       if (!registered) throw new Error(`Unknown connector: ${source.id}`)
       if (!registered.enabled) throw new Error('Connector is disabled')
       if (registered.type !== source.type) throw new Error('Connector type does not match registry')
       if (registered.origin !== origin) throw new Error('Connector origin does not match registry')
-      // The newest read that brought data, and its cursor: where this read may start. A read in
-      // part, or one from before the source's settings changed, says nothing a read may rest on.
+      // Where this read may start: a definitions source always lists everything, and a read in part
+      // leaves no cursor, so only a whole read under the current settings hands one on.
+      const kind = await readKindOf(tx, source.id, 'full-listing')
+      // The newest read that brought data: an unchanged read keeps what it found.
       const [last] = await tx.query<{
         id: string
-        cursor: string | null
         source_version: string | null
         definitions_seen: number
         warnings: SourceWarning[]
         content_digest: Buffer | null
       }>(
-        `select s.id, s.source_version, s.definitions_seen, s.warnings, s.content_digest,
-                case when s.status = 'ok' and (c.changed_at is null or s.fetched_at > c.changed_at)
-                     then s.cursor end as cursor
-           from connector_snapshots s join connectors c on c.id = s.connector_id
-          where s.connector_id=$1 and s.status <> 'failed'
-          order by s.fetched_at desc limit 1`,
+        `select id, source_version, definitions_seen, warnings, content_digest
+           from connector_snapshots where connector_id=$1 and status <> 'failed'
+          order by fetched_at desc limit 1`,
         [source.id],
       )
       const started = performance.now()
@@ -165,7 +167,7 @@ export class ConnectorService {
       let failureWarnings: SourceWarning[] = []
       let failure: SourceReadError | undefined
       try {
-        snapshot = snapshotSchema.parse(await source.read({ cursor: last?.cursor ?? null }))
+        snapshot = snapshotSchema.parse(await source.read({ cursor: kind.cursor }))
         const refs = new Set(snapshot.definitions.map((entry) => entry.ref))
         if (refs.size !== snapshot.definitions.length) {
           throw new Error('Duplicate definition reference')
@@ -180,6 +182,23 @@ export class ConnectorService {
         }
         snapshot = undefined
       }
+      if (!(await stillCurrent(tx, source.id, kind)))
+        return {
+          snapshotId: null,
+          status: 'discarded',
+          definitionsSeen: 0,
+          coverage: null,
+          flags: { raised: 0, cleared: 0 },
+          staleLinkNotices: 0,
+          domainNotices: 0,
+          domainEdition: null,
+        }
+      if (origin === 'server')
+        await tx.query(
+          `update connectors set interface_version=$2
+            where id=$1 and origin='server' and interface_version<>$2`,
+          [source.id, source.interfaceVersion],
+        )
       // Nothing was read: this read stands where the last one did, with what it found.
       const kept = snapshot?.unchanged ? last : undefined
       if (snapshot && !kept) {
@@ -219,8 +238,8 @@ export class ConnectorService {
       const status = snapshot ? (snapshot.complete ? 'ok' : 'partial') : 'failed'
       const [saved] = await tx.query<{ id: string }>(
         `insert into connector_snapshots
-         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor)
-         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9) returning id`,
+         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision)
+         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10) returning id`,
         [
           source.id,
           kept ? kept.source_version : (snapshot?.sourceVersion ?? null),
@@ -234,7 +253,8 @@ export class ConnectorService {
             : snapshot
               ? Buffer.from(await contentDigest(snapshot), 'hex')
               : null,
-          snapshot?.cursor ?? null,
+          status === 'ok' ? (snapshot?.cursor ?? null) : null,
+          kind.revision,
         ],
       )
       const snapshotId = saved!.id
