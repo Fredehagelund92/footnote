@@ -68,6 +68,13 @@ describe('heed/plain-words in the web app (glossary v2)', () => {
     ])
   })
 
+  it('reports a banned button label written as JSX text', () => {
+    expect(said(`export const a = <button>\n  Resolve\n</button>`)).toEqual([
+      write('Resolve', 'Mark as done'),
+    ])
+    expect(said(`export const b = <button>\n  Choose what to do\n</button>`)).toEqual([])
+  })
+
   it('reports the earlier answer labels and kind names as labels, not the words in a sentence', () => {
     expect(said(`export const a = <span>Based on checked context</span>`)).toEqual([
       write('Based on checked context', 'Checked'),

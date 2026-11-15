@@ -122,7 +122,7 @@ export function DefinitionPeek({ name }: { name: string }) {
                   variant="outline"
                   onClick={() => navigate(`/definitions/${encodeURIComponent(word.name)}`)}
                 >
-                  Resolve
+                  Choose what to do
                 </Button>
               }
             >
