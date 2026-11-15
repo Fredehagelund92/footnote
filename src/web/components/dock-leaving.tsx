@@ -13,7 +13,12 @@ export type DockPicture = {
 }
 
 /** The picture of a dock that has just closed: a copy of its panel, still showing what it showed. */
-export function pictureOf(node: HTMLElement, width: number): DockPicture {
+export function pictureOf(
+  node: HTMLElement,
+  width: number,
+  /** Scroll offsets seen while the dock was on screen: a detached node reports 0. */
+  offsets: Map<HTMLElement, [number, number]>,
+): DockPicture {
   const copy = node.cloneNode(true) as HTMLElement
   const from = [node, ...node.querySelectorAll<HTMLElement>('*')]
   const to = [copy, ...copy.querySelectorAll<HTMLElement>('*')]
@@ -21,7 +26,8 @@ export function pictureOf(node: HTMLElement, width: number): DockPicture {
   from.forEach((src, i) => {
     const dst = to[i]
     if (!dst) return
-    if (src.scrollTop || src.scrollLeft) scrolls.push([dst, src.scrollTop, src.scrollLeft])
+    const at = offsets.get(src)
+    if (at && (at[0] || at[1])) scrolls.push([dst, at[0], at[1]])
     if (src instanceof HTMLInputElement && dst instanceof HTMLInputElement) {
       dst.value = src.value
       dst.checked = src.checked
