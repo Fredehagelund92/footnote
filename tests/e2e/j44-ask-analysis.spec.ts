@@ -17,7 +17,9 @@ test('what is missing is an analysis in sections, never a count of what is there
   page,
 }) => {
   await ask(page, 'what definitions are missing?')
-  await expect(page.getByText('Counted from the workspace')).toBeVisible()
+  await expect(
+    page.getByText("From the app's own list of what was written and changed."),
+  ).toBeVisible()
   await expect(
     page.getByRole('heading', { name: /^No context written: \d+ of 22 metrics$/ }),
   ).toBeVisible()

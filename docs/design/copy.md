@@ -115,7 +115,7 @@ A question that was not looked up (it names no metric and no market) has no stat
 
 A question about what a metric is or means, answered by its definition and nothing written about it, shows its state as a neutral mark in Ask: **Definition**, in the neutral tint with the Definitions icon. It is not one of the six: for context the answer is Not found, and agents get Not found. Its card says "Definition: Cube's own words.", then "Cube defines it this way, and agents get the same words. Nothing else is written about it here yet, so for context the answer is Not found.", then "If people need more than the definition, such as what to rule out or when it changed, write context.", and links to the definition. The tool's name there is data, read from the definition. Under the definition, its source is named as "From Cube, Discount cost", and one quiet line says "Nothing else is written about Discount cost yet."
 
-An answer from the records (what was created, what is due, who owns a domain) has no state either. Its chip says **Records**, in the neutral tint with a table icon, and the line under it says "Counted from the workspace's records." The answer is one sentence from a template ("Nothing was created in the last 24 hours."), and it ends "Agents did not read this answer. It says nothing about what they get." A question about one person's work gets "Ask does not answer questions about one person's work."
+An answer from the records (what was created, what is due, who owns a domain) has no state either. Its chip says **Records**, in the neutral tint with a table icon, and the line under it says "From the app's own list of what was written and changed. Not from your sales data." The answer is one sentence from a template ("Nothing was created in the last 24 hours."), and it ends "Agents did not read this answer. It says nothing about what they get." A question about one person's work gets "Ask does not answer questions about one person's work."
 
 An analysis of the records is a records answer: the Records chip, the same line under it, and one sentence from a template. Its rows come in up to four sections, each headed by what it counts with its denominator: "No context written: 13 of 22 metrics". A ranking says its rule in words: "Look first at Orders in Spain: agents found nothing there most often." Its last lines say what the read cannot see and that agents did not read it: "Not seen: a definition your source does not hold, or a word people use that Heed cannot read." A count never stands alone, and never a quality word such as "good" or "healthy" without the count behind it.
 
@@ -154,7 +154,7 @@ Event (lightning), Warning (triangle), Rule (ruler), Guide (route). Stored as `e
 
 - Event: Something that happened on a date, like a stop or a new rule.
 - Warning: A limit or problem agents should know, like late or missing data.
-- Rule: A fixed way to read the numbers, like a definition or a house rule.
+- Rule: A fixed way to read the numbers, like a house rule.
 - Guide: What to check before you explain a change.
 
 ### Item statuses and freshness

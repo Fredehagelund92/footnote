@@ -459,7 +459,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Answer tests"
         level={3}
-        description="The heavy checks, with a real model. The free check of saved questions already runs after every change, in Observability, Quality."
+        description="Saved questions answered by a real AI model, then judged. The free check of saved questions already runs after every change, in Observability, Quality."
         collapsible
         defaultOpen={false}
       >

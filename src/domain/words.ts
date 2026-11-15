@@ -124,7 +124,10 @@ export const concepts = {
     definition:
       'What the workspace keeps about its context: when each item was created, changed, checked or archived, and who owns each domain. Ask counts from them, and agents never read that answer.',
     internal: ['library index'],
-    phrases: ['Records', "Counted from the workspace's records."],
+    phrases: [
+      'Records',
+      "From the app's own list of what was written and changed. Not from your sales data.",
+    ],
   },
   inbox: {
     name: 'Inbox',
@@ -223,7 +226,7 @@ export const kinds = {
   },
   note: {
     label: 'Rule',
-    hint: 'A fixed way to read the numbers, like a definition or a house rule.',
+    hint: 'A fixed way to read the numbers, like a house rule.',
   },
   guide: { label: 'Guide', hint: 'What to check before you explain a change.' },
 } as const satisfies Record<string, KindWords>

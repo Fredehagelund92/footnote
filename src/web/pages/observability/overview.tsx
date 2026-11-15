@@ -521,8 +521,8 @@ function Explorer({
               title="Topics"
               description={
                 span
-                  ? `Each is a metric, the values asked about and the month, counted over ${view.label}, not only the days selected.`
-                  : 'Each is a metric, the values asked about and the month, grouped here for reading.'
+                  ? `A topic is what agents asked about: a metric, a market and a month. Counted over ${view.label}, not only the days selected.`
+                  : 'A topic is what agents asked about: a metric, a market and a month.'
               }
               action={
                 <span className="flex flex-wrap items-center gap-1">

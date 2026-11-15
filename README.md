@@ -7,9 +7,9 @@
 
 ### Stop AI agents misreading your numbers.
 
-Heed is a reviewed context layer for analytics teams and their agents.<br>
-The people who own the data write down what the numbers don't show,<br>
-and agents read it over MCP before they answer, with its source and its owner.
+AI tools guess when they do not know why a number moved.<br>
+With Heed, the people who know write it down once, and an owner checks it.<br>
+Every AI tool then reads it before it answers, and shows where it came from.
 
 <!-- Live demo: when the hosted demo is up, put this at the start of the link row below:
 [**Live demo**](https://LIVE-DEMO-ADDRESS) &nbsp;·&nbsp; -->

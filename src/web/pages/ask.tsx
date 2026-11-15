@@ -497,7 +497,7 @@ export function AskChat({
   const width = compact ? 'max-w-none px-4' : 'max-w-176 px-4'
   const placeholder = draft
     ? 'Ask another question against the draft'
-    : 'Ask what a metric means, who owns it, or what is written about it'
+    : 'Ask what is written about a number, such as orders in Norway'
 
   return (
     <Answering value={answering}>
@@ -517,8 +517,8 @@ export function AskChat({
                     What do you want to know about your metrics?
                   </h2>
                   <p className="mt-2 text-sm text-balance text-muted-foreground">
-                    Answers come from checked context, the way an agent gets it, and say how sure
-                    they are.
+                    Answers use what your team wrote and an owner checked, as an AI agent (an AI
+                    tool such as Claude or Cursor) would. Each says how sure it is.
                   </p>
                 </div>
                 {/* What agents asked this week; a new workspace, with nothing asked yet, gets its starters instead. */}
