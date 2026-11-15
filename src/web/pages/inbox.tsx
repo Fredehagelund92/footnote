@@ -260,7 +260,7 @@ function InboxList({
   onFold: (group: InboxGroup) => void
   selected?: string
   /** `pointer` is false for a key (a click with detail 0), which keeps the pane change instant. */
-  onSelect: (id: string, pointer: boolean) => void
+  onSelect: (id: string, pointer: boolean, key?: boolean) => void
   sel: RowSelection
   list: React.RefObject<HTMLUListElement | null>
 }) {
@@ -380,7 +380,7 @@ function InboxList({
                     type="button"
                     data-row-open={id}
                     aria-current={isSelected || undefined}
-                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0)}
+                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, e.detail === 0)}
                     className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                   >
                     <span
@@ -1263,11 +1263,24 @@ export function InboxPage() {
   const selected = rows.find((r) => rowId(r) === selectedId)
   // How the card on show was picked: a pointer pick or a decision fades its body in, a key does not.
   const [picked, setPicked] = React.useState<{ id?: string; fade: boolean }>({ fade: false })
-  const select = (id?: string, pointer = false) => {
+  // Enter on a row opens the card and moves the focus to the pane's one decision.
+  const focusDecision = React.useRef<string | undefined>(undefined)
+  const select = (id?: string, pointer = false, key = false) => {
+    if (key && id === selectedId) return void focusPrimary()
+    focusDecision.current = key ? id : undefined
     // On a phone the whole card slides in; its body does not fade on top of that.
     setPicked({ id, fade: pointer && !isMobile })
     setQuery({ card: id ?? (isMobile ? undefined : 'none') })
   }
+  const focusPrimary = () => {
+    const button = frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
+    button?.focus()
+    return !!button
+  }
+  React.useEffect(() => {
+    if (!focusDecision.current || focusDecision.current !== selectedId) return
+    if (focusPrimary()) focusDecision.current = undefined
+  })
   const ids = shown.map(rowId)
   const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
