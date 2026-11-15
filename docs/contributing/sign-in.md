@@ -321,7 +321,8 @@ and sends the browser to the path it started from on the first `HEED_WEB_ORIGINS
 
 `GET /api/v1/auth/methods` tells the sign-in screen which way this install signs in;
 `GET /api/v1/invites/lookup?token=` tells it what an invite link says (the address, the role, the
-domains), and answers every other link alike.
+domains it would give), and answers every other link alike, including one that would let nobody in.
+The People list, this lookup and the sign-in read one rule, `invite_standing`.
 
 ### Threat note: company sign-in
 
