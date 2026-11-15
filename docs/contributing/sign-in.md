@@ -353,6 +353,9 @@ The People list, this lookup and the sign-in read one rule, `invite_standing`.
   accepted only by the verified address they name.
 - **Privilege from stale invites and groups.** An invite gives only what its sender may still give
   when it is accepted; an Admin role from the admin group ends when the person leaves the group.
+  An admin who sends again an invite that is void because of its sender becomes its sender (the only
+  change `invites_guard` allows to `invited_by`); resending to a member or an erased person is
+  refused with `CONFLICT`.
 - **Open redirect.** The callback goes back only to a path on the first web origin; anything else
   goes to `/`.
 - **Secret handling.** The client secret is read from an owner-only file at start and never
