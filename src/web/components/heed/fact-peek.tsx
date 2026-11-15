@@ -48,7 +48,7 @@ import type { Fact } from '@/model/items'
 
 // The context quick view: the note, one closed Details and a toolbar under it. Title once, the
 // words, its domain, who owns it and whether it is still right, where it comes from, the one
-// action. One attention line only when a decision is needed (a flag, an overlap, an overdue check),
+// action. One attention line only when a decision is needed (a flag, an overlap, a check that is due),
 // with one button; the choice itself is made on the page. What agents get, history and the full
 // source are not here.
 //
