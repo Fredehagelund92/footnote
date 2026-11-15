@@ -86,7 +86,7 @@ describe('a turn stopped before an answer', () => {
 
   it('says so once in the loop, after its reads', async () => {
     const reads = {
-      steps: [{ runs: [{ t: 'text', text: 'Looked up Net revenue' }], done: true }],
+      steps: [{ runs: [{ t: 'text' as const, text: 'Looked up Net revenue' }], done: true }],
       nouns: [],
     }
     const turn = turnReducer(
