@@ -65,7 +65,7 @@ describe('the named cases', () => {
       return answer(bundle, c.ask, { today: CASES_TODAY })
     }
     expect(at('A1 text only, August').say).toBe(
-      '1 fact applies to Orders in Norway in August 2026. Only that was checked.',
+      '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
     )
     // No dates: read at today, and the answer says so; that makes it Partial.
     expect(at('A3 text, no month')).toMatchObject({

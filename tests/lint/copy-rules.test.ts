@@ -44,20 +44,18 @@ function said(
 const copy = (rule: string, code: string, file?: string) => said(copyRules, rule, code, file)
 
 describe('heed/plain-words-wide reads what the narrow reading takes for code', () => {
-  const wide = (code: string) =>
-    said(plainWords, 'plain-words-wide', code, undefined, [{ glossary: 'web' }])
-  const narrow = (code: string) =>
-    said(plainWords, 'plain-words', code, undefined, [{ glossary: 'web' }])
+  const wide = (code: string) => said(plainWords, 'plain-words-wide', code)
+  const narrow = (code: string) => said(plainWords, 'plain-words', code)
 
   it('reads the body of a switch case, and not its test', () => {
     const code = `export const a = (k: string) => { switch (k) { case 'fact': return 'This fact is live' } }`
     expect(narrow(code)).toEqual([])
-    expect(wide(code)).toEqual(['webGlossary'])
+    expect(wide(code)).toEqual(['glossary'])
   })
 
   it('reads a value under action, value or name when it has a space or a capital', () => {
     expect(narrow(`export const a = { action: 'Undo this fact' }`)).toEqual([])
-    expect(wide(`export const a = { action: 'Undo this fact' }`)).toEqual(['webGlossary'])
+    expect(wide(`export const a = { action: 'Undo this fact' }`)).toEqual(['glossary'])
     expect(wide(`export const c = { value: 'fact' }`)).toEqual([])
   })
 
@@ -69,7 +67,7 @@ describe('heed/plain-words-wide reads what the narrow reading takes for code', (
 
   it('reports nothing that the narrow reading already reports', () => {
     expect(wide(`export const a = 'This fact is live'`)).toEqual([])
-    expect(narrow(`export const a = 'This fact is live'`)).toEqual(['webGlossary'])
+    expect(narrow(`export const a = 'This fact is live'`)).toEqual(['glossary'])
   })
 })
 
@@ -79,7 +77,7 @@ describe('heed/plain-words-v2 holds what people read outside the web app to glos
 
   it('reports a fact in a domain sentence and a contract message', () => {
     expect(v2(`export const a = 'Add a fact first.'`, 'src/domain/example.ts')).toEqual([
-      'webGlossary',
+      'glossary',
     ])
     expect(v2(`export const a = 'Add a context item first.'`, 'src/contract/example.ts')).toEqual(
       [],
@@ -88,7 +86,7 @@ describe('heed/plain-words-v2 holds what people read outside the web app to glos
 
   it('reads only the message of a server error', () => {
     const code = `throw new ORPCError('CONFLICT', { message: 'The proposal changed' }); const x = 'proposal'`
-    expect(v2(code, 'src/server/modules/example.ts', true)).toEqual(['webGlossary'])
+    expect(v2(code, 'src/server/modules/example.ts', true)).toEqual(['glossary'])
   })
 
   it('lets a connector name its own tool', () => {
@@ -96,7 +94,7 @@ describe('heed/plain-words-v2 holds what people read outside the web app to glos
       v2(`export const a = 'Reads the Cube model'`, 'src/connectors/cube/manifest.ts'),
     ).toEqual([])
     expect(v2(`export const a = 'Reads the Cube model'`, 'src/domain/example.ts')).toEqual([
-      'webGlossary',
+      'glossary',
     ])
   })
 })

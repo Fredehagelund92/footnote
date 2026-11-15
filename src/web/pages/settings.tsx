@@ -114,7 +114,7 @@ function Domains() {
         >
           {ids.map((id) => {
             const items = facts.filter((f) => f.domain === id && servedToAgents(f))
-            const due = items.filter((f) => f.status === 'Needs checking').length
+            const due = items.filter((f) => f.status === 'Due for a check').length
             const terms = defs.filter((d) => d.domain === id).length
             return (
               <a

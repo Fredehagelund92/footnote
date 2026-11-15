@@ -4,7 +4,7 @@ import { todayMs } from './today'
 // When a context item holds and how fresh its check is, in the fixed vocabulary of the
 // list columns' design B: five time frames (Always, Ongoing, Since X, Until X, X to Y),
 // a short date for each, and one freshness level for the dot: fresh up to 30 days, ageing up to
-// 90, overdue after that or when a definition changed.
+// 90, due for a check after that or when a definition changed.
 
 const DAY = 86400000
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -108,7 +108,7 @@ export function trustOf(f: Fact): Trust {
   if (f.status === 'Archived') return 'retired'
   // Due is what the service says: a check date passed or a source changed, never an age, and an
   // item never checked is still due.
-  if (f.status === 'Needs checking') return 'due'
+  if (f.status === 'Due for a check') return 'due'
   const age = ageDays(f.checkedOn)
   if (age === undefined) return 'draft'
   return age > 30 ? 'ageing' : 'fresh'
@@ -124,7 +124,7 @@ export function checkedTip(f: Fact) {
     `Checked ${f.checkedOn} by ${f.checkedBy}${age !== undefined ? `, ${age} days ago` : ''}`,
   ]
   if (trust === 'retired') lines.push('No longer checked')
-  else if (trust === 'due') lines.push(f.outOfDate ?? 'Its check is due')
+  else if (trust === 'due') lines.push(f.outOfDate ?? 'Due for a check')
   else if (trust === 'ageing') lines.push('Its check date has not passed')
   else lines.push('Checked in the last 30 days')
   return lines.join('. ') + '.'

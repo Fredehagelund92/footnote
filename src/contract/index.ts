@@ -367,7 +367,8 @@ const read = oc.$meta<OperationMeta>({ scope: 'read' }).errors({
 
 const notFound = {
   NOT_FOUND: {
-    message: "We couldn't find this fact. It may have been deleted, or you may not have access.",
+    message:
+      "We couldn't find this context item. It may have been deleted, or you may not have access.",
   },
 }
 const itemId = z.object({ id: z.string().check(z.minLength(1), z.maxLength(64)) })
@@ -378,7 +379,7 @@ const changed = z.object({ changed: z.boolean() })
 const proposal = read.meta({ scope: 'propose' }).errors({
   CONFLICT: {
     message:
-      'Someone changed this proposal after you opened it. Look at the latest version, then try again.',
+      'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
     data: z.optional(z.object({ current: proposalRecordSchema })),
   },
   UNPROCESSABLE_CONTENT: {
@@ -390,7 +391,7 @@ const proposal = read.meta({ scope: 'propose' }).errors({
 const review = read.meta({ scope: 'propose' }).errors({
   CONFLICT: {
     message:
-      'The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again.',
+      'This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again.',
   },
   UNPROCESSABLE_CONTENT: {
     status: 422,
@@ -468,7 +469,7 @@ const evals = read.meta({ scope: 'propose' }).errors({
     data: z.optional(z.object({ findings: z.optional(z.array(findingSchema)) })),
   },
   PRECONDITION_FAILED: {
-    message: "Agents don't get any facts yet. Ask an admin to finish the setup.",
+    message: "Agents don't get any context yet. Ask an admin to finish the setup.",
   },
 })
 /** For owners of any area, and administrators. */
@@ -639,7 +640,7 @@ export const contract = {
       .errors({
         CONFLICT: {
           message:
-            "Agents already get this edition, or some of its facts can't be shared with agents again.",
+            "Agents already get this edition, or some of its context items can't be shared with agents again.",
           data: z.optional(z.object({ blocked: z.array(blockedVersionSchema) })),
         },
       })
@@ -1914,7 +1915,7 @@ export const contract = {
     read: read
       .errors({
         PRECONDITION_FAILED: {
-          message: "Agents don't get any facts yet. Ask an admin to finish the setup.",
+          message: "Agents don't get any context yet. Ask an admin to finish the setup.",
         },
       })
       .route({

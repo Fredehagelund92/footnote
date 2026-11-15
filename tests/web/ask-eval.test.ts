@@ -59,7 +59,7 @@ const ctx: GradeContext = {
       {
         title: 'Returns changed definition on 28 April 2026',
         text: 'Earlier weeks read about 4 percent higher.',
-        status: 'Needs checking',
+        status: 'Due for a check',
       },
     ],
   ]),
