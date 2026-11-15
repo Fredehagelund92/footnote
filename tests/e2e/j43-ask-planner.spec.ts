@@ -82,9 +82,7 @@ test('a question that could mean two things gets one question back, in prose', a
   // The answer to it carries its market.
   await expect(page.getByRole('status').filter({ hasText: 'Answer written.' })).toBeVisible()
   await ask(page, 'orders')
-  await expect(
-    newest(page).getByText(/^Read by Ask as Orders in Sweden, today/),
-  ).toBeVisible()
+  await expect(newest(page).getByText(/^Read by Ask as Orders in Sweden, today/)).toBeVisible()
 })
 
 test('a word with two meanings gets one plain question, and the answer keeps the period', async ({

@@ -20,7 +20,7 @@ test('an owner accepts the ready names with one press, and looks at the rest', a
 
   // Publish all leaves what needs a look: it is never picked.
   await main.getByRole('button', { name: 'Publish all' }).click()
-  await expect(page.getByText('2 names are live')).toBeVisible()
+  await expect(page.getByText('2 names are published')).toBeVisible()
   await expect(flagged.getByRole('listitem')).toHaveCount(3)
 
   // A word with another meaning is refused until it is changed, and says who has it.
@@ -29,7 +29,7 @@ test('an owner accepts the ready names with one press, and looks at the rest', a
   await expect(held.getByRole('alert')).toContainText('already a name for Average order value')
   await held.getByRole('textbox').fill('Order basket')
   await held.getByRole('button', { name: 'Publish', exact: true }).click()
-  await expect(page.getByText('Order basket is live')).toBeVisible()
+  await expect(page.getByText('Order basket is published')).toBeVisible()
   await expect(flagged.getByRole('listitem')).toHaveCount(2)
 
   // Left out: a date stays out by itself, and what an owner leaves out joins it.
@@ -64,5 +64,5 @@ test('an owner leaves one ready name out, and can still edit and publish it from
   const row = main.getByRole('textbox', { name: 'Name for orders.completed_orders' })
   await row.fill('Finished orders')
   await row.locator('xpath=ancestor::li').getByRole('button', { name: 'Publish' }).click()
-  await expect(page.getByText('Finished orders is live')).toBeVisible()
+  await expect(page.getByText('Finished orders is published')).toBeVisible()
 })
