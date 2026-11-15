@@ -13,6 +13,7 @@ export default defineConfig({
         test: {
           name: 'web',
           environment: 'node',
+          setupFiles: ['tests/web/setup-locale.ts'],
           include: ['tests/web/**/*.test.ts'],
           exclude: [...configDefaults.exclude, 'tests/web/integration/**'],
         },

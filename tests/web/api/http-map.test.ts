@@ -188,7 +188,7 @@ describe('reading the catalogue', () => {
         domain: 'area_sales',
         group: 'Revenue',
         changed: '2 Oct 2026',
-        updated: '18 Sep 2026',
+        updated: '18 Sept 2026',
       },
     ])
   })
@@ -466,7 +466,7 @@ describe('the terms written here', () => {
         sourceNames: [],
         domain: 'area_marketing',
         by: 'Tomas Eriksen',
-        updated: '18 Sep 2026',
+        updated: '18 Sept 2026',
       },
       {
         name: 'GMV',
@@ -476,7 +476,7 @@ describe('the terms written here', () => {
         synced: false,
         sourceNames: [],
         by: 'Jon Abara',
-        updated: '18 Sep 2026',
+        updated: '18 Sept 2026',
       },
     ])
   })

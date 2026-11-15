@@ -4,6 +4,7 @@
  * tuning setting, read only, and who changed it; what was deleted; the history log; the jobs; the editions). Pure, so
  * it is unit tested (tests/web/api/http-settings.test.ts).
  */
+import { dayMonthYear } from '@/lib/dates'
 import type { AuditEntry, Setting } from '@contract/admin'
 import type { DeletedDraft, ItemChange } from '@contract/context'
 import type { OperationsOverviewView } from '@contract/index'
@@ -18,13 +19,8 @@ import { settingGroups, settingWhat } from '@/model/settings'
 import type { Advanced, Settings } from './client'
 import { whenWords } from './http-inbox'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 /** A day as a connected agent's row says it: "2 Oct 2026". */
-const dayOf = (at: string) => {
-  const t = new Date(at)
-  return `${t.getDate()} ${MONTHS[t.getMonth()]} ${t.getFullYear()}`
-}
+const dayOf = (at: string) => dayMonthYear(new Date(at))
 
 /** When an agent last used its connection: "Just now", "Today", "Yesterday", "3 days ago", "2 Oct". */
 export function usedWords(at: string, now: Date): string {

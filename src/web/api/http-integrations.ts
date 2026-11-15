@@ -3,6 +3,7 @@
  * activity (`sources.activity`) and its settings (`sources.get`), in the words the integrations'
  * pages use. Pure, so it is unit tested (tests/web/api/http-integrations.test.ts).
  */
+import { dayMonth, dayMonthYear } from '@/lib/dates'
 import { secretsInUse } from '@domain/connector-config'
 import type { ConnectorManifest } from '@domain/connector-manifest'
 import type {
@@ -37,7 +38,6 @@ const inCatalog = (type: string) => {
   return connector && !connector.soon ? connector : undefined
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const twoDigits = (n: number) => String(n).padStart(2, '0')
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
@@ -47,7 +47,6 @@ export function whenOf(at: string, now: Date): When {
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
   const days = Math.round((day(t) - day(now)) / 86_400_000)
   const time = `${twoDigits(t.getHours())}:${twoDigits(t.getMinutes())}`
-  const year = t.getFullYear() === now.getFullYear() ? '' : ` ${t.getFullYear()}`
   const named =
     days === 0
       ? 'Today'
@@ -55,7 +54,9 @@ export function whenOf(at: string, now: Date): When {
         ? 'Tomorrow'
         : days === -1
           ? 'Yesterday'
-          : `${t.getDate()} ${MONTHS[t.getMonth()]}${year}`
+          : t.getFullYear() === now.getFullYear()
+            ? dayMonth(t)
+            : dayMonthYear(t)
   const hours = Math.floor((now.getTime() - t.getTime()) / 3_600_000)
   const ago =
     hours < 1
