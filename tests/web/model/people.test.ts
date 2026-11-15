@@ -245,7 +245,7 @@ describe('a request that got no reply', () => {
   it("says a request that got no reply in a sentence, never the browser's words", () => {
     const failed = toApiError(new TypeError('Failed to fetch'))
     expect(failed.kind).toBe('unanswered')
-    expect(failed.message).toBe("The service didn't reply.")
+    expect(failed.message).toBe("The app didn't reply.")
     expect(toApiError(new ApiError('unanswered', "You're offline.")).message).toBe(
       "You're offline.",
     )

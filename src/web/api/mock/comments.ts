@@ -115,7 +115,7 @@ export function createComments() {
       if (opts.anchor && (opts.parentId || opts.returned || !subject.startsWith('review:')))
         throw new ApiError(
           'invalid',
-          'A comment on a line or a field starts a thread on a suggestion.',
+          'A comment on a line or a field starts a comment on a suggestion.',
         )
       const comment: CommentItem = {
         id: createId(),
@@ -128,7 +128,7 @@ export function createComments() {
       if (opts.parentId) {
         const parent = (state.comments[subject] ?? []).find((c) => c.id === opts.parentId)
         if (!parent || parent.deleted)
-          throw new ApiError('invalid', 'That comment is not in this thread any more.')
+          throw new ApiError('invalid', 'That comment is not in this comment any more.')
       }
       // Answering in the thread is reading it.
       seenMention(subject, author)
@@ -191,7 +191,7 @@ export function createComments() {
       if (!thread?.anchor)
         throw new ApiError(
           'conflict',
-          'Only a thread on a line or a field of a suggestion is resolved.',
+          'Only a comment on a line or a field of a suggestion is resolved.',
         )
       if (resolved === !!thread.resolved) return
       const by = { by: who, when: 'Just now' }

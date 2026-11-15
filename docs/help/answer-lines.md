@@ -1,5 +1,5 @@
 ---
-title: Answer lines
+title: Answer labels
 line: The six lines an answer starts with, and what each one asks of you.
 group: How it works
 order: 2

@@ -264,7 +264,7 @@ export function historyLine(
   const policy = e.details.policy as { setByName?: unknown } | undefined
   if (e.action === 'decision.accept' && typeof policy?.setByName === 'string')
     return {
-      what: `Published ${e.subjectTitle ? `“${e.subjectTitle}”` : 'a suggestion'} under ${policy.setByName}'s policy`,
+      what: `Published ${e.subjectTitle ? `“${e.subjectTitle}”` : 'a suggestion'} with ${policy.setByName}'s permission to publish without review`,
     }
   if (e.action === 'access_key.renamed' && named('from') && named('to'))
     return { what: `Renamed the access key ${named('from')} to ${named('to')}` }

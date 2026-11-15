@@ -112,7 +112,7 @@ function PlaceThread({
     <section
       id={`thread-${thread.id}`}
       tabIndex={-1}
-      aria-label={`${placeLabel(at)}: ${thread.author}'s thread, ${resolved ? 'resolved' : 'open'}`}
+      aria-label={`${placeLabel(at)}: ${thread.author}'s comment, ${resolved ? 'resolved' : 'open'}`}
       className={cn(
         'flex flex-col border-l-2 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring',
         resolved ? 'border-muted-foreground/50' : 'border-primary',
@@ -133,11 +133,11 @@ function PlaceThread({
               aria-expanded={shown}
               onClick={() => setShown((s) => !s)}
             >
-              {shown ? 'Hide the thread' : n === 1 ? 'Show the comment' : `Show the ${n} comments`}
+              {shown ? 'Hide the comment' : n === 1 ? 'Show the comment' : `Show the ${n} comments`}
             </Button>
           )}
           <Button variant="outline" onClick={() => onResolve(!resolved)}>
-            {resolved ? 'Reopen' : 'Resolve'}
+            {resolved ? 'Open again' : 'Mark as done'}
           </Button>
         </span>
       </header>
@@ -283,7 +283,7 @@ export function SourceThreadsSummary({
     <section aria-labelledby={`${id}-h`} className="flex flex-col gap-2 border-b p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 id={`${id}-h`} className="text-sm font-medium">
-          Threads on lines and fields
+          Comments on lines and fields
         </h3>
         <p aria-live="polite" className="text-xs text-muted-foreground tabular-nums">
           {count || 'None yet'}
@@ -310,17 +310,17 @@ export function SourceThreadsSummary({
         </ul>
       ) : (
         <p className="text-sm text-pretty text-muted-foreground">
-          {resolved.length ? 'Every thread here is resolved. ' : ''}
+          {resolved.length ? 'Every comment here is done. ' : ''}
           Comment on a line or a field with the + beside it or C, or tap it on a phone.
         </p>
       )}
       {earlier.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {earlier.length === 1 ? 'One thread was' : `${earlier.length} threads were`} written on an
-          earlier version: see Comments, under the change.
+          {earlier.length === 1 ? 'One comment was' : `${earlier.length} comments were`} written on
+          an earlier version: see Comments, under the change.
         </p>
       )}
-      <p className="text-xs text-muted-foreground">Open threads never hold Publish.</p>
+      <p className="text-xs text-muted-foreground">Open comments never hold Publish.</p>
     </section>
   )
 }

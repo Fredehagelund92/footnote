@@ -657,7 +657,7 @@ function Landing({ onSearch }: { onSearch: () => void }) {
         <section className="bg-background px-5 py-5 md:px-6 lg:px-8">
           <h2 className="mb-2 text-sm font-medium">In the app</h2>
           <p className="text-sm leading-6 text-pretty text-muted-foreground">
-            Help, from the sidebar, has the product's own words, the answer lines and the keyboard
+            Help, from the sidebar, has the product's own words, the answer labels and the keyboard
             shortcuts, and works without leaving your page.
           </p>
           <a
@@ -756,7 +756,7 @@ function SearchDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Search the docs"
-      description="Search guides, answer lines and words"
+      description="Search guides, answer labels and words"
     >
       <Command shouldFilter={false}>
         <CommandInput placeholder="Search the docs" value={value} onValueChange={setValue} />

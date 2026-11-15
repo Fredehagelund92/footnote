@@ -44,6 +44,8 @@ export const webNotProductFiles = [
  * under src/web; the pull request that brings a file in keeps its path here in step.
  */
 export const webSurfaces = [
+  // Every file of the web app: where the words only the screens drop are banned.
+  { place: 'the web app', files: ['src/web/**/*.{ts,tsx}'] },
   {
     // The connected tool is named on its own integration only.
     place: 'Integrations',

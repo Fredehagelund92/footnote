@@ -363,7 +363,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           <p>
             Each setting is kept in the database, and only an Admin can change one. The change
             applies at once, and the History log keeps who made it and why. About our business can
-            also be changed in General, and the Not found threshold in Observability, Alerts.
+            also be changed in General, and the Not found level in Observability, Alerts.
           </p>
           <Collapsible>
             <FoldTrigger variant="inline" label="For engineers" className="-ml-1 px-1 text-xs" />
@@ -378,8 +378,8 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           <p>
             Default means the value the app was installed with. Changed names who changed it last:
             an Admin, or, with no person, an update of the app or a script run on the database.
-            Whether a real model is called at all, and its key, are set by whoever runs the app,
-            where it runs, not here.
+            Whether a real model is called at all, and its key, are set by the person who hosts this
+            app, where it runs, not here.
           </p>
         </div>
         <SettingsTable groups={page.settings} />
@@ -467,7 +467,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           rows={[
             {
               label: 'Needs a model key',
-              hint: "Answer tests only run with a real model, so a passed test always means something. Whoever runs the app turns real models on and adds the model provider's key where it runs.",
+              hint: "Answer tests only run with a real model, so a passed test always means something. The person who hosts this app turns real models on and adds the model provider's key where it runs.",
               value: <span className="text-xs text-muted-foreground">Not set here</span>,
             },
             {

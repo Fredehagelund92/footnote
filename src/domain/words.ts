@@ -165,7 +165,7 @@ export const concepts = {
   },
   ask: {
     name: 'Ask',
-    definition: 'The page where a person asks and sees the same answer line an agent gets.',
+    definition: 'The page where a person asks and sees the same answer label an agent gets.',
     internal: ['assistant'],
   },
   topic: {
@@ -280,7 +280,7 @@ export const roles = { admin: 'Admin', member: 'Member' } as const
 export const backToApp = 'Back to app'
 
 /** A place a banned word may show, or the only place it is banned: `webSurfaces` lists its files. */
-export type Place = 'Integrations' | 'Settings' | 'the agent reply' | 'the review'
+export type Place = 'Integrations' | 'Settings' | 'the agent reply' | 'the review' | 'the web app'
 
 /** A word not to write where people read, with what to write instead. */
 export type BannedWord = {
@@ -380,6 +380,45 @@ export const bannedWords: readonly BannedWord[] = [
     matchCase: true,
     onlyOn: ['the review'],
   })),
+  // Plain words for the parts of the screen and the settings (language audit, G7 to G42). The
+  // screens of the web app only: the API's descriptions and the engineers' docs keep their words.
+  ...[
+    { word: 'facet', write: 'filter list', concept: null },
+    { word: 'policy', write: 'permission to publish without review', concept: null },
+    { word: 'policies', write: 'permissions to publish without review', concept: null },
+    { word: 'cap', write: 'limit', concept: null },
+    { word: 'threshold', write: 'level, or say "after 5 times"', concept: null },
+    { word: 'ledger', write: 'leave it out', concept: null },
+    {
+      word: 'Revoke',
+      write: 'Disconnect (an agent), Delete (a key) or Cancel (an invite)',
+      concept: null,
+      matchCase: true,
+    },
+    { word: 'Deny', write: "Don't allow", concept: null, matchCase: true },
+    { word: 'thread', write: 'comment', concept: null },
+    { word: 'Resolve', write: 'Mark as done', concept: null, matchCase: true },
+    { word: 'Reopen', write: 'Open again', concept: null, matchCase: true },
+    { word: 'settle', write: 'decide', concept: null },
+    { word: 'Settle it', write: 'Choose what to do', concept: null },
+    { word: 'Return with a note', write: 'Send back with a note', concept: null },
+    { word: 'flagged', write: 'reported', concept: null },
+    { word: 'Conflict flag', write: 'Conflict mark', concept: null },
+    { word: 'the flag', write: 'the Conflict mark', concept: null },
+    { word: 'queue', write: 'Waiting suggestions', concept: null },
+    { word: 'answer line', write: 'answer label', concept: null },
+    { word: 'goes live', write: 'is published', concept: null },
+    { word: 'go live', write: 'are published', concept: null },
+    { word: 'in force now', write: 'apply today', concept: null },
+    { word: 'whoever runs the app', write: 'the person who hosts this app', concept: null },
+    { word: 'whoever runs it', write: 'the person who hosts this app', concept: null },
+    { word: 'where the server runs', write: 'where this app is hosted', concept: null },
+    { word: 'Model spend', write: 'AI cost this month', concept: null },
+    { word: "Ask's model", write: 'Ask, or the AI model for the setting', concept: null },
+    { word: 'by the model', write: 'Ask', concept: null },
+    { word: 'the model that', write: 'Ask, or the AI model for the setting', concept: null },
+    { word: 'what the model costs', write: 'the AI cost', concept: null },
+  ].map((banned): BannedWord => ({ ...banned, onlyOn: ['the web app'] })),
   { word: 'Try a question', write: 'Try it', concept: 'tryIt' },
   { word: 'proposal', write: 'suggestion', concept: 'suggestion' },
   { word: 'accept', write: 'publish', concept: 'publish' },

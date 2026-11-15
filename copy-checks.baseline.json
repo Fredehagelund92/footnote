@@ -123,14 +123,8 @@
     "src/web/api/http-integrations.ts": {
       "a read": 2
     },
-    "src/web/api/http-obs.ts": {
-      "gap": 1
-    },
     "src/web/api/http.ts": {
       "thread": 1
-    },
-    "src/web/api/mock/comments.ts": {
-      "thread": 3
     },
     "src/web/api/mock/data/alerts.ts": {
       "sync": 1,
@@ -139,13 +133,7 @@
     "src/web/api/mock/data/integrations.ts": {
       "a read": 1
     },
-    "src/web/api/mock/data/observability.ts": {
-      "gap": 3
-    },
     "src/web/api/mock/data/world.ts": {
-      "flag": 1
-    },
-    "src/web/api/mock/index.ts": {
       "flag": 1
     },
     "src/web/api/mock/integrations.ts": {
@@ -159,9 +147,6 @@
     },
     "src/web/components/heed/answer.tsx": {
       "gap": 1
-    },
-    "src/web/components/heed/conflict-view.tsx": {
-      "flag": 4
     },
     "src/web/components/heed/definition-peek.tsx": {
       "read-only": 1,
@@ -198,23 +183,11 @@
     "src/web/components/heed/source-review.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/source-threads.tsx": {
-      "thread": 7
-    },
-    "src/web/components/obs/facet-rail.tsx": {
-      "facet": 1
-    },
     "src/web/components/obs/filter-bar.tsx": {
       "gap": 1
     },
-    "src/web/components/obs/filter-picker.tsx": {
-      "facet": 1
-    },
     "src/web/components/obs/save-question.tsx": {
       "sync": 1
-    },
-    "src/web/components/obs/topic-table.tsx": {
-      "gap": 1
     },
     "src/web/lib/agents.ts": {
       "url": 1
@@ -226,17 +199,11 @@
     "src/web/lib/emoji.ts": {
       "flag": 2
     },
-    "src/web/lib/obs.ts": {
-      "queue": 1
-    },
     "src/web/model/history.ts": {
       "synced": 2
     },
     "src/web/model/inbox.ts": {
       "a read": 1
-    },
-    "src/web/model/source-view.ts": {
-      "flagged": 2
     },
     "src/web/pages/agent-policies.tsx": {
       "clashe": 1
@@ -251,32 +218,9 @@
     "src/web/pages/editor.tsx": {
       "retry": 1
     },
-    "src/web/pages/inbox.tsx": {
-      "thread": 2
-    },
     "src/web/pages/integrations.tsx": {
       "a read": 10,
-      "flagged": 2,
       "retry": 1
-    },
-    "src/web/pages/observability/feedback.tsx": {
-      "gap": 2
-    },
-    "src/web/pages/observability/overview.tsx": {
-      "facet": 1
-    },
-    "src/web/pages/observability/quality.tsx": {
-      "gap": 1
-    },
-    "src/web/pages/observability/usage.tsx": {
-      "ledger": 1
-    },
-    "src/web/pages/people.tsx": {
-      "flag": 3
-    },
-    "src/web/pages/review-page.tsx": {
-      "queue": 3,
-      "thread": 1
     }
   },
   "copy/errors-say-three-things": {},

@@ -579,7 +579,7 @@ export function createMockApi() {
             ? `Settled a conflict: kept one, archived the other. Reason: ${decision.reason}`
             : input.outcome === 'kept_both'
               ? `Kept both items of a conflict. Reason: ${decision.reason}`
-              : `Not a conflict: the flag was removed. Reason: ${decision.reason}`
+              : `Not a conflict: the Conflict mark was removed. Reason: ${decision.reason}`
         const entry = {
           id: `log-settled-${key}-${Date.now()}`,
           on: TODAY,

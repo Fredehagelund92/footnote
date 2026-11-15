@@ -31,7 +31,7 @@ describe('the state on the chip', () => {
       tone: 'neutral',
     })
     expect(pane('sug-sofia-clash').state).toEqual({
-      label: 'Conflict',
+      label: 'Overlaps',
       icon: 'conflict',
       tone: 'warn',
     })
@@ -53,7 +53,7 @@ describe('the one button', () => {
   it('names the decision a review opens', () => {
     expect(pane('sug-ines').primary).toBe('Review')
     expect(pane('sug-sofia-clash').primary).toBe('Decide how they relate')
-    expect(pane('gap-spain').primary).toBe('Check the draft')
+    expect(pane('gap-spain').primary).toBe('Check the first version')
   })
 
   it("keeps a card's own action when there is no review", () => {

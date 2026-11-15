@@ -130,7 +130,7 @@ export function sourceView(
           {
             label: 'Context affected',
             value: String(d.flagged),
-            sub: d.flagged ? 'flagged' : 'none flagged',
+            sub: d.flagged ? 'reported' : 'none reported',
           },
         ]
       : [
@@ -146,7 +146,7 @@ export function sourceView(
               ? changedOn
                 ? `after the ${changedOn} changes`
                 : 'after a change'
-              : 'none flagged',
+              : 'none reported',
           },
         ]
     : [
@@ -158,7 +158,7 @@ export function sourceView(
         {
           label: 'Drafts today',
           value: `${docs?.madeToday ?? 0} of ${docs?.perDay ?? 0}`,
-          sub: 'the daily cap',
+          sub: 'the daily limit',
         },
       ]
 

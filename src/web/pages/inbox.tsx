@@ -836,7 +836,7 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
     <PrimaryAction
       onClick={() => {
         void commentActions.seenMention(subject)
-        toast('Done', { description: 'The comment stays in the thread.' })
+        toast('Done', { description: 'The comment stays in the comments.' })
         next()
       }}
     >
@@ -952,7 +952,7 @@ function MentionDetail({
       label={title}
       nav={nav}
       foot={
-        <PaneFoot follows="Reply in the thread, or mark it done">
+        <PaneFoot follows="Reply to the comment, or mark it done">
           <MentionDone subject={note.subject} next={next} />
         </PaneFoot>
       }
@@ -1007,7 +1007,7 @@ function whereContextGoes(me: Person, domains: Domain[]) {
   if (me.owns.includes(home.id)) return `Context goes to the domain ${home.name}, owned by you.`
   const by = home.owners.length ? `owned by ${listOf(home.owners)}` : 'which has no owner yet'
   return `Context goes to the domain ${home.name}, ${by}. ${
-    me.admin ? 'As an admin, you publish it at once.' : 'It goes live once an owner publishes it.'
+    me.admin ? 'As an admin, you publish it at once.' : 'Agents get it once an owner publishes it.'
   }`
 }
 

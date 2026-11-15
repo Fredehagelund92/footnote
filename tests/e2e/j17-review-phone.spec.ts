@@ -39,7 +39,7 @@ test('a tap on a line offers to comment on it', async ({ page }) => {
   await page.keyboard.type('On the phone')
   await text.getByRole('button', { name: 'Comment', exact: true }).tap()
   await expect(
-    text.getByRole('region', { name: "Line 1: Jon Abara's thread, open" }),
+    text.getByRole('region', { name: "Line 1: Jon Abara's comment, open" }),
   ).toContainText('On the phone')
 })
 

@@ -777,7 +777,7 @@ export function ContextPage() {
                           filtered.filter((f) => servedToAgents(f) && inForce(parseWhen(f.when)))
                             .length,
                         )}{' '}
-                        in force now
+                        apply today
                       </td>
                       <td colSpan={2} className="px-1.5 @max-xl/main:pr-4 @max-xl/main:text-right">
                         {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a check

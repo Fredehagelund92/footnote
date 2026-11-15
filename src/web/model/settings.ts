@@ -54,7 +54,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
       },
       {
         key: 'observability.pinned_dimensions',
-        what: 'Dimensions pinned on Observability’s Overview: a facet each, first in its filter',
+        what: 'Dimensions pinned on Observability’s Overview: a filter list each, first in its filter',
         value: (v) => (Array.isArray(v) && v.length ? count(v.length, 'dimension') : 'None'),
       },
       {
@@ -187,11 +187,11 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
     ],
   },
   {
-    group: 'Model spend',
+    group: 'AI cost this month',
     settings: [
       {
         key: 'limits.llm_monthly_cap_micros',
-        what: 'All model use in a month; at the cap Ask and web reads stop and say why',
+        what: 'All model use in a month; at the limit Ask and web reads stop and say why',
         value: dollars,
       },
       {
@@ -206,7 +206,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
           const eval_ = field(v, 'eval')
           const assistant = field(v, 'assistant')
           return eval_ === undefined && assistant === undefined
-            ? 'No cap of their own'
+            ? 'No limit of their own'
             : [
                 eval_ === undefined ? null : `answer tests ${dollars(eval_)}`,
                 assistant === undefined ? null : `assistant ${dollars(assistant)}`,
@@ -226,7 +226,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
   {
     group: 'Models',
     settings: [
-      { key: 'models.assistant', what: 'The model that answers in Ask', value: model },
+      { key: 'models.assistant', what: 'Ask, the AI model that answers', value: model },
       {
         key: 'ask.max_steps',
         what: 'Model steps one answer in Ask can take when it reads with its tools, the last with none',
@@ -237,16 +237,20 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         what: 'How long one answer in Ask can take when it reads with its tools',
         value: seconds,
       },
-      { key: 'models.eval_answer', what: 'The model that answers in answer tests', value: model },
+      {
+        key: 'models.eval_answer',
+        what: 'The AI model that answers in answer tests',
+        value: model,
+      },
       {
         key: 'models.judge',
-        what: 'The model that judges answer tests',
+        what: 'The AI model that judges answer tests',
         value: (v) =>
           v === 'different_family' ? 'Another line than the answering model' : model(v),
       },
       {
         key: 'models.test_authoring',
-        what: 'The model for drafting test questions; nothing uses it yet',
+        what: 'The AI model for drafting test questions; nothing uses it yet',
         value: model,
       },
       {

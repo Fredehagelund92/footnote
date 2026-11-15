@@ -166,7 +166,7 @@ test('a By facet switches between dimensions, and an admin pins one for everyone
   page,
 }) => {
   await go(page, '/observability?range=30')
-  const facets = page.getByRole('complementary', { name: 'Facets' })
+  const facets = page.getByRole('complementary', { name: 'Filter lists' })
   // By starts on the dimension agents asked about most; a tick adds its value. The demo asks
   // about markets, and on the mock also a campaign (Black Friday); the service's demo week keeps
   // Black Friday as an event with no value.
@@ -174,7 +174,7 @@ test('a By facet switches between dimensions, and an admin pins one for everyone
   await expect(by.getByRole('checkbox', { name: 'Norway' })).toBeVisible()
   const dims = mode === 'mock' ? '2 dimensions were' : '1 dimension was'
   await expect(
-    facets.getByText(`${dims} asked about in 30 days. Pin one`, { exact: false }),
+    facets.getByText(`${dims} asked about in 30 days. Keep one`, { exact: false }),
   ).toBeVisible()
   await by.getByRole('checkbox', { name: 'Norway' }).click()
   await expect(page).toHaveURL(/d\.market=norway/)
@@ -183,24 +183,28 @@ test('a By facet switches between dimensions, and an admin pins one for everyone
   await by.getByRole('button', { name: 'Clear Market' }).click()
   await expect(page).not.toHaveURL(/d\.market/)
   if (mode === 'mock') {
-    await facets.getByRole('combobox', { name: 'Break the facets down by a dimension' }).click()
+    await facets
+      .getByRole('combobox', { name: 'Break the filter lists down by a dimension' })
+      .click()
     await page.getByRole('option', { name: /^Campaign/ }).click()
     await expect(facets.getByRole('region', { name: 'By Campaign' })).toContainText('Black Friday')
-    await facets.getByRole('combobox', { name: 'Break the facets down by a dimension' }).click()
+    await facets
+      .getByRole('combobox', { name: 'Break the filter lists down by a dimension' })
+      .click()
     await page.getByRole('option', { name: /^Market/ }).click()
   }
 
   // Pinned for everyone: a facet of its own, first in the filter, and a setting with a reason.
   await facets
     .getByRole('region', { name: 'By Market' })
-    .getByRole('button', { name: 'Pin Market for everyone' })
+    .getByRole('button', { name: 'Keep Market here for everyone' })
     .click()
-  await expect(page.getByText('Pinned Market for everyone')).toBeVisible()
+  await expect(page.getByText('Kept Market here for everyone')).toBeVisible()
   const pinned = facets.getByRole('region', { name: 'Market', exact: true })
   await expect(pinned.getByRole('checkbox', { name: 'Norway' })).toBeVisible()
   await expect(facets.getByRole('region', { name: 'By Market' })).toHaveCount(0)
   await page.keyboard.press('f')
-  await expect(page.getByRole('group', { name: 'Pinned' }).getByRole('option')).toHaveText([
+  await expect(page.getByRole('group', { name: 'Kept here' }).getByRole('option')).toHaveText([
     /^Market/,
   ])
   await page.keyboard.press('Escape')
@@ -211,28 +215,30 @@ test('a By facet switches between dimensions, and an admin pins one for everyone
       .getByText('Dimensions pinned on Observability’s Overview'),
   ).toBeVisible()
   await go(page, '/observability?range=30')
-  await pinned.getByRole('button', { name: 'Unpin Market for everyone' }).click()
+  await pinned.getByRole('button', { name: 'Stop keeping Market here for everyone' }).click()
   await expect(pinned).toHaveCount(0)
   await expect(facets.getByRole('region', { name: 'By Market' })).toBeVisible()
 
   // An owner reads the pins and picks in By, and pins nothing.
   await facets
     .getByRole('region', { name: 'By Market' })
-    .getByRole('button', { name: 'Pin Market for everyone' })
+    .getByRole('button', { name: 'Keep Market here for everyone' })
     .click()
-  await expect(page.getByText('Pinned Market for everyone').last()).toBeVisible()
+  await expect(page.getByText('Kept Market here for everyone').last()).toBeVisible()
   await signInAs(page, 'Tomas Eriksen')
   await go(page, '/observability?range=30')
-  await expect(page.getByRole('button', { name: /^Pin .* for everyone$/ })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /^Unpin .* for everyone$/ })).toHaveCount(0)
-  await expect(facets.getByText(/An admin can pin one here for everyone/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Keep .* here for everyone$/ })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: /^Stop keeping .* here for everyone$/ }),
+  ).toHaveCount(0)
+  await expect(facets.getByText(/An admin can keep one here for everyone/)).toBeVisible()
 })
 
 test('the facets count each value without its own chip, and a count looks at only it', async ({
   page,
 }) => {
   await go(page, '/observability?range=30')
-  const facets = page.getByRole('complementary', { name: 'Facets' })
+  const facets = page.getByRole('complementary', { name: 'Filter lists' })
   const domain = facets.getByRole('region', { name: 'Domain' })
   await domain.getByRole('button', { name: /^Marketing: \d+ topics?, asked/ }).click()
   await expect(page).toHaveURL(new RegExp(`domain=${domainId('marketing')}`))
@@ -258,18 +264,18 @@ test('the facets count each value without its own chip, and a count looks at onl
   expect(answers).toMatch(/Checked\s*\d/)
 
   // The facets fold away, and the device remembers.
-  await page.getByRole('button', { name: 'Facets' }).click()
-  await expect(page.getByRole('button', { name: 'Facets' })).toHaveAttribute(
+  await page.getByRole('button', { name: 'Filter lists' }).click()
+  await expect(page.getByRole('button', { name: 'Filter lists' })).toHaveAttribute(
     'aria-pressed',
     'false',
   )
   await expect(facets).toHaveAttribute('inert')
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Facets' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Filter lists' })).toHaveAttribute(
     'aria-pressed',
     'false',
   )
-  await page.getByRole('button', { name: 'Facets' }).click()
+  await page.getByRole('button', { name: 'Filter lists' }).click()
   await expect(facets).not.toHaveAttribute('inert')
 })
 
@@ -299,8 +305,8 @@ test('a topic in words, a link that opens the same view, the picker and the face
   await sheet.getByRole('button', { name: 'Done' }).click()
   await expect(page).toHaveURL(/d\.market=germany/)
 
-  await page.getByRole('button', { name: 'Facets' }).click()
-  const facets = page.getByRole('dialog', { name: 'Facets' })
+  await page.getByRole('button', { name: 'Filter lists' }).click()
+  const facets = page.getByRole('dialog', { name: 'Filter lists' })
   await expect(facets).toBeVisible()
   await facets
     .getByRole('region', { name: 'Answer' })

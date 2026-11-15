@@ -28,7 +28,7 @@ test('on a phone, Try again after a failed Close closes, from either place', asy
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
-test('Return with a note is not offered on a suggestion to archive', async ({ page }) => {
+test('Send back with a note is not offered on a suggestion to archive', async ({ page }) => {
   await go(page, '/inbox/sug-lars-retire/review')
   await expect(page.getByRole('button', { name: 'Close the suggestion' })).toHaveCount(2)
   await expect(page.getByRole('button', { name: 'Archive anyway' })).toHaveCount(2)

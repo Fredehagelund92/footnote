@@ -92,7 +92,7 @@ export function inForce(t: TimeFrame) {
 }
 export const timeNow = (t: TimeFrame) =>
   inForce(t)
-    ? 'In force now'
+    ? 'Applies today'
     : t.t === 'since' && t.from && t.from > todayMs()
       ? `Starts ${dmy(t.from)}`
       : 'Over'

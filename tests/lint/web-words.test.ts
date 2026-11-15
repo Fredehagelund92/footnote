@@ -134,9 +134,9 @@ describe('heed/plain-words in the web app (glossary v2)', () => {
   })
 
   it('maps each place to its files', () => {
-    expect(webPlacesOf('src/web/pages/settings.tsx')).toEqual(['Settings'])
-    expect(webPlacesOf('src/web/components/heed/review-parts.tsx')).toEqual(['the review'])
-    expect(webPlacesOf('src/web/pages/inbox.tsx')).toEqual([])
+    expect(webPlacesOf('src/web/pages/settings.tsx')).toEqual(['the web app', 'Settings'])
+    expect(webPlacesOf('src/web/components/heed/review-parts.tsx')).toEqual(['the web app', 'the review'])
+    expect(webPlacesOf('src/web/pages/inbox.tsx')).toEqual(['the web app'])
     for (const { files } of webSurfaces)
       for (const glob of files) expect(glob, 'a place of the web app').toMatch(/^src\/web\//)
   })

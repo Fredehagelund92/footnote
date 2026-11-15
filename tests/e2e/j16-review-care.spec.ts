@@ -96,7 +96,7 @@ test('an overlap with several live items asks about each, and archives only the 
 test('a withdrawn retirement closes; archiving asks first, from the key too', async ({ page }) => {
   await go(page, '/inbox/sug-lars-retire/review')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  await expect(page.getByRole('region', { name: 'What the thread decided' })).toContainText(
+  await expect(page.getByRole('region', { name: 'What the comment decided' })).toContainText(
     "I'll suggest new dates instead of archiving it.",
   )
   await expect(decide.getByRole('button', { name: 'Close the suggestion' })).toBeVisible()
@@ -138,7 +138,7 @@ test('its sender takes a suggestion to archive back in the comments, or lets it 
     await go(page, '/inbox/sug-lars-retire/review')
     const decide = page.getByRole('complementary', { name: 'Try it and decide' })
     await expect(decide.getByText('Ready to archive')).toBeVisible()
-    await expect(page.getByRole('region', { name: 'What the thread decided' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'What the comment decided' })).toHaveCount(0)
     // Taken back again: the owner closes it or archives anyway.
     await signInAs(page, 'Lars Dahl')
     await open()
@@ -148,7 +148,7 @@ test('its sender takes a suggestion to archive back in the comments, or lets it 
     await signInAs(page, 'Jon Abara')
     await go(page, '/inbox/sug-lars-retire/review')
     await expect(decide.getByRole('button', { name: 'Close the suggestion' })).toBeVisible()
-    await expect(page.getByRole('region', { name: 'What the thread decided' })).toContainText(
+    await expect(page.getByRole('region', { name: 'What the comment decided' })).toContainText(
       "I'll suggest new dates instead of archiving it.",
     )
   })

@@ -16,7 +16,7 @@ These Markdown files are the documentation of the web app (`src/web`). The same 
 | [Domains and owners](domains-and-owners.md)             | Set up           |
 | [Integrations](integrations.md)                         | Set up           |
 | [How agents use it](how-agents-use-it.md)               | How it works     |
-| [Answer lines](answer-lines.md)                         | How it works     |
+| [Answer labels](answer-lines.md)                        | How it works     |
 | [Privacy](privacy.md)                                   | How it works     |
 | [Agent tools](tools.md)                                 | Reference        |
 | [What's new](changelog.md)                              | (its own page)   |
@@ -44,7 +44,7 @@ The title comes from the front matter, so the body has no `#` heading. The body 
 The docs draw only what the pages use, and refuse the rest when the app is built:
 
 - Paragraphs, lists, tables, **bold**, _italics_ and `code`. A numbered list shows as steps.
-- A note: a quote whose first words are its title in bold, with a full stop: `> **Revoking.** Revoke an agent from Connected agents.`
+- A note: a quote whose first words are its title in bold, with a full stop: `> **Disconnecting.** Disconnect an agent from Connected agents.`
 - A code block that says what it is: ` ```text title="The prompt, exactly as the app shows it" `.
 - Links to another page, as `write-context.md` or `write-context.md#the-four-kinds`; to a screen of the app, as `/settings/agents`; or to a web address, as `https://...`. A link to a page or a heading that does not exist fails the build.
 
@@ -72,11 +72,11 @@ The Docs area and the docs site draw the list from its source in the app. What s
 | `checks`             | What to check when nothing signs in        | `src/web/lib/agents.ts`       |
 | `kinds`              | The four kinds of context, with their hint | `src/web/model/items.ts`      |
 | `word: Context item` | One of the ten words, with its sentence    | `src/web/lib/help-content.ts` |
-| `answer-lines`       | The six answer lines                       | `src/web/lib/help-content.ts` |
+| `answer-lines`       | The six answer labels                      | `src/web/lib/help-content.ts` |
 | `words`              | The ten words                              | `src/web/lib/help-content.ts` |
 | `tools`              | The six agent tools                        | `src/web/lib/agents.ts`       |
 
-Help in the app (`/help`) shows the same answer lines and words, from the same lists.
+Help in the app (`/help`) shows the same answer labels and words, from the same lists.
 
 ## What's new
 

@@ -98,7 +98,7 @@ export const doneTurn = (answer: Answer): Turn => ({
  */
 export function unansweredIn(message: string, online: boolean): string {
   if (!online) return "You're offline. Ask again when you're back."
-  const reason = message.trim().replace(/[.!?]+$/, '') || "The service didn't reply"
+  const reason = message.trim().replace(/[.!?]+$/, '') || "The app didn't reply"
   const ordinary = /^[A-Z][a-z]/.test(reason)
   return `Couldn't get an answer: ${ordinary ? reason.charAt(0).toLowerCase() : reason.charAt(0)}${reason.slice(1)}.`
 }

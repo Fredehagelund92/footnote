@@ -344,11 +344,11 @@ function Explorer({
           : pinned.filter((k) => k !== key)
         void write('pinDimensions', {
           pinned: next,
-          reason: `${pin ? 'Pinned' : 'Unpinned'} ${name} on Overview.`,
+          reason: `${pin ? 'Kept' : 'Stopped keeping'} ${name} on Overview for everyone.`,
         }).then(() =>
-          toast(pin ? `Pinned ${name} for everyone` : `Unpinned ${name}`, {
+          toast(pin ? `Kept ${name} here for everyone` : `Stopped keeping ${name} here`, {
             description: pin
-              ? 'It has a facet of its own and comes first in the filter, for the whole workspace.'
+              ? 'It has a filter list of its own and comes first in the filter, for the whole workspace.'
               : 'It is back among the other dimensions, for the whole workspace.',
           }),
         )

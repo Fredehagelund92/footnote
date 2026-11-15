@@ -160,7 +160,7 @@ const lines: Record<ObsFeedback['reports'][number]['kind'], string> = {
   wrong: 'From an agent: reported the answer as wrong.',
   missing: 'From an agent: reported that something was missing.',
   unclear: 'From an agent: reported the answer as unclear.',
-  gap: 'Reported a gap. No name is kept.',
+  gap: 'Reported a Not found. No name is kept.',
   named: 'Reported from Ask.',
 }
 
