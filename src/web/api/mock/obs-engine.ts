@@ -1,6 +1,15 @@
 import { stateLabel, type AnswerState } from '@/model/ask'
 import type { DomainId } from '@/model/items'
-import { ALL_VALUES } from '@/model/observability'
+import {
+  ALL_VALUES,
+  dateLabel,
+  dayLabel,
+  monthName,
+  monthShort,
+  monthsLabel,
+} from '@/model/observability'
+
+export { dayLabel, monthName, monthShort, monthsLabel }
 
 // The mock binding's Observability engine: the demo world's fixtures (data/observability.ts) counted
 // for a view, every range, domain and kind of agent scaled from the one week the board draws. It
@@ -39,19 +48,7 @@ export const shownCount = (n: number) =>
 
 /* ---------- the days ---------- */
 
-const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 export type Day = { at: number; label: string; counts: Counts }
-
-/** "Thu 22": a day as a chart's axis says it. */
-export function dayLabel(at: number) {
-  const d = new Date(at)
-  return `${DOW[d.getUTCDay()]} ${d.getUTCDate()}`
-}
-export const dateLabel = (at: number) => {
-  const d = new Date(at)
-  return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`
-}
 
 /** A publish: a dashed line on the charts, so you can see whether the hatch of "nothing" shrank after it. */
 export type Publish = { at: number; title: string; by: string; domain: DomainId; checked: string }
@@ -74,35 +71,6 @@ export type Topic = {
   named?: 'group' | 'none'
   /** Calls this week whose agent's own fields named one thing and the words another: a bit per call, never the words. */
   disagree?: number
-}
-
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-/** "2026-10" as "October 2026". */
-export const monthName = (m: string) => `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`
-/** "2026-10" as "Oct 2026". */
-export const monthShort = (m: string) =>
-  `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]!.slice(0, 3)} ${m.slice(0, 4)}`
-
-/** Months in time order, the year once when they share it: "Sep, Oct 2026"; "Dec 2026, Jan 2027". */
-export function monthsLabel(months: string[]) {
-  const asc = [...months].sort()
-  const years = new Set(asc.map((m) => m.slice(0, 4)))
-  if (years.size === 1)
-    return `${asc.map((m) => monthShort(m).split(' ')[0]).join(', ')} ${asc[0]!.slice(0, 4)}`
-  return asc.map(monthShort).join(', ')
 }
 
 /** "Orders in Norway"; over every value "Units sold"; about an event "Discount cost, Black Friday"; with no metric "Norway, no metric named". */

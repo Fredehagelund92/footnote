@@ -1,4 +1,5 @@
 import { usePageTitle } from '@/lib/page-title'
+import { dayMonth } from '@/lib/dates'
 import * as React from 'react'
 import {
   ArrowLeftIcon,
@@ -694,12 +695,7 @@ function Landing({ onSearch }: { onSearch: () => void }) {
   )
 }
 
-const day = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  })
+const day = (iso: string) => dayMonth(iso)
 
 function Changelog() {
   return (

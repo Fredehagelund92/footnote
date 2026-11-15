@@ -5,14 +5,14 @@
  * here say it as the mock's fixtures do: what was counted, the number and how it moved, from where
  * and how fresh.
  */
+import { dayMonth, dayMonthYear, monthOfName } from '@/lib/dates'
 import type { FigureRead, FigureTry as FigureTried } from '@contract/figures'
 import { comparisonWords, daysWords, listed, type Days } from '@domain/figures'
 import type { Figure, FigureTry, FigureView } from '@/model/figures'
 
-const MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')
 const pad = (n: number) => String(n).padStart(2, '0')
 const day = (d: string, month: string, year: string) => {
-  const m = MONTHS.indexOf(month)
+  const m = monthOfName(month)
   return m < 0 ? null : `${year}-${pad(m + 1)}-${pad(Number(d))}`
 }
 
@@ -81,8 +81,8 @@ export function asOfWords(iso: string, now: Date): string {
   const days = Math.round((start(now) - start(at)) / 86_400_000)
   if (days === 0) return `today at ${time}`
   if (days === 1) return `yesterday at ${time}`
-  const year = at.getFullYear() === now.getFullYear() ? '' : ` ${at.getFullYear()}`
-  return `${at.getDate()} ${MONTHS[at.getMonth()]}${year} at ${time}`
+  const date = at.getFullYear() === now.getFullYear() ? dayMonth(at) : dayMonthYear(at)
+  return `${date} at ${time}`
 }
 
 /** "down 89%", "up 4%", or "the same". */

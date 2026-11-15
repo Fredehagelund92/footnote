@@ -4,6 +4,7 @@ import type {
   ConflictSide as ServiceSide,
   ConflictView as ServiceView,
 } from '@contract/conflicts'
+import { clockTime } from '@/lib/dates'
 import type { AnswerState } from '@/model/ask'
 import type { Conflict, ConflictDecision, ConflictRow, ConflictSide, Said } from '@/model/conflicts'
 import type { Kind } from '@/model/items'
@@ -18,8 +19,7 @@ const kindOf = (kind: string): Kind =>
   kind === 'event' || kind === 'issue' || kind === 'note' || kind === 'guide' ? kind : 'note'
 
 /** The clock time of a decision, as the outcome line says it. */
-const timeOf = (at: string) =>
-  new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+const timeOf = (at: string) => clockTime(new Date(at))
 
 export function decisionOf(d: ServiceDecision, names: Lookup): ConflictDecision {
   return {

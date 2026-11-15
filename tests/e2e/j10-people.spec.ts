@@ -80,7 +80,7 @@ test('an invited owner is not an owner on the domain page, so its only owner sta
 /** A day's label as a day to sort by: "3 Oct 2026" is 2026-10-03. */
 const dayOf = (label: string) => {
   const [d = '', m = '', y = ''] = label.split(' ')
-  const month = 'JanFebMarAprMayJunJulAugSepOctNovDec'.indexOf(m) / 3 + 1
+  const month = 'JanFebMarAprMayJunJulAugSepOctNovDec'.indexOf(m.slice(0, 3)) / 3 + 1
   return `${y}-${String(month).padStart(2, '0')}-${d.padStart(2, '0')}`
 }
 

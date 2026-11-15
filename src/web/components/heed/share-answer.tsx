@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { clockTime } from '@/lib/dates'
 import { LinkIcon, MessageSquareTextIcon, ReceiptTextIcon } from '@/components/icons'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -148,9 +149,7 @@ function ShareBody({
   onWay: (w: Way) => void
 }) {
   const me = useMe()
-  const [time] = React.useState(() =>
-    new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-  )
+  const [time] = React.useState(() => clockTime(new Date()))
   const tabs: { id: Way | 'link'; label: string; icon: typeof LinkIcon }[] = [
     { id: 'slack', label: 'Slack message', icon: MessageSquareTextIcon },
     { id: 'card', label: 'Card', icon: ReceiptTextIcon },
