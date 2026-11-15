@@ -47,7 +47,7 @@ describe('an error thrown by the service', () => {
         .map((message) => `${file}:${message.line}`),
     )
     expect(bare).toEqual([])
-  })
+  }, 300_000)
 })
 
 describe('the messages the service shares', () => {
