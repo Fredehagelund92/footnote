@@ -64,6 +64,12 @@ const call = (auth: Auth, method: 'GET' | 'POST', path: string, payload?: object
     headers: { ...auth, ...(method === 'GET' ? {} : { 'idempotency-key': randomUUID() }) },
     ...(payload ? { payload } : {}),
   })
+const as = <T>(person: string, work: () => Promise<T>) =>
+  transaction(client, async () => {
+    await client.query(`set local role ${identifier(localRoles.api)}`)
+    await client.query("select set_config('cl.person_id',$1,true)", [person])
+    return work()
+  })
 const invite = async (auth: Auth, payload: object) => {
   const response = await call(auth, 'POST', '/invites', payload)
   expect(response.statusCode, response.body).toBe(200)
@@ -394,12 +400,6 @@ describe('accepting', () => {
 })
 
 describe('row security, for a holder of the API role who skips the service', () => {
-  const as = <T>(person: string, work: () => Promise<T>) =>
-    transaction(client, async () => {
-      await client.query(`set local role ${identifier(localRoles.api)}`)
-      await client.query("select set_config('cl.person_id',$1,true)", [person])
-      return work()
-    })
   it('holds who may invite, send again and take back, and what an invite is', async () => {
     const insert = (by: string, role: string, areas: string[]) =>
       client.query(
@@ -508,6 +508,10 @@ describe('an invite that would be refused', () => {
     expect(await listed()).toMatchObject({ standing: 'void', voidBecause: 'sender', willOwn: [] })
     expect((await lookup(first)).statusCode).toBe(404)
     expect(await accept('omar.left@larchwood.example')).toBeNull()
+    // An admin cannot clear the sender to make it an operator invite that grants every domain.
+    await expect(
+      as(people.admin, () => client.query('update invites set invited_by=null where id=$1', [id])),
+    ).rejects.toMatchObject({ code: '23514' })
     // An admin sends it again and becomes its sender: the new link works, owning Marketing.
     const resent = await call(admin, 'POST', `/invites/${id}/resend`, {})
     expect(resent.statusCode, resent.body).toBe(200)
