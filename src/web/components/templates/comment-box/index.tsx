@@ -116,7 +116,10 @@ export function CommentBox({
       () => {
         if (resolved) toast('Resolved')
       },
-      () => toast.error(resolved ? "The thread wasn't resolved" : "The thread wasn't reopened"),
+      () =>
+        toast.error(resolved ? "The comment wasn't resolved" : "The comment wasn't reopened", {
+          description: 'Nothing was changed. Try again.',
+        }),
     )
   }
 

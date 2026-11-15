@@ -433,6 +433,11 @@ export const loopTurnSchema = z.object({
       mark: z.optional(z.string()),
     }),
   ),
+  /**
+   * What an answer that cites no item defines, from its reads (decision 3): the page shows the
+   * Definition label, with these names and the tool their words come from, in place of a state.
+   */
+  defined: z.optional(z.object({ names: z.array(z.string()), tool: z.string() })),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /** Why a turn stopped: its step or time limit, the spending limits, or its model failed. */

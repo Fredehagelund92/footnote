@@ -85,7 +85,7 @@ export interface AppDependencies {
   trustedProxies?: readonly string[]
   /** What a run of Ask's cases hears or replaces. Never set by the service. */
   askTrace?: AskTrace
-  /** HEED_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). Off by default. */
+  /** HEED_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). The service sets it from the config (on by default); a bare app answers with its router. */
   askLoop?: boolean
   /** HEED_PROFILE_LABEL: the name the header and the sign-in page show. None by default. */
   profileLabel?: string | undefined

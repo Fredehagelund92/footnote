@@ -3,6 +3,7 @@ import type { ReviewProposal } from '../../../contract/review.ts'
 import type { Draft, FormatFinding } from '../../../domain/draft.ts'
 import type { Provenance } from '../../../domain/provenance.ts'
 import type { Queryable } from '../../db/database.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 export type LoadedProposal = ReviewProposal & {
   draft: Draft
@@ -44,7 +45,7 @@ export async function loadProposal(tx: Queryable, id: string, lock = false) {
     `select ${fields} ${from} where p.id=$1 and p.discarded_at is null${lock ? ' for update of p' : ''}`,
     [id],
   )
-  if (!row) throw new ORPCError('NOT_FOUND')
+  if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
   return row
 }
 
@@ -58,7 +59,7 @@ export async function loadProposals(tx: Queryable, ids: readonly string[], lock 
   const byId = new Map(rows.map((row) => [row.id, row]))
   return ids.map((id) => {
     const row = byId.get(id)
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     return row
   })
 }
