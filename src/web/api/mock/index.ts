@@ -848,6 +848,9 @@ export function createMockApi() {
         return { metric: read.metric, markets: read.markets }
       }),
     ask: (input, live) => {
+      // A typed question is asked of the service, so offline nothing comes back; an example is kept here.
+      if (input.question && !input.example && scenario.offline())
+        return Promise.reject(new ApiError('unanswered', "You're offline."))
       // Ask's loop answers, as the service wrote them on the demo week: shown by address only.
       if (input.example?.startsWith('loop-')) return loopExample(input.example)
       // ?loop=1: a typed question is answered as Ask's loop answers it.

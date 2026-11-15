@@ -84,15 +84,12 @@ export function LoopProgress({ turn }: { turn: Turn }) {
           )}
         </li>
       ))}
-      {(done || !steps.length) && (
+      {/* Stopped, the notice under the reads says so, once. */}
+      {!turn.stopped && (done || !steps.length) && (
         <li className="flex items-center gap-2">
           <span aria-hidden className="size-4 shrink-0" />
           <P.ReadingLine running={!turn.stopped}>
-            {turn.stopped
-              ? 'Stopped while reading'
-              : done
-                ? 'Writing the answer…'
-                : (turn.working ?? 'Reading…')}
+            {done ? 'Writing the answer…' : (turn.working ?? 'Reading…')}
           </P.ReadingLine>
         </li>
       )}

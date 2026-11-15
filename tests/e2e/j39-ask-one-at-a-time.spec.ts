@@ -141,6 +141,32 @@ test('a question that fails stays in the chat, says why, and leaves Ask ready to
   await expect(log.getByText(why)).toBeVisible()
 })
 
+test('offline, a question says so and what to do, not that the service failed', async ({
+  page,
+}) => {
+  await go(page, '/ask?n=offline-ask&state=offline')
+  await box(page).click()
+  await box(page).pressSequentially('What should I know about Orders in Germany?')
+  await box(page).press('Enter')
+  const log = page.getByRole('log')
+  await expect(log.getByText("You're offline. Ask again when you're back.")).toBeVisible()
+  await expect(page.getByText(/service didn't reply/)).toHaveCount(0)
+  await expect(page.locator('[data-turn]')).toHaveCount(1)
+  await expect(log.getByRole('button', { name: 'Ask again', exact: true })).toBeVisible()
+})
+
+test('the empty chat asks about metrics, and its box says what to ask', async ({ page }) => {
+  await go(page, '/ask?n=empty-words')
+  await expect(
+    page.getByRole('heading', { name: 'What do you want to know about your metrics?' }),
+  ).toBeVisible()
+  await expect(page.locator('[data-placeholder]')).toHaveAttribute(
+    'data-placeholder',
+    'Ask what a metric means, who owns it, or what is written about it',
+  )
+  await expect(page.getByRole('heading', { name: /the numbers/ })).toHaveCount(0)
+})
+
 test('offline, a chat in the history still opens, in Ask and in the assistant panel', async ({
   page,
 }) => {
