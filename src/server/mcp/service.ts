@@ -76,7 +76,7 @@ import {
   type GetContextInput,
 } from './schemas.ts'
 import { toolSchemaDigest, type ServedToolName } from './tools.ts'
-import { concepts } from '../../domain/words-v1.ts'
+import { concepts } from '../../domain/words.ts'
 import { productName } from '../brand.ts'
 
 /**
@@ -647,7 +647,7 @@ export function createToolService(
       )
     }
     return resultFor({
-      say: `Nothing was sent yet: it needs to know which answer or ${concepts.fact.name} this is about.`,
+      say: `Nothing was sent yet: it needs to know which answer or ${concepts.contextItem.name} this is about.`,
       next:
         args.kind === 'missing'
           ? "Call report again with the reply_id of the get_context reply, or context_id; with no reply, pass the question's metrics, markets and dates."
@@ -782,7 +782,7 @@ export function createToolService(
           [
             v1 ? contextLinkInstructions : linkInstructions,
             ...(definitions.length
-              ? [v1 ? definitionsFor(`${concepts.fact.name}s`) : definitionInstruction]
+              ? [v1 ? definitionsFor(`${concepts.contextItem.name}s`) : definitionInstruction]
               : []),
             ...(groups.length ? [groupInstruction] : []),
             ...(assumed ? [assumed.instruction] : []),

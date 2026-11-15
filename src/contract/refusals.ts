@@ -1,6 +1,6 @@
 /**
- * What the service says when a refusal carries no words of its own, written to the voice guide
- * (docs/design/voice.md): what happened, then what to do. The contract documents them, the
+ * What the service says when a refusal carries no words of its own, written to the voice
+ * (docs/design/copy.md): what happened, then what to do. The contract documents them, the
  * service answers with them in place of the library's English defaults ("Forbidden", "Input
  * validation failed"), and the mock binding says the same, so a screen that shows a refusal's
  * message reads the same sentence from both.

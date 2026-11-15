@@ -53,7 +53,7 @@ type Target = AnswerResult['target']
 const nothingLive = () =>
   new ORPCError('PRECONDITION_FAILED', {
     message:
-      'Nothing is shared with agents yet. They get facts once an owner accepts the first one.',
+      'Nothing is shared with agents yet. They get context once an owner publishes the first item.',
   })
 /** Steps are timed with the process's clock; the answer is the same whatever it says. */
 const clockMs = () => performance.now()

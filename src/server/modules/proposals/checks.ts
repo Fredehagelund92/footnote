@@ -258,7 +258,7 @@ export async function checkDraft(
         )
       ).length
     )
-      add('item_reference', 'replaces', 'Name another accepted fact.')
+      add('item_reference', 'replaces', 'Name another published context item.')
   }
   if (
     draft.ownerId &&
