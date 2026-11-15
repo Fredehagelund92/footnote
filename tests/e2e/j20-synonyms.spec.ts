@@ -75,8 +75,8 @@ test('typing words and commas makes tags; a taken word says who has it', async (
   const box = page.getByRole('textbox', { name: 'Add another name for Gross sales' })
   await box.fill('Sales Value,')
   const tags = page
-    .getByRole('region', { name: 'Also called' })
-    .or(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Also called' }) }))
+    .getByRole('region', { name: 'Another name' })
+    .or(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Another name' }) }))
   await expect(tags.getByText('Sales Value', { exact: true })).toBeVisible()
   await expect(
     page.getByRole('status').filter({ hasText: 'Added synonym Sales Value.' }),
@@ -213,7 +213,7 @@ test('a save that fails takes its tag back and says so; Try again saves it', asy
 test('the list folds synonyms into their row; Terms counts only real terms', async ({ page }) => {
   await go(page, '/definitions')
   const gross = page.locator('tr').filter({ hasText: /^Gross sales/ })
-  await expect(gross).toContainText('Also called')
+  await expect(gross).toContainText('Another name')
   await expect(gross).toContainText('GMV')
   await expect(page.locator('tr').filter({ hasText: /^GMV/ })).toHaveCount(0)
   await expect(page.getByRole('radio', { name: /Terms/ })).toContainText('5')

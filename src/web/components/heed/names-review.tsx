@@ -179,7 +179,7 @@ export default function NamesReview({
       <PaneHead
         state={{ label: 'Names', icon: 'names', tone: 'neutral' }}
         title={namesWords({ ready: ready.length, flagged: flagged.length, tools }).title}
-        summary="A read made these from your definitions. Publish them and context can apply to them, and agents can use them."
+        summary={`These metrics and dimensions were found in ${tools.length ? tools.join(', ') : 'your definitions tool'}. Publish them, and people can write context about them and agents can use them.`}
       />
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
         {flagged.length > 0 && (

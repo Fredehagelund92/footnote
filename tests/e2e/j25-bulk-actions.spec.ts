@@ -272,7 +272,7 @@ test('Definitions change terms only: a synced metric is skipped, and a term take
     .getByRole('button', { name: /^Delete/ })
     .click()
   const confirm = page.getByRole('dialog', { name: 'Delete 1 term?' })
-  await expect(confirm).toContainText('1 skipped: synced from Cube')
+  await expect(confirm).toContainText('1 skipped: read from Cube')
   await confirm.getByRole('button', { name: 'Delete 1 term' }).click()
   await expect(page.getByText('1 term deleted')).toBeVisible()
   await expect(
