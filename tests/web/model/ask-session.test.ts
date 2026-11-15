@@ -139,7 +139,7 @@ describe('joining the history', () => {
   })
 })
 
-describe('what a chat keeps (Ask loop)', () => {
+describe('what a chat keeps', () => {
   const done = (id: string, loop = true) => doneTurn(answer(id, `Q ${id}?`, loop))
   const run = (turn: Turn, ...actions: Parameters<typeof turnReducer>[1][]) =>
     actions.reduce(turnReducer, turn)
@@ -163,10 +163,24 @@ describe('what a chat keeps (Ask loop)', () => {
     expect(keptAnswers([failed, done('t1')])?.map((a) => a.id)).toEqual(['t1'])
   })
 
-  it('keeps nothing when no turn is done, or a done turn is not the loop’s', () => {
+  it('keeps nothing when no turn is done', () => {
     expect(keptAnswers([])).toBeNull()
     expect(keptAnswers([run(askedTurn('t0', 'Q?'), { type: 'stop' })])).toBeNull()
-    expect(keptAnswers([done('t0'), done('t1', false)])).toBeNull()
+  })
+
+  it('keeps every chat’s answers, not only the loop’s, so opening it again asks nothing', () => {
+    expect(keptAnswers([done('t0', false), done('t1')])?.map((a) => a.id)).toEqual(['t0', 't1'])
+  })
+
+  it('a Not checked turn is left out and does not stop the rest being kept', () => {
+    const notChecked = run(askedTurn('t1', 'More?'), {
+      type: 'done',
+      answer: { ...answer('t1', 'More?'), state: 'failed', text: '', sources: [] },
+    })
+    expect(keptAnswers([done('t0'), notChecked, done('t2')])?.map((a) => a.id)).toEqual([
+      't0',
+      't2',
+    ])
   })
 
   it('names the next turn past every id held, so kept turns that skipped one never clash', () => {
