@@ -1,6 +1,6 @@
 /**
  * `heed`: the command-line tool for engineers and coding agents (FR-120). It writes through the
- * same API as the web form, so drafts and imports become proposals in the same review queue, and
+ * same API as the web form, so drafts and imports become suggestions in the same review queue, and
  * it checks item files and edition exports offline.
  */
 import { readFile, writeFile } from 'node:fs/promises'
@@ -40,16 +40,16 @@ Commands that use the database directly (the owner's address in DATABASE_URL_MIG
                       is how the first admin of an install that signs in with OIDC gets in.
 
 Commands that use the service:
-  draft <file>        Save one item as a draft proposal. --submit sends it for review.
+  draft <file>        Save one item as a draft suggestion. --submit sends it for review.
   import <file>       Check every item against the live edition; changes nothing.
-                      --apply makes the proposals (all or none) and submits them;
+                      --apply makes the suggestions (all or none) and submits them;
                       --drafts with --apply keeps them as drafts.
   import-tests <file> Check a file of test questions (YAML or JSON); changes nothing.
                       --apply saves them (all or none): new ones are created, changed
-                      ones replaced (owners and deputies of their domains, administrators).
+                      ones replaced (owners and deputies of their domains, admins).
   export [label]      Write the live edition, or the one named, as canonical JSON
-                      (owners, deputies and administrators).
-  audit               Export the history log (administrators and auditors).
+                      (owners, deputies and admins).
+  audit               Export the history log (admins).
                       --format jsonl|csv, --from YYYY-MM-DD, --to YYYY-MM-DD, --action name,
                       --request <id> (the request id its log lines carry)
 
@@ -63,7 +63,7 @@ Options:
   --help              Show this help
 
 An item file is a list of items, or an object with an "items" list; an edition export is one.
-An item with an "id" proposes a change to that accepted item; without one, a new item.
+An item with an "id" suggests a change to that published item; without one, a new item.
 Mentions are @[words](target) tokens in summaryMarkup and bodyMarkup.
 A test question file is a list of questions, or an object with a "questions" list.
 Templates with worked examples: docs/templates/.
@@ -231,11 +231,11 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
         error.code === 'UNAUTHORIZED'
           ? "Sign in as a person in the service's dev people file (--as, HEED_EMAIL)."
           : error.code === 'FORBIDDEN' && command === 'audit'
-            ? 'The history log is for administrators and auditors.'
+            ? 'The history log is for admins.'
             : error.code === 'FORBIDDEN' && command === 'export'
-              ? 'Editions are for owners, deputies and administrators.'
+              ? 'Editions are for owners, deputies and admins.'
               : error.code === 'FORBIDDEN' && command === 'import-tests'
-                ? 'Test questions are kept by owners, deputies and administrators.'
+                ? 'Test questions are kept by owners, deputies and admins.'
                 : null
       io.stderr(
         [
@@ -306,7 +306,7 @@ async function draft(
     proposal = await client.proposals.submit({ id: proposal.id, revision: proposal.revision })
   print(
     [
-      `Proposal ${proposal.number} (${proposal.id}) is ${proposal.state}, domain ${proposal.areaId}`,
+      `Suggestion ${proposal.number} (${proposal.id}) is ${proposal.state}, domain ${proposal.areaId}`,
       ...describe(proposal.findings),
     ],
     proposal,
@@ -334,7 +334,7 @@ async function importFile(
       ? `Imported as batch ${report.batchId}: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged${values.drafts ? ' (drafts)' : ', submitted for review'}`
       : counts.errors
         ? `Nothing imported: ${counts.errors} of ${report.entries.length} items have errors`
-        : `Dry run: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged. Run again with --apply to make the proposals.`
+        : `Dry run: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged. Run again with --apply to make the suggestions.`
   print(
     [
       ...report.entries.flatMap((e) => [
@@ -342,7 +342,7 @@ async function importFile(
           `${e.index}: ${e.action}`,
           e.itemId,
           e.title && `"${e.title}"`,
-          e.proposalId && `-> proposal ${e.proposalId}`,
+          e.proposalId && `-> suggestion ${e.proposalId}`,
         ]
           .filter(Boolean)
           .join(' '),

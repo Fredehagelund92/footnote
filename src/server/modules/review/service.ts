@@ -71,7 +71,8 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     const id = await liveVersionId(tx, itemId)
     if (!id)
       throw new ORPCError('NOT_FOUND', {
-        message: "We couldn't find an accepted version of this fact. Someone may have archived it.",
+        message:
+          "We couldn't find a published version of this context item. Someone may have archived it.",
       })
     return stored(id)
   }
@@ -112,7 +113,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     person ??= decider
     if (proposerId === (await me()) && !admin && !roles.has('owner'))
       throw new ORPCError('FORBIDDEN', {
-        message: 'You wrote this proposal, so an owner of its domain or an admin decides it.',
+        message: 'You wrote this suggestion, so an owner of its domain or an admin decides it.',
       })
     const choice = wanted ?? (roles.has('owner') ? 'owner' : 'administrator')
     if (choice === 'approver' || (choice === 'administrator' ? !admin : !roles.has(choice)))
@@ -156,7 +157,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
   }
   function blocked(
     gate: Gate,
-    message = 'Every required check must pass before you accept it.',
+    message = 'Every required check must pass before you publish it.',
   ): never {
     throw new ORPCError('UNPROCESSABLE_CONTENT', { message, data: { gate } })
   }
@@ -177,7 +178,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     )
     if (p.claimedBy && p.claimedBy !== (await me()))
       throw new ORPCError('CONFLICT', {
-        message: 'Another owner is already reviewing this proposal.',
+        message: 'Another owner is already reviewing this suggestion.',
       })
     const decision = {
       proposalId: p.id,
@@ -218,22 +219,24 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       if (live)
         throw new ORPCError('CONFLICT', {
           message:
-            'Agents get this fact again since it was restored, so this proposal is out of date. Reject it.',
+            'Agents get this context item again since it was restored, so this suggestion is out of date. Reject it.',
         })
       if (state.binned)
         throw new ORPCError('CONFLICT', {
-          message: 'This fact is in the Bin again. You can accept it once an admin restores it.',
+          message:
+            'This context item is in the Bin again. You can publish it once an admin restores it.',
         })
     } else if (standingOf({ written: await baseVersionId(version.id), live }) === 'stale')
       throw new ORPCError('CONFLICT', {
-        message: 'The accepted fact changed after this version was written. Ask for changes.',
+        message:
+          'The published context item changed after this version was written. Ask for changes.',
       })
     await checkedGate(p, version)
     const id = policy
       ? await insertDecision(tx, { ...decision, outcome: 'accept', autoPolicyId: policy.policyId })
       : ((await insertDecision(tx, { ...decision, outcome: 'accept' })) ??
         (await waitingAccept(version.id)))
-    if (!id) throw new ORPCError('CONFLICT', { message: 'You already accepted this version.' })
+    if (!id) throw new ORPCError('CONFLICT', { message: 'You already published this version.' })
     const data = {
       decisionId: id,
       outcome: 'accept',
@@ -296,14 +299,14 @@ export function createReviewService(tx: Queryable, clock: Clock) {
   async function decideRetirement(p: LoadedProposal, input: Decide) {
     if (input.outcome === 'request_changes')
       throw new ORPCError('CONFLICT', {
-        message: 'A proposal to archive a fact can only be accepted or rejected.',
+        message: 'A suggestion to archive a context item can only be published or rejected.',
       })
     const capacity = await capacityFor(p.areaId!, input.capacity, p.proposerId)
     const live = await liveVersionId(tx, p.itemId!)
     if (standingOf({ written: p.itemVersionId, live }) === 'stale')
       throw new ORPCError('CONFLICT', {
         message:
-          'This fact changed, or agents stopped getting it, after someone proposed to archive it.',
+          'This context item changed, or agents stopped getting it, after someone suggested archiving it.',
       })
     const outcome = input.outcome === 'accept' ? 'retire' : 'reject'
     const id = await insertDecision(tx, {
@@ -399,11 +402,11 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       if (p.revision !== input.revision)
         throw new ORPCError('CONFLICT', {
           message:
-            'Someone changed this proposal after you opened it. Look at the latest version, then try again.',
+            'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
         })
       if (!['submitted', 'in_review'].includes(p.state))
         throw new ORPCError('CONFLICT', {
-          message: 'This proposal no longer waits for a decision.',
+          message: 'This suggestion no longer waits for a decision.',
         })
       plainReason(input.reason)
       const comment = input.comment?.trim()
@@ -416,7 +419,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         plainReason(comment)
       }
       if (policy && (p.action !== 'create' || input.outcome !== 'accept'))
-        throw new ORPCError('CONFLICT', { message: 'A policy only publishes a new fact.' })
+        throw new ORPCError('CONFLICT', { message: 'A policy only publishes a new context item.' })
       const result =
         p.action === 'retire'
           ? await decideRetirement(p, input)
@@ -494,7 +497,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
           : null
       if (!capacity)
         throw new ORPCError('FORBIDDEN', {
-          message: 'Only an owner of the domain or an admin can archive a fact.',
+          message: 'Only an owner of the domain or an admin can archive a context item.',
         })
       // A rolled-back item may be retired again by the same person: the first decision stands.
       await insertDecision(tx, {
@@ -545,7 +548,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         .catch((error: unknown) => {
           if ((error as { code?: string }).code === '23505')
             throw new ORPCError('CONFLICT', {
-              message: 'Someone already proposed to archive this fact.',
+              message: 'Someone already suggested archiving this context item.',
             })
           throw error
         })
@@ -579,8 +582,8 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       if (!capacity)
         throw new ORPCError('FORBIDDEN', {
           message: v1
-            ? 'Only an owner of the domain or an admin can check this fact again.'
-            : 'Only an owner of the domain can check this fact again.',
+            ? 'Only an owner of the domain or an admin can check this context item again.'
+            : 'Only an owner of the domain can check this context item again.',
         })
       const marks = await tx.query<{ ref: string; mark: string; missing: boolean }>(
         `select r.ref,d.change_mark as mark,coalesce(d.missing_since_snapshot is not null,true) as missing
@@ -589,7 +592,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       )
       if (marks.some((m) => m.missing))
         throw new ORPCError('CONFLICT', {
-          message: 'A definition this fact uses is gone. Suggest a change instead.',
+          message: 'A definition this context item uses is gone. Suggest a change instead.',
         })
       // A changed definition the item only mentions is also checked here: the new version
       // records the current marks, so its links read as current again.
@@ -623,7 +626,8 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         canonicalJson(version.changeMarks) === canonicalJson(live.version.changeMarks)
       )
         throw new ORPCError('CONFLICT', {
-          message: "Nothing changed since the last check, so this fact doesn't need checking.",
+          message:
+            "Nothing changed since the last check, so this context item doesn't need checking.",
         })
       const inserted = await insertVersion(tx, itemId, version, live.id, { recheck: true })
       const [row] = await tx.query<{ id: string }>(

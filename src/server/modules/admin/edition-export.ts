@@ -24,8 +24,9 @@ export async function exportEdition(tx: Queryable, label: string): Promise<Editi
     [label],
   )
   if (!edition)
-    // eslint-disable-next-line heed/plain-words -- shown only on the Editions page
-    throw new ORPCError('NOT_FOUND', { message: "We couldn't find this edition." })
+    throw new ORPCError('NOT_FOUND', {
+      message: "We couldn't find this edition.",
+    })
   const { digest, ...head } = edition
   const served = await tx.query<{
     itemId: string

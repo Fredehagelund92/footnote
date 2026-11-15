@@ -294,7 +294,7 @@ export function createNamesService(tx: Queryable) {
         message: `“${renamed.name}” is live already. Rename it where it is edited.`,
       })
     if (new Set([...picked, ...left].map((name) => name.key)).size !== picked.length + left.length)
-      throw new ORPCError('CONFLICT', { message: 'Accept a name or leave it out, not both.' })
+      throw new ORPCError('CONFLICT', { message: 'Publish a name or leave it out, not both.' })
     const chosen = new Map(
       picked.map((name) => [
         name.key,

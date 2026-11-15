@@ -473,6 +473,21 @@
     }
   }
 }
+
+/* The dock leaving: the page is already wide again and the dock's last picture (a copy of its
+   panel, components/dock-leaving.tsx) fades and moves 16px to the right over it, in 150ms on
+   ease-out. data-leaving is set one frame after it mounts. With reduced motion --dur-2 is 0 and it
+   is gone at once. */
+@utility dock-leave {
+  transition-property: opacity, translate;
+  transition-duration: var(--dur-2);
+  transition-timing-function: var(--ease-out);
+
+  &[data-leaving] {
+    opacity: 0;
+    translate: var(--dist-3) 0;
+  }
+}
 @utility dock-swap {
   transition-property: opacity;
   transition-duration: var(--dur-1);

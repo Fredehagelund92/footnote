@@ -1,4 +1,4 @@
-import { card, claimsToCheck, expect, go, inHttpOnly, signInAs, test } from './go.ts'
+import { card, claimsToCheck, expect, go, inHttpOnly, onMockOnly, signInAs, test } from './go.ts'
 
 // J16, saying what needs care before anyone publishes: the quick view and the Inbox row show the
 // claims to check; an edit's Ready line says its numbers weren't checked; a withdrawn retirement
@@ -13,7 +13,20 @@ test('the quick view and the row show the claims to check before Review', async 
   await expect(page.locator(`[data-row="${card('sug-agent')}"]`).getByLabel(claims)).toBeVisible()
   // An overlap names the live item after a colon, with no space before it.
   await go(page, '/inbox?card=sug-sofia-clash')
-  await expect(page.getByText(/^Overlaps live context: \S/)).toBeVisible()
+  await expect(page.getByText(/^About the same thing as \d+ published items?: \S/)).toBeVisible()
+})
+
+test('a suggestion row says what changed and how often agents asked, in whole sentences', async ({
+  page,
+}) => {
+  await go(page, '/inbox')
+  const row = page.locator(`[data-row="${card('sug-ines')}"]`)
+  await expect(row).toContainText(/Ines Duarte (changed|moved) .+\./)
+  await expect(row).not.toContainText(/ - \d+ questions?/)
+  // The service counts the questions a suggestion would answer from what agents really asked.
+  await onMockOnly('count of questions a week', async () => {
+    await expect(row).toContainText(/Agents asked about this (once|\d+ times) this week\./)
+  })
 })
 
 test("a new date with no source says it isn't checked; one with a new source page doesn't", async ({
@@ -51,7 +64,7 @@ test('an overlap with several live items asks about each, and archives only the 
   // The suggestion comes first, and every overlap arrives answered Unrelated: Publish is live, and
   // saying more is the reviewer's choice.
   const asked = await page.getByRole('region', { name: 'The source' }).boundingBox()
-  const overlaps = await page.getByText('Overlaps live context').boundingBox()
+  const overlaps = await page.getByText('About the same thing as 3 published items').boundingBox()
   expect(asked!.y).toBeLessThan(overlaps!.y)
   await expect(page.getByText('Marked unrelated')).toBeVisible()
   await expect(decide.getByText('Check how they relate.')).toHaveCount(0)

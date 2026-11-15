@@ -1,5 +1,5 @@
 import { dayWords } from './dates.ts'
-import { concepts } from './words-v1.ts'
+import { concepts } from './words.ts'
 
 /*
   Reviewed before served: how a fact an agent receives was reviewed (FR-326, amended 18 Oct
@@ -32,11 +32,11 @@ export const ownerRole = (domain: string) => `the ${concepts.owner.name} of ${do
 
 /** The role that accepted a version, as agents read it: the owner of the domain (a deputy decided as one), or an admin. */
 export const acceptedByRole = (as: AcceptedAs, domain: string) =>
-  as === 'administrator' ? `an ${concepts.admin.name}` : ownerRole(domain)
+  as === 'administrator' ? `an admin` : ownerRole(domain)
 
-/** A review in one sentence: "Accepted 12 Jun 2026 by the owner of Sales, in edition 2026-06-12.1." */
+/** A review in one sentence: "Published 12 Jun 2026 by the owner of Sales, in edition 2026-06-12.1." */
 export const acceptedWords = (on: string, by: string, edition: string) =>
-  `Accepted ${dayWords(on)} by ${by}, in edition ${edition}.`
+  `Published ${dayWords(on)} by ${by}, in edition ${edition}.`
 
 /** A check in one sentence, as the agent contract's reply gives it: "Checked 12 Jun 2026 by the owner of Sales." */
 export const checkedWords = (on: string, by: string) => `Checked ${dayWords(on)} by ${by}.`

@@ -290,7 +290,7 @@ export function createDraftTool(options: {
             status: 'possible_duplicate',
             saved: false,
             message:
-              'Accepted facts already cover something similar. Ask the person whether this changes one of them or is new.',
+              'Published context items already cover something similar. Ask the person whether this changes one of them or is new.',
             possible_duplicates: possible.map(({ id, title, kind }) => ({ id, title, kind })),
             instructions:
               'To suggest a change to one of them, call again with its id as item_id. If the person says it is new, call again with new_item: true. Nothing was saved.',
@@ -434,7 +434,7 @@ export function createDraftTool(options: {
         const data = error.data as { findings?: { code: string; field: string }[] } | undefined
         return refusal(
           error.code === 'NOT_FOUND'
-            ? 'No accepted fact has that item_id. Nothing was saved.'
+            ? 'No published context item has that item_id. Nothing was saved.'
             : `${error.message.replace(/\.$/, '')}. Nothing was saved.`,
           data?.findings
             ? { findings: data.findings.map(({ code, field }) => ({ code, field })) }

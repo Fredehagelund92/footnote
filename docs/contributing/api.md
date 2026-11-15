@@ -49,7 +49,7 @@ that data. Its default reply is short:
 ```json
 {
   "status": "matched",
-  "say": "Checked. 1 fact applies to Orders in Norway in August 2026. Only that was checked.",
+  "say": "Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.",
   "asked": "Orders in Norway in August 2026",
   "context": [
     {

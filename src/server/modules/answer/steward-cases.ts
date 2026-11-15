@@ -445,7 +445,7 @@ const R: PlanCase[] = [
       plan: ['cannot'],
       cannot: 'not_yet',
       state: null,
-      must: ['Ask cannot work this out yet.'],
+      must: ['Ask cannot answer this kind of question yet.'],
       refuse: [/\b27 definitions\b/],
     },
   },
@@ -458,7 +458,7 @@ const R: PlanCase[] = [
       plan: ['cannot'],
       cannot: 'not_yet',
       state: null,
-      must: ['Ask cannot work this out yet.'],
+      must: ['Ask cannot answer this kind of question yet.'],
     },
   },
   {
@@ -919,7 +919,8 @@ const LIMITS = {
   outside: 'Ask knows only what is written here, not what others do. Here is what is.',
   numbers: `${PRODUCT} keeps no numbers, so Ask cannot work this out. Here is what is written.`,
 }
-const NO_NUMBERS = `${PRODUCT} keeps no numbers, so Ask cannot work this out. An agent with your data tool can, and it reads this context first.`
+const NO_NUMBERS =
+  'Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first.'
 
 const A: PlanCase[] = [
   {

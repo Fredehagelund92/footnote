@@ -1123,7 +1123,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -2867,7 +2867,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -4525,7 +4525,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -6204,7 +6204,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -7889,7 +7889,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -11253,7 +11253,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -14713,7 +14713,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -15895,7 +15895,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -17410,7 +17410,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -18816,7 +18816,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -20214,7 +20214,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -21454,7 +21454,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -22834,7 +22834,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -25221,7 +25221,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents already get this edition, or some of its facts can't be shared with agents again."
+                          "default": "Agents already get this edition, or some of its context items can't be shared with agents again."
                         },
                         "data": {
                           "type": "object",
@@ -27837,7 +27837,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -39194,7 +39194,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -40793,7 +40793,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41074,7 +41074,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41415,7 +41415,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41716,7 +41716,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41776,7 +41776,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -43048,7 +43048,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -43108,7 +43108,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -44426,7 +44426,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -46440,7 +46440,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -52207,7 +52207,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -67963,7 +67963,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -69459,7 +69459,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -75979,7 +75979,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -77561,7 +77561,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -78313,7 +78313,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -79932,7 +79932,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -80659,7 +80659,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -81385,7 +81385,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -82112,7 +82112,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -87492,7 +87492,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -89424,7 +89424,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
