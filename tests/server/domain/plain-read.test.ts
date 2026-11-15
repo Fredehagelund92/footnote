@@ -236,7 +236,9 @@ describe('a rule read takes no question it does not fit', () => {
       [],
     )
     expect(got.routed.kind).toBe('reply')
-    expect(got.rendered).toBe('Ask cannot work this out yet.')
+    expect(got.rendered).toBe(
+      'Ask cannot answer this kind of question yet. It can tell you what is written about a metric, what changed lately, and who owns a domain.',
+    )
   })
 
   it('reads the words of a question no read names as no person', async () => {
