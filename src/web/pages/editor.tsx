@@ -1159,7 +1159,7 @@ function Editor({
                 label="Applies to"
                 value={form.where}
                 onChange={(w) => set('where', w)}
-                placeholder="Add a metric, dimension or value"
+                placeholder="Add a metric, or a dimension such as market"
               />
             </PropertyRow>
             <PropertyRow

@@ -29,7 +29,7 @@ export const kindLabel: Record<Kind, string> = {
 export const kindHint: Record<Kind, string> = {
   event: 'Something that happened on a date, like a stop or a new rule.',
   issue: 'A limit or problem agents should know, like late or missing data.',
-  note: 'A fixed way to read the numbers, like a definition or a house rule.',
+  note: 'A fixed way to read the numbers, like a house rule.',
   guide: 'What to check before you explain a change.',
 }
 

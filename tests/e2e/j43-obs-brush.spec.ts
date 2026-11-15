@@ -39,7 +39,7 @@ test('a drag chooses days: the address keeps them, the bar reads them, the numbe
   expect(await cell(page, 'Asked').innerText()).not.toBe(asked)
   // The topics count the whole range, and say so.
   await expect(
-    page.getByText(/counted over the last 30 days, not only the days selected/),
+    page.getByText(/Counted over the last 30 days, not only the days selected/),
   ).toBeVisible()
   // A screen reader hears the bars chosen in the chart's table.
   await expect(chart(page).locator('th', { hasText: ', selected' }).first()).toBeAttached()
