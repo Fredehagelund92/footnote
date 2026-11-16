@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { Skip } from '@/lib/bulk'
 import { countLine } from '@/lib/selection'
 import { useLinger } from '@/lib/presence'
+import { useReportBulkBar } from '@/lib/bulk-bar-presence'
 
 // The one bar for rows picked in a list (Context, Definitions, the Inbox): the count, Clear, and the
 // list's actions, on the ink surface the Heed app uses. It takes a band of its own under the list,
@@ -42,6 +43,7 @@ export function BulkBar({
   // appears with its text is often not read.
   // The bar leaves the way it came: it stays for its exit, still showing the count it had.
   const { present, leaving } = useLinger(count > 0)
+  useReportBulkBar(present)
   const [shown, setShown] = React.useState(count)
   if (count > 0 && count !== shown) setShown(count)
   const [said, setSaid] = React.useState('')

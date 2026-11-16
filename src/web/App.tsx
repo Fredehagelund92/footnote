@@ -24,6 +24,7 @@ import { DefinitionPeek } from '@/components/heed/definition-peek'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
+import { useBulkBarShown } from '@/lib/bulk-bar-presence'
 import { SharePanel } from '@/components/heed/share-answer'
 import { WherePanel } from '@/components/heed/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -448,15 +449,16 @@ function AppToaster() {
   const { parts, query } = useRoute()
   const ask = parts[0] === 'ask' || /^(ask|try)/.test(query.get('dock') ?? '')
   const review = parts[0] === 'inbox' && parts[2] === 'review'
-  // A list's selection bar sits in a band at its foot: a toast about what the bar did sits above it and its line.
-  const list = ['context', 'definitions', 'inbox'].includes(parts[0] ?? '') && !parts[1]
+  // A list's selection bar sits in a band at its foot: a toast about what the bar did sits above it
+  // and its line. With no bar on screen, the toast is in the corner.
+  const bar = useBulkBarShown()
   return (
     <Toaster
       position="bottom-right"
-      offset={{ bottom: ask ? 152 : list ? 112 : review ? 300 : 64, right: 24 }}
+      offset={{ bottom: ask ? 152 : bar ? 112 : review ? 300 : 64, right: 24 }}
       // In the review a narrower toast stays inside the decision's column, clear of the change.
       style={review ? ({ '--width': '300px' } as React.CSSProperties) : undefined}
-      mobileOffset={{ bottom: ask ? 168 : review ? 148 : list ? 124 : 64 }}
+      mobileOffset={{ bottom: ask ? 168 : review ? 148 : bar ? 124 : 64 }}
     />
   )
 }
