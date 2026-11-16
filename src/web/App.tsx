@@ -427,8 +427,8 @@ function Gate() {
  * the app is drawn, so a screen reads them from the cache and never waits. Until then the app shows
  * its own skeleton (ShellSkeleton), never a blank window. Signed out, only the session: the sign-in
  * page and the documentation need nothing else. A read that failed does not hold the app back: a
- * screen that needs it shows the failure in its own frame. The reads only a few screens use start
- * at the same time but hold nothing back (laterQueries).
+ * screen that needs it shows the failure in its own frame. The reviews start at the same time
+ * but hold nothing back (laterQueries).
  */
 function Loaded({ children }: { children: React.ReactNode }) {
   const session = useQuery(sessionQuery())
