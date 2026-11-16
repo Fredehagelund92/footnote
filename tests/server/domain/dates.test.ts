@@ -669,7 +669,9 @@ describe("a workspace's calendar (R8)", () => {
       window: { start: '2025-10-01', end: '2026-01-01' },
       readsAs: '1 Oct to 31 Dec 2025 (Q3 FY26, fiscal year from 1 April; Europe/Oslo)',
     })
-    expect(dateNote(got.status === 'read' ? got.readsAs : '')).toBe('Q3 FY26, fiscal year from 1 April')
+    expect(dateNote(got.status === 'read' ? got.readsAs : '')).toBe(
+      'Q3 FY26, fiscal year from 1 April',
+    )
   })
 
   it.each([

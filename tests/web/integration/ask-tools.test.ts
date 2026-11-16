@@ -271,10 +271,7 @@ describe('the dates a read takes', () => {
     await world.withTools('Jon Abara', async (tools) => {
       const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
       // Until the workspace says when its fiscal year starts, the read line says how FY26 was read.
-      expect([q3.read?.period, q3.read?.assumedToday]).toEqual([
-        '1 Jul to 30 Sep 2026',
-        false,
-      ])
+      expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
       expect(q3.read?.datesRead).toContain('FY26 read as the calendar year')
     })
   })
