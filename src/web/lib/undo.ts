@@ -15,6 +15,16 @@ export function heldFor(offer: UndoOffer, now = Date.now()): number {
   return offer.until === null ? Infinity : Math.max(0, Date.parse(offer.until) - now)
 }
 
+/**
+ * How long the toast of an offer stays when the offer never ends (the service takes it at any
+ * time): a toast is a moment, so it goes by itself, as Sonner's own 4 seconds would take it, but
+ * long enough to reach for Undo.
+ */
+export const LASTING_TOAST_MS = 10_000
+
+/** How long a toast with nothing to take back stays: Sonner's own default, written out. */
+const SAID_MS = 4000
+
 /** How long an offer still holds, in words ("6 seconds"); null when it never ends. */
 export function heldWords(offer: UndoOffer, now = Date.now()): string | null {
   const ms = heldFor(offer, now)
@@ -47,35 +57,50 @@ type OfferOptions = Omit<ExternalToast, 'action' | 'description' | 'duration'> &
 }
 
 /**
+ * Says what was done in a toast with Undo, which goes when the offer ends: at its end, or after
+ * LASTING_TOAST_MS when it has none. Given an id it updates that toast, whatever it was made with.
+ */
+export function showOffer(
+  message: string,
+  undo: UndoOffer,
+  takeBack: (undo: UndoOffer) => Promise<boolean>,
+  options: OfferOptions = {},
+  now = Date.now(),
+) {
+  const { description, onUndone, ...rest } = options
+  const ms = heldFor(undo, now)
+  const held = heldWords(undo, now)
+  const said =
+    typeof description === 'function' ? (held ? description(held) : undefined) : description
+  const words = said ? { description: said } : {}
+  // Too late already: say what was done, with nothing to take back. When it updates a toast that
+  // had Undo and no end (id), that toast's duration and button go with it.
+  if (ms === 0) return toast(message, { ...rest, ...words, duration: SAID_MS, action: undefined })
+  // An offer that never ends has a toast that does.
+  const id = toast(message, {
+    ...rest,
+    ...words,
+    duration: ms === Infinity ? LASTING_TOAST_MS : ms,
+    action: {
+      label: 'Undo',
+      onClick: () => void takeBack(undo).then((back) => back && onUndone?.()),
+    },
+  })
+  // A toast waits while it is pointed at, or while the tab is hidden; the offer does not.
+  if (ms !== Infinity) setTimeout(() => toast.dismiss(id), ms)
+  return id
+}
+
+/**
  * Undo as the screens offer it: `takeBack` takes back what an offer stands for, saying so when the
- * service refuses; `offer` says what was done in a toast with Undo, which goes when the offer ends.
+ * service refuses; `offer` says what was done in a toast with Undo (`showOffer`).
  */
 export function useUndo() {
   const write = useWrite()
   return React.useMemo(() => {
     const takeBack = (undo: UndoOffer) => takeBackBy(() => write('undo', { token: undo.token }))
-    const offer = (message: string, undo: UndoOffer, options: OfferOptions = {}) => {
-      const { description, onUndone, ...rest } = options
-      const ms = heldFor(undo)
-      const held = heldWords(undo)
-      const said =
-        typeof description === 'function' ? (held ? description(held) : undefined) : description
-      const words = said ? { description: said } : {}
-      // Too late already: say what was done, with nothing to take back.
-      if (ms === 0) return toast(message, { ...rest, ...words })
-      const id = toast(message, {
-        ...rest,
-        ...words,
-        ...(ms === Infinity ? {} : { duration: ms }),
-        action: {
-          label: 'Undo',
-          onClick: () => void takeBack(undo).then((back) => back && onUndone?.()),
-        },
-      })
-      // A toast waits while it is pointed at, or while the tab is hidden; the offer does not.
-      if (ms !== Infinity) setTimeout(() => toast.dismiss(id), ms)
-      return id
-    }
+    const offer = (message: string, undo: UndoOffer, options: OfferOptions = {}) =>
+      showOffer(message, undo, takeBack, options)
     return { takeBack, offer }
   }, [write])
 }
