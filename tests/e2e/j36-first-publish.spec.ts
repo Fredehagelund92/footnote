@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, test } from './go.ts'
+import { expect, go, mode, test } from './go.ts'
 
 // J36, writing a first context item: the editor starts in a domain that exists and says by name
 // everything the service needs before Publish works (where it applies, a source and a sentence
@@ -73,7 +73,7 @@ async function sidePanel(page: Page) {
   return panel
 }
 
-test('a first paragraph over the limit is not ready: the button, the footer and the side panel agree', async ({
+test('a first paragraph over the limit is not ready: the button and the footer agree, and the side panel does not repeat it', async ({
   page,
 }) => {
   await writeComplete(page)
@@ -91,14 +91,14 @@ test('a first paragraph over the limit is not ready: the button, the footer and 
   await expect(publish(page)).toHaveAccessibleDescription(
     'Shorten the first paragraph to 280 characters first.',
   )
-  // The side panel says the same.
+  // The status bar says it once; the side panel shows what agents get, not the same line again.
   const panel = await sidePanel(page)
-  await expect(panel).toContainText('Not ready yet.')
-  await expect(panel).toContainText('Shorten the first paragraph to 280 characters first.')
-  await expect(panel.getByText('Ready.', { exact: true })).toHaveCount(0)
+  await expect(panel.getByRole('heading', { name: 'Preview' })).toBeVisible()
+  await expect(panel).not.toContainText('Not ready')
+  await expect(panel).not.toContainText('Shorten the first paragraph')
 })
 
-test('an item opened to edit and left alone is not ready, in the footer and the side panel', async ({
+test('an item opened to edit and left alone is not ready, said once in the footer', async ({
   page,
 }) => {
   await go(page, '/context/itm_norway_stop/edit')
@@ -107,8 +107,8 @@ test('an item opened to edit and left alone is not ready, in the footer and the 
     'Nothing has changed yet.',
   )
   const panel = await sidePanel(page)
-  await expect(panel).toContainText('Not ready yet.')
-  await expect(panel.getByText('Ready.', { exact: true })).toHaveCount(0)
+  await expect(panel.getByRole('heading', { name: 'Preview' })).toBeVisible()
+  await expect(panel).not.toContainText('Not ready')
 })
 
 test('an overlap the panel never listed does not refuse the publish', async ({ page }) => {
@@ -122,4 +122,28 @@ test('an overlap the panel never listed does not refuse the publish', async ({ p
     page.getByRole('heading', { level: 1, name: 'Orders are counted when they ship' }),
   ).toBeVisible()
   await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
+test('the panel asks about each overlap in one row, and says what an answer does', async ({
+  page,
+}) => {
+  test.skip(mode !== 'mock', 'Opens the mock draft that overlaps two live items')
+  await go(page, '/context/new?draft=norway')
+  const panel = page.getByRole('complementary', { name: 'What agents get' })
+  const credit = 'Norway orders count store credit'
+  const answer = panel.getByRole('button', { name: `How this relates to ${credit}:` })
+  // The decisions come before the preview, and the preview is open beside them.
+  await expect(answer).toHaveAccessibleName(`How this relates to ${credit}: Unrelated`)
+  const decide = await answer.boundingBox()
+  const preview = await panel.getByRole('heading', { name: 'Preview' }).boundingBox()
+  expect(decide!.y).toBeLessThan(preview!.y)
+  await expect(panel.getByText(/get this, live as you type/)).toBeVisible()
+  // The menu says what each answer does before it is picked.
+  await answer.click()
+  const replaces = page.getByRole('menuitemradio', { name: 'Replaces it' })
+  await expect(replaces).toContainText('The live item is archived when you publish.')
+  await replaces.click()
+  // Once it says more than Unrelated, the row says what that does.
+  await expect(answer).toHaveAccessibleName(`How this relates to ${credit}: Replaces it`)
+  await expect(panel.getByText('The live item is archived when you publish.')).toBeVisible()
 })
