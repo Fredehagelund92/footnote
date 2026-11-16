@@ -286,13 +286,14 @@ describe('the dates a read takes', () => {
 })
 
 describe('a read of a subject with no period', () => {
-  it('assumes today when the words name no dates, and the state is Partial for it alone', async () => {
+  it('assumes today when the words name no dates, which the read says but the state does not', async () => {
     await world.withTools('Jon Abara', async (tools) => {
       const dated = await ok(tools, 'get_context', { about: 'return on ad spend' })
       expect(dated.read?.assumedToday).toBe(true)
       expect(dated.items.map((i) => i.match)).toContain('full')
       expect(dated.notCovered).toEqual([])
-      expect(dated.state).toBe('partial')
+      expect(dated.read?.period).not.toBe('any date')
+      expect(dated.state).toBe('grounded')
     })
   })
 
