@@ -62,6 +62,9 @@ export default defineConfig({
     // J67 opens a loop answer by the mock's example address; the service's read line is covered by
     // tests/web/integration/ask-loop-shapes.test.ts.
     /\/j67-ask-dates-read\.spec\.ts$/,
+    // J69 opens a loop answer by the mock's example address; the card and quick view are the
+    // same components on the service's answers.
+    /\/j69-phone-cite\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
