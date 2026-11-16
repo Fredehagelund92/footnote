@@ -42,11 +42,11 @@ import {
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
-import { landingOf, MEMBER_SECTIONS } from '@/components/settings-nav'
+import { landingOf, memberSections } from '@/components/settings-nav'
 
 // Settings: six sections under the settings navigation (General, Domains and owners, People,
-// Agents and access, Integrations, Advanced). Someone who isn't an admin has three of them. No tabs
-// anywhere.
+// Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
+// also the domains and the people list. No tabs anywhere.
 
 /* ---------- Domains and owners ---------- */
 
@@ -594,9 +594,9 @@ export function SettingsPage({
     .map((p) => p.name)
   const current =
     section && TITLES[section] ? section : me.admin ? 'general' : landingOf(me.owns.length > 0)
-  // Anyone who isn't an admin uses three places here: the domains, the people list, and the
-  // agents they connected.
-  if (!me.admin && !MEMBER_SECTIONS.includes(current))
+  // Someone who isn't an admin uses their agents here, and an owner also the domains and the
+  // people list.
+  if (!me.admin && !memberSections(me.owns.length > 0).includes(current))
     return (
       <Page title="Settings">
         <Empty>

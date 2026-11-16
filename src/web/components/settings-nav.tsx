@@ -44,8 +44,9 @@ const settingsSections = [
   { group: 'System', items: [{ id: 'advanced', title: 'Advanced', icon: WrenchIcon }] },
 ] as const
 
-/** The sections of Settings someone who isn't an admin may open. */
-export const MEMBER_SECTIONS: readonly string[] = ['domains', 'people', 'agents']
+/** The sections of Settings someone who isn't an admin may open: an owner's domains and people, and everyone's agents. */
+export const memberSections = (owner: boolean): readonly string[] =>
+  owner ? ['domains', 'people', 'agents'] : ['agents']
 
 /** Where Settings opens for someone who isn't an admin: an owner's domains, else their agents. */
 export const landingOf = (owner: boolean) => (owner ? 'domains' : 'agents')
@@ -53,11 +54,12 @@ export const landingOf = (owner: boolean) => (owner ? 'domains' : 'agents')
 export function SettingsNav({ section, close }: { section: string; close: () => void }) {
   const connected = useConnected()
   const me = useMe()
-  // Anyone who isn't an admin sees the places they can use: domains, people and their agents.
+  // Someone who isn't an admin sees the places they can use: an owner's domains and people, and their agents.
+  const allowed = memberSections(me.owns.length > 0)
   const sections = me.admin
     ? settingsSections
     : settingsSections
-        .map((g) => ({ ...g, items: g.items.filter((i) => MEMBER_SECTIONS.includes(i.id)) }))
+        .map((g) => ({ ...g, items: g.items.filter((i) => allowed.includes(i.id)) }))
         .filter((g) => g.items.length)
   return (
     <>

@@ -199,6 +199,19 @@ test('a member finds the agent they connected in Settings, and disconnects it th
   await expect(page.getByText('Settings are for admins')).toHaveCount(0)
   for (const admins of ['Pause sharing', 'Tools and access keys'])
     await expect(page.getByRole('heading', { name: admins })).toHaveCount(0)
+  const nav = page.getByRole('navigation', { name: 'Settings' })
+  await expect(nav.getByRole('link', { name: 'Agents and access' })).toBeVisible()
+  for (const name of ['Domains and owners', 'People'])
+    await expect(nav.getByRole('link', { name })).toHaveCount(0)
+  for (const [path, title] of [
+    ['/settings/people', 'People'],
+    ['/settings/domains', 'Domains and owners'],
+  ]) {
+    await go(page, path)
+    await expect(page.getByText('Settings are for admins')).toBeVisible()
+    await expect(page.getByRole('heading', { name: title, level: 1 })).toHaveCount(0)
+  }
+  await go(page, '/settings/agents')
 
   // A disconnect that fails says so, and the agent stays.
   await go(page, '/settings/agents?state=offline')
