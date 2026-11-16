@@ -228,6 +228,8 @@ describe('what a definition and an item say beside their words', () => {
       const dimension = market.definitions[0]!
       expect(dimension).toMatchObject({ id: 'dim:market', kind: 'dimension', related: null })
       expect(dimension.values!.names).toEqual(expect.arrayContaining(['Norway', 'Sweden']))
+      // How many there are, by code, for the words to give as a reference.
+      expect(dimension.values!.count).toBe(dimension.values!.names.length + dimension.values!.more)
       // Each value is named, so the words can name it as its chip.
       expect(market.names.map((n) => n.id)).toContain('value:market/norway')
       expect(dimension.history).toEqual(expect.any(Array))

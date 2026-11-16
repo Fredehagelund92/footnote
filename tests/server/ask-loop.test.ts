@@ -260,14 +260,14 @@ describe('a turn that uses no context item', () => {
       ids: ['metric:orders'],
     },
   })
-  const subject = (state: string): MadeRead => {
+  const subject = (state: string, about = ['metric:orders']): MadeRead => {
     const read = get(state, [])
     const result = read.result as { read: object }
     return {
       ...read,
       result: {
         ...result,
-        read: { ...result.read, about: ['metric:orders'], assumedToday: true },
+        read: { ...result.read, about, assumedToday: true },
       },
     }
   }
@@ -345,7 +345,7 @@ describe('a turn that uses no context item', () => {
     const notFound = turnOf(
       'Nothing written covers orders here. Orders is the value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
       [
-        subject('missing'),
+        subject('missing', ['metric:orders', 'value:market/poland']),
         definitions(
           'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
         ),
@@ -363,6 +363,25 @@ describe('a turn that uses no context item', () => {
     )
     expect(none.state).toBe('missing')
     expect(none.defined).toBeUndefined()
+    // Asked what is written about a subject nothing covers, whatever the question's words: Not found.
+    const written = turnOf(
+      'Nothing written covers Orders in Poland.',
+      [
+        subject('missing', ['metric:orders', 'value:market/poland']),
+        definitions('The value of orders customers paid for.'),
+      ],
+      [],
+      "What's written about orders in Poland?",
+    )
+    expect(written.state).toBe('missing')
+    expect(written.defined).toBeUndefined()
+    // Asked what a metric nothing is written about is: its definition, under the Definition label.
+    const words =
+      'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
+    expect(
+      turnOf(`Orders is ${words}`, [subject('missing'), definitions(words)], [], 'What is orders?')
+        .defined,
+    ).toEqual({ names: ['Orders'], tool: 'Cube' })
   })
 
   it('shows none of the evidence when it read nothing new and cites nothing', () => {
@@ -403,6 +422,10 @@ describe('the instructions', () => {
     expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
     expect(system).toContain('in every language')
     expect(system).toContain('answer the likelier reading without saying which one you chose')
+    // A step that reads writes nothing: words before a read would show, then go.
+    expect(system).toContain('In a step that reads, write no words')
+    // What the page shows is never said: not even that it lists the nearest items.
+    expect(system).not.toContain('say so in one sentence: the page lists what is written nearest')
     // The person's language, with every name as the reads give it.
     expect(system).toContain(
       'Write the names of metrics, dimensions, values, domains and people exactly as the reads give them, never translated',

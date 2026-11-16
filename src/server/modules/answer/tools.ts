@@ -1036,8 +1036,10 @@ const definitionsOutput = z.object({
       state: z.nullable(z.string()),
       /** The published items about it. */
       items: z.nullable(z.number()),
-      /** A dimension's values, when names were looked up: the first ones by name, and how many more. */
-      values: z.nullable(z.object({ names: z.array(z.string()), more: z.number() })),
+      /** A dimension's values, when names were looked up: the first ones by name, how many more, and all. */
+      values: z.nullable(
+        z.object({ names: z.array(z.string()), more: z.number(), count: z.number() }),
+      ),
       /**
        * What a metric is related to, when names were looked up: its group and the other metrics in
        * it, and how many items' text names it.
@@ -1173,6 +1175,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
             ? {
                 names: values.slice(0, VALUES_SHOWN).map((v) => v.name),
                 more: Math.max(0, values.length - VALUES_SHOWN),
+                count: values.length,
               }
             : null,
         related:

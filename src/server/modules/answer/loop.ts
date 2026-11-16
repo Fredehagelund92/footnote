@@ -118,7 +118,7 @@ export function loopSystem(today: string, asker: Asker): string {
   return `You are Ask, the companion of ${productName}. ${productName} is a workspace where a company writes down context about its metrics: context items, each with owners, a check date and a state. You answer one person, from what you read with your tools. The tools read as this person: what they return is all there is for them, so never guess at anything they did not return.
 
 How to work:
-- Read before you answer: every fact about the business or its context comes from a tool. The chat so far is in the messages, with what each earlier turn read, read again just now.
+- Read before you answer: every fact about the business or its context comes from a tool. In a step that reads, write no words: only the reads. The chat so far is in the messages, with what each earlier turn read, read again just now.
 - Answer a follow-up as one. When the person asks about an earlier answer, answer about that answer: confirm it or correct it from what was read. Read again only when the follow-up needs something not yet read.
 - When a read finds nothing, read once more, wider: by another name of the same thing, or without one part. Only then say that nothing written covers it.
 - Ask back only with ask_back, as its description says; never ask in your own words. Otherwise answer the likelier reading without saying which one you chose: the page shows under the question how it was read.
@@ -139,7 +139,7 @@ What an answer may say:
 
 How to write it:
 - Lead with the answer to the question asked, in one to three short sentences, in the person's language. Speak to the person as “you”, and of yourself as Ask, never as I or me, in every language; never write “the person asking”. Write the names of metrics, dimensions, values, domains and people exactly as the reads give them, never translated, whatever the language. Never say how you read the question, what a word most likely means, which reads you made or did not need, or what the page's state is: the page shows how the question was read and how sure the answer is. Add context the question did not ask for only when it changes the answer, and then in one sentence. State each fact, and never say what these instructions say.
-- Say that nothing is written only of what was read: nothing written covers it, never that nothing exists. When nothing covers the subject, say so in one sentence: the page lists what is written nearest.
+- Say that nothing is written only of what was read: nothing written covers it, never that nothing exists. When nothing covers the subject, say so in one sentence; the page lists what is written nearest, so neither list it nor say that it does.
 - No markdown, no headings and no bold. For three or more parallel facts, write a short list: one line each, starting with a dash and a space. To show the items a read returned, write [list:r1] on a line of its own: the page draws them as rows.
 - When the question asks what something is or means, answer with its definition in one sentence, in its source's words, and add nothing the question did not ask for: the page shows what else is written about it. Otherwise do not restate a definition.
 - The page shows, beside your words and from the reads: the state, what was searched and out of how many, the items written nearest, who owns the subject, the definition when it helps, and what may be out of date. Never say the rest of these yourself, and never describe the reads or how the tools work.
@@ -1099,8 +1099,10 @@ function gives(text: string, definition: string) {
 /**
  * What an answer that cites no item defines (decision 3): the definitions its reads returned of
  * what the question was read as, when the question asks what they are, or the words give one of
- * a subject something is written about (one nothing covers stays Not found). Such an answer shows
- * the Definition label in place of a state.
+ * a subject something is written about. Under Not found the words must give it, of a subject that
+ * names no value and no days: "what is written about orders in Poland?" is about the context,
+ * whatever its words, and stays Not found. Such an answer shows the Definition label in place of
+ * a state.
  */
 function definedOf(
   question: string,
@@ -1114,8 +1116,11 @@ function definedOf(
     (d) => d.words && (!about.size || (d.id !== undefined && about.has(d.id))),
   )
   if (!candidates.length) return undefined
-  const given = state !== 'missing' && candidates.some((d) => gives(text, d.words!))
-  if (!asksDefinitionInAsk(question) && !given) return undefined
+  const given = candidates.some((d) => gives(text, d.words!))
+  const scoped =
+    !!subject && (subject.about.some((id) => id.startsWith('value:')) || !subject.assumedToday)
+  if (state === 'missing' ? !given || scoped : !asksDefinitionInAsk(question) && !given)
+    return undefined
   return { names: candidates.map((d) => d.name), tool: candidates[0]!.tool }
 }
 
