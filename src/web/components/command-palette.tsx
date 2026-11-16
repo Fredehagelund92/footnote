@@ -201,15 +201,16 @@ export function CommandPalette() {
                   <SettingsIcon />
                   Domains and owners
                 </CommandItem>
-                <CommandItem
-                  value="Settings Agents and access"
-                  onSelect={run(() => navigate('/settings/agents'))}
-                >
-                  <SettingsIcon />
-                  Agents and access
-                </CommandItem>
               </>
             )}
+            {/* Anyone may see and disconnect the agents they connected. */}
+            <CommandItem
+              value="Settings Agents and access"
+              onSelect={run(() => navigate('/settings/agents'))}
+            >
+              <SettingsIcon />
+              Agents and access
+            </CommandItem>
             <CommandItem onSelect={run(() => navigate('/help'))}>
               <CircleHelpIcon />
               Help

@@ -42,9 +42,11 @@ import {
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
+import { landingOf, memberSections } from '@/lib/settings-access'
 
-// Settings, for admins: five sections under the settings navigation (General, Domains and owners,
-// Agents and access, Integrations, Advanced). No tabs anywhere.
+// Settings: six sections under the settings navigation (General, Domains and owners, People,
+// Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
+// also the domains and the people list. No tabs anywhere.
 
 /* ---------- Domains and owners ---------- */
 
@@ -122,7 +124,7 @@ function Domains() {
                 role="listitem"
                 data-cell
                 href={`/settings/domains/${id}`}
-                className="group/cell flex min-h-36 flex-col gap-2 bg-background p-4 outline-none hover:bg-muted/40 focus-visible:z-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 @2xl/main:min-h-44"
+                className="group/cell flex min-h-36 flex-col gap-2 bg-background p-4 outline-none hover:bg-muted/40 focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:p-5 @2xl/main:min-h-44"
               >
                 <span className="flex items-center gap-2">
                   <DomainDot id={id} />
@@ -172,7 +174,7 @@ function Domains() {
             role="listitem"
             data-cell
             href="/settings/domains/new"
-            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset @2xl/main:min-h-44"
+            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
           >
             <PlusIcon aria-hidden className="size-5" />
             Add a domain
@@ -590,9 +592,11 @@ export function SettingsPage({
   const admins = usePeople()
     .filter((p) => p.admin && p.name !== me.name)
     .map((p) => p.name)
-  const current = section && TITLES[section] ? section : me.admin ? 'general' : 'domains'
-  // Owners who aren't admins use two places here: their domains and the people list.
-  if (!me.admin && current !== 'domains' && current !== 'people')
+  const current =
+    section && TITLES[section] ? section : me.admin ? 'general' : landingOf(me.owns.length > 0)
+  // Someone who isn't an admin uses their agents here, and an owner also the domains and the
+  // people list.
+  if (!me.admin && !memberSections(me.owns.length > 0).includes(current))
     return (
       <Page title="Settings">
         <Empty>

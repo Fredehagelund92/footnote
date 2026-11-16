@@ -24,10 +24,24 @@
    * says so; quiet, but its thumb keeps 3:1 against the page, and darkens under the pointer.
    */
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
 
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  /*
+   * One focus ring (contract 2.6): whatever takes focus and draws none of its own gets the 3px ring
+   * at 50 percent, as an outline. A ring utility draws it itself, and outline-none (a heading
+   * focused by a script, a field inside a ringed box) draws nothing, so neither is touched.
+   */
+  :focus-visible {
+    outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+    outline-offset: 0;
+  }
+
+  :focus-visible[class*='focus-visible:ring'] {
+    outline: none;
   }
 
   body {

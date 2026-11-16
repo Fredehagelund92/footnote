@@ -311,7 +311,7 @@ function ScopePicker({
               aria-label={`Stop searching in ${within.name}`}
               onMouseDown={(e) => e.preventDefault()}
               onClick={leave}
-              className="relative grid size-5 place-items-center rounded-xs outline-none after:absolute after:-inset-2 hover:bg-chip-hover focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative grid size-5 place-items-center rounded-xs outline-none after:absolute after:-inset-2 hover:bg-chip-hover focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <XIcon aria-hidden className="size-3" />
             </button>
@@ -544,7 +544,7 @@ export function ScopeField({
       data-prop-value
       aria-labelledby={`${labelId} ${addId}-t`}
       className={cn(
-        'inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40 data-popup-open:bg-muted',
+        'inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted',
         !value.length && '-ml-1.5 h-8 text-sm',
       )}
     >

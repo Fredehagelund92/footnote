@@ -516,7 +516,7 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
                 <button
                   type="button"
                   onClick={() => openDock('def', targetDef.name)}
-                  className="inline-flex items-center gap-1 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex items-center gap-1 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <TypeGlyph d={targetDef} className="text-current" />
                   {targetDef.name}

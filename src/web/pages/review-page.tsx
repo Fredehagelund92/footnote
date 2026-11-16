@@ -31,6 +31,7 @@ import { ToolLogo } from '@/components/heed/tool-logo'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Panel } from '@/components/heed/panel'
 import { SiteHeader } from '@/components/site-header'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -238,7 +239,7 @@ function Queue({ current, onPick }: { current: string; onPick: (id: string) => v
           <button
             type="button"
             onClick={() => opened.forEach((r) => void write('markReviewed', { id: r.id }))}
-            className="inline-flex min-h-7 items-center self-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-7 items-center self-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             Mark the {opened.length} I've opened as read
           </button>
@@ -416,7 +417,7 @@ function ReadMark({ r }: { r: Review }) {
           <button
             type="button"
             onClick={() => void write('markReviewed', { id: r.id })}
-            className="inline-flex min-h-6 items-center rounded-sm px-1 text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-6 items-center rounded-sm px-1 text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             Mark as read
           </button>
@@ -1972,6 +1973,12 @@ export function ReviewPage({ id }: { id: string }) {
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
           deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
+          more={
+            <DropdownMenuItem onClick={() => setQueueOpen(true)}>
+              <ListIcon />
+              Waiting suggestions
+            </DropdownMenuItem>
+          }
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
@@ -1997,17 +2004,6 @@ export function ReviewPage({ id }: { id: string }) {
             </Breadcrumb>
           }
         >
-          {isMobile && (
-            // The icon alone, named for a screen reader: the title keeps the room.
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Waiting suggestions"
-              onClick={() => setQueueOpen(true)}
-            >
-              <ListIcon />
-            </Button>
-          )}
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
             {at + 1} of {reviews.length}
           </span>

@@ -236,7 +236,7 @@ Layers use the named `z-*` utilities, never a number. Lowest first: `z-base`, `z
 
 ### 2.6 Motion, focus, elevation
 
-Motion tokens are in [Motion](motion.md). **Focus** is shadcn's: the control's border takes the ring colour and a 3 px ring at 50 percent shows (`focus-visible:ring-3 ring-ring/50`). Fields take a calmer soft ring. A skip link comes first on every page. **Elevation** is mostly flat hairlines; a menu, a popover and a toast use shadcn's shadows (`shadow-md`, `shadow-sm`, `shadow-lg`).
+Motion tokens are in [Motion](motion.md). **Focus** is one ring everywhere, shadcn's: a 3 px ring at 50 percent (`focus-visible:ring-3 focus-visible:ring-ring/50`), drawn inside (`focus-visible:ring-inset`) for a row or card, and by the base style (the same look as an outline) for a text button or link that sets none. Never 1 or 2 px, never another opacity (a field's box keeps its calmer 25 percent); the class rules refuse them. Fields take a calmer soft ring. A skip link comes first on every page. **Elevation** is mostly flat hairlines; a menu, a popover and a toast use shadcn's shadows (`shadow-md`, `shadow-sm`, `shadow-lg`).
 
 ### 2.7 Icons and avatars
 
@@ -249,7 +249,7 @@ Avatars are a soft pastel tint picked from the person's name (dark initials, 6.4
 ### 3.1 The shell
 
 - **Sidebar.** 16rem, resizable from 200 to 360 px, folding to a 3rem icon rail (Command B, and a toggle in every header). It sits on the page background, divided by a hairline. Four places (Inbox, Ask, Context, Definitions), a search field at the top (a lone magnifier in the rail and on a phone's top bar), and at the foot Help, Observability and Settings. Help opens a small menu. The user menu is the last block.
-- **Header.** 48 px. The way back, a 14 px title (cut with an ellipsis, in full on hover or focus), then the page's actions and, at the right end, the theme menu (light, dark, system). On a phone, an item, definition, review or conflict page has a back arrow to its list and gives up search and the theme (the sidebar sheet's search and the user menu have both), so its title keeps room.
+- **Header.** 48 px. The way back, a 14 px title (cut with an ellipsis, in full on hover or focus), then the page's actions and, at the right end, the theme menu (light, dark, system). On a phone, an item, definition, review or conflict page keeps the back arrow to its list, the title, the page's one main action and a More button; the page's other actions, Ask, the menu, search, the theme and the demo's person sit in More, and the profile label is left out, so the title keeps room.
 - **Area menus.** Settings and Observability swap the sidebar for their own menu, with Back to app on top. Both lead back to the app, never to a workspace's name.
 - **Phone.** Below 768 px the sidebar is a sheet. Lists, detail and the dock are each a full screen. Bottom bars carry the decision.
 
