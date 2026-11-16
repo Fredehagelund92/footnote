@@ -419,13 +419,21 @@ export const sharedQueries = () => [
   commentsQuery(),
   definitionsQuery(),
   inboxQuery(),
-  reviewsQuery(),
   savedQuestionsQuery(),
-  alertsQuery(),
-  savedViewsQuery(),
   askExamplesQuery(),
   chatsQuery(),
   settingsQuery(),
+]
+
+/**
+ * The shared reads only a few screens use, read with the others but not waited for: the shell draws
+ * without them, and a screen that reads one first waits for it in its own loading state. The
+ * reviews come last of all, as their read waits for the Inbox's (api/http.ts).
+ */
+export const laterQueries = () => [
+  reviewsQuery(),
+  alertsQuery(),
+  savedViewsQuery(),
   integrationsQuery(),
   agentConnectionsQuery(),
   connectReviewQuery(),

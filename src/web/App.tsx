@@ -7,6 +7,7 @@ import {
   afterSomeoneElse,
   InDock,
   isPageQuery,
+  laterQueries,
   sessionQuery,
   sharedQueries,
   useSession,
@@ -165,7 +166,11 @@ function DockContent() {
   if (!dock) return null
   switch (dock.kind) {
     case 'review':
-      return <ReviewSheet cardId={dock.id!} />
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.review} />}>
+          <ReviewSheet cardId={dock.id!} />
+        </React.Suspense>
+      )
     case 'context':
       return (
         <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.context} />}>
@@ -422,7 +427,8 @@ function Gate() {
  * the app is drawn, so a screen reads them from the cache and never waits. Until then the app shows
  * its own skeleton (ShellSkeleton), never a blank window. Signed out, only the session: the sign-in
  * page and the documentation need nothing else. A read that failed does not hold the app back: a
- * screen that needs it shows the failure in its own frame.
+ * screen that needs it shows the failure in its own frame. The reads only a few screens use start
+ * at the same time but hold nothing back (laterQueries).
  */
 function Loaded({ children }: { children: React.ReactNode }) {
   const session = useQuery(sessionQuery())
@@ -430,6 +436,7 @@ function Loaded({ children }: { children: React.ReactNode }) {
   const rest = useQueries({
     queries: sharedQueries().map((q) => ({ ...q, enabled: signedIn })),
   })
+  useQueries({ queries: laterQueries().map((q) => ({ ...q, enabled: signedIn })) })
   const { parts } = useRoute()
   // The sign-in page and an agent's consent page wait for the session alone; anything else waits
   // in the shape it will have.

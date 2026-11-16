@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import compress from '@fastify/compress'
 import { fallbackORPCErrorMessage, onError, ORPCError } from '@orpc/client'
 import { SmartCoercionPlugin } from '@orpc/json-schema'
 import { OpenAPIGenerator } from '@orpc/openapi'
@@ -1667,9 +1668,16 @@ export function registerApiRoutes(app: FastifyInstance, services: ApiServices): 
     if (matched) return reply
     return reply.code(404).send({ code: 'NOT_FOUND', message: 'No such API operation' })
   }
-  // An item file can hold a whole exported edition, and a batch of terms a whole model's members;
-  // every other body keeps Fastify's 1 MiB.
-  app.post(`${API_PREFIX}/imports`, { bodyLimit: 2 * ITEM_FILE_MAX_LENGTH + 65_536 }, serve)
-  app.post(`${API_PREFIX}/vocabulary/batches`, { bodyLimit: TERM_BATCH_BODY_MAX }, serve)
-  app.all(`${API_PREFIX}/*`, serve)
+  // An answer is compressed when the caller takes it so, as the web image's nginx does
+  // (docker/web.conf.template): the library index is 1.5 MB of JSON, about a tenth of that
+  // compressed. An event stream never is, and nothing a caller sends is decompressed. The routes
+  // are added inside the plugin's scope, so it sees each of them.
+  void app.register(async (api) => {
+    await api.register(compress, { globalDecompression: false })
+    // An item file can hold a whole exported edition, and a batch of terms a whole model's
+    // members; every other body keeps Fastify's 1 MiB.
+    api.post(`${API_PREFIX}/imports`, { bodyLimit: 2 * ITEM_FILE_MAX_LENGTH + 65_536 }, serve)
+    api.post(`${API_PREFIX}/vocabulary/batches`, { bodyLimit: TERM_BATCH_BODY_MAX }, serve)
+    api.all(`${API_PREFIX}/*`, serve)
+  })
 }

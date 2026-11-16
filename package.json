@@ -25,6 +25,7 @@
     "@ai-sdk/provider": "4.0.36",
     "@base-ui/react": "1.9.0",
     "@cubejs-backend/schema-compiler": "1.7.39",
+    "@fastify/compress": "9.3.0",
     "@fontsource-variable/nunito-sans": "5.3.0",
     "@modelcontextprotocol/client": "2.4.0",
     "@modelcontextprotocol/server": "2.4.0",
