@@ -163,7 +163,29 @@ describe('what code writes from the reads', () => {
     expect(t.sources).toEqual([])
   })
 
-  it('takes what the cited items are when a search found what the subject read did not', () => {
+  it('is never Checked over nothing covering the period, though a search found the nearby items it cites', () => {
+    // "what was written about orders in Norway in 2019": the subject read finds no item for 2019
+    // and gives the Norway orders items as nearby, for their dates; a search with the same days
+    // finds them on every word, and the words cite them as applying to other dates.
+    const nearby = ['itm_norwaystop', 'itm_giftcardonly']
+    const t = turnOf(
+      'Nothing written covers Orders in Norway for 1 Jan to 31 Dec 2019. The items about Norway orders apply to other dates: online sales stopped on 4 August 2026 [itm_norwaystop], and only card and cash count from 1 January 2025 [itm_giftcardonly].',
+      [
+        get('missing', [], nearby),
+        find(
+          nearby.map((id) => ({ ...item(id), match: 'all' })),
+          2,
+        ),
+      ],
+      [],
+      'what was written about orders in Norway in 2019',
+    )
+    expect(t.state).toBe('missing')
+    expect(t.sources).toEqual([])
+    expect(t.nearby).toEqual(nearby)
+  })
+
+  it('is at most Partial when the subject read found no item and a search found what the words cite', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',
       [
@@ -178,7 +200,9 @@ describe('what code writes from the reads', () => {
       ],
       [],
     )
-    expect(t.state).toBe('stale')
+    // What the words rest on is written, though nothing about the subject is: Partial, not
+    // Outdated or Checked, and the footer still names the item that may be out of date.
+    expect(t.state).toBe('partial')
     expect(t.sources).toEqual(['itm_france001', 'itm_france002'])
     expect(t.footer.stale).toBe(
       '“Item itm_france002” may be out of date: its check date has passed.',
