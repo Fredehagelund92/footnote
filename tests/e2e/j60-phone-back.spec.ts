@@ -69,6 +69,32 @@ test('an item keeps most of the header for its title', async ({ page }) => {
   expect(width).toBeGreaterThanOrEqual(180)
 })
 
+test('a metric definition keeps Write context in its header and Open in source in More', async ({
+  page,
+}) => {
+  await go(page, '/definitions/Orders')
+  const header = page.locator('header')
+  await expect(header.getByRole('button', { name: 'Back to Definitions' })).toBeVisible()
+  await expect(header.getByRole('link', { name: 'Write context' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'More' })).toBeVisible()
+  await expect(header.getByRole('link', { name: 'Open in source' })).toBeHidden()
+  await header.getByRole('button', { name: 'More' }).click()
+  const source = page.getByRole('menuitem', { name: 'Open in source' })
+  await expect(source).toBeVisible()
+  await expect(source).toHaveAttribute('href', /.+/)
+})
+
+test('a review keeps its preview switch in the header and the queue in More', async ({ page }) => {
+  await go(page, `/inbox/${card('sug-ines')}/review`)
+  const header = page.locator('header')
+  await expect(header.getByRole('button', { name: 'Back to the Inbox' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'More' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Waiting suggestions' })).toBeHidden()
+  await header.getByRole('button', { name: 'More' }).click()
+  await page.getByRole('menuitem', { name: 'Waiting suggestions' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+})
+
 test('the More menu of a deep page holds Ask, the nav, search and the theme', async ({ page }) => {
   await go(page, '/context/itm_norway_stop')
   await page.getByRole('button', { name: 'More' }).click()

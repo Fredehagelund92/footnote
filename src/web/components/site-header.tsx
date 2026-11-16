@@ -311,7 +311,7 @@ export function SiteHeader({
           )}
           {children}
           {/* Which install this is, when it is named: last but the theme, so it never moves. */}
-          <ProfileLabel label={profileLabel} className="max-sm:max-w-28" />
+          {!lean && <ProfileLabel label={profileLabel} className="max-sm:max-w-28" />}
           {!bare && !lean && <ThemeMenu />}
           {/* The demo's switch between its people, in the corner: nothing anywhere else. */}
           {!bare && !lean && <ViewAs />}
