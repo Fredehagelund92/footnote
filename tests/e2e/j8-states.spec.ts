@@ -4,10 +4,16 @@ import { go } from './go.ts'
 // J8, when things go wrong: a list loading, a load that fails and comes back with Retry, being
 // offline, and a Publish that fails and succeeds on Retry with the text kept.
 
-test('a loading list shows its skeleton, not an empty page', async ({ page }) => {
+test('a loading list draws its frame at once and its rows as a skeleton, not an empty page', async ({
+  page,
+}) => {
   await go(page, '/context?state=loading')
-  await expect(page.getByRole('status', { name: 'Loading' })).toBeVisible()
-  await expect(page.getByRole('table')).toHaveCount(0)
+  await expect(page.getByRole('status', { name: 'Loading' })).toBeAttached()
+  // The bar and the table head are in; only the rows wait, as skeleton rows with no data in them.
+  await expect(page.getByPlaceholder('Search context')).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Context', exact: true })).toBeVisible()
+  await expect(page.locator('main tbody [data-skeleton-row]').first()).toBeVisible()
+  await expect(page.locator('main tbody tr:not([data-skeleton-row])')).toHaveCount(0)
 })
 
 test('a failed load says so calmly, and Retry brings the page back', async ({ page }) => {

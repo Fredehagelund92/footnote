@@ -78,8 +78,8 @@ import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
 import { TruncatedText } from '@/components/heed/truncated'
 import { plainText } from '@/lib/mentions'
-import { allLoaded, Loadable } from '@/components/heed/load-state'
-import { TableSkeleton } from '@/components/heed/list-skeleton'
+import { allLoaded, LoadError, RefreshError, useLoadPhase } from '@/components/heed/load-state'
+import { TableBodySkeleton } from '@/components/heed/list-skeleton'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
 import { useLeavingRows } from '@/lib/presence'
 import { WhereChip } from '@/components/heed/tag-chip'
@@ -158,6 +158,12 @@ export function ContextPage() {
   // In the address, so a link (the old Conflicts list, a help page) lands on it and a reload keeps it.
   const onlyConflicts = query.get('show') === 'conflicts'
   const setOnlyConflicts = (on: boolean) => changeQuery({ show: on ? 'conflicts' : undefined })
+  // The page's frame (header, bar, table head) is drawn at once; only the rows wait. Filtered to
+  // conflicts, the rows wait for the pairs too, so the list never says "No conflicts" before it
+  // knows. Nothing shows for 150ms, then skeleton rows (docs/design/motion.md).
+  const { phase, refreshFailed } = useLoadPhase(onlyConflicts ? allLoaded(load, conflicts) : load)
+  const ready = phase === 'content'
+  const rowsShown = showRows && ready
   const reduced = useReducedMotion()
   // A pointer change of what the list shows (All or Conflicts, a filter, the sort, the grouping,
   // Show archived) moves the rows on screen to their new places in one view transition; the
@@ -412,384 +418,398 @@ export function ContextPage() {
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
       <div className="@container/main flex min-h-0 flex-1 flex-col overflow-y-auto *:mx-auto *:w-full *:max-w-wide @min-[80rem]/main:*:border-x">
-        <Loadable
-          what="the context"
-          skeleton={<TableSkeleton />}
-          errorClassName="border-b"
-          // Filtered to conflicts, the rows wait for the pairs too, so the list never says "No
-          // conflicts" before it knows.
-          query={onlyConflicts ? allLoaded(load, conflicts) : load}
-        >
-          {facts.length === 0 ? (
-            <div className="p-4 md:p-6">
-              <Empty className="border border-dashed">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <NotebookTextIcon />
-                  </EmptyMedia>
-                  <EmptyTitle>No context yet</EmptyTitle>
-                  <EmptyDescription>
-                    A context item is one thing your team wrote down about a number, such as “Online
-                    sales to Norway stopped on 4 August”. Until there is some, agents hear “Nothing
-                    is written down for this.” That is the honest answer, not an error.
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <Button variant="outline" onClick={() => navigate('/context/new')}>
-                    Write the first context item
-                  </Button>
-                </EmptyContent>
-              </Empty>
-            </div>
-          ) : (
-            <>
-              <ListBar>
-                <TextSwitch
-                  label="Show"
-                  value={onlyConflicts ? 'conflicts' : 'all'}
-                  onChange={(v, press) =>
-                    move(press, () =>
-                      changeQuery({ show: v === 'conflicts' ? 'conflicts' : undefined }),
-                    )
+        {phase === 'failed' ? (
+          <LoadError
+            what="the context"
+            className="border-b"
+            onRetry={() =>
+              void (onlyConflicts
+                ? Promise.all([load.refetch(), conflicts.refetch()])
+                : load.refetch())
+            }
+          />
+        ) : ready && facts.length === 0 ? (
+          <div className="p-4 md:p-6">
+            <Empty className="border border-dashed">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <NotebookTextIcon />
+                </EmptyMedia>
+                <EmptyTitle>No context yet</EmptyTitle>
+                <EmptyDescription>
+                  A context item is one thing your team wrote down about a number, such as “Online
+                  sales to Norway stopped on 4 August”. Until there is some, agents hear “Nothing is
+                  written down for this.” That is the honest answer, not an error.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button variant="outline" onClick={() => navigate('/context/new')}>
+                  Write the first context item
+                </Button>
+              </EmptyContent>
+            </Empty>
+          </div>
+        ) : (
+          <>
+            {refreshFailed && (
+              <RefreshError
+                what="the context"
+                onRetry={() =>
+                  void (onlyConflicts
+                    ? Promise.all([load.refetch(), conflicts.refetch()])
+                    : load.refetch())
+                }
+              />
+            )}
+            <ListBar>
+              <TextSwitch
+                label="Show"
+                value={onlyConflicts ? 'conflicts' : 'all'}
+                onChange={(v, press) =>
+                  move(press, () =>
+                    changeQuery({ show: v === 'conflicts' ? 'conflicts' : undefined }),
+                  )
+                }
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'conflicts', label: 'Conflicts', count: conflicts.data?.length },
+                ]}
+              />
+              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className={cn(barButton, filters > 0 && 'bg-muted text-foreground')}
+                    />
                   }
-                  options={[
-                    { value: 'all', label: 'All' },
-                    { value: 'conflicts', label: 'Conflicts', count: conflicts.data?.length },
-                  ]}
-                />
-                <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        className={cn(barButton, filters > 0 && 'bg-muted text-foreground')}
-                      />
-                    }
-                  >
-                    <ListFilterIcon />
-                    Filter
-                    {filters > 0 && <span className="tabular-nums">{filters}</span>}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-60">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Domain</DropdownMenuLabel>
-                      {domainIds.map((d) => (
-                        <DropdownMenuCheckboxItem
-                          key={d}
-                          checked={domain.includes(d)}
-                          onCheckedChange={(_, e) =>
-                            move(e.event, () => setDomain((x) => toggle(x, d)))
-                          }
-                        >
-                          <FilterValue
-                            count={facts.filter((f) => f.domain === d && pass(f, 'domain')).length}
-                          >
-                            {domains[d]?.name}
-                          </FilterValue>
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Status</DropdownMenuLabel>
-                      {STATUSES.map((st) => (
-                        <DropdownMenuCheckboxItem
-                          key={st}
-                          checked={status.includes(st)}
-                          onCheckedChange={(_, e) =>
-                            move(e.event, () => setStatus((x) => toggle(x, st)))
-                          }
-                        >
-                          <FilterValue
-                            count={facts.filter((f) => f.status === st && pass(f, 'status')).length}
-                          >
-                            <StatusDot status={st} label />
-                          </FilterValue>
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Kind</DropdownMenuLabel>
-                      {KINDS.map((k) => (
-                        <DropdownMenuCheckboxItem
-                          key={k}
-                          checked={kind.includes(k)}
-                          onCheckedChange={(_, e) =>
-                            move(e.event, () => setKind((x) => toggle(x, k)))
-                          }
-                        >
-                          <FilterValue
-                            count={facts.filter((f) => f.kind === k && pass(f, 'kind')).length}
-                          >
-                            {kindLabel[k]}
-                          </FilterValue>
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Conflict</DropdownMenuLabel>
+                >
+                  <ListFilterIcon />
+                  Filter
+                  {filters > 0 && <span className="tabular-nums">{filters}</span>}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-60">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Domain</DropdownMenuLabel>
+                    {domainIds.map((d) => (
                       <DropdownMenuCheckboxItem
-                        checked={onlyConflicts}
+                        key={d}
+                        checked={domain.includes(d)}
                         onCheckedChange={(_, e) =>
-                          move(e.event, () => setOnlyConflicts(!onlyConflicts))
+                          move(e.event, () => setDomain((x) => toggle(x, d)))
                         }
                       >
                         <FilterValue
-                          count={
-                            facts.filter((f) => conflictOf.has(f.id) && pass(f, 'conflict')).length
-                          }
+                          count={facts.filter((f) => f.domain === d && pass(f, 'domain')).length}
                         >
-                          In a conflict
+                          {domains[d]?.name}
                         </FilterValue>
                       </DropdownMenuCheckboxItem>
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <SortMenu
-                  keys={SORTS}
-                  sorting={sorting}
-                  onSort={(next, press) => move(press, () => setSort(next))}
-                  shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
-                  narrow="@max-3xl/main:sr-only"
-                  className="w-60"
-                />
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        className={cn(barButton, group !== 'none' && 'bg-muted text-foreground')}
-                      />
-                    }
-                  >
-                    <ListTreeIcon />
-                    <span className={cn(group === 'none' ? 'sr-only' : '@max-3xl/main:sr-only')}>
-                      {group === 'none' ? 'Group' : GROUPS[group]}
-                    </span>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-44">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Group by</DropdownMenuLabel>
-                      <DropdownMenuRadioGroup
-                        value={group}
-                        onValueChange={(v, e) =>
-                          move(e.event, () => {
-                            setGroup(v as Group)
-                            setFolded([])
-                          })
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Status</DropdownMenuLabel>
+                    {STATUSES.map((st) => (
+                      <DropdownMenuCheckboxItem
+                        key={st}
+                        checked={status.includes(st)}
+                        onCheckedChange={(_, e) =>
+                          move(e.event, () => setStatus((x) => toggle(x, st)))
                         }
                       >
-                        {(Object.keys(GROUPS) as Group[]).map((g) => (
-                          <DropdownMenuRadioItem key={g} value={g}>
-                            {GROUPS[g]}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* On a phone, where there is no hover or Shift, Select starts picking rows. */}
-                <Button
-                  variant="ghost"
-                  className={cn(barButton, '@xl/main:hidden', boxes && 'bg-muted text-foreground')}
-                  onClick={() => (boxes ? sel.clear() : sel.setPicking(true))}
+                        <FilterValue
+                          count={facts.filter((f) => f.status === st && pass(f, 'status')).length}
+                        >
+                          <StatusDot status={st} label />
+                        </FilterValue>
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Kind</DropdownMenuLabel>
+                    {KINDS.map((k) => (
+                      <DropdownMenuCheckboxItem
+                        key={k}
+                        checked={kind.includes(k)}
+                        onCheckedChange={(_, e) =>
+                          move(e.event, () => setKind((x) => toggle(x, k)))
+                        }
+                      >
+                        <FilterValue
+                          count={facts.filter((f) => f.kind === k && pass(f, 'kind')).length}
+                        >
+                          {kindLabel[k]}
+                        </FilterValue>
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Conflict</DropdownMenuLabel>
+                    <DropdownMenuCheckboxItem
+                      checked={onlyConflicts}
+                      onCheckedChange={(_, e) =>
+                        move(e.event, () => setOnlyConflicts(!onlyConflicts))
+                      }
+                    >
+                      <FilterValue
+                        count={
+                          facts.filter((f) => conflictOf.has(f.id) && pass(f, 'conflict')).length
+                        }
+                      >
+                        In a conflict
+                      </FilterValue>
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <SortMenu
+                keys={SORTS}
+                sorting={sorting}
+                onSort={(next, press) => move(press, () => setSort(next))}
+                shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
+                narrow="@max-3xl/main:sr-only"
+                className="w-60"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className={cn(barButton, group !== 'none' && 'bg-muted text-foreground')}
+                    />
+                  }
                 >
-                  <ListChecksIcon />
-                  {boxes ? 'Done' : 'Select'}
-                </Button>
-                <BarSpacer>
-                  {archived > 0 && !status.includes('Archived') && (
-                    <span className="flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground @max-5xl/main:hidden">
-                      <EyeIcon className="size-3.5" aria-hidden />
-                      {count(archived)} archived {showArchived ? 'shown' : 'hidden'}
-                      <button
-                        type="button"
-                        className="font-medium text-foreground underline underline-offset-4"
-                        onClick={(e) => move(e, () => setShowArchived((s) => !s))}
-                      >
-                        {showArchived ? 'Hide' : 'Show'}
-                      </button>
-                    </span>
-                  )}
-                  <SearchField value={text} onChange={setText} placeholder="Search context" />
-                </BarSpacer>
-                <Count>
-                  {filtered.length === facts.length ? (
-                    items(facts.length)
-                  ) : (
-                    <>
-                      <span className="font-semibold text-foreground">
-                        {count(filtered.length)}
-                      </span>{' '}
-                      of {items(facts.length)}
-                    </>
-                  )}
-                </Count>
-              </ListBar>
-              <FilterRow count={filters} onClear={clearFilters}>
-                {domain.length > 0 && (
-                  <FilterChip
-                    field="Domain"
-                    values={domain.map((d) => domains[d]!.name)}
-                    onRemove={() => setDomain([])}
-                  />
+                  <ListTreeIcon />
+                  <span className={cn(group === 'none' ? 'sr-only' : '@max-3xl/main:sr-only')}>
+                    {group === 'none' ? 'Group' : GROUPS[group]}
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Group by</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={group}
+                      onValueChange={(v, e) =>
+                        move(e.event, () => {
+                          setGroup(v as Group)
+                          setFolded([])
+                        })
+                      }
+                    >
+                      {(Object.keys(GROUPS) as Group[]).map((g) => (
+                        <DropdownMenuRadioItem key={g} value={g}>
+                          {GROUPS[g]}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* On a phone, where there is no hover or Shift, Select starts picking rows. */}
+              <Button
+                variant="ghost"
+                className={cn(barButton, '@xl/main:hidden', boxes && 'bg-muted text-foreground')}
+                onClick={() => (boxes ? sel.clear() : sel.setPicking(true))}
+              >
+                <ListChecksIcon />
+                {boxes ? 'Done' : 'Select'}
+              </Button>
+              <BarSpacer>
+                {archived > 0 && !status.includes('Archived') && (
+                  <span className="flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground @max-5xl/main:hidden">
+                    <EyeIcon className="size-3.5" aria-hidden />
+                    {count(archived)} archived {showArchived ? 'shown' : 'hidden'}
+                    <button
+                      type="button"
+                      className="font-medium text-foreground underline underline-offset-4"
+                      onClick={(e) => move(e, () => setShowArchived((s) => !s))}
+                    >
+                      {showArchived ? 'Hide' : 'Show'}
+                    </button>
+                  </span>
                 )}
-                {status.length > 0 && (
-                  <FilterChip field="Status" values={status} onRemove={() => setStatus([])} />
+                <SearchField value={text} onChange={setText} placeholder="Search context" />
+              </BarSpacer>
+              <Count>
+                {!ready ? (
+                  phase === 'skeleton' && (
+                    <span role="status" aria-busy="true" aria-label="Loading" className="sr-only" />
+                  )
+                ) : filtered.length === facts.length ? (
+                  items(facts.length)
+                ) : (
+                  <>
+                    <span className="font-semibold text-foreground">{count(filtered.length)}</span>{' '}
+                    of {items(facts.length)}
+                  </>
                 )}
-                {kind.length > 0 && (
-                  <FilterChip
-                    field="Kind"
-                    values={kind.map((k) => kindLabel[k])}
-                    onRemove={() => setKind([])}
-                  />
-                )}
-                {onlyConflicts && (
-                  <FilterChip field="In a conflict" onRemove={() => void setOnlyConflicts(false)} />
-                )}
-              </FilterRow>
-              <div className="min-w-0 shrink-0">
-                <table ref={table} className="w-full border-collapse">
-                  <thead className="sticky top-0 z-raised">
-                    <tr>
-                      <th
-                        className={cn(
-                          thClass,
-                          'hidden w-9.5 min-w-9.5 pr-0 pl-4 md:w-11.5 md:min-w-11.5 md:pl-6 @xl/main:table-cell',
-                          boxes && 'table-cell',
-                        )}
-                      >
-                        <Checkbox
-                          aria-label="Select all context shown"
-                          checked={sel.allShown}
-                          indeterminate={sel.count > 0 && !sel.allShown}
-                          onCheckedChange={sel.toggleAll}
-                        />
-                      </th>
-                      <Th className="w-8 min-w-8 px-1.5 @max-xl/main:w-9 @max-xl/main:min-w-9 @max-xl/main:pr-0 @max-xl/main:pl-4">
-                        <span className="sr-only">Kind</span>
-                      </Th>
-                      {sortTh('title', 'w-full px-1.5 @max-xl/main:px-3')}
-                      <Th className="hidden w-px min-w-50.5 px-1.5 @min-[60rem]/main:table-cell">
-                        Applies to
-                      </Th>
-                      <Th className="hidden w-18 min-w-18 px-1.5 @xl/main:table-cell">Status</Th>
-                      <Th className="hidden w-39 min-w-39 px-1.5 @xl/main:table-cell">When</Th>
-                      {sortTh(
-                        'checked',
-                        'w-19 min-w-19 px-1.5 text-center @max-xl/main:hidden',
-                        'Checked: recently, over 30 days ago, or due for a check',
+              </Count>
+            </ListBar>
+            <FilterRow count={filters} onClear={clearFilters}>
+              {domain.length > 0 && (
+                <FilterChip
+                  field="Domain"
+                  values={domain.map((d) => domains[d]!.name)}
+                  onRemove={() => setDomain([])}
+                />
+              )}
+              {status.length > 0 && (
+                <FilterChip field="Status" values={status} onRemove={() => setStatus([])} />
+              )}
+              {kind.length > 0 && (
+                <FilterChip
+                  field="Kind"
+                  values={kind.map((k) => kindLabel[k])}
+                  onRemove={() => setKind([])}
+                />
+              )}
+              {onlyConflicts && (
+                <FilterChip field="In a conflict" onRemove={() => void setOnlyConflicts(false)} />
+              )}
+            </FilterRow>
+            <div className="min-w-0 shrink-0">
+              <table ref={table} className="w-full border-collapse">
+                <thead className="sticky top-0 z-raised">
+                  <tr>
+                    <th
+                      className={cn(
+                        thClass,
+                        'hidden w-9.5 min-w-9.5 pr-0 pl-4 md:w-11.5 md:min-w-11.5 md:pl-6 @xl/main:table-cell',
+                        boxes && 'table-cell',
                       )}
-                      <Th className="hidden w-10 @max-xl/main:table-cell @max-xl/main:pr-4">
-                        <span className="sr-only">Checked</span>
-                      </Th>
-                      <Th className="w-10 pr-2 md:pr-4 @max-xl/main:hidden">
-                        <span className="sr-only">Actions</span>
-                      </Th>
+                    >
+                      <Checkbox
+                        aria-label="Select all context shown"
+                        checked={sel.allShown}
+                        indeterminate={sel.count > 0 && !sel.allShown}
+                        onCheckedChange={sel.toggleAll}
+                      />
+                    </th>
+                    <Th className="w-8 min-w-8 px-1.5 @max-xl/main:w-9 @max-xl/main:min-w-9 @max-xl/main:pr-0 @max-xl/main:pl-4">
+                      <span className="sr-only">Kind</span>
+                    </Th>
+                    {sortTh('title', 'w-full px-1.5 @max-xl/main:px-3')}
+                    <Th className="hidden w-px min-w-50.5 px-1.5 @min-[60rem]/main:table-cell">
+                      Applies to
+                    </Th>
+                    <Th className="hidden w-18 min-w-18 px-1.5 @xl/main:table-cell">Status</Th>
+                    <Th className="hidden w-39 min-w-39 px-1.5 @xl/main:table-cell">When</Th>
+                    {sortTh(
+                      'checked',
+                      'w-19 min-w-19 px-1.5 text-center @max-xl/main:hidden',
+                      'Checked: recently, over 30 days ago, or due for a check',
+                    )}
+                    <Th className="hidden w-10 @max-xl/main:table-cell @max-xl/main:pr-4">
+                      <span className="sr-only">Checked</span>
+                    </Th>
+                    <Th className="w-10 pr-2 md:pr-4 @max-xl/main:hidden">
+                      <span className="sr-only">Actions</span>
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody
+                  onKeyDown={(e) => {
+                    sel.onKeyDown(e)
+                    rowKeys(e)
+                  }}
+                >
+                  {!ready ? null : noConflicts ? (
+                    <tr>
+                      <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
+                        <p className="font-medium">No conflicts</p>
+                        <p className="mt-1 text-muted-foreground">
+                          Nothing disagrees. A conflict shows here when an owner marks two items as
+                          disagreeing.
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="mt-3"
+                          onClick={() => void setOnlyConflicts(false)}
+                        >
+                          Show all context
+                        </Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody
-                    onKeyDown={(e) => {
-                      sel.onKeyDown(e)
-                      rowKeys(e)
-                    }}
-                  >
-                    {noConflicts ? (
+                  ) : (
+                    filtered.length === 0 && (
                       <tr>
                         <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
-                          <p className="font-medium">No conflicts</p>
+                          <p className="font-medium">No context matches</p>
                           <p className="mt-1 text-muted-foreground">
-                            Nothing disagrees. A conflict shows here when an owner marks two items
-                            as disagreeing.
+                            {[text.trim() && `Searching for “${text.trim()}”`, ...on]
+                              .filter(Boolean)
+                              .join(', ')}
+                            .
                           </p>
-                          <Button
-                            variant="outline"
-                            className="mt-3"
-                            onClick={() => void setOnlyConflicts(false)}
-                          >
-                            Show all context
+                          <Button variant="outline" className="mt-3" onClick={clearAll}>
+                            Clear search and filters
                           </Button>
                         </td>
                       </tr>
-                    ) : (
-                      filtered.length === 0 && (
-                        <tr>
-                          <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
-                            <p className="font-medium">No context matches</p>
-                            <p className="mt-1 text-muted-foreground">
-                              {[text.trim() && `Searching for “${text.trim()}”`, ...on]
-                                .filter(Boolean)
-                                .join(', ')}
-                              .
-                            </p>
-                            <Button variant="outline" className="mt-3" onClick={clearAll}>
-                              Clear search and filters
-                            </Button>
-                          </td>
-                        </tr>
-                      )
-                    )}
-                    {/* One flat list of rows, not a fragment per group: a row keeps its place in
+                    )
+                  )}
+                  {/* One flat list of rows, not a fragment per group: a row keeps its place in
                         the tree when the grouping changes, so it moves to its new place instead of
                         being drawn again. */}
-                    {showRows &&
-                      groups.flatMap((g) => {
-                        const open = !folded.includes(g.key)
-                        return [
-                          g.key ? (
-                            <GroupRow
-                              key={`group:${g.key}`}
-                              label={g.key}
-                              detail={String(g.rows.length)}
-                              open={open}
-                              colSpan={COLS}
-                              onToggle={() => setFolded((x) => toggle(x, g.key))}
-                            />
-                          ) : null,
-                          ...(open ? g.rows.map(row) : []),
-                        ]
-                      })}
-                    {showRows && (
-                      <AddRow
-                        label="Write context"
-                        colSpan={COLS}
-                        onClick={() => navigate('/context/new')}
-                      />
-                    )}
-                  </tbody>
-                  {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
-                  <tfoot
-                    className={cn(
-                      'z-raised bg-background',
-                      !sel.count && 'sticky bottom-0',
-                      !showRows && 'hidden',
-                    )}
-                  >
-                    <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
-                      <td className={cn('hidden @xl/main:table-cell', boxes && 'table-cell')} />
-                      <td />
-                      <td className="h-bar px-1.5 @max-xl/main:px-3">{items(filtered.length)}</td>
-                      <td className="hidden px-1.5 @min-[60rem]/main:table-cell" />
-                      <td colSpan={2} className="hidden px-1.5 @xl/main:table-cell">
-                        {count(
-                          filtered.filter((f) => servedToAgents(f) && inForce(parseWhen(f.when)))
-                            .length,
-                        )}{' '}
-                        apply today
-                      </td>
-                      <td colSpan={2} className="px-1.5 @max-xl/main:pr-4 @max-xl/main:text-right">
-                        {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a check
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </>
-          )}
-        </Loadable>
+                  {phase === 'skeleton' && <TableBodySkeleton colSpan={COLS} />}
+                  {rowsShown &&
+                    groups.flatMap((g) => {
+                      const open = !folded.includes(g.key)
+                      return [
+                        g.key ? (
+                          <GroupRow
+                            key={`group:${g.key}`}
+                            label={g.key}
+                            detail={String(g.rows.length)}
+                            open={open}
+                            colSpan={COLS}
+                            onToggle={() => setFolded((x) => toggle(x, g.key))}
+                          />
+                        ) : null,
+                        ...(open ? g.rows.map(row) : []),
+                      ]
+                    })}
+                  {rowsShown && (
+                    <AddRow
+                      label="Write context"
+                      colSpan={COLS}
+                      onClick={() => navigate('/context/new')}
+                    />
+                  )}
+                </tbody>
+                {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
+                <tfoot
+                  className={cn(
+                    'z-raised bg-background',
+                    !sel.count && 'sticky bottom-0',
+                    !rowsShown && 'hidden',
+                  )}
+                >
+                  <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
+                    <td className={cn('hidden @xl/main:table-cell', boxes && 'table-cell')} />
+                    <td />
+                    <td className="h-bar px-1.5 @max-xl/main:px-3">{items(filtered.length)}</td>
+                    <td className="hidden px-1.5 @min-[60rem]/main:table-cell" />
+                    <td colSpan={2} className="hidden px-1.5 @xl/main:table-cell">
+                      {count(
+                        filtered.filter((f) => servedToAgents(f) && inForce(parseWhen(f.when)))
+                          .length,
+                      )}{' '}
+                      apply today
+                    </td>
+                    <td colSpan={2} className="px-1.5 @max-xl/main:pr-4 @max-xl/main:text-right">
+                      {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a check
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>
+        )}
       </div>
       {/* Picked rows get their bar in a band of its own under the list, never over a row. */}
       <ContextBulk sel={sel} facts={facts} matching={filtered.map((f) => f.id)} />

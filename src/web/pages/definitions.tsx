@@ -76,8 +76,8 @@ import { TextSwitch } from '@/components/heed/switches'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { byPointer, moveRows, type Press } from '@/lib/list-motion'
 import { plainText } from '@/lib/mentions'
-import { Loadable } from '@/components/heed/load-state'
-import { DEFINITIONS_LEAD, TableBodySkeleton, TableSkeleton } from '@/components/heed/list-skeleton'
+import { LoadError, RefreshError, useLoadPhase } from '@/components/heed/load-state'
+import { TableBodySkeleton } from '@/components/heed/list-skeleton'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
 import { useFigures } from '@/lib/figures'
 import { useLeavingRows } from '@/lib/presence'
@@ -129,6 +129,11 @@ export function DefinitionsPage() {
   const load = useQuery({ ...definitionsPageQuery(), placeholderData: heldRows(useDefinitions()) })
   const all = load.data ?? NO_DEFINITIONS
   const showRows = useRowsAfterFirstFrame()
+  // The page's frame (header, bar, table head) is drawn at once; only the rows wait, as a skeleton
+  // after 150ms (docs/design/motion.md).
+  const { phase, refreshFailed } = useLoadPhase(load)
+  const ready = phase === 'content'
+  const rowsShown = showRows && ready
   const glossary = useGlossary()
   const domains = useDomains()
   const domainIds = useDomainList().map((d) => d.id)
@@ -469,391 +474,407 @@ export function DefinitionsPage() {
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
       <div className="@container/main flex min-h-0 flex-1 flex-col overflow-y-auto *:mx-auto *:w-full *:max-w-wide @min-[80rem]/main:*:border-x">
-        <Loadable
-          what="the definitions"
-          skeleton={<TableSkeleton lead={DEFINITIONS_LEAD} />}
-          errorClassName="border-b"
-          query={load}
-        >
-          <ListBar>
-            {/* On a phone the views fold into one menu, so the bar keeps to two rows. */}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    className={cn(barButton, 'text-foreground @md/main:hidden')}
-                  />
-                }
-              >
-                {view === 'all' ? 'All' : `${typeLabel[view]}s`}
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {typeCount(view)}
-                </span>
-                <ChevronDownIcon />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-44">
-                <DropdownMenuRadioGroup
-                  value={view}
-                  onValueChange={(v, e) => move(e.event, () => setView(v as View))}
+        {phase === 'failed' ? (
+          <LoadError
+            what="the definitions"
+            className="border-b"
+            onRetry={() => void load.refetch()}
+          />
+        ) : (
+          <>
+            {refreshFailed && (
+              <RefreshError what="the definitions" onRetry={() => void load.refetch()} />
+            )}
+            <ListBar>
+              {/* On a phone the views fold into one menu, so the bar keeps to two rows. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className={cn(barButton, 'text-foreground @md/main:hidden')}
+                    />
+                  }
                 >
-                  {(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => (
-                    <DropdownMenuRadioItem key={v} value={v}>
-                      <FilterValue count={typeCount(v)}>
-                        {v === 'all' ? 'All' : `${typeLabel[v]}s`}
-                      </FilterValue>
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {/* Views are a filter, not navigation: quiet words with counts, the shared text switch. */}
-            <TextSwitch
-              label="Definitions to show"
-              className="pl-1 text-sm @max-md/main:hidden"
-              value={view}
-              onChange={(v, press) => move(press, () => setView(v))}
-              options={(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => ({
-                value: v,
-                label: v === 'all' ? 'All' : `${typeLabel[v]}s`,
-                count: typeCount(v),
-                icon:
-                  v !== 'all' ? <TypeGlyph d={{ type: v }} className="text-current" /> : undefined,
-              }))}
-            />
-            <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border @max-3xl/main:hidden" />
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    className={cn(barButton, filters > 0 && 'bg-muted text-foreground')}
-                  />
-                }
-              >
-                <ListFilterIcon />
-                <span className="@max-md/main:sr-only">Filter</span>
-                {filters > 0 && <span className="tabular-nums">{filters}</span>}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-60">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Status</DropdownMenuLabel>
-                  {(Object.keys(CUES) as Cue[]).map((c) => (
-                    <DropdownMenuCheckboxItem
-                      key={c}
-                      checked={cues.includes(c)}
-                      onCheckedChange={(_, e) => move(e.event, () => setCues((x) => toggle(x, c)))}
-                    >
-                      <FilterValue
-                        count={all.filter((d) => cueOf(d) === c && pass(d, 'cue')).length}
-                      >
-                        {CUES[c]}
-                      </FilterValue>
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Another name</DropdownMenuLabel>
-                  <DropdownMenuCheckboxItem
-                    checked={synonymRows}
-                    onCheckedChange={(on, e) => move(e.event, () => setSynonymRows(on))}
-                  >
-                    <FilterValue count={all.filter((d) => glossary.foldsInto(d)).length}>
-                      <span className="inline-flex items-center gap-2">
-                        <TypeGlyph d={{ type: 'term', sameAs: 'x' }} />
-                        Show synonyms as rows
-                      </span>
-                    </FilterValue>
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Domain</DropdownMenuLabel>
-                  {domainIds.map((d) => (
-                    <DropdownMenuCheckboxItem
-                      key={d}
-                      checked={domain.includes(d)}
-                      onCheckedChange={(_, e) =>
-                        move(e.event, () => setDomain((x) => toggle(x, d)))
-                      }
-                    >
-                      <FilterValue
-                        count={all.filter((x) => x.domain === d && pass(x, 'domain')).length}
-                      >
-                        {domains[d]?.name}
-                      </FilterValue>
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <SortMenu
-              keys={SORTS}
-              sorting={sorting}
-              onSort={(next, press) => move(press, () => setSort(next))}
-              shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
-              narrow="@max-5xl/main:sr-only"
-              className="w-56"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" className={barButton} />}>
-                <ListTreeIcon />
-                <span className={cn(group === 'none' ? 'sr-only' : '@max-5xl/main:sr-only')}>
-                  {group === 'none' ? 'Group' : GROUPS[group]}
-                </span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-44">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Group by</DropdownMenuLabel>
+                  {view === 'all' ? 'All' : `${typeLabel[view]}s`}
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {typeCount(view)}
+                  </span>
+                  <ChevronDownIcon />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
                   <DropdownMenuRadioGroup
-                    value={group}
-                    onValueChange={(v, e) =>
-                      move(e.event, () => {
-                        setGroup(v as Group)
-                        setFolded([])
-                      })
-                    }
+                    value={view}
+                    onValueChange={(v, e) => move(e.event, () => setView(v as View))}
                   >
-                    {(Object.keys(GROUPS) as Group[]).map((g) => (
-                      <DropdownMenuRadioItem key={g} value={g}>
-                        {GROUPS[g]}
+                    {(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => (
+                      <DropdownMenuRadioItem key={v} value={v}>
+                        <FilterValue count={typeCount(v)}>
+                          {v === 'all' ? 'All' : `${typeLabel[v]}s`}
+                        </FilterValue>
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <BarSpacer>
-              <SearchField value={text} onChange={setText} placeholder="Search definitions" />
-            </BarSpacer>
-            <Count>
-              {shown.length === rows.length ? (
-                plural(rows.length, 'definition')
-              ) : (
-                <>
-                  <span className="font-semibold text-foreground">{shown.length}</span> of{' '}
-                  {plural(rows.length, 'definition')}
-                </>
-              )}
-            </Count>
-          </ListBar>
-          <FilterRow
-            count={filters}
-            onClear={() => (setDomain([]), setCues([]), setSynonymRows(false))}
-          >
-            {cues.length > 0 && (
-              <FilterChip
-                field="Status"
-                values={cues.map((c) => CUES[c])}
-                onRemove={() => setCues([])}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* Views are a filter, not navigation: quiet words with counts, the shared text switch. */}
+              <TextSwitch
+                label="Definitions to show"
+                className="pl-1 text-sm @max-md/main:hidden"
+                value={view}
+                onChange={(v, press) => move(press, () => setView(v))}
+                options={(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => ({
+                  value: v,
+                  label: v === 'all' ? 'All' : `${typeLabel[v]}s`,
+                  count: typeCount(v),
+                  icon:
+                    v !== 'all' ? (
+                      <TypeGlyph d={{ type: v }} className="text-current" />
+                    ) : undefined,
+                }))}
               />
-            )}
-            {synonymRows && (
-              <FilterChip
-                field="Another name"
-                values={['shown as rows']}
-                onRemove={() => setSynonymRows(false)}
-              />
-            )}
-            {domain.length > 0 && (
-              <FilterChip
-                field="Domain"
-                values={domain.map((d) => domains[d]!.name)}
-                onRemove={() => setDomain([])}
-              />
-            )}
-          </FilterRow>
-          {/* Where the definitions come from, as the catalogue says it under its toolbar. */}
-          <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
-            <ToolLogo c={source} size="sm" className="mt-0.5" />
-            <span>
-              Metrics and dimensions come from {tool ?? 'your definitions tool'}. To change one,
-              change it in the tool. Terms are words your company uses. The owner of their domain
-              writes them here.{' '}
-              <a
-                href={integrationHref(source?.id)}
-                className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                {tool ?? 'Integrations'}
-                {tool && ' in Integrations'}
-              </a>
-              .
-              {source?.figures &&
-                ` A figure that looks wrong goes to ${figures.contact(source.id)}, the data contact.`}
-            </span>
-          </p>
-          {/* Coverage first: how much of what agents can be asked has nothing written down. */}
-          {uncovered.length > 0 && (
-            <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-6">
-              <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="font-medium">
-                  {uncovered.length} of {measurable.length} have no context yet.
-                </span>{' '}
-                <span className="text-muted-foreground">
-                  Agents asking about them get Not found.
-                </span>
-              </span>
-              {!cues.includes('none') && (
-                <Button
-                  variant="outline"
-
-                  onClick={() => setCues(['none'])}
-                >
-                  Show only these
-                </Button>
-              )}
-            </p>
-          )}
-          <div className="min-w-0 shrink-0">
-            <table ref={table} className="w-full table-fixed border-collapse">
-              <thead className="sticky top-0 z-raised">
-                <tr>
-                  <th
-                    className={cn(
-                      thClass,
-                      'hidden w-9.5 min-w-9.5 pr-0 pl-4 md:w-11.5 md:min-w-11.5 md:pl-6 @xl/main:table-cell',
-                    )}
-                  >
-                    <Checkbox
-                      aria-label="Select all definitions shown"
-                      checked={sel.allShown}
-                      indeterminate={sel.count > 0 && !sel.allShown}
-                      onCheckedChange={sel.toggleAll}
+              <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border @max-3xl/main:hidden" />
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className={cn(barButton, filters > 0 && 'bg-muted text-foreground')}
                     />
-                  </th>
-                  <SortTh
-                    keys={SORTS}
-                    sorting={sorting}
-                    by="name"
-                    onSort={onSort}
-                    className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
-                  />
-                  <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
-                  <Th
-                    className={cn(
-                      'hidden w-32 px-2',
-                      group !== 'domain' && '@min-[60rem]/main:table-cell',
-                    )}
-                  >
-                    Domain
-                  </Th>
-                  <SortTh
-                    keys={SORTS}
-                    sorting={sorting}
-                    by="context"
-                    onSort={onSort}
-                    className="hidden w-20 min-w-20 px-2 text-right @xl/main:table-cell"
-                  />
-                  <Th className="w-8 min-w-6 px-1">
-                    <span className="sr-only">Needs a look</span>
-                  </Th>
-                  <Th className="w-8 min-w-7 px-1">
-                    <span className="sr-only">Source</span>
-                  </Th>
-                  <Th className="w-11 min-w-9 pr-2 md:min-w-11 md:pr-4">
-                    <span className="sr-only">Actions</span>
-                  </Th>
-                </tr>
-              </thead>
-              <tbody
-                onKeyDown={(e) => {
-                  sel.onKeyDown(e)
-                  rowKeys(e)
-                }}
-              >
-                {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
-                {!showRows && <TableBodySkeleton colSpan={COLS} />}
-                {showRows && shown.length === 0 && (
-                  <tr>
-                    <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
-                      <p className="font-medium">No definitions match</p>
-                      <p className="mt-1 text-muted-foreground">
-                        {[
-                          text.trim() && `Searching for “${text.trim()}”`,
-                          view !== 'all' && `${typeLabel[view]}s only`,
-                          cues.length && `Status is ${cues.map((c) => CUES[c]).join(' or ')}`,
-                          domain.length &&
-                            `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
-                        ]
-                          .filter(Boolean)
-                          .join(', ')}
-                        .
-                      </p>
-                      <Button variant="outline" className="mt-3" onClick={clearAll}>
-                        Clear search and filters
-                      </Button>
-                    </td>
-                  </tr>
+                  }
+                >
+                  <ListFilterIcon />
+                  <span className="@max-md/main:sr-only">Filter</span>
+                  {filters > 0 && <span className="tabular-nums">{filters}</span>}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-60">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Status</DropdownMenuLabel>
+                    {(Object.keys(CUES) as Cue[]).map((c) => (
+                      <DropdownMenuCheckboxItem
+                        key={c}
+                        checked={cues.includes(c)}
+                        onCheckedChange={(_, e) =>
+                          move(e.event, () => setCues((x) => toggle(x, c)))
+                        }
+                      >
+                        <FilterValue
+                          count={all.filter((d) => cueOf(d) === c && pass(d, 'cue')).length}
+                        >
+                          {CUES[c]}
+                        </FilterValue>
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Another name</DropdownMenuLabel>
+                    <DropdownMenuCheckboxItem
+                      checked={synonymRows}
+                      onCheckedChange={(on, e) => move(e.event, () => setSynonymRows(on))}
+                    >
+                      <FilterValue count={all.filter((d) => glossary.foldsInto(d)).length}>
+                        <span className="inline-flex items-center gap-2">
+                          <TypeGlyph d={{ type: 'term', sameAs: 'x' }} />
+                          Show synonyms as rows
+                        </span>
+                      </FilterValue>
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Domain</DropdownMenuLabel>
+                    {domainIds.map((d) => (
+                      <DropdownMenuCheckboxItem
+                        key={d}
+                        checked={domain.includes(d)}
+                        onCheckedChange={(_, e) =>
+                          move(e.event, () => setDomain((x) => toggle(x, d)))
+                        }
+                      >
+                        <FilterValue
+                          count={all.filter((x) => x.domain === d && pass(x, 'domain')).length}
+                        >
+                          {domains[d]?.name}
+                        </FilterValue>
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <SortMenu
+                keys={SORTS}
+                sorting={sorting}
+                onSort={(next, press) => move(press, () => setSort(next))}
+                shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
+                narrow="@max-5xl/main:sr-only"
+                className="w-56"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="ghost" className={barButton} />}>
+                  <ListTreeIcon />
+                  <span className={cn(group === 'none' ? 'sr-only' : '@max-5xl/main:sr-only')}>
+                    {group === 'none' ? 'Group' : GROUPS[group]}
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Group by</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={group}
+                      onValueChange={(v, e) =>
+                        move(e.event, () => {
+                          setGroup(v as Group)
+                          setFolded([])
+                        })
+                      }
+                    >
+                      {(Object.keys(GROUPS) as Group[]).map((g) => (
+                        <DropdownMenuRadioItem key={g} value={g}>
+                          {GROUPS[g]}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <BarSpacer>
+                <SearchField value={text} onChange={setText} placeholder="Search definitions" />
+              </BarSpacer>
+              <Count>
+                {!ready ? (
+                  phase === 'skeleton' && (
+                    <span role="status" aria-busy="true" aria-label="Loading" className="sr-only" />
+                  )
+                ) : shown.length === rows.length ? (
+                  plural(rows.length, 'definition')
+                ) : (
+                  <>
+                    <span className="font-semibold text-foreground">{shown.length}</span> of{' '}
+                    {plural(rows.length, 'definition')}
+                  </>
                 )}
-                {/* One flat list of rows, not a fragment per group: a row keeps its place in the
+              </Count>
+            </ListBar>
+            <FilterRow
+              count={filters}
+              onClear={() => (setDomain([]), setCues([]), setSynonymRows(false))}
+            >
+              {cues.length > 0 && (
+                <FilterChip
+                  field="Status"
+                  values={cues.map((c) => CUES[c])}
+                  onRemove={() => setCues([])}
+                />
+              )}
+              {synonymRows && (
+                <FilterChip
+                  field="Another name"
+                  values={['shown as rows']}
+                  onRemove={() => setSynonymRows(false)}
+                />
+              )}
+              {domain.length > 0 && (
+                <FilterChip
+                  field="Domain"
+                  values={domain.map((d) => domains[d]!.name)}
+                  onRemove={() => setDomain([])}
+                />
+              )}
+            </FilterRow>
+            {/* Where the definitions come from, as the catalogue says it under its toolbar. */}
+            <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
+              <ToolLogo c={source} size="sm" className="mt-0.5" />
+              <span>
+                Metrics and dimensions come from {tool ?? 'your definitions tool'}. To change one,
+                change it in the tool. Terms are words your company uses. The owner of their domain
+                writes them here.{' '}
+                <a
+                  href={integrationHref(source?.id)}
+                  className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {tool ?? 'Integrations'}
+                  {tool && ' in Integrations'}
+                </a>
+                .
+                {source?.figures &&
+                  ` A figure that looks wrong goes to ${figures.contact(source.id)}, the data contact.`}
+              </span>
+            </p>
+            {/* Coverage first: how much of what agents can be asked has nothing written down. */}
+            {uncovered.length > 0 && (
+              <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-6">
+                <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium">
+                    {uncovered.length} of {measurable.length} have no context yet.
+                  </span>{' '}
+                  <span className="text-muted-foreground">
+                    Agents asking about them get Not found.
+                  </span>
+                </span>
+                {!cues.includes('none') && (
+                  <Button
+                    variant="outline"
+
+                    onClick={() => setCues(['none'])}
+                  >
+                    Show only these
+                  </Button>
+                )}
+              </p>
+            )}
+            <div className="min-w-0 shrink-0">
+              <table ref={table} className="w-full table-fixed border-collapse">
+                <thead className="sticky top-0 z-raised">
+                  <tr>
+                    <th
+                      className={cn(
+                        thClass,
+                        'hidden w-9.5 min-w-9.5 pr-0 pl-4 md:w-11.5 md:min-w-11.5 md:pl-6 @xl/main:table-cell',
+                      )}
+                    >
+                      <Checkbox
+                        aria-label="Select all definitions shown"
+                        checked={sel.allShown}
+                        indeterminate={sel.count > 0 && !sel.allShown}
+                        onCheckedChange={sel.toggleAll}
+                      />
+                    </th>
+                    <SortTh
+                      keys={SORTS}
+                      sorting={sorting}
+                      by="name"
+                      onSort={onSort}
+                      className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
+                    />
+                    <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
+                    <Th
+                      className={cn(
+                        'hidden w-32 px-2',
+                        group !== 'domain' && '@min-[60rem]/main:table-cell',
+                      )}
+                    >
+                      Domain
+                    </Th>
+                    <SortTh
+                      keys={SORTS}
+                      sorting={sorting}
+                      by="context"
+                      onSort={onSort}
+                      className="hidden w-20 min-w-20 px-2 text-right @xl/main:table-cell"
+                    />
+                    <Th className="w-8 min-w-6 px-1">
+                      <span className="sr-only">Needs a look</span>
+                    </Th>
+                    <Th className="w-8 min-w-7 px-1">
+                      <span className="sr-only">Source</span>
+                    </Th>
+                    <Th className="w-11 min-w-9 pr-2 md:min-w-11 md:pr-4">
+                      <span className="sr-only">Actions</span>
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody
+                  onKeyDown={(e) => {
+                    sel.onKeyDown(e)
+                    rowKeys(e)
+                  }}
+                >
+                  {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
+                  {(phase === 'skeleton' || (ready && !showRows)) && (
+                    <TableBodySkeleton colSpan={COLS} />
+                  )}
+                  {rowsShown && shown.length === 0 && (
+                    <tr>
+                      <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
+                        <p className="font-medium">No definitions match</p>
+                        <p className="mt-1 text-muted-foreground">
+                          {[
+                            text.trim() && `Searching for “${text.trim()}”`,
+                            view !== 'all' && `${typeLabel[view]}s only`,
+                            cues.length && `Status is ${cues.map((c) => CUES[c]).join(' or ')}`,
+                            domain.length &&
+                              `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
+                          ]
+                            .filter(Boolean)
+                            .join(', ')}
+                          .
+                        </p>
+                        <Button variant="outline" className="mt-3" onClick={clearAll}>
+                          Clear search and filters
+                        </Button>
+                      </td>
+                    </tr>
+                  )}
+                  {/* One flat list of rows, not a fragment per group: a row keeps its place in the
                     tree when the grouping changes, so it moves to its new place instead of being
                     drawn again. */}
-                {showRows &&
-                  groups.flatMap((g) => {
-                    const open = !folded.includes(g.key)
-                    return [
-                      g.key ? (
-                        <GroupRow
-                          key={`group:${g.key}`}
-                          label={g.key}
-                          detail={mix(g.rows)}
-                          open={open}
-                          colSpan={COLS}
-                          onToggle={() => setFolded((x) => toggle(x, g.key))}
-                        />
-                      ) : null,
-                      ...(open ? g.rows.map(row) : []),
-                    ]
-                  })}
-                {showRows && (
-                  <AddRow
-                    label="New term"
-                    colSpan={COLS}
-                    onClick={() => navigate('/definitions/new')}
-                  />
-                )}
-              </tbody>
-              {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
-              <tfoot
-                className={cn(
-                  'z-raised bg-background',
-                  !sel.count && 'sticky bottom-0',
-                  !showRows && 'hidden',
-                )}
-              >
-                <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
-                  <td className="hidden @xl/main:table-cell" />
-                  <td className="h-bar pr-2 pl-4 md:pl-6 @xl/main:pl-1.5">
-                    {mix(shown) || plural(0, 'definition')}
-                    {/* Each context item once, however many of these it is about. */}
-                    <span className="hidden @xl/main:inline">
-                      , with{' '}
-                      {new Set(
-                        shown.flatMap((d) =>
-                          d.sameAs ? [] : glossary.contextAbout(d, facts).map((f) => f.id),
-                        ),
-                      ).size.toLocaleString('en-GB')}{' '}
-                      context items about them
-                    </span>
-                  </td>
-                  <td className="hidden px-2 @min-[48rem]/main:table-cell" />
-                  <td
-                    className={cn(
-                      'hidden px-2',
-                      group !== 'domain' && '@min-[60rem]/main:table-cell',
-                    )}
-                  />
-                  <td className="hidden px-2 @xl/main:table-cell" />
-                  <td colSpan={3} className="pr-4 pl-1 text-right md:pr-6">
-                    {shown.filter((d) => flagOf(d)).length.toLocaleString('en-GB')} to look at
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </Loadable>
+                  {rowsShown &&
+                    groups.flatMap((g) => {
+                      const open = !folded.includes(g.key)
+                      return [
+                        g.key ? (
+                          <GroupRow
+                            key={`group:${g.key}`}
+                            label={g.key}
+                            detail={mix(g.rows)}
+                            open={open}
+                            colSpan={COLS}
+                            onToggle={() => setFolded((x) => toggle(x, g.key))}
+                          />
+                        ) : null,
+                        ...(open ? g.rows.map(row) : []),
+                      ]
+                    })}
+                  {rowsShown && (
+                    <AddRow
+                      label="New term"
+                      colSpan={COLS}
+                      onClick={() => navigate('/definitions/new')}
+                    />
+                  )}
+                </tbody>
+                {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
+                <tfoot
+                  className={cn(
+                    'z-raised bg-background',
+                    !sel.count && 'sticky bottom-0',
+                    !rowsShown && 'hidden',
+                  )}
+                >
+                  <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
+                    <td className="hidden @xl/main:table-cell" />
+                    <td className="h-bar pr-2 pl-4 md:pl-6 @xl/main:pl-1.5">
+                      {mix(shown) || plural(0, 'definition')}
+                      {/* Each context item once, however many of these it is about. */}
+                      <span className="hidden @xl/main:inline">
+                        , with{' '}
+                        {new Set(
+                          shown.flatMap((d) =>
+                            d.sameAs ? [] : glossary.contextAbout(d, facts).map((f) => f.id),
+                          ),
+                        ).size.toLocaleString('en-GB')}{' '}
+                        context items about them
+                      </span>
+                    </td>
+                    <td className="hidden px-2 @min-[48rem]/main:table-cell" />
+                    <td
+                      className={cn(
+                        'hidden px-2',
+                        group !== 'domain' && '@min-[60rem]/main:table-cell',
+                      )}
+                    />
+                    <td className="hidden px-2 @xl/main:table-cell" />
+                    <td colSpan={3} className="pr-4 pl-1 text-right md:pr-6">
+                      {shown.filter((d) => flagOf(d)).length.toLocaleString('en-GB')} to look at
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>
+        )}
       </div>
       {/* Picked rows get their bar in a band of its own under the list, never over a row. */}
       <DefinitionsBulk sel={sel} defs={all} />
