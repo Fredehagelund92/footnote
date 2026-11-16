@@ -66,7 +66,8 @@ project: `npx vitest run --project server tests/server/domain`.
 
 - `dates.ts`: `readDates`, the period the words of a question name, counted from `today` in the
   workspace's time zone (`calendar.time_zone`, UTC until an admin sets one; days stay calendar
-  days, NFR-048), with a reads-as phrase such as "1 Jan to 7 Oct 2026 (this year so far; UTC)". It reads an ISO day, a day, month or quarter with or
+  days, NFR-048), with a reads-as phrase such as "1 Jan to 7 Oct 2026 (this year so far; UTC)".
+  It reads an ISO day, a day, month or quarter with or
   without a year (without one, the latest that has started), a bare year, ranges ("1 Jan to 30
   Sep", "from March to May 2026", "6 and 7 October"), the periods named from today (`periods`:
   this, last or next week, month, quarter or year, year to date, today, yesterday) and the days
@@ -80,7 +81,7 @@ project: `npx vitest run --project server tests/server/domain`.
   ends in: with 1 April, "Q3 FY26" is 1 Oct to 31 Dec 2025, said as "Q3 FY26, fiscal year from 1
   April", for agents too. Until the start is set, Ask reads a fiscal year as the calendar year and
   says so ("FY26 read as the calendar year"), and get_context asks for the days. Ask's read line
-  carries that note beside the days (`fiscal`).
+  carries that note beside the days.
 - `scope-search.ts`: the page of terms behind the "Applies to" picker (FR-107): before anything
   is typed, the person's recent terms, the busiest metrics and the dimensions with a count but no
   values; then metrics and, per dimension, "any value", a count and a

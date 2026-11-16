@@ -718,10 +718,9 @@ describe("a workspace's calendar (R8)", () => {
   })
 
   it('until the start is set, reads FY26 as the calendar year and says so', () => {
-    expect(readDates('q3 fy26', today, { loose: true })).toMatchObject({
-      window: { start: '2026-07-01', end: '2026-10-01' },
-      readsAs: expect.stringContaining('FY26 read as the calendar year'),
-    })
+    const got = readDates('q3 fy26', today, { loose: true })
+    expect(days(got)).toEqual(['2026-07-01', '2026-09-30'])
+    expect(got.status === 'read' && got.readsAs).toContain('FY26 read as the calendar year')
     // Agents still get need_more_detail: the calendar year is a guess.
     expect(readDates('q3 fy26', today).status).toBe('unreadable')
   })
