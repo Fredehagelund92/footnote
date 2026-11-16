@@ -78,8 +78,12 @@ export function useLinger(active: boolean) {
   return { present: active || leaving, leaving }
 }
 
-/** On a list: from the frame after it first shows, rows added to it open instead of appearing. */
+/**
+ * On a list: from the second frame after it first shows, rows added to it open instead of
+ * appearing. The first frame's callback runs before that frame's style pass, so a mark set there
+ * would reach the rows already in the list before they had a first style, and they would open.
+ */
 export function arriveRef(el: HTMLElement | null) {
   if (el && !el.hasAttribute('data-arrive'))
-    requestAnimationFrame(() => el.setAttribute('data-arrive', ''))
+    requestAnimationFrame(() => requestAnimationFrame(() => el.setAttribute('data-arrive', '')))
 }
