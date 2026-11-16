@@ -46,7 +46,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Invited } from '@/api/client'
 import { toApiError } from '@/api/errors'
 import { activityQuery, useSession, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { useDomainList, useDomains, useInvites, usePeople } from '@/lib/workspace'
 import { useMe } from '@/lib/workspace'
 
@@ -318,7 +318,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
   const domains = useDomains()
   const domainIds = useDomainList().map((d) => d.id)
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const mobile = useIsMobile()
   const [removing, setRemoving] = React.useState(false)
   const member = p?.kind === 'member' ? p : null
@@ -536,19 +536,12 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                     onClick={() => {
                       setRemoving(false)
                       onOpenChange(false)
-                      const undo = (token: string) => ({
-                        label: 'Undo',
-                        onClick: () => void takeBack(token),
-                      })
                       // The row goes as it leaves the list, and comes back if they stay. What
                       // happened is said once the service has answered; Undo brings them back in.
                       void leaveThen(p.id, () =>
                         (p.kind === 'invite'
                           ? write('revokeInvite', { id: p.id }).then((r) =>
-                              toast('Invite cancelled', {
-                                description: name,
-                                action: undo(r.undo),
-                              }),
+                              undo.offer('Invite cancelled', r.undo, { description: name }),
                             )
                           : write('removePerson', { id: p.id }).then((r) => {
                               if (!r.removed) {
@@ -558,7 +551,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                                 })
                                 return
                               }
-                              toast('Removed', { description: name, action: undo(r.undo) })
+                              undo.offer('Removed', r.undo, { description: name })
                             })
                         ).catch((e: unknown) =>
                           toast(

@@ -82,7 +82,7 @@ import {
   useWorkspace,
   useWrite,
 } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/heed/conflict-pair'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -1211,7 +1211,7 @@ export function InboxPage() {
   const inbox = useInbox()
   const { install } = useSession()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const commentActions = useCommentActions()
   const { query } = useRoute()
   const isMobile = useIsMobile()
@@ -1329,28 +1329,43 @@ export function InboxPage() {
   })
 
   /**
-   * A decision on a card, without a wait: the row goes now and the next card opens; Undo stays for
-   * 6s; the save runs behind it (it takes as long as a send, and with ?decide=fail or
-   * ?state=failed the mock fails each card's first one), and if it fails the card comes back with
-   * Try again.
+   * A decision on a card, without a wait: the row goes now and the next card opens, with Undo;
+   * the save runs behind it (it takes as long as a send, and with ?decide=fail or ?state=failed the
+   * mock fails each card's first one), and if it fails the card comes back with Try again. Undo
+   * then stays for as long as the service's answer says it takes it.
    */
   const decide = (card: InboxCard, d: Decision) => {
     let undone = false
-    let saved: string | undefined
+    let gone = false
     next()
+    const said = toast(d.message, {
+      description: d.description,
+      duration: Infinity,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          undone = true
+        },
+      },
+      onDismiss: () => {
+        gone = true
+      },
+    })
     void leaveThen(card.id, () =>
       React.startTransition(async () => {
         addDecided({ card: card.id, outcome: d.outcome })
         try {
-          const { undo } = await write('decideCard', {
+          const decided = await write('decideCard', {
             card: card.id,
             outcome: d.outcome,
             patch: d.patch,
           })
-          saved = undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
-          if (undone) await takeBack(undo)
+          if (undone) await undo.takeBack(decided.undo)
+          else if (!gone)
+            undo.offer(d.message, decided.undo, { id: said, description: d.description })
         } catch {
+          toast.dismiss(said)
           if (undone) return
           toast.error("Couldn't save that decision", {
             description: 'Nothing changed. The card is back in the Inbox.',
@@ -1359,17 +1374,6 @@ export function InboxPage() {
         }
       }),
     )
-    toast(d.message, {
-      description: d.description,
-      duration: 6000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          undone = true
-          if (saved) void takeBack(saved)
-        },
-      },
-    })
   }
 
   if (install === 'new') return <Setup />

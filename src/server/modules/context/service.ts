@@ -28,6 +28,7 @@ import type { ClashRelation } from '../../../domain/readiness.ts'
 import { kinds, type Kind } from '../../../domain/words.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { conflictsOfItem } from '../conflicts/index.ts'
 import { enabledTools } from '../editions/index.ts'
@@ -247,7 +248,7 @@ export function createContextService(
     await review.checkSubmitted(submitted.id)
     const current = await proposals.get(submitted.id)
     const published = await path.publish({ id: current.id, revision: current.revision })
-    return published.undo.slice('decision:'.length)
+    return published.undo.token.slice('decision:'.length)
   }
 
   async function lastDecision(itemId: string, outcome: 'retire' | 'accept'): Promise<string> {
@@ -381,7 +382,7 @@ export function createContextService(
       skipped,
       failed,
       change: { id: change!.id, summary },
-      undo: `change:${change!.id}`,
+      undo: await undoOffer(tx, `change:${change!.id}`),
     }
   }
 

@@ -913,12 +913,8 @@ function ThreadList({
     onPick?.()
   }
   const remove = async (t: Thread) => {
-    const undo = await threadActions.remove(t.id)
+    await threadActions.remove(t.id, t.title)
     if (current === t.id) startChat()
-    toast('Chat deleted', {
-      description: t.title,
-      action: { label: 'Undo', onClick: () => threadActions.undo(undo) },
-    })
   }
 
   return (

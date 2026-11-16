@@ -26,6 +26,7 @@ import type { ResolvedScope } from '../../../domain/scope.ts'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { reachOfDraft, type BundleCache } from '../answer/index.ts'
 import { syncedOf } from '../connectors/index.ts'
 import { loadServingBundle, publishEdition, type ServingBundle } from '../editions/index.ts'
@@ -72,14 +73,6 @@ const brief = (a: Answer): AnswerBrief => ({
 /** The default reason of a publish, as the history keeps it. */
 const publishedReason = 'Published from the review.'
 const returnedReason = 'Returned with a note.'
-
-/** How long after a decision its maker may undo it (`limits.undo_seconds`, FR-227). */
-async function undoSeconds(tx: Queryable): Promise<number> {
-  const [row] = await tx.query<{ seconds: number }>(
-    `select (value #>> '{}')::int as seconds from settings_current where key='limits.undo_seconds'`,
-  )
-  return row?.seconds ?? 15
-}
 
 export function createReviewPath(
   tx: Queryable,
@@ -648,7 +641,11 @@ export function createReviewPath(
       policy,
     )
     const decision = await lastDecision(p.id, p.action === 'retire' ? ['retire'] : ['accept'])
-    return { proposal: decided.proposal, edition: decided.edition, undo: `decision:${decision}` }
+    return {
+      proposal: decided.proposal,
+      edition: decided.edition,
+      undo: await undoOffer(tx, `decision:${decision}`),
+    }
   }
 
   async function returnWithNote(input: {
@@ -672,7 +669,7 @@ export function createReviewPath(
     })
     const decision = await lastDecision(p.id, ['request_changes'])
     await comments.returned(p.id, decision, note, input.body)
-    return { proposal: decided.proposal, undo: `decision:${decision}` }
+    return { proposal: decided.proposal, undo: await undoOffer(tx, `decision:${decision}`) }
   }
 
   /**
@@ -682,7 +679,7 @@ export function createReviewPath(
    */
   async function close(input: { id: string; revision: number; reason?: string | undefined }) {
     const closed = await review.close(input)
-    return { proposal: closed.proposal, undo: `decision:${closed.decision}` }
+    return { proposal: closed.proposal, undo: await undoOffer(tx, `decision:${closed.decision}`) }
   }
 
   async function markRead(input: { id: string; itemVersionId: string }) {
@@ -750,7 +747,7 @@ export function createReviewPath(
         skip('refused', error instanceof ORPCError ? error.message : "It couldn't be published.")
       }
     }
-    if (decisions.length) result.undo = `decisions:${decisions.join(',')}`
+    if (decisions.length) result.undo = await undoOffer(tx, `decisions:${decisions.join(',')}`)
     return result
   }
 
@@ -762,7 +759,6 @@ export function createReviewPath(
    * closed one, which changed nothing agents get.
    */
   async function undoDecisions(ids: readonly string[]): Promise<{ edition: string | null }> {
-    const seconds = await undoSeconds(tx)
     const rows = await tx.query<{
       id: string
       outcome: string
@@ -780,7 +776,7 @@ export function createReviewPath(
     }>(
       `select d.id::text,d.outcome::text,d.item_version_id::text as "versionId",v.item_id as "itemId",
               d.area_id as "areaId",d.proposal_id::text as "proposalId",p.action::text as action,
-              d.decided_at > now() - make_interval(secs => $2) as fresh,
+              now() < cl_undo_until(d.decided_at) as fresh,
               d.decided_by = cl_person() as mine,
               d.auto_policy_id is not null and (cl_is_owner_now(d.area_id) or cl_is_admin_now()) as "policyUndo",
               exists(select 1 from decision_undos u where u.decision_id=d.id) as undone,
@@ -789,7 +785,7 @@ export function createReviewPath(
          from decisions d join item_versions v on v.id=d.item_version_id
          left join proposals p on p.id=d.proposal_id
         where d.id=any($1::uuid[])`,
-      [ids, seconds],
+      [ids],
     )
     if (rows.length !== new Set(ids).size)
       throw new ORPCError('NOT_FOUND', { message: missing('these suggestions') })

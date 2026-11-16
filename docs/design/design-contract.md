@@ -356,7 +356,7 @@ The quick view, in the Inbox pane and the dock, opens on the card's head: its st
 - the **decision**: Publish, Edit, Send back with a note, or Archive (which always asks first);
 - "**Publish the N you've read**": only plain changes whose end was on screen for 1.5 to 8 seconds by its length (or marked as read) are published together. A change that needs its own look (a detail to compare, an overlap, a retirement, an unchecked value, a new link) stays out. Its toast has Undo that puts back exactly those.
 
-After a decision the outcome shows in place with Undo for 6 seconds and a short countdown bar, then the next suggestion opens. A letter key moves on at once; the pointer or focus on the outcome holds it; with reduced motion it waits for Next. After the last decision the review says "All N handled" with Undo for the last one. Focus moves to the change's heading after J, K or a decision, and the new suggestion is announced. On a phone the decision bar says the state in words, "8 of 12" with previous and next, and its actions are 44 px.
+After a decision the outcome shows in place with Undo, while the service takes it, and a short countdown bar, then the next suggestion opens. A letter key moves on at once; the pointer or focus on the outcome holds it; with reduced motion it waits for Next. After the last decision the review says "All N handled" with Undo for the last one. Focus moves to the change's heading after J, K or a decision, and the new suggestion is announced. On a phone the decision bar says the state in words, "8 of 12" with previous and next, and its actions are 44 px.
 
 ### 5.4 The document editor and the properties list
 
@@ -405,7 +405,7 @@ No pill tabs, no segmented tracks, no line tabs. Each section of a settings area
 
 ### 5.10 Toasts and Undo
 
-Toasts use sonner, at the bottom right, above the decision, never over the change. **Undo for 6 seconds on decisions, 10 seconds after a delete.** The outcome of a decision also stays on the page, so a missed toast loses nothing. Inbox decisions and bulk changes are optimistic with a rollback if the save fails; Archive always asks first. Undo puts back exactly what one decision did, and a returned note comes back as a draft. The short wait after a decision is drawn as a bar that empties, never as a number.
+Toasts use sonner, at the bottom right, above the decision, never over the change. **Undo for as long as the service takes it: until the `until` of the write's answer (`limits.undo_seconds`), and then it goes, toast or button.** A toast that says how long says those seconds. The outcome of a decision also stays on the page, so a missed toast loses nothing. Inbox decisions and bulk changes are optimistic with a rollback if the save fails; Archive always asks first. Undo puts back exactly what one decision did, and a returned note comes back as a draft. The short wait after a decision is drawn as a bar that empties, never as a number.
 
 ### 5.11 Keys
 
@@ -496,7 +496,7 @@ Light, dark and system, from a small menu at the right end of every header. `the
 | 16  | Library columns: Title, Domain, Status, Valid until, Owner; Title never below 440                                                 | Design B: Kind, Title, Scope, Status, When, Checked                                                     |
 | 17  | Line tabs (Read, Source, History, Links; Changes, Checks, Overlaps, Activity)                                                     | No tabs anywhere; four switch components                                                                |
 | 18  | The selection bar floats at the bottom on an ink surface                                                                          | One bulk bar in its own band under the list                                                             |
-| 19  | Base UI toast, one at a time, 5 or 10 seconds                                                                                     | sonner, bottom right; Undo 6 s on decisions, 10 s after a delete                                        |
+| 19  | Base UI toast, one at a time, 5 or 10 seconds                                                                                     | sonner, bottom right; Undo until the service stops taking it (`until`)                                  |
 | 20  | Optimistic only for reversible actions; governance actions wait and ask for a reason                                              | Decisions are optimistic with Undo and rollback; Archive asks first                                     |
 | 21  | Motion 100, 150, 200 ms; ease-out (0.22, 1, 0.36, 1) and in-out; skeleton may loop                                                | The mockup's tokens and three tiers; nothing loops while nothing loads                                  |
 | 22  | Focus: 2 px outline with an offset, never a fill                                                                                  | Border in the ring colour and a 3 px ring at 50 percent                                                 |

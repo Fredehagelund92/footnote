@@ -37,7 +37,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { conflictQuery, conflictsQuery, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { heldWords, useHeld, useUndo } from '@/lib/undo'
+import type { UndoOffer } from '@/api/client'
 import { ApiError } from '@/api/errors'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -402,7 +403,7 @@ function AskOwnerDialog({ about, onClose }: { about: ConflictSide | null; onClos
 
 /* ---------- the outcome ---------- */
 
-type Done = { conflict: Conflict; decision: ConflictDecision; undo: string }
+type Done = { conflict: Conflict; decision: ConflictDecision; undo: UndoOffer }
 
 function outcomeOf({ conflict: c, decision: d }: Done): {
   chip: string
@@ -444,6 +445,7 @@ function Outcome({
 }) {
   const reduced = useReducedMotion()
   const [held, setHeld] = React.useState(false)
+  const undoable = useHeld(done.undo)
   const ref = React.useRef<HTMLDivElement>(null)
   const o = outcomeOf(done)
   React.useEffect(() => ref.current?.focus(), [])
@@ -472,10 +474,12 @@ function Outcome({
             {o.chip}
           </span>
           <span className="min-w-0 flex-1 text-pretty">{o.line}</span>
-          <Button variant="ghost" onClick={onUndo}>
-            <Undo2Icon data-icon="inline-start" />
-            Undo
-          </Button>
+          {undoable && (
+            <Button variant="ghost" onClick={onUndo}>
+              <Undo2Icon data-icon="inline-start" />
+              Undo
+            </Button>
+          )}
         </p>
         <p className="text-sm text-muted-foreground">
           {done.decision.by}, today, {done.decision.at}. Reason: {done.decision.reason}
@@ -547,7 +551,7 @@ export function ConflictView({
   const list = useQuery(conflictsQuery('all'))
   const me = useMe()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const online = useOnline()
   const isMobile = useIsMobile()
   const [measure, wide] = useWide<HTMLDivElement>(SIDE_BY_SIDE)
@@ -667,13 +671,14 @@ export function ConflictView({
           key,
           done: { conflict: c, decision: result.decision, undo: result.undo },
         })
+        const left = heldWords(result.undo)
         toast(
           outcome === 'kept_one'
             ? 'Kept one, archived the other'
             : outcome === 'kept_both'
               ? 'Kept both'
               : 'Not a conflict',
-          { description: 'You can undo this for a few seconds.' },
+          left ? { description: `You can undo this for ${left}.` } : {},
         )
       },
       (error: unknown) =>
@@ -688,7 +693,7 @@ export function ConflictView({
 
   const undoDone = async () => {
     if (!done) return
-    if (!(await takeBack(done.undo))) return
+    if (!(await undo.takeBack(done.undo))) return
     dispatch({ type: 'finish' })
     toast('Undone', { description: 'Both items are as they were.' })
   }

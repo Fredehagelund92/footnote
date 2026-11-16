@@ -56,6 +56,7 @@ import {
   type HeedApiMethod,
   type Relation,
   type Session,
+  type UndoOffer,
 } from './client'
 import { answeredAs, ApiError, toApiError } from './errors'
 import {
@@ -664,7 +665,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
   }
 
   /** A change to many terms: its Undo, or why none of them changed. */
-  const undoOf = (done: { undo: string | null; skipped: { message: string }[] }) => {
+  const undoOf = (done: { undo: UndoOffer | null; skipped: { message: string }[] }) => {
     if (!done.undo)
       throw new ApiError('conflict', done.skipped[0]?.message ?? 'None of them could be changed.')
     return { undo: done.undo }
@@ -1075,12 +1076,15 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     return area.ownerIds
   }
 
-  /** What Undo puts back after a removal or a revoked invite, by its token. */
+  /**
+   * What Undo puts back after a removal, a revoked invite or a published gap draft and its saved
+   * question, by its token: until the end of the window the calls it makes are taken in, if any.
+   */
   const peopleUndos = new Map<string, () => Promise<unknown>>()
-  const rememberUndo = (work: () => Promise<unknown>) => {
+  const rememberUndo = (work: () => Promise<unknown>, until: string | null = null): UndoOffer => {
     const token = `people:${randomKey()}`
     peopleUndos.set(token, work)
-    return token
+    return { token, until }
   }
 
   /* ---------- figures in Ask ---------- */
@@ -1513,7 +1517,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       return {
         done: done.done,
         failed: [...done.failed, ...done.skipped].map((r) => r.id),
-        undo: done.undo ?? '',
+        undo: done.undo ?? { token: '', until: null },
       }
     },
     // Owners publish in one step; a suggestion waits for them, on the item and in the Inbox.
@@ -1723,13 +1727,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       if (!saved) return done
       return {
         undo: rememberUndo(async () => {
-          const token = saved.undo
+          const token = saved.undo.token
           await write('decisions.undo', { token }, (o) => client.decisions.undo({ token }, o))
-          await write('decisions.undo', { token: done.undo }, (o) =>
-            client.decisions.undo({ token: done.undo }, o),
+          await write('decisions.undo', { token: done.undo.token }, (o) =>
+            client.decisions.undo({ token: done.undo.token }, o),
           )
           refs.clear()
-        }),
+        }, done.undo.until),
       }
     },
     archiveReview: ({ id }) => publish(id),

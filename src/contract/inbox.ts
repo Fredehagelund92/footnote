@@ -11,7 +11,8 @@ import { cardGroups, cardActions, setupSteps } from '../domain/inbox.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
 import { proposalActions } from '../domain/proposal.ts'
-import { syncedSchema, undoTokenSchema } from './review-path.ts'
+import { syncedSchema } from './review-path.ts'
+import { undoOfferSchema } from './undo.ts'
 
 /** A count from agents: null when it is above zero and under the minimum (FR-614). */
 const shownCount = z.nullable(z.number())
@@ -186,7 +187,7 @@ export const decideCardSchema = z.strictObject({
 export const decideCardResultSchema = z.object({
   /** The edition the decision published, if it published one (Still true, Archive). */
   edition: z.nullable(z.string()),
-  undo: undoTokenSchema,
+  undo: undoOfferSchema,
 })
 
 /** A name a read made (FR-141): what it would be, and whether it needs a look first. */

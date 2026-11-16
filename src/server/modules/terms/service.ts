@@ -20,6 +20,7 @@ import {
   type WordHolder,
 } from '../../../domain/terms.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { connectorType } from '../connectors/index.ts'
 import { missing } from '../../../contract/refusals.ts'
 
@@ -505,7 +506,7 @@ export function createTermsService(tx: Queryable) {
         JSON.stringify(undo),
       ],
     )
-    return `terms:${made!.id}`
+    return undoOffer(tx, `terms:${made!.id}`)
   }
 
   /** The terms asked for, in the order asked, each once; those the person may not read are gone. */

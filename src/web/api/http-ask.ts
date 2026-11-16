@@ -15,6 +15,7 @@ import { lookupFailedNote } from '@domain/words'
 import { plainText } from '@/lib/mentions'
 import { ALL_VALUES } from '@/model/observability'
 import type { Answer, AnswerLinks, AskedRow, AskedWeek, Example, Thread } from '@/model/ask'
+import type { Undoable } from './client'
 import {
   closestNames,
   midSentence,
@@ -590,7 +591,7 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
       )
     },
     /** Deletes a chat; the token puts it back as it was. */
-    remove(person: string, id: string): { undo: string } {
+    remove(person: string, id: string): Undoable {
       const gone = read(person).find((c) => c.id === id)
       write(
         person,
@@ -600,7 +601,8 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
       undos.set(token, () => {
         if (gone && !read(person).some((c) => c.id === id)) write(person, [...read(person), gone])
       })
-      return { undo: token }
+      // Kept in this browser, it can be put back until the page goes.
+      return { undo: { token, until: null } }
     },
     /** Whether a token is one of these chats' own; it puts the chat back once. */
     undo(token: string): boolean {

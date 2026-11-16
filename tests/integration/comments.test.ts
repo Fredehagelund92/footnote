@@ -336,7 +336,7 @@ describe('a thread on a suggestion', () => {
   it('writes the note of a return as its first comment, and the undo takes it away', async () => {
     const p = await submitted({ title: 'Orders in Norway count gift cards' })
     const subject = `review:${p.id}`
-    const returned = await ok<{ undo: string }>(
+    const returned = await ok<{ undo: { token: string } }>(
       call('POST', `/review/${p.id}/return`, 'owner', {
         revision: p.revision,
         note: 'Which source says so?',
@@ -354,7 +354,7 @@ describe('a thread on a suggestion', () => {
       },
     })
     expect((await thread(subject, 'author')).newReply?.commentId).toBe(note!.id)
-    await ok(call('POST', '/decisions/undo', 'owner', { token: returned.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: returned.undo.token }))
     expect((await thread(subject, 'author')).comments).toEqual([])
   })
 

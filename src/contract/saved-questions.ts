@@ -10,6 +10,7 @@
 import * as z from 'zod/mini'
 import { answerStates } from '../domain/answer-state.ts'
 import { checkTriggers, savedReasons, savedResults } from '../domain/saved-check.ts'
+import { undoOfferSchema } from './undo.ts'
 
 const areaId = z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/))
 const itemId = z.string().check(z.regex(/^itm_[a-z0-9]{8,16}$/))
@@ -65,7 +66,7 @@ export const savedIdInputSchema = z.strictObject({ id: z.string().check(z.uuid()
 /** A change to a saved question that Undo takes back: `saved:<question id>` or `kept:<baseline id>`. */
 export const savedChangeSchema = z.object({
   question: savedQuestionSchema,
-  undo: z.string(),
+  undo: undoOfferSchema,
 })
 
 export const savedCheckInputSchema = z.strictObject({

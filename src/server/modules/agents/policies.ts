@@ -410,7 +410,7 @@ export async function publishUnderPolicy(
     return {
       ...named,
       published: true,
-      decisionId: published.undo.replace(/^decision:/, ''),
+      decisionId: published.undo.token.replace(/^decision:/, ''),
       itemId: published.proposal.itemId ?? '',
       edition: published.edition?.label ?? '',
     }

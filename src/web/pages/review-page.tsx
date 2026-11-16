@@ -57,6 +57,7 @@ import type { JSONContent } from '@tiptap/core'
 import { isTyping, pageKey } from '@/lib/keys'
 import { open as openOverlay } from '@/lib/events'
 import { useOnline, useSend } from '@/lib/send'
+import type { UndoOffer } from '@/api/client'
 import { toApiError } from '@/api/errors'
 import type { ReviewAction, ReviewActions } from '@domain/review-actions'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -76,7 +77,7 @@ import { ChoiceMenu, TextSwitch, ViewToggle } from '@/components/heed/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DRAFT_LABEL } from '@/model/ask'
 import { itemPageQuery, useInbox, useReviews, useSavedQuestions, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useHeld, useUndo } from '@/lib/undo'
 import { checkDraft, itemOfReview, savesQuestion } from '@/lib/saved-check'
 import { SavedLine } from '@/components/obs/saved-line'
 import { careLine, clashWords, marks, readiness, type Relation, type Review } from '@/model/review'
@@ -264,25 +265,18 @@ function PublishReady({
   apart: number
 }) {
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const [confirm, setConfirm] = React.useState(false)
   const sender = useSend()
   const n = items.length
   // Each one is published as a single Publish would, and Undo takes back exactly these, whatever else happened since.
   const publishAll = async () => {
-    const { undo } = await write('publishReviews', { ids: items.map((r) => r.id) })
+    const published = await write('publishReviews', { ids: items.map((r) => r.id) })
     setConfirm(false)
-    toast(`Published ${n}`, {
+    undo.offer(`Published ${n}`, published.undo, {
       description:
         "Agents get them from the next question. The ones you haven't read are still waiting.",
-      action: {
-        label: 'Undo',
-        onClick: () =>
-          void takeBack(undo).then(
-            (back) =>
-              back && toast(`Back: ${n} waiting again`, { description: 'Nothing was published.' }),
-          ),
-      },
+      onUndone: () => toast(`Back: ${n} waiting again`, { description: 'Nothing was published.' }),
     })
   }
   const button = (
@@ -1003,8 +997,8 @@ type Finished = {
   outcome: string
   message: string
   description: string
-  /** Pass to `undo`: takes back exactly this decision. */
-  undo: string
+  /** Takes back exactly this decision, while the service takes it. */
+  undo: UndoOffer
   now?: string
   next?: string
   /** What Undo puts back on this screen beyond the decision: a returned note, back in the editor. */
@@ -1178,6 +1172,7 @@ function Decision({
   const first = r.from.split(' ')[0]
   const done = state.done[r.id]
   const finished = flow.kind === 'done' ? flow.done : null
+  const undoable = useHeld(finished?.undo)
   const returning = writingReturn(flow)
   const sending = sendingOf(flow)
   const blockedBySend = !online || sending !== null
@@ -1368,8 +1363,9 @@ function Decision({
       offered
     )
 
-  // What just happened, in place: what agents now say, a short countdown to the next one, and Undo.
-  // The pointer or focus on it holds the wait, so Undo is never a race.
+  // What just happened, in place: what agents now say, a short countdown to the next one, and Undo
+  // while the service takes it. The pointer or focus on it holds the wait, so Undo is never a race
+  // with the next one.
   const outcome = finished && (
     <div
       role="status"
@@ -1384,10 +1380,12 @@ function Decision({
       <p className="flex items-center gap-2 text-sm font-medium">
         <CircleCheckIcon className="size-4 text-primary" aria-hidden />
         {finished.message}
-        <Button variant="ghost" className="ml-auto pointer-coarse:h-10" onClick={onUndo}>
-          <Undo2Icon data-icon="inline-start" />
-          Undo
-        </Button>
+        {undoable && (
+          <Button variant="ghost" className="ml-auto pointer-coarse:h-10" onClick={onUndo}>
+            <Undo2Icon data-icon="inline-start" />
+            Undo
+          </Button>
+        )}
       </p>
       {variant === 'panel' && (
         <p className="line-clamp-1 text-sm text-muted-foreground">{finished.description}</p>
@@ -1545,6 +1543,7 @@ function Decision({
 
 /** Everything in the queue decided: how it went, Undo for the last one, and the way back. */
 function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUndo: () => void }) {
+  const undoable = useHeld(last.undo)
   const state = useInbox()
   const reviews = useReviews()
   const tally = new Map<string, number>()
@@ -1572,10 +1571,12 @@ function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUnd
         Last: <span className="text-foreground">{title}</span>, {last.outcome.toLowerCase()}.
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={onUndo}>
-          <Undo2Icon data-icon="inline-start" />
-          Undo the last one
-        </Button>
+        {undoable && (
+          <Button variant="outline" onClick={onUndo}>
+            <Undo2Icon data-icon="inline-start" />
+            Undo the last one
+          </Button>
+        )}
         <Button onClick={() => navigate('/inbox')}>Back to the Inbox</Button>
       </div>
     </div>
@@ -1607,7 +1608,7 @@ export function ReviewPage({ id }: { id: string }) {
   const { waiting: sent } = useInboxRows()
   const domains = useDomains()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const commentActions = useCommentActions()
   const isMobile = useIsMobile()
   // The source is the review; the preview is a second look, kept while you go through the queue.
@@ -1874,7 +1875,7 @@ export function ReviewPage({ id }: { id: string }) {
       step({ type: 'error', id: r.id, failure: kind, reason: reasonOf(toApiError(error)) })
     })
   }
-  const undo = () => {
+  const undoFinished = () => {
     window.clearTimeout(hold.current.timer)
     hold.current.timer = 0
     // Exactly this decision goes back: its outcome and the context items it changed, nothing else.
@@ -1883,7 +1884,7 @@ export function ReviewPage({ id }: { id: string }) {
       return
     }
     const { afterUndo } = finished
-    void takeBack(finished.undo).then((back) => {
+    void undo.takeBack(finished.undo).then((back) => {
       if (!back) return
       step({ type: 'finish' })
       afterUndo?.()
@@ -1892,7 +1893,7 @@ export function ReviewPage({ id }: { id: string }) {
   const undoLast = () => {
     if (!allDone) return
     const { afterUndo } = allDone
-    void takeBack(allDone.undo).then((back) => {
+    void undo.takeBack(allDone.undo).then((back) => {
       if (!back) return
       setAllDone(null)
       focusChange()
@@ -1928,7 +1929,7 @@ export function ReviewPage({ id }: { id: string }) {
     // A failed note goes again as the editor holds it now, so an edit made after the failure is sent.
     retry: () =>
       send({ type: 'retry', actions, note: drafts[r.id], reason: closeReasons[r.id] ?? '' }),
-    onUndo: undo,
+    onUndo: undoFinished,
     draft: drafts[r.id],
     onDraft,
     closeReason: closeReasons[r.id] ?? '',

@@ -17197,8 +17197,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -18604,8 +18623,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -20002,8 +20040,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -21236,8 +21293,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -38983,7 +39059,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -42870,7 +42966,27 @@
                           ]
                         },
                         "undo": {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         }
                       },
                       "required": [
@@ -44207,7 +44323,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -50337,7 +50473,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -50685,7 +50841,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -69247,8 +69423,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -108030,7 +108225,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -108889,7 +109104,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [

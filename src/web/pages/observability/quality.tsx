@@ -48,7 +48,7 @@ import { ReadingLine } from '@/components/heed/reading'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SavedCheck } from '@/api'
 import { conflictsQuery, queryKeys, savedCheckQuery, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { openDock } from '@/lib/dock'
 import { savedCounts, type SavedQuestion, type SavedResult } from '@/model/saved-questions'
 import { useSavedQuestions } from '@/api/queries'
@@ -346,7 +346,7 @@ function Quality({ first }: { first: SavedCheck }) {
 function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean }) {
   const domains = useDomains()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const open = (
     <a
       key="open"
@@ -367,10 +367,9 @@ function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean })
       }
       onClick={() => {
         if (!canChange) return
-        void write('keepNewAnswer', { id: q.id }).then(({ undo }) => {
-          toast('The new answer is its saved one', {
+        void write('keepNewAnswer', { id: q.id }).then((kept) => {
+          undo.offer('The new answer is its saved one', kept.undo, {
             description: 'It is checked against it from now on.',
-            action: { label: 'Undo', onClick: () => void takeBack(undo) },
           })
         })
       }}

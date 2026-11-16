@@ -496,8 +496,8 @@ describe("the person's chats in the browser", () => {
     chats.rename('per_jon', 'c1', 'Renamed')
     const { undo } = chats.remove('per_jon', 'c1')
     expect(chats.list('per_jon').map((t) => t.id)).toEqual(['c2'])
-    expect(chats.undo(undo)).toBe(true)
-    expect(chats.undo(undo)).toBe(false)
+    expect(chats.undo(undo.token)).toBe(true)
+    expect(chats.undo(undo.token)).toBe(false)
     expect(chats.list('per_jon').find((t) => t.id === 'c1')).toMatchObject({
       title: 'Renamed',
       preview: 'It says one thing.',
