@@ -12,6 +12,7 @@ import {
   type LoopParts,
   type Nouns,
 } from '@/components/heed/loop-nouns'
+import { dayMonth } from '@/lib/dates'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
 import type { Fact } from '@/model/items'
@@ -19,8 +20,9 @@ import type { Fact } from '@/model/items'
 /*
   An answer of Ask's loop, as direction C draws it (FR-349, FR-718 to FR-720): the state and its
   fixed sentence on one line, the answer in one to three sentences with its nouns as chips, then
-  the evidence code wrote from the reads in a fixed order (what disagrees, what was used, the
-  closest written, who owns it), the next step, and one footer line that opens What Ask read.
+  the evidence code wrote from the reads in a fixed order (what disagrees, what was used, folded
+  to one line, the closest written, who owns it), the next step, and one footer line that opens
+  What Ask read.
   An overview is its groups. Everything but the model's own sentences is the service's, from the
   reads; this only draws it, and nothing here knows a dimension, a domain or a person by name.
 */
@@ -331,6 +333,61 @@ function Rows({
   )
 }
 
+/**
+ * How fresh the items used are, in a few words: "all Live, checked 21 Aug to 3 Nov 2026", or each
+ * status with its count when they differ; the days are the first and last they were checked.
+ */
+function freshness(items: readonly LoopItem[]) {
+  const statuses = items.map((i) => statusWords(i).words)
+  const counts = [...new Set(statuses)].map((w) => ({
+    w,
+    n: statuses.filter((s) => s === w).length,
+  }))
+  const said =
+    counts.length > 1
+      ? counts.map(({ w, n }) => `${n} ${w}`).join(', ')
+      : items.length > 1
+        ? `all ${counts[0]!.w}`
+        : counts[0]!.w
+  const days = items.flatMap((i) => (i.checked ? [i.checked] : [])).sort()
+  const first = days[0]
+  const last = days.at(-1)
+  if (!first || !last) return said
+  const to = dayText(last, true)
+  if (first === last) return `${said}, checked ${to}`
+  const from = first.slice(0, 4) === last.slice(0, 4) ? dayMonth(first) : dayText(first, true)
+  return `${said}, checked ${from} to ${to}`
+}
+
+/**
+ * What the answer used, as one line: how many items and how fresh they are, closed whenever an
+ * answer arrives, since each is already cited in the words with its card. Opening it lists them.
+ */
+function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
+  const P = useParts()
+  const summary = React.useId()
+  return (
+    <P.Collapsible data-used className="flex max-w-reading flex-col gap-2">
+      <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+        <P.FoldTrigger
+          variant="inline"
+          label={`Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+          aria-describedby={summary}
+          className="-ml-1 px-1 text-xs font-medium text-foreground"
+        />
+        {/* The fold's own padding is its space before the dot. */}
+        <span aria-hidden className="-ml-1">
+          ·
+        </span>
+        <span id={summary}>{freshness(items)}</span>
+      </p>
+      <P.CollapsibleContent>
+        <Rows items={items} nouns={nouns} />
+      </P.CollapsibleContent>
+    </P.Collapsible>
+  )
+}
+
 /** A small label over an evidence block, with its icon. */
 const BlockLabel = ({ icon: Icon, children }: { icon?: LucideIcon; children: React.ReactNode }) => (
   <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -522,7 +579,7 @@ function WhatAskRead({ loop, footer }: { loop: LoopTurn; footer: string[] }) {
         <P.FoldTrigger
           variant="inline"
           label="What Ask read"
-          className="px-1 text-xs text-foreground"
+          className="-ml-1 px-1 text-xs text-foreground"
         />
       </p>
       <P.CollapsibleContent>
@@ -1196,12 +1253,7 @@ function Finished({
             </p>
           )}
           {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
-          {usedRows.length > 0 && !loop.overview && (
-            <div className="flex max-w-reading flex-col gap-2">
-              <BlockLabel>Used</BlockLabel>
-              <Rows items={usedRows} nouns={maps.nouns} />
-            </div>
-          )}
+          {usedRows.length > 0 && !loop.overview && <Used items={usedRows} nouns={maps.nouns} />}
           {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
           {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
           <Definitions loop={loop} nouns={maps.nouns} />

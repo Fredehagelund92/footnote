@@ -6,6 +6,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { LoopTurn } from '@contract/answer'
 import { dimensionHue } from '@domain/ask-nouns'
 import examples from '@/api/mock/data/loop-examples.json'
+import { usedTurn } from '@/api/mock/loop-used'
 
 /*
   Ask's loop answers as the page draws them (direction C, FR-349, FR-718 to FR-720), in every state
@@ -202,6 +203,21 @@ describe("Ask's loop answer, state by state", () => {
     )
     // The day a read gave is drawn as a day, never as the model's digits.
     expect(el.querySelector('time')?.getAttribute('dateTime')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('Used: one closed line with how many items and each status counted when they differ', () => {
+    const base = usedTurn(4)
+    const statuses = ['live', 'due', 'archived', 'live'] as const
+    const el = render({
+      ...base,
+      items: base.items.map((i, k) => ({ ...i, status: statuses[k]! })),
+    })
+    const fold = buttons(el, /^Used 4 items$/)
+    expect(fold).toHaveLength(1)
+    expect(fold[0]!.getAttribute('aria-expanded')).toBe('false')
+    expect(text(el.querySelector('[data-used]')!)).toMatch(
+      /^Used 4 items·2 Live, 1 Due for a check, 1 Archived, checked .+ to .+ 2026/,
+    )
   })
 
   it("A list: the count bold with what it is out of, then the read's items as rows", () => {
