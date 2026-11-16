@@ -1184,7 +1184,7 @@ export function readDates(
       spans,
       message: `The question names more than one period (${list(read.map(words))}), and one is read at a time. Ask about one, or pass window with from and to for the days that cover them.`,
     }
-  const { period, what, fiscal } = read[0]!
+  const { period, what } = read[0]!
   const window = { start: period.from, end: shiftDate(period.to, 1) }
   return {
     status: 'read',

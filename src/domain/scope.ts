@@ -65,8 +65,7 @@ export type ScopeIssue = {
 export type AssumedDate = { date: string; time_zone: string; reason: 'no date given' }
 /**
  * The dates Heed read in the words of a question: the words as written, and how it read them for
- * a person ("1 Jan to 7 Oct 2026 (this year so far; UTC)"). A reply that used them says so. For
- * fiscal words, `fiscal` says how the fiscal year was read ("Q3 FY26, fiscal year from 1 April").
+ * a person ("1 Jan to 7 Oct 2026 (this year so far; UTC)"). A reply that used them says so.
  */
 export type DatesRead = { words: string; reads_as: string }
 /** The rest of a question that stopped at a word: its names and dates, null when it gave none. */
