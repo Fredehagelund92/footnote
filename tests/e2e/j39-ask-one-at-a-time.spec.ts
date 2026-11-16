@@ -150,7 +150,7 @@ test('offline, a question says so and what to do, not that the service failed', 
   await box(page).press('Enter')
   const log = page.getByRole('log')
   await expect(log.getByText("You're offline. Ask again when you're back.")).toBeVisible()
-  await expect(page.getByText(/service didn't reply/)).toHaveCount(0)
+  await expect(page.getByText(/app didn't reply/)).toHaveCount(0)
   await expect(page.locator('[data-turn]')).toHaveCount(1)
   await expect(log.getByRole('button', { name: 'Ask again', exact: true })).toBeVisible()
 })
