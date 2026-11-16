@@ -216,6 +216,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         gap: {
           scope: [card.title],
           times,
+          told: card.told,
           belongs: `context about ${card.title}`,
           // The draft is reviewed under this card's id; the review reads what it says.
           ...(card.draft
