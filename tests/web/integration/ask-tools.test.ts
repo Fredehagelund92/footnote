@@ -285,6 +285,48 @@ describe('the dates a read takes', () => {
   })
 })
 
+describe('a read of a subject with no period', () => {
+  it('assumes today when the words name no dates, which the read says but the state does not', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const dated = await ok(tools, 'get_context', { about: 'return on ad spend' })
+      expect(dated.read?.assumedToday).toBe(true)
+      expect(dated.items.map((i) => i.match)).toContain('full')
+      expect(dated.notCovered).toEqual([])
+      expect(dated.read?.period).not.toBe('any date')
+      expect(dated.state).toBe('grounded')
+    })
+  })
+
+  it('reads a definition question at any date when asked to, so the dates are not assumed', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const undated = await ok(tools, 'get_context', {
+        about: 'return on ad spend',
+        no_period: true,
+      })
+      expect(undated.read).toMatchObject({ period: 'any date', assumedToday: false })
+      expect(undated.state).toBe('grounded')
+    })
+  })
+
+  it('still says Partial when something else is not covered, whatever no_period says', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const revenue = await ok(tools, 'get_context', { about: 'revenue', no_period: true })
+      expect(revenue.read?.assumedToday).toBe(false)
+      expect(revenue.state).toBe('partial')
+    })
+  })
+
+  it('keeps the dates the words name', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const q3 = await ok(tools, 'get_context', {
+        about: 'orders in Norway in Q3 FY26',
+        no_period: true,
+      })
+      expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
+    })
+  })
+})
+
 describe('no dead ends (FR-719.3)', () => {
   it('says what was searched, out of how many, what is nearby and who owns it, then widens once', async () => {
     await world.withTools('Maria Lindqvist', async (tools) => {
