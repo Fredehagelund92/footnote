@@ -5,6 +5,7 @@ import { dimensionHue, nounKindOf } from '@domain/ask-nouns'
 import type { Domain } from '@/model/people'
 import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/heed/answer'
+import type { AnswerFigure } from '@/components/heed/answer-figure'
 import type { LoopPartsOfAsk } from '@/components/heed/loop-parts'
 
 /** What the loop's answer uses of Ask, handed to it by Ask (loop-parts.ts). */
@@ -12,6 +13,7 @@ export type LoopParts = LoopPartsOfAsk & {
   AnswerActions: typeof AnswerActions
   ReportLine: typeof ReportLine
   SomethingWrong: typeof SomethingWrong
+  AnswerFigure: typeof AnswerFigure
 }
 export const PartsContext = React.createContext<LoopParts | null>(null)
 /** Ask's parts, as the answer was given them. */

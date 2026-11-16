@@ -191,10 +191,20 @@ function Body({
   seen: Set<string>
 }) {
   const [all, setAll] = React.useState(false)
-  // One sentence to a line, and the short lists' lines as they are; only five show before Show more.
+  // One sentence to a line, and the short lists' lines as they are. Five sentences show before
+  // Show more, and a list whole up to twelve lines: a list is what the person asked for (S19).
   const lines = body.map((b) => (b.t === 'p' ? sentencesOf(b.runs) : b.t === 'ul' ? b.items : []))
   const total = lines.reduce((n, l) => n + l.length, 0)
-  const shown = all ? total : SENTENCES_SHOWN
+  const kept: number[] = []
+  let sentences = 0
+  for (const [i, b] of body.entries()) {
+    const n = lines[i]!.length
+    const cut = kept.some((k, j) => k < lines[j]!.length)
+    const room = b.t === 'ul' ? LIST_SHOWN : Math.max(0, SENTENCES_SHOWN - sentences)
+    kept.push(all ? n : cut ? 0 : Math.min(n, room))
+    if (b.t === 'p') sentences += n
+  }
+  const hidden = total - kept.reduce((n, k) => n + k, 0)
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
       {body.map((b, i) => {
@@ -210,11 +220,10 @@ function Body({
               more={b.more}
             />
           )
-        const before = lines.slice(0, i).reduce((n, l) => n + l.length, 0)
-        const kept = (lines[i] ?? []).slice(0, Math.max(0, shown - before))
-        if (!kept.length) return null
+        const shown = (lines[i] ?? []).slice(0, kept[i])
+        if (!shown.length) return null
         const Line = b.t === 'p' ? 'p' : 'li'
-        const rows = kept.map((runs, j) => (
+        const rows = shown.map((runs, j) => (
           <Line key={j}>
             <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
           </Line>
@@ -229,21 +238,22 @@ function Body({
           </ul>
         )
       })}
-      {!all && total > SENTENCES_SHOWN && (
+      {hidden > 0 && (
         <button
           type="button"
           onClick={() => setAll(true)}
           className="w-fit rounded-sm text-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          Show {total - SENTENCES_SHOWN} more
+          Show {hidden} more
         </button>
       )}
     </div>
   )
 }
 
-/** How many sentences the words show before Show more. */
+/** How many sentences the words show before Show more, and how many lines of a list. */
 const SENTENCES_SHOWN = 5
+const LIST_SHOWN = 12
 
 /**
  * A paragraph's runs as sentences: a sentence ends in a text run that ends in . ! or ?, and the
@@ -544,22 +554,62 @@ function WhatAskRead({ loop, footer }: { loop: LoopTurn; footer: string[] }) {
   )
 }
 
-/** What to do next that fits the state: write the missing context, or check what may be old. */
+/**
+ * What to do next that fits the state: write the missing context, or check what may be old. Under
+ * Not found a reader who may not write tells the owners instead (decision 7): Ask writes nothing.
+ */
 function Next({
   loop,
   nouns,
   items,
+  dates,
 }: {
   loop: LoopTurn
   nouns: Nouns
   items: readonly LoopItem[]
+  /** The days the answer was read for, as it says them; none when it named none. */
+  dates?: string
 }) {
   const P = useParts()
   const me = P.useMe()
   const write = P.useWrite()
+  const [told, setTold] = React.useState(false)
   const subject = loop.subject
   const owned = new Set(loop.owners.map((o) => o.domain.replace(/^domain:(area_)?/, '')))
   const owns = me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
+  if (loop.state === 'missing' && !owns && subject?.about.length) {
+    const domains = loop.owners.flatMap((o) =>
+      nouns.has(o.domain) ? [nouns.get(o.domain)!.name] : [],
+    )
+    const whose = domains.length
+      ? `the owners of ${domains.length === 1 ? domains[0] : `${domains.slice(0, -1).join(', ')} and ${domains.at(-1)}`}`
+      : 'the owners'
+    if (told)
+      return (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <P.CheckIcon aria-hidden className="size-4 shrink-0 text-good" />
+          Sent to {whose}. It waits in their Inbox.
+        </p>
+      )
+    return (
+      <P.Button
+        variant="outline"
+        className="w-fit"
+        onClick={() =>
+          void write('tellOwner', { about: subject.about, ...(dates ? { dates } : {}) }).then(
+            () => setTold(true),
+            () =>
+              P.toast.error("It wasn't sent", {
+                description: 'Nothing was lost: try again in a moment.',
+              }),
+          )
+        }
+      >
+        <P.BellIcon data-icon="inline-start" />
+        Tell the owner
+      </P.Button>
+    )
+  }
   if (loop.state === 'missing' || loop.state === 'partial') {
     // What is not written: the subject under Not found, what no item covers under Partial.
     const about = (
@@ -951,6 +1001,8 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   React.useEffect(() => {
     if (done) keepShown(key, { answer, facts: cited })
   }, [done, key, answer, cited, keepShown])
+  if ((!done || !loop) && turn.words)
+    return <Writing turn={turn} draft={turn.words} words={words} onRetry={onRetry} />
   if (!done || !loop)
     return (
       <div className="flex min-w-0 flex-col gap-4" aria-busy={P.isLive(turn)}>
@@ -976,6 +1028,7 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
       loop={loop}
       answer={answer}
       {...{
+        streamed: !!turn.words,
         docked,
         onRetry,
         onAsk,
@@ -992,9 +1045,57 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   )
 }
 
+/**
+ * The answer while the model writes it (decision 5): its state and the sentences that passed the
+ * check, drawn as the finished answer draws them, so they stay put when the rest comes in.
+ */
+function Writing({
+  turn,
+  draft,
+  words,
+  onRetry,
+}: {
+  turn: Turn
+  draft: LoopTurn
+  words: React.RefObject<HTMLDivElement | null>
+  onRetry?: () => void
+}) {
+  const P = useParts()
+  const maps = useMaps(draft)
+  return (
+    <div className="flex min-w-0 flex-col gap-4" aria-busy={P.isLive(turn)}>
+      <StateRow loop={draft} words={words} />
+      <div ref={words}>
+        <Body
+          body={draft.body}
+          nouns={maps.nouns}
+          numbered={maps.numbered}
+          byId={maps.byId}
+          seen={new Set()}
+        />
+      </div>
+      {turn.stopped && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <P.CircleStopIcon className="size-4 shrink-0" aria-hidden />
+            You stopped it before the answer was finished.
+          </span>
+          {onRetry && (
+            <P.Button variant="outline" onClick={onRetry}>
+              <P.RefreshCwIcon data-icon="inline-start" />
+              Ask again
+            </P.Button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Finished({
   loop,
   answer,
+  streamed,
   docked,
   onRetry,
   onAsk,
@@ -1009,6 +1110,8 @@ function Finished({
 }: {
   loop: LoopTurn
   answer: Answer
+  /** Its words were shown as they were written: they stay as they are, and only the rest fades in. */
+  streamed: boolean
   docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
@@ -1034,7 +1137,12 @@ function Finished({
   const showOwners = loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale'
   const footer = footerLines(loop)
   return (
-    <div className="group/msg flex min-w-0 animate-in flex-col gap-4 duration-(--dur-3) fade-in-0">
+    <div
+      className={P.cn(
+        'group/msg flex min-w-0 flex-col gap-4',
+        !streamed && 'animate-in duration-(--dur-3) fade-in-0',
+      )}
+    >
       {loop.kind === 'stopped' ? (
         <Stopped answer={answer} onRetry={onRetry} />
       ) : (
@@ -1091,7 +1199,13 @@ function Finished({
           {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
           {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
           <Definitions loop={loop} nouns={maps.nouns} />
-          <Next loop={loop} nouns={maps.nouns} items={used} />
+          {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
+          <Next
+            loop={loop}
+            nouns={maps.nouns}
+            items={used}
+            {...(answer.dates ? { dates: answer.dates } : {})}
+          />
           {(footer.length > 0 || loop.read.length > 0) && (
             <WhatAskRead loop={loop} footer={footer} />
           )}

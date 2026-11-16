@@ -278,6 +278,7 @@ describe('the API over HTTP', () => {
       '/figures/read',
       '/figures/{id}',
       '/figures/{id}/try',
+      '/gaps/reports',
       '/gaps/{id}',
       '/imports',
       '/inbox/cards/decide',

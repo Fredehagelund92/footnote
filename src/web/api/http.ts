@@ -260,6 +260,7 @@ export const wiredMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'tellOwner',
   'observabilityPage',
   'obsDimensions',
   'obsValues',
@@ -1019,6 +1020,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       else if (event.type === 'answer')
         tell({ type: 'answer', answer: answerOf(event.answer, words, names, extra) })
       else if (event.type === 'sentence') tell({ type: 'sentence', text: event.text })
+      else if (event.type === 'words') tell({ type: 'words', words: event.turn })
     }
     try {
       // A follow-up carries the chat's last turns; a question scoped with @ is read as scoped.
@@ -2220,6 +2222,29 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       }
       const sent = await write('reports.create', input, (o) => client.reports.create(input, o))
       return { id: sent.id }
+    },
+    tellOwner: async ({ about, dates }) => {
+      const metrics = about.filter((id) => id.startsWith('metric:'))
+      const values = new Map<string, string[]>()
+      for (const id of about)
+        if (id.startsWith('value:')) {
+          const value = id.slice('value:'.length)
+          const dimension = `dim:${value.split('/')[0]}`
+          values.set(dimension, [...(values.get(dimension) ?? []), `val:${value}`])
+        }
+      // The days as the answer read them; with none named, the service reads today.
+      const days = daysOfDates(dates, localDay(new Date()))
+      const input = {
+        type: 'missing' as const,
+        ...(metrics.length ? { metrics } : {}),
+        ...(values.size
+          ? {
+              dimension_filters: [...values].map(([dimension, v]) => ({ dimension, values: v })),
+            }
+          : {}),
+        ...(days ? { window: days } : {}),
+      }
+      return write('gaps.report', input, (o) => client.gaps.report(input, o))
     },
     getMyReports: async () => {
       const now = new Date()

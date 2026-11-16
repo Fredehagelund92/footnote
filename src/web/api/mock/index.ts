@@ -910,6 +910,8 @@ export function createMockApi() {
         reports.unshift({ id, question, at: new Date() })
         return { id }
       }),
+    // The demo's owners don't see it here: it waits in this visit's memory, as a report does.
+    tellOwner: () => now(() => ({ id: `gap-report-${reports.length + 1}` })),
     getMyReports: () =>
       now(() =>
         reports.map((r) => ({ id: r.id, question: r.question, on: reportedOn(r.at, new Date()) })),

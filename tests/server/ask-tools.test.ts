@@ -33,6 +33,8 @@ const noReads: ToolReads = {
   people: unread,
   catalogue: unread,
   glossary: unread,
+  itemHistory: unread,
+  termHistory: unread,
   conflicts: unread,
   inbox: unread,
   asked: unread,

@@ -683,7 +683,7 @@ describe('the evidence, by code from the reads', () => {
     expect(JSON.stringify(t)).not.toMatch(/market/i)
   })
 
-  it('shows a definition only when the question turns on a word of it, marked, or asks what it is', () => {
+  it('shows a definition the turn read, marked where the question turns on a word of it', () => {
     const withDefinition: MadeRead[] = [
       ...[lookup('grounded', [row('itm_aaaa1111', ['metric:tickets_closed'])])],
       {
@@ -722,11 +722,15 @@ describe('the evidence, by code from the reads', () => {
     )
     expect(asks.definitions).toHaveLength(1)
     expect(asks.definitions[0]?.mark).toBeUndefined()
-    // Not when the question turns on nothing in it, and never when the words already say it.
-    expect(
-      turnOf('It counts once [itm_aaaa1111].', withDefinition, [], 'Why did tickets closed drop?')
-        .definitions,
-    ).toEqual([])
+    // The turn read it, so it shows when the question turns on nothing in it too, unmarked
+    // (decision 6); never when the words already say it.
+    const drop = turnOf(
+      'It counts once [itm_aaaa1111].',
+      withDefinition,
+      [],
+      'Why did tickets closed drop?',
+    ).definitions
+    expect(drop.map((d) => [d.id, d.mark])).toEqual([['metric:tickets_closed', undefined]])
     expect(
       turnOf(
         'Tickets marked solved in the help desk, reopened ones counted once [itm_aaaa1111].',

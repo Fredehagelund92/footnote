@@ -461,7 +461,7 @@ export function AskChat({
         ? asked.error
         : asked.stage === 'done'
           ? 'Answer written.'
-          : asked.answered
+          : asked.answered || asked.words
             ? 'Writing the answer.'
             : 'Looking up the answer.'
 

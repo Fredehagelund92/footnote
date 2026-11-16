@@ -87,8 +87,8 @@
       "unsupported": []
     },
     "J17": {
-      "advice": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
-      "verdict": [],
+      "advice": [],
+      "verdict": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
       "unsupported": []
     },
     "J18": {
@@ -138,9 +138,7 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": [
-        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
-      ]
+      "unsupported": ["so 12 May was only the plan [1]"]
     },
     "J27": {
       "advice": [],
@@ -174,7 +172,7 @@
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway, and one of them is archived."]
+      "unsupported": ["Seven items are about Norway"]
     },
     "J33": {
       "advice": [],

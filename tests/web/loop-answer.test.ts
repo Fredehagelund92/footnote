@@ -17,6 +17,7 @@ import examples from '@/api/mock/data/loop-examples.json'
 
 const world = vi.hoisted(() => ({
   me: { name: 'Jon Abara', role: 'Owner of Sales, admin', owns: ['area_sales'], admin: true },
+  writes: [] as { op: string; input: unknown }[],
 }))
 vi.mock('@/lib/workspace', () => ({
   useFacts: () => [],
@@ -34,7 +35,12 @@ vi.mock('@/lib/workspace', () => ({
   usePeople: () => [world.me],
 }))
 vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
-vi.mock('@/api/queries', () => ({ useWrite: () => vi.fn(() => Promise.resolve()) }))
+vi.mock('@/api/queries', () => ({
+  useWrite: () => (op: string, input: unknown) => {
+    world.writes.push({ op, input })
+    return Promise.resolve({ id: 'g1' })
+  },
+}))
 vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
 // Reading items ahead needs the app's query cache, which a static drawing has not.
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
@@ -47,7 +53,10 @@ vi.mock('@/lib/router', async (original) => ({
 const { LoopAnswerBody } = await import('@/components/heed/loop-answer')
 const { loopParts } = await import('@/components/heed/loop-parts')
 const { AnswerActions, ReportLine, SomethingWrong } = await import('@/components/heed/answer')
-const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong }
+// The figure reads the data through the app's query cache: here, where it goes is enough.
+const AnswerFigure = ({ answer }: { answer: { metric: string } }) =>
+  React.createElement('p', { 'data-figure': answer.metric })
+const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong, AnswerFigure }
 const { loopAnswerOf } = await import('@/api/http-ask')
 const turnModule = await import('@/model/ask-turn')
 const { doneTurn } = turnModule
@@ -115,6 +124,32 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).toMatch(/owned by/)
     expect(text(el)).toMatch(/Write context for Orders in Poland/)
     expect(text(el)).toMatch(/^.*0 of 21 published context items you may read apply/)
+  })
+
+  it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
+    const owner = world.me
+    world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    world.writes.length = 0
+    try {
+      const el = render(example('loop-missing'))
+      expect(text(el)).not.toMatch(/Write context/)
+      const tell = [...el.querySelectorAll('button')].find((b) => text(b) === 'Tell the owner')
+      expect(tell).toBeDefined()
+      await act(async () => {
+        tell!.click()
+        await Promise.resolve()
+      })
+      // The subject's metric and values, and no date since none was named: nothing of the words.
+      expect(world.writes).toEqual([
+        { op: 'tellOwner', input: { about: ['metric:orders', 'value:market/poland'] } },
+      ])
+      expect(text(el)).toContain('Sent to the owners of Sales. It waits in their Inbox.')
+      expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Tell the owner')).toBe(
+        false,
+      )
+    } finally {
+      world.me = owner
+    }
   })
 
   it('makes the chips and the citations the buttons in the words, never a sentence', () => {
@@ -214,6 +249,36 @@ describe("Ask's loop answer, state by state", () => {
     act(() => more!.click())
     expect(lines()).toHaveLength(8)
     expect(text(el)).not.toMatch(/Show \d+ more/)
+  })
+
+  it('The figure: an answer reads the data of its subject, after the evidence; a question back and an overview do not', () => {
+    const answer = render(example('loop-checked'))
+    expect(answer.querySelector('[data-figure]')).not.toBeNull()
+    for (const id of ['loop-question', 'loop-overview'] as const) {
+      act(() => root?.unmount())
+      host?.remove()
+      expect(render(example(id)).querySelector('[data-figure]'), id).toBeNull()
+    }
+  })
+
+  it('A list asked for: every line of it up to twelve, unfolded, after five sentences of prose at most', () => {
+    const base = example('loop-checked')
+    const line = (i: number) => [{ t: 'text' as const, text: `Metric ${i + 1}` }]
+    const listed = (n: number): LoopTurn => ({
+      ...base,
+      body: [
+        { t: 'p', runs: [{ t: 'text', text: `The domain has ${n} metrics:` }] },
+        { t: 'ul', items: Array.from({ length: n }, (_, i) => line(i)) },
+      ],
+    })
+    const all = render(listed(10), 'List the metrics in the Sales domain')
+    expect(all.querySelectorAll('[data-answer-words] li')).toHaveLength(10)
+    expect(text(all)).not.toMatch(/Show \d+ more/)
+    act(() => root?.unmount())
+    host?.remove()
+    const long = render(listed(14), 'List the metrics in the Sales domain')
+    expect(long.querySelectorAll('[data-answer-words] li')).toHaveLength(12)
+    expect([...long.querySelectorAll('button')].some((b) => text(b) === 'Show 2 more')).toBe(true)
   })
 
   it('Definition: the label in place of a state, for an answer that uses no item', () => {
@@ -370,6 +435,45 @@ describe('while the loop reads', () => {
     expect(steps).toEqual(['Looked up what applies to Billing: 2 apply', 'Reading a context item…'])
     expect(buttons(host, /^Billing, value$/)).toHaveLength(1)
     expect(host.querySelector('[aria-busy="true"]')).not.toBeNull()
+  })
+})
+
+describe('while the loop writes', () => {
+  it('shows each sentence that passed the check under its state, then the rest once the answer is in, the words staying put', () => {
+    const { askedTurn, turnReducer } = turnModule
+    const whole = example('loop-checked')
+    const first: LoopTurn = {
+      ...whole,
+      body: [{ t: 'p', runs: [{ t: 'text', text: 'The first sentence is final.' }] }],
+      text: 'The first sentence is final.',
+    }
+    let turn = turnReducer(askedTurn('t1', 'Why is the last day short?'), {
+      type: 'words',
+      words: first,
+    })
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(text(host.querySelector('[data-answer-words]')!)).toBe('The first sentence is final.')
+    // Still being written: no actions and no evidence yet, and the reads' steps give way to it.
+    expect(host.querySelector('[aria-busy="true"]')).not.toBeNull()
+    expect(host.querySelector('ol')).toBeNull()
+    expect(text(host)).not.toContain('Used')
+    // Taken back, the reads show again.
+    turn = turnReducer(turn, { type: 'words', words: null })
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(host.querySelector('[data-answer-words]')).toBeNull()
+    // The whole answer: its words drawn in place, with no fade, and the evidence after them.
+    turn = turnReducer(turnReducer(turn, { type: 'words', words: first }), {
+      type: 'done',
+      answer: loopAnswerOf(whole, 'Why is the last day short?', names),
+    })
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(text(host.querySelector('[data-answer-words]')!)).toContain(
+      'The payment files for Germany',
+    )
+    expect(host.querySelector('.animate-in')).toBeNull()
   })
 })
 
