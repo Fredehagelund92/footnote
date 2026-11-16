@@ -724,10 +724,13 @@ describe('the evidence, by code from the reads', () => {
     expect(asks.definitions[0]?.mark).toBeUndefined()
     // The turn read it, so it shows when the question turns on nothing in it too, unmarked
     // (decision 6); never when the words already say it.
-    expect(
-      turnOf('It counts once [itm_aaaa1111].', withDefinition, [], 'Why did tickets closed drop?')
-        .definitions,
-    ).toEqual([expect.objectContaining({ id: 'metric:tickets_closed', mark: undefined })])
+    const drop = turnOf(
+      'It counts once [itm_aaaa1111].',
+      withDefinition,
+      [],
+      'Why did tickets closed drop?',
+    ).definitions
+    expect(drop.map((d) => [d.id, d.mark])).toEqual([['metric:tickets_closed', undefined]])
     expect(
       turnOf(
         'Tickets marked solved in the help desk, reopened ones counted once [itm_aaaa1111].',
