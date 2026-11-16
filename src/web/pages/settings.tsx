@@ -42,7 +42,7 @@ import {
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
-import { landingOf, memberSections } from '@/components/settings-nav'
+import { landingOf, memberSections } from '@/lib/settings-access'
 
 // Settings: six sections under the settings navigation (General, Domains and owners, People,
 // Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
