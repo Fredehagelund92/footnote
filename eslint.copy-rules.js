@@ -141,6 +141,12 @@ const secondNames = [
   [/\bthreads?\b/i, null, 'comment'],
   [/\b(Needs checking|Overdue)\b/, null, 'Due for a check'],
   [/\bclash(es)?\b/i, null, 'overlap'],
+  // "Check" is for what an owner does: a check date, Due for a check, Mark as checked.
+  [/\bclaims? (to )?check\b/i, null, 'details to compare with the source'],
+  [/\bCheck now\b/, null, 'Run now'],
+  [/\bCheck again\b(?! by)/, null, 'Keep waiting'],
+  [/\bCheck the chain\b/i, null, 'Verify the log'],
+  [/\bheavy checks\b/i, null, 'answer tests'],
   [/\ba read\b/i, null, 'an update'],
   // Lower case only: the capitals are banned already, the lower case passes.
   [/\b(gap|gaps)\b/, null, 'Not found'],

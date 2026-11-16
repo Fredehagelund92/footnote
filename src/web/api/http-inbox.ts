@@ -6,6 +6,7 @@
  * The service decides what needs care, whether a suggestion is ready, what counts as read and what
  * agents say before and after; this only says it in the app's shapes and words.
  */
+import { dayMonth, monthShort } from '@/lib/dates'
 import type { Card, Feed } from '@contract/inbox'
 import type { ReviewSheet } from '@contract/review-path'
 import type { Area } from '@domain/item'
@@ -28,7 +29,6 @@ import { dateLabel, whenLabel } from '@/model/validity'
 
 /* ---------- words for times ---------- */
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const twoDigits = (n: number) => String(n).padStart(2, '0')
 
 /** "Today, 09:12", "Yesterday, 16:40" or "20 Oct": when something happened, as the Inbox says it. */
@@ -40,7 +40,7 @@ export function whenWords(at: string, now: Date): string {
   const time = `${twoDigits(t.getHours())}:${twoDigits(t.getMinutes())}`
   if (days === 0) return `Today, ${time}`
   if (days === 1) return `Yesterday, ${time}`
-  return `${t.getDate()} ${MONTHS[t.getMonth()]}`
+  return dayMonth(t)
 }
 
 /** A day the service gives ("2026-10-02", or a time on it) as people read it: "2 Oct 2026". */
@@ -123,6 +123,25 @@ export const idOf = (card: NeedCard) =>
       ? card.draft
       : card.id
 
+/**
+ * A Not found card's line: how often agents found nothing this week, and when someone pressed Tell
+ * the owner in Ask, that too. Agents' count alone when nobody told the owners.
+ */
+function gapLine(times: number | null, told: number): string {
+  const agents =
+    times === null
+      ? 'Agents found nothing written down for this, fewer than 5 times this week.'
+      : times === 0
+        ? 'Agents found nothing written down for this. Nobody asked about it again this week.'
+        : `Agents found nothing written down for this, ${times} times this week.`
+  const people =
+    told === 1
+      ? 'Someone asked Ask about this, found nothing written down and told you.'
+      : `People asked Ask about this, found nothing written down and told you, ${told} times this week.`
+  if (!told) return agents
+  return times === 0 ? people : `${agents} ${people}`
+}
+
 function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => string): InboxCard {
   // Names can belong to no domain; every other card belongs to one.
   const base = { id: idOf(card), domain: card.areaId ?? '', for: me, when: whenWords(card.at, now) }
@@ -188,12 +207,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         ...base,
         type: 'gap',
         title: card.title,
-        line:
-          card.times === null
-            ? 'Agents found nothing written down for this, fewer than 5 times this week.'
-            : times === 0
-              ? 'Agents found nothing written down for this. Nobody asked about it again this week.'
-              : `Agents found nothing written down for this, ${times} times this week.`,
+        line: gapLine(card.times, card.told),
         detail: card.draft
           ? 'A draft is ready. Check every part before you publish.'
           : `Nothing is drafted yet: write what agents should know about ${card.title}.`,
@@ -202,6 +216,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         gap: {
           scope: [card.title],
           times,
+          told: card.told,
           belongs: `context about ${card.title}`,
           // The draft is reviewed under this card's id; the review reads what it says.
           ...(card.draft
@@ -476,7 +491,7 @@ function timelineOf(
     from: day(from),
     was: day(last(was)),
     now: day(last(now)),
-    month: MONTHS[Number(month.slice(5, 7)) - 1]!,
+    month: monthShort(`${month}-15`),
   }
 }
 

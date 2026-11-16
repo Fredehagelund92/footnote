@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test'
 import { expect, go, mode, test } from './go.ts'
 
 /** The six state words, as an answer's line says one. */
-const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
+const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 
 // J3, how an answer arrives: the question at once, the look-up's steps, the state and sources with
 // the engine's answer, then the words a sentence at a time; stoppable, and without fades with
@@ -54,7 +54,9 @@ test('Stop leaves an unfinished answer, said as such', async ({ page }) => {
   await until(page, page.getByText(onTheWay))
   await page.getByRole('button', { name: 'Stop' }).click()
   const log = page.getByRole('log')
-  await expect(log.getByText(/Stopped while/)).toBeVisible()
+  // One line says so, with Ask again beside it.
+  await expect(log.getByText(/stopped/i)).toHaveCount(1)
+  await expect(log.getByText(/before an answer/)).toBeVisible()
   // The notice and Ask again come into view; no source count is claimed.
   await expect(log.getByRole('button', { name: 'Ask again', exact: true })).toBeInViewport()
   await expect(log.getByText(STATE)).toHaveCount(0)
@@ -164,7 +166,7 @@ test('the first question of a new chat arrives as a follow-up does, one that is 
   await page.getByRole('button', { name: 'New chat' }).first().click()
   await until(
     page,
-    page.getByRole('heading', { name: 'What do you want to know about the numbers?' }),
+    page.getByRole('heading', { name: 'What do you want to know about your metrics?' }),
   )
   await firstAsk()
   expect(new URL(page.url()).searchParams.get('chat')).toBe(chat)

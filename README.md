@@ -7,9 +7,9 @@
 
 ### Stop AI agents misreading your numbers.
 
-Heed is a reviewed context layer for analytics teams and their agents.<br>
-The people who own the data write down what the numbers don't show,<br>
-and agents read it over MCP before they answer, with its source and its owner.
+AI tools guess when they do not know why a number moved.<br>
+With Heed, the people who know write it down once, and an owner checks it.<br>
+Every AI tool then reads it before it answers, and shows where it came from.
 
 <!-- Live demo: when the hosted demo is up, put this at the start of the link row below:
 [**Live demo**](https://LIVE-DEMO-ADDRESS) &nbsp;·&nbsp; -->
@@ -168,13 +168,13 @@ links stay in a secret store in Docker's `heed_keys` volume.
 - **Checked before it ships.** The review compares the claims with the source, shows a clash with live
   context, and runs the question agents asked against the draft. [Review a suggestion](docs/help/review-a-suggestion.md).
 - **Six answer lines.** Every answer, for an agent and for a person, starts with one: Checked, Partial, Not found,
-  Conflict, Outdated or Not checked. [Answer lines](docs/help/answer-lines.md).
+  Conflict, Outdated or Not looked up. [Answer lines](docs/help/answer-lines.md).
 - **An MCP server.** Six tools: `get_context`, `find_context`, `read_context`, `report`, `suggest_context` and
   `get_related`. Agents sign in as the person and see only what that person can read.
   [Agent tools](docs/help/tools.md).
 - **No AI picks the context.** Rules choose what applies from the question's metrics, markets and dates, so the
   same question gets the same items until an owner publishes a change. Ask shows exactly that.
-- **Ask about the context itself.** Ask what is missing, stale, conflicting or unowned, and Heed counts it from its own
+- **Ask about the context itself.** Ask what is missing, due for a check, conflicting or unowned, and Heed counts it from its own
   records, says out of how many, and says what it can't see.
 - **Gaps and saved questions.** Questions that found nothing are counted by topic, so people write what's
   missing. Saved questions are answered again after every change, so a publish that makes an answer worse is

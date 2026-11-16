@@ -112,6 +112,8 @@ const reads: ToolReads = {
       ],
     } as never),
   glossary: unread,
+  itemHistory: () => Promise.resolve([]),
+  termHistory: unread,
   conflicts: unread,
   inbox: unread,
   asked: unread,

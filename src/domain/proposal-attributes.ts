@@ -69,7 +69,7 @@ export type FormField = (typeof formFields)[number]
  */
 export const proposalOnlyFields: Partial<Record<FormField, string>> = {
   reason:
-    "What is wrong with the current version, on Suggest a change: the proposal's reason for its reviewers, not part of the item.",
+    "What is wrong with the current version, on Suggest a change: the suggestion's reason for its reviewers, not part of the item.",
 }
 
 /** The inputs of `suggest_context` (`draftInput`, src/server/mcp/schemas.ts). */
@@ -292,10 +292,10 @@ export const proposalAttributes = {
   claimLevel: {
     words: 'cause',
     required: true,
-    form: { none: 'A fact by default; only an owner states an effect (FR-324).' },
+    form: { none: 'A context item by default; only an owner states an effect (FR-324).' },
     agent: {
       treatment: 'defaulted',
-      why: 'A fact with no stated effect; only an owner states an effect.',
+      why: 'A context item with no stated effect; only an owner states an effect.',
       marks: ['default'],
     },
   },

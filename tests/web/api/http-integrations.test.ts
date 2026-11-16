@@ -444,7 +444,7 @@ describe('how a source is connected', () => {
 
   it("says a server's own source is set where the server runs", () => {
     expect(connectionOf(null, undefined)).toEqual([
-      { label: 'Settings', value: 'Set where the server runs, by whoever runs it' },
+      { label: 'Settings', value: 'Set by the person who hosts this app' },
     ])
   })
 

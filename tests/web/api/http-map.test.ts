@@ -62,7 +62,7 @@ describe('reading the library index', () => {
 
   it('says the status in the app’s words, from the status and the trust', () => {
     expect(statusOf(row())).toBe('Live')
-    expect(statusOf(row({ trust: 'needs_check' }))).toBe('Needs checking')
+    expect(statusOf(row({ trust: 'needs_check' }))).toBe('Due for a check')
     expect(statusOf(row({ trust: 'ended' }))).toBe('Live')
     expect(statusOf(row({ status: 'retired', trust: 'ended' }))).toBe('Archived')
   })
@@ -188,7 +188,7 @@ describe('reading the catalogue', () => {
         domain: 'area_sales',
         group: 'Revenue',
         changed: '2 Oct 2026',
-        updated: '18 Sep 2026',
+        updated: '18 Sept 2026',
       },
     ])
   })
@@ -466,7 +466,7 @@ describe('the terms written here', () => {
         sourceNames: [],
         domain: 'area_marketing',
         by: 'Tomas Eriksen',
-        updated: '18 Sep 2026',
+        updated: '18 Sept 2026',
       },
       {
         name: 'GMV',
@@ -476,7 +476,7 @@ describe('the terms written here', () => {
         synced: false,
         sourceNames: [],
         by: 'Jon Abara',
-        updated: '18 Sep 2026',
+        updated: '18 Sept 2026',
       },
     ])
   })

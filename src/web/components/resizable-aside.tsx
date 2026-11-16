@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { useSettled } from '@/hooks/use-wide'
 import { clamp, readWidth, saveWidth } from '@/lib/pane-width'
 
 /**
@@ -51,6 +52,8 @@ export function ResizableAside({
   const foldAt = min / 2
   const closed = rail ? railWidth : 0
   const folded = collapsed && drag === null
+  // Taking its place on arrival is not a fold: nothing animates until the page has drawn.
+  const settled = useSettled()
 
   const commit = (w: number) => {
     const next = clamp(w, min, max)
@@ -68,8 +71,8 @@ export function ResizableAside({
       data-collapsed={folded || undefined}
       style={{ width: shown }}
       className={cn(
-        'relative shrink-0 transition-[width] duration-(--dur-3) ease-out',
-        drag !== null && 'transition-none',
+        'relative shrink-0',
+        settled && drag === null && 'transition-[width] duration-(--dur-3) ease-out',
         className,
       )}
     >
@@ -101,7 +104,7 @@ export function ResizableAside({
       <div
         role="separator"
         aria-orientation="vertical"
-        aria-label={`Resize ${label.toLowerCase()}`}
+        aria-label={`Resize ${label}`}
         aria-valuemin={collapsible ? closed : min}
         aria-valuemax={max}
         aria-valuenow={Math.round(shown)}
@@ -109,7 +112,7 @@ export function ResizableAside({
         title={collapsible ? `Drag to resize, click to ${collapsed ? 'show' : 'hide'}` : undefined}
         data-dragging={drag !== null || undefined}
         className={cn(
-          'group/handle absolute inset-y-0 z-header w-2 cursor-col-resize touch-none outline-none',
+          'group/handle absolute inset-y-0 z-header w-2 cursor-col-resize touch-none outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
           side === 'left' ? '-right-1' : '-left-1',
         )}
         onPointerDown={(e) => {

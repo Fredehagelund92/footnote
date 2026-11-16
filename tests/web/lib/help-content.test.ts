@@ -28,7 +28,8 @@ describe('the shared help lists', () => {
     expect(WORDS).toHaveLength(10)
     expect(new Set(WORDS.map(([w]) => w)).size).toBe(10)
     for (const [w, d] of WORDS) {
-      expect(d.split(' ').length, w).toBeLessThanOrEqual(30)
+      // Definition holds three first-use lines (a metric, a dimension, a term), so the ceiling is 36.
+      expect(d.split(' ').length, w).toBeLessThanOrEqual(36)
       expect(d, w).not.toMatch(new RegExp(`\\b${PRODUCT}\\b`))
     }
     // The context item word names today's four kinds.

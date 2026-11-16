@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "63fd1e52a96b1a806f6250a734e31ed87c97662f9f88e20b9295b1655fd1d014",
+  "digest": "00bf7ac770e033bab2f87f8a57f3f292d5dd847aea852ca4de2d04f53b9c5789",
   "tools": [
     {
       "annotations": {
@@ -497,7 +497,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "One fact in full. Call get_context before answering a question about company data. Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. An edition needs a service token with edition scope. A link proves neither that an item applies nor a cause.",
+      "description": "One context item in full. Call get_context before answering a question about company data. Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. An edition needs a service token with edition scope. A link proves neither that an item applies nor a cause.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -660,7 +660,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         ],
         "type": "object",
       },
-      "title": "Read a fact",
+      "title": "Read a context item",
     },
     {
       "annotations": {
@@ -1319,7 +1319,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "Follow a link between facts, definitions and domains, one step at a time. Call get_context before answering a question about company data. Follow links from an item's id, a vocabulary key such as metric:orders, a term written in Definitions (term:<id>), or a domain. Returns neighbours one or two steps away with their kind of link, never bodies; a term comes with what it means, as a person wrote it, which is background for reading words and never a checked source. A link shows what a text refers to: it neither widens where an item applies nor proves a cause, and it never changes what get_context includes. Call it only when a link helps answer the question; read a neighbour with read_context. Follow next_cursor for another page.",
+      "description": "Follow a link between context items, definitions and domains, one step at a time. Call get_context before answering a question about company data. Follow links from an item's id, a vocabulary key such as metric:orders, a term written in Definitions (term:<id>), or a domain. Returns neighbours one or two steps away with their kind of link, never bodies; a term comes with what it means, as a person wrote it, which is background for reading words and never a checked source. A link shows what a text refers to: it neither widens where an item applies nor proves a cause, and it never changes what get_context includes. Call it only when a link helps answer the question; read a neighbour with read_context. Follow next_cursor for another page.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,

@@ -103,12 +103,12 @@ function itemsOf(pool: readonly Fact[]): RecordsItem[] {
         areaId: f.domain,
         title: f.title,
         status:
-          f.status === 'Archived' ? 'archived' : f.status === 'Needs checking' ? 'due' : 'live',
+          f.status === 'Archived' ? 'archived' : f.status === 'Due for a check' ? 'due' : 'live',
         // The demo world's check date is 90 days after the last check, as its Context list reads it.
         reviewDate: day ? due : null,
         // Due before its check date: its definition changed since it was checked.
         checkFlag:
-          f.status === 'Needs checking' && !(day && due < RECORDS_NOW.slice(0, 10))
+          f.status === 'Due for a check' && !(day && due < RECORDS_NOW.slice(0, 10))
             ? 'needs_check'
             : null,
         publishedAt: firstPublished.get(f.id) ?? checked,
@@ -168,7 +168,7 @@ const members: AuditMembers = {
 
 /** What an analysis reads in the demo world, as the service reads the catalogue (FR-720). */
 function auditOf(world: Pick<RecordsSource, 'pool' | 'definitions'>): AuditWorld {
-  const live = world.pool.filter((f) => f.status === 'Live' || f.status === 'Needs checking')
+  const live = world.pool.filter((f) => f.status === 'Live' || f.status === 'Due for a check')
   const names = new Map(world.definitions.map((d) => [d.name, d]))
   const key = (name: string) => (names.get(name)?.type === 'metric' ? `metric:${slug(name)}` : null)
   return {

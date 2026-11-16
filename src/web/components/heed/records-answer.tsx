@@ -57,7 +57,6 @@ function KindGlyph({ kind }: { kind: RecordsKind }) {
       role="img"
       aria-label={kindLabel[kind]}
       className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-      strokeWidth={1.75}
     />
   )
 }
@@ -340,7 +339,9 @@ function RecordsBody({
       </div>
       <div className="flex flex-col gap-1">
         <RecordsChip />
-        <p className="text-sm text-muted-foreground">Counted from the workspace&apos;s records.</p>
+        <p className="text-sm text-muted-foreground">
+          From the app&apos;s own list of what was written and changed. Not from your sales data.
+        </p>
       </div>
       {records.limit && (
         <p data-answer-limit className="text-base font-medium text-pretty">

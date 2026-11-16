@@ -35,7 +35,7 @@ test('a question that names nothing is read by the model and answered from the c
   await ask(page, 'any interesting jumps that can be explained?')
   const turn = newest(page)
   await expect(
-    turn.getByText(/^Read by the model as guides with the words jumps and explained, and events/),
+    turn.getByText(/^Read by Ask as guides with the words jumps and explained, and events/),
   ).toBeVisible()
   await expect(turn.getByText("The question doesn't name a metric or a market.")).toHaveCount(0)
   // The sources are what the reads found: the guide on what to rule out comes first.
@@ -56,7 +56,7 @@ test('a follow-up carries the last question, and says what it carried', async ({
   const turn = newest(page)
   await expect(
     turn.getByText(
-      'Read by the model as Orders in Sweden, at any date, with Orders carried from your last question',
+      'Read by Ask as Orders in Sweden, at any date, with Orders carried from your last question',
     ),
   ).toBeVisible()
   // Read at any date, the Sweden item from before 19 January 2026 is found: no dead end.
@@ -82,9 +82,7 @@ test('a question that could mean two things gets one question back, in prose', a
   // The answer to it carries its market.
   await expect(page.getByRole('status').filter({ hasText: 'Answer written.' })).toBeVisible()
   await ask(page, 'orders')
-  await expect(
-    newest(page).getByText(/^Read by the model as Orders in Sweden, today/),
-  ).toBeVisible()
+  await expect(newest(page).getByText(/^Read by Ask as Orders in Sweden, today/)).toBeVisible()
 })
 
 test('a word with two meanings gets one plain question, and the answer keeps the period', async ({
@@ -114,7 +112,7 @@ test('a word with two meanings gets one plain question, and the answer keeps the
       /^Understood as Gross sales, in September 2026\. Sales can also mean Net revenue\.$/,
     ),
   ).toBeVisible()
-  await expect(newest(page).getByText(/^Read by the model/)).toHaveCount(0)
+  await expect(newest(page).getByText(/^Read by Ask/)).toHaveCount(0)
 })
 
 test('a question off topic gets its own sentence, not the one about names', async ({ page }) => {
@@ -126,7 +124,8 @@ test('a question off topic gets its own sentence, not the one about names', asyn
   ).toBeVisible()
   await expect(turn.getByText("The question doesn't name a metric or a market.")).toHaveCount(0)
   await expect(turn.getByText(/^Ask answers three kinds of question/)).toHaveCount(0)
-  await suggestsNothing(page)
+  // A refusal ends with a question to press.
+  await expect(turn.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 /** Picks a name from the @ list as a person does. */
@@ -169,7 +168,7 @@ test('try again asks the last question again, with its mentions, and no model re
     turn.getByText(/^Asked again: I am in @?Paid media what contexts are needing check\?$/),
   ).toBeVisible()
   await expect(turn.getByText(lastAnswer)).toBeVisible()
-  await expect(turn.getByText(/Read by the model/)).toHaveCount(0)
+  await expect(turn.getByText(/Read by Ask/)).toHaveCount(0)
   await expect(turn.getByText(/store credit/)).toHaveCount(0)
   await suggestsNothing(page)
   // Asked again once more, it is still that question.
@@ -187,7 +186,7 @@ test('a message with nothing to repeat gets one sentence, and no search', async 
   ).toBeVisible()
   await expect(turn.getByText(/^Ask answers three kinds of question/)).toHaveCount(0)
   await expect(turn.getByRole('button', { name: /^Source \d+/ })).toHaveCount(0)
-  await suggestsNothing(page)
+  await expect(turn.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 test('a follow-up says how it reads on its own', async ({ page }) => {

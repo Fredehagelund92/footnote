@@ -107,9 +107,9 @@ describe.each(persons)('as %s', (name) => {
       // Each item listed says why it is due, as its row in a group does, and nothing when it is not.
       const grouped = await ok(tools, 'records', { show: 'count', group_by: 'status' })
       const why = new Map(grouped.groups!.rows.flatMap((g) => g.items.map((i) => [i.id, i.why])))
-      expect(all.items.filter((i) => i.why).length).toBe(status('Needs checking').length)
+      expect(all.items.filter((i) => i.why).length).toBe(status('Due for a check').length)
       for (const i of all.items) expect(i.why).toBe(why.get(i.id) ?? null)
-      expect(await count({ status: ['due'] })).toBe(status('Needs checking').length)
+      expect(await count({ status: ['due'] })).toBe(status('Due for a check').length)
       expect(await count({ status: ['archived'] })).toBe(status('Archived').length)
       expect(await count({ kinds: ['event'] })).toBe(
         listed.filter((f) => f.kind === 'event').length,
@@ -119,7 +119,7 @@ describe.each(persons)('as %s', (name) => {
         domain: 'Sales',
         status: ['due'],
       })
-      expect(salesDue.count).toBe(sales.filter((f) => f.status === 'Needs checking').length)
+      expect(salesDue.count).toBe(sales.filter((f) => f.status === 'Due for a check').length)
       // The denominator is the domain and status asked about, by code.
       expect(salesDue.counted).toBe(
         `${salesDue.count} of ${salesDue.outOf.count} context ${salesDue.outOf.count === 1 ? 'item' : 'items'} due for a check in Sales you may read`,
@@ -130,7 +130,7 @@ describe.each(persons)('as %s', (name) => {
         about: ['Orders'],
       })
       expect(published.outOf.count).toBe(
-        listed.filter((f) => f.status === 'Live' || f.status === 'Needs checking').length,
+        listed.filter((f) => f.status === 'Live' || f.status === 'Due for a check').length,
       )
       expect(published.counted).toMatch(/ of \d+ published context items you may read$/)
     })
@@ -217,6 +217,70 @@ describe.each(persons)('as %s', (name) => {
             ).toBe(true)
           }
       }
+    })
+  })
+})
+
+describe('what a definition and an item say beside their words', () => {
+  it("definitions gives a dimension its values, a metric what it is related to, and one name's history", async () => {
+    await world.withTools(ADMIN, async (tools) => {
+      const market = await ok(tools, 'definitions', { names: ['Market'] })
+      const dimension = market.definitions[0]!
+      expect(dimension).toMatchObject({ id: 'dim:market', kind: 'dimension', related: null })
+      expect(dimension.values!.names).toEqual(expect.arrayContaining(['Norway', 'Sweden']))
+      // How many there are, by code, for the words to give as a reference.
+      expect(dimension.values!.count).toBe(dimension.values!.names.length + dimension.values!.more)
+      // Each value is named, so the words can name it as its chip.
+      expect(market.names.map((n) => n.id)).toContain('value:market/norway')
+      expect(dimension.history).toEqual(expect.any(Array))
+      const orders = (await ok(tools, 'definitions', { names: ['Orders'] })).definitions[0]!
+      expect(orders.values).toBeNull()
+      expect(Object.keys(orders.related!)).toEqual(['group', 'metrics', 'mentionedBy'])
+      expect(orders.related!.mentionedBy).toEqual(expect.any(Number))
+      expect(orders.related!.metrics).not.toContain('Orders')
+      // A history only for one name looked up: a listing stays light.
+      const two = await ok(tools, 'definitions', { names: ['Orders', 'Net revenue'] })
+      expect(two.definitions.map((d) => d.history)).toEqual([null, null])
+      const listed = await ok(tools, 'definitions', {})
+      expect(listed.definitions.every((d) => d.values === null && d.history === null)).toBe(true)
+    })
+  })
+
+  it('read_context gives an item its history, newest first, and never who changed it', async () => {
+    await world.withTools(ADMIN, async (tools) => {
+      const read = await ok(tools, 'read_context', { id: 'itm_norwaystop' })
+      const history = read.item!.history
+      expect(history.length).toBeGreaterThan(0)
+      for (const h of history) {
+        expect(Object.keys(h)).toEqual(['on', 'change'])
+        expect(h.on).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      }
+      expect(history.map((h) => h.on)).toEqual(
+        history
+          .map((h) => h.on)
+          .sort()
+          .reverse(),
+      )
+    })
+  })
+})
+
+describe('the dates a read takes', () => {
+  it('reads a quarter of a fiscal year as the quarter, never the whole year (R3)', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
+      expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
+      expect(q3.read?.datesRead).toContain('FY26 read as the calendar year')
+    })
+  })
+
+  it('keeps the first of two periods and says the other was not taken', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const two = await ok(tools, 'get_context', {
+        about: 'orders in Norway in August vs September',
+      })
+      expect(two.read?.period).toBe('1-31 Aug 2026')
+      expect(two.read?.datesRead).toContain("not taken: 'september'")
     })
   })
 })

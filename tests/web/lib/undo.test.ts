@@ -4,7 +4,7 @@ import { ApiError } from '@/api/errors'
 const toast = vi.hoisted(() => ({ error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), toast) }))
 
-import { takeBackBy } from '@/lib/undo'
+import { heldFor, heldWords, takeBackBy } from '@/lib/undo'
 
 beforeEach(() => toast.error.mockClear())
 
@@ -29,5 +29,23 @@ describe('an Undo the service refuses', () => {
     const out = new ApiError('signed-out', 'Sign in again.')
     expect(await takeBackBy(() => Promise.reject(out))).toBe(false)
     expect(toast.error).not.toHaveBeenCalled()
+  })
+})
+
+describe('how long an Undo holds', () => {
+  const at = Date.parse('2026-11-16T09:00:00Z')
+  const offer = (until: string | null) => ({ token: 'change:1', until })
+
+  it('is the window the service gave, never a number of its own', () => {
+    // An admin set 6 seconds: the toast says 6, not 10.
+    expect(heldWords(offer('2026-11-16T09:00:06Z'), at)).toBe('6 seconds')
+    expect(heldFor(offer('2026-11-16T09:00:06Z'), at)).toBe(6000)
+    expect(heldWords(offer('2026-11-16T09:00:01Z'), at)).toBe('1 second')
+  })
+
+  it('holds nothing once it ended, and for good when the service takes it at any time', () => {
+    expect(heldFor(offer('2026-11-16T08:59:59Z'), at)).toBe(0)
+    expect(heldFor(offer(null), at)).toBe(Infinity)
+    expect(heldWords(offer(null), at)).toBeNull()
   })
 })

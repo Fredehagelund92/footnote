@@ -68,7 +68,7 @@ export const ANSWER_LINES: {
     label: answerLines.failed.label,
     long: answerLines.failed.long,
     sentence: answerLines.failed.sentence,
-    means: 'The check could not run just now. It is not the same as Not found.',
+    means: 'Ask could not look this up just now. That does not mean nothing is written.',
     todo: 'Ask again in a minute.',
   },
 ]
@@ -92,7 +92,7 @@ export const WORDS: [string, string][] = [
   ],
   [
     'Definition',
-    'A metric, a dimension or a term, and what it means here. Metrics and dimensions come from your definitions source; terms are written here.',
+    'A metric is a number you track, such as Orders. A dimension is a way to split a number, such as by market. A term is a word your company uses, such as Peak season.',
   ],
   [
     'Synonym',
@@ -107,7 +107,10 @@ export const WORDS: [string, string][] = [
     'Due for a check',
     'A context item whose check date has passed, or whose definition changed at its source. The owner confirms it is still true, or edits it.',
   ],
-  ["Don't conclude", 'A line on a context item that stops an agent from reading a cause into it.'],
+  [
+    "Don't conclude",
+    'A line that tells agents what not to read into this. Example: do not say the customs rule caused the drop.',
+  ],
 ]
 
 /** Four facts on how agents use what people write, which Help shows under its words. */
@@ -123,7 +126,7 @@ export const HOW_AGENTS_USE_IT: {
   },
   {
     key: 'line',
-    lead: 'Every answer starts with an answer line.',
+    lead: 'Every answer starts with an answer label.',
     rest: 'It says what the answer rests on, in Ask and in your own agent.',
   },
   {

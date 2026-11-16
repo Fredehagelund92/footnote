@@ -13,7 +13,7 @@ test('a returned suggestion waits on its sender, who edits it and sends it again
     const title = 'Units sold excludes test accounts'
     await go(page, '/inbox/sug-ines/review')
     const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-    await decide.getByRole('button', { name: 'Return with a note' }).click()
+    await decide.getByRole('button', { name: 'Send back with a note' }).click()
     await page
       .getByRole('textbox', { name: 'A note for Ines Duarte' })
       .pressSequentially('Which page says 340?')

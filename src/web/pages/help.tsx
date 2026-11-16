@@ -107,10 +107,10 @@ function AnswerLines({ q }: { q: string }) {
   if (!rows.length) return null
   return (
     <FrameSection
-      title="What an answer line means"
+      title="What an answer label means"
       description="Every answer, in Ask and in your own agent, starts with one of these."
     >
-      <div className="border-t" role="table" aria-label="Answer lines">
+      <div className="border-t" role="table" aria-label="Answer labels">
         <div
           role="row"
           className="hidden grid-cols-(--cols-help) gap-x-6 border-b bg-band px-5 py-2 text-xs text-muted-foreground md:grid"
@@ -292,8 +292,8 @@ export function HelpPage() {
             <Nothing q={q} onTry={(t) => (setQ(t), setQuery({ q: t }))} />
           ) : (
             <Frame>
-              <AnswerLines q={q} />
               <Words q={q} />
+              <AnswerLines q={q} />
               <HowAgentsUseIt q={q} />
               {q ? (
                 <FrameFooter className="justify-between">

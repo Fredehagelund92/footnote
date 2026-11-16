@@ -17,7 +17,9 @@ test('what is missing is an analysis in sections, never a count of what is there
   page,
 }) => {
   await ask(page, 'what definitions are missing?')
-  await expect(page.getByText('Counted from the workspace')).toBeVisible()
+  await expect(
+    page.getByText("From the app's own list of what was written and changed."),
+  ).toBeVisible()
   await expect(
     page.getByRole('heading', { name: /^No context written: \d+ of 22 metrics$/ }),
   ).toBeVisible()
@@ -54,8 +56,22 @@ test('what Ask cannot do it says, with what it can show', async ({ page }) => {
   await ask(page, 'draft context for Orders in Spain')
   await expect(page.getByRole('link', { name: 'Write context' })).toBeVisible()
   await ask(page, 'which market is growing fastest?')
+  await expect(page.getByText(/^Ask does not hold the figures, only what is written/)).toBeVisible()
+  // Every refusal ends with something to press.
+  await page.getByRole('button', { name: 'What changed this week?' }).click()
   await expect(
-    page.getByText(/^Heed keeps no numbers, so Ask cannot work this out\. An agent/),
+    page.getByText("From the app's own list of what was written and changed."),
+  ).toBeVisible()
+})
+
+test('a refusal about one person ends with questions to press', async ({ page }) => {
+  await ask(page, 'how many definitions did Ines Duarte change?')
+  await expect(
+    page.getByText("Ask does not answer questions about one person's work."),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'What changed this week?' }).click()
+  await expect(
+    page.getByText("From the app's own list of what was written and changed."),
   ).toBeVisible()
 })
 

@@ -56,6 +56,7 @@ import {
   type HeedApiMethod,
   type Relation,
   type Session,
+  type UndoOffer,
 } from './client'
 import { answeredAs, ApiError, toApiError } from './errors'
 import {
@@ -259,6 +260,7 @@ export const wiredMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'tellOwner',
   'observabilityPage',
   'obsDimensions',
   'obsValues',
@@ -282,7 +284,7 @@ export const wiredMethods = [
 const emptyHits = () => ({ items: [], definitions: [], domains: [], people: [] })
 
 const notAvailable = (method: string) => () =>
-  Promise.reject(new ApiError('not-available', `The service doesn't offer this yet (${method}).`))
+  Promise.reject(new ApiError('not-available', `The app doesn't offer this yet (${method}).`))
 
 /** The service refused a change for its token: a newer session has a new one. */
 const csrfRefused = (error: unknown) =>
@@ -664,7 +666,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
   }
 
   /** A change to many terms: its Undo, or why none of them changed. */
-  const undoOf = (done: { undo: string | null; skipped: { message: string }[] }) => {
+  const undoOf = (done: { undo: UndoOffer | null; skipped: { message: string }[] }) => {
     if (!done.undo)
       throw new ApiError('conflict', done.skipped[0]?.message ?? 'None of them could be changed.')
     return { undo: done.undo }
@@ -1018,6 +1020,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       else if (event.type === 'answer')
         tell({ type: 'answer', answer: answerOf(event.answer, words, names, extra) })
       else if (event.type === 'sentence') tell({ type: 'sentence', text: event.text })
+      else if (event.type === 'words') tell({ type: 'words', words: event.turn })
     }
     try {
       // A follow-up carries the chat's last turns; a question scoped with @ is read as scoped.
@@ -1039,6 +1042,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       const failure = toApiError(error)
       // Nothing is shared with agents yet: no context, so nothing applies.
       if (failure.status === 412) return { ...nothingLiveAnswer(words), ...extra }
+      // Offline nothing was checked at all: the chat says so, with Ask again, not that a check failed.
+      if (failure.kind === 'unanswered' && !navigator.onLine) throw failure
       // The check could not run: Not checked, which is not the same as nothing written down.
       if (failure.kind === 'failed' || failure.kind === 'unanswered')
         return { ...failedAnswer(words), ...extra }
@@ -1073,12 +1078,15 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     return area.ownerIds
   }
 
-  /** What Undo puts back after a removal or a revoked invite, by its token. */
+  /**
+   * What Undo puts back after a removal, a revoked invite or a published gap draft and its saved
+   * question, by its token: until the end of the window the calls it makes are taken in, if any.
+   */
   const peopleUndos = new Map<string, () => Promise<unknown>>()
-  const rememberUndo = (work: () => Promise<unknown>) => {
+  const rememberUndo = (work: () => Promise<unknown>, until: string | null = null): UndoOffer => {
     const token = `people:${randomKey()}`
     peopleUndos.set(token, work)
-    return token
+    return { token, until }
   }
 
   /* ---------- figures in Ask ---------- */
@@ -1511,7 +1519,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       return {
         done: done.done,
         failed: [...done.failed, ...done.skipped].map((r) => r.id),
-        undo: done.undo ?? '',
+        undo: done.undo ?? { token: '', until: null },
       }
     },
     // Owners publish in one step; a suggestion waits for them, on the item and in the Inbox.
@@ -1721,13 +1729,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       if (!saved) return done
       return {
         undo: rememberUndo(async () => {
-          const token = saved.undo
+          const token = saved.undo.token
           await write('decisions.undo', { token }, (o) => client.decisions.undo({ token }, o))
-          await write('decisions.undo', { token: done.undo }, (o) =>
-            client.decisions.undo({ token: done.undo }, o),
+          await write('decisions.undo', { token: done.undo.token }, (o) =>
+            client.decisions.undo({ token: done.undo.token }, o),
           )
           refs.clear()
-        }),
+        }, done.undo.until),
       }
     },
     archiveReview: ({ id }) => publish(id),
@@ -2215,6 +2223,29 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       const sent = await write('reports.create', input, (o) => client.reports.create(input, o))
       return { id: sent.id }
     },
+    tellOwner: async ({ about, dates }) => {
+      const metrics = about.filter((id) => id.startsWith('metric:'))
+      const values = new Map<string, string[]>()
+      for (const id of about)
+        if (id.startsWith('value:')) {
+          const value = id.slice('value:'.length)
+          const dimension = `dim:${value.split('/')[0]}`
+          values.set(dimension, [...(values.get(dimension) ?? []), `val:${value}`])
+        }
+      // The days as the answer read them; with none named, the service reads today.
+      const days = daysOfDates(dates, localDay(new Date()))
+      const input = {
+        type: 'missing' as const,
+        ...(metrics.length ? { metrics } : {}),
+        ...(values.size
+          ? {
+              dimension_filters: [...values].map(([dimension, v]) => ({ dimension, values: v })),
+            }
+          : {}),
+        ...(days ? { window: days } : {}),
+      }
+      return write('gaps.report', input, (o) => client.gaps.report(input, o))
+    },
     getMyReports: async () => {
       const now = new Date()
       return (await read(() => client.reports.mine())).reports.map((r) => ({
@@ -2367,7 +2398,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     setAlertThreshold: async ({ id, value }) => {
       const threshold = thresholdOfWords(id, value)
       if (threshold === null)
-        throw new ApiError('invalid', "This rule's sentence doesn't offer that threshold.")
+        throw new ApiError('invalid', "This rule's sentence doesn't offer that level.")
       const input = { rule: id, threshold }
       await write('alerts.setRule', input, (o) => client.alerts.setRule(input, o))
     },

@@ -1,4 +1,4 @@
-import type { LookupEvent } from '@contract/answer'
+import type { LookupEvent, LoopTurn } from '@contract/answer'
 import type { Answer } from './ask'
 
 // One question and its answer in Ask's chat, as the look-up's events arrive (docs/product.md,
@@ -21,6 +21,8 @@ export type AskEvent =
   | { type: 'sentence'; text: string }
   /** Ask's loop: each read so far, by code, and the nouns they named. */
   | { type: 'reads'; reads: LoopReads }
+  /** Ask's loop: its answer so far, the sentences that passed the check; null takes them back. */
+  | { type: 'words'; words: LoopTurn | null }
 
 /** What Ask's loop has read so far in a turn: each read's step, and the nouns its chips draw. */
 export type LoopReads = Required<
@@ -50,6 +52,8 @@ export type Turn = {
   sentences: string[]
   /** What Ask's loop has read so far, while it reads. */
   reads?: LoopReads
+  /** Ask's loop's answer so far, while it writes: drawn as the finished answer will be. */
+  words?: LoopTurn | null
 }
 
 /** A question just sent: it shows at once, looking up. */
@@ -91,6 +95,17 @@ export const doneTurn = (answer: Answer): Turn => ({
   working: null,
   sentences: [],
 })
+
+/**
+ * What a question that got no answer says in the thread. Offline it says that, and what to do; online
+ * it says why after the colon, an ordinary capitalised first word lower-cased and an acronym not.
+ */
+export function unansweredIn(message: string, online: boolean): string {
+  if (!online) return "You're offline. Ask again when you're back."
+  const reason = message.trim().replace(/[.!?]+$/, '') || "The app didn't reply"
+  const ordinary = /^[A-Z][a-z]/.test(reason)
+  return `Couldn't get an answer: ${ordinary ? reason.charAt(0).toLowerCase() : reason.charAt(0)}${reason.slice(1)}.`
+}
 
 /** Whether the turn is still on its way: neither done, stopped nor failed. */
 export const isLive = (turn: Turn) => turn.stage !== 'done' && !turn.stopped && !turn.error
@@ -138,6 +153,8 @@ export function turnReducer(turn: Turn, action: TurnAction): Turn {
       return { ...turn, stage: 'writing', sentences: [...turn.sentences, action.text] }
     case 'reads':
       return { ...turn, reads: action.reads }
+    case 'words':
+      return { ...turn, stage: action.words ? 'writing' : 'reading', words: action.words }
     case 'done':
       return {
         ...turn,

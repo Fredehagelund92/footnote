@@ -19,6 +19,7 @@ import type { Queryable } from '../../db/database.ts'
 import { forReader } from '../library/index.ts'
 import { checkDraft } from './checks.ts'
 import { insertVersion } from './versions.ts'
+import { missing, notAllowed } from '../../../contract/refusals.ts'
 
 const fields = `id::text,number::float8,subject,action,state,area_id as "areaId",item_id as "itemId",
  vocab_version_id::text as "vocabularyVersionId",reason,
@@ -86,7 +87,7 @@ export function changeReason(text: string | null | undefined, action: ProposalRe
   if (reason === null) return null
   if (action !== 'change')
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
-      message: 'Only a suggested change says what is wrong with a fact.',
+      message: 'Only a suggestion says what is wrong with a context item.',
     })
   rejectSensitive(reason)
   rejectMentions(reason)
@@ -163,19 +164,19 @@ function proposalsService(
       `select ${fields} from proposals where id=$1 and discarded_at is null${lock ? ' for update' : ''}`,
       [id],
     )
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     return record(row)
   }
   async function getItem(id: string, lock = false) {
     const p = await get(id, lock)
     if (p.subject !== 'item' || !['create', 'change'].includes(p.action) || !p.areaId)
-      throw new ORPCError('NOT_FOUND')
+      throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     return { ...p, areaId: p.areaId }
   }
   function conflict(proposal: ProposalRecord): never {
     throw new ORPCError('CONFLICT', {
       message:
-        'Someone changed this proposal after you opened it. Look at the latest version, then try again.',
+        'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
       data: { current: proposal },
     })
   }
@@ -185,7 +186,10 @@ function proposalsService(
     return proposal
   }
   function proposerOnly(p: ProposalRecord) {
-    if (p.proposerId !== personId) throw new ORPCError('FORBIDDEN')
+    if (p.proposerId !== personId)
+      throw new ORPCError('FORBIDDEN', {
+        message: notAllowed('change a suggestion someone else wrote', 'the person who wrote it'),
+      })
   }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
     await tx.query(
@@ -365,7 +369,7 @@ function proposalsService(
       where s.item_id=$1 and s.editions @> (select seq from live_edition) and cl_audience_allows(v.audience_groups)`,
       [id],
     )
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
     // The new draft starts from what the person may read of the item: not a link to a hidden one.
     const [draft] = await forReader(tx, [row.draft])
     return draft!
@@ -382,11 +386,11 @@ function proposalsService(
       proposerOnly(prior)
       if (prior.state !== 'rejected')
         throw new ORPCError('CONFLICT', {
-          message: 'You can start a new draft only from a rejected proposal.',
+          message: 'You can start a new draft only from a rejected suggestion.',
         })
       if (input.itemId && (prior.action !== 'change' || input.itemId !== prior.itemId))
         throw new ORPCError('CONFLICT', {
-          message: 'That proposal is about a different fact.',
+          message: 'That suggestion is about a different context item.',
         })
       itemId = prior.action === 'change' ? (prior.itemId ?? undefined) : undefined
       source = prior.draft
@@ -500,7 +504,7 @@ function proposalsService(
       proposerOnly(p)
       if (!['draft', 'changes_requested'].includes(p.state))
         throw new ORPCError('CONFLICT', {
-          message: 'You can only edit a draft, or a proposal sent back for changes.',
+          message: 'You can only edit a draft, or a suggestion sent back for changes.',
         })
       const draft = await defaults(input, p.areaId, p.draft.scope)
       rejectSensitive(draft)
@@ -528,7 +532,7 @@ function proposalsService(
       proposerOnly(p)
       if (!['draft', 'changes_requested'].includes(p.state))
         throw new ORPCError('CONFLICT', {
-          message: 'Only a draft, or a proposal sent back for changes, can be sent for review.',
+          message: 'Only a draft, or a suggestion sent back for changes, can be sent for review.',
         })
       // Match edition_lock's key without granting write privileges on the live pointer.
       await tx.query(
@@ -560,11 +564,11 @@ function proposalsService(
         )
         // A resubmitted create has no live version yet. A change may change the kind (FR-139).
         if (p.action === 'change' && !rescue && !base)
-          throw new ORPCError('CONFLICT', { message: 'The accepted fact is gone.' })
+          throw new ORPCError('CONFLICT', { message: 'The published context item is gone.' })
         if (rescue && base)
           throw new ORPCError('CONFLICT', {
             message:
-              'Agents get this fact again since it was restored, so this proposal is out of date.',
+              'Agents get this context item again since it was restored, so this suggestion is out of date.',
           })
         // A change sent again hangs on the version agents get now, not on its last one: a check
         // or another publish since then would otherwise leave it unpublishable for good.
@@ -606,7 +610,10 @@ function proposalsService(
           : await current(id, revision)
       proposerOnly(p)
       if (!['submitted', 'in_review', 'changes_requested'].includes(p.state))
-        throw new ORPCError('CONFLICT')
+        throw new ORPCError('CONFLICT', {
+          message:
+            'This suggestion was decided already. Nothing was changed. Open it to see what happened.',
+        })
       rejectSensitive(reason)
       rejectMentions(reason)
       await tx.query(
@@ -633,11 +640,13 @@ function proposalsService(
           'select cl_is_admin_now() or ($2 and cl_is_owner_now($1)) as ok',
           [p.areaId, byDomainOwners],
         )
-        if (!may?.ok) throw new ORPCError('FORBIDDEN')
+        if (!may?.ok)
+          throw new ORPCError('FORBIDDEN', { message: notAllowed('decide this suggestion') })
       }
       if (p.state !== 'draft')
         throw new ORPCError('CONFLICT', {
-          message: 'Only a draft can be discarded. To take back a proposal you sent, withdraw it.',
+          message:
+            'Only a draft can be discarded. To take back a suggestion you sent, withdraw it.',
         })
       const [discarded] = await tx.query<{ revision: number; discardedAt: string }>(
         'update proposals set discarded_at=now() where id=$1 returning revision,discarded_at::text as "discardedAt"',

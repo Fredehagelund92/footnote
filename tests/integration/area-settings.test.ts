@@ -164,6 +164,34 @@ describe('areas from settings', () => {
     }
   })
 
+  it('keeps a deletion record that history names, once, with nothing in it to restore', async () => {
+    const made = { ...payments, id: 'payments_gone', name: 'Payments gone' }
+    await ok('POST', '/areas', 'admin', made)
+    // Feedback about the domain is history that names it, so deleting keeps it as history.
+    await client.query(
+      "insert into feedback (verdict, client_label, area_id) values ('helpful', 'claude-code', 'payments_gone')",
+    )
+    const removed = await ok<{ outcome: string }>(
+      'POST',
+      '/areas/payments_gone/delete',
+      'admin',
+      {},
+    )
+    expect(removed.outcome).toBe('archived')
+    const record = await client.query<{ columns: string[] }>(
+      `select array(select column_name::text from information_schema.columns
+                     where table_name = 'area_deletions' and column_name like 'restored%') as columns`,
+    )
+    expect(record.rows[0]!.columns).toEqual([])
+    await expect(
+      client.query("update area_deletions set reason = 'later' where area_id = 'payments_gone'"),
+    ).rejects.toMatchObject({ code: '23001' })
+    const listed = await ok<{ id: string; name: string }[]>('GET', '/archived-areas', 'admin')
+    const gone = listed.find((a) => a.id === 'payments_gone')
+    expect(gone?.name).toBe('Payments gone')
+    expect(Object.keys(gone!).sort()).toEqual(['archivedAt', 'id', 'label', 'name', 'summary'])
+  })
+
   it('refuses invalid input, sensitive reasons and anyone but an administrator', async () => {
     const before = await audit('area.created')
     const fresh = { ...payments, id: 'payments_new', name: 'Payments new' }

@@ -24,9 +24,8 @@ app reads, described once in `src/contract` (oRPC, published as OpenAPI). See
 
 The screens and the help pages name things as people say them. The code, the API, the database
 and the specification keep their own words. [src/domain/words.ts](../src/domain/words.ts) maps one
-to the other, and [docs/design/copy.md](design/copy.md) says how to write; the service's own
-sentences still follow the earlier glossary ([src/domain/words-v1.ts](../src/domain/words-v1.ts),
-[docs/design/voice.md](design/voice.md)). The ones you meet most:
+to the other, and [docs/design/copy.md](design/copy.md) says how to write, in the web app and in
+the service's own sentences. The ones you meet most:
 
 | On screen       | In code and the specification |
 | --------------- | ----------------------------- |
@@ -242,38 +241,38 @@ belongs to both sides. The service lives in `src/server`, next to `src/web`, wit
 
 ## Commands
 
-| Command                                   | What it does                                                                                                                                                                                                                          |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                             | The web app at http://localhost:5173, on its mock binding.                                                                                                                                                                            |
-| `npm run dev:http`                        | The web app in http mode: it reads the Heed service through `/api/v1` instead of the mock.                                                                                                                                            |
-| `npm run dev:server`                      | The service at http://127.0.0.1:3000, restarted on change. Loads `.env.local` if it exists.                                                                                                                                           |
-| `npm run api:generate`                    | Rewrites `docs/api/openapi.json` and `src/web/api/contract.json` from `src/contract`                                                                                                                                                  |
-| `npm run heed -- <command>`               | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                                               |
-| `npm run db:new-migration -- <name>`      | Adds the next numbered migration in `db/migrations`, empty, and names it in `db/migrations/latest.txt`; `npm run db:renumber` moves your branch's migrations after `main`'s after a rebase                                            |
-| `npm run db:migrate`                      | Gets the database ready: roles and database when missing, migrations, grants, and the demo with `SEED_DEMO=on` (see [Run the service locally](operations.md#run-the-service-locally))                                                 |
-| `npm run seed`                            | Loads the demo into an empty local database by hand; `-- --items-only` and `--library golden` are the variants the tests use (see [db/README.md](../db/README.md))                                                                    |
-| `npm run eval -- --area <id>`             | Runs a domain's test questions on the live edition now, with the mock model; `--real` needs a key and `--max-cost-usd`; `--resume <run id>` makes what an incomplete run is missing                                                   |
-| `npm run eval:ask-words`                  | Runs the cases of Ask's words on the scripted mock model; `--real` uses `models.assistant` and needs a key and `--max-cost-usd`                                                                                                       |
-| `npm run eval:ask-plan`                   | Runs the cases of Ask's planner on the scripted planner; `--real` uses `models.assistant` for the plans and their words, and needs a key and `--max-cost-usd`                                                                         |
-| `npm run eval:ask-gate`                   | Scores Ask's promises (FR-720) against the release gate on the scripted planner; `--real` uses `models.assistant` and needs a key and `--max-cost-usd`, and `--record` keeps its plans                                                |
-| `npm run db:restore-drill`                | Backs up the local database with pg_dump, restores it into a scratch database and proves it identical (see below)                                                                                                                     |
-| `npm run db:snapshot`                     | The demo as a file, for a database without a superuser such as Neon: `take`, `restore` and `reset` (see [Run the demo on Vercel and Neon](vercel.md))                                                                                 |
-| `npm run start:server`                    | The service without the file watcher                                                                                                                                                                                                  |
-| `npm run build` / `npm run preview`       | Type check, then a production build of the web app in `dist/web` (`VITE_API_MODE=http` for the build that ships) / serve that build at http://localhost:4173                                                                          |
-| `npm run site:dev` / `npm run site:build` | The public docs site (`apps/docs`, after `npm --prefix apps/docs ci`) at http://localhost:4321 / built in `apps/docs/dist`, with every link checked                                                                                   |
-| `npm run build:vercel`                    | The web app is built and the service is bundled into one file (only the service goes into that file), for Vercel (see [Run the demo on Vercel and Neon](vercel.md))                                                                   |
-| `npm run size`                            | Builds the web app as it ships (http mode) and checks its first load against the budget, with the bytes, the budget and the margin; `node scripts/check-bundle-size.mjs` checks the build already in `dist/web`                       |
-| `npm run typecheck`                       | `tsc` for the app, the service, and the config and test code                                                                                                                                                                          |
-| `npm run lint`                            | ESLint, then Stylelint                                                                                                                                                                                                                |
-| `npm run lint:words`                      | Checks the words and the shape of the copy against `plain-words.baseline.json` and `copy-checks.baseline.json`: a rise fails, a fall is a note (`-- --list` prints them, `-- --update` cuts); see [copy](design/copy.md#5-the-checks) |
-| `npm run copy:report`                     | A note on the files you changed since `origin/main`: reading level, sentences over 20 words, new glossary terms. Never a gate                                                                                                         |
-| `npm run format` / `npm run format:check` | Prettier                                                                                                                                                                                                                              |
-| `npm test`                                | Vitest: the app's units, the service's tests and the guard rail tests                                                                                                                                                                 |
-| `npm run test:integration`                | Vitest: the service against PostgreSQL 18 (`TEST_DATABASE_URL`)                                                                                                                                                                       |
-| `npm run test:e2e`                        | Playwright: the golden job specs (`tests/e2e`) against a production build on the mock binding, the motion journey also with reduced motion, and axe on every place at 390 and 1440 in light and dark                                  |
-| `npm run test:e2e:golden-http`            | Playwright: the golden job specs whose screens are wired (all but the list in its config), on an http mode build against the service and the demo week (needs PostgreSQL 18, `GOLDEN_DATABASE_URL`)                                   |
-| `npm run test:e2e:seed`                   | Playwright: the web app on the demo install (needs a database `npm run db:migrate` prepared with `SEED_DEMO=on`, `E2E_DATABASE_URL`)                                                                                                  |
-| `npm run check`                           | typecheck, lint, format check and unit tests                                                                                                                                                                                          |
+| Command                                   | What it does                                                                                                                                                                                                    |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                             | The web app at http://localhost:5173, on its mock binding.                                                                                                                                                      |
+| `npm run dev:http`                        | The web app in http mode: it reads the Heed service through `/api/v1` instead of the mock.                                                                                                                      |
+| `npm run dev:server`                      | The service at http://127.0.0.1:3000, restarted on change. Loads `.env.local` if it exists.                                                                                                                     |
+| `npm run api:generate`                    | Rewrites `docs/api/openapi.json` and `src/web/api/contract.json` from `src/contract`                                                                                                                            |
+| `npm run heed -- <command>`               | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                         |
+| `npm run db:new-migration -- <name>`      | Adds the next numbered migration in `db/migrations`, empty, and names it in `db/migrations/latest.txt`; `npm run db:renumber` moves your branch's migrations after `main`'s after a rebase                      |
+| `npm run db:migrate`                      | Gets the database ready: roles and database when missing, migrations, grants, and the demo with `SEED_DEMO=on` (see [Run the service locally](operations.md#run-the-service-locally))                           |
+| `npm run seed`                            | Loads the demo into an empty local database by hand; `-- --items-only` and `--library golden` are the variants the tests use (see [db/README.md](../db/README.md))                                              |
+| `npm run eval -- --area <id>`             | Runs a domain's test questions on the live edition now, with the mock model; `--real` needs a key and `--max-cost-usd`; `--resume <run id>` makes what an incomplete run is missing                             |
+| `npm run eval:ask-words`                  | Runs the cases of Ask's words on the scripted mock model; `--real` uses `models.assistant` and needs a key and `--max-cost-usd`                                                                                 |
+| `npm run eval:ask-plan`                   | Runs the cases of Ask's planner on the scripted planner; `--real` uses `models.assistant` for the plans and their words, and needs a key and `--max-cost-usd`                                                   |
+| `npm run eval:ask-gate`                   | Scores Ask's promises (FR-720) against the release gate on the scripted planner; `--real` uses `models.assistant` and needs a key and `--max-cost-usd`, and `--record` keeps its plans                          |
+| `npm run db:restore-drill`                | Backs up the local database with pg_dump, restores it into a scratch database and proves it identical (see below)                                                                                               |
+| `npm run db:snapshot`                     | The demo as a file, for a database without a superuser such as Neon: `take`, `restore` and `reset` (see [Run the demo on Vercel and Neon](vercel.md))                                                           |
+| `npm run start:server`                    | The service without the file watcher                                                                                                                                                                            |
+| `npm run build` / `npm run preview`       | Type check, then a production build of the web app in `dist/web` (`VITE_API_MODE=http` for the build that ships) / serve that build at http://localhost:4173                                                    |
+| `npm run site:dev` / `npm run site:build` | The public docs site (`apps/docs`, after `npm --prefix apps/docs ci`) at http://localhost:4321 / built in `apps/docs/dist`, with every link checked                                                             |
+| `npm run build:vercel`                    | The web app is built and the service is bundled into one file (only the service goes into that file), for Vercel (see [Run the demo on Vercel and Neon](vercel.md))                                             |
+| `npm run size`                            | Builds the web app as it ships (http mode) and checks its first load against the budget, with the bytes, the budget and the margin; `node scripts/check-bundle-size.mjs` checks the build already in `dist/web` |
+| `npm run typecheck`                       | `tsc` for the app, the service, and the config and test code                                                                                                                                                    |
+| `npm run lint`                            | ESLint, then Stylelint                                                                                                                                                                                          |
+| `npm run lint:words`                      | Checks the words and the shape of the copy against `copy-checks.baseline.json`: a rise fails, a fall is a note (`-- --list` prints them, `-- --update` cuts); see [copy](design/copy.md#5-the-checks)           |
+| `npm run copy:report`                     | A note on the files you changed since `origin/main`: reading level, sentences over 20 words, new glossary terms. Never a gate                                                                                   |
+| `npm run format` / `npm run format:check` | Prettier                                                                                                                                                                                                        |
+| `npm test`                                | Vitest: the app's units, the service's tests and the guard rail tests                                                                                                                                           |
+| `npm run test:integration`                | Vitest: the service against PostgreSQL 18 (`TEST_DATABASE_URL`)                                                                                                                                                 |
+| `npm run test:e2e`                        | Playwright: the golden job specs (`tests/e2e`) against a production build on the mock binding, the motion journey also with reduced motion, and axe on every place at 390 and 1440 in light and dark            |
+| `npm run test:e2e:golden-http`            | Playwright: the golden job specs whose screens are wired (all but the list in its config), on an http mode build against the service and the demo week (needs PostgreSQL 18, `GOLDEN_DATABASE_URL`)             |
+| `npm run test:e2e:seed`                   | Playwright: the web app on the demo install (needs a database `npm run db:migrate` prepared with `SEED_DEMO=on`, `E2E_DATABASE_URL`)                                                                            |
+| `npm run check`                           | typecheck, lint, format check and unit tests                                                                                                                                                                    |
 
 ## Continuous integration
 
@@ -308,8 +307,8 @@ in `.github/scripts/ci-scope.sh`; a change there is itself Sensitive.
 The slow jobs run in parallel parts, each on its own runner (and its own database where it needs
 one): the checks in two jobs, the service tests in two parts, and the golden job specs in three
 parts on the mock build and four in http mode. Every job stops after 25 minutes at most, so a hung
-part fails instead of holding the run. The first load check writes the measured sizes, the budget
-and the margin to its job's summary page.
+part fails instead of holding the run. The first load check writes the measured sizes, the growth, the
+ceilings and the margins to its job's summary page.
 
 ### Migration numbers
 
@@ -325,13 +324,15 @@ it yourself with `node scripts/check-migration-numbers.ts origin/main`.
 
 A pull request is tested on the base it had when CI ran. Two pull requests that each pass on
 their own can still fail together on `main`: both take the next migration number, or each adds a
-little to the first load and together they pass its budget. So the rule on `main` merges a pull
+little to the first load and together they pass its ceiling. So the rule on `main` merges a pull
 request only when it is up to date with `main` and **CI gate** passed on that head: after another
 pull request merges, update the branch and let CI run again. The repository belongs to a personal
 account, where GitHub has no merge queue; the `merge_group` trigger in `ci.yml` waits for one.
 
-The first load budget (`scripts/check-bundle-size.mjs`) keeps about 3 percent of room over what
-CI measures, so ordinary changes fit. The automatic repairs of the pipeline that validates
+The first load budget (`scripts/check-bundle-size.mjs`) measures a pull request against its base:
+the unit job also builds the first parent of the commit under test, and the change may add at most
+1 KB of first load script over it. So a pull request that merges first moves the base for the
+others instead of failing them by a few bytes. A hard ceiling holds whatever the growth. The automatic repairs of the pipeline that validates
 changes before they are pushed (no-mistakes) may not edit the budget, the `package.json` files,
 the lockfiles or `db/migrations` (`protected_paths` in `.no-mistakes.yaml`): such a repair stops
 and reports instead, and the change goes in a pull request of its own that says why.
@@ -353,7 +354,6 @@ side, then run the command again.
 | `docs/api/openapi.json`, `src/web/api/contract.json` | `npm run api:generate`                            | `tests/server/api-contract.test.ts`         |
 | `src/web/lib/cn-tables.gen.ts`                       | `npm run cn:generate`                             | `tests/web/cn-tables.test.ts`               |
 | `src/web/routeTree.gen.ts`                           | the router plugin, on every build                 | the type check                              |
-| `plain-words.baseline.json`                          | `npm run lint:words -- --update`                  | `npm run lint:words`                        |
 | `copy-checks.baseline.json`                          | `npm run lint:words -- --update`                  | `npm run lint:words`                        |
 | `db/migrations/latest.txt`                           | `npm run db:new-migration`, `npm run db:renumber` | `tests/server/migration-files.test.ts`      |
 | `CHANGELOG.md`, and the version in `package.json`    | release-please, in the release pull request       | the version: `tests/server/version.test.ts` |

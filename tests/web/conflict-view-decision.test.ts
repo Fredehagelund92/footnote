@@ -175,7 +175,7 @@ describe('a conflict decision is made on what its box showed', () => {
       conflicts: () => Promise.resolve([row]),
       settleConflict: (input: { versions?: unknown }) => {
         sent.push(input)
-        return Promise.resolve({ decision, undo: 'tok_1' })
+        return Promise.resolve({ decision, undo: { token: 'tok_1', until: null } })
       },
     })
     // Jon read version 1 of both, and opens Keep this one on the first.
@@ -211,7 +211,7 @@ describe('a conflict decision is made on what its box showed', () => {
       conflicts: () => Promise.resolve([row]),
       settleConflict: (input: { versions?: unknown }) => {
         sent.push(input)
-        return Promise.resolve({ decision, undo: 'tok_2' })
+        return Promise.resolve({ decision, undo: { token: 'tok_2', until: null } })
       },
     })
     await click(button(document, 'Keep this one'))

@@ -42,9 +42,11 @@ import {
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
+import { landingOf, memberSections } from '@/lib/settings-access'
 
-// Settings, for admins: five sections under the settings navigation (General, Domains and owners,
-// Agents and access, Integrations, Advanced). No tabs anywhere.
+// Settings: six sections under the settings navigation (General, Domains and owners, People,
+// Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
+// also the domains and the people list. No tabs anywhere.
 
 /* ---------- Domains and owners ---------- */
 
@@ -114,7 +116,7 @@ function Domains() {
         >
           {ids.map((id) => {
             const items = facts.filter((f) => f.domain === id && servedToAgents(f))
-            const due = items.filter((f) => f.status === 'Needs checking').length
+            const due = items.filter((f) => f.status === 'Due for a check').length
             const terms = defs.filter((d) => d.domain === id).length
             return (
               <a
@@ -122,7 +124,7 @@ function Domains() {
                 role="listitem"
                 data-cell
                 href={`/settings/domains/${id}`}
-                className="group/cell flex min-h-36 flex-col gap-2 bg-background p-4 outline-none hover:bg-muted/40 focus-visible:z-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 @2xl/main:min-h-44"
+                className="group/cell flex min-h-36 flex-col gap-2 bg-background p-4 outline-none hover:bg-muted/40 focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:p-5 @2xl/main:min-h-44"
               >
                 <span className="flex items-center gap-2">
                   <DomainDot id={id} />
@@ -172,7 +174,7 @@ function Domains() {
             role="listitem"
             data-cell
             href="/settings/domains/new"
-            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset @2xl/main:min-h-44"
+            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
           >
             <PlusIcon aria-hidden className="size-5" />
             Add a domain
@@ -335,15 +337,15 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
   const checkChain = () =>
     void write('checkHistory', undefined).then(
       ({ whole, entries }) =>
-        toast(whole ? 'The chain is whole' : 'The chain is broken', {
+        toast(whole ? 'The log is whole' : 'The log is broken', {
           description:
             entries === null
               ? whole
-                ? 'Every entry checked.'
+                ? 'Every entry verified.'
                 : 'An entry was changed after the fact.'
-              : `${entries.toLocaleString('en')} entries checked.`,
+              : `${entries.toLocaleString('en')} entries verified.`,
         }),
-      failed('check the chain'),
+      failed('verify the log'),
     )
   const exported = (what: 'exportHistory' | 'exportContext') =>
     void write(what, undefined).then((file) => {
@@ -363,7 +365,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           <p>
             Each setting is kept in the database, and only an Admin can change one. The change
             applies at once, and the History log keeps who made it and why. About our business can
-            also be changed in General, and the Not found threshold in Observability, Alerts.
+            also be changed in General, and the Not found level in Observability, Alerts.
           </p>
           <Collapsible>
             <FoldTrigger variant="inline" label="For engineers" className="-ml-1 px-1 text-xs" />
@@ -378,8 +380,8 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           <p>
             Default means the value the app was installed with. Changed names who changed it last:
             an Admin, or, with no person, an update of the app or a script run on the database.
-            Whether a real model is called at all, and its key, are set by whoever runs the app,
-            where it runs, not here.
+            Whether a real model is called at all, and its key, are set by the person who hosts this
+            app, where it runs, not here.
           </p>
         </div>
         <SettingsTable groups={page.settings} />
@@ -393,7 +395,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
         action={
           <>
             <Button variant="outline" onClick={checkChain}>
-              Check the chain
+              Verify the log
             </Button>
             <Button variant="outline" onClick={() => exported('exportHistory')}>
               Export
@@ -459,7 +461,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Answer tests"
         level={3}
-        description="The heavy checks, with a real model. The free check of saved questions already runs after every change, in Observability, Quality."
+        description="Answer tests are saved questions, answered by a real AI model and then judged. The free run of saved questions already happens after every change, in Observability, Quality."
         collapsible
         defaultOpen={false}
       >
@@ -467,7 +469,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           rows={[
             {
               label: 'Needs a model key',
-              hint: "Answer tests only run with a real model, so a passed test always means something. Whoever runs the app turns real models on and adds the model provider's key where it runs.",
+              hint: "Answer tests only run with a real model, so a passed test always means something. The person who hosts this app turns real models on and adds the model provider's key where it runs.",
               value: <span className="text-xs text-muted-foreground">Not set here</span>,
             },
             {
@@ -590,9 +592,11 @@ export function SettingsPage({
   const admins = usePeople()
     .filter((p) => p.admin && p.name !== me.name)
     .map((p) => p.name)
-  const current = section && TITLES[section] ? section : me.admin ? 'general' : 'domains'
-  // Owners who aren't admins use two places here: their domains and the people list.
-  if (!me.admin && current !== 'domains' && current !== 'people')
+  const current =
+    section && TITLES[section] ? section : me.admin ? 'general' : landingOf(me.owns.length > 0)
+  // Someone who isn't an admin uses their agents here, and an owner also the domains and the
+  // people list.
+  if (!me.admin && !memberSections(me.owns.length > 0).includes(current))
     return (
       <Page title="Settings">
         <Empty>

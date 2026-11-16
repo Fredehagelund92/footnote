@@ -7,6 +7,7 @@ import type {
   SentReport,
 } from '../../../contract/reports.ts'
 import type { Queryable } from '../../db/database.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /*
   Named reports (FR-622; docs/product.md, section 9). A person sends one from Ask as themselves:
@@ -47,7 +48,7 @@ export function createReportsService(tx: Queryable) {
           order by lower(s.editions) desc limit 1`,
         [input.itemId],
       )
-      if (!item) throw new ORPCError('NOT_FOUND')
+      if (!item) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
       const figure = input.figure
       if (figure) {
         // A figure report names an integration that holds definitions; it says nothing more of it.
@@ -55,7 +56,7 @@ export function createReportsService(tx: Queryable) {
           `select id from connectors where id = $1 and kind = 'definition_source'`,
           [figure.source],
         )
-        if (!source) throw new ORPCError('NOT_FOUND')
+        if (!source) throw new ORPCError('NOT_FOUND', { message: missing('this source') })
         if (figure.from > figure.to)
           throw new ORPCError('BAD_REQUEST', { message: 'The last day comes after the first.' })
       }

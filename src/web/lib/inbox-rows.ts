@@ -22,10 +22,10 @@ export const rowTitle = (r: InboxRow) =>
  * (a mention of you, then suggestions), then what agents couldn't answer, and the upkeep.
  */
 export const INBOX_GROUPS = [
-  { id: 'names', label: 'Names' },
+  { id: 'names', label: 'New metrics and dimensions' },
   { id: 'mention', label: 'Mentioned you' },
   { id: 'suggestion', label: 'Suggestions' },
-  { id: 'gap', label: 'Not found' },
+  { id: 'gap', label: 'Nothing written yet' },
   { id: 'flag', label: 'Reported' },
   { id: 'look', label: 'Saved questions' },
   { id: 'alert', label: 'Alerts' },

@@ -1,13 +1,13 @@
 import type { Fact } from '@/model/items'
+import { dayMonth, dayMonthYear, dayNumber, parseDay } from './dates'
 import { todayMs } from './today'
 
 // When a context item holds and how fresh its check is, in the fixed vocabulary of the
 // list columns' design B: five time frames (Always, Ongoing, Since X, Until X, X to Y),
 // a short date for each, and one freshness level for the dot: fresh up to 30 days, ageing up to
-// 90, overdue after that or when a definition changed.
+// 90, due for a check after that or when a definition changed.
 
 const DAY = 86400000
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export type TimeFrame = {
   t: 'always' | 'ongoing' | 'since' | 'until' | 'range'
@@ -17,12 +17,7 @@ export type TimeFrame = {
 
 /** "4 Aug 2026", "4 August 2026" or "4 Aug" (with a year to fall back on) as a UTC day. */
 function day(s: string, year?: number): number | undefined {
-  const m = s.trim().match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s*(\d{4})?$/)
-  if (!m) return undefined
-  const name = m[2]!
-  const mon = MON.indexOf(name[0]!.toUpperCase() + name.slice(1, 3).toLowerCase())
-  const y = m[3] ? Number(m[3]) : year
-  return mon < 0 || !y ? undefined : Date.UTC(y, mon, Number(m[1]))
+  return parseDay(s, year) ?? undefined
 }
 
 /** Reads the free text the editor writes ("From 4 Aug 2026, still going on", "12 to 19 May 2026"). */
@@ -50,9 +45,9 @@ export function parseWhen(when: string): TimeFrame {
   return { t: 'ongoing' }
 }
 
-const dm = (t: number) => `${new Date(t).getUTCDate()} ${MON[new Date(t).getUTCMonth()]}`
+const dm = (t: number) => dayMonth(t, { utc: true })
 const yr = (t: number) => new Date(t).getUTCFullYear()
-const dmy = (t: number) => `${dm(t)} ${yr(t)}`
+const dmy = (t: number) => dayMonthYear(t, { utc: true })
 
 /** The short phrase: Always, Ongoing, Since 4 Aug 2026, Until 19 Jan 2026, 12–19 May 2026. */
 export function timeShort(t: TimeFrame) {
@@ -64,7 +59,7 @@ export function timeShort(t: TimeFrame) {
   const a = new Date(t.from)
   const b = new Date(t.to)
   if (yr(t.from) === yr(t.to) && a.getUTCMonth() === b.getUTCMonth())
-    return `${a.getUTCDate()}–${dmy(t.to)}`
+    return `${dayNumber(t.from, { utc: true })}–${dmy(t.to)}`
   if (yr(t.from) === yr(t.to)) return `${dm(t.from)} – ${dmy(t.to)}`
   return `${dmy(t.from)} – ${dmy(t.to)}`
 }
@@ -92,7 +87,7 @@ export function inForce(t: TimeFrame) {
 }
 export const timeNow = (t: TimeFrame) =>
   inForce(t)
-    ? 'In force now'
+    ? 'Applies today'
     : t.t === 'since' && t.from && t.from > todayMs()
       ? `Starts ${dmy(t.from)}`
       : 'Over'
@@ -108,7 +103,7 @@ export function trustOf(f: Fact): Trust {
   if (f.status === 'Archived') return 'retired'
   // Due is what the service says: a check date passed or a source changed, never an age, and an
   // item never checked is still due.
-  if (f.status === 'Needs checking') return 'due'
+  if (f.status === 'Due for a check') return 'due'
   const age = ageDays(f.checkedOn)
   if (age === undefined) return 'draft'
   return age > 30 ? 'ageing' : 'fresh'
@@ -124,7 +119,7 @@ export function checkedTip(f: Fact) {
     `Checked ${f.checkedOn} by ${f.checkedBy}${age !== undefined ? `, ${age} days ago` : ''}`,
   ]
   if (trust === 'retired') lines.push('No longer checked')
-  else if (trust === 'due') lines.push(f.outOfDate ?? 'Its check is due')
+  else if (trust === 'due') lines.push(f.outOfDate ?? 'Due for a check')
   else if (trust === 'ageing') lines.push('Its check date has not passed')
   else lines.push('Checked in the last 30 days')
   return lines.join('. ') + '.'

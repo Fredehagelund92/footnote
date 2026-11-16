@@ -23,7 +23,7 @@ import {
   PeekTitle,
 } from '@/components/heed/peek'
 import { Button } from '@/components/ui/button'
-import { cubeRef, kindName, sourceUrl, SYNCED_AT, useGlossary } from '@/lib/definitions'
+import { cubeRef, kindName, sourceUrl, useGlossary } from '@/lib/definitions'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -122,7 +122,7 @@ export function DefinitionPeek({ name }: { name: string }) {
                   variant="outline"
                   onClick={() => navigate(`/definitions/${encodeURIComponent(word.name)}`)}
                 >
-                  Resolve
+                  Choose what to do
                 </Button>
               }
             >
@@ -134,7 +134,7 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekFacts>
             {d.synced ? (
               <PeekFact icon={LockIcon}>
-                <b>{domain}</b> - read-only, synced from {d.tool ?? 'its tool'} {SYNCED_AT} -{' '}
+                <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} -{' '}
                 <a
                   href={sourceUrl(d)}
                   target="_blank"
@@ -153,7 +153,7 @@ export function DefinitionPeek({ name }: { name: string }) {
           </PeekFacts>
         </PeekBand>
         {!d.sameAs && (
-          <PeekBand label="Also called">
+          <PeekBand label="Another name">
             <SynonymTags d={d} canEdit={canEdit} />
           </PeekBand>
         )}
@@ -222,7 +222,7 @@ export function DefinitionPeek({ name }: { name: string }) {
                   openDock('ask', undefined, {
                     q:
                       subject.type === 'dimension'
-                        ? `How did orders change by ${subject.name.toLowerCase()} last month?`
+                        ? `How did orders change by "${subject.name}" last month?`
                         : `How did ${subject.name} change last month?`,
                   })
                 }

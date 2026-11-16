@@ -412,6 +412,8 @@ items and conflicts, its content unchanged, even when the owner wrote the sugges
 (`proposals_guard_state`, migration 0006).
 
 The person who made a decision may undo it within `limits.undo_seconds` (migration 0006).
+`cl_undo_until(at)` is that window, and every row policy and guard that holds it reads it
+(migration 0055); so does the service, to tell the screens until when Undo is offered.
 `decision_undos` keeps one row per undone decision, by its maker as themselves inside the window
 (row security), and the `decision_undone` edition that served again what the decision changed;
 rows never change. An item leaves service in that edition only when it records an undo
@@ -520,7 +522,8 @@ tables.
 Conflicts (migration 0035). `conflict_decisions` keeps each decision on a conflict between two
 items (FR-220): who settled it and when, the outcome (one kept and the other archived, both kept,
 or not a conflict), the reason and an optional quoted line, the versions both items had, and the
-retire and accept decisions it made, so Undo, by the person who decided, takes back exactly those.
+retire and accept decisions it made, so Undo, by the person who decided, once, inside
+`limits.undo_seconds` (row security, migration 0055), takes back exactly those.
 What it changes goes through the retire and publish paths; the row only records it. Anyone signed in
 who may read both items reads a decision; a person writes only their own. `cl_conflicts_kept()`,
 which runs as the owner, gives the alert job the pairs kept as both with the versions the decision

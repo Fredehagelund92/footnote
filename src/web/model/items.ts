@@ -1,5 +1,6 @@
 import type { TermDomainSource } from '@domain/catalogue'
 import type { CheckFlag, ItemKind, ItemStatus } from '@domain/item'
+import { kinds } from '@domain/words'
 import { whenLabel, type Validity } from './validity'
 
 // A context item as the app's screens read it, from the app's API (src/web/api). Pure types, the
@@ -13,24 +14,24 @@ export type DomainId = string
 export type Kind = Exclude<ItemKind, 'example'>
 
 /** A draft was never published: agents never got it, so it can be deleted. A published item is archived instead. */
-export type Status = 'Draft' | 'Live' | 'Needs checking' | 'Archived'
+export type Status = 'Draft' | 'Live' | 'Due for a check' | 'Archived'
 
 /**
  * The four kinds of context, in plain words most people know, native English or not. The one
  * place their names and hints live; the stored values (event, issue, note, guide) stay as they are.
  */
 export const kindLabel: Record<Kind, string> = {
-  event: 'Event',
-  issue: 'Warning',
-  note: 'Rule',
-  guide: 'Guide',
+  event: kinds.event.label,
+  issue: kinds.issue.label,
+  note: kinds.note.label,
+  guide: kinds.guide.label,
 }
 
 export const kindHint: Record<Kind, string> = {
-  event: 'Something that happened on a date, like a stop or a new rule.',
-  issue: 'A limit or problem agents should know, like late or missing data.',
-  note: 'A fixed way to read the numbers, like a definition or a house rule.',
-  guide: 'What to check before you explain a change.',
+  event: kinds.event.hint,
+  issue: kinds.issue.hint,
+  note: kinds.note.hint,
+  guide: kinds.guide.hint,
 }
 
 /**
@@ -91,12 +92,12 @@ export const toServerStatus = (
     ? null
     : {
         status: status === 'Archived' ? 'retired' : 'accepted',
-        flags: status === 'Needs checking' ? ['needs_check'] : [],
+        flags: status === 'Due for a check' ? ['needs_check'] : [],
       }
 
 /** What agents get: a published item that isn't archived. */
 export const servedToAgents = (f: Pick<Fact, 'status'>) =>
-  f.status === 'Live' || f.status === 'Needs checking'
+  f.status === 'Live' || f.status === 'Due for a check'
 
 /** A context item as stored: its labels are derived when it loads. */
 export type StoredFact = Omit<Fact, 'when'>

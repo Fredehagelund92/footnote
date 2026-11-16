@@ -13,7 +13,7 @@ test('C comments on the line or field in focus, and the rail counts the threads 
 }) => {
   await go(page, '/inbox/sug-ines/review')
   const source = page.getByRole('region', { name: 'The source' })
-  const rail = page.getByRole('region', { name: 'Threads on lines and fields' })
+  const rail = page.getByRole('region', { name: 'Comments on lines and fields' })
   await expect(rail).toContainText('None yet')
 
   // N steps to the changed field; C opens a comment on it.
@@ -24,7 +24,7 @@ test('C comments on the line or field in focus, and the rail counts the threads 
   await expect(onField).toBeFocused()
   await page.keyboard.type('Which of the two pages is right?')
   await page.keyboard.press('ControlOrMeta+Enter')
-  const fieldThread = source.getByRole('region', { name: "Source: Jon Abara's thread, open" })
+  const fieldThread = source.getByRole('region', { name: "Source: Jon Abara's comment, open" })
   await expect(fieldThread).toContainText('Which of the two pages is right?')
   await expect(rail).toContainText('1 open')
   // The composer closes, and the focus is back on the row, where C and the arrows go on.
@@ -39,7 +39,7 @@ test('C comments on the line or field in focus, and the rail counts the threads 
   await expect(source.getByRole('textbox', { name: 'Comment on line 1' })).toBeFocused()
   await page.keyboard.type('Since when are there 340?')
   await page.keyboard.press('ControlOrMeta+Enter')
-  const lineThread = source.getByRole('region', { name: "Line 1: Jon Abara's thread, open" })
+  const lineThread = source.getByRole('region', { name: "Line 1: Jon Abara's comment, open" })
   await expect(lineThread).toContainText('Since when are there 340?')
   await expect(rail).toContainText('2 open')
 
@@ -64,8 +64,8 @@ test('C comments on the line or field in focus, and the rail counts the threads 
   await expect(lineThread.getByRole('button', { name: /^Agree, 1/ })).toBeVisible()
 
   // Resolved, the thread folds to who and when, and the rail counts it so.
-  await lineThread.getByRole('button', { name: 'Resolve' }).click()
-  const resolved = source.getByRole('region', { name: "Line 1: Jon Abara's thread, resolved" })
+  await lineThread.getByRole('button', { name: 'Mark as done' }).click()
+  const resolved = source.getByRole('region', { name: "Line 1: Jon Abara's comment, resolved" })
   await expect(resolved).toContainText('Resolved by Jon Abara')
   await expect(resolved.getByText('From 1 October.')).toHaveCount(0)
   await expect(rail).toContainText('1 open, 1 resolved')
@@ -76,7 +76,7 @@ test('C comments on the line or field in focus, and the rail counts the threads 
   await expect(page.getByRole('button', { name: 'Publish', exact: true }).first()).toBeEnabled()
 
   // Reopened, it says by whom.
-  await resolved.getByRole('button', { name: 'Reopen' }).click()
+  await resolved.getByRole('button', { name: 'Open again' }).click()
   await expect(lineThread).toContainText('Open, reopened by Jon Abara')
   await expect(rail).toContainText('2 open')
 
@@ -117,9 +117,9 @@ test('a thread shown apart from the source is resolved and reopened there too', 
       .click()
     const thread = page.getByRole('listitem').filter({ hasText: 'Is the scope the Nordics' })
     await expect(thread).toContainText('Open')
-    await thread.getByRole('button', { name: 'Resolve' }).click()
+    await thread.getByRole('button', { name: 'Mark as done' }).click()
     await expect(thread).toContainText('Resolved by Jon Abara')
-    await thread.getByRole('button', { name: 'Reopen' }).click()
+    await thread.getByRole('button', { name: 'Open again' }).click()
     await expect(thread).toContainText('Open, reopened by Jon Abara')
   })
 })

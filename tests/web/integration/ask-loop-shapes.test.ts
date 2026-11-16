@@ -168,6 +168,19 @@ const cases: Case[] = [
       ],
     }),
   },
+  {
+    id: 'loop-dates-guessed',
+    question: 'What happened to orders in Norway in November?',
+    calls: [{ toolName: 'get_context', input: { about: 'orders in Norway in November' } }],
+    write: (p) => {
+      const r = readOf(p, 'get_context')
+      const [a, b] = arr(r.items)
+      const about = (r.read as Obj).about as string[]
+      return {
+        text: `Two rules for ${mention(about[0])} in ${mention(about[1])} disagree in November 2025: one counts card and cash payments only [${String(a!.id)}], the other counts store credit too [${String(b!.id)}].`,
+      }
+    },
+  },
 ]
 
 let current: Case | undefined
@@ -296,6 +309,17 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(loop.kind).toBe('question')
     expect(loop.state).toBeNull()
     expect(loop.choices).toEqual(['In France', 'In Spain'])
+  })
+
+  it('says on the read line how the dates were read when the words left room', async () => {
+    const loop = await ask(cases[10]!)
+    expect(loop.subject).toMatchObject({
+      period: '1-30 Nov 2025',
+      note: 'year not given',
+      assumedToday: false,
+    })
+    // Dates the words named in full need no note.
+    expect(turns['loop-checked']!.loop!.subject?.note).toBeNull()
   })
 
   it('writes the examples the mock shows, when asked to', () => {

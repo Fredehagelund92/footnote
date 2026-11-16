@@ -166,7 +166,7 @@ import {
   setRoleSchema,
   soleOwnerSchema,
 } from './members.ts'
-import { gapDetailSchema, gapIdInputSchema } from './gaps.ts'
+import { gapDetailSchema, gapIdInputSchema, gapReportInputSchema, gapReportSchema } from './gaps.ts'
 import {
   addSourceSchema,
   connectorListingSchema,
@@ -290,7 +290,14 @@ import {
 import { operationsOverviewSchema, runJobInputSchema, runJobSchema } from './operations.ts'
 import { refusals } from './refusals.ts'
 export * from './schemas.ts'
-export type { Gap, GapDetail, GapHistoryEntry, TopicCounts } from './gaps.ts'
+export type {
+  Gap,
+  GapDetail,
+  GapHistoryEntry,
+  GapReport,
+  GapReportInput,
+  TopicCounts,
+} from './gaps.ts'
 export type {
   AddSourceInput,
   ConnectorListing,
@@ -346,6 +353,7 @@ export type {
 } from './terms.ts'
 export type { AuditEntry, ClientPolicy, ItemImportReport, Setting, SettingKey } from './admin.ts'
 export type { AreaDetail, AreaHoldings, AreaRemoved, ArchivedArea } from './areas.ts'
+export type { UndoOffer } from './undo.ts'
 export type { OperationsOverviewView } from './operations.ts'
 export type { ConnectInfo, TryItReading, TryItReadInput } from './connect.ts'
 export type { HeldRole, PeopleRoleFilter, PeopleSignInFilter, PersonStatus } from './people.ts'
@@ -367,7 +375,8 @@ const read = oc.$meta<OperationMeta>({ scope: 'read' }).errors({
 
 const notFound = {
   NOT_FOUND: {
-    message: "We couldn't find this fact. It may have been deleted, or you may not have access.",
+    message:
+      "We couldn't find this context item. It may have been deleted, or you may not have access.",
   },
 }
 const itemId = z.object({ id: z.string().check(z.minLength(1), z.maxLength(64)) })
@@ -378,7 +387,7 @@ const changed = z.object({ changed: z.boolean() })
 const proposal = read.meta({ scope: 'propose' }).errors({
   CONFLICT: {
     message:
-      'Someone changed this proposal after you opened it. Look at the latest version, then try again.',
+      'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
     data: z.optional(z.object({ current: proposalRecordSchema })),
   },
   UNPROCESSABLE_CONTENT: {
@@ -390,7 +399,7 @@ const proposal = read.meta({ scope: 'propose' }).errors({
 const review = read.meta({ scope: 'propose' }).errors({
   CONFLICT: {
     message:
-      'The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again.',
+      'This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again.',
   },
   UNPROCESSABLE_CONTENT: {
     status: 422,
@@ -468,7 +477,7 @@ const evals = read.meta({ scope: 'propose' }).errors({
     data: z.optional(z.object({ findings: z.optional(z.array(findingSchema)) })),
   },
   PRECONDITION_FAILED: {
-    message: "Agents don't get any facts yet. Ask an admin to finish the setup.",
+    message: "Agents don't get any context yet. Ask an admin to finish the setup.",
   },
 })
 /** For owners of any area, and administrators. */
@@ -639,7 +648,7 @@ export const contract = {
       .errors({
         CONFLICT: {
           message:
-            "Agents already get this edition, or some of its facts can't be shared with agents again.",
+            "Agents already get this edition, or some of its context items can't be shared with agents again.",
           data: z.optional(z.object({ blocked: z.array(blockedVersionSchema) })),
         },
       })
@@ -1218,8 +1227,7 @@ export const contract = {
         method: 'GET',
         path: '/archived-areas',
         tags: ['admin'],
-        summary:
-          'The deleted domains that history keeps, newest first, with what restoring each gives back',
+        summary: 'The deleted domains that history keeps, newest first',
       })
       .output(z.array(archivedAreaSchema)),
   },
@@ -1233,6 +1241,31 @@ export const contract = {
       })
       .input(gapIdInputSchema)
       .output(gapDetailSchema),
+    report: read
+      .errors({
+        UNPROCESSABLE_CONTENT: {
+          status: 422,
+          message: 'Some details need attention. Fix the problems shown, then try again.',
+          data: z.optional(z.object({ findings: z.array(findingSchema) })),
+        },
+        PRECONDITION_FAILED: {
+          message: "Agents don't get any context yet. Ask an admin to finish the setup.",
+        },
+        TOO_MANY_REQUESTS: {
+          status: 429,
+          message: "You've sent a lot of reports. Try again in a minute.",
+          data: z.object({ retryAfterSeconds: z.number() }),
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/gaps/reports',
+        tags: ['gaps'],
+        summary:
+          "Say something is missing about a scope (FR-606 case 5, Ask's Tell the owner): counts one report against the topic, as an agent's report of kind missing does, and records no person",
+      })
+      .input(gapReportInputSchema)
+      .output(gapReportSchema),
   },
   sources: {
     // Settings › Integrations: every source, the server's own and those an admin added, with how
@@ -1914,7 +1947,7 @@ export const contract = {
     read: read
       .errors({
         PRECONDITION_FAILED: {
-          message: "Agents don't get any facts yet. Ask an admin to finish the setup.",
+          message: "Agents don't get any context yet. Ask an admin to finish the setup.",
         },
       })
       .route({

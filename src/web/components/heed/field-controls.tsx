@@ -28,7 +28,7 @@ import { PersonAvatar } from '@/components/heed/bits'
 
 /** A value at rest: no border; a soft fill says it can be clicked. */
 const valueBox =
-  '-mx-1.5 flex min-h-8 w-fit max-w-[calc(100%+0.75rem)] min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm transition-colors outline-none hover:bg-muted/70 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/40 data-popup-open:bg-muted disabled:cursor-not-allowed disabled:hover:bg-transparent'
+  '-mx-1.5 flex min-h-8 w-fit max-w-[calc(100%+0.75rem)] min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm transition-colors outline-none hover:bg-muted/70 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted disabled:cursor-not-allowed disabled:hover:bg-transparent'
 
 /** An empty value: what to add, in a muted ghost, never an empty box. */
 export function Ghost({ children }: { children: React.ReactNode }) {
@@ -538,7 +538,7 @@ export function InlineText({
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="-mx-1.5 field-sizing-content w-overhang max-w-xl resize-none rounded-md bg-transparent px-1.5 py-1.5 text-sm leading-5 transition-colors outline-none placeholder:text-muted-foreground hover:bg-muted/50 focus-visible:bg-transparent focus-visible:ring-3 focus-visible:ring-ring/40"
+      className="-mx-1.5 field-sizing-content w-overhang max-w-xl resize-none rounded-md bg-transparent px-1.5 py-1.5 text-sm leading-5 transition-colors outline-none placeholder:text-muted-foreground hover:bg-muted/50 focus-visible:bg-transparent focus-visible:ring-3 focus-visible:ring-ring/50"
     />
   )
 }

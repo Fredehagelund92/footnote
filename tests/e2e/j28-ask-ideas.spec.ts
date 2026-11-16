@@ -27,7 +27,7 @@ const world =
         share: 'What should I know about Orders in Germany?',
         shareState: 'Checked (1 item)',
         shareSource:
-          '1 Orders lags by one day in the source tool - Sofia Brandt, checked 12 Sep 2026',
+          /1 Orders lags by one day in the source tool - Sofia Brandt, checked 12 Sep(t)? 2026/,
         firstSentence: /^A new customs rule stopped all online sales to Norway from 4 August 2026/,
         sentences: 4,
       }
@@ -35,13 +35,13 @@ const world =
         share: grounded,
         shareState: 'Checked (2 items)',
         shareSource:
-          '1 Online sales to Norway stopped on 4 August 2026 - Jon Abara, checked 3 Oct 2026',
+          /1 Online sales to Norway stopped on 4 August 2026 - Jon Abara, checked 3 Oct 2026/,
         firstSentence: /^Online sales to Norway stopped on 4 August 2026/,
         sentences: 3,
       }
 
 /** The six state words, as a line says one. */
-const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not checked)$/
+const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 
 test('Share copies an answer for Slack with its state and sources, or as a card; a link is for later', async ({
   page,
@@ -186,7 +186,7 @@ async function suggestsNothing(page: Page) {
   await expect(page.getByRole('list', { name: 'Questions Ask can answer' })).toHaveCount(0)
 }
 
-test('once a message is sent, nothing in the chat suggests what to ask, whatever the answer', async ({
+test('once a message is sent, nothing in the chat suggests what to ask, except at the end of a refusal', async ({
   page,
 }) => {
   // Checked.
@@ -211,12 +211,12 @@ test('once a message is sent, nothing in the chat suggests what to ask, whatever
   await expect(log.getByText('Nothing was looked up').last()).toBeVisible()
   await expect(log.getByText(/^Ask answers three kinds of question/).last()).toBeVisible()
   await suggestsNothing(page)
-  // A question about one person's work is refused, and says what Ask can tell instead, in words.
+  // A question about one person's work is refused, and ends with questions to press.
   await follow('what did Tomas Eriksen write this week?')
   await expect(
     log.getByText("Ask does not answer questions about one person's work."),
   ).toBeVisible()
-  await suggestsNothing(page)
+  await expect(log.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 test('someone who does not own the domain gets no unfinished control under Not found', async ({
@@ -245,7 +245,7 @@ test('Asked this week shows no draft to someone who does not own the domain, and
   // nothing yet: only the empty page's words (decided 27 October 2026). The mock's are its examples.
   const starters = page.getByRole('group', { name: 'Suggested questions' })
   if (mode === 'http') {
-    await expect(page.getByText('What do you want to know about the numbers?')).toBeVisible()
+    await expect(page.getByText('What do you want to know about your metrics?')).toBeVisible()
     await expect(starters).toHaveCount(0)
   } else await expect(starters).toBeVisible()
 })

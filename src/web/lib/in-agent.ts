@@ -1,3 +1,4 @@
+import { lookupFailedNote } from '@domain/words'
 import type { AnswerState } from '@/model/ask'
 
 // How the same answers read inside a person's own agent: a static transcript for the agent
@@ -42,9 +43,8 @@ export const inAgent = [
   {
     state: 'failed' as AnswerState,
     you: 'What changed in returns in the United Kingdom this week?',
-    agent:
-      "I couldn't check the context just now, so I can't say whether anything is written down. Ask me again in a minute.",
-    line: "Context: couldn't check.",
+    agent: lookupFailedNote,
+    line: 'Context: not looked up.',
   },
 ]
 

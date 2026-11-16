@@ -99,6 +99,29 @@ describeHeedApi('http binding on PostgreSQL', () => api!, {
   colleague: colleague.name,
   // Lars sent the demo week's suggestion to archive, which waits for Jon.
   sender: 'Lars Dahl',
+  bystander: 'Ines Duarte',
+  // The service reads its Undo window from one setting: closed to nothing for the moment, then
+  // opened again, as if the clock had moved past every Undo offered.
+  afterUndoWindow: async (run) => {
+    const window = (seconds: number | null) =>
+      client.query(
+        `insert into settings_versions (key, version, value, reason)
+         select 'limits.undo_seconds', coalesce(max(version), 0) + 1, $1::jsonb, 'conformance'
+           from settings_versions where key = 'limits.undo_seconds'`,
+        [JSON.stringify(seconds)],
+      )
+    const [before] = (
+      await client.query<{ value: unknown }>(
+        `select value from settings_current where key = 'limits.undo_seconds'`,
+      )
+    ).rows
+    await window(0)
+    try {
+      await run()
+    } finally {
+      await window(typeof before?.value === 'number' ? before.value : 15)
+    }
+  },
   repository: {
     get address() {
       return handbook!.address('handbook')
@@ -144,7 +167,7 @@ describe('the http binding', () => {
     await watched.saveChat({ id: 'chat-private', question: 'Is the Quillfeather deal in?' })
     await watched.renameChat({ id: 'chat-private', title: 'Quillfeather in October' })
     const { undo } = await watched.deleteChat({ id: 'chat-private' })
-    await watched.undo({ token: undo })
+    await watched.undo({ token: undo.token })
     expect((await watched.listChats()).map((t) => t.title)).toContain('Quillfeather in October')
     expect(sent.length).toBeGreaterThan(0)
     expect(sent.join('\n')).not.toContain('Quillfeather')

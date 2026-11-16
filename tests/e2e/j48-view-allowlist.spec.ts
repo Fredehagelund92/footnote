@@ -88,7 +88,7 @@ for (const { name, width, height } of widths) {
         await expect(left).toBeVisible()
         await expect(left).toContainText('revenue, basket, customers, marketing, operations')
         await expect(left).toContainText('and 1 more')
-        const items = left.getByRole('list', { name: 'Live items that rely on them' })
+        const items = left.getByRole('list', { name: 'Published items that rely on them' })
         await expect(items.getByRole('link').first()).toBeVisible()
         await page.getByLabel('Why are you changing it?').fill('Only the views the team uses')
         const save = button('Save changes')

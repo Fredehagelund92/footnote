@@ -52,7 +52,7 @@ test('a dock whose read fails keeps its frame, with Retry and Close', async ({ p
 
 test('the editor on an item that is not there says so, with no Publish', async ({ page }) => {
   await go(page, '/context/itm_not_there/edit')
-  await expect(page.getByText('No such context item')).toBeVisible()
+  await expect(page.getByText('There is no context item here')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Publish', exact: true })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Title' })).toHaveCount(0)
 })

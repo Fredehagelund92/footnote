@@ -141,9 +141,9 @@ const envSchema = z
     // (`models.<role>`), with the provider's key from this environment.
     MODELS: z.enum(['mock', 'live']).default('mock'),
     // Ask answers with one model that reads with Heed's own read tools, as the person asking
-    // (FR-718 to FR-720), in place of its fixed rules and planner. Off until its answer check is
-    // built: what it shows is not yet checked.
-    HEED_ASK_LOOP: z.enum(['on', 'off']).default('off'),
+    // (FR-718 to FR-720), in place of its fixed rules and planner. On by default; off answers with
+    // the router.
+    HEED_ASK_LOOP: z.enum(['on', 'off']).default('on'),
     MODEL_PROVIDER: z.string().optional(),
     // A folder of Cube model files, read offline. Unset selects the demo connector.
     CUBE_MODEL_DIR: z.string().optional(),

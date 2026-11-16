@@ -145,8 +145,7 @@ export const answerText = (a: SavedAnswer) =>
 /** What starts a check, from the reason the newest edition was published for (editions/release.ts). */
 export function triggerOfEdition(reason: string): CheckTrigger {
   if (reason === 'item_retired' || reason === 'area_deleted') return 'archive'
-  if (reason === 'item_restored' || reason === 'area_restored' || reason === 'decision_undone')
-    return 'restore'
+  if (reason === 'item_restored' || reason === 'decision_undone') return 'restore'
   if (reason === 'vocabulary_changed') return 'sync'
   return 'publish'
 }
@@ -158,7 +157,7 @@ const still: Record<AnswerState, string> = {
   stale: 'Still may be out of date.',
   conflict: 'Still two items disagree.',
   missing: 'Still nothing written down.',
-  failed: 'Still not checked.',
+  failed: 'Still not looked up.',
 }
 const outdated: Record<NonNullable<SavedItem['unverified']>, string> = {
   past_review_date: 'The item it answers from has a check date that passed.',

@@ -346,7 +346,7 @@ export function facetWords(count: FacetValue['count'], state?: boolean) {
 export function facetSaid(f: FacetValue, state?: boolean) {
   const topics = f.topics ? `${f.topics} ${f.topics === 1 ? 'topic' : 'topics'}, ` : ''
   const c = f.count
-  if (!c) return 'not shown: the service counts this for every topic only'
+  if (!c) return 'not shown: the app counts this for every topic only'
   const n = (x: number) => x.toLocaleString('en-GB')
   if (state)
     return `${topics}${

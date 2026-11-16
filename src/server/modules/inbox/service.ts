@@ -25,6 +25,7 @@ import {
 } from '../../../domain/inbox.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { lastingUndo, undoOffer } from '../../db/undo.ts'
 import type { BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
 import { syncedOf } from '../connectors/index.ts'
@@ -36,6 +37,7 @@ import {
   type ReviewPath,
   type ReviewService,
 } from '../review/index.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /*
   The Inbox of Heed v1 (docs/product.md, section 5): the cards of the domains a person owns (every
@@ -70,7 +72,7 @@ const doneDays = 14
 const outcomeWords: Record<string, string> = {
   accept: 'Published',
   // Published without a review round, under the policy the owner set for the agent (FR-421).
-  policy: 'Published under your policy',
+  policy: 'Published with your permission',
   request_changes: 'Returned',
   reject: 'Rejected',
   retire: 'Archived',
@@ -206,6 +208,7 @@ export function createInboxFeedService(
       dimensions: string[]
       month: string | null
       calls: number
+      told: number
       draft: string | null
     }>(
       `select g.id::text, g.ref, g.status_since::text as at, t.area_id as area,
@@ -213,6 +216,8 @@ export function createInboxFeedService(
               t.value_keys as values, t.dimension_keys as dimensions, t.month::text as month,
               coalesce((select w.reports - w.human_reports + w.no_item_calls from gap_weekly_counts w
                          where w.gap_id=g.id and w.week=date_trunc('week', now() at time zone 'UTC')::date),0)::int as calls,
+              coalesce((select w.human_reports from gap_weekly_counts w
+                         where w.gap_id=g.id and w.week=date_trunc('week', now() at time zone 'UTC')::date),0)::int as told,
               (select p.id::text from proposals p
                 where p.source_gap_id=g.id and p.discarded_at is null order by p.created_at desc limit 1) as draft
          from gaps g join topics t on t.id=g.topic_id
@@ -247,6 +252,7 @@ export function createInboxFeedService(
           month: row.month,
         },
         times: visibleCount(row.calls, min),
+        told: row.told,
         draft: row.draft,
       }
     })
@@ -531,6 +537,7 @@ export function createInboxFeedService(
         title: row.ref,
         scope: { metrics: [], values: [], dimensions: [], month: null },
         times: null,
+        told: 0,
         draft: null,
       })
     return cards
@@ -594,9 +601,9 @@ export function createInboxFeedService(
    * An Alert card for each raise of a rule with a card of its own (Conflict, More questions not
    * found, Calls fail, Model spend, A connected tool did not sync) that reached the person: the
    * relay delivered it to their Inbox items, less those who muted it. It stays for a week after the
-   * raise, or until they archive its Inbox item. A connected tool that did not sync and has read
-   * well since needs nothing more: its card goes, as on a first start, when the alert job looked
-   * at the old reads a moment before the first sync.
+   * raise. A connected tool that did not sync and has read well since needs nothing more: its card
+   * goes, as on a first start, when the alert job looked at the old reads a moment before the first
+   * sync.
    */
   async function alertCards(): Promise<Card[]> {
     const rows = await tx.query<{
@@ -609,7 +616,7 @@ export function createInboxFeedService(
     }>(
       `select r.id::text, r.raised_at::text as at, r.area_ids[1] as area, r.rule, r.title, r.subject
          from inbox_items i join alert_raises r on r.event_seq = i.event_seq
-        where i.person_id = cl_person() and i.kind = 'alert.raised' and i.archived_at is null
+        where i.person_id = cl_person() and i.kind = 'alert.raised'
           and r.rule = any($1::text[]) and r.raised_at > now() - make_interval(days => $2)
           and not (r.rule = 'sync' and exists (
             select 1 from connector_snapshots s
@@ -806,7 +813,7 @@ export function createInboxFeedService(
         })
       if (input.action === 'not_written') {
         await deps.gaps.move(key.id, 'set_aside', input.reason ?? 'Not something we write down.')
-        return { edition: null, undo: `gap:${key.id}` }
+        return { edition: null, undo: lastingUndo(`gap:${key.id}`) }
       }
       if (input.action === 'not_a_problem') {
         const [row] = await tx.query<{ area: string | null }>(
@@ -815,7 +822,7 @@ export function createInboxFeedService(
             : `select area_id as area from feedback where id=$1 and verdict in ('wrong','unclear')`,
           [key.id],
         )
-        if (!row?.area) throw new ORPCError('NOT_FOUND')
+        if (!row?.area) throw new ORPCError('NOT_FOUND', { message: missing('this item') })
         await tx
           .query(
             `insert into card_states (card,area_id,state,decided_by) values ($1,$2,'closed',cl_person())`,
@@ -831,7 +838,7 @@ export function createInboxFeedService(
               })
             throw error
           })
-        return { edition: null, undo: `card:${input.card}` }
+        return { edition: null, undo: await undoOffer(tx, `card:${input.card}`) }
       }
       const reason =
         input.reason ??
@@ -845,7 +852,10 @@ export function createInboxFeedService(
           [result.proposal.id],
         )
         if (!decision) throw new Error('The check was not recorded')
-        return { edition: result.edition?.label ?? null, undo: `decision:${decision.id}` }
+        return {
+          edition: result.edition?.label ?? null,
+          undo: await undoOffer(tx, `decision:${decision.id}`),
+        }
       }
       const edition = await deps.review.retire(key.id, reason)
       const [decision] = await tx.query<{ id: string }>(
@@ -855,7 +865,7 @@ export function createInboxFeedService(
         [key.id],
       )
       if (!decision) throw new Error('The archive was not recorded')
-      return { edition: edition.label, undo: `decision:${decision.id}` }
+      return { edition: edition.label, undo: await undoOffer(tx, `decision:${decision.id}`) }
     },
 
     /** Opens a card again that its maker closed moments ago (FR-227). */
@@ -879,7 +889,7 @@ export function createInboxFeedService(
         await deps.gaps.move(ref, 'reopen', 'Undone.')
         return { edition: null }
       }
-      throw new ORPCError('NOT_FOUND')
+      throw new ORPCError('NOT_FOUND', { message: missing('this change') })
     },
 
     /** A new workspace's setup checklist (FR-816), read from what exists. */

@@ -141,7 +141,7 @@ export function toApiError(error: unknown): ApiError {
       refusal: refusalOf(error.data),
       requestId: requestIds.get(error),
     })
-  return new ApiError('unanswered', "The service didn't reply.")
+  return new ApiError('unanswered', "The app didn't reply.")
 }
 
 export const isSignedOut = (error: unknown) => toApiError(error).kind === 'signed-out'

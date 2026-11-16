@@ -57,10 +57,21 @@ test('publishing what was written from a Not found card closes the card', async 
   // A live item agents would get beside it is answered where it is asked: it is about another day.
   const heading = page.getByRole('heading', { level: 1, name: title })
   const before = page.getByRole('region', { name: 'Before it can be published' })
-  await expect(heading.or(before.getByRole('radiogroup').first())).toBeVisible()
+  await expect(
+    heading.or(before.getByRole('button', { name: /^How this relates to / }).first()),
+  ).toBeVisible()
   if (!(await heading.count())) {
-    for (const group of await before.getByRole('radiogroup').all())
-      await group.getByRole('radio', { name: 'Unrelated' }).click()
+    for (const answer of await before
+      .getByRole('button', { name: /^How this relates to / })
+      .all()) {
+      // The open menu only, by its button's name: the one before it may still be closing.
+      const name = (await answer.getAttribute('aria-label'))!
+      await answer.click()
+      await page
+        .getByRole('menu', { name })
+        .getByRole('menuitemradio', { name: 'Unrelated' })
+        .click()
+    }
     await publish(page).click()
   }
   await expect(heading).toBeVisible()

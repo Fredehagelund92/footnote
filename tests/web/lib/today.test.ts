@@ -17,8 +17,8 @@ describe("the service's day", () => {
     setToday('2027-01-20')
     expect(relativeDate('2027-01-19')).toBe('yesterday')
     expect(relativeDate('2027-01-20')).toBe('today')
-    expect(relativeDate('2026-09-10')).toBe('10 Sep 2026')
-    expect(ageDays('10 Sep 2026')).toBe(132)
+    expect(relativeDate('2026-09-10')).toBe('10 Sept 2026')
+    expect(ageDays('10 Sept 2026')).toBe(132)
   })
 
   it('says whether a window is in force on the service’s day', () => {
@@ -26,6 +26,6 @@ describe("the service's day", () => {
     expect(timeNow(since)).toBe('Starts 9 Mar 2027')
     setToday('2027-03-09')
     expect(inForce(since)).toBe(true)
-    expect(timeNow(since)).toBe('In force now')
+    expect(timeNow(since)).toBe('Applies today')
   })
 })

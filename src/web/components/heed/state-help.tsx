@@ -74,7 +74,7 @@ export function StateHelp({
       title={`${line.label}: ${line.sentence.charAt(0).toLowerCase() + line.sentence.slice(1)}`}
       means={line.means}
       todo={line.todo}
-      more={{ href: '/help', label: 'All answer lines' }}
+      more={{ href: '/help', label: 'All answer labels' }}
     >
       {children}
     </BadgeCard>
@@ -84,18 +84,21 @@ export function StateHelp({
 /**
  * The head of an answer that is a definition and nothing more: a question about what a metric is,
  * which the definitions source answers and no context item does. A neutral mark, never a state's
- * tint: the context's state is still Not found, as agents get it, and its card says so.
+ * tint: the context's state is still Not found, as agents get it, and its card says so. An answer
+ * of Ask's loop that uses no item (`usesNoItem`) says only that, since items may be written.
  */
 export function DefinitionHelp({
   names,
   tool,
   words,
+  usesNoItem = false,
 }: {
   /** The metrics defined, as Definitions names them. */
   names: string[]
   /** The tool the source reads, as people say it. */
   tool: string
   words?: React.RefObject<HTMLElement | null>
+  usesNoItem?: boolean
 }) {
   const them = names.length === 1 ? 'it' : 'them'
   return (
@@ -110,7 +113,7 @@ export function DefinitionHelp({
         </span>
       }
       title={`Definition: ${tool}'s own words.`}
-      means={`${tool} defines ${them} this way, and agents get the same words. Nothing else is written about ${them} here yet, so for context the answer is Not found.`}
+      means={`${tool} defines ${them} this way, and agents get the same words. ${usesNoItem ? 'The answer uses no context item.' : `Nothing else is written about ${them} here yet, so for context the answer is Not found.`}`}
       todo="If people need more than the definition, such as what to rule out or when it changed, write context."
       more={
         names.length === 1

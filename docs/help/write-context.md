@@ -23,7 +23,7 @@ One thing agents should know about the numbers: an event, a warning, a rule or a
 
 - **Event**: Something that happened on a date, like a stop or a new rule.
 - **Warning**: A limit or problem agents should know, like late or missing data.
-- **Rule**: A fixed way to read the numbers, like a definition or a house rule.
+- **Rule**: A fixed way to read the numbers, like a house rule.
 - **Guide**: What to check before you explain a change.
 
 <!-- /include -->

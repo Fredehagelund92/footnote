@@ -418,11 +418,11 @@ const exampleTemplates: readonly Template[] = [
       () => 'It gives the size of the change in numbers before any explanation.',
       () => "It lists what's written down for that month.",
       () => 'If nothing is written down for that month, it says so.',
-      () => "It names no cause that the facts don't state.",
+      () => "It names no cause that the context items don't state.",
     ],
     quotes: [
       () => 'Answer with the month-on-month and year-on-year change first.',
-      () => 'A good answer cites the facts it used and their dates.',
+      () => 'A good answer cites the context items it used and their dates.',
     ],
     source: (s) => `https://wiki.example/analytics/good-answers/${s.metricSlug}-${s.marketSlug}`,
   },
@@ -434,7 +434,7 @@ const exampleTemplates: readonly Template[] = [
       () => 'It uses euros for every market.',
       () => 'It leaves out markets that were closed in those weeks, and says which.',
       () => "It shows each market's share of the total change.",
-      () => "It names no cause that the facts don't state.",
+      () => "It names no cause that the context items don't state.",
     ],
     quotes: [
       () => 'Rank markets by their share of the total change against the baseline.',
@@ -449,12 +449,12 @@ const exampleTemplates: readonly Template[] = [
     more: [
       () => 'It says which markets moved most.',
       () => 'It says when a movement has no fact to explain it.',
-      () => "It names no cause that the facts don't state.",
+      () => "It names no cause that the context items don't state.",
       () => 'It gives the size of the change in numbers before any explanation.',
     ],
     quotes: [
-      () => 'Start with the size of the change, then the facts that apply.',
-      () => 'A good answer cites the facts it used and their dates.',
+      () => 'Start with the size of the change, then the context items that apply.',
+      () => 'A good answer cites the context items it used and their dates.',
     ],
     source: (s) =>
       `https://wiki.example/analytics/good-answers/${s.metricSlug}-${s.day.slice(0, 7)}`,
@@ -1045,7 +1045,7 @@ export function versionDays(
  * Generates context items that follow the item model in docs/requirements.md (section 4.1).
  * The output depends only on `count` and `seed`, so tests and screenshots are stable.
  * The mix of kinds, areas, validity windows and long titles is chosen to stress lists and
- * tables. The words read as people write them (docs/design/voice.md): each kind has its own
+ * tables. The words read as people write them (docs/design/copy.md): each kind has its own
  * lines, and the facts on the Norway show's path are written by hand (story-facts.ts).
  */
 export function generateItems(count = DEFAULT_ITEM_COUNT, seed = DEFAULT_SEED): ContextItem[] {

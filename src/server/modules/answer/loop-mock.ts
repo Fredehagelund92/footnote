@@ -16,7 +16,11 @@ import type { ModelChoice } from '../models/index.ts'
 /** One step of a scripted model: the reads it asks for, or its words, after a pause. */
 export type ScriptedStep = {
   calls?: readonly { toolName: string; input: Record<string, unknown> }[]
-  text?: string
+  /** Its words, at once or in pieces as a provider streams them, `pace` milliseconds apart. */
+  text?: string | readonly string[]
+  pace?: number
+  /** Each piece of the words as it is sent. */
+  onPiece?: (piece: string) => void
   /** Milliseconds before it answers; an abort cuts it short, as a provider's request ends. */
   delay?: number
   /** The provider fails this call. */
@@ -94,14 +98,15 @@ export function scriptedLoopChoice(
       if (step.delay) await pause(step.delay, options.abortSignal)
       if (step.fail) throw new Error('The scripted provider failed.')
       const n = ++calls
-      const text = step.text ?? ''
+      const pieces = typeof step.text === 'string' ? [step.text] : (step.text ?? [])
+      const text = pieces.join('')
       const toolCalls = step.calls ?? []
       const parts: LanguageModelV4StreamPart[] = [
         { type: 'stream-start', warnings: [] },
         ...(text
           ? ([
               { type: 'text-start', id: 't' },
-              { type: 'text-delta', id: 't', delta: text },
+              ...pieces.map((delta) => ({ type: 'text-delta' as const, id: 't', delta })),
               { type: 'text-end', id: 't' },
             ] satisfies LanguageModelV4StreamPart[])
           : []),
@@ -121,8 +126,16 @@ export function scriptedLoopChoice(
       ]
       return {
         stream: new ReadableStream<LanguageModelV4StreamPart>({
-          start(controller) {
-            for (const part of parts) controller.enqueue(part)
+          async start(controller) {
+            let sent = 0
+            for (const part of parts) {
+              if (part.type === 'text-delta') {
+                if (step.pace && sent++)
+                  await pause(step.pace, options.abortSignal).catch(() => undefined)
+                step.onPiece?.(part.delta)
+              }
+              controller.enqueue(part)
+            }
             controller.close()
           },
         }),

@@ -41,6 +41,7 @@ import {
   type RecordsReads,
   type UnlistedTopic,
 } from './records.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /**
  * An edition to answer on: its sequence, its label, the overlay of stops and flags now, and, for
@@ -52,7 +53,7 @@ type Target = AnswerResult['target']
 const nothingLive = () =>
   new ORPCError('PRECONDITION_FAILED', {
     message:
-      'Nothing is shared with agents yet. They get facts once an owner accepts the first one.',
+      'Nothing is shared with agents yet. They get context once an owner publishes the first item.',
   })
 /** Steps are timed with the process's clock; the answer is the same whatever it says. */
 const clockMs = () => performance.now()
@@ -588,7 +589,7 @@ export async function replayTopic(
        from topics t where t.id = $1`,
     [input.topic],
   )
-  if (!topic?.manages) throw new ORPCError('NOT_FOUND')
+  if (!topic?.manages) throw new ORPCError('NOT_FOUND', { message: missing('this topic') })
   const head = input.when === 'now' ? await liveHead(tx) : await headBefore(tx)
   if (!head)
     throw input.when === 'now'

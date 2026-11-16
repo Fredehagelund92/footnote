@@ -81,7 +81,7 @@ test('a paragraph split in two and reworded marks only the words that changed', 
 test('Preview shows the item, and the clash gate stays in both views', async ({ page }) => {
   await go(page, '/inbox/sug-sofia-clash/review')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  const gate = page.getByRole('radiogroup', { name: /^How this relates to / })
+  const gate = page.getByRole('button', { name: /^How this relates to / })
   await expect(gate.first()).toBeVisible()
   const relations = await gate.count()
   expect(relations).toBeGreaterThan(0)

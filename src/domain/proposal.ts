@@ -34,7 +34,7 @@ export const proposalSchema = z
         p.subject === 'item'
           ? p.vocabularyVersionId === null
           : p.itemId === null && p.itemVersionId === null,
-      'Version must match the proposal subject',
+      'Version must match the suggestion subject',
     ),
     z.refine(
       (p) =>
@@ -42,7 +42,7 @@ export const proposalSchema = z
         p.itemVersionId !== null ||
         p.vocabularyVersionId !== null ||
         p.action === 'retire',
-      'A submitted proposal needs a version',
+      'A submitted suggestion needs a version',
     ),
     z.refine(
       (p) =>

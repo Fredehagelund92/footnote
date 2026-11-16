@@ -2,7 +2,7 @@ import { agentSignsIn, expect, go, test, unfold } from './go.ts'
 
 // J12, connect an agent: copy the prompt, the page waits and checks every 3 seconds, the agent
 // signs in and joins Connected agents; past 2 minutes it shows what usually helps, at 10 it stops
-// and Check again resumes. One Claude cell switches between Claude Code and the app. On the
+// and Keep waiting resumes. One Claude cell switches between Claude Code and the app. On the
 // service the agent really signs in (agentSignsIn), and each state of the live line happens.
 
 test('copy the prompt, wait, and the agent joins the list', async ({ page }) => {
@@ -20,7 +20,7 @@ test('copy the prompt, wait, and the agent joins the list', async ({ page }) => 
   await expect(page.getByText('5 agents people have connected.')).toBeVisible()
 })
 
-test('past 2 minutes it shows what helps; at 10 it stops, and Check again resumes', async ({
+test('past 2 minutes it shows what helps; at 10 it stops, and Keep waiting resumes', async ({
   page,
 }) => {
   await page.clock.install()
@@ -32,8 +32,8 @@ test('past 2 minutes it shows what helps; at 10 it stops, and Check again resume
   await page.clock.runFor(120_000)
   await expect(live).toContainText('Still waiting. Nothing has signed in yet.')
   await page.clock.runFor(480_000)
-  await expect(live).toContainText('Stopped checking after 10 minutes.')
-  await page.getByRole('button', { name: 'Check again' }).click()
+  await expect(live).toContainText('Stopped waiting after 10 minutes.')
+  await page.getByRole('button', { name: 'Keep waiting' }).click()
   await expect(live).toContainText('Waiting for your agent to connect…')
 })
 
@@ -45,7 +45,7 @@ test('each state has an address', async ({ page }) => {
     ['connected', 'It can call get_context'],
     ['declined', 'The connection was declined in the browser.'],
     // Last: on the service, ten minutes of the page's own time pass.
-    ['timeout', 'Stopped checking after 10 minutes.'],
+    ['timeout', 'Stopped waiting after 10 minutes.'],
   ] as const) {
     await go(page, `/settings/agents?connect=${flag}`)
     await expect(page.getByText(text)).toBeVisible()
@@ -119,10 +119,10 @@ test('an admin makes a named access key, shown once, lists it, and revokes it', 
   await expect(key).toContainText('Weekly sales digestNewAll 5 tools')
   await expect(key).toContainText('Access key, made by Jon Abara')
   await expect(key).toContainText(/never used/i)
-  await key.getByRole('button', { name: 'Revoke' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Revoke the access key “Weekly sales digest”?' })
-  await dialog.getByRole('button', { name: 'Revoke' }).click()
-  await expect(page.getByText('Access key Weekly sales digest revoked')).toBeVisible()
+  await key.getByRole('button', { name: 'Delete' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Delete the access key “Weekly sales digest”?' })
+  await dialog.getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByText('Access key Weekly sales digest deleted')).toBeVisible()
   await expect(key).toHaveCount(0)
   await expect(
     page.getByText("For a bot or a scheduled job that can't sign in. None yet."),

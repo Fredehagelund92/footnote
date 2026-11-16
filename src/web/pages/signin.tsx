@@ -38,7 +38,7 @@ const refusalWords = (reason: string, provider: string): string | null =>
     cancelled: `Signing in was cancelled at ${provider}. Try again when you're ready.`,
     expired: 'That sign-in took too long, or was started in another browser. Start again here.',
     unavailable: `We couldn't reach ${provider}. Try again in a minute.`,
-    failed: `${provider}'s answer didn't pass our checks. Try again, or tell an admin.`,
+    failed: `${provider}'s answer could not be accepted. Try again, or tell an admin.`,
     email_unverified: `${provider} hasn't confirmed your email address. Confirm it there, then try again.`,
     not_allowed: "This account can't sign in here. Ask an admin for an invite.",
   })[reason] ?? null
@@ -136,7 +136,9 @@ export function SignInPage() {
         <SignInMark method={provider} />
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Sign in to {PRODUCT}</CardTitle>
+            <CardTitle role="heading" aria-level={1} className="text-xl">
+              Sign in to {PRODUCT}
+            </CardTitle>
             <CardDescription>With your company account.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -199,7 +201,9 @@ function PickerSignIn({ token, method }: { token: string | null; method: SignInM
         <SignInMark method={method} />
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">Sign in to {PRODUCT}</CardTitle>
+            <CardTitle role="heading" aria-level={1} className="text-xl">
+              Sign in to {PRODUCT}
+            </CardTitle>
             <CardDescription>
               {method.demo ? 'This is a demo. Pick who you are.' : 'Pick who you are.'}
             </CardDescription>

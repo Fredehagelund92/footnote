@@ -12,7 +12,7 @@ Overview's Filter button, or F, opens one list: pick a field or a dimension, the
 
 A filter reads in parts, such as Store · is any of · 3 values, and a click on its middle flips is and is not. Old links that filter by a market still open.
 
-Beside the topics, the facets keep the fixed fields, one By facet you switch between dimensions, and a facet for each dimension an admin pins for everyone. Your recent dimensions come first in the filter, and stay in your browser.
+Beside the topics, the filter lists keep the fixed fields, one By list you switch between dimensions, and a list for each dimension an admin keeps here for everyone. Your recent dimensions come first in the filter, and stay in your browser.
 
 ## Select days on the chart, and drill into a bar
 
@@ -20,11 +20,11 @@ Beside the topics, the facets keep the fixed fields, one By facet you switch bet
 
 Drag across Overview's chart, or press B and then Shift and the arrows, to select some days: the numbers add up just those days, the filter bar says which, and a link keeps them. Press a part of a bar to look at only that answer. Escape clears the days.
 
-## Filters as chips, and facets with counts
+## Filters as chips, and filter lists with counts
 
 2026-11-03
 
-Overview's filters are chips you add from the bar (press F, or / to type), change in place, move and take off one at a time. A filter can keep a value or leave it out, and you can filter by market and metric too. Facets beside the topics show every value with what it counts. A link keeps every filter, and Back undoes the last change.
+Overview's filters are chips you add from the bar (press F, or / to type), change in place, move and take off one at a time. A filter can keep a value or leave it out, and you can filter by market and metric too. Filter lists beside the topics show every value with what it counts. A link keeps every filter, and Back undoes the last change.
 
 ## Overview and Questions are one page
 
@@ -36,7 +36,7 @@ Overview now holds the topics too: the numbers, questions per day and the topics
 
 2026-11-03
 
-Ask what a metric is, and the answer starts with its definition, in the words of the definitions source. With no context written about it, a Definition mark stands where the answer line would be.
+Ask what a metric is, and the answer starts with its definition, in the words of the definitions source. With no context written about it, a Definition mark stands where the answer label would be.
 
 ## The review's Preview is the item's page
 
@@ -66,7 +66,7 @@ Observability no longer has a Summary page or its monthly digests. It opens on O
 
 2026-11-02
 
-The answer line is a badge at the head of the answer, and the badge opens a card that says what it means. Sources are chips under the answer, and its actions are one row of icons. A question that gets nothing back stays in the chat, with Ask again.
+The answer label is a badge at the head of the answer, and the badge opens a card that says what it means. Sources are chips under the answer, and its actions are one row of icons. A question that gets nothing back stays in the chat, with Ask again.
 
 ## Conflicts are a filter of Context
 
@@ -120,7 +120,7 @@ Each finished month keeps a copy of Summary as it was. Open one from Summary to 
 
 2026-10-30
 
-In the review, press C on a line or a field to leave a comment there. A comment can be resolved, and opened again.
+In the review, press C on a line or a field to leave a comment there. A comment can be marked as done, and opened again.
 
 ## The review shows the source
 
@@ -186,7 +186,7 @@ People can sign in with the company's OpenID Connect provider. An Admin invites 
 
 2026-10-23
 
-One Help menu in the sidebar, a short Help page, a card on every answer line, and ? for the keys.
+One Help menu in the sidebar, a short Help page, a card on every answer label, and ? for the keys.
 
 ## Agents can follow links
 
