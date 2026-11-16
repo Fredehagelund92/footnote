@@ -203,9 +203,9 @@ test('a member finds the agent they connected in Settings, and disconnects it th
   await expect(nav.getByRole('link', { name: 'Agents and access' })).toBeVisible()
   for (const name of ['Domains and owners', 'People'])
     await expect(nav.getByRole('link', { name })).toHaveCount(0)
-  for (const [path, title] of [
-    ['/settings/people', 'People'],
-    ['/settings/domains', 'Domains and owners'],
+  for (const { path, title } of [
+    { path: '/settings/people', title: 'People' },
+    { path: '/settings/domains', title: 'Domains and owners' },
   ]) {
     await go(page, path)
     await expect(page.getByText('Settings are for admins')).toBeVisible()
