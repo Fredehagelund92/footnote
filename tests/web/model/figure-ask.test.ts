@@ -50,6 +50,19 @@ describe('the figure an answer asks for', () => {
     expect(asked.values).toEqual(['val:channel/webshop', 'val:market/norway'])
   })
 
+  it("asks a loop answer's figure for the values its subject's read was read for", () => {
+    const subject = {
+      names: ['Orders', 'Norway'],
+      about: ['metric:orders', 'value:market/norway'],
+      period: '1 to 31 Aug 2026',
+      assumedToday: false,
+      carried: false,
+      uncovered: [],
+    }
+    const asked = figureAskOf({ ...answer, markets: ['Norway'], loop: { subject } as never })
+    expect(asked.values).toEqual(['val:market/norway'])
+  })
+
   it('asks for the whole metric when the answer split it by a dimension with no value', () => {
     const byChannel = {
       ...answer,

@@ -1159,6 +1159,7 @@ function Finished({
           {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
           {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
           <Definitions loop={loop} nouns={maps.nouns} />
+          {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
           <Next loop={loop} nouns={maps.nouns} items={used} />
           {(footer.length > 0 || loop.read.length > 0) && (
             <WhatAskRead loop={loop} footer={footer} />

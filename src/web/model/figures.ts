@@ -51,12 +51,17 @@ export type FigureAsk = {
  * of every product. An answer with no keys asks for its markets by name.
  */
 export function figureAskOf(
-  answer: Pick<Answer, 'metric' | 'markets' | 'dates' | 'state' | 'sources' | 'keys'>,
+  answer: Pick<Answer, 'metric' | 'markets' | 'dates' | 'state' | 'sources' | 'keys' | 'loop'>,
 ): FigureAsk {
+  // Ask's loop: the values the read about its subject was read for.
+  const read = answer.loop?.subject?.about.flatMap((id) =>
+    id.startsWith('value:') ? [`val:${id.slice('value:'.length)}`] : [],
+  )
   return {
     metric: answer.metric,
     markets: answer.markets,
     ...(answer.keys ? { values: Object.values(answer.keys.filters).flat() } : {}),
+    ...(read ? { values: read } : {}),
     dates: answer.dates,
     state: answer.state,
     sources: answer.sources,

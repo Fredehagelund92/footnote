@@ -47,7 +47,10 @@ vi.mock('@/lib/router', async (original) => ({
 const { LoopAnswerBody } = await import('@/components/heed/loop-answer')
 const { loopParts } = await import('@/components/heed/loop-parts')
 const { AnswerActions, ReportLine, SomethingWrong } = await import('@/components/heed/answer')
-const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong }
+// The figure reads the data through the app's query cache: here, where it goes is enough.
+const AnswerFigure = ({ answer }: { answer: { metric: string } }) =>
+  React.createElement('p', { 'data-figure': answer.metric })
+const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong, AnswerFigure }
 const { loopAnswerOf } = await import('@/api/http-ask')
 const turnModule = await import('@/model/ask-turn')
 const { doneTurn } = turnModule
@@ -214,6 +217,16 @@ describe("Ask's loop answer, state by state", () => {
     act(() => more!.click())
     expect(lines()).toHaveLength(8)
     expect(text(el)).not.toMatch(/Show \d+ more/)
+  })
+
+  it('The figure: an answer reads the data of its subject, after the evidence; a question back and an overview do not', () => {
+    const answer = render(example('loop-checked'))
+    expect(answer.querySelector('[data-figure]')).not.toBeNull()
+    for (const id of ['loop-question', 'loop-overview'] as const) {
+      act(() => root?.unmount())
+      host?.remove()
+      expect(render(example(id)).querySelector('[data-figure]'), id).toBeNull()
+    }
   })
 
   it('A list asked for: every line of it up to twelve, unfolded, after five sentences of prose at most', () => {
