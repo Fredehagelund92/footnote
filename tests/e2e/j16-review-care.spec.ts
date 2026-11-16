@@ -77,8 +77,8 @@ test('an overlap with several live items asks about each, and archives only the 
   await expect(decide.getByText('Check how they relate.')).toHaveCount(0)
   await expect(decide.getByRole('button', { name: 'Publish' })).toBeEnabled()
   // One answer is not an answer for the others.
-  await relate(credit, 'This replaces it')
-  await relate(cardOnly, 'These disagree')
+  await relate(credit, 'Replaces it')
+  await relate(cardOnly, 'Disagrees')
   await expect(
     decide.getByText('When you publish, 1 live item is archived and 2 stay.'),
   ).toBeVisible()

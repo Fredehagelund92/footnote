@@ -728,9 +728,11 @@ function SyncedFrom({ r }: { r: Review }) {
 }
 
 // Unrelated first, as in the editor: most overlaps keep it.
+const relationLabels = { unrelated: 'Unrelated', disagree: 'Disagrees', replaces: 'Replaces it' }
 const relations = (['unrelated', 'disagree', 'replaces'] as const).map((value) => ({
   value,
-  ...relationText[value],
+  label: relationLabels[value],
+  hint: relationText[value].hint,
 }))
 /** The owner's answer for each live item the suggestion overlaps, by its id, and how to give one. */
 const RelationContext = React.createContext<
