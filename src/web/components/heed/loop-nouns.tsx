@@ -540,8 +540,8 @@ export function ItemRow({
 
 /**
  * A cited item in one line: its number, its kind's icon and its title, cut to the line when long
- * (the number's card and the name say it whole). Its domain, day and the rest are on the card; a
- * status other than Live stays on the line. A press on the title opens it.
+ * (the number's card and the name say it whole). Its domain, status, day and the rest are on the
+ * card. A press on the title opens it.
  */
 export function CompactItemRow({ item }: { item: LoopItem }) {
   const P = useParts()
