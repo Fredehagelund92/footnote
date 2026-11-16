@@ -265,6 +265,26 @@ describe('what a definition and an item say beside their words', () => {
   })
 })
 
+describe('the dates a read takes', () => {
+  it('reads a quarter of a fiscal year as the quarter, never the whole year (R3)', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
+      expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
+      expect(q3.read?.datesRead).toContain('FY26 read as the calendar year')
+    })
+  })
+
+  it('keeps the first of two periods and says the other was not taken', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const two = await ok(tools, 'get_context', {
+        about: 'orders in Norway in August vs September',
+      })
+      expect(two.read?.period).toBe('1-31 Aug 2026')
+      expect(two.read?.datesRead).toContain("not taken: 'september'")
+    })
+  })
+})
+
 describe('no dead ends (FR-719.3)', () => {
   it('says what was searched, out of how many, what is nearby and who owns it, then widens once', async () => {
     await world.withTools('Maria Lindqvist', async (tools) => {
