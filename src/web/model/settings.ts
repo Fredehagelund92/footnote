@@ -58,7 +58,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         value: (v) => {
           const month = n(field(v, 'month'))
           return month
-            ? `${n(field(v, 'day'))} ${new Date(Date.UTC(2026, month - 1, 1)).toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' })}`
+            ? `${n(field(v, 'day'))} ${new Intl.DateTimeFormat(undefined, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(2026, month - 1, 1))}`
             : 'Not set: fiscal years read as calendar years'
         },
       },
