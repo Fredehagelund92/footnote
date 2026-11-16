@@ -1050,6 +1050,30 @@ const list = (names: readonly string[]) =>
   names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
 /**
+ * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",
+ * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'" or
+ * "not taken: 'fy26'", not the words that name the period or its time zone, which the days
+ * already say. Null when the words left Heed nothing to guess.
+ */
+export function dateNote(readsAs: string): string | null {
+  const open = readsAs.indexOf(' (')
+  if (open < 0 || !readsAs.endsWith(')')) return null
+  const notes = readsAs
+    .slice(open + 2, -1)
+    .split('; ')
+    .flatMap((what) => {
+      if (what.startsWith('year not given')) return ['year not given']
+      const calendar = / read as the calendar (year|quarter)$/.exec(what)
+      if (calendar) {
+        const fiscal = what.includes('financial') ? 'financial' : 'fiscal'
+        return [`${fiscal} ${calendar[1]} read as the calendar ${calendar[1]}`]
+      }
+      return what === 'day first' || /^(could not place|not taken:) /.test(what) ? [what] : []
+    })
+  return notes.length ? [...new Set(notes)].join(' · ') : null
+}
+
+/**
  * What the reader reads, with examples counted from today, so an agent or a person can ask again:
  * "The dates that can be read: a day (7 Oct 2026), a range (1-30 Sep 2026), ...".
  */

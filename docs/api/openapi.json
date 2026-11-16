@@ -93841,6 +93841,16 @@
                                             "period": {
                                               "type": "string"
                                             },
+                                            "note": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
                                             "assumedToday": {
                                               "type": "boolean"
                                             },
@@ -93858,6 +93868,7 @@
                                             "names",
                                             "about",
                                             "period",
+                                            "note",
                                             "assumedToday",
                                             "carried",
                                             "uncovered"
@@ -94949,6 +94960,16 @@
                                                 "period": {
                                                   "type": "string"
                                                 },
+                                                "note": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ]
+                                                },
                                                 "assumedToday": {
                                                   "type": "boolean"
                                                 },
@@ -94966,6 +94987,7 @@
                                                 "names",
                                                 "about",
                                                 "period",
+                                                "note",
                                                 "assumedToday",
                                                 "carried",
                                                 "uncovered"
