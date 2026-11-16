@@ -292,6 +292,18 @@ describe('a turn that uses no context item', () => {
         'Hva betyr ordrer?',
       ).defined,
     ).toEqual({ names: ['Orders'], tool: 'Cube' })
+    // Paraphrased in another language, citing no item: still the Definition label and no state.
+    const paraphrased = turnOf(
+      'Netto omsetning er salget etter fratrukne returer.',
+      [
+        subject('partial'),
+        definitions('Net revenue is sales less returns, in euros at the daily rate.'),
+      ],
+      [],
+      'Hva betyr netto omsetning?',
+    )
+    expect(paraphrased.state).toBeNull()
+    expect(paraphrased.defined).toEqual({ names: ['Orders'], tool: 'Cube' })
   })
 
   it('shows a definition the turn read whenever the words do not give it, in any language', () => {

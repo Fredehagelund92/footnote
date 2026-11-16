@@ -20,7 +20,6 @@ import type {
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
-import { asksDefinitionInAsk } from '../../../domain/scope.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
 import {
@@ -1098,14 +1097,12 @@ function gives(text: string, definition: string) {
 
 /**
  * What an answer that cites no item defines (decision 3): the definitions its reads returned of
- * what the question was read as, when the question asks what they are, or the words give one of
- * a subject something is written about. Under Not found the words must give it, of a subject that
- * names no value and no days: "what is written about orders in Poland?" is about the context,
- * whatever its words, and stays Not found. Such an answer shows the Definition label in place of
- * a state.
+ * what the question was read as, in any language: no word of the question decides it. Under Not
+ * found the words must give it, of a subject that names no value and no days: "what is written
+ * about orders in Poland?" is about the context, whatever its words, and stays Not found. Such an
+ * answer shows the Definition label in place of a state.
  */
 function definedOf(
-  question: string,
   text: string,
   read: ReturnType<typeof definitionsRead>,
   subject: LoopTurn['subject'],
@@ -1119,8 +1116,7 @@ function definedOf(
   const given = candidates.some((d) => gives(text, d.words!))
   const scoped =
     !!subject && (subject.about.some((id) => id.startsWith('value:')) || !subject.assumedToday)
-  if (state === 'missing' ? !given || scoped : !asksDefinitionInAsk(question) && !given)
-    return undefined
+  if (state === 'missing' && (!given || scoped)) return undefined
   return { names: candidates.map((d) => d.name), tool: candidates[0]!.tool }
 }
 
@@ -1301,7 +1297,7 @@ export function turnOf(
   const replyOnly = !made.length && !sources.length
   const defined = words.cited.length
     ? undefined
-    : definedOf(question, plain, definitionsRead(about.map((m) => m.result)), subject, state)
+    : definedOf(plain, definitionsRead(about.map((m) => m.result)), subject, state)
   return {
     kind: 'answer',
     text: plain,
