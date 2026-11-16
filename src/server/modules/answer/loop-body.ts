@@ -165,6 +165,19 @@ const LIST_LINE = /^\s*\[list:(r\d+)\]\s*$/
 const SENTENCE_END = /(?<=[.!?](?:\s*\[[^[\]\n]{1,200}\])*)\s+/
 
 /**
+ * The words a model has written so far, up to the end of their last sentence or line that is
+ * final: one that more words follow, so no citation or mark after it can still come. Empty when
+ * no sentence is final yet.
+ */
+export function finishedWords(draft: string): string {
+  const ends = [
+    ...draft.matchAll(/(?:(?<=[.!?](?:\s*\[[^[\]\n]{1,200}\])*)[ \t]+|[ \t]*\n\s*)(?=[^\s[])/g),
+  ]
+  const last = ends.at(-1)
+  return last ? draft.slice(0, last.index).trimEnd() : ''
+}
+
+/**
  * An id's words when no read named it: the name of a noun a read named that the id spells
  * (`person:ada_okafor` for Ada Okafor), else its last part as words. Never a chip.
  */

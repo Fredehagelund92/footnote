@@ -1019,6 +1019,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
       else if (event.type === 'answer')
         tell({ type: 'answer', answer: answerOf(event.answer, words, names, extra) })
       else if (event.type === 'sentence') tell({ type: 'sentence', text: event.text })
+      else if (event.type === 'words') tell({ type: 'words', words: event.turn })
     }
     try {
       // A follow-up carries the chat's last turns; a question scoped with @ is read as scoped.

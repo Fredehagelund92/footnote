@@ -36,6 +36,7 @@ import { askToolDefinitions, askToolNames, type AskToolName, type AskTools } fro
 import {
   bodyMarkup,
   bodyWords,
+  finishedWords,
   itemRows,
   nounsRead,
   overviewOf,
@@ -541,7 +542,29 @@ export async function* askLoop(
       // An error arrives in the stream below; the default would print it, words and all.
       onError: () => undefined,
     })
+    // The words a step has written so far, and the part of them the page shows: each sentence once
+    // it is final and checked (decision 5). Words a step writes before it reads are taken back.
+    let draft = ''
+    let shown = ''
+    let reading = false
     for await (const part of result.fullStream) {
+      if (part.type === 'start-step' || part.type === 'finish-step') {
+        draft = ''
+        reading = false
+      } else if (part.type === 'text-delta' && !reading) {
+        draft += part.text
+        const done = finishedWords(draft)
+        if (done.length > shown.length) {
+          shown = done
+          yield { type: 'words', turn: turnOf(done, made, earlier.map(readOf), input.question) }
+        }
+      } else if (part.type === 'tool-input-start' || part.type === 'tool-call') {
+        reading = true
+        if (shown) {
+          shown = ''
+          yield { type: 'words', turn: null }
+        }
+      }
       if (part.type === 'tool-call' && isToolName(part.toolName)) {
         const working = progressOf(part.toolName, part.input as never)
         steps.push({ call: part.toolCallId, runs: [{ t: 'text', text: working }], done: false })

@@ -951,6 +951,8 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   React.useEffect(() => {
     if (done) keepShown(key, { answer, facts: cited })
   }, [done, key, answer, cited, keepShown])
+  if ((!done || !loop) && turn.words)
+    return <Writing turn={turn} draft={turn.words} words={words} onRetry={onRetry} />
   if (!done || !loop)
     return (
       <div className="flex min-w-0 flex-col gap-4" aria-busy={P.isLive(turn)}>
@@ -976,6 +978,7 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
       loop={loop}
       answer={answer}
       {...{
+        streamed: !!turn.words,
         docked,
         onRetry,
         onAsk,
@@ -992,9 +995,57 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   )
 }
 
+/**
+ * The answer while the model writes it (decision 5): its state and the sentences that passed the
+ * check, drawn as the finished answer draws them, so they stay put when the rest comes in.
+ */
+function Writing({
+  turn,
+  draft,
+  words,
+  onRetry,
+}: {
+  turn: Turn
+  draft: LoopTurn
+  words: React.RefObject<HTMLDivElement | null>
+  onRetry?: () => void
+}) {
+  const P = useParts()
+  const maps = useMaps(draft)
+  return (
+    <div className="flex min-w-0 flex-col gap-4" aria-busy={P.isLive(turn)}>
+      <StateRow loop={draft} words={words} />
+      <div ref={words}>
+        <Body
+          body={draft.body}
+          nouns={maps.nouns}
+          numbered={maps.numbered}
+          byId={maps.byId}
+          seen={new Set()}
+        />
+      </div>
+      {turn.stopped && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <P.CircleStopIcon className="size-4 shrink-0" aria-hidden />
+            You stopped it before the answer was finished.
+          </span>
+          {onRetry && (
+            <P.Button variant="outline" onClick={onRetry}>
+              <P.RefreshCwIcon data-icon="inline-start" />
+              Ask again
+            </P.Button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Finished({
   loop,
   answer,
+  streamed,
   docked,
   onRetry,
   onAsk,
@@ -1009,6 +1060,8 @@ function Finished({
 }: {
   loop: LoopTurn
   answer: Answer
+  /** Its words were shown as they were written: they stay as they are, and only the rest fades in. */
+  streamed: boolean
   docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
@@ -1034,7 +1087,12 @@ function Finished({
   const showOwners = loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale'
   const footer = footerLines(loop)
   return (
-    <div className="group/msg flex min-w-0 animate-in flex-col gap-4 duration-(--dur-3) fade-in-0">
+    <div
+      className={P.cn(
+        'group/msg flex min-w-0 flex-col gap-4',
+        !streamed && 'animate-in duration-(--dur-3) fade-in-0',
+      )}
+    >
       {loop.kind === 'stopped' ? (
         <Stopped answer={answer} onRetry={onRetry} />
       ) : (

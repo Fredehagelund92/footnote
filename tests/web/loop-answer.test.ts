@@ -373,6 +373,45 @@ describe('while the loop reads', () => {
   })
 })
 
+describe('while the loop writes', () => {
+  it('shows each sentence that passed the check under its state, then the rest once the answer is in, the words staying put', () => {
+    const { askedTurn, turnReducer } = turnModule
+    const whole = example('loop-checked')
+    const first: LoopTurn = {
+      ...whole,
+      body: [{ t: 'p', runs: [{ t: 'text', text: 'The first sentence is final.' }] }],
+      text: 'The first sentence is final.',
+    }
+    let turn = turnReducer(askedTurn('t1', 'Why is the last day short?'), {
+      type: 'words',
+      words: first,
+    })
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(text(host.querySelector('[data-answer-words]')!)).toBe('The first sentence is final.')
+    // Still being written: no actions and no evidence yet, and the reads' steps give way to it.
+    expect(host.querySelector('[aria-busy="true"]')).not.toBeNull()
+    expect(host.querySelector('ol')).toBeNull()
+    expect(text(host)).not.toContain('Used')
+    // Taken back, the reads show again.
+    turn = turnReducer(turn, { type: 'words', words: null })
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(host.querySelector('[data-answer-words]')).toBeNull()
+    // The whole answer: its words drawn in place, with no fade, and the evidence after them.
+    turn = turnReducer(turnReducer(turn, { type: 'words', words: first }), {
+      type: 'done',
+      answer: loopAnswerOf(whole, 'Why is the last day short?', names),
+    })
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(text(host.querySelector('[data-answer-words]')!)).toContain(
+      'The payment files for Germany',
+    )
+    expect(host.querySelector('.animate-in')).toBeNull()
+  })
+})
+
 describe('the nouns of an answer on any workspace', () => {
   const invented: LoopTurn = {
     ...example('loop-checked'),

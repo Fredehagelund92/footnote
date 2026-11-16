@@ -411,6 +411,8 @@ async function turnWith(
   options: Partial<LoopDeps> & {
     turns?: Parameters<typeof askLoop>[1]['turns']
     question?: string
+    /** Each event as the turn yields it, in order. */
+    onEvent?: (event: LookupEvent) => void
   } = {},
 ) {
   const { database, seen } = countingDatabase()
@@ -424,7 +426,7 @@ async function turnWith(
   )
   const errors: unknown[] = []
   const events: LookupEvent[] = []
-  const { turns, question = 'what is written?', ...rest } = options
+  const { turns, question = 'what is written?', onEvent, ...rest } = options
   for await (const event of askLoop(
     {
       database,
@@ -440,10 +442,28 @@ async function turnWith(
       ...rest,
     },
     { question, ...(turns ? { turns } : {}) },
-  ))
+  )) {
+    onEvent?.(event)
     events.push(event)
+  }
   const turn = events.findLast((e) => e.type === 'turn')?.turn as LoopTurn
   return { turn, events, seen, asked, errors }
+}
+
+/**
+ * A model that reads once, then writes its answer in pieces with a pause between each, noting each
+ * piece as it sends it; `log` notes each words event as the turn yields it, in the same list.
+ */
+function pacedAnswer(pieces: readonly string[], written: string[]) {
+  return {
+    decide: ({ results }: ScriptedPrompt): ScriptedStep =>
+      results.length
+        ? { text: pieces, pace: 20, onPiece: (p) => written.push(`delta:${p}`) }
+        : { calls: [{ toolName: 'find_context', input: { words: 'germany' } }] },
+    log: (e: LookupEvent) => {
+      if (e.type === 'words') written.push(`words:${e.turn?.text ?? ''}`)
+    },
+  }
 }
 
 describe("Ask's loop on a scripted model", () => {
@@ -578,6 +598,54 @@ describe("Ask's loop on a scripted model", () => {
     expect(turn).toMatchObject({ sources: [], state: 'missing', nearby: ['itm_germany01'] })
     // What the turn sends back as its own reply cites by id, a nearby item too: what it wrote.
     expect(turn.said).toBe('Still nothing, as before.[itm_germany01]')
+  })
+
+  it('shows the words a checked sentence at a time, the first while the rest is still being written', async () => {
+    const written: string[] = []
+    const pieces = [
+      'Germany lags ',
+      '[itm_germany01]. France ',
+      'switched in May. ',
+      'Nothing else is written.',
+    ]
+    const { decide, log } = pacedAnswer(pieces, written)
+    const { turn, events } = await turnWith(decide, { onEvent: log })
+    const words = events.filter((e) => e.type === 'words')
+    // Each event is the answer so far, drawn as the turn will be: the sentences that passed.
+    expect(words.map((e) => e.turn?.text)).toEqual([
+      'Germany lags.[1]',
+      'Germany lags.[1] France switched in May.',
+    ])
+    expect(words[0]!.turn).toMatchObject({ sources: ['itm_germany01'], state: 'grounded' })
+    // The first sentence reached the page before the model wrote its last words.
+    expect(written.indexOf('words:Germany lags.[1]')).toBeLessThan(
+      written.indexOf(`delta:${pieces.at(-1)}`),
+    )
+    // The turn is the whole answer, the same sentences first.
+    expect(turn.text).toBe('Germany lags.[1] France switched in May. Nothing else is written.')
+  })
+
+  it('takes back the words of a step that goes on to read, and never shows a lone sentence before a read', async () => {
+    const { events } = await turnWith(({ results }) =>
+      results.length
+        ? { text: 'Germany lags [itm_germany01].' }
+        : {
+            text: 'Ask will look this up. It reads the context first.',
+            calls: [{ toolName: 'find_context', input: { words: 'germany' } }],
+          },
+    )
+    const words = events.filter((e) => e.type === 'words').map((e) => e.turn?.text ?? null)
+    // The first sentence was shown, then taken back once the step read; the answer's words follow.
+    expect(words).toEqual(['Ask will look this up.', null])
+    const { events: lone } = await turnWith(({ results }) =>
+      results.length
+        ? { text: 'Germany lags [itm_germany01].' }
+        : {
+            text: 'Ask will look this up.',
+            calls: [{ toolName: 'find_context', input: { words: 'germany' } }],
+          },
+    )
+    expect(lone.filter((e) => e.type === 'words')).toEqual([])
   })
 
   it("holds an earlier reply's citations by id to what the reads return now, as its [n] marks", async () => {
