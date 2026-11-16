@@ -15,7 +15,7 @@ for (const [name, size] of sizes) {
 
     test('closing a gap says so in the corner', async ({ page }) => {
       await page.clock.install()
-      await go(page, `/inbox?card=${card('gap-germany')}`)
+      await go(page, `/inbox?card=${card('gap-spain')}`)
       await page.getByRole('button', { name: 'Not something we write down' }).first().click()
 
       const toast = page.locator('[data-sonner-toast]')
@@ -31,7 +31,7 @@ for (const [name, size] of sizes) {
 
     test('the toast of a close that can always be undone goes by itself', async ({ page }) => {
       await page.clock.install()
-      await go(page, `/inbox?card=${card('gap-germany')}`)
+      await go(page, `/inbox?card=${card('gap-spain')}`)
       await page.getByRole('button', { name: 'Not something we write down' }).first().click()
 
       // A toast waits while it is pointed at: the pointer that clicked is not over it.
