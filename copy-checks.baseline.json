@@ -211,39 +211,14 @@
   },
   "copy/errors-say-three-things": {},
   "copy/no-fixed-locale": {
-    "src/web/api/http-alerts.ts": {
-      "month": 1
-    },
-    "src/web/api/http-conflicts.ts": {
-      "locale": 1
-    },
     "src/web/api/http-figures.ts": {
       "locale": 4
-    },
-    "src/web/api/http-inbox.ts": {
-      "month": 1
-    },
-    "src/web/api/http-integrations.ts": {
-      "month": 1
-    },
-    "src/web/api/http-map.ts": {
-      "month": 1
-    },
-    "src/web/api/http-settings.ts": {
-      "month": 1
     },
     "src/web/api/mock/data/figures.ts": {
       "locale": 1
     },
-    "src/web/api/mock/data/history.ts": {
-      "month": 1
-    },
-    "src/web/api/mock/index.ts": {
-      "locale": 1
-    },
     "src/web/api/mock/obs-engine.ts": {
-      "locale": 3,
-      "month": 2
+      "locale": 3
     },
     "src/web/components/heed/answer.tsx": {
       "locale": 1
@@ -254,13 +229,7 @@
     "src/web/components/heed/loop-answer.tsx": {
       "locale": 4
     },
-    "src/web/components/heed/loop-nouns.tsx": {
-      "month": 1
-    },
     "src/web/components/heed/scope-field.tsx": {
-      "locale": 1
-    },
-    "src/web/components/heed/share-answer.tsx": {
       "locale": 1
     },
     "src/web/components/obs/charts.tsx": {
@@ -281,25 +250,11 @@
     "src/web/lib/obs-views.ts": {
       "locale": 3
     },
-    "src/web/lib/share.ts": {
-      "month": 1
-    },
-    "src/web/lib/timeframe.ts": {
-      "month": 1
-    },
-    "src/web/model/history.ts": {
-      "locale": 1,
-      "month": 1
-    },
     "src/web/model/observability.ts": {
-      "locale": 3,
-      "month": 2
+      "locale": 3
     },
     "src/web/model/settings.ts": {
       "locale": 3
-    },
-    "src/web/model/validity.ts": {
-      "month": 1
     },
     "src/web/pages/about-editor.tsx": {
       "locale": 2
@@ -312,9 +267,6 @@
     },
     "src/web/pages/definitions.tsx": {
       "locale": 2
-    },
-    "src/web/pages/docs.tsx": {
-      "locale": 1
     },
     "src/web/pages/domain-page.tsx": {
       "locale": 1

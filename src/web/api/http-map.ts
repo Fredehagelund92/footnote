@@ -3,6 +3,7 @@
  * library index into context items, the catalogue and the terms into definitions, a refused word
  * into the synonym box's reason, search everywhere into its groups, and the threads into comments. Pure, so the rules are tested without a service.
  */
+import { dayMonth, dayMonthYear } from '@/lib/dates'
 import type { JSONContent } from '@tiptap/core'
 import type {
   CatalogueTerm,
@@ -193,7 +194,6 @@ export function hitsOf(results: SearchResults): SearchHits {
 
 /* ---------- comments ---------- */
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /**
@@ -209,8 +209,7 @@ export function commentWhen(iso: string, now: Date): string {
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`
   if (days === 0) return `Today, ${time}`
   if (days === 1) return `Yesterday, ${time}`
-  const date = `${at.getDate()} ${MONTHS[at.getMonth()]}`
-  return at.getFullYear() === now.getFullYear() ? date : `${date} ${at.getFullYear()}`
+  return at.getFullYear() === now.getFullYear() ? dayMonth(at) : dayMonthYear(at)
 }
 
 /** Who the comments name: a person's name by id, and an id by name, for the mentions. */

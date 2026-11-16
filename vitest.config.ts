@@ -13,6 +13,7 @@ export default defineConfig({
         test: {
           name: 'web',
           environment: 'node',
+          setupFiles: ['tests/web/setup-locale.ts'],
           include: ['tests/web/**/*.test.ts'],
           exclude: [...configDefaults.exclude, 'tests/web/integration/**'],
         },
@@ -40,6 +41,7 @@ export default defineConfig({
         test: {
           name: 'integration',
           globalSetup: ['tests/integration/global-setup.ts'],
+          setupFiles: ['tests/web/setup-locale.ts'],
           hookTimeout: 30_000,
           testTimeout: 30_000,
           environment: 'node',

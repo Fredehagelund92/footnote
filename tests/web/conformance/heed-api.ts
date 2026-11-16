@@ -1148,7 +1148,7 @@ export function describeHeedApi(
               on: false,
               allowed: false,
             })
-          expect(r.since).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}$/)
+          expect(r.since).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
           expect(r.used).not.toBe('')
         }
         // Kofi's Claude Code is named, and so is what it sent.
@@ -1214,7 +1214,7 @@ export function describeHeedApi(
         used: 'Never',
       })
       expect(toolsOn(made[0]!)).toEqual(agentToolNames.filter((t) => t !== 'suggest_context'))
-      expect(made[0]!.since).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}$/)
+      expect(made[0]!.since).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
       // Only the answer that made it holds the key: no read says it again.
       expect(JSON.stringify(rows)).not.toContain(key)
       expect(JSON.stringify(await live.getSettings())).not.toContain(key)
@@ -1287,7 +1287,7 @@ export function describeHeedApi(
           today: 0,
           canEnd: true,
         })
-        expect(set.setOn).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}$/)
+        expect(set.setOn).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
         expect(
           (await live.listAgentConnections()).find((r) => r.id === app.id)!.policies,
         ).toMatchObject([{ id: set.id, domain }])
@@ -2785,7 +2785,7 @@ export function describeHeedApi(
         expect(['grounded', 'partial', 'missing', 'conflict', 'stale', 'failed']).toContain(
           now!.answer.state,
         )
-        expect(now!.before.label).toMatch(/^Before \d{1,2} [A-Z][a-z]{2}$/)
+        expect(now!.before.label).toMatch(/^Before \d{1,2} [A-Z][a-z]{2,4}$/)
         const before = await api().replayTopic({ topic: topic.id, when: 'before' })
         expect(before!.steps).toHaveLength(6)
         expect(await api().replayTopic({ topic: 'no-such-topic', when: 'now' })).toBeNull()

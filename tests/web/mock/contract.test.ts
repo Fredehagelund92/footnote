@@ -31,7 +31,9 @@ describe('the When people read', () => {
   it("reads a day's label back as its day, and nothing else", () => {
     for (const day of ['2026-10-03', '2026-01-19', '2025-12-31'])
       expect(labelDay(dateLabel(day))).toBe(day)
-    for (const label of ['', 'Today', '3 Oct', '3 October 2026']) expect(labelDay(label)).toBeNull()
+    expect(labelDay('3 October 2026')).toBe('2026-10-03')
+    for (const label of ['', 'Today', '3 Oct', '3 Octember 2026'])
+      expect(labelDay(label)).toBeNull()
   })
 
   it('says a check is due once its date has passed', () => {
