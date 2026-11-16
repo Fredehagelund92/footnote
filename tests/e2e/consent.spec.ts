@@ -14,6 +14,7 @@ import { expect, go, mode, signOut, test } from './go.ts'
 /** The demo's agent sign-in waiting at the consent page (src/web/api/mock/data/agents.ts). */
 const MOCK_REQUEST = 'demo-agent-sign-in-waiting-for-your-answer0'
 const AGENT = 'Claude Code'
+const toasts = (page: Page) => page.locator('[data-sonner-toast]')
 
 /**
  * Opens an address of the app. On the mock, inside the running app, which keeps what the journey
@@ -169,6 +170,51 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
     .getByRole('dialog', { name: /^Disconnect / })
     .getByRole('button', { name: 'Disconnect' })
     .click()
+  await expect(row).toHaveCount(0)
+  if (mode === 'http') await expect.poll(() => agent.reads()).toBe(401)
+})
+
+test('a member finds the agent they connected in Settings, and disconnects it themselves', async ({
+  page,
+}) => {
+  await go(page, '/inbox')
+  await signOut(page)
+  const agent = await agentAsks(page)
+  await page.getByRole('button', { name: /Ines Duarte/ }).click()
+  await expect(
+    page.getByText('You can disconnect it at any time in Settings, under Agents and access.'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Allow', exact: true }).click()
+  await agent.back(true)
+  expect(await agent.reads()).toBe(200)
+
+  // Ines owns no domain and is no admin: Settings has her own agents, and nothing of anyone else's.
+  await open(page, '/inbox')
+  await page.getByRole('link', { name: 'Settings', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Agents and access', level: 1 })).toBeVisible()
+  const rows = page.getByRole('list', { name: 'Connected agents' }).getByRole('listitem')
+  const row = rows.filter({ hasText: AGENT })
+  await expect(row).toBeVisible()
+  await expect(rows.filter({ hasNotText: 'Ines Duarte' })).toHaveCount(0)
+  await expect(page.getByText('Settings are for admins')).toHaveCount(0)
+  for (const admins of ['Pause sharing', 'Tools and access keys'])
+    await expect(page.getByRole('heading', { name: admins })).toHaveCount(0)
+
+  // A disconnect that fails says so, and the agent stays.
+  await go(page, '/settings/agents?state=offline')
+  await row.getByRole('button', { name: 'Disconnect' }).click()
+  const ask = page.getByRole('dialog', { name: `Disconnect ${AGENT}?` })
+  await expect(ask).toContainText('It signs out at once and stops reading context as you.')
+  await expect(ask).toContainText('You can connect it again.')
+  await ask.getByRole('button', { name: 'Disconnect' }).click()
+  await expect(toasts(page).filter({ hasText: `Couldn't disconnect ${AGENT}` })).toBeVisible()
+  await expect(row).toBeVisible()
+  if (mode === 'http') await page.context().setOffline(false)
+  else await go(page, '/settings/agents')
+
+  await row.getByRole('button', { name: 'Disconnect' }).click()
+  await ask.getByRole('button', { name: 'Disconnect' }).click()
+  await expect(toasts(page).filter({ hasText: `${AGENT} disconnected` })).toBeVisible()
   await expect(row).toHaveCount(0)
   if (mode === 'http') await expect.poll(() => agent.reads()).toBe(401)
 })

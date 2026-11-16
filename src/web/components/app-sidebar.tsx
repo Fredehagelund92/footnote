@@ -12,7 +12,7 @@ import {
 } from '@/components/icons'
 import { Logo, LogoSymbol } from '@/components/heed/logo'
 import { NavUser } from '@/components/nav-user'
-import { SettingsNav } from '@/components/settings-nav'
+import { landingOf, SettingsNav } from '@/components/settings-nav'
 import { ObservabilityNav } from '@/components/obs/obs-nav'
 import { seesObservability } from '@/lib/obs'
 import { Kbd } from '@/components/ui/kbd'
@@ -273,21 +273,25 @@ export function AppSidebar({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   )}
-                  {/* Admins, and owners for their domains and the people in the workspace. */}
-                  {(me.admin || me.owns.length > 0) && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        tooltip="Settings"
-                        {...answers('settings')}
-                        render={
-                          <a href={me.admin ? '/settings' : '/settings/domains'} onClick={close} />
-                        }
-                      >
-                        <SettingsIcon />
-                        <span>Settings</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
+                  {/* Everyone: an admin for all of it, anyone else for the domains, the people in
+                      the workspace and the agents they connected. */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip="Settings"
+                      {...answers('settings')}
+                      render={
+                        <a
+                          href={
+                            me.admin ? '/settings' : `/settings/${landingOf(me.owns.length > 0)}`
+                          }
+                          onClick={close}
+                        />
+                      }
+                    >
+                      <SettingsIcon />
+                      <span>Settings</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

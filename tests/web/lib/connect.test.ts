@@ -6,6 +6,7 @@ import {
   HINT_MS,
   keysHint,
   MOCK_SIGN_IN_MS,
+  ownLine,
   phaseAt,
   seenAt,
   STOP_MS,
@@ -120,6 +121,14 @@ describe('access keys on Connected agents', () => {
       '2 agents people have connected, and 1 access key.',
     )
     expect(connectedLine([key('k1'), key('k2')])).toBe('2 access keys.')
+  })
+
+  it('tells someone who is not an admin that the list holds only the agents they connected', () => {
+    expect(ownLine([])).toBe('None yet. An agent you connect shows here.')
+    expect(ownLine([agent])).toBe('1 agent you connected. Only you and the admins see it.')
+    expect(ownLine([agent, agent])).toBe(
+      '2 agents you connected. Only you and the admins see them.',
+    )
   })
 
   it('says when a key was last used, and that one no agent used yet never was', () => {
