@@ -1,11 +1,27 @@
 import * as React from 'react'
 import type { ReactNode } from 'react'
-import { ArrowLeftIcon, MonitorIcon, MoonIcon, SearchIcon, SunIcon } from '@/components/icons'
+import {
+  ArrowLeftIcon,
+  EllipsisIcon,
+  MessageSquareIcon,
+  MonitorIcon,
+  MoonIcon,
+  PanelLeftIcon,
+  SearchIcon,
+  SunIcon,
+} from '@/components/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useTheme, type Theme } from '@/lib/theme-context'
@@ -19,7 +35,7 @@ import { open } from '@/lib/events'
 import { TruncatedText } from '@/components/heed/truncated'
 import { OfflineBanner } from '@/components/heed/load-state'
 import { ProfileLabel } from '@/components/heed/profile-label'
-import { ViewAs } from '@/components/view-as'
+import { ViewAs, ViewAsChoices, useViewAs } from '@/components/view-as'
 import { pageTitle } from '@/lib/page-title'
 import { useSession } from '@/api/queries'
 
@@ -113,6 +129,63 @@ function ThemeMenu() {
   )
 }
 
+/**
+ * A deep page's header on a phone keeps the way back, the title, the page's one main action and
+ * this: everything else it would hold (the page's own menu, Ask, the nav, search, the theme and the
+ * demo's person) behind one More button, so the title keeps its room.
+ */
+function PhoneMore({ ask, children }: { ask?: () => void; children?: ReactNode }) {
+  const { toggleSidebar } = useSidebar()
+  const viewAs = useViewAs()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="More" />}>
+        <EllipsisIcon />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        {children && (
+          <>
+            {children}
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuGroup>
+          {ask && (
+            <DropdownMenuItem onClick={ask}>
+              <MessageSquareIcon />
+              Ask about this
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={toggleSidebar}>
+            <PanelLeftIcon />
+            Open the menu
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => open('palette')}>
+            <SearchIcon />
+            Search
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <ThemeChoices />
+        </DropdownMenuGroup>
+        {viewAs && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>View as: {viewAs.name}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-72">
+                <ViewAsChoices />
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 // The page header, as Efferd's app shell has it: a 48px row that lines up with the sidebar's
 // header, the sidebar trigger, a separator, the page as a quiet 14px title with its icon, actions
 // as small outline buttons on the right, and a translucent background that content scrolls under.
@@ -124,6 +197,8 @@ export function SiteHeader({
   back,
   deep,
   bare,
+  ask,
+  more,
 }: {
   /**
    * The page's name, or a breadcrumb that leads to it. A breadcrumb's current page is the page's
@@ -138,10 +213,15 @@ export function SiteHeader({
   back?: { href: string; label: string }
   /**
    * A page reached from a list or a link (an item, a definition, a review, a conflict). On a phone
-   * its crumbs are gone, so it gets the way back, and it gives up search and the theme (the menu
-   * has both) so the title keeps room to be read. A laptop's header is unchanged.
+   * its crumbs are gone, so it gets the way back, and everything but the page's main action moves
+   * into one More menu (search, the theme, the nav and the person, with `ask` and `more`) so the
+   * title keeps room to be read. A laptop's header is unchanged.
    */
   deep?: { href: string; label: string }
+  /** On a phone, the page's Ask, in the More menu. The page draws its own button on a laptop. */
+  ask?: () => void
+  /** On a phone, the page's own menu items, first in the More menu. */
+  more?: ReactNode
   /** Leaves out search and the theme: the page's own More menu has them, so the title keeps its room. */
   bare?: boolean
 }) {
@@ -177,10 +257,13 @@ export function SiteHeader({
         )}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <NavToggle />
+          {!lean && <NavToggle />}
           <Separator
             orientation="vertical"
-            className={cn('h-4 data-vertical:self-center', way ? 'max-sm:hidden' : 'mr-2')}
+            className={cn(
+              'h-4 data-vertical:self-center',
+              lean ? 'hidden' : way ? 'max-sm:hidden' : 'mr-2',
+            )}
           />
           {way && (
             <Tooltip>
@@ -228,10 +311,11 @@ export function SiteHeader({
           )}
           {children}
           {/* Which install this is, when it is named: last but the theme, so it never moves. */}
-          <ProfileLabel label={profileLabel} className="max-sm:max-w-28" />
+          {!lean && <ProfileLabel label={profileLabel} className="max-sm:max-w-28" />}
           {!bare && !lean && <ThemeMenu />}
           {/* The demo's switch between its people, in the corner: nothing anywhere else. */}
           {!bare && !lean && <ViewAs />}
+          {lean && <PhoneMore ask={ask}>{more}</PhoneMore>}
         </div>
       </header>
       {/* Offline, one quiet line right under the header, so the header keeps its line with the sidebar. */}
@@ -249,12 +333,16 @@ export function Page({
   className,
   bodyRef,
   deep,
+  ask,
+  more,
 }: {
   title: ReactNode
   icon?: ReactNode
   actions?: ReactNode
   /** See SiteHeader. */
   deep?: { href: string; label: string }
+  ask?: () => void
+  more?: ReactNode
   children: ReactNode
   className?: string
   /** The scrolling body, for a page that measures its own width. */
@@ -262,7 +350,7 @@ export function Page({
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SiteHeader title={title} icon={icon} deep={deep}>
+      <SiteHeader title={title} icon={icon} deep={deep} ask={ask} more={more}>
         {actions}
       </SiteHeader>
       <div
