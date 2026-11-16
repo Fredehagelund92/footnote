@@ -547,7 +547,6 @@ export function CompactItemRow({ item }: { item: LoopItem }) {
   const P = useParts()
   const ahead = P.useReadAhead()
   const Icon = P.kindIcons[kindOf(item.kind)]
-  const status = statusWords(item)
   return (
     <li className="flex h-7 min-w-0 items-center gap-2 text-sm">
       {item.n && <CiteMark n={item.n} item={item} />}
@@ -560,11 +559,6 @@ export function CompactItemRow({ item }: { item: LoopItem }) {
       >
         {item.title}
       </button>
-      {status.words !== 'Live' && (
-        <span className="shrink-0 text-xs text-muted-foreground">
-          <StatusMark status={status.words} />
-        </span>
-      )}
     </li>
   )
 }
