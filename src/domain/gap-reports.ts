@@ -5,6 +5,7 @@
  * reads the gap statuses and types, does not carry the text check.
  */
 import { textFindings, type FormatFinding } from './draft.ts'
+import type { ScopeIssue } from './scope.ts'
 
 /**
  * A topic as the gateway keeps it (FR-604): the area when every metric is in one, the sorted
@@ -99,4 +100,25 @@ export function noteFindings(note: string, question?: string): FormatFinding[] {
       severity: 'error',
     })
   return findings
+}
+
+/** Why a scope names no topic, as the fields of a refusal say it: dates, a subject, or a term. */
+export function scopeIssueFindings(issues: readonly ScopeIssue[]): FormatFinding[] {
+  return issues.map((issue) =>
+    issue.field === 'dates'
+      ? { code: 'dates', field: 'dates', message: 'Add the first and last day', severity: 'error' }
+      : issue.field === 'scope'
+        ? {
+            code: 'scope',
+            field: 'scope',
+            message: 'Add a metric, a market or a product',
+            severity: 'error',
+          }
+        : {
+            code: 'unknown_term',
+            field: issue.field,
+            message: `${issue.input} is not in the governed vocabulary`,
+            severity: 'error',
+          },
+  )
 }

@@ -86,7 +86,13 @@ import { agentReply } from '@/lib/agent-reply'
 import { mentionId, parseMentionId, plainText, type MentionRef } from '@/lib/mentions'
 import { figureAskOf, type FigureView } from '@/model/figures'
 import { useFigures } from '@/lib/figures'
-import { FigureAgainst, FigureLine, FigureLink, NoFigure } from '@/components/heed/answer-figure'
+import {
+  AnswerFigure,
+  FigureAgainst,
+  FigureLine,
+  FigureLink,
+  NoFigure,
+} from '@/components/heed/answer-figure'
 import { useRelated } from '@/hooks/use-related'
 import { relLabel } from '@/lib/links'
 
@@ -133,7 +139,13 @@ function IconButton({
 /* ---------- the question ---------- */
 
 /** What Ask's loop answer is handed of Ask: its parts, and the answer's own actions. */
-const loopAnswerParts = () => ({ ...loopParts, AnswerActions, ReportLine, SomethingWrong })
+const loopAnswerParts = () => ({
+  ...loopParts,
+  AnswerActions,
+  ReportLine,
+  SomethingWrong,
+  AnswerFigure,
+})
 
 /** Ask's loop draws its own answer, loaded with the first one: most chats never need it. */
 const LoopAnswerBody = React.lazy(() =>

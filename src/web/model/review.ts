@@ -77,6 +77,25 @@ export function askedWords(times: number) {
   return `Agents asked about this ${times === 1 ? 'once' : `${times} times`} this week.`
 }
 
+/**
+ * A Not found row's line: what agents found this week, and whether someone told the owners from
+ * Ask (Tell the owner), who are the only ones the row reaches.
+ */
+export function gapRowWords(gap: { times: number; told?: number; acrossMonths?: string }) {
+  const told = gap.told ?? 0
+  const people =
+    told === 1
+      ? 'Someone in Ask found nothing and told you.'
+      : `People in Ask found nothing and told you, ${told} times this week.`
+  const agents =
+    gap.times === 0
+      ? told
+        ? people
+        : 'Agents found nothing, and did not ask this week.'
+      : `${askedWords(gap.times)} They found nothing.${told ? ` ${told === 1 ? 'Someone in Ask told you too.' : `People in Ask told you too, ${told} times.`}` : ''}`
+  return `${agents}${gap.acrossMonths ? ' Counted across two months.' : ''}`
+}
+
 /** The quiet label each change block carries. */
 export type ChangeKind = 'Wording' | 'Formatting' | 'Link' | 'Order' | 'Added' | 'Removed' | 'Dates'
 

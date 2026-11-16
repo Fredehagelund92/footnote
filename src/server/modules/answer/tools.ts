@@ -1,4 +1,5 @@
 import { tool, type Tool } from 'ai'
+import type { Catalogue } from '../../../contract/index.ts'
 import * as z from 'zod'
 import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
@@ -884,6 +885,25 @@ function unreadOf(
 // ---------------------------------------------------------------------------------------------
 // read_context
 
+/** What changed and when, newest first: a day and the change in words, never who made it. */
+const historySchema = z.array(z.object({ on: z.string(), change: z.string() }))
+/** The most changes a history lists. */
+const HISTORY_SHOWN = 6
+
+/** What a version of an item changed, as its History says it (versionKinds). */
+const versionWords: Record<string, string> = {
+  published: 'published',
+  wording: 'its words changed',
+  link: 'its links changed',
+  dates: 'when it applies changed',
+  checked: 'checked',
+  moved: 'moved to another domain',
+  retyped: 'its kind changed',
+  owners: 'its owners changed',
+  archived: 'archived',
+  conflict: 'a conflict was marked or settled',
+}
+
 const readInput = z.strictObject({
   id: z
     .string()
@@ -903,6 +923,10 @@ const readOutput = z.object({
       linkedFrom: z.array(z.object({ id: z.string(), title: z.string() })),
       /** Its owners by id, as `names` gives them. */
       people: z.array(z.string()),
+      /** What changed in it and when, newest first, the latest few: never who changed it. */
+      history: historySchema,
+      /** How many older changes are not listed. */
+      historyMore: z.number(),
     }),
   ),
   nothing: z.nullable(z.string()),
@@ -910,7 +934,12 @@ const readOutput = z.object({
   ids,
 })
 
-async function readContext(view: View, input: z.output<typeof readInput>, today: string) {
+async function readContext(
+  view: View,
+  reads: ToolReads,
+  input: z.output<typeof readInput>,
+  today: string,
+) {
   const item = view.bundle.items.find((i) => i.id === input.id)
   const result = item
     ? await view.execute('read_context', { id: input.id }, ASK_PRINCIPAL, 100_000, () => {})
@@ -940,6 +969,7 @@ async function readContext(view: View, input: z.output<typeof readInput>, today:
   const linkedFrom = back.items.filter((b) => view.readable.has(b.id))
   const source = whole.source as { url: string; quote: string } | undefined
   const ownerIds = view.areas.find((a) => a.id === item.areaId)?.ownerIds ?? []
+  const changes = (await reads.itemHistory(item.id)) ?? []
   return {
     found: true,
     item: {
@@ -950,6 +980,11 @@ async function readContext(view: View, input: z.output<typeof readInput>, today:
       linksTo,
       linkedFrom,
       people: ownerIds.map((p) => `person:${p}`),
+      history: changes.slice(0, HISTORY_SHOWN).map((v) => ({
+        on: v.on.slice(0, 10),
+        change: versionWords[v.kind] ?? 'changed',
+      })),
+      historyMore: Math.max(0, changes.length - HISTORY_SHOWN),
     },
     nothing: null,
     names: itemNames(view, [item], {
@@ -1001,6 +1036,23 @@ const definitionsOutput = z.object({
       state: z.nullable(z.string()),
       /** The published items about it. */
       items: z.nullable(z.number()),
+      /** A dimension's values, when names were looked up: the first ones by name, how many more, and all. */
+      values: z.nullable(
+        z.object({ names: z.array(z.string()), more: z.number(), count: z.number() }),
+      ),
+      /**
+       * What a metric is related to, when names were looked up: its group and the other metrics in
+       * it, and how many items' text names it.
+       */
+      related: z.nullable(
+        z.object({
+          group: z.nullable(z.string()),
+          metrics: z.array(z.string()),
+          mentionedBy: z.number(),
+        }),
+      ),
+      /** For one name looked up: what changed in its definition and when, newest first. */
+      history: z.nullable(historySchema),
     }),
   ),
   more: z.number(),
@@ -1008,6 +1060,40 @@ const definitionsOutput = z.object({
   names: namesSchema,
   ids,
 })
+
+/** The most values of a dimension a look-up names. */
+const VALUES_SHOWN = 40
+
+/**
+ * What changed in a definition and when, newest first: a metric's or a dimension's when its source
+ * last changed it, a word written in Definitions by its History.
+ */
+async function historyOf(
+  reads: ToolReads,
+  id: string,
+  term: Catalogue['terms'][number] | undefined,
+): Promise<z.infer<typeof historySchema>> {
+  if (term)
+    return term.definition?.changedAt
+      ? [
+          {
+            on: term.definition.changedAt.slice(0, 10),
+            change: 'its source changed the definition',
+          },
+        ]
+      : []
+  const words: Record<string, string> = {
+    created: 'written',
+    edited: 'its meaning changed',
+    moved: 'moved to another domain',
+    deleted: 'deleted',
+    restored: 'restored',
+  }
+  const versions = await reads.termHistory(id.replace(/^term:/, ''))
+  return versions
+    .slice(0, HISTORY_SHOWN)
+    .map((v) => ({ on: v.at.slice(0, 10), change: words[v.change] ?? 'changed' }))
+}
 
 async function definitions(view: View, reads: ToolReads, input: z.output<typeof definitionsInput>) {
   const catalogue = await reads.catalogue()
@@ -1032,6 +1118,9 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
+      values: null,
+      related: null,
+      history: null,
       names: [t.name, ...t.aliases, t.key, t.id],
       areaId: t.domain.areaId,
     }
@@ -1048,6 +1137,9 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     sameAs: t.sameAs?.name ?? null,
     state: null,
     items: t.items,
+    values: null,
+    related: null,
+    history: null,
     names: [t.name],
     areaId: t.areaId,
   }))
@@ -1060,7 +1152,44 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     .filter((n) => !all.some((d) => named(d, n)))
     .map((n) => ({ name: n, closest: closest(n, all, (d) => d.names)?.name ?? null }))
   const chosen = asked.length ? all.filter((d) => asked.some((n) => named(d, n))) : all
-  const shown = chosen.slice(0, input.limit).map(({ names: _n, areaId: _a, ...d }) => d)
+  // Names looked up get what they are related to, and one name its history; a listing stays light.
+  const valueKeys: string[] = []
+  const relatedKeys: string[] = []
+  const shown = await Promise.all(
+    chosen.slice(0, input.limit).map(async ({ names: _n, areaId: _a, ...d }) => {
+      if (!asked.length) return d
+      const term = catalogue.terms.find((t) => t.key === d.id)
+      const values = view.bundle.terms
+        .filter((v) => v.kind === 'dimension_value' && v.parentKey === d.id && isShown(view, v.key))
+        .sort((a, b) => a.name.localeCompare(b.name))
+      valueKeys.push(...values.slice(0, VALUES_SHOWN).map((v) => v.key))
+      const group = term?.group ?? null
+      const kin = group
+        ? catalogue.terms.filter((t) => t.group?.key === group.key && t.key !== d.id)
+        : []
+      relatedKeys.push(...kin.map((t) => t.key))
+      return {
+        ...d,
+        values:
+          d.kind === 'dimension'
+            ? {
+                names: values.slice(0, VALUES_SHOWN).map((v) => v.name),
+                more: Math.max(0, values.length - VALUES_SHOWN),
+                count: values.length,
+              }
+            : null,
+        related:
+          d.kind === 'metric' && term
+            ? {
+                group: group?.name ?? null,
+                metrics: kin.map((t) => t.name),
+                mentionedBy: term.shelf.mentionedBy,
+              }
+            : null,
+        history: chosen.length === 1 ? await historyOf(reads, d.id, term) : null,
+      }
+    }),
+  )
   return {
     counts: {
       metrics: synced.filter((d) => d.kind === 'metric').length,
@@ -1072,7 +1201,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     more: chosen.length - shown.length,
     notFound,
     names: namesFor(view, {
-      terms: shown.map((d) => d.id),
+      terms: [...shown.map((d) => d.id), ...valueKeys, ...relatedKeys],
       areas: chosen.slice(0, input.limit).map((d) => d.areaId),
     }),
     ids: shown.map((d) => d.id),
@@ -1607,13 +1736,13 @@ const definitionsFor = {
   },
   read_context: {
     description:
-      'Read one context item the person may read, by its id: its whole text, where and when it applies, who checked it and when, its source and what not to conclude, its owners, and the items it links to and that link to it. An id the person may not read reads as one that does not exist.',
+      'Read one context item the person may read, by its id: its whole text, where and when it applies, who checked it and when, its source and what not to conclude, its owners, the items it links to and that link to it, and what changed in it and when, newest first. An id the person may not read reads as one that does not exist.',
     input: readInput,
     output: readOutput,
   },
   definitions: {
     description:
-      "What Definitions shows the person: each metric's and dimension's own definition as its source words it, the words people wrote, other names, the domain and its owners, and how many items are about it. Look names up, or count them by kind as the page does.",
+      "What Definitions shows the person: each metric's and dimension's own definition as its source words it, the words people wrote, other names, the domain and its owners, and how many items are about it. Look names up, or count them by kind as the page does. A name looked up also gives a dimension's values, a metric's group and the other metrics in it, and how many items name it; one name alone gives what changed in its definition and when.",
     input: definitionsInput,
     output: definitionsOutput,
   },
@@ -1672,7 +1801,7 @@ export function createAskTools(reads: ToolReads) {
   const handlers: Handlers = {
     find_context: (v, input) => findContext(v, input, today),
     get_context: (v, input) => getContext(v, input, today),
-    read_context: (v, input) => readContext(v, input, today),
+    read_context: (v, input) => readContext(v, reads, input, today),
     definitions: (v, input) => definitions(v, reads, input),
     records: (v, input) => records(v, reads, input),
     conflicts: (v, input) => conflicts(v, reads, input),

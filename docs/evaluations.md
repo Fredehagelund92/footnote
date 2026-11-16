@@ -333,6 +333,11 @@ SDK's shape.
   filter), `agent_questions` (what agents asked, as FR-614 discloses it to that reader: a floor
   stays a floor, a topic under the minimum is not listed and reads as one never asked) and `inbox`
   (the person's own cards, never a comment's, a report's or a saved question's words).
+- **Beside the words.** A name `definitions` looks up also gives a dimension's values (the first
+  40 by name, then how many more), a metric's group, the other metrics in it and how many items
+  name it; one name alone gives what changed in its definition and when. `read_context` gives an
+  item's History, newest first: the day and what changed, never who changed it. The figure of a
+  loop answer's subject is read by the page, as the router's answer reads it (FR-716).
 - **No dead ends.** A search that finds nothing says what it searched (the names, the period and
   the kinds) out of how many published items the person may read, what is nearby and why it does
   not apply, and who owns the subject. Given `widen`, it searches once more by another name of the

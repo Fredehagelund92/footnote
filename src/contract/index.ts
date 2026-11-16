@@ -166,7 +166,7 @@ import {
   setRoleSchema,
   soleOwnerSchema,
 } from './members.ts'
-import { gapDetailSchema, gapIdInputSchema } from './gaps.ts'
+import { gapDetailSchema, gapIdInputSchema, gapReportInputSchema, gapReportSchema } from './gaps.ts'
 import {
   addSourceSchema,
   connectorListingSchema,
@@ -290,7 +290,14 @@ import {
 import { operationsOverviewSchema, runJobInputSchema, runJobSchema } from './operations.ts'
 import { refusals } from './refusals.ts'
 export * from './schemas.ts'
-export type { Gap, GapDetail, GapHistoryEntry, TopicCounts } from './gaps.ts'
+export type {
+  Gap,
+  GapDetail,
+  GapHistoryEntry,
+  GapReport,
+  GapReportInput,
+  TopicCounts,
+} from './gaps.ts'
 export type {
   AddSourceInput,
   ConnectorListing,
@@ -1234,6 +1241,31 @@ export const contract = {
       })
       .input(gapIdInputSchema)
       .output(gapDetailSchema),
+    report: read
+      .errors({
+        UNPROCESSABLE_CONTENT: {
+          status: 422,
+          message: 'Some details need attention. Fix the problems shown, then try again.',
+          data: z.optional(z.object({ findings: z.array(findingSchema) })),
+        },
+        PRECONDITION_FAILED: {
+          message: "Agents don't get any context yet. Ask an admin to finish the setup.",
+        },
+        TOO_MANY_REQUESTS: {
+          status: 429,
+          message: "You've sent a lot of reports. Try again in a minute.",
+          data: z.object({ retryAfterSeconds: z.number() }),
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/gaps/reports',
+        tags: ['gaps'],
+        summary:
+          "Say something is missing about a scope (FR-606 case 5, Ask's Tell the owner): counts one report against the topic, as an agent's report of kind missing does, and records no person",
+      })
+      .input(gapReportInputSchema)
+      .output(gapReportSchema),
   },
   sources: {
     // Settings › Integrations: every source, the server's own and those an admin added, with how

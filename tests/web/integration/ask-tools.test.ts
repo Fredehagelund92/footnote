@@ -221,6 +221,50 @@ describe.each(persons)('as %s', (name) => {
   })
 })
 
+describe('what a definition and an item say beside their words', () => {
+  it("definitions gives a dimension its values, a metric what it is related to, and one name's history", async () => {
+    await world.withTools(ADMIN, async (tools) => {
+      const market = await ok(tools, 'definitions', { names: ['Market'] })
+      const dimension = market.definitions[0]!
+      expect(dimension).toMatchObject({ id: 'dim:market', kind: 'dimension', related: null })
+      expect(dimension.values!.names).toEqual(expect.arrayContaining(['Norway', 'Sweden']))
+      // How many there are, by code, for the words to give as a reference.
+      expect(dimension.values!.count).toBe(dimension.values!.names.length + dimension.values!.more)
+      // Each value is named, so the words can name it as its chip.
+      expect(market.names.map((n) => n.id)).toContain('value:market/norway')
+      expect(dimension.history).toEqual(expect.any(Array))
+      const orders = (await ok(tools, 'definitions', { names: ['Orders'] })).definitions[0]!
+      expect(orders.values).toBeNull()
+      expect(Object.keys(orders.related!)).toEqual(['group', 'metrics', 'mentionedBy'])
+      expect(orders.related!.mentionedBy).toEqual(expect.any(Number))
+      expect(orders.related!.metrics).not.toContain('Orders')
+      // A history only for one name looked up: a listing stays light.
+      const two = await ok(tools, 'definitions', { names: ['Orders', 'Net revenue'] })
+      expect(two.definitions.map((d) => d.history)).toEqual([null, null])
+      const listed = await ok(tools, 'definitions', {})
+      expect(listed.definitions.every((d) => d.values === null && d.history === null)).toBe(true)
+    })
+  })
+
+  it('read_context gives an item its history, newest first, and never who changed it', async () => {
+    await world.withTools(ADMIN, async (tools) => {
+      const read = await ok(tools, 'read_context', { id: 'itm_norwaystop' })
+      const history = read.item!.history
+      expect(history.length).toBeGreaterThan(0)
+      for (const h of history) {
+        expect(Object.keys(h)).toEqual(['on', 'change'])
+        expect(h.on).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      }
+      expect(history.map((h) => h.on)).toEqual(
+        history
+          .map((h) => h.on)
+          .sort()
+          .reverse(),
+      )
+    })
+  })
+})
+
 describe('no dead ends (FR-719.3)', () => {
   it('says what was searched, out of how many, what is nearby and who owns it, then widens once', async () => {
     await world.withTools('Maria Lindqvist', async (tools) => {

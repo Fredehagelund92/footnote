@@ -123,6 +123,25 @@ export const idOf = (card: NeedCard) =>
       ? card.draft
       : card.id
 
+/**
+ * A Not found card's line: how often agents found nothing this week, and when someone pressed Tell
+ * the owner in Ask, that too. Agents' count alone when nobody told the owners.
+ */
+function gapLine(times: number | null, told: number): string {
+  const agents =
+    times === null
+      ? 'Agents found nothing written down for this, fewer than 5 times this week.'
+      : times === 0
+        ? 'Agents found nothing written down for this. Nobody asked about it again this week.'
+        : `Agents found nothing written down for this, ${times} times this week.`
+  const people =
+    told === 1
+      ? 'Someone asked Ask about this, found nothing written down and told you.'
+      : `People asked Ask about this, found nothing written down and told you, ${told} times this week.`
+  if (!told) return agents
+  return times === 0 ? people : `${agents} ${people}`
+}
+
 function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => string): InboxCard {
   // Names can belong to no domain; every other card belongs to one.
   const base = { id: idOf(card), domain: card.areaId ?? '', for: me, when: whenWords(card.at, now) }
@@ -188,12 +207,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         ...base,
         type: 'gap',
         title: card.title,
-        line:
-          card.times === null
-            ? 'Agents found nothing written down for this, fewer than 5 times this week.'
-            : times === 0
-              ? 'Agents found nothing written down for this. Nobody asked about it again this week.'
-              : `Agents found nothing written down for this, ${times} times this week.`,
+        line: gapLine(card.times, card.told),
         detail: card.draft
           ? 'A draft is ready. Check every part before you publish.'
           : `Nothing is drafted yet: write what agents should know about ${card.title}.`,
@@ -202,6 +216,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         gap: {
           scope: [card.title],
           times,
+          told: card.told,
           belongs: `context about ${card.title}`,
           // The draft is reviewed under this card's id; the review reads what it says.
           ...(card.draft

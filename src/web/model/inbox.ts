@@ -80,7 +80,15 @@ export type InboxCard = {
    * Not found: the scope agents asked about and how often (never their words, which are not
    * kept), and the item drafted for it, so the owner reviews a draft instead of a blank page.
    */
-  gap?: { scope: string[]; times: number; belongs: string; draft?: Fact; acrossMonths?: string }
+  gap?: {
+    scope: string[]
+    times: number
+    /** How often people in Ask told the owners this week that it is missing (Tell the owner). */
+    told?: number
+    belongs: string
+    draft?: Fact
+    acrossMonths?: string
+  }
   /** A report someone sent on purpose from a conversation: kept with their words, and their name. */
   flag?: { reason: 'wrong' | 'unclear'; note: string; when: string; by: string; via: string }
   /** Raised by the saved-question alert: the questions that answer worse now, from Quality's one list. */

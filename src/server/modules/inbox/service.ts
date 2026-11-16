@@ -208,6 +208,7 @@ export function createInboxFeedService(
       dimensions: string[]
       month: string | null
       calls: number
+      told: number
       draft: string | null
     }>(
       `select g.id::text, g.ref, g.status_since::text as at, t.area_id as area,
@@ -215,6 +216,8 @@ export function createInboxFeedService(
               t.value_keys as values, t.dimension_keys as dimensions, t.month::text as month,
               coalesce((select w.reports - w.human_reports + w.no_item_calls from gap_weekly_counts w
                          where w.gap_id=g.id and w.week=date_trunc('week', now() at time zone 'UTC')::date),0)::int as calls,
+              coalesce((select w.human_reports from gap_weekly_counts w
+                         where w.gap_id=g.id and w.week=date_trunc('week', now() at time zone 'UTC')::date),0)::int as told,
               (select p.id::text from proposals p
                 where p.source_gap_id=g.id and p.discarded_at is null order by p.created_at desc limit 1) as draft
          from gaps g join topics t on t.id=g.topic_id
@@ -249,6 +252,7 @@ export function createInboxFeedService(
           month: row.month,
         },
         times: visibleCount(row.calls, min),
+        told: row.told,
         draft: row.draft,
       }
     })
@@ -533,6 +537,7 @@ export function createInboxFeedService(
         title: row.ref,
         scope: { metrics: [], values: [], dimensions: [], month: null },
         times: null,
+        told: 0,
         draft: null,
       })
     return cards

@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { tryItInputSchema } from './connect.ts'
 import {
   gapHistoryActions,
   gapNoteSources,
@@ -87,6 +88,20 @@ export const gapDetailSchema = z.extend(gapSchema, {
   history: z.nullable(z.array(gapHistoryEntrySchema)),
 })
 export const gapIdInputSchema = z.strictObject({ id: gapId })
+/**
+ * FR-606 case 5: a signed-in person says something is missing about the scope they asked about
+ * (Ask's Tell the owner, decision 7 of the chat audit), as an agent's report of kind missing does.
+ * The topic comes from the scope only (FR-604), resolved as get_context resolves it, so an unknown
+ * term is refused. The note is optional and short (FR-611); nothing names the person (FR-608), and
+ * no words of the question are sent.
+ */
+export const gapReportInputSchema = z.strictObject({
+  ...tryItInputSchema.shape,
+  type: z.enum(gapTypes),
+  note: z.optional(z.string().check(z.minLength(1), z.maxLength(500))),
+})
+/** The gap the report counted against. A reader who does not manage it may not see it yet. */
+export const gapReportSchema = z.object({ id: z.string() })
 /** Topic detail only for weeks a topic reaches the minimum count (FR-614). */
 export const topicCountsSchema = z.object({
   minimumCount: z.number(),
@@ -107,3 +122,5 @@ export type Gap = z.infer<typeof gapSchema>
 export type GapDetail = z.infer<typeof gapDetailSchema>
 export type GapHistoryEntry = z.infer<typeof gapHistoryEntrySchema>
 export type TopicCounts = z.infer<typeof topicCountsSchema>
+export type GapReportInput = z.infer<typeof gapReportInputSchema>
+export type GapReport = z.infer<typeof gapReportSchema>
