@@ -2,8 +2,9 @@ import { devices } from '@playwright/test'
 import { card, expect, go, test } from './go.ts'
 
 // J60, the way back on a phone (UX audit P14, design audit F13): the item, definition, review and
-// conflict pages have a back arrow in their header, the title keeps room to be read, and the
-// editor's toolbar shows an edge where it scrolls on.
+// conflict pages have a back arrow in their header, the title keeps room to be read, the rest of
+// the header (Ask, the nav, search, the theme) sits in one More menu, the Inbox's switch sits under
+// its introduction, and the editor's toolbar shows an edge where it scrolls on.
 
 test.use({ ...devices['iPhone 13'], browserName: 'chromium' })
 
@@ -51,6 +52,59 @@ for (const place of places) {
   })
 }
 
+test('an item keeps most of the header for its title', async ({ page }) => {
+  await go(page, '/context/itm_norway_stop')
+  const header = page.locator('header')
+  // Back, the title, the main action and More: nothing else is drawn beside them.
+  await expect(header.getByRole('button', { name: 'More' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Edit' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Open the menu' })).toHaveCount(0)
+  await expect(header.getByRole('button', { name: /^Ask about/ })).toHaveCount(0)
+  await expect(header.getByRole('button', { name: 'Search' })).toHaveCount(0)
+  // The title's own width, as it is drawn: a long title is cut by the room, not by seven buttons.
+  const width = await page.evaluate(() => {
+    const title = document.querySelector<HTMLElement>('header [aria-current="page"]')!
+    return title.getBoundingClientRect().width
+  })
+  expect(width).toBeGreaterThanOrEqual(180)
+})
+
+test('the More menu of a deep page holds Ask, the nav, search and the theme', async ({ page }) => {
+  await go(page, '/context/itm_norway_stop')
+  await page.getByRole('button', { name: 'More' }).click()
+  for (const name of ['Archive', 'Ask about this', 'Open the menu', 'Search']) {
+    await expect(page.getByRole('menuitem', { name })).toBeVisible()
+  }
+  for (const name of ['Light', 'Dark', 'System'])
+    await expect(page.getByRole('menuitemradio', { name })).toBeVisible()
+  await page.getByRole('menuitem', { name: 'Ask about this' }).click()
+  await expect(page).toHaveURL(/dock=ask/)
+})
+
+test('the Inbox puts its switch under the introduction, not beside it in 180 px', async ({
+  page,
+}) => {
+  await go(page, '/inbox')
+  const header = page.locator('[data-slot="card-header"]').first()
+  const intro = header.locator('[data-slot="card-description"]')
+  await expect(intro).toBeVisible()
+  const box = await intro.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return {
+      width: r.width,
+      lines: Math.round(r.height / parseFloat(getComputedStyle(el).lineHeight)),
+    }
+  })
+  expect(box.lines).toBeLessThanOrEqual(2)
+  expect(box.width).toBeGreaterThanOrEqual(280)
+  const below = await page.evaluate(() => {
+    const intro = document.querySelector('[data-slot="card-description"]')!.getBoundingClientRect()
+    const tabs = document.querySelector('[data-slot="card-action"]')!.getBoundingClientRect()
+    return tabs.top >= intro.bottom
+  })
+  expect(below).toBe(true)
+})
+
 test('the editor toolbar shows an edge where it scrolls on', async ({ page }) => {
   await go(page, '/context/new')
   const toolbar = page.locator('.rte-toolbar').first()
@@ -74,12 +128,13 @@ test('the editor toolbar shows an edge where it scrolls on', async ({ page }) =>
   await expect.poll(async () => parseFloat((await fades()).start)).toBeGreaterThan(0)
 })
 
-test('a deep page on a phone leaves the theme to the menu, which still has it', async ({
+test('a deep page on a phone leaves the theme to the nav menu, which still has it', async ({
   page,
 }) => {
   await go(page, '/context/itm_norway_stop')
   await expect(page.getByRole('button', { name: /^Theme:/ })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Open the menu' }).click()
+  await page.getByRole('button', { name: 'More' }).click()
+  await page.getByRole('menuitem', { name: 'Open the menu' }).click()
   await page.getByRole('button', { name: /Jon Abara/ }).click()
   await page.getByRole('menuitemradio', { name: 'Dark' }).click()
   await expect(page.locator('html')).toHaveClass(/dark/)

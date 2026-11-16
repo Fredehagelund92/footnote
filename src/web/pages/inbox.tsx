@@ -1438,11 +1438,14 @@ export function InboxPage() {
     <div className="flex h-full min-h-0 flex-col gap-0">
       <Cell className="h-full min-h-0 gap-0 py-0">
         <CardHeader className="border-b px-4 py-4 md:px-5">
-          <CardTitle className="text-base">{tab === 'all' ? 'Everything' : 'Needs you'}</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-base @max-sm/card-header:col-span-full">
+            {tab === 'all' ? 'Everything' : 'Needs you'}
+          </CardTitle>
+          <CardDescription className="@max-sm/card-header:col-span-full">
             {tab === 'all' ? 'Yours, waiting on others, and done.' : <WeekLine />}
           </CardDescription>
-          <CardAction>
+          {/* Beside the introduction on a wide list; under it on a phone, where a 180 px column would run it to three lines. */}
+          <CardAction className="@max-sm/card-header:col-span-full @max-sm/card-header:row-span-1 @max-sm/card-header:row-start-3 @max-sm/card-header:mt-2 @max-sm/card-header:justify-self-start">
             {/* A filter, not navigation: quiet words with counts. */}
             <TextSwitch
               label="Show"
