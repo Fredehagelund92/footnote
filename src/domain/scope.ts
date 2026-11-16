@@ -1,4 +1,12 @@
-import { dayWords, fullDayWords, readDates, whatHeedReads, type DateSpan } from './dates.ts'
+import {
+  dayWords,
+  fullDayWords,
+  readDates,
+  UTC_CALENDAR,
+  whatHeedReads,
+  type Calendar,
+  type DateSpan,
+} from './dates.ts'
 import { calendarDateSchema, dateWindowSchema, shiftDate, type DateWindow } from './validity.ts'
 import {
   isMemberName,
@@ -33,6 +41,8 @@ export type ScopeInput = {
   window?: DateWindow
   /** Read the words' dates as a person writes them (`readDates`): Ask's, never an agent's. */
   loose?: boolean
+  /** The workspace's calendar the dates are read on: its fiscal year and time zone. */
+  calendar?: Calendar
 }
 /**
  * A part of the scope Heed could not read. `message`, for a name it does not know, says so and
@@ -49,13 +59,14 @@ export type ScopeIssue = {
   meanings?: WordMeaning[]
 }
 /**
- * The day Heed read a question at because it gave no dates: today, a UTC day (NFR-048; Heed has
- * no company time zone). A reply that used it says so (`assumedDate`), never silently.
+ * The day Heed read a question at because it gave no dates: today in the workspace's time zone,
+ * UTC until it sets one (NFR-048). A reply that used it says so (`assumedDate`), never silently.
  */
-export type AssumedDate = { date: string; time_zone: 'UTC'; reason: 'no date given' }
+export type AssumedDate = { date: string; time_zone: string; reason: 'no date given' }
 /**
  * The dates Heed read in the words of a question: the words as written, and how it read them for
- * a person ("1 Jan to 7 Oct 2026 (this year so far; UTC)"). A reply that used them says so.
+ * a person ("1 Jan to 7 Oct 2026 (this year so far; UTC)"). A reply that used them says so. For
+ * fiscal words, `fiscal` says how the fiscal year was read ("Q3 FY26, fiscal year from 1 April").
  */
 export type DatesRead = { words: string; reads_as: string }
 /** The rest of a question that stopped at a word: its names and dates, null when it gave none. */
@@ -272,7 +283,7 @@ export function assumedDate(assumed: AssumedDate) {
   return {
     note: { ...assumed, sentence },
     instruction: `The question gave no dates, so today was assumed (assumed_date). Say so in your answer: "${sentence}"`,
-    statement: `No dates were given, so today was assumed, ${day} (UTC), with the items that apply on that day: an item that starts after it or ended before it is not given. For another period, call again with window.`,
+    statement: `No dates were given, so today was assumed, ${day} (${assumed.time_zone}), with the items that apply on that day: an item that starts after it or ended before it is not given. For another period, call again with window.`,
   }
 }
 
@@ -462,11 +473,17 @@ function readWords(
   use?: { metrics: boolean; dimensions: boolean },
   loose = false,
   given: readonly string[] = [],
+  calendar: Calendar = UTC_CALENDAR,
 ) {
   const found = termsInText(question, terms, use, given, loose)
   let dates: ReturnType<typeof readDates>
   try {
-    dates = readDates(found.text, today, { taken: found.occupied, loose })
+    dates = readDates(found.text, today, {
+      taken: found.occupied,
+      loose,
+      timeZone: calendar.timeZone,
+      fiscalYearStart: calendar.fiscalYearStart,
+    })
   } catch {
     dates = {
       status: 'unreadable',
@@ -607,6 +624,7 @@ export function extractScope(
     { metrics: structured.metrics === undefined, dimensions: structured.filters === undefined },
     structured.loose,
     metrics,
+    structured.calendar,
   )
   const { text, occupied, dated } = found
   issues.push(...found.ambiguous)
@@ -665,12 +683,19 @@ export function extractScope(
     const read = found.dates
     if (read.status === 'read') {
       window = read.window
-      dates = { words: found.datesWords, reads_as: read.readsAs }
+      dates = {
+        words: found.datesWords,
+        reads_as: read.readsAs,
+      }
     } else if (read.status === 'unreadable')
       issues.push({ field: 'dates', input: found.datesWords, options: [], message: read.message })
     else {
       window = { start: today, end: shiftDate(today, 1) }
-      assumed = { date: today, time_zone: 'UTC', reason: 'no date given' }
+      assumed = {
+        date: today,
+        time_zone: structured.calendar?.timeZone ?? 'UTC',
+        reason: 'no date given',
+      }
     }
   } else if (!dateWindowSchema.safeParse(window).success || window?.end === null)
     issues.push({ field: 'dates', input: question, options: [] })

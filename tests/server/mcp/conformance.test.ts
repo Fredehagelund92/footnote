@@ -31,6 +31,7 @@ import {
 } from '../../../src/server/mcp/tools.ts'
 import type { EditionSource } from '../../../src/server/modules/editions/index.ts'
 import { bundle, fakeReads, memoryStore } from './fixtures.ts'
+import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 
 const cleanups: (() => Promise<unknown>)[] = []
 afterEach(async () => {
@@ -61,6 +62,7 @@ async function server(
     limits: {} as Record<string, number>,
     rates: { person: 1000, client: 1000 },
     about: '',
+    calendar: UTC_CALENDAR,
   }
   const source: EditionSource = {
     bundle() {
@@ -568,7 +570,10 @@ describe.each(['legacy', 'auto'] as const)('the server instructions (FR-343), %s
     // the reply.
     expect(instructions).toContain(contextRule)
     expect(instructions).toContain(plainWordsRule)
-    expect(instructions).toContain('A question without dates is read at today (UTC)')
+    expect(instructions).toContain('Without dates, today (UTC) is read, as say says: say it too.')
+    expect(instructions).toContain(
+      'unreadable dates, and fiscal ones until the workspace sets its fiscal year, get need_more_detail',
+    )
     expect(instructions).toContain('never put question text, personal data or secrets in its note')
     expect(instructions).toContain('ask them first, then call report')
     expect(instructions).toContain('ask the person first, then call suggest_context')
@@ -635,8 +640,44 @@ describe.each(['legacy', 'auto'] as const)('the server instructions (FR-343), %s
       4096,
     )
     expect(serverInstructions(['Cube'], longest).endsWith(ABOUT_BUSINESS_END)).toBe(true)
+    // With a workspace calendar that names the longest time zone too.
+    const calendar = {
+      fiscalYearStart: { month: 9, day: 28 },
+      timeZone: 'America/Argentina/ComodRivadavia',
+    }
+    expect(
+      instructionsFor('x'.repeat(PRODUCT_NAME_MAX), [], longest, calendar).length,
+    ).toBeLessThanOrEqual(4096)
     // No text, no block.
     expect(serverInstructions(['Cube'], '  ')).toBe(serverInstructions(['Cube']))
+  })
+
+  it("name the workspace's calendar, and get_context reads dates on it (R8)", async () => {
+    // 23:30 UTC on 7 October is already 8 October in Oslo.
+    const s = await server({ now: new Date('2026-10-07T23:30:00Z') })
+    s.policy.calendar = { fiscalYearStart: { month: 4, day: 1 }, timeZone: 'Europe/Oslo' }
+    const client = await s.connect(mode)
+    const instructions = client.getInstructions() ?? ''
+    expect(instructions).toBe(serverInstructions(['Cube'], '', s.policy.calendar))
+    expect(instructions).toContain('fiscal FY26: 1 Apr 2025 to 31 Mar 2026')
+    expect(instructions).toContain('Without dates, today (Europe/Oslo) is read')
+    const fiscal = await client.callTool({
+      name: 'get_context',
+      arguments: { question: 'Orders in Norway in Q3 FY26', response_format: 'full' },
+    })
+    expect(fiscal.structuredContent).toMatchObject({
+      dates_read: {
+        words: 'Q3 FY26',
+        reads_as: '1 Oct to 31 Dec 2025 (Q3 FY26, fiscal year from 1 April; Europe/Oslo)',
+      },
+    })
+    const today = await client.callTool({
+      name: 'get_context',
+      arguments: { question: 'Orders in Norway', response_format: 'full' },
+    })
+    expect(today.structuredContent).toMatchObject({
+      assumed_date: { date: '2026-10-08', time_zone: 'Europe/Oslo' },
+    })
   })
 
   it('never deliver About our business as evidence: not in a result, an item or a check report', async () => {

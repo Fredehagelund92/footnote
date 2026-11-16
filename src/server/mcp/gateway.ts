@@ -389,6 +389,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     const instructions = serverInstructions(
       describes ? await deps.source.bundle().then(dataTools, () => []) : [],
       policy.about,
+      policy.calendar,
     )
     const handler = createMcpHandler(
       () => {
@@ -461,6 +462,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
                 (seq) => {
                   edition = seq
                 },
+                policy.calendar,
               )
               if (byteSize(result) > maxBytes)
                 result = failure('The result cannot fit the client response limit.')

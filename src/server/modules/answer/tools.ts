@@ -5,7 +5,7 @@ import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
-import { windowWords } from '../../../domain/dates.ts'
+import { windowWords, type Calendar } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
 import { anyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
@@ -200,6 +200,7 @@ async function viewOf(reads: ToolReads): Promise<View> {
           limits: {},
           rates: DEFAULT_MCP_RATES,
           about: '',
+          calendar: reads.calendar,
         }),
     },
     { write: noWrite, reportGap: noWrite, feedback: noWrite },
@@ -672,10 +673,15 @@ const isNearbyReason = (r: string): r is keyof typeof nearbyWhy => Object.hasOwn
 const coveredState = (a: Answer) =>
   answerStateOf({ status: a.status, items: a.items, uncovered: a.uncovered, assumed: false })
 
-function getContext(view: View, input: z.output<typeof getInput>, today: string) {
+function getContext(
+  view: View,
+  input: z.output<typeof getInput>,
+  today: string,
+  calendar: Calendar,
+) {
   const window = input.from && input.to ? { from: input.from, to: input.to } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
-    answer(view.bundle, ask, { today, person: true })
+    answer(view.bundle, ask, { today, calendar, person: true })
   // A name the person may not see is read as one Heed does not know.
   const hidesName = (a: Answer) =>
     !!a.scope &&
@@ -1807,7 +1813,7 @@ export function createAskTools(reads: ToolReads) {
   const today = reads.today
   const handlers: Handlers = {
     find_context: (v, input) => findContext(v, input, today),
-    get_context: (v, input) => getContext(v, input, today),
+    get_context: (v, input) => getContext(v, input, today, reads.calendar),
     read_context: (v, input) => readContext(v, reads, input, today),
     definitions: (v, input) => definitions(v, reads, input),
     records: (v, input) => records(v, reads, input),

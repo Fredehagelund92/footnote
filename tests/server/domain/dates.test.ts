@@ -654,3 +654,75 @@ describe('the note a person reads beside the days', () => {
     expect(dateNote('1-30 Nov 2025')).toBeNull()
   })
 })
+
+describe("a workspace's calendar (R8)", () => {
+  // Friday 23 October 2026: with the fiscal year starting 1 April, the days of FY27.
+  const today = '2026-10-23'
+  const april = { fiscalYearStart: { month: 4, day: 1 }, timeZone: 'Europe/Oslo' }
+  const days = (got: ReturnType<typeof readDates>) =>
+    got.status === 'read' ? [got.window.start, shiftDate(got.window.end!, -1)] : got.status
+
+  it('reads Q3 FY26 as 1 Oct to 31 Dec 2025 when the fiscal year starts 1 April, and says fiscal', () => {
+    const got = readDates('orders in norway in q3 fy26', today, { loose: true, ...april })
+    expect(got).toMatchObject({
+      status: 'read',
+      window: { start: '2025-10-01', end: '2026-01-01' },
+      readsAs: '1 Oct to 31 Dec 2025 (Q3 FY26, fiscal year from 1 April; Europe/Oslo)',
+    })
+    expect(dateNote(got.status === 'read' ? got.readsAs : '')).toBe('Q3 FY26, fiscal year from 1 April')
+  })
+
+  it.each([
+    ['fy26', '2025-04-01', '2026-03-31'],
+    ['fiscal year 2026', '2025-04-01', '2026-03-31'],
+    ['fy27 q1', '2026-04-01', '2026-06-30'],
+    ['q4 of fy26', '2026-01-01', '2026-03-31'],
+    ['h2 fy26', '2025-10-01', '2026-03-31'],
+    ['march fy26', '2026-03-01', '2026-03-31'],
+    ['august fy26', '2025-08-01', '2025-08-31'],
+    ['this fiscal year', '2026-04-01', '2026-10-23'],
+    ['last fiscal year', '2025-04-01', '2026-03-31'],
+    ['next fiscal year', '2027-04-01', '2028-03-31'],
+    ['this fiscal quarter', '2026-10-01', '2026-10-23'],
+    ['last fiscal quarter', '2026-07-01', '2026-09-30'],
+  ])('reads "%s" on the fiscal calendar', (text, from, to) => {
+    expect(days(readDates(text, today, { loose: true, ...april }))).toEqual([from, to])
+  })
+
+  it('reads fiscal words strictly for agents once the workspace says when its year starts', () => {
+    expect(days(readDates('orders in norway in q3 fy26', today, april))).toEqual([
+      '2025-10-01',
+      '2025-12-31',
+    ])
+    expect(days(readDates('last fiscal year', today, april))).toEqual(['2025-04-01', '2026-03-31'])
+  })
+
+  it('keeps calendar words on the calendar', () => {
+    expect(readDates('q3 2026', today, april)).toMatchObject({
+      window: { start: '2026-07-01', end: '2026-10-01' },
+      readsAs: '1 Jul to 30 Sep 2026 (Europe/Oslo)',
+    })
+  })
+
+  it('reads a fiscal year that starts 1 January as the calendar year it is', () => {
+    const got = readDates('fy26', today, { fiscalYearStart: { month: 1, day: 1 } })
+    expect(got).toMatchObject({
+      window: { start: '2026-01-01', end: '2027-01-01' },
+      readsAs: '1 Jan to 31 Dec 2026 (FY26, fiscal year from 1 January; UTC)',
+    })
+  })
+
+  it('reads a fiscal year that starts on another day than the first', () => {
+    const got = readDates('q1 fy27', today, { fiscalYearStart: { month: 4, day: 6 } })
+    expect(days(got)).toEqual(['2026-04-06', '2026-07-05'])
+  })
+
+  it('until the start is set, reads FY26 as the calendar year and says so', () => {
+    expect(readDates('q3 fy26', today, { loose: true })).toMatchObject({
+      window: { start: '2026-07-01', end: '2026-10-01' },
+      readsAs: expect.stringContaining('FY26 read as the calendar year'),
+    })
+    // Agents still get need_more_detail: the calendar year is a guess.
+    expect(readDates('q3 fy26', today).status).toBe('unreadable')
+  })
+})

@@ -8,8 +8,11 @@ import { anyDate, isAnyDate, isCalendarDate, shiftDate, type DateWindow } from '
   is 1 Jan to 31 Dec 2026), a "this" period runs to today, a "last" one is the last complete one,
   and a day, month or quarter without a year is the latest one that has started. Words that name a
   period Heed cannot read are never replaced: the reader names them and says what it reads. It is
-  a pure function of the text and today, a calendar day in one time zone: the company's, else UTC
-  (NFR-048), which `readsAs` names.
+  a pure function of the text and today, a calendar day in one time zone: the workspace's
+  (`calendar.time_zone`), else UTC (NFR-048), which `readsAs` names. Fiscal words ("Q3 FY26",
+  "last fiscal year") are read on the workspace's fiscal calendar (`calendar.fiscal_year_start`),
+  a fiscal year named by the calendar year it ends in; until the workspace sets its start, Ask
+  reads a fiscal year as the calendar year and says so, and get_context asks for the days.
 
   Ask reads people, who write dates loosely, so it reads with `loose` on (FR-720): part of a period
   ("early August", "the end of last quarter"), a season, "two weeks ago", "the past few days", a
@@ -116,6 +119,39 @@ function addMonths(day: string, months: number): string {
 
 /** Inclusive days. */
 export type Period = { from: string; to: string }
+
+/** The day a fiscal year starts on, every year: its month and its day, 1 to 28. */
+export type FiscalYearStart = { month: number; day: number }
+/**
+ * A workspace's calendar (`calendar.fiscal_year_start`, `calendar.time_zone`): when its fiscal
+ * year starts, null until an admin sets it, and the time zone its today is counted in. Days stay
+ * calendar days: only today depends on the zone.
+ */
+export type Calendar = { fiscalYearStart: FiscalYearStart | null; timeZone: string }
+/** The calendar of a workspace that set neither: no fiscal year start, and UTC. */
+export const UTC_CALENDAR: Calendar = { fiscalYearStart: null, timeZone: 'UTC' }
+
+/** The calendar day an instant falls on in a time zone, as YYYY-MM-DD. */
+export function dayIn(instant: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(instant)
+  const part = (type: string) => parts.find((p) => p.type === type)!.value
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
+
+/** Whether a time zone is one the reader can count today in: an IANA name such as Europe/Oslo. */
+export function isTimeZone(name: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: name })
+    return true
+  } catch {
+    return false
+  }
+}
 /**
  * The periods people name, as inclusive days counted from today; weeks start on Monday. A "this"
  * period runs to today, a "last" one is the last complete one, and a "next" one is whole.
@@ -173,7 +209,7 @@ export type DatesRead =
 type Unit = 'day' | 'month' | 'quarter' | 'year'
 /** A day, month, quarter or year as written, with its year when one was given. */
 type Point = { unit: Unit; year: number | null; month: number; day: number }
-type Claim = DateSpan & ({ period: Period; what: string[] } | { unreadable: true })
+type Claim = DateSpan & (Named | { unreadable: true })
 
 const MONTH =
   '(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\\b\\.?'
@@ -304,6 +340,7 @@ function rangePeriod(
   return { period: { from: from.from, to: to.to }, what }
 }
 
+/** A period read and how it is said. */
 type Named = { period: Period; what: string[] }
 const trailingPattern = sticky(
   '(?:this past|the past|past|the last) (week|month|quarter|year)\\b(?! of\\b)',
@@ -651,27 +688,140 @@ function partOf(period: Period, part: string): Period {
   return { from: start, to: end > to ? to : end }
 }
 
-/** The calendar year a fiscal year is read as, while Heed knows no fiscal year start. */
+/** The year a fiscal year is named by, from its digits: "26" is 2026; null for one Heed cannot place. */
 const fiscalYear = (digits: string) => {
   const year = digits.length === 2 ? 2000 + Number(digits) : Number(digits)
   return year < 1900 || year > 9000 ? null : year
 }
-/** How a fiscal year was read, as it was written: "FY26 read as the calendar year". */
-const fiscalSaid = (words: string) => `${words.replace(/^fy/, 'FY')} read as the calendar year`
-
+/** Until a workspace sets its fiscal year start, a fiscal year is the calendar year. */
+const JANUARY: FiscalYearStart = { month: 1, day: 1 }
+/**
+ * The days of the fiscal year named `named`, the calendar year it ends in: with the year starting
+ * 1 April, FY26 is 1 Apr 2025 to 31 Mar 2026; starting 1 January, it is 2026.
+ */
+export function fiscalYearDays(named: number, start: FiscalYearStart): Period {
+  const first = (n: number) =>
+    start.month === 1 && start.day === 1 ? iso(n, 1, 1) : iso(n - 1, start.month, start.day)
+  return { from: first(named), to: shiftDate(first(named + 1), -1) }
+}
+/** The name of the fiscal year a day is in. */
+const fiscalNameOf = (day: string, start: FiscalYearStart) =>
+  fiscalYearDays(yearOf(day) + 1, start).from <= day ? yearOf(day) + 1 : yearOf(day)
+/** Months on from the start of a fiscal year, for so many months. */
+const monthsOn = (year: Period, months: number, count: number): Period => ({
+  from: addMonths(year.from, months),
+  to: shiftDate(addMonths(year.from, months + count), -1),
+})
 /** A quarter, half or month of a fiscal year, in that year: never the year around it. */
-function fiscalPart(part: string, year: number): Period {
-  if (/^q[1-4]$/.test(part)) return bounds(quarter(Number(part[1]), String(year)), year)!
-  if (/^h[12]$/.test(part))
-    return partOf(
-      { from: iso(year, 1, 1), to: iso(year, 12, 31) },
-      `${part === 'h1' ? 'first' : 'second'} half`,
-    )
-  return bounds({ unit: 'month', year, month: monthNumber(part), day: 1 }, year)!
+function fiscalPart(part: string, year: Period): Period {
+  if (/^q[1-4]$/.test(part)) return monthsOn(year, 3 * (Number(part[1]) - 1), 3)
+  if (/^h[12]$/.test(part)) return monthsOn(year, 6 * (Number(part[1]) - 1), 6)
+  const month = monthNumber(part)
+  const first = monthOf(year.from)
+  return bounds(
+    { unit: 'month', year: null, month, day: 1 },
+    month >= first ? yearOf(year.from) : yearOf(year.from) + 1,
+  )!
+}
+/** Fiscal words as people write them: "Q3 FY26", "March FY26", "fiscal year 2026". */
+const fiscalWords = (words: string) =>
+  words
+    .replace(/\b(?:q[1-4]|h[12]|fy)/g, (w) => w.toUpperCase())
+    .replace(new RegExp(`\\b(?:${monthNames.join('|')})\\b`, 'g'), capital)
+/** The day a fiscal year starts on, in words: "1 April". */
+export const fiscalStartWords = (start: FiscalYearStart) =>
+  `${start.day} ${capital(monthNames[start.month - 1]!)}`
+/** How the fiscal year was read: on the workspace's start, or as the calendar year until it has one. */
+const fiscalSaid = (words: string, start: FiscalYearStart | null, unit = 'year') =>
+  start
+    ? `${words}, fiscal year from ${fiscalStartWords(start)}`
+    : `${words} read as the calendar ${unit}`
+
+/**
+ * Fiscal words at `index`: a quarter, half or month of a fiscal year ("Q3 FY26", "FY26 Q3"), a
+ * fiscal year ("FY26", "fiscal year 2026") and the fiscal years and quarters named from today
+ * ("last fiscal quarter"), on the workspace's fiscal calendar, or the calendar until it has one.
+ */
+function fiscalAt(
+  text: string,
+  index: number,
+  today: string,
+  start: FiscalYearStart | null,
+): (Named & { end: number }) | null {
+  const calendar = start ?? JANUARY
+  const said = (m: RegExpExecArray, period: Period, fiscal: string, what = [fiscal]) => ({
+    period,
+    what,
+    end: index + m[0].length,
+  })
+  const part = at(fiscalPartPattern, text, index)
+  const partFirst = part ? null : at(fiscalYearPartPattern, text, index)
+  const parted = part ?? partFirst
+  if (parted) {
+    const [name, words, digits] = part
+      ? [part[1]!, part[2]!, part[3]!]
+      : [partFirst![3]!, partFirst![1]!, partFirst![2]!]
+    const named = fiscalYear(digits)
+    if (named) {
+      const period = fiscalPart(name, fiscalYearDays(named, calendar))
+      return said(parted, period, fiscalSaid(fiscalWords(start ? parted[0] : words), start))
+    }
+  }
+  let m = at(fiscalNamedPattern, text, index)
+  if (m) {
+    const [which, unit] = [m[1]!, m[2]!]
+    const shift = which === 'last' ? -1 : which === 'next' ? 1 : 0
+    const named = fiscalNameOf(today, calendar)
+    const year = fiscalYearDays(named, calendar)
+    let period: Period
+    let label = `FY${String(named + (unit === 'year' ? shift : 0)).slice(2)}`
+    if (unit === 'year') period = fiscalYearDays(named + shift, calendar)
+    else {
+      const months =
+        yearOf(today) * 12 + monthOf(today) - yearOf(year.from) * 12 - monthOf(year.from)
+      const inYear = Math.floor(
+        (months - (Number(today.slice(8, 10)) < Number(year.from.slice(8, 10)) ? 1 : 0)) / 3,
+      )
+      const quarter = monthsOn(year, 3 * (inYear + shift), 3)
+      period = quarter
+      const q = ((((inYear + shift) % 4) + 4) % 4) + 1
+      label = `Q${q} FY${String(fiscalNameOf(quarter.from, calendar)).slice(2)}`
+    }
+    if (shift === 0) period = { from: period.from, to: today }
+    return start
+      ? said(m, period, fiscalSaid(label, start), [m[0], fiscalSaid(label, start)])
+      : said(m, period, fiscalSaid(m[0], null, unit))
+  }
+  m = at(fiscalYearPattern, text, index)
+  if (m) {
+    const named = fiscalYear(m[2]!)
+    return named
+      ? said(m, fiscalYearDays(named, calendar), fiscalSaid(fiscalWords(m[1]!), start))
+      : null
+  }
+  return null
+}
+
+/** Every fiscal period in the words, in order, for the strict reader once the start is known. */
+function fiscalPeriods(free: string, today: string, start: FiscalYearStart): Claim[] {
+  const claims: Claim[] = []
+  for (let i = 0; i < free.length; i++) {
+    if (!/[a-z0-9]/.test(free[i]!) || (i > 0 && /[a-z0-9]/.test(free[i - 1]!))) continue
+    const found = fiscalAt(free, i, today, start)
+    if (!found) continue
+    claims.push({ start: i, ...found })
+    i = found.end - 1
+  }
+  return claims
 }
 
 /** A loose period at `index`, with where it ends and how it is said, or null. */
-function looseAt(text: string, index: number, today: string): (Named & { end: number }) | null {
+function looseAt(
+  text: string,
+  index: number,
+  today: string,
+  fiscal: FiscalYearStart | null = null,
+): (Named & { end: number }) | null {
   const said = (m: RegExpExecArray, period: Period, what = m[0]) => ({
     period,
     what: [what],
@@ -679,19 +829,14 @@ function looseAt(text: string, index: number, today: string): (Named & { end: nu
   })
   let m = at(partPattern, text, index)
   if (m) {
-    const base = baseAt(text, index + m[0].length, today)
+    const base = baseAt(text, index + m[0].length, today, fiscal)
     if (base) {
       const period = partOf(base.period, m[1]!)
       return { period, what: [text.slice(index, base.end)], end: base.end }
     }
   }
-  m = at(fiscalPartPattern, text, index)
-  const fy = m ?? at(fiscalYearPartPattern, text, index)
-  if (fy) {
-    const [part, words, digits] = m ? [m[1]!, m[2]!, m[3]!] : [fy[3]!, fy[1]!, fy[2]!]
-    const year = fiscalYear(digits)
-    if (year) return said(fy, fiscalPart(part, year), fiscalSaid(words))
-  }
+  const fiscalRead = fiscalAt(text, index, today, fiscal)
+  if (fiscalRead) return fiscalRead
   m = /(?:^|\s)(?:by|before|until|till|up to|up until|prior to) $/.test(text.slice(0, index))
     ? at(periodEndPattern, text, index)
     : null
@@ -818,17 +963,6 @@ function looseAt(text: string, index: number, today: string): (Named & { end: nu
     const { from, to } = wholePeriod(unit, addMonths(today, -12))
     return said(m, { from, to })
   }
-  m = at(fiscalNamedPattern, text, index)
-  if (m) {
-    const key = `${m[1]}${capital(m[2]!)}` as keyof ReturnType<typeof periods>
-    return said(m, periods(today)[key], `${m[0]} read as the calendar ${m[2]}`)
-  }
-  m = at(fiscalYearPattern, text, index)
-  if (m) {
-    const year = fiscalYear(m[2]!)
-    if (!year) return null
-    return said(m, { from: iso(year, 1, 1), to: iso(year, 12, 31) }, fiscalSaid(m[1]!))
-  }
   m = at(weekOfPattern, text, index)
   if (m) {
     const point = pointAt(text, index + m[0].length)
@@ -848,15 +982,15 @@ function looseAt(text: string, index: number, today: string): (Named & { end: nu
 }
 
 /** The period a part or a "before" is of: loose or strict, or "the month" as a whole. */
-function baseAt(text: string, index: number, today: string) {
-  const found = baseRead(text, index, today)
+function baseAt(text: string, index: number, today: string, fiscal: FiscalYearStart | null) {
+  const found = baseRead(text, index, today, fiscal)
   const unit =
     found && /^(?:the )?this (week|month|quarter|year)$/.exec(text.slice(index, found.end))
   return unit ? { ...found, period: wholePeriod(unit[1]!, today) } : found
 }
 
-function baseRead(text: string, index: number, today: string) {
-  const loose = looseAt(text, index, today)
+function baseRead(text: string, index: number, today: string, fiscal: FiscalYearStart | null) {
+  const loose = looseAt(text, index, today, fiscal)
   if (loose) return loose
   const the = text.startsWith('the ', index) ? 4 : 0
   const found = periodAt(text, index + the, today)
@@ -866,14 +1000,19 @@ function baseRead(text: string, index: number, today: string) {
 }
 
 /** "Before August", "by the end of the year", "after the summer": the days on that side of it. */
-function sideOf(text: string, index: number, today: string): (Named & { end: number }) | null {
+function sideOf(
+  text: string,
+  index: number,
+  today: string,
+  fiscal: FiscalYearStart | null,
+): (Named & { end: number }) | null {
   const around = at(aroundPattern, text, index)
-  if (around) return baseAt(text, index + around[0].length, today)
+  if (around) return baseAt(text, index + around[0].length, today, fiscal)
   const until = at(untilPattern, text, index)
   const after = until ? null : at(afterPattern, text, index)
   const lead = until ?? after
   if (!lead) return null
-  const base = baseAt(text, index + lead[0].length, today)
+  const base = baseAt(text, index + lead[0].length, today, fiscal)
   if (!base) return null
   const named = base.what[0]!
   if (
@@ -898,11 +1037,11 @@ function sideOf(text: string, index: number, today: string): (Named & { end: num
 }
 
 /** Every loose period in the words, in order: what the strict reader then leaves alone. */
-function loosePeriods(free: string, today: string): Claim[] {
+function loosePeriods(free: string, today: string, fiscal: FiscalYearStart | null): Claim[] {
   const claims: Claim[] = []
   for (let i = 0; i < free.length; i++) {
     if (!/[a-z0-9]/.test(free[i]!) || (i > 0 && /[a-z0-9]/.test(free[i - 1]!))) continue
-    const found = sideOf(free, i, today) ?? looseAt(free, i, today)
+    const found = sideOf(free, i, today, fiscal) ?? looseAt(free, i, today, fiscal)
     if (!found || found.period.from > found.period.to) continue
     claims.push({ start: i, ...found })
     i = found.end - 1
@@ -924,7 +1063,9 @@ function numericPeriod(words: string): Named | null {
 /**
  * The period the words of a text name. `text` is normalised (lower case, single spaces), and
  * `taken` holds the places other names already took, which are never read as dates. With `loose`,
- * what people write loosely is read too, and nothing comes back unreadable.
+ * what people write loosely is read too, and nothing comes back unreadable. `timeZone` is the one
+ * today is counted in, and `fiscalYearStart` the workspace's: with it, fiscal words are read on
+ * the fiscal calendar for agents too.
  */
 export function readDates(
   text: string,
@@ -932,8 +1073,14 @@ export function readDates(
   {
     taken = new Set<number>(),
     timeZone = 'UTC',
+    fiscalYearStart = null,
     loose = false,
-  }: { taken?: ReadonlySet<number>; timeZone?: string; loose?: boolean } = {},
+  }: {
+    taken?: ReadonlySet<number>
+    timeZone?: string
+    fiscalYearStart?: FiscalYearStart | null
+    loose?: boolean
+  } = {},
 ): DatesRead {
   // A name stops a date: "Q3" never runs into the name after it.
   const claims: Claim[] = []
@@ -948,7 +1095,8 @@ export function readDates(
       taken.has(i) || claims.some((c) => c.start <= i && i < c.end) ? '\u0000' : char,
     )
     .join('')
-  if (loose) claims.push(...loosePeriods(free0, today))
+  if (loose) claims.push(...loosePeriods(free0, today, fiscalYearStart))
+  else if (fiscalYearStart) claims.push(...fiscalPeriods(free0, today, fiscalYearStart))
   const free = [...free0]
     .map((char, i) => (claims.some((c) => c.start <= i && i < c.end) ? '\u0000' : char))
     .join('')
@@ -1036,7 +1184,7 @@ export function readDates(
       spans,
       message: `The question names more than one period (${list(read.map(words))}), and one is read at a time. Ask about one, or pass window with from and to for the days that cover them.`,
     }
-  const { period, what } = read[0]!
+  const { period, what, fiscal } = read[0]!
   const window = { start: period.from, end: shiftDate(period.to, 1) }
   return {
     status: 'read',
@@ -1051,7 +1199,7 @@ const list = (names: readonly string[]) =>
 
 /**
  * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",
- * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'" or
+ * "fiscal year read as the calendar year", "Q3 FY26, fiscal year from 1 April", "day first", "could not place 'since the launch'" or
  * "not taken: 'fy26'", not the words that name the period or its time zone, which the days
  * already say. Null when the words left Heed nothing to guess.
  */
@@ -1068,6 +1216,7 @@ export function dateNote(readsAs: string): string | null {
         const fiscal = what.includes('financial') ? 'financial' : 'fiscal'
         return [`${fiscal} ${calendar[1]} read as the calendar ${calendar[1]}`]
       }
+      if (/, fiscal year from \d{1,2} [A-Z][a-z]+$/.test(what)) return [what]
       return what === 'day first' || /^(could not place|not taken:) /.test(what) ? [what] : []
     })
   return notes.length ? [...new Set(notes)].join(' · ') : null
