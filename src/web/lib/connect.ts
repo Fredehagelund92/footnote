@@ -93,6 +93,13 @@ export function connectedLine(rows: readonly Connected[]) {
   return line ? `${line.charAt(0).toUpperCase()}${line.slice(1)}.` : 'None yet.'
 }
 
+/** What Connected agents says above the rows of someone who isn't an admin: only their own. */
+export function ownLine(rows: readonly Connected[]) {
+  const n = rows.length
+  if (!n) return 'None yet. An agent you connect shows here.'
+  return `${n === 1 ? '1 agent' : `${n} agents`} you connected. Only you and the admins see ${n === 1 ? 'it' : 'them'}.`
+}
+
 /** The hint beside Create an access key: how many there are, and where they are listed. */
 export function keysHint(rows: readonly Connected[]) {
   const keys = rows.filter((r) => r.kind === 'key').length
