@@ -22,11 +22,14 @@ for (const [name, size] of sizes) {
       await expect(toast).toContainText('Agents keep saying honestly that nothing is written down.')
       await expect(toast).toHaveAttribute('data-mounted', 'true')
       // Past its slide in, in the corner: its right edge and its foot are the toaster's offsets
-      // from the window's, with no selection bar for it to clear.
+      // from the window's, with no selection bar for it to clear. The slide is a real CSS
+      // transition the fake clock does not drive, so wait for it to settle.
       await page.clock.runFor(600)
-      const box = (await toast.boundingBox())!
-      expect(size.width - (box.x + box.width)).toBeCloseTo(name === 'phone' ? 16 : 24, 0)
-      expect(size.height - (box.y + box.height)).toBeCloseTo(64, 0)
+      const gaps = async () => {
+        const box = (await toast.boundingBox())!
+        return [size.width - (box.x + box.width), size.height - (box.y + box.height)].map(Math.round)
+      }
+      await expect.poll(gaps).toEqual([name === 'phone' ? 16 : 24, 64])
     })
 
     test('the toast of a close that can always be undone goes by itself', async ({ page }) => {
