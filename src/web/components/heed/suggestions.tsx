@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 
 /** One question to ask, as a soft chip; dimmed while Ask is answering (`Answering`). */
 export const suggestionClass =
-  'rounded-surface border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-colors outline-none hover:border-foreground/25 hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:border-border aria-disabled:hover:bg-background aria-disabled:hover:text-muted-foreground'
+  'rounded-surface border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-colors outline-none hover:border-foreground/25 hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:border-border aria-disabled:hover:bg-background aria-disabled:hover:text-muted-foreground'
 
 /**
  * True while Ask is answering: one question at a time, as in any chat, so the questions on offer

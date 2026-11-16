@@ -276,7 +276,7 @@ function TextButton({ children, ...props }: React.ComponentProps<'button'>) {
   return (
     <button
       type="button"
-      className="-mx-1 inline-flex min-h-6 items-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      className="-mx-1 inline-flex min-h-6 items-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       {...props}
     >
       {children}
