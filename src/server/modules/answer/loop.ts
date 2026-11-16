@@ -20,6 +20,7 @@ import type {
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
+import { dateNote } from '../../../domain/dates.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
 import {
@@ -898,13 +899,14 @@ function disagreeing(made: readonly MadeRead[], sources: readonly string[]): str
 
 /**
  * What the first get_context read that read a subject read: the names, as nouns too, the days and
- * what no item covers; `carried` when the read was an earlier turn's, made again.
+ * how they were read, and what no item covers; `carried` when the read was an earlier turn's, made
+ * again.
  */
 function subjectOf(made: readonly MadeRead[], carried = false): LoopTurn['subject'] {
   for (const m of made) {
     if (m.tool !== 'get_context' || !isObj(m.result) || isError(m.result) || !isObj(m.result.read))
       continue
-    const { names, about, period, assumedToday } = m.result.read
+    const { names, about, period, assumedToday, datesRead } = m.result.read
     if (!Array.isArray(names) || typeof period !== 'string') continue
     const ids = (v: unknown) =>
       Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
@@ -912,6 +914,7 @@ function subjectOf(made: readonly MadeRead[], carried = false): LoopTurn['subjec
       names: ids(names),
       about: ids(about),
       period,
+      note: typeof datesRead === 'string' ? dateNote(datesRead) : null,
       assumedToday: assumedToday === true,
       carried,
       uncovered: ids(m.result.uncovered),

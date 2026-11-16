@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadGoldenSet } from '../../../db/seed/golden-set.ts'
-import { monthWords, readDates, whatHeedReads } from '../../../src/domain/dates.ts'
+import { dateNote, monthWords, readDates, whatHeedReads } from '../../../src/domain/dates.ts'
 import { anyDate, shiftDate } from '../../../src/domain/validity.ts'
 import { normalizeName } from '../../../src/domain/vocabulary.ts'
 
@@ -622,5 +622,35 @@ describe('loose dates, as Ask reads them', () => {
   it('is off for agents: get_context keeps the strict reader', () => {
     for (const text of ['early august', 'last summer', 'two weeks ago'])
       expect(readDates(text, today).status).toBe('unreadable')
+  })
+})
+
+// Period slice R1: the read line says how the dates were read, beside the days, only where Heed
+// guessed; the days and the time zone it never repeats.
+describe('the note a person reads beside the days', () => {
+  const today = '2026-10-23'
+  const note = (text: string) => {
+    const got = readDates(normalizeName(text), today, { loose: true })
+    if (got.status !== 'read') throw new Error(`${text} read as ${got.status}`)
+    return dateNote(got.readsAs)
+  }
+  it.each([
+    ['orders in november', 'year not given'],
+    ['net revenue in fiscal year 2026', 'fiscal year read as the calendar year'],
+    ['net revenue in fy26', 'fiscal year read as the calendar year'],
+    ['orders this fiscal quarter', 'fiscal quarter read as the calendar quarter'],
+    ['orders this financial year', 'financial year read as the calendar year'],
+    ['orders since the launch', "could not place 'since the launch'"],
+    ['orders on 12/10/2026', 'day first'],
+    ['orders in q3 fy26', 'fiscal year read as the calendar year'],
+    ['orders in q3 and fy26', "year not given · not taken: 'fy26'"],
+    ['orders last quarter', null],
+    ['orders in 2026', null],
+    ['orders from 1 august 2026 to today', null],
+  ])('%s: %s', (text, expected) => {
+    expect(note(text)).toBe(expected)
+  })
+  it('reads nothing into a phrase without its parts', () => {
+    expect(dateNote('1-30 Nov 2025')).toBeNull()
   })
 })
