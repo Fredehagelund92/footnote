@@ -38,7 +38,7 @@ Reads give a `revision`, and changes send it back. If someone changed the record
 
 ## Undo
 
-A decision that can be taken back answers with `undo`: a `token`, and `until`, the time the service stops taking it (`limits.undo_seconds` after the decision, 15 seconds by default; null when it is taken at any time). Send the token to `POST /api/v1/decisions/undo`, as the same person, before then.
+A decision that can be taken back answers with `undo`: a token, and `until`, the time the service stops taking it (the Undo window after the decision, 15 seconds by default; null when it is taken at any time). Send the token to `POST /api/v1/decisions/undo`, as the same person, before then.
 
 ## Answers that say no
 
