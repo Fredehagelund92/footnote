@@ -419,7 +419,6 @@ export const sharedQueries = () => [
   commentsQuery(),
   definitionsQuery(),
   inboxQuery(),
-  reviewsQuery(),
   savedQuestionsQuery(),
   alertsQuery(),
   savedViewsQuery(),
@@ -430,6 +429,13 @@ export const sharedQueries = () => [
   agentConnectionsQuery(),
   connectReviewQuery(),
 ]
+
+/**
+ * The reviews, read with the others but waited for only on the Inbox: their read waits for the
+ * Inbox's (api/http.ts), so the shell draws without them elsewhere, and a screen that reads them
+ * there waits in its own loading state.
+ */
+export const laterQueries = () => [reviewsQuery()]
 
 /**
  * Inside the dock, the shared reads are what the shell holds: opening a panel reads none of them

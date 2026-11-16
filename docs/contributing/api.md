@@ -313,7 +313,8 @@ about it, counted per term in the same answer. It reads as the library does.
 `GET /api/v1/library` is the library index: every item the person may read, with what a list's
 columns read from it. `lastChecked` is the last acceptance of the current version (a recheck is
 one), `trust` is `current`, `needs_check` or `ended`, `chips` is the scope by name, and `opened` says whether the person opened the item
-(Mark as checked takes only those). `GET /api/v1/search?q=` is search everywhere, for
+(Mark as checked takes only those). The index carries the scope by name only; an item's page
+(`GET /items/{id}/page`) has it by key. `GET /api/v1/search?q=` is search everywhere, for
 the command palette: items, definitions (by name or another name), domains and people whose names
 have the words, at most five of each, a name that starts with the words first.
 
