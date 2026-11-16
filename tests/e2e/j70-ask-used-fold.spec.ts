@@ -1,6 +1,6 @@
 import { expect, go, test } from './go.ts'
 
-// J69: what an answer used is one line, however many items it cites: "Used N items" and how fresh
+// J70: what an answer used is one line, however many items it cites: "Used N items" and how fresh
 // they are, closed when the answer arrives; opening it lists the rows. Each answer cites N live
 // items (src/web/api/mock/loop-used.ts), and the words fold after five sentences.
 
