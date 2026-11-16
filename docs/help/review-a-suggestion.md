@@ -29,14 +29,14 @@ The words beside it say what follows. The other buttons say what they do, such a
 ## The review
 
 - The change, as agents will read it: the fields that change as a table, then the text with what was taken out and what was added. N and P step through the changes.
-- Preview: the item as its page will read once you publish it. The review keeps to the source or the preview as you go through the queue.
+- Preview: the item as its page will read once you publish it. The review keeps to the source or the preview as you go through the waiting suggestions.
 - Try it: what agents will say with the draft, and what they say now.
 - The Ready line, which never says more than was checked: new numbers in an edit read Ready, not compared with a source.
-- Comments on a line or a field: point at a line of the text or a row of the fields and choose the + beside it, or press C, or tap it on a phone. The thread hangs there.
+- Comments on a line or a field: point at a line of the text or a row of the fields and choose the + beside it, or press C, or tap it on a phone. The comment hangs there.
 
-  Type @ to mention someone, or : for an emoji. Anyone who reads the suggestion can resolve it, or reopen it, and the thread says who did and when. The side panel counts the open ones and goes to each. Open threads never hold Publish.
+  Type @ to mention someone, or : for an emoji. Anyone who reads the suggestion can mark it done, or open it again, and the comment says who did and when. The side panel counts the open ones and goes to each. Open comments never hold Publish.
 
-- Publish, or Return with a note: the note is the first comment, and the sender answers there. It waits in their Inbox under Returned to you, where Edit and send again opens it in the editor. A suggestion to archive is archived or closed, not returned.
+- Publish, or Send back with a note: the note is the first comment, and the sender answers there. It waits in their Inbox under Returned to you, where Edit and send again opens it in the editor. A suggestion to archive is archived or closed, not returned.
 - A suggestion written against an earlier version of its item, because the item was checked or changed since, says so. Return it, so its sender writes it against what agents get now.
 - A suggestion to archive you don't want: choose Don't archive and say why. Nothing changes, and the reason is kept with the decision.
 - A suggestion to archive that its sender took back in the comments shows their words. Close the suggestion and nothing changes, or archive anyway, which asks first.
@@ -49,4 +49,4 @@ Suggested archiving a context item, and changed your mind? Say why in its commen
 
 Publish the ones you've read takes only suggestions you read: the whole change on screen for a few seconds, or Mark as read. It lists them first, and Undo puts them all back.
 
-> **Keys.** J and K move through the queue, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Esc goes back to the Inbox, and ? lists them all.
+> **Keys.** J and K move through the waiting suggestions, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Esc goes back to the Inbox, and ? lists them all.

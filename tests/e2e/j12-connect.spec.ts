@@ -119,10 +119,10 @@ test('an admin makes a named access key, shown once, lists it, and revokes it', 
   await expect(key).toContainText('Weekly sales digestNewAll 5 tools')
   await expect(key).toContainText('Access key, made by Jon Abara')
   await expect(key).toContainText(/never used/i)
-  await key.getByRole('button', { name: 'Revoke' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Revoke the access key “Weekly sales digest”?' })
-  await dialog.getByRole('button', { name: 'Revoke' }).click()
-  await expect(page.getByText('Access key Weekly sales digest revoked')).toBeVisible()
+  await key.getByRole('button', { name: 'Delete' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Delete the access key “Weekly sales digest”?' })
+  await dialog.getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByText('Access key Weekly sales digest deleted')).toBeVisible()
   await expect(key).toHaveCount(0)
   await expect(
     page.getByText("For a bot or a scheduled job that can't sign in. None yet."),

@@ -26,6 +26,6 @@ describe("the service's day", () => {
     expect(timeNow(since)).toBe('Starts 9 Mar 2027')
     setToday('2027-03-09')
     expect(inForce(since)).toBe(true)
-    expect(timeNow(since)).toBe('In force now')
+    expect(timeNow(since)).toBe('Applies today')
   })
 })

@@ -6,14 +6,14 @@ import { cardIn, expect, go, test } from './go.ts'
 
 test('typing j and k in a note stays on the item, and Esc keeps the note', async ({ page }) => {
   await go(page, '/inbox/sug-ines/review')
-  await page.getByRole('button', { name: 'Return with a note' }).first().click()
+  await page.getByRole('button', { name: 'Send back with a note' }).first().click()
   const note = page.getByRole('textbox', { name: 'A note for Ines Duarte' })
   await note.pressSequentially('check the jk source')
   await page.keyboard.press('Escape')
   await expect(page).toHaveURL(new RegExp(`/inbox/${cardIn('sug-ines')}/review`))
   await expect(note).toBeHidden()
   await expect(page.getByText('Your note for Ines is kept.')).toBeVisible()
-  await page.getByRole('button', { name: 'Return with a note' }).first().click()
+  await page.getByRole('button', { name: 'Send back with a note' }).first().click()
   await expect(note).toHaveText('check the jk source')
   await expect(note).toBeFocused()
   // Command-Enter in the note posts the note; it never publishes another item.
@@ -40,7 +40,7 @@ test('the Command-Enter hint shows only where the key acts', async ({ page }) =>
   await go(page, '/inbox/sug-ines/review')
   await expect(decide.getByText('to publish')).toBeVisible()
   await go(page, '/inbox/sug-agent/review')
-  await expect(decide.getByRole('button', { name: 'Return with a note' })).toBeVisible()
+  await expect(decide.getByRole('button', { name: 'Send back with a note' })).toBeVisible()
   await expect(decide.getByText('to publish')).toHaveCount(0)
   await go(page, '/inbox/sug-sofia-clash/review')
   await expect(decide.getByText('to publish')).toBeVisible()

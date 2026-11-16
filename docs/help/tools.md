@@ -18,7 +18,7 @@ The six tools an agent can call. All read, apart from the two that send somethin
 The context that applies to a question, with one sentence to relay.
 
 - Takes: The question, or a metric, markets and dates.
-- Returns: The answer line, the context items that apply, and one sentence to relay.
+- Returns: The answer label, the context items that apply, and one sentence to relay.
 
 ### find_context
 
@@ -46,7 +46,7 @@ Tell the owner something is missing, wrong or unclear.
 Send a suggestion to the owner, after the person says yes.
 
 - Takes: The suggested text and what it applies to.
-- Returns: That it waits in the owner's Inbox, or that it was published under the owner's policy.
+- Returns: That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.
 
 ### get_related
 

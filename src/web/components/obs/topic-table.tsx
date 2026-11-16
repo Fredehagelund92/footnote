@@ -439,7 +439,7 @@ function Flags({
       g.rows.every((r) => r.in.notFound) &&
       g.rows.every((r) => r.counts.missing === null) && {
         label: 'Counted across a month edge',
-        tip: 'Each month alone found nothing fewer than 5 times; counted together over 7 days, it is a gap and a Not found card.',
+        tip: 'Each month alone found nothing fewer than 5 times; counted together over 7 days, it becomes a Not found card.',
         warn: false,
       },
     disagree && {

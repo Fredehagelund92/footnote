@@ -108,7 +108,7 @@ false on a new install). Switching it off again ends every policy at once.
   policy", and its sheet has **Undo this publish**. Nobody read it before agents got it, so an owner
   of the domain or an administrator may undo it at any time while the item is as it was published,
   through the decision's own undo (FR-227); the suggestion then waits for review. The owner's Inbox
-  lists it under Done as "Published under your policy".
+  lists it under Done as "Published with your permission".
 
 While Connect an agent waits for the person's own agent, its live line asks the service every 3
 seconds (`connect.pending`, FR-418) for the newest of two things since the wait began: the agent

@@ -232,7 +232,7 @@ export function Question({
             </span>
           ) : (
             <span>
-              Read by the model{reading.words && ` as ${midSentence(reading.words)}`}
+              Read by Ask{reading.words && ` as ${midSentence(reading.words)}`}
               {reading.carried.length > 0 &&
                 `, with ${listOf(reading.carried)} carried from your last question`}
             </span>

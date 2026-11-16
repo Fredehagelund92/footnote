@@ -83,7 +83,7 @@ test('a Not found card shows what agents asked about, and the answer its draft w
   await expect(a.getByText('Not found', { exact: true })).toBeVisible()
   await expect(a.getByText('After you publish')).toBeVisible()
   await expect(p.getByRole('button', { name: 'Not something we write down' })).toBeVisible()
-  await expect(p.getByRole('button', { name: 'Check the draft' })).toBeVisible()
+  await expect(p.getByRole('button', { name: 'Check the first version' })).toBeVisible()
 })
 
 test('a card with no answers to compare keeps its point, its folds and its decision', async ({
@@ -149,14 +149,14 @@ test('the primary shows its key, and the keyboard reaches the folds before the d
 }) => {
   await go(page, `/inbox?card=${card('gap-spain')}`)
   const p = pane(page)
-  const primary = p.getByRole('button', { name: 'Check the draft', exact: true })
+  const primary = p.getByRole('button', { name: 'Check the first version', exact: true })
   // The key is in sight without a hover, and said as the button's shortcut, not as its name.
   await expect(primary.getByText('Enter')).toBeVisible()
   await expect(primary).toHaveAttribute('aria-keyshortcuts', 'Enter')
   // From Next, Tab goes through the folds, then the secondary decision, then the primary.
   await p.getByRole('button', { name: 'Next' }).focus()
   const order: string[] = []
-  for (let i = 0; i < 12 && !order.includes('Check the draft'); i++) {
+  for (let i = 0; i < 12 && !order.includes('Check the first version'); i++) {
     await page.keyboard.press('Tab')
     const name = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null
@@ -167,7 +167,7 @@ test('the primary shows its key, and the keyboard reaches the folds before the d
   const at = (name: string) => order.indexOf(name)
   expect(at('What changes'), order.join(' > ')).toBeGreaterThan(-1)
   expect(at('What changes')).toBeLessThan(at('Not something we write down'))
-  expect(at('Not something we write down')).toBeLessThan(at('Check the draft'))
+  expect(at('Not something we write down')).toBeLessThan(at('Check the first version'))
   // Enter, with nothing in focus, takes the primary decision.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
   await page.keyboard.press('Enter')

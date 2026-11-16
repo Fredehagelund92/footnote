@@ -186,8 +186,8 @@ function Quality({ first }: { first: SavedCheck }) {
             </EmptyMedia>
             <EmptyTitle>No saved questions yet</EmptyTitle>
             <EmptyDescription>
-              Save a question from an answer in Ask, or from a gap's draft in the Inbox. Every
-              change is then checked against it, and the result shows here.
+              Save a question from an answer in Ask, or from a Not found card's draft in the Inbox.
+              Every change is then checked against it, and the result shows here.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent className="flex-row justify-center">
@@ -416,7 +416,7 @@ function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean })
             </div>
             {q.conflict && (
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Keep the new answer saves the conflict as the answer to expect. It does not settle
+                Keep the new answer saves the conflict as the answer to expect. It does not decide
                 it.
               </p>
             )}

@@ -171,7 +171,7 @@ function Alerts() {
       <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
         <UsersIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         Owners see and mute alerts for their own domains. Admins turn rules off and change the
-        thresholds. Email and chat are for later.
+        levels. Email and chat are for later.
       </p>
     </Frame>
   )
@@ -252,7 +252,7 @@ function RuleRow({
                   onValueChange={(v) => {
                     const was = value
                     setThreshold(r.id, v as string)
-                    toast('Threshold changed', {
+                    toast('Level changed', {
                       description: `${r.name}: ${before}${v}${after}.`,
                       action: { label: 'Undo', onClick: () => setThreshold(r.id, was!) },
                     })
@@ -260,7 +260,7 @@ function RuleRow({
                 >
                   <SelectTrigger
                     size="sm"
-                    aria-label={`${r.name}: threshold`}
+                    aria-label={`${r.name}: level`}
                     className="mx-0.5 inline-flex h-6 gap-1 px-1.5 align-baseline text-sm text-foreground"
                   >
                     <SelectValue />

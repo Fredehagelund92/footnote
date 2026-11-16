@@ -1290,7 +1290,7 @@ function DisconnectDialog({
           <DialogTitle>Disconnect {c.name}?</DialogTitle>
           <DialogDescription>
             {c.kind === 'definitions'
-              ? 'Reading stops. The definitions already read stay, marked as no longer read, and no context is flagged by it again.'
+              ? 'Reading stops. The definitions already read stay, marked as no longer read, and no context is reported as stale by it again.'
               : 'Reading stops and its open suggestions are withdrawn. Context that owners already published stays as it is.'}
           </DialogDescription>
         </DialogHeader>
@@ -1620,7 +1620,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                       `${plural(created.skipped.length, 'document')} skipped: ${[...new Set(created.skipped)].join(', ')}`,
                     ]
                   : []),
-                `Nothing published. Daily cap ${docs.madeToday} of ${docs.perDay}`,
+                `Nothing published. Daily limit ${docs.madeToday} of ${docs.perDay}`,
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <CheckIcon aria-hidden className="size-3.5" />
@@ -2093,7 +2093,7 @@ function ServerSet({ c }: { c: Connector | undefined }) {
     ? 'There is no such integration.'
     : c.soon
       ? `${c.name} isn't ready to connect yet.`
-      : `${c.name}'s settings are set where the server runs${c.serverSetting ? `, in ${c.serverSetting}` : ''}, by whoever runs it. They can't be changed here.`
+      : `${c.name}'s settings are set by the person who hosts this app${c.serverSetting ? `, in ${c.serverSetting}` : ''}. They can't be changed here.`
   return (
     <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
       <p>{line}</p>
@@ -2812,11 +2812,11 @@ function LeftOutNotice({
       {items.count > 0 && (
         <>
           <p>
-            {items.count === 1 ? '1 live item relies' : `${items.count} live items rely`} on them.
-            Its next read marks {items.count === 1 ? 'it' : 'each'}{' '}
+            {items.count === 1 ? '1 published item relies' : `${items.count} published items rely`}{' '}
+            on them. Its next read marks {items.count === 1 ? 'it' : 'each'}{' '}
             <span className="font-medium">Due for a check</span> and tells its owners.
           </p>
-          <ul aria-label="Live items that rely on them" className="flex flex-col gap-1">
+          <ul aria-label="Published items that rely on them" className="flex flex-col gap-1">
             {items.named.slice(0, 5).map((item) => (
               <li key={item.id} className="flex min-w-0 items-baseline gap-2">
                 <a
@@ -3181,7 +3181,7 @@ function ChoiceSteps({
                       <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
                     <>Nothing is published or changed by a read.</>,
-                    <>{`If ${c.name} can't be reached, the last good read stays and nothing is flagged.`}</>,
+                    <>{`If ${c.name} can't be reached, the last good read stays and nothing is reported.`}</>,
                   ]
                 : [
                     <>

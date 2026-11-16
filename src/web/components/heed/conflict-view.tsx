@@ -209,9 +209,9 @@ function dialogCopy(p: Pending, c: Conflict) {
     }
   return {
     title: 'Not a conflict',
-    description: `Removes the Conflict flag from “${sideTitle(c.holder)}”. Agents then give both and say nothing about a difference.`,
+    description: `Removes the Conflict mark from “${sideTitle(c.holder)}”. Agents then give both and say nothing about a difference.`,
     reason: 'Why is this not a conflict?',
-    empty: 'Add a reason to remove the flag.',
+    empty: 'Add a reason to remove the Conflict mark.',
     confirm: 'Not a conflict',
     failure: "Couldn't remove the Conflict mark. Nothing changed. Try again.",
     then: said?.withoutFlag ?? null,
@@ -291,7 +291,7 @@ function SettleDialog({
           {pending?.how !== 'suggest_archive' && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-quote`}>
-                A line that settles it{' '}
+                A line that decides it{' '}
                 <span className="font-normal text-muted-foreground">(optional)</span>
               </Label>
               <Input
@@ -426,7 +426,7 @@ function outcomeOf({ conflict: c, decision: d }: Done): {
     }
   return {
     chip: 'Settled',
-    line: `Not a conflict. The flag is removed from “${sideTitle(c.holder)}”.`,
+    line: `Not a conflict. The Conflict mark is removed from “${sideTitle(c.holder)}”.`,
     now: c.said?.withoutFlag ?? null,
   }
 }
@@ -803,7 +803,7 @@ export function ConflictView({
           <Sheet open={settling} onOpenChange={setSettling}>
             <SheetContent side="bottom" className="gap-0">
               <SheetHeader>
-                <SheetTitle>Settle it</SheetTitle>
+                <SheetTitle>Choose what to do</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col pb-2">
                 {[
@@ -1062,7 +1062,7 @@ function ConflictBody({
       ? null
       : any
         ? `You can do all of this: you own ${c.holder.domainName}, where both live. An admin can too. Anyone else can ask the owner.`
-        : `You own neither item, so you can ask the owner. ${ownerNames(c.holder)} or an admin can settle it.`
+        : `You own neither item, so you can ask the owner. ${ownerNames(c.holder)} or an admin can decide it.`
 
   return (
     <>
@@ -1135,7 +1135,7 @@ function ConflictBody({
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
             <h3 id="other-ways" className="text-sm font-semibold">
-              Or settle it another way
+              Or choose another way
             </h3>
             <p className="text-xs text-muted-foreground">
               Agents keep saying Conflict until one of these changes what they get.
@@ -1171,7 +1171,7 @@ function ConflictBody({
         </div>
         {!c.rights.notConflict && (
           <p id="not-conflict-why" className="text-xs text-muted-foreground">
-            Not a conflict removes the flag that “{sideTitle(c.holder)}” holds. Only{' '}
+            Not a conflict removes the Conflict mark that “{sideTitle(c.holder)}” holds. Only{' '}
             {ownerNames(c.holder)} or an admin can do that.
           </p>
         )}
@@ -1212,7 +1212,7 @@ function ConflictBody({
           </Button>
           <Button className="h-11 flex-1" disabled={held || !any} onClick={onSettle}>
             <SplitIcon data-icon="inline-start" />
-            Settle it
+            Choose what to do
           </Button>
         </div>
       )}

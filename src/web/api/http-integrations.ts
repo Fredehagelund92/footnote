@@ -371,7 +371,7 @@ export function connectionOf(
   manifest: Pick<ConnectorManifest, 'config' | 'secrets'> | undefined,
 ): SourcePage['connection'] {
   if (!settings || !manifest)
-    return [{ label: 'Settings', value: 'Set where the server runs, by whoever runs it' }]
+    return [{ label: 'Settings', value: 'Set by the person who hosts this app' }]
   const fields = manifest.config.fields.flatMap((field) => {
     const value = settings.config[field.key]
     if (value === undefined || value === '' || typeof value === 'object') return []

@@ -282,7 +282,7 @@ export const wiredMethods = [
 const emptyHits = () => ({ items: [], definitions: [], domains: [], people: [] })
 
 const notAvailable = (method: string) => () =>
-  Promise.reject(new ApiError('not-available', `The service doesn't offer this yet (${method}).`))
+  Promise.reject(new ApiError('not-available', `The app doesn't offer this yet (${method}).`))
 
 /** The service refused a change for its token: a newer session has a new one. */
 const csrfRefused = (error: unknown) =>
@@ -2369,7 +2369,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     setAlertThreshold: async ({ id, value }) => {
       const threshold = thresholdOfWords(id, value)
       if (threshold === null)
-        throw new ApiError('invalid', "This rule's sentence doesn't offer that threshold.")
+        throw new ApiError('invalid', "This rule's sentence doesn't offer that level.")
       const input = { rule: id, threshold }
       await write('alerts.setRule', input, (o) => client.alerts.setRule(input, o))
     },

@@ -174,7 +174,7 @@ export function FactPeek({ id }: { id: string }) {
         </Button>
       }
     >
-      Not checked whether another item disagrees: it didn&apos;t load. Don&apos;t settle anything on
+      Not checked whether another item disagrees: it didn&apos;t load. Don&apos;t decide anything on
       it yet.
     </PeekAttention>
   ) : stale && fact.status !== 'Archived' ? (
@@ -383,7 +383,7 @@ function Disagreement({
         pair.asked > 0 &&
         `Agents say Conflict for ${pair.asked} ${pair.asked === 1 ? 'question' : 'questions'} this week.`
       ) : pair.state === 'failed' ? (
-        "Not checked who can decide it: it didn't load. Don't settle it yet."
+        "Not checked who can decide it: it didn't load. Don't decide it yet."
       ) : (
         // The sentence's own shape, so the line wraps as it will once the count is in.
         <span className="animate-pulse rounded-sm bg-foreground/12 box-decoration-clone text-transparent">

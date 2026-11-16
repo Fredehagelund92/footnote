@@ -27,14 +27,14 @@ export type PaneState = {
 }
 
 export function paneState(card: Pick<InboxCard, 'type'>, review?: Review): PaneState {
-  if (review?.clash) return { label: 'Conflict', icon: 'conflict', tone: 'warn' }
+  if (review?.clash) return { label: 'Overlaps', icon: 'conflict', tone: 'warn' }
   return { label: cardTypeLabel[card.type], icon: card.type, tone: 'neutral' }
 }
 
 /** What the quick view's one button is called: the decision it opens, never only a step. */
 export function reviewAction(r: Review) {
   if (r.clash) return 'Decide how they relate'
-  if (r.drafted) return 'Check the draft'
+  if (r.drafted) return 'Check the first version'
   return 'Review'
 }
 

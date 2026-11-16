@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 import { expect, go, mode, signInAs, signOut, test, userMenu } from './go.ts'
 
 // J10, people: an admin invites people as owners of a domain, and the domain lists them as invited,
-// not as its owners; an invite's sheet offers what an invite can do (a new link, Revoke) and reads
+// not as its owners; an invite's sheet offers what an invite can do (a new link, Cancel the invite) and reads
 // its role and domains as text; the last owner of a domain can't leave until someone takes over,
 // an invited owner beside them or not, and a removal says "Removed" only once the service has
 // answered; an owner who isn't an admin can add owners to their own domain and nothing else, and
@@ -36,7 +36,7 @@ test('invited people show as pending, and as invited on their domain', async ({ 
   await expect(page.getByRole('group', { name: 'Invited' })).toContainText('nina@larchwood.example')
 })
 
-test("an invite's sheet offers a new link and Revoke, and reads its role and domains", async ({
+test("an invite's sheet offers a new link and Cancel the invite, and reads its role and domains", async ({
   page,
 }) => {
   await go(page, '/settings/people')
@@ -53,7 +53,7 @@ test("an invite's sheet offers a new link and Revoke, and reads its role and dom
   await expect(sheet).toContainText('Invited as a Member')
   await expect(sheet.getByRole('group', { name: 'Owns once they sign in' })).toHaveText('Marketing')
   await expect(sheet.getByRole('button', { name: 'Make a new link' })).toBeEnabled()
-  await expect(sheet.getByRole('button', { name: 'Revoke the invite' })).toBeEnabled()
+  await expect(sheet.getByRole('button', { name: 'Cancel the invite' })).toBeEnabled()
 })
 
 test('an invited owner is not an owner on the domain page, so its only owner stays', async ({
@@ -207,13 +207,13 @@ test('an owner who sent an invite makes it a new link, or takes it back', async 
     .click()
   const sheet = page.getByRole('dialog', { name: 'lena@larchwood.example' })
   await expect(sheet.getByRole('button', { name: 'Make a new link' })).toBeEnabled()
-  await sheet.getByRole('button', { name: 'Revoke the invite' }).click()
+  await sheet.getByRole('button', { name: 'Cancel the invite' }).click()
   await page
-    .getByRole('dialog', { name: 'Revoke the invite to lena@larchwood.example?' })
-    .getByRole('button', { name: 'Revoke' })
+    .getByRole('dialog', { name: 'Cancel the invite to lena@larchwood.example?' })
+    .getByRole('button', { name: 'Cancel the invite' })
     .click()
   await expect(
-    page.getByRole('region', { name: /^Notifications/ }).getByText('Invite revoked'),
+    page.getByRole('region', { name: /^Notifications/ }).getByText('Invite cancelled'),
   ).toBeVisible()
   await expect(page.getByRole('list', { name: 'Invited' }).getByText('lena@')).toHaveCount(0)
 })

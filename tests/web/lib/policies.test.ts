@@ -26,9 +26,9 @@ describe('publishing without review, in the screens words', () => {
     )
   })
 
-  it("names the agent and whose policy published a version, by the owner's first name", () => {
+  it("names the agent and whose permission published a version, by the owner's first name", () => {
     expect(publishedUnderLine('Claude Code for Kofi Mensah', 'Jon Abara')).toBe(
-      "Published by Claude Code for Kofi Mensah under Jon's policy",
+      "Published by Claude Code for Kofi Mensah with Jon's permission to publish without review",
     )
   })
 })

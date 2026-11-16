@@ -255,7 +255,7 @@ test('The badge card by keyboard: it opens on focus, Tab goes into it, Escape cl
   await expect(card).toBeVisible()
   // Focus stays on the badge until Tab takes it into the card.
   await page.keyboard.press('Tab')
-  await expect(card.getByRole('link', { name: 'All answer lines' })).toBeFocused()
+  await expect(card.getByRole('link', { name: 'All answer labels' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(card).toBeHidden()
   await expect(badge).toBeFocused()

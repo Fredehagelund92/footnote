@@ -206,7 +206,7 @@ const REPORTS: Report[] = [
   {
     id: 'r-poland',
     title: 'Orders in Poland: nothing written for October',
-    line: 'From an agent: reported a gap. No name is kept.',
+    line: 'From an agent: reported a Not found. No name is kept.',
     state: 'looked',
     domain: 'sales',
     from: 'Claude Code',
@@ -227,7 +227,7 @@ const REPORTS: Report[] = [
   {
     id: 'r-spain',
     title: 'Orders in Spain: nothing written for October',
-    line: 'From an agent: reported a gap. No name is kept.',
+    line: 'From an agent: reported a Not found. No name is kept.',
     state: 'looked',
     domain: 'sales',
     from: 'Claude app',
@@ -249,7 +249,7 @@ const REPORTS: Report[] = [
   {
     id: 'r-roas',
     title: 'Return on ad spend in Sweden: nothing for one campaign',
-    line: 'From an agent: reported a gap. No name is kept.',
+    line: 'From an agent: reported a Not found. No name is kept.',
     state: 'looked',
     domain: 'paid_media',
     from: 'ChatGPT',

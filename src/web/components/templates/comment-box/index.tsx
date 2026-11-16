@@ -59,7 +59,7 @@ function AnchoredState({
         {whereItHangs(comment.anchor!, earlier)}. {state}
       </span>
       <Button variant="outline" className="ml-auto" onClick={() => onResolve(!resolved)}>
-        {resolved ? 'Reopen' : 'Resolve'}
+        {resolved ? 'Open again' : 'Mark as done'}
       </Button>
     </div>
   )

@@ -71,7 +71,7 @@ const doneDays = 14
 const outcomeWords: Record<string, string> = {
   accept: 'Published',
   // Published without a review round, under the policy the owner set for the agent (FR-421).
-  policy: 'Published under your policy',
+  policy: 'Published with your permission',
   request_changes: 'Returned',
   reject: 'Rejected',
   retire: 'Archived',

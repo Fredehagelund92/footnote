@@ -124,14 +124,14 @@ function QueueRail({ count, onShow }: { count: number; onShow: () => void }) {
             <Button
               variant="ghost"
               size="icon-lg"
-              aria-label={`Show the queue, ${count} waiting`}
+              aria-label={`Show waiting suggestions, ${count} waiting`}
               onClick={onShow}
             />
           }
         >
           <ListIcon />
         </TooltipTrigger>
-        <TooltipContent side="right">Show the queue</TooltipContent>
+        <TooltipContent side="right">Show waiting suggestions</TooltipContent>
       </Tooltip>
       <span aria-hidden className="text-xs text-muted-foreground tabular-nums">
         {count}
@@ -642,7 +642,7 @@ function TheChange({
     <div className="flex flex-col">
       {r.retire?.withdrawn && (
         <section
-          aria-label="What the thread decided"
+          aria-label="What the comment decided"
           className="mb-6 flex flex-col gap-2 rounded-frame border border-dashed bg-muted/40 p-4"
         >
           <p className="flex items-center gap-2 text-sm font-medium">
@@ -947,7 +947,7 @@ function TryItPanel({ r, now }: { r: Review; now?: string }) {
           value={version}
           onChange={setVersion}
           options={[
-            { value: 'draft', label: 'Draft' },
+            { value: 'draft', label: 'With this change' },
             { value: 'published', label: 'Published' },
           ]}
         />
@@ -1240,7 +1240,7 @@ function Decision({
   const returnButton = (
     <Button size="lg" variant="outline" disabled={sending !== null} onClick={() => ask('return')}>
       <span>
-        Return<span className="max-sm:hidden"> with a note</span>
+        Send back<span className="max-sm:hidden"> with a note</span>
       </span>
     </Button>
   )
@@ -1249,7 +1249,7 @@ function Decision({
     <>
       <Button size="lg" variant="outline" onClick={() => navigate('/context/new', { gap: r.id })}>
         <span>
-          Edit<span className="max-sm:hidden"> the draft</span>
+          Edit<span className="max-sm:hidden"> the first version</span>
         </span>
       </Button>
       <Button
@@ -1282,7 +1282,7 @@ function Decision({
         onClick={() => ask('return')}
       >
         <span>
-          Return<span className="max-sm:hidden"> with a note</span>
+          Send back<span className="max-sm:hidden"> with a note</span>
         </span>
       </Button>
     </>
@@ -1510,7 +1510,7 @@ function Decision({
             <div className="flex flex-wrap gap-2">{shownActions}</div>
             {draft && (
               <p className="text-xs text-muted-foreground">
-                Your note for {first} is kept. Return with a note opens it again.
+                Your note for {first} is kept. Send back with a note opens it again.
               </p>
             )}
             {/* The key is for people with a keyboard, and only when it acts: never on a touch screen. */}
@@ -1985,7 +1985,7 @@ export function ReviewPage({ id }: { id: string }) {
             <Button
               variant="outline"
               size="icon"
-              aria-label="Queue"
+              aria-label="Waiting suggestions"
               onClick={() => setQueueOpen(true)}
             >
               <ListIcon />

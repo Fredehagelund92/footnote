@@ -1,5 +1,6 @@
 import type { TermDomainSource } from '@domain/catalogue'
 import type { CheckFlag, ItemKind, ItemStatus } from '@domain/item'
+import { kinds } from '@domain/words'
 import { whenLabel, type Validity } from './validity'
 
 // A context item as the app's screens read it, from the app's API (src/web/api). Pure types, the
@@ -20,17 +21,17 @@ export type Status = 'Draft' | 'Live' | 'Due for a check' | 'Archived'
  * place their names and hints live; the stored values (event, issue, note, guide) stay as they are.
  */
 export const kindLabel: Record<Kind, string> = {
-  event: 'Event',
-  issue: 'Warning',
-  note: 'Rule',
-  guide: 'Guide',
+  event: kinds.event.label,
+  issue: kinds.issue.label,
+  note: kinds.note.label,
+  guide: kinds.guide.label,
 }
 
 export const kindHint: Record<Kind, string> = {
-  event: 'Something that happened on a date, like a stop or a new rule.',
-  issue: 'A limit or problem agents should know, like late or missing data.',
-  note: 'A fixed way to read the numbers, like a house rule.',
-  guide: 'What to check before you explain a change.',
+  event: kinds.event.hint,
+  issue: kinds.issue.hint,
+  note: kinds.note.hint,
+  guide: kinds.guide.hint,
 }
 
 /**

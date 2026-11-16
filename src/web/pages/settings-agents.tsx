@@ -53,7 +53,7 @@ import { agentNameProblem, type AgentToolName } from '@domain/agents'
   Settings, Agents and access: connect an agent, every agent by its name with what it may do
   (FR-420) and where it publishes without review (FR-421), Pause sharing, publishing without review
   for the workspace, and the tools agents call. An admin sees every agent and sets what each may
-  do; anyone else sees the apps they signed in with, and may revoke them or turn a policy off.
+  do; anyone else sees the apps they signed in with, and may disconnect them or turn off a permission to publish without review.
 */
 
 /** What a suggestion's state reads as on an agent's list of what it sent. */
@@ -82,7 +82,7 @@ function RevokeDialog({
       <DialogContent className="sm:max-w-md">
         {row?.kind === 'key' ? (
           <DialogHeader>
-            <DialogTitle>Revoke the access key “{row.agent}”?</DialogTitle>
+            <DialogTitle>Delete the access key “{row.agent}”?</DialogTitle>
             <DialogDescription>
               It stops working at once, and whatever uses it stops reading context. A job that still
               needs one gets a new key.
@@ -91,7 +91,7 @@ function RevokeDialog({
         ) : (
           <DialogHeader>
             <DialogTitle>
-              Revoke {row?.agent} for {row?.who}?
+              Disconnect {row?.agent} for {row?.who}?
             </DialogTitle>
             <DialogDescription>
               It signs out at once and stops reading context. {row?.who.split(' ')[0]} can connect
@@ -102,7 +102,7 @@ function RevokeDialog({
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button variant="destructive" onClick={onRevoke}>
-            Revoke
+            {row?.kind === 'key' ? 'Delete' : 'Disconnect'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -345,7 +345,7 @@ function AgentDetails({
           </ul>
           <p className="text-muted-foreground">
             {!toolsOn(r).length
-              ? 'Every tool is off: it gets nothing until an admin switches one on. Revoke ends it for good.'
+              ? 'Every tool is off: it gets nothing until an admin switches one on. Disconnect ends it for good. Delete does the same for a key.'
               : r.policies.length
                 ? 'It never reads comments and never sees who asked.'
                 : 'It never publishes, never reads comments and never sees who asked.'}
@@ -412,7 +412,7 @@ function AutoPublishSection() {
             : 'Publishing without review is off',
           ended
             ? {
-                description: `${ended === 1 ? '1 policy' : `${ended} policies`} turned off. Those suggestions wait for review again.`,
+                description: `${ended === 1 ? '1 permission' : `${ended} permissions`} turned off. Those suggestions wait for review again.`,
               }
             : undefined,
         ),
@@ -429,7 +429,7 @@ function AutoPublishSection() {
         !state?.on
           ? 'Off. Every suggestion waits for an owner.'
           : state.open
-            ? `On, with ${state.open === 1 ? '1 policy' : `${state.open} policies`}. Each is in its agent's Details.`
+            ? `On, with ${state.open === 1 ? '1 permission' : `${state.open} permissions`}. Each is in its agent's Details.`
             : 'On. No owner has let an agent publish without review yet.'
       }
       collapsible
@@ -444,7 +444,7 @@ function AutoPublishSection() {
                 Let owners choose agents that publish without review
               </label>
             ),
-            hint: "Low-risk new items only, as the owner's decision. Off ends every policy.",
+            hint: "Low-risk new items only, as the owner's decision. Off ends every permission.",
             value: (
               <Switch
                 id="auto-publish"
@@ -461,9 +461,9 @@ function AutoPublishSection() {
           <DialogHeader>
             <DialogTitle>Turn off publishing without review?</DialogTitle>
             <DialogDescription>
-              {state?.open === 1 ? 'The 1 policy' : `All ${state?.open ?? 0} policies`} end at once.
-              Their agents' suggestions wait for review again, and owners set them again once it is
-              back on.
+              {state?.open === 1 ? 'The 1 permission' : `All ${state?.open ?? 0} permissions`} end
+              at once. Their agents' suggestions wait for review again, and owners set them again
+              once it is back on.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -558,7 +558,7 @@ function AgentRow({
               className="text-muted-foreground hover:text-foreground"
               onClick={onRevoke}
             >
-              Revoke
+              {r.kind === 'key' ? 'Delete' : 'Disconnect'}
             </Button>
           </span>
         </div>
@@ -657,16 +657,20 @@ export function Agents() {
         onRevoke={() => {
           if (!revoking) return
           const { id, agent, who, kind } = revoking
-          // The row goes first, then the access is revoked.
+          // The row goes first, then the access is ended.
           void leaveThen(id, () =>
             write('revokeAgent', { id })
               .then(() =>
                 toast(
-                  kind === 'key' ? `Access key ${agent} revoked` : `${agent} for ${who} revoked`,
+                  kind === 'key'
+                    ? `Access key ${agent} deleted`
+                    : `${agent} for ${who} disconnected`,
                 ),
               )
               .catch((e: unknown) =>
-                toast(`Couldn't revoke ${agent}`, { description: toApiError(e).message }),
+                toast(`Couldn't ${kind === 'key' ? 'delete' : 'disconnect'} ${agent}`, {
+                  description: toApiError(e).message,
+                }),
               ),
           )
           setRevoking(undefined)

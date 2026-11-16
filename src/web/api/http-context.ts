@@ -381,7 +381,7 @@ function summaryOf(entry: ItemVersionEntry): string {
       return entry.after.split('\n').filter(Boolean).length >
         entry.before.split('\n').filter(Boolean).length
         ? 'Marked as disagreeing with another item.'
-        : 'Removed the Conflict flag.'
+        : 'Removed the Conflict mark.'
   }
 }
 

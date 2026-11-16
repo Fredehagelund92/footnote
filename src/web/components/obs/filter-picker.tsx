@@ -407,11 +407,11 @@ function PickerBody({
             variant="ghost"
             size="icon"
             className={cn('text-muted-foreground', phone && 'size-11')}
-            aria-label={`${pinned.includes(valueStep) ? 'Unpin' : 'Pin'} ${name} for everyone`}
+            aria-label={`${pinned.includes(valueStep) ? 'Stop keeping' : 'Keep'} ${name} here for everyone`}
             title={
               pinned.includes(valueStep)
-                ? 'Unpin for everyone'
-                : 'Pin for everyone: first in this list, and a facet of its own'
+                ? 'Stop keeping this list here for everyone'
+                : 'Keep this list here for everyone: first in this list, with a filter list of its own'
             }
             onClick={() => onPin(valueStep, !pinned.includes(valueStep))}
           >
@@ -507,7 +507,7 @@ function PickerBody({
           id: 'pinned',
           heading: (
             <span className="flex items-center gap-1">
-              <PinIcon aria-hidden className="size-3" /> Pinned
+              <PinIcon aria-hidden className="size-3" /> Kept here
             </span>
           ),
           rows: listed(pinned),
