@@ -334,7 +334,7 @@ function InboxList({
                   <span className="font-normal tabular-nums">{inGroup}</span>
                   <ChevronDownIcon
                     aria-hidden
-                    className={cn('size-3.5 self-center', folded.has(group) && '-rotate-90')}
+                    className={cn('size-3.5', folded.has(group) && '-rotate-90')}
                   />
                 </button>
               </li>
