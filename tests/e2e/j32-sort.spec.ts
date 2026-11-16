@@ -14,6 +14,12 @@ const texts = (rows: Locator) => rows.allInnerTexts()
 const names = (rows: Locator) =>
   rows.evaluateAll((els) => els.map((el) => el.getAttribute('data-row-open') ?? ''))
 
+/** The list as shown once it has loaded: the loading skeleton gone and a first row on the page. */
+const loaded = async (page: Page, rows: Locator) => {
+  await expect(page.getByRole('status', { name: 'Loading' })).toHaveCount(0)
+  await expect(rows.first()).toBeVisible()
+}
+
 test('Context: a second click on a header flips it, and the keyboard does the same', async ({
   page,
 }) => {
@@ -25,14 +31,16 @@ test('Context: a second click on a header flips it, and the keyboard does the sa
   await expect(header(page, 'Context')).toHaveAttribute('aria-sort', 'ascending')
   await expect(header(page, 'Checked')).not.toHaveAttribute('aria-sort')
   await expect(page.getByRole('button', { name: 'Sort Title A to Z' })).toBeVisible()
-  await expect(rows.first()).toBeVisible()
-  expect(await texts(rows)).toEqual((await texts(rows)).toSorted(by))
+  await loaded(page, rows)
+  const ascending = await texts(rows)
+  expect(ascending).toEqual(ascending.toSorted(by))
 
   await header(page, 'Context').getByRole('button').click()
   await expect(header(page, 'Context')).toHaveAttribute('aria-sort', 'descending')
   await expect(page.getByRole('button', { name: 'Sort Title Z to A' })).toBeVisible()
-  await expect(rows.first()).toBeVisible()
-  expect(await texts(rows)).toEqual((await texts(rows)).toSorted(by).reverse())
+  await loaded(page, rows)
+  const descending = await texts(rows)
+  expect(descending).toEqual(descending.toSorted(by).reverse())
 
   // From the keyboard: Enter on the focused header flips it back.
   await header(page, 'Context').getByRole('button').focus()
@@ -70,14 +78,16 @@ test('Definitions: Name and Context headers sort, and flip', async ({ page }) =>
   await page.getByRole('menuitemradio', { name: 'No grouping' }).click()
   await page.keyboard.press('Escape')
   const rows = page.locator('tbody [data-row-open]')
-  await expect(rows.first()).toBeVisible()
+  await loaded(page, rows)
 
   await header(page, 'Name').getByRole('button').click()
   await expect(header(page, 'Name')).toHaveAttribute('aria-sort', 'ascending')
-  expect(await names(rows)).toEqual((await names(rows)).toSorted(by))
+  const ascendingNames = await names(rows)
+  expect(ascendingNames).toEqual(ascendingNames.toSorted(by))
   await header(page, 'Name').getByRole('button').click()
   await expect(header(page, 'Name')).toHaveAttribute('aria-sort', 'descending')
-  expect(await names(rows)).toEqual((await names(rows)).toSorted(by).reverse())
+  const descendingNames = await names(rows)
+  expect(descendingNames).toEqual(descendingNames.toSorted(by).reverse())
 
   await header(page, 'Context').getByRole('button').click()
   await expect(header(page, 'Context')).toHaveAttribute('aria-sort', 'descending')
