@@ -216,6 +216,26 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).not.toMatch(/Show \d+ more/)
   })
 
+  it('A list asked for: every line of it up to twelve, unfolded, after five sentences of prose at most', () => {
+    const base = example('loop-checked')
+    const line = (i: number) => [{ t: 'text' as const, text: `Metric ${i + 1}` }]
+    const listed = (n: number): LoopTurn => ({
+      ...base,
+      body: [
+        { t: 'p', runs: [{ t: 'text', text: `The domain has ${n} metrics:` }] },
+        { t: 'ul', items: Array.from({ length: n }, (_, i) => line(i)) },
+      ],
+    })
+    const all = render(listed(10), 'List the metrics in the Sales domain')
+    expect(all.querySelectorAll('[data-answer-words] li')).toHaveLength(10)
+    expect(text(all)).not.toMatch(/Show \d+ more/)
+    act(() => root?.unmount())
+    host?.remove()
+    const long = render(listed(14), 'List the metrics in the Sales domain')
+    expect(long.querySelectorAll('[data-answer-words] li')).toHaveLength(12)
+    expect([...long.querySelectorAll('button')].some((b) => text(b) === 'Show 2 more')).toBe(true)
+  })
+
   it('Definition: the label in place of a state, for an answer that uses no item', () => {
     const el = render(
       {

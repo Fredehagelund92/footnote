@@ -191,10 +191,20 @@ function Body({
   seen: Set<string>
 }) {
   const [all, setAll] = React.useState(false)
-  // One sentence to a line, and the short lists' lines as they are; only five show before Show more.
+  // One sentence to a line, and the short lists' lines as they are. Five sentences show before
+  // Show more, and a list whole up to twelve lines: a list is what the person asked for (S19).
   const lines = body.map((b) => (b.t === 'p' ? sentencesOf(b.runs) : b.t === 'ul' ? b.items : []))
   const total = lines.reduce((n, l) => n + l.length, 0)
-  const shown = all ? total : SENTENCES_SHOWN
+  const kept: number[] = []
+  let sentences = 0
+  for (const [i, b] of body.entries()) {
+    const n = lines[i]!.length
+    const cut = kept.some((k, j) => k < lines[j]!.length)
+    const room = b.t === 'ul' ? LIST_SHOWN : Math.max(0, SENTENCES_SHOWN - sentences)
+    kept.push(all ? n : cut ? 0 : Math.min(n, room))
+    if (b.t === 'p') sentences += n
+  }
+  const hidden = total - kept.reduce((n, k) => n + k, 0)
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
       {body.map((b, i) => {
@@ -210,11 +220,10 @@ function Body({
               more={b.more}
             />
           )
-        const before = lines.slice(0, i).reduce((n, l) => n + l.length, 0)
-        const kept = (lines[i] ?? []).slice(0, Math.max(0, shown - before))
-        if (!kept.length) return null
+        const shown = (lines[i] ?? []).slice(0, kept[i])
+        if (!shown.length) return null
         const Line = b.t === 'p' ? 'p' : 'li'
-        const rows = kept.map((runs, j) => (
+        const rows = shown.map((runs, j) => (
           <Line key={j}>
             <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
           </Line>
@@ -229,21 +238,22 @@ function Body({
           </ul>
         )
       })}
-      {!all && total > SENTENCES_SHOWN && (
+      {hidden > 0 && (
         <button
           type="button"
           onClick={() => setAll(true)}
           className="w-fit rounded-sm text-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          Show {total - SENTENCES_SHOWN} more
+          Show {hidden} more
         </button>
       )}
     </div>
   )
 }
 
-/** How many sentences the words show before Show more. */
+/** How many sentences the words show before Show more, and how many lines of a list. */
 const SENTENCES_SHOWN = 5
+const LIST_SHOWN = 12
 
 /**
  * A paragraph's runs as sentences: a sentence ends in a text run that ends in . ! or ?, and the
