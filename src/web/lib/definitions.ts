@@ -47,11 +47,12 @@ export const typeLabel: Record<DefinitionType, string> = {
 /** A type as people read it; a term that points at something else is a synonym. */
 export const kindName = (d: Pick<Definition, 'type' | 'sameAs'>) =>
   d.sameAs ? 'Synonym' : typeLabel[d.type]
-export const SYNCED_AT = 'today at 06:00'
+/** A name as an address or a reference reads it, never as a sentence: "Net revenue" is net_revenue. */
+const slug = (name: string) => name.toLowerCase().replace(/[^a-z]+/g, '_')
+const groupSlug = (d: Definition) => (d.group ?? 'segments').toLowerCase()
 export const sourceUrl = (d: Definition) =>
-  `https://git.example/data/cube-model/blob/main/model/${(d.group ?? 'segments').toLowerCase()}.yml`
-export const cubeRef = (d: Definition) =>
-  `cube:${(d.group ?? 'segments').toLowerCase()}.${d.name.toLowerCase().replace(/[^a-z]+/g, '_')}`
+  `https://git.example/data/cube-model/blob/main/model/${groupSlug(d)}.yml`
+export const cubeRef = (d: Definition) => `cube:${groupSlug(d)}.${slug(d.name)}`
 
 /**
  * The tool synced definitions come from, as people say it, when they all come from one; undefined

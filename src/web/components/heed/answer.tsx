@@ -86,7 +86,13 @@ import { agentReply } from '@/lib/agent-reply'
 import { mentionId, parseMentionId, plainText, type MentionRef } from '@/lib/mentions'
 import { figureAskOf, type FigureView } from '@/model/figures'
 import { useFigures } from '@/lib/figures'
-import { FigureAgainst, FigureLine, FigureLink, NoFigure } from '@/components/heed/answer-figure'
+import {
+  AnswerFigure,
+  FigureAgainst,
+  FigureLine,
+  FigureLink,
+  NoFigure,
+} from '@/components/heed/answer-figure'
 import { useRelated } from '@/hooks/use-related'
 import { relLabel } from '@/lib/links'
 
@@ -133,7 +139,13 @@ function IconButton({
 /* ---------- the question ---------- */
 
 /** What Ask's loop answer is handed of Ask: its parts, and the answer's own actions. */
-const loopAnswerParts = () => ({ ...loopParts, AnswerActions, ReportLine, SomethingWrong })
+const loopAnswerParts = () => ({
+  ...loopParts,
+  AnswerActions,
+  ReportLine,
+  SomethingWrong,
+  AnswerFigure,
+})
 
 /** Ask's loop draws its own answer, loaded with the first one: most chats never need it. */
 const LoopAnswerBody = React.lazy(() =>
@@ -232,7 +244,7 @@ export function Question({
             </span>
           ) : (
             <span>
-              Read by the model{reading.words && ` as ${midSentence(reading.words)}`}
+              Read by Ask{reading.words && ` as ${midSentence(reading.words)}`}
               {reading.carried.length > 0 &&
                 `, with ${listOf(reading.carried)} carried from your last question`}
             </span>
@@ -332,7 +344,7 @@ function LookupCard({
   shown: ShownStage
   children?: React.ReactNode
 }) {
-  const { stage, stopped } = turn
+  const { stopped } = turn
   const answered = shown === 'answered'
   const scope = answer.reading?.words || scopeText(answer) || 'Nothing matched'
   const raw = agentReply(answer, facts)
@@ -353,33 +365,30 @@ function LookupCard({
   // One quiet line that says what the look-up is doing; opened, the card in the chat's soft surface.
   // A look-up that answers within moments shows none: the answer comes instead.
   if (shown === 'quiet' && !stopped) return null
-  const line =
-    stopped && !answered
-      ? stage === 'looking'
-        ? 'Stopped while looking up'
-        : 'Stopped while reading'
-      : running
-        ? shown === 'looking'
-          ? still
-            ? 'Still looking up…'
-            : (turn.working ?? 'Looking up context…')
-          : found
-            ? `Reading ${found} context ${found === 1 ? 'item' : 'items'}…`
-            : 'Found no context items'
-        : answer.read
-          ? // Ask's loop: what it cited, else that it read, from its own reads.
-            facts.length
-            ? `Used ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}`
-            : answer.read.length
-              ? 'What Ask read'
-              : 'Nothing was looked up'
-          : answer.state === null
-            ? 'Nothing was looked up'
-            : answer.state === 'failed'
-              ? 'The look-up failed'
-              : facts.length
-                ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}${linkWords}`
-                : 'Looked up: no context items'
+  // Stopped before an answer, the notice under it says so, once.
+  if (stopped && !answered) return null
+  const line = running
+    ? shown === 'looking'
+      ? still
+        ? 'Still looking up…'
+        : (turn.working ?? 'Looking up context…')
+      : found
+        ? `Reading ${found} context ${found === 1 ? 'item' : 'items'}…`
+        : 'Found no context items'
+    : answer.read
+      ? // Ask's loop: what it cited, else that it read, from its own reads.
+        facts.length
+        ? `Used ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}`
+        : answer.read.length
+          ? 'What Ask read'
+          : 'Nothing was looked up'
+      : answer.state === null
+        ? 'Nothing was looked up'
+        : answer.state === 'failed'
+          ? 'Not looked up'
+          : facts.length
+            ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}${linkWords}`
+            : 'Looked up: no context items'
   if (!answered)
     return (
       <p className="flex min-h-6 items-center">
@@ -760,7 +769,7 @@ function AnswerWords({
           // py-1: an inline box is its font's height (about 19px), so one that fits a line is under the
           // 24px target size; the padding makes it 24px or more and leaves the line height alone.
           opens &&
-            'cursor-pointer py-1 decoration-muted-foreground/40 underline-offset-4 hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary/12 dark:aria-pressed:bg-primary/25',
+            'cursor-pointer py-1 decoration-muted-foreground/40 underline-offset-4 hover:underline focus-visible:underline focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-primary/12 dark:aria-pressed:bg-primary/25',
         )}
       >
         {words}
@@ -1372,8 +1381,40 @@ export function AnswerBody(props: AnswerBodyProps) {
     <React.Suspense
       fallback={<ReadingLine running>Counting from the workspace&apos;s records…</ReadingLine>}
     >
-      <RecordsAnswerBody parts={recordsParts} records={records} />
+      <div className="flex min-w-0 flex-col gap-3">
+        <RecordsAnswerBody parts={recordsParts} records={records} />
+        {/* A refusal ends with the questions Ask can answer instead. */}
+        {records.refused && <QuestionChoices choices={records.offers} onAsk={props.onAsk} />}
+      </div>
     </React.Suspense>
+  )
+}
+
+/** Questions to press, each sent as the next question; on an earlier turn they only show. */
+function QuestionChoices({
+  choices,
+  onAsk,
+}: {
+  choices: readonly string[]
+  onAsk: ((question: string) => void) | undefined
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {choices.map((choice) =>
+        onAsk ? (
+          <Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
+            {choice}
+          </Button>
+        ) : (
+          <span
+            key={choice}
+            className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+          >
+            {choice}
+          </span>
+        ),
+      )}
+    </div>
   )
 }
 
@@ -1621,22 +1662,7 @@ function ContextAnswerBody({
       )}
       {/* A question back's readings, under it: the last one's send the choice as the reply. */}
       {answered && !!answer.choices?.length && (
-        <div className="flex flex-wrap gap-2">
-          {answer.choices.map((choice) =>
-            onAsk ? (
-              <Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
-                {choice}
-              </Button>
-            ) : (
-              <span
-                key={choice}
-                className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
-              >
-                {choice}
-              </span>
-            ),
-          )}
-        </div>
+        <QuestionChoices choices={answer.choices} onAsk={onAsk} />
       )}
       {answered && answer.write && (
         <p className="text-sm">

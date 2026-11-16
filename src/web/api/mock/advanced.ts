@@ -11,6 +11,9 @@ import { DEMO_CONTEXT, DEMO_DEFINITIONS, demoTool } from './data/integrations'
 // the log's first lines come from the changes made to many items this visit.
 
 /** Who changed the demo's money caps, so its Observability reads $50 and $20 a month. */
+/** How long Undo is offered after a write in the demo (`limits.undo_seconds`), as installed. */
+export const UNDO_SECONDS = 15
+
 const capped = {
   who: 'Jon Abara',
   when: '5 Oct',
@@ -30,7 +33,7 @@ function settingsOf(name: string, about: string, autoPublish: boolean, pins: Pin
     ['review.default_days', 90],
     ['review.open_issue_days', 14],
     ['gaps.no_item_threshold', { calls: 5, days: 7 }],
-    ['limits.undo_seconds', 15],
+    ['limits.undo_seconds', UNDO_SECONDS],
     ['limits.mentions_per_version', 50],
     ['privacy.min_count', 5],
     ['retention.delivery_days', 180],

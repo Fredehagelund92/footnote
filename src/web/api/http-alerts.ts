@@ -4,13 +4,12 @@
  * service does; the service says which are on, at what threshold, what the person muted, and what
  * each raised lately, already narrowed to what the person may read.
  */
+import { weekdayDayMonth } from '@/lib/dates'
 import type { AlertRaise, AlertRules } from '@contract/alerts'
 import { alertCardDays, isAlertCardRule, raisedLine, type RaiseSubject } from '@domain/alerts'
 import { cardKey } from '@domain/inbox'
 import { ruleWords, type Alerts, type Raised, type Rule } from '@/model/alerts'
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /**
@@ -25,7 +24,7 @@ export function raisedWhen(iso: string, now: Date): string {
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`
   if (days === 0) return `Today, ${time}`
   if (days === 1) return `Yesterday, ${time}`
-  const date = `${DAYS[at.getDay()]} ${at.getDate()} ${MONTHS[at.getMonth()]}`
+  const date = weekdayDayMonth(at)
   return at.getFullYear() === now.getFullYear() ? date : `${date} ${at.getFullYear()}`
 }
 

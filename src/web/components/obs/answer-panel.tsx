@@ -135,7 +135,7 @@ export function AnswerPanel({ id }: { id: string }) {
         className="mt-2 px-4 @md:px-5"
       >
         <div className="mt-2 flex flex-wrap items-center gap-2 px-4 @md:px-5">
-          <StateLine state={countedState(now.answer)} className="text-xs" />
+          <StateLine state={countedState(now.answer)} sentence className="text-xs" />
           <span className="text-xs text-muted-foreground">
             Asked {asked === null && t.atLeast ? `${t.atLeast}+` : shownCount(asked)} times{' '}
             {view.label}.
@@ -222,12 +222,13 @@ function OverviewTab({ t }: { t: Topic }) {
         >
           {compare
             ? 'Hide the compare'
-            : `Compare with what agents got ${before.before.label.toLowerCase()}`}
+            : `Compare with the answer agents got earlier (${before.before.label})`}
         </button>
         {compare &&
           (same ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              The same {before.before.label.toLowerCase()}: nothing it reads changed.
+              The answer agents got earlier ({before.before.label}) is the same: nothing it reads
+              changed.
             </p>
           ) : (
             <div className="mt-2 grid gap-px overflow-hidden rounded-md border bg-border text-sm @md:grid-cols-2">
@@ -422,7 +423,7 @@ function WarningsTab({
     missing: 'Agents asked and nothing applies.',
     partial: `Agents asked without dates, so ${obs.topicName(t)} was read at today.`,
     conflict: 'Two items that apply say different things. Both are given until an owner chooses.',
-    stale: 'An item it answers from has a check date that passed.',
+    stale: 'An item it uses is due for a check.',
     grounded: '',
   }
   // A hidden count may be one under 5, or one hidden so that none is given away: say neither.
@@ -440,7 +441,7 @@ function WarningsTab({
         <li key={s} className="flex gap-3 py-3 first:pt-0 last:pb-0">
           <div className="min-w-0 text-sm">
             <div className="flex flex-wrap items-center gap-2">
-              <StateLine state={s} className="px-1.5 py-0.5 text-xs" />
+              <StateLine state={s} sentence className="px-1.5 py-0.5 text-xs" />
               <span className="text-muted-foreground">{times(counts[s])}</span>
             </div>
             <p className="text-xs text-muted-foreground">{why[s]}</p>
@@ -465,7 +466,7 @@ function WarningsTab({
                 <LightbulbIcon className="size-3.5 shrink-0" aria-hidden />
                 <span className="flex-1">
                   {t.gap.label === 'Draft ready'
-                    ? "A draft is ready in the Inbox, from a payment provider's status page."
+                    ? 'A draft is ready in the Inbox.'
                     : 'A suggestion about it waits in the Inbox.'}
                 </span>
                 <a

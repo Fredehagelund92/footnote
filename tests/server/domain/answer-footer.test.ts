@@ -49,8 +49,20 @@ describe('the footer of an answer from what is written', () => {
     )
     expect(footer).toMatchObject({
       denominator: 'Read the 1 that fit best of 4 context items.',
-      notSeen: 'Nothing is written about Returns here.',
+      notSeen: 'Nothing general is written about Returns.',
     })
+  })
+
+  it('never says nothing is written about a name while items are shown for it (S3)', () => {
+    const footer = readsFooter(
+      planBundle,
+      read([item('Spain VAT', null)], {
+        metrics: ['metric:returns'],
+        values: ['val:market/spain'],
+      }),
+    )
+    expect(footer?.notSeen).toBe('Nothing general is written about Returns or Spain.')
+    expect(footer?.notSeen).not.toMatch(/Nothing is written about/)
   })
 
   it('is left out when it has nothing to say', () => {

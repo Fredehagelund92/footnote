@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LookupEvent, LoopTurn } from '../../src/contract/answer.ts'
 import type { Database } from '../../src/server/db/database.ts'
 import {
+  ASK_BACK,
   askLoop,
   loopSystem,
   readLines,
@@ -103,7 +104,7 @@ describe('what code writes from the reads', () => {
       ],
       [],
     )
-    expect(t.text).toBe('Germany lags [1]. Also [2]. And.')
+    expect(t.text).toBe('Germany lags.[1] Also.[2] And.')
     expect(t.sources).toEqual(['itm_germany01', 'itm_france001'])
     // A definition's id is no source, and the question asks nothing a definition adds to.
     expect(t.definitions).toEqual([])
@@ -120,8 +121,22 @@ describe('what code writes from the reads', () => {
   })
 
   it('takes the state from the read about the subject: Not found, its nearby items listed and not used', () => {
-    // The subject read found nothing; the words cite items it gave as nearby, and items a search
-    // matched on some of its words only.
+    // The subject read found nothing; the words cite only items it gave as nearby: they do not
+    // apply, so they are no sources, and their numbers go.
+    const t = turnOf(
+      'Nothing is written about orders in Poland. Germany lags (by a day [itm_germany01]).',
+      [get('missing', [], ['itm_germany01', 'itm_norway001'])],
+      [],
+    )
+    expect(t.state).toBe('missing')
+    expect(t.sources).toEqual([])
+    expect(t.text).toBe('Nothing is written about orders in Poland. Germany lags (by a day).')
+    expect(t.nearby).toEqual(['itm_germany01', 'itm_norway001'])
+  })
+
+  it('keeps the citations of what the reads returned, and a turn that cites one that is not nearby is not Not found', () => {
+    // The subject read found nothing; the words cite an item it gave as nearby, and one a search
+    // matched on some of its words only, which the words rest on.
     const t = turnOf(
       'Nothing is written about orders in Poland. Germany lags (by a day [itm_germany01]) and France switched [itm_france001].',
       [
@@ -130,15 +145,80 @@ describe('what code writes from the reads', () => {
       ],
       [],
     )
-    expect(t.state).toBe('missing')
-    expect(t.sources).toEqual([])
+    expect(t.state).toBe('partial')
+    expect(t.sources).toEqual(['itm_germany01', 'itm_france001'])
     expect(t.text).toBe(
-      'Nothing is written about orders in Poland. Germany lags (by a day) and France switched.',
+      'Nothing is written about orders in Poland. Germany lags (by a day [1]) and France switched.[2]',
     )
-    expect(t.nearby).toEqual(['itm_germany01', 'itm_france001', 'itm_norway001'])
+    expect(t.closest).toBeNull()
   })
 
-  it('takes what the cited items are when a search found what the subject read did not', () => {
+  it("keeps Not found when a turn cites an item an earlier turn's subject read gave as nearby", () => {
+    const t = turnOf(
+      'Still nothing about orders in Poland. Germany lags [itm_germany01].',
+      [get('missing', [])],
+      [get('missing', [], ['itm_germany01'])],
+    )
+    expect(t.state).toBe('missing')
+    expect(t.sources).toEqual([])
+  })
+
+  it('is never Checked over nothing covering the period, though a search found the nearby items it cites', () => {
+    // "what was written about orders in Norway in 2019": the subject read finds no item for 2019
+    // and gives the Norway orders items as nearby, for their dates; a search with the same days
+    // finds them on every word, and the words cite them as applying to other dates.
+    const nearby = ['itm_norwaystop', 'itm_giftcardonly']
+    const t = turnOf(
+      'Nothing written covers Orders in Norway for 1 Jan to 31 Dec 2019. The items about Norway orders apply to other dates: online sales stopped on 4 August 2026 [itm_norwaystop], and only card and cash count from 1 January 2025 [itm_giftcardonly].',
+      [
+        get('missing', [], nearby),
+        find(
+          nearby.map((id) => ({ ...item(id), match: 'all' })),
+          2,
+        ),
+      ],
+      [],
+      'what was written about orders in Norway in 2019',
+    )
+    expect(t.state).toBe('missing')
+    expect(t.sources).toEqual([])
+    expect(t.nearby).toEqual(nearby)
+  })
+
+  it('carries the subject read the answer cites, else the latest, never the oldest', () => {
+    const about = (names: string[], id: string): MadeRead => {
+      const read = get('grounded', [{ ...item(id), match: 'all' }])
+      const result = read.result as { read: object }
+      return { ...read, result: { ...result, read: { ...result.read, names } } }
+    }
+    const revenue = about(['Net revenue'], 'itm_revenue01')
+    const norway = about(['Orders', 'Norway'], 'itm_norway001')
+    const sweden = about(['Orders', 'Sweden'], 'itm_sweden001')
+    const search = find([{ ...item('itm_germany01'), match: 'all' }], 1)
+    const names = (t: LoopTurn) =>
+      t.subject && { names: t.subject.names, carried: t.subject.carried }
+    // A turn that reads nothing takes the earlier read whose items it cites.
+    expect(names(turnOf('As written [itm_norway001].', [], [revenue, norway, sweden]))).toEqual({
+      names: ['Orders', 'Norway'],
+      carried: true,
+    })
+    // One that cites only what a search found takes the latest subject read.
+    expect(names(turnOf('As written [itm_germany01].', [], [revenue, norway, search]))).toEqual({
+      names: ['Orders', 'Norway'],
+      carried: true,
+    })
+    // Its own reads: the one it cites, else its first.
+    expect(names(turnOf('As written [itm_sweden001].', [norway, sweden], []))).toEqual({
+      names: ['Orders', 'Sweden'],
+      carried: false,
+    })
+    expect(names(turnOf('As written [itm_germany01].', [norway, sweden, search], []))).toEqual({
+      names: ['Orders', 'Norway'],
+      carried: false,
+    })
+  })
+
+  it('is at most Partial when the subject read found no item and a search found what the words cite', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',
       [
@@ -153,7 +233,9 @@ describe('what code writes from the reads', () => {
       ],
       [],
     )
-    expect(t.state).toBe('stale')
+    // What the words rest on is written, though nothing about the subject is: Partial, not
+    // Outdated or Checked, and the footer still names the item that may be out of date.
+    expect(t.state).toBe('partial')
     expect(t.sources).toEqual(['itm_france001', 'itm_france002'])
     expect(t.footer.stale).toBe(
       '“Item itm_france002” may be out of date: its check date has passed.',
@@ -224,6 +306,190 @@ describe('what code writes from the reads', () => {
   })
 })
 
+describe('a turn that uses no context item', () => {
+  const definitions = (words: string | null): MadeRead => ({
+    tool: 'definitions',
+    input: { names: ['Orders'] },
+    result: {
+      found: 1,
+      definitions: [{ id: 'metric:orders', name: 'Orders', words, from: 'Cube (sales.orders)' }],
+      names: [],
+      ids: ['metric:orders'],
+    },
+  })
+  const subject = (state: string, about = ['metric:orders']): MadeRead => {
+    const read = get(state, [])
+    const result = read.result as { read: object }
+    return {
+      ...read,
+      result: {
+        ...result,
+        read: { ...result.read, about, assumedToday: true },
+      },
+    }
+  }
+
+  it('shows the Definition label, not a state, when it is about a definition', () => {
+    const words =
+      'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
+    const t = turnOf(
+      'Orders is the value of orders customers paid for.',
+      [subject('partial'), definitions(words)],
+      [],
+      'What is orders?',
+    )
+    expect(t.state).toBeNull()
+    expect(t.defined).toEqual({ names: ['Orders'], tool: 'Cube' })
+    // The words give the definition, whatever the question's words.
+    expect(
+      turnOf(
+        `Ordrer er ${words}`,
+        [subject('partial'), definitions(words)],
+        [],
+        'Hva betyr ordrer?',
+      ).defined,
+    ).toEqual({ names: ['Orders'], tool: 'Cube' })
+    // Paraphrased in another language, citing no item: still the Definition label and no state.
+    const paraphrased = turnOf(
+      'Netto omsetning er salget etter fratrukne returer.',
+      [
+        subject('partial'),
+        definitions('Net revenue is sales less returns, in euros at the daily rate.'),
+      ],
+      [],
+      'Hva betyr netto omsetning?',
+    )
+    expect(paraphrased.state).toBeNull()
+    expect(paraphrased.defined).toEqual({ names: ['Orders'], tool: 'Cube' })
+  })
+
+  it('shows a definition the turn read whenever the words do not give it, in any language', () => {
+    const words =
+      'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
+    // Asked in Norwegian, answered in Norwegian: the definition shows as its source words it.
+    const asked = turnOf(
+      'Ordrer er verdien av betalte ordrer.',
+      [subject('partial'), definitions(words)],
+      [],
+      'Hva betyr ordrer?',
+    )
+    expect(asked.definitions).toEqual([
+      { name: 'Orders', words, tool: 'Cube', id: 'metric:orders' },
+    ])
+    // Not asked what it is: still shown, since the turn read it and the words do not give it.
+    expect(
+      turnOf(
+        'Nothing written covers why orders fell.',
+        [subject('missing'), definitions(words)],
+        [],
+        '¿Por qué bajaron los pedidos?',
+      ).definitions.map((d) => d.name),
+    ).toEqual(['Orders'])
+    // The words give it: not again.
+    expect(
+      turnOf(
+        `Orders is ${words}`,
+        [subject('partial'), definitions(words)],
+        [],
+        'Hva betyr ordrer?',
+      ).definitions,
+    ).toEqual([])
+    // A listing of Definitions (by a domain or a kind, no names) reads no one definition: none shows.
+    const read = definitions(words)
+    const listing: MadeRead = {
+      ...read,
+      input: { domain: 'Sales' },
+      result: {
+        ...(read.result as object),
+        names: [{ id: 'metric:orders', name: 'Orders', of: null, type: null }],
+      },
+    }
+    expect(
+      turnOf('Sales has [@metric:orders].', [{ ...listing, input: { names: ['Orders'] } }], [], 'q')
+        .definitions,
+    ).toHaveLength(1)
+    expect(
+      turnOf('Sales has [@metric:orders].', [listing], [], 'List the metrics in Sales').definitions,
+    ).toEqual([])
+    // An earlier turn read it: a follow-up that reads again does not show it again.
+    expect(
+      turnOf('Sofia Brandt owns it.', [subject('partial')], [definitions(words)], 'Who owns that?')
+        .definitions,
+    ).toEqual([])
+  })
+
+  it('keeps its state when it is not about a definition, or no definition was read', () => {
+    const notAbout = turnOf(
+      'Nothing written covers why orders fell.',
+      [subject('missing'), definitions('The value of orders customers paid for.')],
+      [],
+      'Why did orders fall?',
+    )
+    expect(notAbout.state).toBe('missing')
+    expect(notAbout.defined).toBeUndefined()
+    // Words that give a definition while answering about something nothing covers stay Not found.
+    const notFound = turnOf(
+      'Nothing written covers orders here. Orders is the value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
+      [
+        subject('missing', ['metric:orders', 'value:market/poland']),
+        definitions(
+          'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.',
+        ),
+      ],
+      [],
+      'Give me all about orders in poland',
+    )
+    expect(notFound.state).toBe('missing')
+    expect(notFound.defined).toBeUndefined()
+    const none = turnOf(
+      'Nothing is written.',
+      [subject('missing'), definitions(null)],
+      [],
+      'What is orders?',
+    )
+    expect(none.state).toBe('missing')
+    expect(none.defined).toBeUndefined()
+    // Asked what is written about a subject nothing covers, whatever the question's words: Not found.
+    const written = turnOf(
+      'Nothing written covers Orders in Poland.',
+      [
+        subject('missing', ['metric:orders', 'value:market/poland']),
+        definitions('The value of orders customers paid for.'),
+      ],
+      [],
+      "What's written about orders in Poland?",
+    )
+    expect(written.state).toBe('missing')
+    expect(written.defined).toBeUndefined()
+    // Asked what a metric nothing is written about is: its definition, under the Definition label.
+    const words =
+      'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
+    expect(
+      turnOf(`Orders is ${words}`, [subject('missing'), definitions(words)], [], 'What is orders?')
+        .defined,
+    ).toEqual({ names: ['Orders'], tool: 'Cube' })
+  })
+
+  it('shows none of the evidence when it read nothing new and cites nothing', () => {
+    const earlier = [subject('partial'), definitions('The value of orders customers paid for.')]
+    const t = turnOf('You are welcome.', [], earlier, 'thanks!')
+    expect(t).toMatchObject({
+      state: null,
+      subject: null,
+      definitions: [],
+      read: [],
+      footer: { denominator: null, notSeen: null, stale: null },
+    })
+    // One that cites what an earlier read returned keeps it.
+    const cites = turnOf(
+      'As before, Germany lags [itm_germany01].',
+      [],
+      [find([{ ...item('itm_germany01'), match: 'all' }], 1)],
+    )
+    expect(cites.read).toEqual(['Read the chat’s 1 earlier read again, as you, now.'])
+  })
+})
+
 describe('the instructions', () => {
   it('say who is asking by what is theirs only, and name no case', () => {
     const system = loopSystem('2026-10-23', { admin: false, owns: ['Sales'] })
@@ -231,6 +497,42 @@ describe('the instructions', () => {
     expect(system).toContain('They own the domain Sales.')
     // No example of a question, and no market or metric of the demo.
     expect(system).not.toMatch(/Poland|Norway|Orders|are you sure|"/i)
+  })
+
+  it('speak to the person as you, of Ask as Ask, and give a definition when asked what it is', () => {
+    const system = loopSystem('2026-10-23', { admin: true, owns: [] })
+    expect(system).toContain('Speak to the person as “you”')
+    expect(system).toContain('of yourself as Ask, never as I or me')
+    expect(system).toContain('never write “the person asking”')
+    expect(system).toMatch(/Never say how you read the question/)
+    expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
+    expect(system).toContain('in every language')
+    expect(system).toContain('answer the likelier reading without saying which one you chose')
+    // A step that reads writes nothing: words before a read would show, then go.
+    expect(system).toContain('In a step that reads, write no words')
+    // What the page shows is never said: not even that it lists the nearest items.
+    expect(system).not.toContain('say so in one sentence: the page lists what is written nearest')
+    // The person's language, with every name as the reads give it.
+    expect(system).toContain(
+      'Write the names of metrics, dimensions, values, domains and people exactly as the reads give them, never translated',
+    )
+    // Nothing left that asks for the third person or forbids the definition.
+    expect(system).not.toMatch(/third person|never restate a definition|The person asking is/)
+  })
+})
+
+describe('the question back', () => {
+  it('says in its own description when to ask, with the two cases it must not ask on', () => {
+    // When: a bare word, or no metric named, and the chat does not settle it.
+    expect(ASK_BACK).toMatch(/one bare word, or names no metric/)
+    expect(ASK_BACK).toContain('the metrics it could mean as the choices')
+    // Never: a follow-up the chat settles, nor a question that names one metric.
+    expect(ASK_BACK).toMatch(/Never ask back on a follow-up whose subject the chat already settles/)
+    expect(ASK_BACK).toMatch(/nor on a question that names one metric/)
+    // The instructions leave the rule to the tool, and only forbid asking in the words.
+    const system = loopSystem('2026-10-23', { admin: false, owns: [] })
+    expect(system).not.toContain('can mean two things and the answers would differ')
+    expect(system).toContain('Ask back only with ask_back, as its description says')
   })
 })
 
@@ -276,6 +578,8 @@ async function turnWith(
   options: Partial<LoopDeps> & {
     turns?: Parameters<typeof askLoop>[1]['turns']
     question?: string
+    /** Each event as the turn yields it, in order. */
+    onEvent?: (event: LookupEvent) => void
   } = {},
 ) {
   const { database, seen } = countingDatabase()
@@ -289,7 +593,7 @@ async function turnWith(
   )
   const errors: unknown[] = []
   const events: LookupEvent[] = []
-  const { turns, question = 'what is written?', ...rest } = options
+  const { turns, question = 'what is written?', onEvent, ...rest } = options
   for await (const event of askLoop(
     {
       database,
@@ -305,10 +609,28 @@ async function turnWith(
       ...rest,
     },
     { question, ...(turns ? { turns } : {}) },
-  ))
+  )) {
+    onEvent?.(event)
     events.push(event)
+  }
   const turn = events.findLast((e) => e.type === 'turn')?.turn as LoopTurn
   return { turn, events, seen, asked, errors }
+}
+
+/**
+ * A model that reads once, then writes its answer in pieces with a pause between each, noting each
+ * piece as it sends it; `log` notes each words event as the turn yields it, in the same list.
+ */
+function pacedAnswer(pieces: readonly string[], written: string[]) {
+  return {
+    decide: ({ results }: ScriptedPrompt): ScriptedStep =>
+      results.length
+        ? { text: pieces, pace: 20, onPiece: (p) => written.push(`delta:${p}`) }
+        : { calls: [{ toolName: 'find_context', input: { words: 'germany' } }] },
+    log: (e: LookupEvent) => {
+      if (e.type === 'words') written.push(`words:${e.turn?.text ?? ''}`)
+    },
+  }
 }
 
 describe("Ask's loop on a scripted model", () => {
@@ -442,7 +764,55 @@ describe("Ask's loop on a scripted model", () => {
     // The earlier read, made again, gives the item only as nearby to a subject with nothing written.
     expect(turn).toMatchObject({ sources: [], state: 'missing', nearby: ['itm_germany01'] })
     // What the turn sends back as its own reply cites by id, a nearby item too: what it wrote.
-    expect(turn.said).toBe('Still nothing, as before [itm_germany01].')
+    expect(turn.said).toBe('Still nothing, as before.[itm_germany01]')
+  })
+
+  it('shows the words a checked sentence at a time, the first while the rest is still being written', async () => {
+    const written: string[] = []
+    const pieces = [
+      'Germany lags ',
+      '[itm_germany01]. France ',
+      'switched in May. ',
+      'Nothing else is written.',
+    ]
+    const { decide, log } = pacedAnswer(pieces, written)
+    const { turn, events } = await turnWith(decide, { onEvent: log })
+    const words = events.filter((e) => e.type === 'words')
+    // Each event is the answer so far, drawn as the turn will be: the sentences that passed.
+    expect(words.map((e) => e.turn?.text)).toEqual([
+      'Germany lags.[1]',
+      'Germany lags.[1] France switched in May.',
+    ])
+    expect(words[0]!.turn).toMatchObject({ sources: ['itm_germany01'], state: 'grounded' })
+    // The first sentence reached the page before the model wrote its last words.
+    expect(written.indexOf('words:Germany lags.[1]')).toBeLessThan(
+      written.indexOf(`delta:${pieces.at(-1)}`),
+    )
+    // The turn is the whole answer, the same sentences first.
+    expect(turn.text).toBe('Germany lags.[1] France switched in May. Nothing else is written.')
+  })
+
+  it('takes back the words of a step that goes on to read, and never shows a lone sentence before a read', async () => {
+    const { events } = await turnWith(({ results }) =>
+      results.length
+        ? { text: 'Germany lags [itm_germany01].' }
+        : {
+            text: 'Ask will look this up. It reads the context first.',
+            calls: [{ toolName: 'find_context', input: { words: 'germany' } }],
+          },
+    )
+    const words = events.filter((e) => e.type === 'words').map((e) => e.turn?.text ?? null)
+    // The first sentence was shown, then taken back once the step read; the answer's words follow.
+    expect(words).toEqual(['Ask will look this up.', null])
+    const { events: lone } = await turnWith(({ results }) =>
+      results.length
+        ? { text: 'Germany lags [itm_germany01].' }
+        : {
+            text: 'Ask will look this up.',
+            calls: [{ toolName: 'find_context', input: { words: 'germany' } }],
+          },
+    )
+    expect(lone.filter((e) => e.type === 'words')).toEqual([])
   })
 
   it("holds an earlier reply's citations by id to what the reads return now, as its [n] marks", async () => {

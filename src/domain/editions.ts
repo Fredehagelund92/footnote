@@ -97,11 +97,11 @@ function whatChanged(input: SentenceInput): string {
       kinds.length > 1
         ? `: ${kinds.map((kind) => `${input.counts[kind].toLocaleString('en')} ${countWords[kind]}`).join(', ')}`
         : ` (${countWords[kinds[0]!]})`
-    parts.push(`${plural(total, 'fact', 'facts')}${where}${split}`)
+    parts.push(`${plural(total, 'context item', 'context items')}${where}${split}`)
   }
   if (input.withheld)
     parts.push(
-      `${plural(input.withheld, 'fact that only some groups see', 'facts that only some groups see')} changed`,
+      `${plural(input.withheld, 'context item that only some groups see', 'context items that only some groups see')} changed`,
     )
   if (input.vocabulary > 0) parts.push(plural(input.vocabulary, 'name changed', 'names changed'))
   // An edition from before every domain was served may have only moved a domain's state.
@@ -132,8 +132,6 @@ function whoChanged(input: SentenceInput): string {
       return `Restored from the Bin ${by}`
     case 'area_deleted':
       return `Domain deleted ${by}`
-    case 'area_restored':
-      return `Domain restored ${by}`
     case 'decision_undone':
       return `A decision undone ${by}`
     case 'rollback':

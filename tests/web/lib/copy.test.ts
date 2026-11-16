@@ -106,22 +106,22 @@ describe('the words people read', () => {
       expect(where(prose.filter((t) => word.test(t.text) && !allowed.includes(t.file)))).toEqual([])
   })
 
-  it('name the six answer states in one or two plain words, from one list', () => {
+  it('name the six answer states in up to three plain words, from one list', () => {
     expect(Object.fromEntries(ANSWER_LINES.map((l) => [l.state, l.label]))).toEqual({
       grounded: 'Checked',
       partial: 'Partial',
       missing: 'Not found',
       conflict: 'Conflict',
       stale: 'Outdated',
-      failed: 'Not checked',
+      failed: 'Not looked up',
     })
     for (const l of ANSWER_LINES) {
       // For readers who are not native English speakers: short, and no contractions.
-      expect(l.label.split(' ').length, l.label).toBeLessThanOrEqual(2)
+      expect(l.label.split(' ').length, l.label).toBeLessThanOrEqual(3)
       expect(l.sentence.split(' ').length, l.sentence).toBeLessThanOrEqual(8)
       for (const t of [l.label, l.sentence, l.long]) expect(t, t).not.toMatch(/\w'\w|’/)
     }
-    expect(cardTypeLabel.gap).toBe('Not found')
+    expect(cardTypeLabel.gap).toBe('Nothing written yet')
     // The old labels stay only as the long form, in the one list.
     const old =
       /Based on checked context|Covers part of it|Nothing written down|Context disagrees|May be out of date|Couldn't check|\bNot covered\b/

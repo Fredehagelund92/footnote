@@ -7,7 +7,7 @@ import { implement, ValidationError } from '@orpc/server'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { API_PREFIX, contract } from '../../contract/index.ts'
-import { refusalOfCode, refusals } from '../../contract/refusals.ts'
+import { missing, notAllowed, refusalOfCode, refusals } from '../../contract/refusals.ts'
 import { forRequest, type Database, type Queryable } from '../db/database.ts'
 import type { Clock } from '../clock.ts'
 import {
@@ -137,7 +137,7 @@ import {
   type TransactionHooks,
   type WorkspaceSources,
 } from '../modules/connectors/index.ts'
-import { createGapsService, gapReportsPerMinute } from '../modules/gaps/index.ts'
+import { createGapsService, gapReportsPerMinute, reportGap } from '../modules/gaps/index.ts'
 import { createLibraryService } from '../modules/library/index.ts'
 import { createObservabilityService, readerScope } from '../modules/observability/index.ts'
 import {
@@ -178,6 +178,9 @@ export interface ApiServices {
   profileLabel?: string | null
 }
 type RequestContext = { request: FastifyRequest; reply: FastifyReply }
+/** A retry key of 128 random bits: 32 hex digits or a version 4 UUID (the web binding's). */
+const randomRetryKey =
+  /^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i
 const idempotencyKey = (context: RequestContext) =>
   context.request.headers['idempotency-key'] as string | undefined
 
@@ -326,7 +329,9 @@ export function createRouter({
           const operation = path.join('.')
           labelOperation(context.request, operation)
           if (!can(session?.person ?? null, operation))
-            throw new ORPCError(session ? 'FORBIDDEN' : 'UNAUTHORIZED')
+            throw new ORPCError(session ? 'FORBIDDEN' : 'UNAUTHORIZED', {
+              message: session ? refusals.forbidden : refusals.signedOut,
+            })
           if (!['GET', 'HEAD', 'OPTIONS'].includes(context.request.method)) {
             checkMutation(context.request, session, origins, operation === 'auth.signIn')
           }
@@ -402,7 +407,7 @@ export function createRouter({
     return { result, ran: result.outcome !== 'unknown_job' && result.outcome !== 'not_running' }
   }
   const found = <T>(value: T | null): T => {
-    if (value === null) throw new ORPCError('NOT_FOUND')
+    if (value === null) throw new ORPCError('NOT_FOUND', { message: missing('what you asked for') })
     return value
   }
   /**
@@ -602,7 +607,11 @@ export function createRouter({
           input.email.toLowerCase(),
           context.request.headers.cookie,
         )
-        if (!login) throw new ORPCError('UNAUTHORIZED')
+        if (!login)
+          throw new ORPCError('UNAUTHORIZED', {
+            message:
+              "We couldn't sign you in. Nothing was changed. Check the email address, then try again.",
+          })
         context.reply.header(
           'set-cookie',
           sessionCookie(
@@ -681,11 +690,15 @@ export function createRouter({
           input.reason,
           context.request.log,
         )
-        if (ended === null) throw new ORPCError('FORBIDDEN')
+        if (ended === null)
+          throw new ORPCError('FORBIDDEN', {
+            message: notAllowed('disconnect an agent', 'an admin'),
+          })
         if (ended) return { disconnected: ended }
         // Not a person's connection: an access key with that id ends the same way, at once.
         const revoked = await revokeAccessKey(context.tx, input.id, input.reason)
-        if (revoked === null) throw new ORPCError('FORBIDDEN')
+        if (revoked === null)
+          throw new ORPCError('FORBIDDEN', { message: notAllowed('end an access key', 'an admin') })
         // One that ended already, or never was, answers alike.
         if (!revoked)
           throw new ORPCError('NOT_FOUND', {
@@ -698,7 +711,10 @@ export function createRouter({
       // Never a retry write: an answer kept for a retry would keep the key.
       create: authorized.accessKeys.create.handler(async ({ context, input }) => {
         const created = await createAccessKey(context.tx, input.name)
-        if (!created) throw new ORPCError('FORBIDDEN')
+        if (!created)
+          throw new ORPCError('FORBIDDEN', {
+            message: notAllowed('create an access key', 'an admin'),
+          })
         return created
       }),
     },
@@ -706,7 +722,8 @@ export function createRouter({
       list: authorized.agents.list.handler(({ context }) => listAgents(context.tx, clock.now())),
       rename: authorized.agents.rename.handler(async ({ context, input }) => {
         const renamed = await renameAccessKey(context.tx, input.id, input.name)
-        if (renamed === null) throw new ORPCError('FORBIDDEN')
+        if (renamed === null)
+          throw new ORPCError('FORBIDDEN', { message: notAllowed('rename an agent', 'an admin') })
         if (!renamed)
           throw new ORPCError('NOT_FOUND', {
             message: "We couldn't find this access key. It may be revoked already.",
@@ -716,7 +733,10 @@ export function createRouter({
       setTool: authorized.agents.setTool.handler(async ({ context, input }) => {
         plainReason(input.reason)
         const changed = await setAgentTool(context.tx, input.id, input.tool, input.on, input.reason)
-        if (changed === null) throw new ORPCError('FORBIDDEN')
+        if (changed === null)
+          throw new ORPCError('FORBIDDEN', {
+            message: notAllowed('change what an agent may do', 'an admin'),
+          })
         if (changed === undefined)
           throw new ORPCError('NOT_FOUND', {
             message:
@@ -737,9 +757,16 @@ export function createRouter({
           })
         if (!agent) throw gone()
         if (agent.kind === 'key') {
-          if (input.reason === undefined) throw new ORPCError('FORBIDDEN')
+          if (input.reason === undefined)
+            throw new ORPCError('FORBIDDEN', {
+              message:
+                'An access key needs a reason to end. Nothing was changed. Write why you are ending it, then try again.',
+            })
           const revoked = await revokeAccessKey(context.tx, agent.keyId!, input.reason)
-          if (revoked === null) throw new ORPCError('FORBIDDEN')
+          if (revoked === null)
+            throw new ORPCError('FORBIDDEN', {
+              message: notAllowed('end an access key', 'an admin'),
+            })
           if (!revoked) throw gone()
           return { revoked: true }
         }
@@ -749,7 +776,10 @@ export function createRouter({
           input.reason ?? null,
           context.request.log,
         )
-        if (ended === null) throw new ORPCError('FORBIDDEN')
+        if (ended === null)
+          throw new ORPCError('FORBIDDEN', {
+            message: notAllowed('disconnect an agent', 'an admin'),
+          })
         if (!ended) throw gone()
         return { revoked: true }
       }),
@@ -901,6 +931,31 @@ export function createRouter({
     },
     gaps: {
       get: authorized.gaps.get.handler(({ context, input }) => context.gaps.get(input.id)),
+      report: authorized.gaps.report.handler(async ({ context, input }) => {
+        const key = idempotencyKey(context)
+        // 128 random bits, as the web binding sends: the stored digest mixes in the caller, so a
+        // key that could be guessed would let anyone with the table test who reported what.
+        if (!key || !randomRetryKey.test(key))
+          throw new ORPCError('BAD_REQUEST', {
+            message: 'Send an Idempotency-Key header of 32 random hex digits or a random UUID.',
+          })
+        // FR-408: a person's reports have a tighter limit of their own. The key lives in memory
+        // only, for its minute, and the report records no person.
+        const retry = limitGapReports([
+          {
+            key: `gap-report:${context.session!.person.id}`,
+            limit: await gapReportsPerMinute(context.tx),
+          },
+        ])
+        if (retry) {
+          context.reply.header('retry-after', String(retry))
+          throw new ORPCError('TOO_MANY_REQUESTS', {
+            message: `You've sent a lot of reports. Try again in ${retry} seconds.`,
+            data: { retryAfterSeconds: retry },
+          })
+        }
+        return reportGap(context.tx, clock.today(), context.session!.person.id, input, key)
+      }),
     },
     sources: {
       list: authorized.sources.list.handler(({ context }) => workspaceSources.list(context.tx)),
@@ -1423,7 +1478,8 @@ export function createRouter({
             'select cl_is_admin_now() or cl_is_owner_now($1) as manages',
             [input.areaId],
           )
-          if (!row?.manages) throw new ORPCError('FORBIDDEN')
+          if (!row?.manages)
+            throw new ORPCError('FORBIDDEN', { message: notAllowed('check these questions') })
         }
         return runCheck(
           forRequest(database, context.request.id),

@@ -26,6 +26,7 @@ import type { ResolvedScope } from '../../../domain/scope.ts'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { reachOfDraft, type BundleCache } from '../answer/index.ts'
 import { syncedOf } from '../connectors/index.ts'
 import { loadServingBundle, publishEdition, type ServingBundle } from '../editions/index.ts'
@@ -50,6 +51,7 @@ import {
 } from './records.ts'
 import type { CommentsService } from '../comments/index.ts'
 import type { ReviewService, UnderPolicy } from './service.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /*
   The review of Heed v1 (FR-224 to FR-227): the sheet a review page reads, and its decisions.
@@ -71,14 +73,6 @@ const brief = (a: Answer): AnswerBrief => ({
 /** The default reason of a publish, as the history keeps it. */
 const publishedReason = 'Published from the review.'
 const returnedReason = 'Returned with a note.'
-
-/** How long after a decision its maker may undo it (`limits.undo_seconds`, FR-227). */
-async function undoSeconds(tx: Queryable): Promise<number> {
-  const [row] = await tx.query<{ seconds: number }>(
-    `select (value #>> '{}')::int as seconds from settings_current where key='limits.undo_seconds'`,
-  )
-  return row?.seconds ?? 15
-}
 
 export function createReviewPath(
   tx: Queryable,
@@ -112,7 +106,7 @@ export function createReviewPath(
   }
   async function stored(id: string): Promise<StoredVersion> {
     const version = await readVersion(tx, id)
-    if (!version) throw new ORPCError('NOT_FOUND')
+    if (!version) throw new ORPCError('NOT_FOUND', { message: missing('this version') })
     return version
   }
   async function baseOf(versionId: string): Promise<string | null> {
@@ -210,7 +204,8 @@ export function createReviewPath(
 
   /** What one suggestion is, read once: its versions, the bundles with and without it, its clashes. */
   async function reading(p: LoadedProposal) {
-    if (p.subject !== 'item') throw new ORPCError('NOT_FOUND')
+    if (p.subject !== 'item')
+      throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     const bundle = await liveBundle()
     const gapId = await gapOf(p)
     if (p.action === 'retire') {
@@ -218,7 +213,7 @@ export function createReviewPath(
       const live = p.itemId ? await liveVersionId(tx, p.itemId) : null
       const shownId = live ?? (p.itemId ? await lastServedId(p.itemId) : null)
       const version = shownId ? await stored(shownId) : null
-      if (!version) throw new ORPCError('NOT_FOUND')
+      if (!version) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
       const without: ServingBundle = {
         ...bundle,
         items: bundle.items.filter((i) => i.id !== version.itemId),
@@ -237,7 +232,7 @@ export function createReviewPath(
         standing: waits(p) ? standingOf({ written: p.itemVersionId, live }) : 'current',
       }
     }
-    if (!p.itemVersionId) throw new ORPCError('NOT_FOUND')
+    if (!p.itemVersionId) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
     const after = await stored(p.itemVersionId)
     const baseId = await baseOf(after.id)
     const before = baseId ? await stored(baseId) : null
@@ -611,7 +606,7 @@ export function createReviewPath(
     for (const itemId of given.keys())
       if (!r.clashes.includes(itemId))
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
-          message: 'Answer only for the live facts this suggestion clashes with.',
+          message: 'Answer only for the live context items this suggestion clashes with.',
         })
     const known = await relationsOf(r)
     if (clashesOnly)
@@ -646,7 +641,11 @@ export function createReviewPath(
       policy,
     )
     const decision = await lastDecision(p.id, p.action === 'retire' ? ['retire'] : ['accept'])
-    return { proposal: decided.proposal, edition: decided.edition, undo: `decision:${decision}` }
+    return {
+      proposal: decided.proposal,
+      edition: decided.edition,
+      undo: await undoOffer(tx, `decision:${decision}`),
+    }
   }
 
   async function returnWithNote(input: {
@@ -670,7 +669,7 @@ export function createReviewPath(
     })
     const decision = await lastDecision(p.id, ['request_changes'])
     await comments.returned(p.id, decision, note, input.body)
-    return { proposal: decided.proposal, undo: `decision:${decision}` }
+    return { proposal: decided.proposal, undo: await undoOffer(tx, `decision:${decision}`) }
   }
 
   /**
@@ -680,7 +679,7 @@ export function createReviewPath(
    */
   async function close(input: { id: string; revision: number; reason?: string | undefined }) {
     const closed = await review.close(input)
-    return { proposal: closed.proposal, undo: `decision:${closed.decision}` }
+    return { proposal: closed.proposal, undo: await undoOffer(tx, `decision:${closed.decision}`) }
   }
 
   async function markRead(input: { id: string; itemVersionId: string }) {
@@ -748,7 +747,7 @@ export function createReviewPath(
         skip('refused', error instanceof ORPCError ? error.message : "It couldn't be published.")
       }
     }
-    if (decisions.length) result.undo = `decisions:${decisions.join(',')}`
+    if (decisions.length) result.undo = await undoOffer(tx, `decisions:${decisions.join(',')}`)
     return result
   }
 
@@ -760,7 +759,6 @@ export function createReviewPath(
    * closed one, which changed nothing agents get.
    */
   async function undoDecisions(ids: readonly string[]): Promise<{ edition: string | null }> {
-    const seconds = await undoSeconds(tx)
     const rows = await tx.query<{
       id: string
       outcome: string
@@ -778,7 +776,7 @@ export function createReviewPath(
     }>(
       `select d.id::text,d.outcome::text,d.item_version_id::text as "versionId",v.item_id as "itemId",
               d.area_id as "areaId",d.proposal_id::text as "proposalId",p.action::text as action,
-              d.decided_at > now() - make_interval(secs => $2) as fresh,
+              now() < cl_undo_until(d.decided_at) as fresh,
               d.decided_by = cl_person() as mine,
               d.auto_policy_id is not null and (cl_is_owner_now(d.area_id) or cl_is_admin_now()) as "policyUndo",
               exists(select 1 from decision_undos u where u.decision_id=d.id) as undone,
@@ -787,9 +785,10 @@ export function createReviewPath(
          from decisions d join item_versions v on v.id=d.item_version_id
          left join proposals p on p.id=d.proposal_id
         where d.id=any($1::uuid[])`,
-      [ids, seconds],
+      [ids],
     )
-    if (rows.length !== new Set(ids).size) throw new ORPCError('NOT_FOUND')
+    if (rows.length !== new Set(ids).size)
+      throw new ORPCError('NOT_FOUND', { message: missing('these suggestions') })
     for (const d of rows) {
       // Nobody read a suggestion published under a policy (FR-421): an owner of its domain or an
       // admin undoes that publish later, while the item is as it published it.
@@ -819,7 +818,7 @@ export function createReviewPath(
         // An archive: the archived version comes back, unless something else is live for it now.
         if (await liveVersionId(tx, d.itemId))
           throw new ORPCError('CONFLICT', {
-            message: 'This fact changed since it was archived, so the archive stays.',
+            message: 'This context item changed since it was archived, so the archive stays.',
           })
         serve.push(d.versionId)
         continue
@@ -830,7 +829,7 @@ export function createReviewPath(
         })
       if ((await liveVersionId(tx, d.itemId)) !== d.versionId)
         throw new ORPCError('CONFLICT', {
-          message: 'This fact changed since then, so the publish stays.',
+          message: 'This context item changed since then, so the publish stays.',
         })
       const [before] = await tx.query<{ id: string | null }>(
         `select s.version_id::text as id from item_version_service s

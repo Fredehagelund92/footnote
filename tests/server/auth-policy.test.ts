@@ -153,6 +153,8 @@ const readOperations = [
   'areas.setOwners',
   'areas.list',
   'gaps.get',
+  // Ask's Tell the owner: anyone signed in says something is missing, naming no one (FR-606 case 5).
+  'gaps.report',
   'vocabulary.get',
   'vocabulary.search',
   'library.index',

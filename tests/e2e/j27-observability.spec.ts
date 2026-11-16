@@ -182,7 +182,7 @@ test('Overview: one filter moves the numbers, the chart and the topics together'
   await expect(page.locator('tbody [data-row-open]').first()).toBeVisible()
   const topics = await page.locator('tbody [data-row-open]').count()
   // A domain narrows the read itself: its own numbers and chart, and its topics.
-  const facets = page.getByRole('complementary', { name: 'Facets' })
+  const facets = page.getByRole('complementary', { name: 'Filter lists' })
   await facets
     .getByRole('region', { name: 'Domain' })
     .getByRole('checkbox', { name: 'Marketing' })
@@ -226,7 +226,7 @@ test("Overview: nothing connected, too few to show, and an owner's own domain", 
   await expect(cell(page, 'Asked')).toContainText('24')
   // An owner's domain is theirs, not a filter to take off; the kinds of agent are for admins.
   await expect(page.getByRole('button', { name: /^Domain is Marketing\./ })).toHaveCount(0)
-  const facets = page.getByRole('complementary', { name: 'Facets' })
+  const facets = page.getByRole('complementary', { name: 'Filter lists' })
   await expect(facets.getByRole('region', { name: 'Answer' })).toBeVisible()
   await expect(facets.getByRole('region', { name: 'Domain' })).toHaveCount(0)
   await expect(facets.getByRole('region', { name: 'Agent kind' })).toHaveCount(0)
@@ -251,7 +251,7 @@ test("Overview's topics: views with counts, a filter as a chip, and a view saved
   await views.getByRole('radio', { name: /^All topics/ }).click()
 
   await page
-    .getByRole('complementary', { name: 'Facets' })
+    .getByRole('complementary', { name: 'Filter lists' })
     .getByRole('region', { name: 'Answer' })
     .getByRole('checkbox', { name: 'Not found' })
     .click()
@@ -320,11 +320,13 @@ test('The replay runs on what agents got before the last publish', async ({ page
   const panel = page.locator('[data-slot=resizable-panel]').last()
   const before = beforeLastPublish()
   await panel
-    .getByRole('button', { name: `Compare with what agents got ${before.toLowerCase()}` })
+    .getByRole('button', { name: `Compare with the answer agents got earlier (${before})` })
     .click()
   // Side by side when the publish changed what it reads, else said to be the same.
   await expect(
-    panel.getByText(before, { exact: true }).or(panel.getByText(/^The same before/)),
+    panel
+      .getByText(before, { exact: true })
+      .or(panel.getByText(/^The answer agents got earlier .* is the same/)),
   ).toBeVisible()
   await panel.getByRole('tab', { name: 'Steps' }).click()
   await panel.getByRole('radio', { name: before }).click()
@@ -352,14 +354,14 @@ test('Quality: the one list, grouped by result, with before and now and Keep the
   await expect(page.getByRole('region', { name: 'Changed' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(page.getByRole('region', { name: 'Changed' })).toHaveCount(1)
-  // Check now runs, publishes nothing, and says so. The service checks twelve questions at once:
+  // Run now runs, publishes nothing, and says so. The service checks twelve questions at once:
   // its answer comes slowly here, so the line that waits on it can be read.
   if (mode === 'http')
     await page.route('**/api/v1/saved-questions/check', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 1500))
       await route.continue()
     })
-  await page.getByRole('button', { name: 'Check now' }).click()
+  await page.getByRole('button', { name: 'Run now' }).click()
   await expect(
     page.getByText(/Checking \d+ saved questions\. Nothing is published\./),
   ).toBeVisible()
@@ -374,7 +376,7 @@ test('Quality: no saved questions yet, a failed check, and offline', async ({ pa
     'The check did not finish. It stopped after 8 of 12 questions. Nothing was changed',
   )
   await go(page, '/observability/quality?state=offline')
-  await expect(page.getByRole('button', { name: 'Check now' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Run now' })).toHaveAttribute(
     'aria-disabled',
     'true',
   )
@@ -464,7 +466,7 @@ test('Usage: tools with their results, agents by kind, and spend against the cap
   await expect(agents.getByRole('row')).toHaveCount(6)
   await expect(
     page
-      .getByRole('table', { name: 'Spend caps' })
+      .getByRole('table', { name: 'Spend limits' })
       .getByRole('row')
       .filter({ hasText: 'Each month, all model use' }),
   ).toContainText('$50.00')
@@ -498,7 +500,9 @@ test('Limits: every tuning setting, read only, with where its value comes from',
   const settings = page.getByRole('table', { name: 'Tuning settings' })
   // A header for each of the 7 groups, and one for each of the 36 settings.
   await expect(settings.getByRole('rowheader')).toHaveCount(7 + 36)
-  await expect(settings.getByRole('rowheader', { name: 'Model spend', exact: true })).toBeVisible()
+  await expect(
+    settings.getByRole('rowheader', { name: 'AI cost this month', exact: true }),
+  ).toBeVisible()
   // The cap Usage reads was changed after the install; the privacy minimum keeps its default.
   await expect(settings.getByRole('row', { name: /limits\.llm_monthly_cap_micros/ })).toContainText(
     /\$50\s*Changed/,
@@ -531,9 +535,9 @@ test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, 
     page.getByText('The eight rules are fixed for now. Your own rules, and email and chat'),
   ).toBeVisible()
   // An admin changes a threshold inside the sentence.
-  await page.getByRole('combobox', { name: 'Not found: threshold', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Not found: level', exact: true }).click()
   await page.getByRole('option', { name: '10' }).click()
-  await expect(page.getByText('Threshold changed')).toBeVisible()
+  await expect(page.getByText('Level changed')).toBeVisible()
   await page.getByRole('switch', { name: 'Model spend' }).click()
   await expect(page.getByText('Turned off: Model spend')).toBeVisible()
   // The saved-question alert is a card in the Inbox, and the card opens Quality on its domain.

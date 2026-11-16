@@ -1,6 +1,15 @@
 import { ORPCError } from '@orpc/client'
+import { createHash } from 'node:crypto'
 import { settingSchemas } from '../../../contract/admin.ts'
-import type { Gap, GapDetail, GapHistoryEntry } from '../../../contract/gaps.ts'
+import type {
+  Gap,
+  GapDetail,
+  GapHistoryEntry,
+  GapReport,
+  GapReportInput,
+} from '../../../contract/gaps.ts'
+import { contentDigest } from '../../../domain/canonical.ts'
+import { noteFindings, scopeIssueFindings, topicFor } from '../../../domain/gap-reports.ts'
 import { textFindings } from '../../../domain/draft.ts'
 import {
   dimensionOfValue,
@@ -13,6 +22,8 @@ import {
   type GapType,
 } from '../../../domain/gaps.ts'
 import type { Queryable } from '../../db/database.ts'
+import { scopeOf } from '../../mcp/service.ts'
+import { loadLiveBundle } from '../editions/index.ts'
 
 type GapRow = {
   id: string
@@ -141,6 +152,70 @@ function rejectSensitive(text: string, field: string) {
       message: 'Remove the email address, phone number or secret from the text.',
       data: { findings },
     })
+}
+
+/**
+ * FR-606 case 5: a person says something is missing about the scope they asked about (Ask's Tell
+ * the owner). The scope is resolved on the live edition as get_context resolves it, so a term
+ * outside the vocabulary is refused and a scope without dates is read at today; the topic comes
+ * from it alone (FR-604). One report counts against the topic's gap as an agent's report of kind
+ * missing does (FR-308), so it reaches the topic's owners as a card in their Inbox. The function
+ * writes no person, and nothing here logs who asked (FR-608, FR-613). The retry key makes a double
+ * press or a retry count once.
+ */
+export async function reportGap(
+  tx: Queryable,
+  today: string,
+  person: string,
+  input: GapReportInput,
+  retryKey: string,
+): Promise<GapReport> {
+  const bundle = await loadLiveBundle(tx)
+  if (!bundle)
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: "Agents don't get any context yet. Ask an admin to finish the setup.",
+    })
+  const { type, note, ...scopeInput } = input
+  const scope = scopeOf({ ...scopeInput, question: '' }, bundle, today)
+  if (scope.status !== 'resolved')
+    throw new ORPCError('UNPROCESSABLE_CONTENT', {
+      message: "Add the metric, the market or the dates it's about.",
+      data: { findings: scopeIssueFindings(scope.issues) },
+    })
+  if (note !== undefined) {
+    const findings = noteFindings(note)
+    if (findings.length)
+      throw new ORPCError('UNPROCESSABLE_CONTENT', {
+        message: 'Remove the email address, phone number or secret from the text.',
+        data: { findings },
+      })
+  }
+  const topic = topicFor(scope.scope, bundle.metricArea)
+  const [row] = await tx
+    .query<{ id: string }>(
+      `select cl_report_gap_person($1,$2,$3,$4,$5,$6,$7,$8,decode($9,'hex'),decode($10,'hex'))::text as id`,
+      [
+        topic.key,
+        topic.area,
+        topic.metrics,
+        topic.values,
+        topic.dimensions,
+        topic.month,
+        type,
+        note ?? null,
+        // Bound to the caller, so one person's key never meets another's, and kept only as a
+        // digest with the key, which the page alone holds: it names no one.
+        createHash('sha256').update(`${person}:${retryKey}`).digest('hex'),
+        await contentDigest(input),
+      ],
+    )
+    .catch((error: unknown) => {
+      // The function refuses a retry key used for another report (22023).
+      if (error instanceof Error && 'code' in error && error.code === '22023')
+        throw new ORPCError('UNPROCESSABLE_CONTENT', { message: error.message })
+      throw error
+    })
+  return { id: row!.id }
 }
 
 /** A gap and its state. Runs as the API role inside the caller's transaction. */

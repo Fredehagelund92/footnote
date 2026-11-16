@@ -113,7 +113,7 @@ describe('find_context (FR-338)', () => {
           definition: 'The value of paid orders, in euros.',
           origin: 'source',
           source: { tool: 'Cube', state: 'current' },
-          heed_adds: 'AI agents get 1 checked fact about Orders with their data: 1 event.',
+          heed_adds: 'AI agents get 1 checked context item about Orders with their data: 1 event.',
         },
       ],
     })
@@ -138,7 +138,7 @@ describe('find_context (FR-338)', () => {
     for (const input of [{ query: 'Orders' }, { query: 'Orders', domain: 'Finance' }]) {
       const { out } = await s.call('find_context', input)
       expect(out.definitions[0]!.heed_adds).toBe(
-        'AI agents get 1 checked fact about Orders with their data: 1 event. The library holds 3 facts about Orders, the count its catalogue shows; AI agents get 1 of them, not the other 2 yet: they are high risk and wait for a check.',
+        'AI agents get 1 checked context item about Orders with their data: 1 event. The library holds 3 context items about Orders, the count its catalogue shows; AI agents get 1 of them, not the other 2 yet: they are high risk and wait for a check.',
       )
     }
   })
@@ -229,7 +229,7 @@ describe('find_context (FR-338)', () => {
     const { out } = await s.call('find_context', { query: 'Norway closure', domain: 'Finance' })
     expect(out.status).toBe('no_match')
     expect(out.why).toContain(
-      "1 fact matches, but AI agents don't get it: 1 because sharing it with AI agents is paused for now.",
+      "1 context item matches, but AI agents don't get it: 1 because sharing it with AI agents is paused for now.",
     )
     expect(JSON.stringify(out)).not.toMatch(/not live|starting/)
     expect(out.check_report.withheld).toBe(1)
@@ -292,7 +292,9 @@ describe('find_context (FR-338)', () => {
         filters: { 'dim:market': ['val:market/norway'] },
       },
     })
-    expect(out.note).toMatch(/^No fact's words matched, so these are the facts that apply/)
+    expect(out.note).toMatch(
+      /^No context item's words matched, so these are the context items that apply/,
+    )
     expect(out).not.toHaveProperty('assumed_date')
     expect(out.instructions).not.toContain('assumed')
     // Without dates it reads today's, and says it assumed today.
@@ -450,7 +452,7 @@ describe('a domain with nothing yet, named by another spelling', () => {
       ],
     })
     expect(out.why[0]).toMatch(
-      /^Stores & Suplliers has no facts and no names of its own yet\. Cube has 5 metrics and 2 dimensions mapped to Stores & Suplliers/,
+      /^Stores & Suplliers has no context items and no names of its own yet\. Cube has 5 metrics and 2 dimensions mapped to Stores & Suplliers/,
     )
     expect(out.why[0]).toContain('They wait in the Inbox for an owner of the domain or an admin')
     expect(out.instructions).toContain('at most two sentences')
@@ -501,7 +503,7 @@ describe('get_facts for a definition question (FR-338)', () => {
           definition: 'The value of paid orders, in euros.',
           origin: 'source',
           source: { tool: 'Cube', ref: 'cube:finance.orders', state: 'current' },
-          heed_adds: 'AI agents get 1 checked fact about Orders with their data: 1 event.',
+          heed_adds: 'AI agents get 1 checked context item about Orders with their data: 1 event.',
         },
       ],
       items: [{ id: 'itm_norway01' }],

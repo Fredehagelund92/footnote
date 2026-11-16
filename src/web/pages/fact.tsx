@@ -30,10 +30,11 @@ import {
 import { Related } from '@/components/heed/related'
 import { useRelated } from '@/hooks/use-related'
 import { openDock } from '@/lib/dock'
+import { useSidebar } from '@/components/ui/sidebar'
 import { href, navigate } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import { itemPageQuery, useInbox, useLibrary, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { useCommentActions } from '@/lib/comments'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import type { LogEntry } from '@/model/items'
@@ -49,6 +50,7 @@ const CommentBox = React.lazy(() =>
 )
 
 export function FactPage({ id }: { id: string }) {
+  const { isMobile } = useSidebar()
   const facts = useFacts()
   const page = useQuery(itemPageQuery(id))
   // The page's own read shows the item; the library knows it exists while that read loads.
@@ -59,7 +61,7 @@ export function FactPage({ id }: { id: string }) {
   const domains = useDomains()
   const me = useMe()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const commentActions = useCommentActions()
   const [deleting, setDeleting] = React.useState(false)
   const [bodyRef, wide] = useWide<HTMLDivElement>()
@@ -97,31 +99,28 @@ export function FactPage({ id }: { id: string }) {
   })
   const archive = async () => {
     const entry = entryFor('archived', 'Archived: agents stop getting it.')
-    const { undo } = await write('applyBulk', {
+    const archived = await write('applyBulk', {
       action: 'archive',
       patches: { [fact.id]: { status: 'Archived' } },
       remove: [],
       entry,
     })
-    toast('Archived', {
+    undo.offer('Archived', archived.undo, {
       description: 'Agents stop getting it from the next question.',
-      action: { label: 'Undo', onClick: () => void takeBack(undo) },
     })
   }
   // A draft nobody published is deleted for good, after a confirmation, with Undo for a few seconds.
   const deleteDraft = async () => {
     const entry = entryFor('deleted', 'Deleted: a draft nobody published.')
-    const { undo } = await write('applyBulk', {
+    const deleted = await write('applyBulk', {
       action: 'delete',
       patches: {},
       remove: [fact.id],
       entry,
     })
     navigate('/context')
-    toast('Deleted 1 draft', {
-      description: 'You can undo it for 10 seconds; then it is gone for good.',
-      duration: 10_000,
-      action: { label: 'Undo', onClick: () => void takeBack(undo) },
+    undo.offer('Deleted 1 draft', deleted.undo, {
+      description: (held) => `You can undo it for ${held}; then it is gone for good.`,
     })
   }
   const pending = sent.find((x) => x.factId === fact.id && x.by === me.name)
@@ -131,7 +130,7 @@ export function FactPage({ id }: { id: string }) {
     (f) =>
       f.id !== fact.id &&
       (f.id === fact.disagreesWith || f.disagreesWith === fact.id) &&
-      (f.status === 'Live' || f.status === 'Needs checking'),
+      (f.status === 'Live' || f.status === 'Due for a check'),
   )
 
   // What needs a decision: in the side when there is room, and in the document itself on a phone,
@@ -139,7 +138,7 @@ export function FactPage({ id }: { id: string }) {
   const attention = (fact.outOfDate || other) && (
     <>
       {fact.outOfDate && (
-        <SideSection title="Outdated" description={fact.outOfDate}>
+        <SideSection title="Due for a check" description={fact.outOfDate}>
           {owner && (
             <Button
               variant="outline"
@@ -187,10 +186,59 @@ export function FactPage({ id }: { id: string }) {
   // A draft nobody linked to has nothing beside it: no panel, once the read says so.
   const sideEmpty = !!page.data && !related.links.length && !history.length
 
+  const canCheck = owner && fact.status === 'Due for a check'
+  const canEdit = !(isMobile && (owner || !pending))
+  const canArchive = owner && fact.status !== 'Archived' && fact.status !== 'Draft'
+  const canDelete = owner && fact.status !== 'Archived'
+  const moreItems =
+    canCheck || canEdit || canArchive || canDelete ? (
+      <>
+        {(canCheck || canEdit || canArchive) && (
+          <DropdownMenuGroup>
+            {canCheck && (
+              <DropdownMenuItem
+                onClick={() =>
+                  void write('editItem', {
+                    id: fact.id,
+                    patch: {
+                      status: 'Live',
+                      outOfDate: undefined,
+                      checkedBy: me.name,
+                      checkedOn: '22 Oct 2026',
+                    },
+                  }).then(() => toast('Checked: still true'))
+                }
+              >
+                Still true
+              </DropdownMenuItem>
+            )}
+            {canEdit && (
+              <DropdownMenuItem
+                onClick={() => navigate('/context/' + fact.id + (owner ? '/edit' : '/suggest'))}
+              >
+                {owner ? 'Edit' : 'Suggest a change'}
+              </DropdownMenuItem>
+            )}
+            {canArchive && (
+              <DropdownMenuItem onClick={() => void archive()}>Archive</DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
+        )}
+        {canDelete && (
+          <>
+            {(canCheck || canEdit || canArchive) && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={() => setDeleting(true)}>Delete</DropdownMenuItem>
+          </>
+        )}
+      </>
+    ) : undefined
+
   return (
     <Page
       bodyRef={bodyRef}
       deep={{ href: href('/context'), label: 'Back to Context' }}
+      ask={() => openDock('ask')}
+      more={moreItems}
       className="flex overflow-hidden"
       title={
         <Breadcrumb>
@@ -207,56 +255,28 @@ export function FactPage({ id }: { id: string }) {
       }
       actions={
         <>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Ask about this context item"
-            onClick={() => openDock('ask')}
-          >
-            <MessageSquareIcon />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="outline" size="icon" aria-label="More" />}
-            >
-              <EllipsisIcon />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuGroup>
-                {owner && fact.status === 'Needs checking' && (
-                  <DropdownMenuItem
-                    onClick={() =>
-                      void write('editItem', {
-                        id: fact.id,
-                        patch: {
-                          status: 'Live',
-                          outOfDate: undefined,
-                          checkedBy: me.name,
-                          checkedOn: '22 Oct 2026',
-                        },
-                      }).then(() => toast('Checked: still true'))
-                    }
-                  >
-                    Still true
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={() => navigate('/context/' + fact.id + (owner ? '/edit' : '/suggest'))}
+          {!isMobile && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Ask about this context item"
+                onClick={() => openDock('ask')}
+              >
+                <MessageSquareIcon />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="outline" size="icon" aria-label="More" />}
                 >
-                  {owner ? 'Edit' : 'Suggest a change'}
-                </DropdownMenuItem>
-                {owner && fact.status !== 'Archived' && fact.status !== 'Draft' && (
-                  <DropdownMenuItem onClick={() => void archive()}>Archive</DropdownMenuItem>
-                )}
-              </DropdownMenuGroup>
-              {owner && fact.status !== 'Archived' && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setDeleting(true)}>Delete</DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <EllipsisIcon />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {moreItems}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
           {/* Where the page has a decision of its own (Compare and decide), that is its one solid blue button. */}
           {owner ? (
             <Button
@@ -280,7 +300,7 @@ export function FactPage({ id }: { id: string }) {
         </>
       }
     >
-      <Canvas className="min-h-0 min-w-0 flex-1 overflow-y-auto sm:pt-3 sm:pb-2">
+      <Canvas className="min-h-0 min-w-0 flex-1 overflow-y-auto sm:pt-2 sm:pb-2">
         <Paper>
           <Loadable
             what="this context item"

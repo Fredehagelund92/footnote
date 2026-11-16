@@ -594,6 +594,7 @@ export const invalidations: {
   saveView: () => [queryKeys.savedViews],
   saveChat: () => [queryKeys.chats],
   reportAnswer: () => [queryKeys.myReports, ...inbox],
+  tellOwner: () => inbox,
   // Related says whether agents follow links.
   setLinks: () => [queryKeys.settings, queryKeys.relateds],
   setTool: () => [queryKeys.settings, queryKeys.agentConnections, queryKeys.allDomainPolicies],

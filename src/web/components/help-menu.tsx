@@ -82,7 +82,7 @@ export function HelpMenu({ place }: { place: string }) {
               }}
             >
               <TextQuoteIcon />
-              Answer lines and words
+              Answer labels and words
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {

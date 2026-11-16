@@ -13,9 +13,7 @@
   (eslint.plain-words.js) with no baseline. What people read outside the web app (src/domain, the
   contract, the connectors' forms, the demo's fixtures and the message of every error the service
   answers with) is held to it too, as a ratchet: `npm run lint:words` counts the old words in
-  copy-checks.baseline.json and fails on a rise. The server's own sentences and the help pages the
-  in-app assistant reads still follow the earlier glossary (src/domain/words-v1.ts,
-  docs/design/voice.md) until each moves to this one.
+  copy-checks.baseline.json and fails on a rise.
 
   tests/server/domain/words.test.ts keeps the list consistent: one concept per name, every banned word with
   something to write instead, no name, definition or replacement that uses a banned word, and the
@@ -124,7 +122,10 @@ export const concepts = {
     definition:
       'What the workspace keeps about its context: when each item was created, changed, checked or archived, and who owns each domain. Ask counts from them, and agents never read that answer.',
     internal: ['library index'],
-    phrases: ['Records', "Counted from the workspace's records."],
+    phrases: [
+      'Records',
+      "From the app's own list of what was written and changed. Not from your sales data.",
+    ],
   },
   inbox: {
     name: 'Inbox',
@@ -167,7 +168,7 @@ export const concepts = {
   },
   ask: {
     name: 'Ask',
-    definition: 'The page where a person asks and sees the same answer line an agent gets.',
+    definition: 'The page where a person asks and sees the same answer label an agent gets.',
     internal: ['assistant'],
   },
   topic: {
@@ -223,7 +224,7 @@ export const kinds = {
   },
   note: {
     label: 'Rule',
-    hint: 'A fixed way to read the numbers, like a definition or a house rule.',
+    hint: 'A fixed way to read the numbers, like a house rule.',
   },
   guide: { label: 'Guide', hint: 'What to check before you explain a change.' },
 } as const satisfies Record<string, KindWords>
@@ -231,7 +232,7 @@ export const kinds = {
 export type Kind = keyof typeof kinds
 
 /**
- * The words of one answer line: a label of one or two words, a sentence of eight words or fewer,
+ * The words of one answer line: a label of one to three words, a sentence of eight words or fewer,
  * and the long form for a tooltip and Help. None has a contraction.
  */
 export type AnswerLineWords = {
@@ -267,8 +268,19 @@ export const answerLines = {
     long: 'Context disagrees',
   },
   stale: { label: 'Outdated', sentence: 'Some of this may be old.', long: 'May be out of date' },
-  failed: { label: 'Not checked', sentence: 'The check did not run.', long: 'Could not check' },
+  failed: {
+    label: 'Not looked up',
+    sentence: 'Ask could not look this up just now.',
+    long: 'Could not look up',
+  },
 } as const satisfies Record<string, AnswerLineWords>
+
+/**
+ * The one sentence for a look-up that could not run, wherever it shows: the answer, the chat's
+ * note and the mock. It says it is not Not found, and what to do.
+ */
+export const lookupFailedNote =
+  'Ask could not look this up just now. That does not mean nothing is written. Ask again in a minute.'
 
 export type AnswerState = keyof typeof answerLines
 
@@ -282,7 +294,7 @@ export const roles = { admin: 'Admin', member: 'Member' } as const
 export const backToApp = 'Back to app'
 
 /** A place a banned word may show, or the only place it is banned: `webSurfaces` lists its files. */
-export type Place = 'Integrations' | 'Settings' | 'the agent reply' | 'the review'
+export type Place = 'Integrations' | 'Settings' | 'the agent reply' | 'the review' | 'the web app'
 
 /** A word not to write where people read, with what to write instead. */
 export type BannedWord = {
@@ -343,7 +355,7 @@ export const bannedWords: readonly BannedWord[] = [
     ['Nothing written down', 'Not found'],
     ['Context disagrees', 'Conflict'],
     ['May be out of date', 'Outdated'],
-    ["Couldn't check", 'Not checked'],
+    ["Couldn't check", 'Not looked up'],
     ['Not covered', 'Not found'],
   ].map(([word, write]): BannedWord => ({
     word: word!,
@@ -382,6 +394,45 @@ export const bannedWords: readonly BannedWord[] = [
     matchCase: true,
     onlyOn: ['the review'],
   })),
+  // Plain words for the parts of the screen and the settings (language audit, G7 to G42). The
+  // screens of the web app only: the API's descriptions and the engineers' docs keep their words.
+  ...[
+    { word: 'facet', write: 'filter list', concept: null },
+    { word: 'policy', write: 'permission to publish without review', concept: null },
+    { word: 'policies', write: 'permissions to publish without review', concept: null },
+    { word: 'cap', write: 'limit', concept: null },
+    { word: 'threshold', write: 'level, or say "after 5 times"', concept: null },
+    { word: 'ledger', write: 'leave it out', concept: null },
+    {
+      word: 'Revoke',
+      write: 'Disconnect (an agent), Delete (a key) or Cancel (an invite)',
+      concept: null,
+      matchCase: true,
+    },
+    { word: 'Deny', write: "Don't allow", concept: null, matchCase: true },
+    { word: 'thread', write: 'comment', concept: null },
+    { word: 'Resolve', write: 'Mark as done', concept: null, matchCase: true },
+    { word: 'Reopen', write: 'Open again', concept: null, matchCase: true },
+    { word: 'settle', write: 'decide', concept: null },
+    { word: 'Settle it', write: 'Choose what to do', concept: null },
+    { word: 'Return with a note', write: 'Send back with a note', concept: null },
+    { word: 'flagged', write: 'reported', concept: null },
+    { word: 'Conflict flag', write: 'Conflict mark', concept: null },
+    { word: 'the flag', write: 'the Conflict mark', concept: null },
+    { word: 'queue', write: 'Waiting suggestions', concept: null },
+    { word: 'answer line', write: 'answer label', concept: null },
+    { word: 'goes live', write: 'is published', concept: null },
+    { word: 'go live', write: 'are published', concept: null },
+    { word: 'in force now', write: 'apply today', concept: null },
+    { word: 'whoever runs the app', write: 'the person who hosts this app', concept: null },
+    { word: 'whoever runs it', write: 'the person who hosts this app', concept: null },
+    { word: 'where the server runs', write: 'where this app is hosted', concept: null },
+    { word: 'Model spend', write: 'AI cost this month', concept: null },
+    { word: "Ask's model", write: 'Ask, or the AI model for the setting', concept: null },
+    { word: 'by the model', write: 'Ask', concept: null },
+    { word: 'the model that', write: 'Ask, or the AI model for the setting', concept: null },
+    { word: 'what the model costs', write: 'the AI cost', concept: null },
+  ].map((banned): BannedWord => ({ ...banned, onlyOn: ['the web app'] })),
   { word: 'Try a question', write: 'Try it', concept: 'tryIt' },
   { word: 'proposal', write: 'suggestion', concept: 'suggestion' },
   { word: 'accept', write: 'publish', concept: 'publish' },

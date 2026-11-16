@@ -11,6 +11,7 @@ import {
   outcomeOf,
   shownText,
   turnReducer,
+  unansweredIn,
   type AskEvent,
   type Turn,
   type TurnAction,
@@ -356,5 +357,23 @@ describe('how a turn ended (one outcome per turn)', () => {
     expect(drawnByLoop(run(asked(), { type: 'reads', reads }, { type: 'stop' }))).toBe(true)
     expect(drawnByLoop(doneTurn({ ...engine, loop: {} as Answer['loop'] }))).toBe(true)
     expect(drawnByLoop(doneTurn(engine))).toBe(false)
+  })
+})
+
+describe('the sentence for a question that got no answer', () => {
+  it('says why after the colon, with an ordinary first word lower-cased', () => {
+    expect(unansweredIn("The app didn't reply.", true)).toBe(
+      "Couldn't get an answer: the app didn't reply.",
+    )
+    expect(unansweredIn('AI Gateway is down', true)).toBe(
+      "Couldn't get an answer: AI Gateway is down.",
+    )
+    expect(unansweredIn('', true)).toBe("Couldn't get an answer: the app didn't reply.")
+  })
+
+  it("offline, blames neither the service nor the question: 'You're offline.'", () => {
+    const sentence = "You're offline. Ask again when you're back."
+    expect(unansweredIn("The service didn't reply.", false)).toBe(sentence)
+    expect(unansweredIn("You're offline.", false)).toBe(sentence)
   })
 })

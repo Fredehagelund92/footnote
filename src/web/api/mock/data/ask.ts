@@ -3,6 +3,7 @@ import { servedToAgents, type DomainId, type Fact } from '@/model/items'
 import { facts, markets, metrics } from './world'
 import { definitionSeed } from '../definitions'
 import { unreadSaid } from '@domain/say'
+import { lookupFailedNote } from '@domain/words'
 import { asksDefinition } from '@domain/scope'
 import type { Term } from '@domain/vocabulary'
 import { parseMentionId, plainText, type MentionRef } from '@/lib/mentions'
@@ -171,7 +172,7 @@ const curated: Record<string, Omit<Answer, 'id' | 'question'>> = {
     markets: ['United Kingdom'],
     dates: '19 to 25 Oct 2026',
     state: 'failed',
-    note: "The check couldn't run just now. That is not the same as nothing written down: ask again in a minute.",
+    note: lookupFailedNote,
     text: '',
     sources: [],
     said: "The check failed. Do not say that nothing is known; say that the check couldn't run.",

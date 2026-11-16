@@ -175,7 +175,7 @@ describe('publishing in one step (FR-137)', () => {
     expect(r).toMatchObject({ published: true })
     if (!r.published) return
     expect((await served(r.itemId))?.n).toBe(1)
-    expect((await undo('owner', r.undo)).statusCode).toBe(200)
+    expect((await undo('owner', r.undo.token)).statusCode).toBe(200)
     expect(await served(r.itemId)).toBeNull()
   })
 
@@ -331,7 +331,7 @@ describe('publishing from a Not found card (#201)', () => {
       call('POST', '/items/publish', 'owner', { draft: draft(), gapId: id }),
     )
     if (!r.published) throw new Error('not published')
-    expect((await undo('owner', r.undo)).statusCode).toBe(200)
+    expect((await undo('owner', r.undo.token)).statusCode).toBe(200)
     expect(await gap(id)).toEqual({ status: 'open', covered: null })
     expect(await needs('owner')).toContain(`gap:${id}`)
   })
@@ -408,14 +408,14 @@ describe('a change to many items at once (FR-139)', () => {
     expect((await served(keep))?.n).toBe(1)
     const changes = await ok<ItemChange[]>(call('GET', '/context/changes', 'owner'))
     expect(changes[0]).toMatchObject({ action: 'archived', personId: people.owner, undone: false })
-    expect((await undo('owner', r.undo!)).statusCode).toBe(200)
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
     expect((await served(a))?.n).toBe(1)
     expect((await served(b))?.n).toBe(1)
     expect((await ok<ItemChange[]>(call('GET', '/context/changes', 'owner')))[0]?.undone).toBe(true)
     // Once only, and only by its maker.
-    expect((await undo('owner', r.undo!)).statusCode).toBe(409)
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(409)
     const again = await bulk('owner', { action: 'archive', rows: [a] })
-    expect((await undo('admin', again.undo!)).statusCode).toBe(403)
+    expect((await undo('admin', again.undo!.token)).statusCode).toBe(403)
   })
 
   it('deletes drafts only, lists them as deleted, and Undo brings them back', async () => {
@@ -439,7 +439,7 @@ describe('a change to many items at once (FR-139)', () => {
       areaId: 'finance',
     })
     expect((await call('GET', '/context/deleted', 'owner')).statusCode).toBe(403)
-    expect((await undo('owner', r.undo!)).statusCode).toBe(200)
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
     expect((await ok<ProposalRecord>(call('GET', `/proposals/${first}`, 'author'))).state).toBe(
       'draft',
     )
@@ -472,7 +472,7 @@ describe('a change to many items at once (FR-139)', () => {
     expect(same.skipped).toEqual([
       expect.objectContaining({ code: 'same_domain', message: 'It is in Marketing already.' }),
     ])
-    expect((await undo('admin', r.undo!)).statusCode).toBe(200)
+    expect((await undo('admin', r.undo!.token)).statusCode).toBe(200)
     expect(await served(item)).toMatchObject({ n: 1, area: 'finance' })
   })
 
@@ -507,7 +507,7 @@ describe('a change to many items at once (FR-139)', () => {
       code: 'same_kind',
       message: 'Its kind is Guide already.',
     })
-    expect((await undo('owner', r.undo!)).statusCode).toBe(200)
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
     expect(await served(item)).toMatchObject({ n: 1, kind: 'note' })
   })
 
@@ -533,7 +533,7 @@ describe('a change to many items at once (FR-139)', () => {
     const page = await ok<ItemPage>(call('GET', `/items/${item}/page`, 'author'))
     expect(page.history[0]).toMatchObject({ kind: 'owners', version: null })
     expect(page.canChange).toBe(false)
-    expect((await undo('owner', added.undo!)).statusCode).toBe(200)
+    expect((await undo('owner', added.undo!.token)).statusCode).toBe(200)
     expect((await indexRow('owner', item))?.owners).toEqual([])
   })
 
@@ -556,7 +556,7 @@ describe('a change to many items at once (FR-139)', () => {
     expect(await served(opened)).toMatchObject({ n: 2 })
     expect((await indexRow('owner', opened))?.lastChecked?.personId).toBe(people.admin)
     expect((await call('POST', '/items/itm_nothere001/read', 'admin')).statusCode).toBe(404)
-    expect((await undo('admin', r.undo!)).statusCode).toBe(200)
+    expect((await undo('admin', r.undo!.token)).statusCode).toBe(200)
     expect(await served(opened)).toMatchObject({ n: 1 })
   })
 })

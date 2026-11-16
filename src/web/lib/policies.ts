@@ -67,4 +67,4 @@ const first = (name: string) => name.split(' ')[0] ?? name
 
 /** A version published under a policy, as the history says it. */
 export const publishedUnderLine = (sentBy: string, setBy: string) =>
-  `Published by ${sentBy} under ${first(setBy)}'s policy`
+  `Published by ${sentBy} with ${first(setBy)}'s permission to publish without review`

@@ -64,7 +64,7 @@ The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. A
 | Setup checklist on a new install                        | `/inbox`, shown while setup is unfinished               |
 | Connect an agent as a dialog, search, shortcuts, report | `/inbox?open=connect`, `palette`, `shortcuts`, `report` |
 
-The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Not found, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note) and Due for a check. Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match. One quiet sentence under the heading says what agents asked this week, in counts only.
+The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note) and Due for a check. Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match. One quiet sentence under the heading says what agents asked this week, in counts only.
 
 A Not found card shows a gap: a topic agents keep asking about with nothing written down for it. A gap is Open, Covered or Set aside. It is Open while agents keep asking. Publishing context written from its card, or a suggestion written for it, covers it, and the card leaves the Inbox. Not something we write down sets it aside. Undo of either opens it again. When agents ask about a covered topic again and still find nothing, a new gap opens.
 
@@ -87,11 +87,11 @@ The quick view never publishes. The review is a full-screen page inside the app,
 | Ask in the dock beside another page | `<page>?dock=ask`                           |
 | History                             | the left side of `/ask`; a sheet on a phone |
 
-The empty Ask shows Asked this week. Until agents have asked anything, it offers up to four first questions instead, made from what the workspace has written: the scopes of its published context items, then its metrics. A workspace with nothing written yet gets no first questions, only the empty page's words. Those first questions are the only ones Ask suggests: once a message is sent, nothing in the chat suggests a question to ask, under any answer. A dead end (a question it could not read, section 6; one about one person's work that it refused; or a Not found answer, which keeps its next step) says in words what Ask can answer instead.
+The empty Ask shows Asked this week. Until agents have asked anything, it offers up to four first questions instead, made from what the workspace has written: the scopes of its published context items, then its metrics. A workspace with nothing written yet gets no first questions, only the empty page's words. Those first questions are the only ones Ask suggests, with one exception: every refusal (a question Ask will not answer, such as one about one person's work) ends with questions to press, "What changed this week?" and "List the conflicts", and pressing one asks it. Under any other answer nothing in the chat suggests a question to ask. A dead end (a question it could not read, section 6, or a Not found answer, which keeps its next step) says in words what Ask can answer instead.
 
 An answer arrives the way it does in other chat tools. The question shows in the chat the moment it is sent, and **Stop** takes the place of Ask until the answer is done. One quiet line says what the look-up is doing, from its real steps: "Looking up context...", then "Reading 3 context items...". The answer line, its sentence and the sources come in with the engine's answer and do not change after. When a model writes the words for the person (`models.assistant`, with real models), they then grow as they are written, a checked sentence at a time, each shown word by word. Each sentence is checked before any of it shows: it cites only the answer's items, adds no number they do not give, and is not a list, a heading or a link. The first sentence that fails ends the words there. When no sentence passes, Ask shows its own words from the items. The model never decides the state or the sources. Stop ends the look-up and the model's words: the answer finishes the sentence on screen, keeps its state and sources, and says it is not finished. A new question goes to the top of the view, and the view then stays where the reader puts it.
 
-Ask also answers questions about the context's own records, such as "give me context created in the last 24 hours" or "who owns Sales?" (FR-718). The list is closed, and no model reads or writes them: what was created, what changed, what is due for a check, what is archived, who owns a domain (or a metric's domain) and which have no owner, how many context items or definitions there are, what agents asked this week that found nothing, which context items disagree ("list conflicts", "any conflicts in Sales?", "what is unresolved?", each pair opening its own page, as Context's Conflicts filter lists them), and what Definitions lists: the metrics and dimensions ("list 10 dimensions", "how many metrics are in Sales?") and a dimension's values ("what markets are there?"). Each is counted from what the Context list shows the person asking, never a draft and never what one person did. A records answer has no answer line: a **Records** chip, the sentence "Counted from the workspace's records.", one plain sentence, and at most five rows that open in the right panel, or a small table of counts, with Context keeping the full list. Nothing found is an answer too: "Nothing was created in the last 24 hours.", with the period in UTC and when the latest one was. It ends "Agents did not read this answer. It says nothing about what they get." A question about one person's work ("what did Maria write this week?") is refused, with what Ask can say instead.
+Ask also answers questions about the context's own records, such as "give me context created in the last 24 hours" or "who owns Sales?" (FR-718). The list is closed, and no model reads or writes them: what was created, what changed, what is due for a check, what is archived, who owns a domain (or a metric's domain) and which have no owner, how many context items or definitions there are, what agents asked this week that found nothing, which context items disagree ("list conflicts", "any conflicts in Sales?", "what is unresolved?", each pair opening its own page, as Context's Conflicts filter lists them), and what Definitions lists: the metrics and dimensions ("list 10 dimensions", "how many metrics are in Sales?") and a dimension's values ("what markets are there?"). Each is counted from what the Context list shows the person asking, never a draft and never what one person did. A records answer has no answer line: a **Records** chip, the sentence "From the app's own list of what was written and changed. Not from your sales data.", one plain sentence, and at most five rows that open in the right panel, or a small table of counts, with Context keeping the full list. Nothing found is an answer too: "Nothing was created in the last 24 hours.", with the period in UTC and when the latest one was. It ends "Agents did not read this answer. It says nothing about what they get." A question about one person's work ("what did Maria write this week?") is refused, with what Ask can say instead.
 
 Ask is the steward's companion for the context itself: what is missing, stale, conflicting or unowned (FR-720). Agents are the companion for numbers and advice, because Heed keeps no numbers. So Ask also answers an analysis of the records, from what the person may see: "what definitions are missing?", "which metrics have no owner?", "is anything written twice?", "how complete is the Sales domain?", and from their own Inbox, "what is waiting on me?". Code counts every line. Each count has its denominator ("13 of 22 metrics"), up to four sections of up to five rows open their records, a ranking says its rule, and a last line says what the read cannot see, such as a definition the source does not hold. Nothing here sets an answer state.
 
@@ -124,9 +124,9 @@ Conflicts is a filter of the list, not a list of its own: All or Conflicts above
 | New term                                    | `/definitions/new`             |
 | Connect the definitions source (from setup) | `/definitions?setup=1`         |
 
-### Settings (admins)
+### Settings
 
-Inside Settings, the app sidebar gives way to the settings menu, with Back to app on top. Six sections in three groups: Workspace (General, Domains and owners, People), Connections (Agents and access, Integrations), System (Advanced).
+Inside Settings, the app sidebar gives way to the settings menu, with Back to app on top. Six sections in three groups: Workspace (General, Domains and owners, People), Connections (Agents and access, Integrations), System (Advanced). Someone who isn't an admin has only Agents and access, where they see and disconnect the agents they connected; an owner also has Domains and owners and People.
 
 | Screen                               | Address                                      |
 | ------------------------------------ | -------------------------------------------- |
@@ -174,14 +174,14 @@ The Help menu in the sidebar's foot opens a small menu: the Help page, the keys,
 
 Every answer to a question that was looked up, for an agent and for a person, starts with one answer line. The words are fixed. Each shows with its icon and its tint, never as colour alone. Under every line but Checked there is one short sentence. The long form is for a tooltip, Help and the answer line's card.
 
-| Label           | The sentence under it              | What it means                                                                               | What to do                                      |
-| --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| **Checked**     | (none)                             | Context applies, and its owner published it with a source and a check date.                 | Nothing.                                        |
-| **Partial**     | Only part of this is written down. | Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
-| **Not found**   | Nothing is written about this yet. | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
-| **Conflict**    | Two items say different things.    | Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
-| **Outdated**    | Some of this may be old.           | An item's check date has passed, or a definition it relies on changed.                      | The owner checks it: Still true, or Edit.       |
-| **Not checked** | The check did not run.             | The check could not run just now. It is not the same as Not found.                          | Ask again in a minute.                          |
+| Label             | The sentence under it                | What it means                                                                               | What to do                                      |
+| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Checked**       | (none)                               | Context applies, and its owner published it with a source and a check date.                 | Nothing.                                        |
+| **Partial**       | Only part of this is written down.   | Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
+| **Not found**     | Nothing is written about this yet.   | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
+| **Conflict**      | Two items say different things.      | Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
+| **Outdated**      | Some of this may be old.             | An item's check date has passed, or a definition it relies on changed.                      | The owner checks it: Still true, or Edit.       |
+| **Not looked up** | Ask could not look this up just now. | Ask could not look this up just now. That does not mean nothing is written.                 | Ask again in a minute.                          |
 
 In the code the states are `grounded`, `partial`, `missing`, `conflict`, `stale` and `failed`. One function, `answerStateOf`, picks the state from the same facts for an agent's `get_context`, Ask, Try it and the replay, so they always agree: a metric or a value asked that no item covers in full makes the answer Partial for all of them (decision on issue 196). A draft answer says "Based on this draft" and is never called Checked. The labels, sentences and long forms live in one list that Ask, Try it, Help, the docs, the charts and the copy test all read.
 
@@ -189,18 +189,18 @@ A question the fixed rules cannot read ("any interesting jumps that can be expla
 
 An answer from the records (section 5, Ask) is not an answer about context, so it has no answer line either: it starts with the Records chip and says where it was counted from.
 
-Ask answers the question asked, or says it did not (FR-720). It never replaces a question with a nearby read, however true the sentence would be. A question beyond the written context ("should we restart the Norway campaign?", "will orders recover next quarter?") gets one fixed sentence, then what is written, with the state of what was read: "What to do is not written down. Here is what is." A question nothing in Heed can answer ("which market is growing fastest?", "write a new definition of churn rate") gets a fixed sentence and looks nothing up, so it has no answer line: "Heed keeps no numbers, so Ask cannot work this out. An agent with your data tool can, and it reads this context first." Ask does not advise in its own voice. When a question has two parts and one is answered, the answer names the other. With no model, a limit reached or a slow provider, Ask says it could not read the question, not that it needs a metric or a market.
+Ask answers the question asked, or says it did not (FR-720). It never replaces a question with a nearby read, however true the sentence would be. A question beyond the written context ("should we restart the Norway campaign?", "will orders recover next quarter?") gets one fixed sentence, then what is written, with the state of what was read: "What to do is not written down. Here is what is." A question nothing in Heed can answer ("which market is growing fastest?", "write a new definition of churn rate") gets a fixed sentence and looks nothing up, so it has no answer line: "Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first." Each such refusal ends with questions to press. Ask does not advise in its own voice. When a question has two parts and one is answered, the answer names the other. With no model, a limit reached or a slow provider, Ask says it could not read the question, not that it needs a metric or a market.
 
 ## 7. The kinds
 
 A context item has one of four kinds. A kind shows as an icon only (neutral colour, a label in its tooltip and in Details).
 
-| Kind        | Icon      | Stored as | What it is                                                          |
-| ----------- | --------- | --------- | ------------------------------------------------------------------- |
-| **Event**   | Lightning | `event`   | Something that happened on a date, like a stop or a new rule.       |
-| **Warning** | Triangle  | `issue`   | A limit or problem agents should know, like late or missing data.   |
-| **Rule**    | Ruler     | `note`    | A fixed way to read the numbers, like a definition or a house rule. |
-| **Guide**   | Route     | `guide`   | What to check before you explain a change.                          |
+| Kind        | Icon      | Stored as | What it is                                                        |
+| ----------- | --------- | --------- | ----------------------------------------------------------------- |
+| **Event**   | Lightning | `event`   | Something that happened on a date, like a stop or a new rule.     |
+| **Warning** | Triangle  | `issue`   | A limit or problem agents should know, like late or missing data. |
+| **Rule**    | Ruler     | `note`    | A fixed way to read the numbers, like a house rule.               |
+| **Guide**   | Route     | `guide`   | What to check before you explain a change.                        |
 
 The stored values are the earlier names. Screens, help and agents use the labels. The earlier fifth kind, Example, is no longer offered.
 
@@ -208,14 +208,14 @@ The stored values are the earlier names. Screens, help and agents use the labels
 
 A context item has one of four statuses, each a circle icon with a word on hover:
 
-| Status             | Icon          | Meaning                                                                             |
-| ------------------ | ------------- | ----------------------------------------------------------------------------------- |
-| **Draft**          | Dashed circle | Started and never published. Agents never get it. Only drafts can be deleted.       |
-| **Live**           | Check         | Published. Agents get it.                                                           |
-| **Needs checking** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old. |
-| **Archived**       | Minus         | Retired. Agents no longer get it. Its history stays.                                |
+| Status              | Icon          | Meaning                                                                             |
+| ------------------- | ------------- | ----------------------------------------------------------------------------------- |
+| **Draft**           | Dashed circle | Started and never published. Agents never get it. Only drafts can be deleted.       |
+| **Live**            | Check         | Published. Agents get it.                                                           |
+| **Due for a check** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old. |
+| **Archived**        | Minus         | Retired. Agents no longer get it. Its history stays.                                |
 
-**Freshness** is one dot in the Checked column: filled up to 30 days since the last check, half full after that, and a hollow ring while the item is Needs checking (its check date passed or its source changed, checked or never). Age alone never makes an item due. A suggestion shows its state in words (waiting, published, returned, withdrawn).
+**Freshness** is one dot in the Checked column: filled up to 30 days since the last check, half full after that, and a hollow ring while the item is Due for a check (its check date passed or its source changed, checked or never). Age alone never makes an item due. A suggestion shows its state in words (waiting, published, returned, withdrawn).
 
 ## 9. Privacy
 
@@ -315,7 +315,7 @@ The job specs, one line each:
 | J9  | Domains are documents; an empty one can be deleted, one with context cannot.                                                                                                    |
 | J10 | People: invites with roles and domains; the last owner cannot leave; owners add owners to their own domain.                                                                     |
 | J11 | Figures in Ask: off by default, one figure with source and freshness when on, the definition decides.                                                                           |
-| J12 | Connect an agent: prompt, live line, hint after 2 minutes, stop at 10, Check again.                                                                                             |
+| J12 | Connect an agent: prompt, live line, hint after 2 minutes, stop at 10, Keep waiting.                                                                                            |
 | J13 | The review's keys never act while you type; Esc order; the key hint shows only where the key acts.                                                                              |
 | J14 | Deciding with no connection: Publish waits and says why; a failed try changes nothing; a returned note is kept.                                                                 |
 | J15 | "Publish the ones you've read": opening is not reading; Undo puts all of them back.                                                                                             |
@@ -364,7 +364,7 @@ One name for each thing, in every screen, help page, agent reply and demo text. 
 | **Due for a check**   | A context item whose check date has passed.                                                                                                        | review due                   |
 | **Saved question**    | A question an owner or admin keeps, and Heed checks again after every change. Result: Same, Changed or Needs a look.                               | saved view, test question    |
 | **Try it**            | What agents would say for a question, on a draft or on live context, without asking an AI.                                                         |                              |
-| **Ask**               | The page where a person asks and sees the same answer line an agent gets.                                                                          | assistant                    |
+| **Ask**               | The page where a person asks and sees the same answer label an agent gets.                                                                         | assistant                    |
 | **Records**           | What the workspace keeps about its context: when items were created, changed, checked or archived, and who owns each domain. Ask counts from them. | library index                |
 | **Topic**             | The exact scope agents asked about: domain, metric, market and the month. Grouped for reading only.                                                | topic                        |
 | **Edition**           | A sealed snapshot of what agents get. Shown only in Settings, Advanced, and in the agent reply. Never in success copy.                             | edition                      |

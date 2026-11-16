@@ -71,6 +71,7 @@ export const policies = {
   'areas.deleteEmpty': 'admin',
   'areas.archived': 'admin',
   'gaps.get': 'read',
+  'gaps.report': 'read',
   'sources.list': 'admin',
   'sources.activity': 'admin',
   'sources.pause': 'admin',

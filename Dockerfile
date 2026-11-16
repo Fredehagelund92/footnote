@@ -6,7 +6,7 @@
 # release, pull the tag and put its digest here: docker buildx imagetools inspect <image:tag>.
 
 # Every package, for the web build.
-FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS deps
+FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci
@@ -21,12 +21,12 @@ RUN VITE_API_MODE=http npx vite build \
     && node scripts/web-csp.ts dist/web/index.html docker/security-headers.conf security-headers.conf
 
 # Only the packages the service runs with.
-FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS service-deps
+FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS service-deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci --omit=dev
 
-FROM node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS service
+FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS service
 # pg_dump and pg_restore of PostgreSQL 18, for backups and the restore drill
 # (docs/self-hosting.md, "Back up"): Debian's own are older than the server.
 RUN apt-get update \

@@ -1,18 +1,18 @@
 ---
 title: How agents use it
-line: Published context only, one answer line first, and what happens when nothing is written down.
+line: Published context only, one answer label first, and what happens when nothing is written down.
 group: How it works
 order: 1
 minutes: 4
 reviewed: 2026-10-27
 ---
 
-Published context only, one answer line first, and what happens when nothing is written down.
+Published context only, one answer label first, and what happens when nothing is written down.
 
 ## What an agent reads
 
 - Only what an owner published. A suggestion changes nothing until it is published.
-- Every answer starts with an answer line, in the app and in your own agent.
+- Every answer starts with an answer label, in the app and in your own agent.
 - Not found is said plainly, never filled in.
 
 ## Following links

@@ -410,6 +410,12 @@ export const loopTurnSchema = z.object({
       names: z.array(z.string()),
       about: z.array(z.string()),
       period: z.string(),
+      /**
+       * How the days were read where the words left room, said beside them: "year not given",
+       * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'";
+       * null when nothing was guessed.
+       */
+      note: z.nullable(z.string()),
       assumedToday: z.boolean(),
       carried: z.boolean(),
       /** The asked metrics and values no item covers in full, as nouns' ids. */
@@ -433,6 +439,11 @@ export const loopTurnSchema = z.object({
       mark: z.optional(z.string()),
     }),
   ),
+  /**
+   * What an answer that cites no item defines, from its reads (decision 3): the page shows the
+   * Definition label, with these names and the tool their words come from, in place of a state.
+   */
+  defined: z.optional(z.object({ names: z.array(z.string()), tool: z.string() })),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /** Why a turn stopped: its step or time limit, the spending limits, or its model failed. */
@@ -522,7 +533,10 @@ export type LookupInput = z.infer<typeof lookupInputSchema>
  * nothing, with nothing looked up and no state.
  *
  * When the service runs Ask's loop instead (FR-718 to FR-720, `HEED_ASK_LOOP`), a `progress` line
- * comes as each read starts, written by code from what it reads, then one `turn`.
+ * comes as each read starts, written by code from what it reads, then one `turn`. While the model
+ * writes, `words` comes each time one more of its sentences is final and has passed the check: the
+ * answer so far, drawn as the turn draws it (decision 5). Null takes back what was shown: the
+ * words led into a read, not an answer. The `turn` that ends it is the whole answer.
  */
 export const lookupEventSchema = z.union([
   z.object({
@@ -533,6 +547,7 @@ export const lookupEventSchema = z.union([
     nouns: z.optional(z.array(loopNounSchema)),
   }),
   z.object({ type: z.literal('turn'), turn: loopTurnSchema }),
+  z.object({ type: z.literal('words'), turn: z.nullable(loopTurnSchema) }),
   z.object({
     type: z.literal('plan'),
     plan: z.object({

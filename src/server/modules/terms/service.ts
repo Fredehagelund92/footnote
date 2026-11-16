@@ -20,7 +20,9 @@ import {
   type WordHolder,
 } from '../../../domain/terms.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { connectorType } from '../connectors/index.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /**
  * Terms and synonyms (FR-138): the words people write in Definitions. A term has its own meaning;
@@ -386,7 +388,7 @@ export function createTermsService(tx: Queryable) {
 
   async function view(id: string): Promise<Term> {
     const row = await rowOf(id)
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this definition') })
     return (await termsOf([row]))[0]!
   }
 
@@ -436,7 +438,8 @@ export function createTermsService(tx: Queryable) {
 
   async function update(input: TermUpdateInput): Promise<Term> {
     const row = await rowOf(input.id)
-    if (!row || row.deletedAt) throw new ORPCError('NOT_FOUND')
+    if (!row || row.deletedAt)
+      throw new ORPCError('NOT_FOUND', { message: missing('this definition') })
     if (!row.canChange) throw new ORPCError('FORBIDDEN', { message: await forbidden(row.areaId) })
     if (row.revision !== input.revision)
       throw new ORPCError('CONFLICT', {
@@ -503,7 +506,7 @@ export function createTermsService(tx: Queryable) {
         JSON.stringify(undo),
       ],
     )
-    return `terms:${made!.id}`
+    return undoOffer(tx, `terms:${made!.id}`)
   }
 
   /** The terms asked for, in the order asked, each once; those the person may not read are gone. */
@@ -677,7 +680,7 @@ export function createTermsService(tx: Queryable) {
          from term_changes where id = $1::uuid`,
       [id],
     )
-    if (!change) throw new ORPCError('NOT_FOUND')
+    if (!change) throw new ORPCError('NOT_FOUND', { message: missing('this change') })
     if (!change.mine)
       throw new ORPCError('FORBIDDEN', {
         message: 'Only the person who made the change can undo it.',
@@ -738,7 +741,7 @@ export function createTermsService(tx: Queryable) {
 
   async function history(id: string): Promise<TermVersion[]> {
     const row = await rowOf(id)
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this definition') })
     return tx.query<TermVersion>(
       `select v.revision, v.change, v.name, v.meaning,
               coalesce(m.name, (select x.name from vocab_term_versions x where x.term_key = v.same_as_key

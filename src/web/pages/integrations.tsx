@@ -111,6 +111,7 @@ import { sourceHealth } from '@domain/source-state'
 import type { DomainId } from '@/model/items'
 import type { FigureTry } from '@/model/figures'
 import { useConnectActions } from '@/lib/integrations'
+import { readFailureLines } from '@/lib/read-failure'
 import { tryFailureWords, useFigureActions, useFigures } from '@/lib/figures'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
@@ -242,7 +243,7 @@ function DataTable({
                 <td
                   key={j}
                   className={cn(
-                    'h-11 px-4 align-middle md:px-5',
+                    'h-row-table px-4 align-middle md:px-5',
                     align?.[j] === 'right' && 'text-right tabular-nums',
                   )}
                 >
@@ -397,7 +398,7 @@ function FigureConnectionDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor={`${id}-token`}>Key</FieldLabel>
+              <FieldLabel htmlFor={`${id}-token`}>{c.name} token</FieldLabel>
               <Input
                 id={`${id}-token`}
                 name="token"
@@ -407,8 +408,8 @@ function FigureConnectionDialog({
                 minLength={8}
               />
               <FieldDescription>
-                A key is a long password for a program. This one is a {c.name} token. Read only.
-                Shown nowhere once saved.
+                A token is a long password for a program. This one is read only. Shown nowhere once
+                saved.
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -980,7 +981,7 @@ export function IntegrationsPage() {
           className={cn(buttonVariants({ variant: 'outline' }))}
         >
           <PlusIcon data-icon="inline-start" />
-          <span className="max-sm:sr-only">Request a connector</span>
+          <span className="max-sm:sr-only">Request an integration</span>
           <ArrowUpRightIcon data-icon="inline-end" className="max-sm:hidden" />
         </a>
       }
@@ -1118,7 +1119,7 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
             <span className="grid size-8 place-items-center rounded-md border border-dashed text-muted-foreground">
               <PlusIcon className="size-4" aria-hidden />
             </span>
-            <h4 className="mt-1 text-sm font-medium">Request a connector</h4>
+            <h4 className="mt-1 text-sm font-medium">Request an integration</h4>
             <p className="text-sm text-muted-foreground">
               Tell us which tool holds your definitions or context, in an issue on GitHub.
             </p>
@@ -1289,7 +1290,7 @@ function DisconnectDialog({
           <DialogTitle>Disconnect {c.name}?</DialogTitle>
           <DialogDescription>
             {c.kind === 'definitions'
-              ? 'Reading stops. The definitions already read stay, marked as no longer read, and no context is flagged by it again.'
+              ? 'Reading stops. The definitions already read stay, marked as no longer read, and no context is reported as stale by it again.'
               : 'Reading stops and its open suggestions are withdrawn. Context that owners already published stays as it is.'}
           </DialogDescription>
         </DialogHeader>
@@ -1455,6 +1456,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
   const { figureConnections } = useIntegrations()
   const { source, views, folders, documents, activity, connection } = page
   const view = sourceView(c.kind, source, page.changedOn)
+  const failure = readFailureLines(source)
   const h = view.health
   const figures = useFiguresOff(c)
   const isDefinitions = c.kind === 'definitions'
@@ -1571,17 +1573,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
             <p className="flex items-start gap-2">
               <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
               <span>
-                <span className="font-medium">
-                  {source.failures > 1
-                    ? `The last ${source.failures} reads failed`
-                    : 'The last read failed'}
-                  : {source.failure ?? "it couldn't be read"}.
-                </span>{' '}
-                {source.lastGood
-                  ? `The last good read from ${source.lastGood.day}, ${source.lastGood.time} stays`
-                  : 'Nothing was read yet'}
-                , and nothing is {isDefinitions ? 'flagged' : 'created'} while {c.name} can't be
-                reached. Admins are told at {source.staleAfter}.
+                <span className="font-medium">{failure.what}</span> {failure.next}
               </span>
             </p>
             <div className="mt-3 flex gap-2 pl-6">
@@ -1628,7 +1620,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                       `${plural(created.skipped.length, 'document')} skipped: ${[...new Set(created.skipped)].join(', ')}`,
                     ]
                   : []),
-                `Nothing published. Daily cap ${docs.madeToday} of ${docs.perDay}`,
+                `Nothing published. Daily limit ${docs.madeToday} of ${docs.perDay}`,
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <CheckIcon aria-hidden className="size-3.5" />
@@ -2092,6 +2084,33 @@ function Recipe({ recipe }: { recipe: NonNullable<ConnectOption['recipe']> }) {
   )
 }
 
+/**
+ * A tool with no form to fill: not ready, unknown, or set where the server runs. The last says
+ * which setting holds it and goes back to the tool's page, where what is set shows.
+ */
+function ServerSet({ c }: { c: Connector | undefined }) {
+  const line = !c
+    ? 'There is no such integration.'
+    : c.soon
+      ? `${c.name} isn't ready to connect yet.`
+      : `${c.name}'s settings are set by the person who hosts this app${c.serverSetting ? `, in ${c.serverSetting}` : ''}. They can't be changed here.`
+  return (
+    <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
+      <p>{line}</p>
+      <div className="flex gap-2">
+        {c && !c.soon && (
+          <a href={`/settings/integrations/${c.id}`} className={buttonVariants()}>
+            Back to {c.name}
+          </a>
+        )}
+        <a href="/settings/integrations" className={buttonVariants({ variant: 'outline' })}>
+          Integrations
+        </a>
+      </div>
+    </div>
+  )
+}
+
 /** Settings › Integrations › a tool › Connect: five steps on a full page, and Change settings. */
 export function ConnectFlow({ id }: { id: string }) {
   const load = useQuery(connectFormQuery(id))
@@ -2108,13 +2127,7 @@ export function ConnectFlow({ id }: { id: string }) {
     >
       <Loadable what="The connect form" skeleton={<RowsSkeleton rows={6} />} query={load}>
         {form === null || (c && c.soon) ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            {c && c.soon
-              ? `${c.name} isn't ready to connect yet.`
-              : c
-                ? `${c.name}'s settings are set where the server runs.`
-                : 'There is no such integration.'}
-          </p>
+          <ServerSet c={c} />
         ) : (
           form &&
           c && (
@@ -2611,7 +2624,7 @@ function PickStep({ c }: { c: Connector }) {
       <p className="flex gap-2 rounded-frame bg-primary/5 p-4 text-sm">
         <InfoIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
         {keyed
-          ? 'You need a Google Cloud project to create a service account key, and the folders to share with it. Only admins can connect a source.'
+          ? 'You need a Google Cloud project to make a Google key file, and the folders to share with it. Only admins can connect a source.'
           : c.places
             ? `You need a place your ${c.name} pipeline puts its file, and a way to read it there. Only admins can connect a source.`
             : c.git
@@ -2752,7 +2765,7 @@ function ScopeChooser({
 
 /**
  * What a change stops reading of a definitions tool connected: the views left out, what they hold,
- * and the live items that rely on them, which its next read marks Needs checking for their owners.
+ * and the live items that rely on them, which its next read marks Due for a check for their owners.
  * Saving waits until whoever changes it says they have seen those items.
  */
 function LeftOutNotice({
@@ -2799,11 +2812,11 @@ function LeftOutNotice({
       {items.count > 0 && (
         <>
           <p>
-            {items.count === 1 ? '1 live item relies' : `${items.count} live items rely`} on them.
-            Its next read marks {items.count === 1 ? 'it' : 'each'}{' '}
-            <span className="font-medium">Needs checking</span> and tells its owners.
+            {items.count === 1 ? '1 published item relies' : `${items.count} published items rely`}{' '}
+            on them. Its next read marks {items.count === 1 ? 'it' : 'each'}{' '}
+            <span className="font-medium">Due for a check</span> and tells its owners.
           </p>
-          <ul aria-label="Live items that rely on them" className="flex flex-col gap-1">
+          <ul aria-label="Published items that rely on them" className="flex flex-col gap-1">
             {items.named.slice(0, 5).map((item) => (
               <li key={item.id} className="flex min-w-0 items-baseline gap-2">
                 <a
@@ -3165,10 +3178,10 @@ function ChoiceSteps({
                 ? [
                     <>
                       A changed or missing definition marks the context that relies on it{' '}
-                      <span className="font-medium">Needs checking</span> and tells its owner.
+                      <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
                     <>Nothing is published or changed by a read.</>,
-                    <>{`If ${c.name} can't be reached, the last good read stays and nothing is flagged.`}</>,
+                    <>{`If ${c.name} can't be reached, the last good read stays and nothing is reported.`}</>,
                   ]
                 : [
                     <>

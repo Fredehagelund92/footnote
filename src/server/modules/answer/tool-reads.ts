@@ -1,8 +1,9 @@
 import type { Catalogue } from '../../../contract/index.ts'
 import type { ConflictList } from '../../../contract/conflicts.ts'
+import type { ItemPage } from '../../../contract/context.ts'
 import type { Feed } from '../../../contract/inbox.ts'
 import type { LibraryIndex } from '../../../contract/schemas.ts'
-import type { TermList } from '../../../contract/terms.ts'
+import type { TermList, TermVersion } from '../../../contract/terms.ts'
 import type { RecordsItem } from '../../../domain/records.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -35,6 +36,10 @@ export type ToolReads = {
   catalogue: () => Promise<Catalogue>
   /** The words people wrote in Definitions. */
   glossary: () => Promise<TermList>
+  /** An item's History, newest first, as its page shows it to the person; null when they may not read it. */
+  itemHistory: (id: string) => Promise<ItemPage['history'] | null>
+  /** A word written in Definitions, each version newest first, as its History shows it. */
+  termHistory: (id: string) => Promise<readonly TermVersion[]>
   /** The conflicts, as Context's Conflicts filter lists them to the person. */
   conflicts: () => Promise<ConflictList>
   /** The person's own Inbox: what needs them. */
@@ -71,7 +76,8 @@ export type ToolServices = {
   library: { getIndex(): Promise<LibraryIndex> }
   areas: { list(): Promise<{ id: string; name: string; ownerIds: string[] }[]> }
   catalogue: { list(): Promise<Catalogue> }
-  terms: { list(): Promise<TermList> }
+  terms: { list(): Promise<TermList>; history(id: string): Promise<TermVersion[]> }
+  context: { page(id: string): Promise<ItemPage | null> }
   conflicts: { list(input: { whose: 'all' }): Promise<ConflictList> }
   cards: { feed(tab: 'needs'): Promise<Feed> }
   people: () => Promise<readonly { id: string; name: string }[]>
@@ -100,6 +106,8 @@ export function toolReadsIn(
     people: serial(() => services.people()),
     catalogue: serial(() => services.catalogue.list()),
     glossary: serial(() => services.terms.list()),
+    itemHistory: (id) => turn(async () => (await services.context.page(id))?.history ?? null),
+    termHistory: (id) => turn(() => services.terms.history(id)),
     conflicts: serial(() => services.conflicts.list({ whose: 'all' })),
     inbox: serial(() => services.cards.feed('needs')),
     asked: serial(() => askedFor(tx, clock, cache)),

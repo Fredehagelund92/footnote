@@ -114,6 +114,12 @@ export const webClassRules = [
       'Keyframes of its own "$0". Only the countdown and the read fill run their own (docs/design/motion.md).',
   },
   {
+    id: 'focus-ring',
+    pattern: String.raw`^(?:[^\s]*:)?focus-visible:(?:ring-(?:0|1|2|4|8)|ring-offset-[^\s]+|ring-ring/(?!50$)[^\s]+|outline-(?!none$|hidden$)[^\s]+)$`,
+    message:
+      'Focus ring "$0". One ring takes focus: focus-visible:ring-3 focus-visible:ring-ring/50, with focus-visible:ring-inset on a row or card (design contract 2.6).',
+  },
+  {
     id: 'viewport-variant',
     pattern: String.raw`^(?:[^\s]*:)?(?:sm|md|lg|xl|2xl|max-sm|max-md|max-lg|max-xl|max-2xl|min-\[[^\]]+\]|max-\[[^\]]+\]):`,
     message:

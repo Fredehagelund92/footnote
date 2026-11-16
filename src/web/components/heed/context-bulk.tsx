@@ -49,7 +49,7 @@ import {
 } from '@/lib/bulk'
 import { api } from '@/api'
 import { useLibrary, useRefreshAfter } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { useOnline } from '@/lib/send'
 import { useDomains, useMe, usePeople } from '@/lib/workspace'
 import type { LogEntry } from '@/model/items'
@@ -61,8 +61,6 @@ import type { LogEntry } from '@/model/items'
 // Every change is written to the items' History, and a deletion to Settings, Advanced.
 
 const KINDS = Object.keys(kindLabel) as Kind[]
-/** How long a deletion can be undone. */
-const UNDO_DELETE_MS = 10_000
 const OFFLINE = "Off while you're offline. Nothing is lost."
 let entries = 0
 
@@ -81,7 +79,7 @@ export function ContextBulk({
   const domains = useDomains()
   const people = usePeople()
   const online = useOnline()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const refreshAfter = useRefreshAfter()
   const [note, setNote] = React.useState<BulkNote>()
   const picked = facts.filter((f) => sel.isSelected(f.id))
@@ -159,21 +157,14 @@ export function ContextBulk({
           : undefined,
       )
     noted.current = stay.join('|')
-    toast(line, {
-      description:
+    undo.offer(line, result.undo, {
+      description: (held) =>
         action === 'delete'
-          ? 'You can undo it for 10 seconds; then they are gone for good.'
+          ? `You can undo it for ${held}; then they are gone for good.`
           : action === 'archive'
             ? 'Agents stop getting them from the next question.'
             : undefined,
-      duration: action === 'delete' ? UNDO_DELETE_MS : undefined,
-      action: {
-        label: 'Undo',
-        onClick: () =>
-          void takeBack(result.undo).then(
-            (back) => back && toast(`Undone: ${count(ok.length, 'item')} as before`),
-          ),
-      },
+      onUndone: () => toast(`Undone: ${count(ok.length, 'item')} as before`),
     })
   }
 
@@ -385,7 +376,7 @@ export function ContextBulk({
                     'checked',
                     'Checked: still true.',
                     (f) => ({
-                      status: f.status === 'Needs checking' ? 'Live' : f.status,
+                      status: f.status === 'Due for a check' ? 'Live' : f.status,
                       outOfDate: undefined,
                       checkedBy: me.name,
                       checkedOn: dateLabel(today()),

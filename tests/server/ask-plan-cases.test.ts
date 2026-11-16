@@ -97,7 +97,7 @@ describe('what Ask promises (FR-720), on the scripted planner', async () => {
     // Over the questions the digest was first taken on: a change to the engine changes it.
     const gate = new Set([...gateCases, ...classCases].map((c) => c.id))
     const before = [...planCases, ...stewardCases].filter((c) => !gate.has(c.id))
-    expect(engineDigest(before)).toBe('07ab2f843145f752')
+    expect(engineDigest(before)).toBe('30264c7beb0e5ac8')
   })
 })
 

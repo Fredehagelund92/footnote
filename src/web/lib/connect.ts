@@ -1,6 +1,6 @@
-// Connecting an agent, as the page sees it. After a copy or a quick link the page checks every
+// Connecting an agent, as the page sees it. After a copy or a quick link the page looks every
 // 3 seconds whether an agent signed in; after 2 minutes it shows what usually goes wrong, and after
-// 10 minutes it stops checking until Check again. In the demo an agent signs in 8 seconds after the
+// 10 minutes it stops waiting until Keep waiting. In the demo an agent signs in 8 seconds after the
 // copy (the mock binding plays it), and its review flag ?connect= shows each state.
 
 import type { AgentKind, AgentToolName } from '@domain/agents'
@@ -77,9 +77,9 @@ export function toolsLine(r: Pick<Connected, 'tools'>) {
   return on === 0 ? 'Off' : on === all ? `All ${all} tools` : `${on} of ${all} tools`
 }
 
-/** When a row was last used, as its line ends: "used today", or "never used" for a new key. */
+/** When a row was last used, as its line ends: "Last used: Today", or "Never used" for a new key. */
 export const usedLine = (r: Pick<Connected, 'used'>) =>
-  r.used === 'Never' ? 'never used' : `used ${r.used.toLowerCase()}`
+  r.used === 'Never' ? 'Never used' : `Last used: ${r.used}`
 
 /** What Connected agents says above its rows: "3 agents people have connected, and 1 access key." */
 export function connectedLine(rows: readonly Connected[]) {
@@ -91,6 +91,13 @@ export function connectedLine(rows: readonly Connected[]) {
   ]
   const line = parts.join(', and ')
   return line ? `${line.charAt(0).toUpperCase()}${line.slice(1)}.` : 'None yet.'
+}
+
+/** What Connected agents says above the rows of someone who isn't an admin: only their own. */
+export function ownLine(rows: readonly Connected[]) {
+  const n = rows.length
+  if (!n) return 'None yet. An agent you connect shows here.'
+  return `${n === 1 ? '1 agent' : `${n} agents`} you connected. Only you and the admins see ${n === 1 ? 'it' : 'them'}.`
 }
 
 /** The hint beside Create an access key: how many there are, and where they are listed. */

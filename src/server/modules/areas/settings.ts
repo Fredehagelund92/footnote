@@ -12,7 +12,7 @@ import { changeGrants, lockRoles } from '../auth/index.ts'
  * Creating and editing an area from settings (FR-801), for administrators. The id never changes,
  * and who looks after the area moves with the role changes of auth/roles.ts, which creating an
  * area may make in the same step. Its summary and description its owners write too
- * (FR-813). Deleting one, and restoring it, is in deletion.ts (FR-814).
+ * (FR-813). Deleting one is in deletion.ts (FR-814).
  */
 
 const detail = `select a.id, a.name, a.label, a.review_days as "reviewDays", a.chat_channel as "chatChannel",

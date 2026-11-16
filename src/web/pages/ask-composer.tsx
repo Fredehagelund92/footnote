@@ -204,7 +204,10 @@ export function AskComposer({
       onClick={(e) => e.target === e.currentTarget && editor?.commands.focus('end')}
       className={cn('ask-composer flex w-full cursor-text flex-col', composerSurface)}
     >
-      <EditorContent editor={editor} />
+      {/* The box holds its height while the editor is made, so nothing under it moves. */}
+      <div className="min-h-10">
+        <EditorContent editor={editor} />
+      </div>
       <div className="flex h-11 items-center gap-2 px-2">
         <Tooltip>
           <TooltipTrigger

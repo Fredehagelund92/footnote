@@ -251,7 +251,7 @@ export function GroupRow({
           type="button"
           aria-expanded={open}
           onClick={onToggle}
-          className="flex h-8 w-full items-center gap-1.5 px-4 text-left text-xs font-medium outline-none hover:bg-muted focus-visible:bg-muted md:px-6"
+          className="flex h-8 w-full items-center gap-1.5 px-4 text-left text-xs font-medium outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:px-6"
         >
           {open ? (
             <ChevronDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
@@ -469,7 +469,7 @@ export function SortTh<K extends string>({
         title={tip}
         onClick={(e) => onSort(by, e)}
         className={cn(
-          'group/sort -mx-1.5 inline-flex h-6 items-center gap-1 rounded-md px-1.5 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+          'group/sort -mx-1.5 inline-flex h-6 items-center gap-1 rounded-md px-1.5 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
           on && 'text-foreground',
         )}
       >
@@ -572,14 +572,14 @@ export function SortMenu<K extends string>({
 const dot: Record<Status, string> = {
   Draft: 'bg-transparent ring-1 ring-inset ring-off',
   Live: 'bg-good',
-  'Needs checking': 'bg-caution',
+  'Due for a check': 'bg-caution',
   Archived: 'bg-off',
 }
 
 const statusHint: Record<Status, string> = {
   Draft: 'Draft: written, not shared with agents yet',
   Live: 'Live: agents get it',
-  'Needs checking': 'Needs checking: its check date passed or a definition changed',
+  'Due for a check': 'Due for a check: its check date passed or a definition changed',
   Archived: 'Archived: agents no longer get it',
 }
 
@@ -602,7 +602,7 @@ export function StatusDot({
       title={statusHint[status]}
       className={cn(
         'inline-flex items-center gap-1.5 whitespace-nowrap',
-        status === 'Needs checking' ? 'text-foreground' : 'text-muted-foreground',
+        status === 'Due for a check' ? 'text-foreground' : 'text-muted-foreground',
         className,
       )}
     >
@@ -619,7 +619,7 @@ export function ChangedDot() {
       aria-hidden
       className={cn(
         'inline-block size-1.5 shrink-0 rounded-full align-middle',
-        dot['Needs checking'],
+        dot['Due for a check'],
       )}
     />
   )

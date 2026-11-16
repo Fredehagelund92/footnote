@@ -84,7 +84,7 @@ export type DimensionFacetsProps = {
 export function FacetRail({ folded, ...props }: FacetsProps & { folded: boolean }) {
   return (
     <aside
-      aria-label="Facets"
+      aria-label="Filter lists"
       inert={folded}
       className={cn(
         'min-w-0 overflow-hidden border-r py-3 transition-[opacity,border-color] duration-(--dur-3) ease-panel',
@@ -107,7 +107,7 @@ export function FacetSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="gap-0 overflow-y-auto pb-safe-area">
         <SheetHeader className="border-b">
-          <SheetTitle>Facets</SheetTitle>
+          <SheetTitle>Filter lists</SheetTitle>
           <SheetDescription>Every value with what it counts. Counts only.</SheetDescription>
         </SheetHeader>
         <div className="py-3">
@@ -277,8 +277,8 @@ function DimensionFacets({
         variant="ghost"
         size="icon"
         className="text-muted-foreground pointer-coarse:size-11"
-        aria-label={`${on ? 'Pin' : 'Unpin'} ${d.name} for everyone`}
-        title={on ? 'Pin for everyone: a facet of its own' : 'Unpin for everyone'}
+        aria-label={`${on ? 'Keep' : 'Stop keeping'} ${d.name} here for everyone`}
+        title={on ? 'Keep this list here for everyone' : 'Stop keeping this list here for everyone'}
         onClick={() => onPin(d.key as DimKey, on)}
       >
         {on ? <PinIcon /> : <PinOffIcon />}
@@ -322,7 +322,7 @@ function DimensionFacets({
               >
                 <SelectTrigger
                   size="sm"
-                  aria-label="Break the facets down by a dimension"
+                  aria-label="Break the filter lists down by a dimension"
                   className="h-6 min-w-0 gap-1 border-transparent px-1.5 text-xs font-medium text-foreground hover:bg-muted pointer-coarse:h-11"
                 >
                   <SelectValue />
@@ -351,8 +351,8 @@ function DimensionFacets({
         {asked.length
           ? `${asked.length} ${asked.length === 1 ? 'dimension was' : 'dimensions were'} asked about in ${days} days. ${
               onPin
-                ? 'Pin one to keep it here for everyone, or pick it in By.'
-                : 'Pick one in By. An admin can pin one here for everyone.'
+                ? 'Keep one here for everyone, or pick it in By.'
+                : 'Pick one in By. An admin can keep one here for everyone.'
             }`
           : `Agents named no dimension in ${days} days.`}
       </p>
@@ -568,7 +568,7 @@ function FacetCount({
     return (
       <span
         className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground"
-        title="The service counts kinds of agent for every topic only, not for the topics in view."
+        title="The app counts kinds of agent for every topic only, not for the topics in view."
       >
         Not shown
       </span>

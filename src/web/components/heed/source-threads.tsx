@@ -112,9 +112,9 @@ function PlaceThread({
     <section
       id={`thread-${thread.id}`}
       tabIndex={-1}
-      aria-label={`${placeLabel(at)}: ${thread.author}'s thread, ${resolved ? 'resolved' : 'open'}`}
+      aria-label={`${placeLabel(at)}: ${thread.author}'s comment, ${resolved ? 'resolved' : 'open'}`}
       className={cn(
-        'flex flex-col border-l-2 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex flex-col border-l-2 pl-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
         resolved ? 'border-muted-foreground/50' : 'border-primary',
       )}
     >
@@ -133,11 +133,11 @@ function PlaceThread({
               aria-expanded={shown}
               onClick={() => setShown((s) => !s)}
             >
-              {shown ? 'Hide the thread' : n === 1 ? 'Show the comment' : `Show the ${n} comments`}
+              {shown ? 'Hide the comment' : n === 1 ? 'Show the comment' : `Show the ${n} comments`}
             </Button>
           )}
           <Button variant="outline" onClick={() => onResolve(!resolved)}>
-            {resolved ? 'Reopen' : 'Resolve'}
+            {resolved ? 'Open again' : 'Mark as done'}
           </Button>
         </span>
       </header>
@@ -197,7 +197,10 @@ export function useSourceNotes({
         if (resolved)
           toast('Resolved', { description: 'It stays here, folded, for anyone who looks.' })
       },
-      () => toast.error(resolved ? "The thread wasn't resolved" : "The thread wasn't reopened"),
+      () =>
+        toast.error(resolved ? "The comment wasn't resolved" : "The comment wasn't reopened", {
+          description: 'Nothing was changed. Try again.',
+        }),
     )
   }
 
@@ -224,7 +227,7 @@ export function useSourceNotes({
               <Composer
                 author={me}
                 autoFocus
-                label={`Comment on ${placeLabel(at).toLowerCase()}`}
+                label={`Comment on ${placeLabel(at)}`}
                 placeholder={'field' in at ? 'Comment on this field' : 'Comment on this line'}
                 initialContent={drafts.current[key]}
                 clearOnPost={false}
@@ -280,7 +283,7 @@ export function SourceThreadsSummary({
     <section aria-labelledby={`${id}-h`} className="flex flex-col gap-2 border-b p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 id={`${id}-h`} className="text-sm font-medium">
-          Threads on lines and fields
+          Comments on lines and fields
         </h3>
         <p aria-live="polite" className="text-xs text-muted-foreground tabular-nums">
           {count || 'None yet'}
@@ -293,7 +296,7 @@ export function SourceThreadsSummary({
               <button
                 type="button"
                 onClick={() => onGo(c.id)}
-                className="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="text-xs text-muted-foreground">
                   {placeLabel(placeOf(c.anchor!))}, {c.author}
@@ -307,17 +310,17 @@ export function SourceThreadsSummary({
         </ul>
       ) : (
         <p className="text-sm text-pretty text-muted-foreground">
-          {resolved.length ? 'Every thread here is resolved. ' : ''}
+          {resolved.length ? 'Every comment here is done. ' : ''}
           Comment on a line or a field with the + beside it or C, or tap it on a phone.
         </p>
       )}
       {earlier.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {earlier.length === 1 ? 'One thread was' : `${earlier.length} threads were`} written on an
-          earlier version: see Comments, under the change.
+          {earlier.length === 1 ? 'One comment was' : `${earlier.length} comments were`} written on
+          an earlier version: see Comments, under the change.
         </p>
       )}
-      <p className="text-xs text-muted-foreground">Open threads never hold Publish.</p>
+      <p className="text-xs text-muted-foreground">Open comments never hold Publish.</p>
     </section>
   )
 }

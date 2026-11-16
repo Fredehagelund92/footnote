@@ -74,7 +74,7 @@ test('an admin allows it, the owner lets one agent publish, and turns it off', a
   await expect(page.getByText('No agent. Every suggestion waits for an owner.')).toBeVisible()
 })
 
-test('turning it off for the workspace asks first, and ends every policy', async ({ page }) => {
+test('turning it off for the workspace asks first, and ends every permission', async ({ page }) => {
   await switchOn(page)
   await go(page, '/settings/domains/sales')
   await page.getByRole('button', { name: 'Let an agent publish without review' }).click()
@@ -85,13 +85,15 @@ test('turning it off for the workspace asks first, and ends every policy', async
 
   await go(page, '/settings/agents')
   await page.getByRole('button', { name: 'Show or hide Publish without review' }).click()
-  await expect(page.getByText("On, with 1 policy. Each is in its agent's Details.")).toBeVisible()
+  await expect(
+    page.getByText("On, with 1 permission. Each is in its agent's Details."),
+  ).toBeVisible()
   await page
     .getByRole('switch', { name: 'Let owners choose agents that publish without review' })
     .click()
   const ask = page.getByRole('dialog', { name: 'Turn off publishing without review?' })
   await ask.getByRole('button', { name: 'Turn off' }).click()
-  await expect(page.getByText('1 policy turned off.')).toBeVisible()
+  await expect(page.getByText('1 permission turned off.')).toBeVisible()
   await go(page, '/settings/domains/sales')
   await expect(page.getByText('Off for the workspace.')).toBeVisible()
 })
@@ -128,7 +130,7 @@ async function kofisAgent(page: Page) {
     authorize.searchParams.set(key, value)
   await page.goto(authorize.href)
   await page.getByRole('button', { name: /Kofi Mensah/ }).click()
-  await page.getByRole('button', { name: 'Allow' }).click()
+  await page.getByRole('button', { name: 'Allow', exact: true }).click()
   await page.waitForURL((url) => url.href.startsWith(callback))
   const code = new URL(page.url()).searchParams.get('code')!
   const exchanged = await page.request.post(`${issuer}/oauth/token`, {
@@ -228,7 +230,7 @@ test("an agent's Rule publishes under the owner's policy, and the owner undoes i
   await page.goto(new URL(sent.url as string).pathname)
   await page.getByRole('button', { name: /^1 change/ }).click()
   const row = page.getByRole('button', {
-    name: /Published by Claude Code for Kofi Mensah under Jon's policy/,
+    name: /Published by Claude Code for Kofi Mensah with Jon's permission to publish without review/,
   })
   await expect(row).toBeVisible()
   await row.click()

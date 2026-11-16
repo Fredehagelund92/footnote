@@ -81,15 +81,19 @@ export type Bar = { label: string; at?: number; counts: Counts }
 function useWidth(fallback: number) {
   const ref = React.useRef<HTMLElement>(null)
   const [w, setW] = React.useState(fallback)
+  const fit = React.useCallback((width: number) => setW(Math.max(260, Math.round(width))), [])
+  // Every commit, not only the first: a page that takes its columns after this chart has mounted
+  // (the facets beside it) re-renders it, and it reads its new width before that is painted.
+  React.useLayoutEffect(() => {
+    if (ref.current) fit(ref.current.getBoundingClientRect().width)
+  })
   React.useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    const fit = (width: number) => setW(Math.max(260, Math.round(width)))
-    fit(el.getBoundingClientRect().width)
     const ro = new ResizeObserver(([e]) => fit(e?.contentRect.width ?? 0))
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [fit])
   return [ref, w] as const
 }
 
@@ -395,8 +399,7 @@ export function StackedBars({
       ref={box}
       className={cn(
         'relative m-0',
-        choosing &&
-          'rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-4 focus-visible:ring-offset-background',
+        choosing && 'rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
       )}
       {...(choosing
         ? {

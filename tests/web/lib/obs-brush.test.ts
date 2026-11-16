@@ -47,7 +47,7 @@ describe('the days in the address', () => {
     expect(spanWords({ from: 11, to: 17 }, bars, last)).toBe('12 to 18 Oct')
     expect(spanWords({ from: 11, to: 11 }, bars, last)).toBe('12 Oct')
     const across = daily('2026-09-28', 10)
-    expect(spanWords({ from: 0, to: 6 }, across, at('2026-10-07'))).toBe('28 Sep to 4 Oct')
+    expect(spanWords({ from: 0, to: 6 }, across, at('2026-10-07'))).toBe('28 Sept to 4 Oct')
   })
 
   it('choose whole weeks over 90 days, the last one ending on the last day counted', () => {

@@ -12,7 +12,6 @@ export type EditionReason =
   | 'source_rechecked'
   | 'item_restored'
   | 'area_deleted'
-  | 'area_restored'
   | 'decision_undone'
 
 /** What one edition changes. Every step is a guarded database function (FR-205). */
@@ -43,8 +42,10 @@ export async function editionBySeq(tx: Queryable, seq: string | number): Promise
   const [row] = await tx.query<Edition>(`select ${editionFields} from editions e where e.seq=$1`, [
     seq,
   ])
-  // eslint-disable-next-line heed/plain-words -- shown only on the Editions page
-  if (!row) throw new ORPCError('NOT_FOUND', { message: "We couldn't find this edition." })
+  if (!row)
+    throw new ORPCError('NOT_FOUND', {
+      message: "We couldn't find this edition.",
+    })
   return row
 }
 
@@ -53,8 +54,10 @@ export async function editionByLabel(tx: Queryable, label: string): Promise<Edit
     `select ${editionFields} from editions e where e.label=$1 and e.sealed_at is not null`,
     [label],
   )
-  // eslint-disable-next-line heed/plain-words -- shown only on the Editions page
-  if (!row) throw new ORPCError('NOT_FOUND', { message: "We couldn't find this edition." })
+  if (!row)
+    throw new ORPCError('NOT_FOUND', {
+      message: "We couldn't find this edition.",
+    })
   return row
 }
 
@@ -166,9 +169,7 @@ export async function publishSourceDomains(tx: Queryable): Promise<Edition | nul
 export async function rollbackTo(tx: Queryable, label: string, note: string): Promise<Edition> {
   await lockReleases(tx)
   const target = await editionByLabel(tx, label)
-  if (target.live)
-    // eslint-disable-next-line heed/plain-words -- shown only on the Editions page
-    throw new ORPCError('CONFLICT', { message: 'Agents already get this edition.' })
+  if (target.live) throw new ORPCError('CONFLICT', { message: 'Agents already get this edition.' })
   // Every version served again passes the serving rules once more (FR-205). Name the ones that
   // would not, instead of letting the database guard fail the whole transaction.
   const blocked = await blockedVersions(tx, target.seq)
@@ -176,11 +177,10 @@ export async function rollbackTo(tx: Queryable, label: string, note: string): Pr
     const [first] = blocked
     const others =
       blocked.length > 1
-        ? ` ${blocked.length - 1} more ${blocked.length === 2 ? 'fact' : 'facts'} can't either.`
+        ? ` ${blocked.length - 1} more ${blocked.length === 2 ? 'context item' : 'context items'} can't either.`
         : ''
     throw new ORPCError('CONFLICT', {
-      // eslint-disable-next-line heed/plain-words -- shown only on the Editions page
-      message: `You can't go back to edition ${label}. ${first!.title === null ? 'A fact' : `"${first!.title}"`} (version ${first!.version}) can't be shared with agents again: ${first!.problem}.${others}`,
+      message: `You can't go back to edition ${label}. ${first!.title === null ? 'A context item' : `"${first!.title}"`} (version ${first!.version}) can't be shared with agents again: ${first!.problem}.${others}`,
       data: { blocked },
     })
   }
@@ -276,7 +276,9 @@ export async function setStop(
     (input.scope === 'area') !== (input.areaId !== undefined) ||
     (input.scope === 'item') !== (input.itemId !== undefined)
   )
-    throw new ORPCError('BAD_REQUEST', { message: 'Name either the domain or the fact to stop.' })
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'Name either the domain or the context item to stop.',
+    })
   const exists =
     input.scope === 'all'
       ? true
@@ -290,7 +292,7 @@ export async function setStop(
         ).length > 0
   if (!exists)
     throw new ORPCError('NOT_FOUND', {
-      message: "We couldn't find this domain or fact. Someone may have deleted it.",
+      message: "We couldn't find this domain or context item. Someone may have deleted it.",
     })
   const active = (await activeStops(tx)).some(
     (s) =>

@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { kindIcons } from '@/components/heed/kind-icons'
-import { kindLabel, type Fact, type Kind } from '@/model/items'
+import { kindHint, kindLabel, type Fact, type Kind } from '@/model/items'
 import {
   checkedTip,
   timeDate,
@@ -26,7 +26,7 @@ import {
 
 // The cells of the list columns' design B, as chosen: icons and short labels.
 // The kind as an icon before the title, the status as a circle icon, the time frame as a glyph
-// and a short date, and freshness as a dot (filled fresh, half ageing, hollow overdue). The only
+// and a short date, and freshness as a dot (filled fresh, half ageing, hollow due for a check). The only
 // words beside the title are dates; the exact value is one hover away.
 
 /**
@@ -64,13 +64,6 @@ function Tip({
   )
 }
 
-const kindHint: Record<Kind, string> = {
-  event: 'A dated event, such as a stop, a switch or a new rule.',
-  issue: 'Late, missing or doubled data, or a tracking outage.',
-  note: 'A house rule or a definition worth knowing.',
-  guide: 'What to check before you explain a movement.',
-}
-
 /** The kind as a 16px icon: lightning, triangle, bulb, route. */
 export function KindIcon({ kind, className }: { kind: Kind; className?: string }) {
   const Icon = kindIcons[kind]
@@ -80,17 +73,17 @@ export function KindIcon({ kind, className }: { kind: Kind; className?: string }
       detail={kindHint[kind]}
       className={cn('text-muted-foreground', className)}
     >
-      <Icon aria-hidden className="size-4" strokeWidth={1.75} />
+      <Icon aria-hidden className="size-4" />
     </Tip>
   )
 }
 
 const statusLook = {
   Live: { icon: CircleCheckIcon, tone: 'text-good', hint: 'Live: agents get it' },
-  'Needs checking': {
+  'Due for a check': {
     icon: CircleAlertIcon,
     tone: 'text-caution',
-    hint: 'Needs checking: its check date passed or a definition changed',
+    hint: 'Due for a check: its check date passed or a definition changed',
   },
   Draft: {
     icon: CircleDashedIcon,
@@ -117,7 +110,7 @@ export function StatusIcon({
   const s = statusLook[status]
   return (
     <Tip label={status} detail={s.hint} plain={plain} className={cn(s.tone, className)}>
-      <s.icon aria-hidden className="size-4" strokeWidth={1.75} />
+      <s.icon aria-hidden className="size-4" />
     </Tip>
   )
 }
@@ -140,16 +133,16 @@ export function TimeGlyph({ time, plain }: { time: TimeFrame; plain?: boolean })
       plain={plain}
       className="items-center gap-1.5 text-sm whitespace-nowrap"
     >
-      <Icon aria-hidden className="size-3.5 text-muted-foreground" strokeWidth={1.75} />
+      <Icon aria-hidden className="size-3.5 text-muted-foreground" />
       <span>{timeDate(time)}</span>
     </Tip>
   )
 }
 
 const freshLabel: Record<Trust, string> = {
-  fresh: 'Fresh',
-  ageing: 'Ageing',
-  due: 'Overdue',
+  fresh: 'Checked recently',
+  ageing: 'Checked over 30 days ago',
+  due: 'Due for a check',
   draft: 'Not checked yet',
   retired: 'Archived',
 }

@@ -26,8 +26,9 @@ import type { RowSelection } from '@/hooks/use-selection'
 import { useDeleteConfirmation } from '@/hooks/use-delete-confirmation'
 import { APP_URL } from '@/lib/brand'
 import { count, download, heldRows, movableTo, planTerms, skippedLine, type Me } from '@/lib/bulk'
+import type { Undoable } from '@/api/client'
 import { useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { leaveAllThen } from '@/lib/presence'
 import { kindName, toolOf, useGlossary, type Definition } from '@/lib/definitions'
 import { useOnline } from '@/lib/send'
@@ -43,7 +44,7 @@ let entries = 0
 
 export function DefinitionsBulk({ sel, defs }: { sel: RowSelection; defs: Definition[] }) {
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const glossary = useGlossary()
   const domains = useDomains()
   const me = useMe()
@@ -104,28 +105,24 @@ export function DefinitionsBulk({ sel, defs }: { sel: RowSelection; defs: Defini
     }
     // The rows that go (the terms and the names that pointed at them) fade out first, and stay
     // gone while the list refreshes.
-    const { undo } = await new Promise<{ undo: string }>((done, fail) => {
+    const deleted = await new Promise<Undoable>((done, fail) => {
       leaveAllThen(
         gone.map((d) => d.name),
         () => write('deleteTerms', { names, entry }).then(done),
       ).catch(fail)
     })
     settle(held.act, held.skipped)
-    toast(`${count(names.length, 'term')} deleted`, {
+    undo.offer(`${count(names.length, 'term')} deleted`, deleted.undo, {
       description: others.length ? `With ${count(others.length, 'other name')}.` : undefined,
-      duration: 10_000,
-      action: { label: 'Undo', onClick: () => void takeBack(undo) },
     })
   }
 
   async function move(d: DomainId) {
     const plan = planTerms('domain', picked, who, domains, { domain: d })
     if (!plan.act.length) return setNote({ text: skippedLine(plan.skipped), skipped: plan.skipped })
-    const { undo } = await write('moveTerms', { names: plan.act.map((x) => x.name), domain: d })
+    const moved = await write('moveTerms', { names: plan.act.map((x) => x.name), domain: d })
     settle(plan.act, plan.skipped)
-    toast(`${count(plan.act.length, 'term')} moved to ${domains[d]?.name}`, {
-      action: { label: 'Undo', onClick: () => void takeBack(undo) },
-    })
+    undo.offer(`${count(plan.act.length, 'term')} moved to ${domains[d]?.name}`, moved.undo)
   }
 
   const domainChoices = movableTo(who, domains)

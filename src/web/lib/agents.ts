@@ -200,7 +200,7 @@ export const AGENT_TOOLS: {
     title: 'Get the context for a question',
     what: 'The context that applies to a question, with one sentence to relay.',
     takes: 'The question, or a metric, markets and dates.',
-    returns: 'The answer line, the context items that apply, and one sentence to relay.',
+    returns: 'The answer label, the context items that apply, and one sentence to relay.',
   },
   {
     name: 'find_context',
@@ -229,7 +229,7 @@ export const AGENT_TOOLS: {
     what: 'Send a suggestion to the owner, after the person says yes.',
     takes: 'The suggested text and what it applies to.',
     returns:
-      "That it waits in the owner's Inbox, or that it was published under the owner's policy.",
+      "That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.",
   },
   {
     name: 'get_related',
@@ -261,7 +261,7 @@ export const WAIT_HINT: Record<Via, string> = {
   other: 'Add the address to your agent, then approve the connection in the browser.',
 }
 
-/** What usually goes wrong, shown after 2 minutes and when checking stops. */
+/** What usually goes wrong, shown after 2 minutes and when waiting stops. */
 export const CHECKS = [
   'Paste the prompt into your agent and press Enter.',
   'Say yes when the agent asks to run the command.',
@@ -280,21 +280,21 @@ export function liveCopy(
     case 'idle':
       return {
         title: 'Not connected yet',
-        body: 'After you paste it, this page says Connected. It checks every few seconds.',
+        body: 'After you paste it, this page says Connected. It looks every few seconds.',
       }
     case 'waiting':
       return { title: 'Waiting for your agent to connect…', body: WAIT_HINT[via] }
     case 'hint':
       return {
         title: 'Still waiting. Nothing has signed in yet.',
-        body: 'It keeps checking for a few more minutes. What usually helps:',
+        body: 'It keeps waiting for a few more minutes. What usually helps:',
       }
     case 'connected':
       return { title: `Connected: ${agent}, ${me}` }
     case 'timeout':
       return {
-        title: 'Stopped checking after 10 minutes. Nothing has signed in.',
-        body: 'What usually helps, before you check again:',
+        title: 'Stopped waiting after 10 minutes. Nothing has signed in.',
+        body: 'What usually helps, before you keep waiting:',
       }
     case 'declined':
       return {

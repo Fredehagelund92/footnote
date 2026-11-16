@@ -1,10 +1,27 @@
-import { toast } from 'sonner'
+import * as React from 'react'
+import { toast, type ExternalToast } from 'sonner'
+import type { UndoOffer } from '@/api/client'
 import { isSignedOut, toApiError } from '@/api/errors'
 import { useWrite } from '@/api/queries'
 
-// Every Undo goes through here, so a refusal is said, whichever screen offered it: the service
-// holds an Undo for a window the admin sets, and it refuses a late one, or one whose card changed
-// since. The offer on screen may outlast that window, so the answer is the person's to hear.
+// Every Undo goes through here. A write that can be taken back answers with an offer: its token,
+// and until when the service takes it (the window the admin sets, `limits.undo_seconds`). So a
+// screen offers Undo for exactly that long and no longer, and says so in seconds when it says how
+// long. The service may still refuse one in time (its card changed since), so a refusal is said,
+// whichever screen offered it.
+
+/** How long an offer still holds, in milliseconds: none once it ended, Infinity when it never ends. */
+export function heldFor(offer: UndoOffer, now = Date.now()): number {
+  return offer.until === null ? Infinity : Math.max(0, Date.parse(offer.until) - now)
+}
+
+/** How long an offer still holds, in words ("6 seconds"); null when it never ends. */
+export function heldWords(offer: UndoOffer, now = Date.now()): string | null {
+  const ms = heldFor(offer, now)
+  if (ms === Infinity) return null
+  const seconds = Math.max(1, Math.round(ms / 1000))
+  return `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`
+}
 
 /**
  * Runs an Undo and says why the service refused it. Resolves to whether it was taken back, so the
@@ -22,8 +39,57 @@ export async function takeBackBy(run: () => Promise<unknown>): Promise<boolean> 
   }
 }
 
-/** Takes back the decision a token stands for, saying so when the service refuses. */
-export function useTakeBack() {
+type OfferOptions = Omit<ExternalToast, 'action' | 'description' | 'duration'> & {
+  /** What else to say; given how long Undo holds ("6 seconds"), when it ends. */
+  description?: string | ((held: string) => string | undefined) | undefined
+  /** What to do once it was taken back. */
+  onUndone?: () => void
+}
+
+/**
+ * Undo as the screens offer it: `takeBack` takes back what an offer stands for, saying so when the
+ * service refuses; `offer` says what was done in a toast with Undo, which goes when the offer ends.
+ */
+export function useUndo() {
   const write = useWrite()
-  return (token: string) => takeBackBy(() => write('undo', { token }))
+  return React.useMemo(() => {
+    const takeBack = (undo: UndoOffer) => takeBackBy(() => write('undo', { token: undo.token }))
+    const offer = (message: string, undo: UndoOffer, options: OfferOptions = {}) => {
+      const { description, onUndone, ...rest } = options
+      const ms = heldFor(undo)
+      const held = heldWords(undo)
+      const said =
+        typeof description === 'function' ? (held ? description(held) : undefined) : description
+      const words = said ? { description: said } : {}
+      // Too late already: say what was done, with nothing to take back.
+      if (ms === 0) return toast(message, { ...rest, ...words })
+      const id = toast(message, {
+        ...rest,
+        ...words,
+        ...(ms === Infinity ? {} : { duration: ms }),
+        action: {
+          label: 'Undo',
+          onClick: () => void takeBack(undo).then((back) => back && onUndone?.()),
+        },
+      })
+      // A toast waits while it is pointed at, or while the tab is hidden; the offer does not.
+      if (ms !== Infinity) setTimeout(() => toast.dismiss(id), ms)
+      return id
+    }
+    return { takeBack, offer }
+  }, [write])
+}
+
+/**
+ * Whether an offer still holds, for an Undo shown on the page: false from when it ends, so the
+ * button goes with it. Null holds nothing.
+ */
+export function useHeld(offer: UndoOffer | null | undefined): boolean {
+  const [ended, setEnded] = React.useState<string | null>(null)
+  React.useEffect(() => {
+    if (!offer || offer.until === null) return
+    const timer = setTimeout(() => setEnded(offer.token), heldFor(offer))
+    return () => clearTimeout(timer)
+  }, [offer])
+  return !!offer && ended !== offer.token
 }

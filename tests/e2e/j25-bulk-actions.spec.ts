@@ -64,6 +64,31 @@ test('Delete names the drafts it removes, keeps published items, and Settings re
   await expect(page.getByText(/Deleted by Jon Abara, today/).first()).toBeVisible()
 })
 
+test('Undo of a deletion is offered for as long as the service takes it, and says so', async ({
+  page,
+}) => {
+  // The demo takes an Undo for 15 seconds after the write (limits.undo_seconds): the toast says
+  // so, never more, and its Undo goes when they end.
+  await page.clock.install()
+  await go(page, '/context')
+  await onlyDrafts(page)
+  await page.getByRole('checkbox', { name: 'Select all context shown' }).click()
+  await bar(page)
+    .getByRole('button', { name: /^Delete/ })
+    .click()
+  await page
+    .getByRole('dialog', { name: 'Delete 3 drafts?' })
+    .getByRole('button', { name: 'Delete 3 drafts' })
+    .click()
+  await expect(
+    page.getByText('You can undo it for 15 seconds; then they are gone for good.'),
+  ).toBeVisible()
+  const undo = page.getByRole('button', { name: 'Undo' })
+  await expect(undo).toBeVisible()
+  await page.clock.fastForward(15_000)
+  await expect(undo).toHaveCount(0)
+})
+
 test('Published items are archived, not deleted: the confirmation offers Archive instead', async ({
   page,
 }) => {
@@ -220,12 +245,18 @@ test('Offline, changes are off with the reason, and export still works', async (
 
 test('Mark as checked counts only the items that were opened', async ({ page }) => {
   await go(page, '/context')
-  await titles(page).nth(1).click()
+  const opened = titles(page).nth(1)
+  const name = await opened.innerText()
+  await opened.click()
   await expect(page).toHaveURL(/dock=context\./)
+  // The item is opened once its quick view has loaded (its code comes in on first use, slower under
+  // load): closing the dock before that opens nothing, and nothing is recorded as read.
+  await expect(page.getByRole('heading', { name, level: 2 })).toBeVisible()
   await page
     .getByRole('button', { name: /^Close/ })
     .last()
     .click()
+  await expect(page).not.toHaveURL(/dock=/)
   await boxes(page).nth(0).click()
   await boxes(page)
     .nth(1)
@@ -272,7 +303,7 @@ test('Definitions change terms only: a synced metric is skipped, and a term take
     .getByRole('button', { name: /^Delete/ })
     .click()
   const confirm = page.getByRole('dialog', { name: 'Delete 1 term?' })
-  await expect(confirm).toContainText('1 skipped: synced from Cube')
+  await expect(confirm).toContainText('1 skipped: read from Cube')
   await confirm.getByRole('button', { name: 'Delete 1 term' }).click()
   await expect(page.getByText('1 term deleted')).toBeVisible()
   await expect(

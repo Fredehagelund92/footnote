@@ -3,7 +3,7 @@
     "question": "Why is the last day of Germany's orders always low?",
     "turn": {
       "kind": "answer",
-      "text": "The payment files for Germany reach the source tool the morning after, so the last day of Orders is always short [1].",
+      "text": "The payment files for Germany reach the source tool the morning after, so the last day of Orders is always short.[1]",
       "sources": ["itm_0tmqp7o1"],
       "state": "grounded",
       "footer": {
@@ -18,6 +18,7 @@
         "names": ["Orders", "Germany"],
         "about": ["metric:orders", "value:market/germany"],
         "period": "1-23 Oct 2026",
+        "note": null,
         "assumedToday": false,
         "carried": false,
         "uncovered": []
@@ -59,20 +60,16 @@
             },
             {
               "t": "text",
-              "text": " is always short "
+              "text": " is always short."
             },
             {
               "t": "cite",
               "n": 1
-            },
-            {
-              "t": "text",
-              "text": "."
             }
           ]
         }
       ],
-      "said": "The payment files for [@value:market/germany] reach the source tool the morning after, so the last day of [@metric:orders] is always short [itm_0tmqp7o1].",
+      "said": "The payment files for [@value:market/germany] reach the source tool the morning after, so the last day of [@metric:orders] is always short.[itm_0tmqp7o1]",
       "nouns": [
         {
           "id": "metric:orders",
@@ -187,6 +184,7 @@
         "names": ["Orders", "Poland"],
         "about": ["metric:orders", "value:market/poland"],
         "period": "23 Oct 2026",
+        "note": null,
         "assumedToday": true,
         "carried": false,
         "uncovered": []
@@ -472,7 +470,7 @@
     "question": "Does net revenue in Spain include VAT?",
     "turn": {
       "kind": "answer",
-      "text": "Two items disagree. One in Sales says it includes VAT [1]; one in Paid media says it excludes VAT [2].",
+      "text": "Two items disagree. One in Sales says it includes VAT [1]; one in Paid media says it excludes VAT.[2]",
       "sources": ["itm_spainvatin", "itm_spainvatout"],
       "state": "conflict",
       "footer": {
@@ -485,6 +483,7 @@
         "names": ["Net revenue", "Spain"],
         "about": ["metric:net_revenue", "value:market/spain"],
         "period": "23 Oct 2026",
+        "note": null,
         "assumedToday": true,
         "carried": false,
         "uncovered": []
@@ -532,20 +531,16 @@
             },
             {
               "t": "text",
-              "text": " says it excludes VAT "
+              "text": " says it excludes VAT."
             },
             {
               "t": "cite",
               "n": 2
-            },
-            {
-              "t": "text",
-              "text": "."
             }
           ]
         }
       ],
-      "said": "Two items disagree. One in [@domain:area_sales] says it includes VAT [itm_spainvatin]; one in [@domain:area_paid_media] says it excludes VAT [itm_spainvatout].",
+      "said": "Two items disagree. One in [@domain:area_sales] says it includes VAT [itm_spainvatin]; one in [@domain:area_paid_media] says it excludes VAT.[itm_spainvatout]",
       "nouns": [
         {
           "id": "metric:net_revenue",
@@ -645,7 +640,7 @@
     "question": "What happened with price promotions in Italy?",
     "turn": {
       "kind": "answer",
-      "text": "The regulator paused price promotions in Italy, so discount cost there dropped to near zero [1]. The item was last checked on 20 June 2026.",
+      "text": "The regulator paused price promotions in Italy, so discount cost there dropped to near zero.[1] The item was last checked on 20 June 2026.",
       "sources": ["itm_pfet8zj3"],
       "state": "stale",
       "footer": {
@@ -683,7 +678,7 @@
             },
             {
               "t": "text",
-              "text": ", so discount cost there dropped to near zero "
+              "text": ", so discount cost there dropped to near zero."
             },
             {
               "t": "cite",
@@ -691,7 +686,7 @@
             },
             {
               "t": "text",
-              "text": ". The item was last checked on "
+              "text": " The item was last checked on "
             },
             {
               "t": "date",
@@ -704,7 +699,7 @@
           ]
         }
       ],
-      "said": "The regulator paused price promotions in [@value:market/italy], so discount cost there dropped to near zero [itm_pfet8zj3]. The item was last checked on 20 June 2026.",
+      "said": "The regulator paused price promotions in [@value:market/italy], so discount cost there dropped to near zero.[itm_pfet8zj3] The item was last checked on 20 June 2026.",
       "nouns": [
         {
           "id": "metric:discount_cost",
@@ -974,6 +969,7 @@
         "names": ["Orders", "Norway"],
         "about": ["metric:orders", "value:market/norway"],
         "period": "23 Oct 2026",
+        "note": null,
         "assumedToday": true,
         "carried": false,
         "uncovered": []
@@ -2522,6 +2518,187 @@
       "items": [],
       "closest": null,
       "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-dates-guessed": {
+    "question": "What happened to orders in Norway in November?",
+    "turn": {
+      "kind": "answer",
+      "text": "Two rules for Orders in Norway disagree in November 2025: one counts card and cash payments only [1], the other counts store credit too.[2]",
+      "sources": ["itm_giftcardonly", "itm_giftstorecredit"],
+      "state": "conflict",
+      "footer": {
+        "denominator": "2 of 21 published context items you may read apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Looked up Orders and Norway, 1-30 Nov 2025: 2 items apply, 7 nearby items do not."],
+      "subject": {
+        "names": ["Orders", "Norway"],
+        "about": ["metric:orders", "value:market/norway"],
+        "period": "1-30 Nov 2025",
+        "note": "year not given",
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": []
+      },
+      "nearby": [],
+      "conflict": ["itm_giftcardonly", "itm_giftstorecredit"],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "orders in Norway in November"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Two rules for "
+            },
+            {
+              "t": "noun",
+              "id": "metric:orders"
+            },
+            {
+              "t": "text",
+              "text": " in "
+            },
+            {
+              "t": "noun",
+              "id": "value:market/norway"
+            },
+            {
+              "t": "text",
+              "text": " disagree in November 2025: one counts card and cash payments only "
+            },
+            {
+              "t": "cite",
+              "n": 1
+            },
+            {
+              "t": "text",
+              "text": ", the other counts store credit too."
+            },
+            {
+              "t": "cite",
+              "n": 2
+            }
+          ]
+        }
+      ],
+      "said": "Two rules for [@metric:orders] in [@value:market/norway] disagree in November 2025: one counts card and cash payments only [itm_giftcardonly], the other counts store credit too.[itm_giftstorecredit]",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_giftcardonly",
+          "title": "Norway orders are card and cash payments only",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-02",
+          "outOfDate": null,
+          "n": 1
+        },
+        {
+          "id": "itm_giftstorecredit",
+          "title": "Norway orders count store credit",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-09-05",
+          "outOfDate": null,
+          "n": 2
+        }
+      ],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
       "overview": null,
       "checks": []
     }

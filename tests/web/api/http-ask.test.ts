@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AnswerResult, Asked, LoopTurn } from '@contract/answer'
 import type { Answer } from '@/model/ask'
+import { lookupFailedNote } from '@domain/words'
 import {
   answerOf,
   askedWeekOf,
@@ -338,7 +339,8 @@ describe("Ask's answer from the engine", () => {
     )
     const failed = answerOf(result({ state: 'failed', status: 'check_failed' }), 'Orders?', names)
     expect(failed.text).toBe('')
-    expect(failed.note).toMatch(/^The check couldn't run just now/)
+    expect(failed.note).toBe(lookupFailedNote)
+    expect(failed.note).toMatch(/^Ask could not look this up just now\. .*Ask again in a minute\.$/)
   })
 
   it('counts only the sources shown in the stale note', () => {
@@ -494,8 +496,8 @@ describe("the person's chats in the browser", () => {
     chats.rename('per_jon', 'c1', 'Renamed')
     const { undo } = chats.remove('per_jon', 'c1')
     expect(chats.list('per_jon').map((t) => t.id)).toEqual(['c2'])
-    expect(chats.undo(undo)).toBe(true)
-    expect(chats.undo(undo)).toBe(false)
+    expect(chats.undo(undo.token)).toBe(true)
+    expect(chats.undo(undo.token)).toBe(false)
     expect(chats.list('per_jon').find((t) => t.id === 'c1')).toMatchObject({
       title: 'Renamed',
       preview: 'It says one thing.',
@@ -656,6 +658,7 @@ describe("the subject of a loop turn's answer", () => {
         names: ['Tickets closed', 'Billing'],
         about: ['metric:tickets', 'value:team/billing'],
         period: '1-31 Aug 2026',
+        note: null,
         assumedToday: false,
       }),
       'Tickets closed by billing?',
@@ -674,6 +677,7 @@ describe("the subject of a loop turn's answer", () => {
         names: ['Tickets closed'],
         about: ['metric:tickets'],
         period: '8 Nov 2026',
+        note: null,
         assumedToday: true,
       }),
       'Tickets?',

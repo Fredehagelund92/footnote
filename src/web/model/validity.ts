@@ -5,6 +5,7 @@
 
 import type { Validity as ServerValidity } from '@domain/item'
 import { shiftDate } from '@domain/validity'
+import { dayMonth, dayMonthYear, dayNumber, parseDay } from '@/lib/dates'
 
 /**
  * When a context item applies: ISO dates, either open. `until` is the last day it applies, as
@@ -21,41 +22,29 @@ export const toServerValidity = (v: Validity): Partial<ServerValidity> => ({
   ...(v.until ? { end: shiftDate(v.until, 1) } : {}),
 })
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-const parts = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return { d, m: MONTHS[m! - 1], y }
-}
-
 /** "4 Aug 2026". */
-export const dateLabel = (iso: string) => {
-  const p = parts(iso)
-  return `${p.d} ${p.m} ${p.y}`
-}
+export const dateLabel = (iso: string) => dayMonthYear(iso)
 
 /** The ISO day of a day's label: "4 Aug 2026" is 2026-08-04; anything else is null. */
 export function labelDay(label: string): string | null {
-  const [d, m, y] = label.split(' ')
-  const month = MONTHS.indexOf(m ?? '') + 1
-  if (!d || !month || !/^\d{4}$/.test(y ?? '')) return null
-  return `${y}-${String(month).padStart(2, '0')}-${d.padStart(2, '0')}`
+  const at = parseDay(label)
+  return at === null ? null : new Date(at).toISOString().slice(0, 10)
 }
 
 /** The When people read: "Always", "From 4 Aug 2026, still going on", "12 to 19 May 2026", "Until 19 Jan 2026", "4 Aug 2026". */
 export function whenLabel(v: Validity): string {
   if (v.from && v.until) {
     if (v.from === v.until) return dateLabel(v.from)
-    const a = parts(v.from)
-    const b = parts(v.until)
-    if (a.y !== b.y) return `${dateLabel(v.from)} to ${dateLabel(v.until)}`
-    if (a.m !== b.m) return `${a.d} ${a.m} to ${b.d} ${b.m} ${b.y}`
-    return `${a.d} to ${b.d} ${b.m} ${b.y}`
+    if (v.from.slice(0, 4) !== v.until.slice(0, 4))
+      return `${dateLabel(v.from)} to ${dateLabel(v.until)}`
+    if (v.from.slice(0, 7) !== v.until.slice(0, 7))
+      return `${dayMonth(v.from)} to ${dateLabel(v.until)}`
+    return `${dayNumber(v.from)} to ${dateLabel(v.until)}`
   }
   if (v.from) return `From ${dateLabel(v.from)}${v.ongoing ? ', still going on' : ''}`
   if (v.until) return `Until ${dateLabel(v.until)}`
   return v.ongoing ? 'Still going on' : 'Always'
 }
 
-/** Whether a check date has passed: an item past it reads "Needs checking". */
+/** Whether a check date has passed: an item past it reads "Due for a check". */
 export const checkDue = (reviewDate: string, today: string) => reviewDate < today

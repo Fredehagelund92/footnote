@@ -86,7 +86,7 @@ export const ABOUT_BUSINESS_GUIDE = {
   ],
   leaveOut: {
     title: 'Leave out',
-    hint: 'numbers, deals, dates and what happened in a market (those are facts, and belong in the library), legal conclusions, and secrets or personal data.',
+    hint: 'numbers, deals, dates and what happened in a market (those are context items, and belong in the library), legal conclusions, and secrets or personal data.',
   },
   /** What leaving the box empty does. */
   empty: 'Leave it empty to give the assistant and agents no background.',

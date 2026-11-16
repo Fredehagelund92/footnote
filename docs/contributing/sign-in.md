@@ -90,7 +90,7 @@ false on a new install). Switching it off again ends every policy at once.
   a new item (never a change to a live item or an archive), at low
   risk as the server derived it (an agent never sets the risk level, so its suggestion keeps the
   default for its kind: low for a Rule, normal for every other kind), with no provenance flag, no
-  claim to check and no clash with live context (FR-225), under the daily cap, while the person who
+  detail to compare and no clash with live context (FR-225), under the daily cap, while the person who
   set it is still an owner of the domain and `suggest_context` is on for the agent and the
   workspace. It goes through the owner's own publish path, run as the owner who set the policy:
   every required check runs again, the decision names that owner as decider with a link to the
@@ -108,7 +108,7 @@ false on a new install). Switching it off again ends every policy at once.
   policy", and its sheet has **Undo this publish**. Nobody read it before agents got it, so an owner
   of the domain or an administrator may undo it at any time while the item is as it was published,
   through the decision's own undo (FR-227); the suggestion then waits for review. The owner's Inbox
-  lists it under Done as "Published under your policy".
+  lists it under Done as "Published with your permission".
 
 While Connect an agent waits for the person's own agent, its live line asks the service every 3
 seconds (`connect.pending`, FR-418) for the newest of two things since the wait began: the agent
