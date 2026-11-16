@@ -325,6 +325,23 @@ describe('a turn that uses no context item', () => {
         'Hva betyr ordrer?',
       ).definitions,
     ).toEqual([])
+    // A listing of Definitions (by a domain or a kind, no names) reads no one definition: none shows.
+    const read = definitions(words)
+    const listing: MadeRead = {
+      ...read,
+      input: { domain: 'Sales' },
+      result: {
+        ...(read.result as object),
+        names: [{ id: 'metric:orders', name: 'Orders', of: null, type: null }],
+      },
+    }
+    expect(
+      turnOf('Sales has [@metric:orders].', [{ ...listing, input: { names: ['Orders'] } }], [], 'q')
+        .definitions,
+    ).toHaveLength(1)
+    expect(
+      turnOf('Sales has [@metric:orders].', [listing], [], 'List the metrics in Sales').definitions,
+    ).toEqual([])
     // An earlier turn read it: a follow-up that reads again does not show it again.
     expect(
       turnOf('Sofia Brandt owns it.', [subject('partial')], [definitions(words)], 'Who owns that?')

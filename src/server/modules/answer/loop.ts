@@ -1317,7 +1317,12 @@ export function turnOf(
       : definitionsShown(
           question,
           plain,
-          definitionsRead(made.map((m) => m.result)),
+          // A listing of Definitions, by a domain or a kind, reads no one definition.
+          definitionsRead(
+            made.flatMap((m) =>
+              m.tool !== 'definitions' || Array.isArray(m.input.names) ? [m.result] : [],
+            ),
+          ),
           subject,
           new Set(
             words.body.flatMap((b) =>
