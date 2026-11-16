@@ -98,7 +98,7 @@ What the person waits for decides the look.
 Rules:
 
 - **Nothing shows before 150 ms.** A fast load never flashes a skeleton.
-- The skeleton has the page's own shape: rows at the list's height, a sheet where the document goes. The page's title and its line are not data, so they show at once.
+- The skeleton has the page's own shape: rows at the list's height, a sheet where the document goes. The page's title and its line are not data, so they show at once. A list's frame is not data either: Context and Definitions draw their header, bar and table head at once, and only the rows wait. Their rows are skeleton rows in the table body after 150 ms, and nothing before that, so a fast load never flashes them.
 - Content arrives through React's `<ViewTransition>`: the skeleton leaves in 90 ms and the content fades in over `--dur-fade`. With reduced motion the skeleton goes at once and the content still fades, in 90 ms.
 - A button in a pending state is `aria-busy`, ignores more presses, and keeps its label and width. With reduced motion `loadingLabel` ("Publishing...") says it is still working.
 - **Staged work** (Ask's look-up, Try it, the answer panel, Quality's check) is one quiet line with a spinner and a shimmer on the words while it works, then what it found. Shimmer is only ever on these words. The steps and their times come from the real work, not from a timer.

@@ -227,6 +227,32 @@ export function allLoaded(...reads: LoadState[]): LoadState {
   }
 }
 
+/** What a read shows now: see `useLoadPhase`. */
+export type LoadPhase = 'quiet' | 'skeleton' | 'failed' | 'content'
+
+/**
+ * Where a read is, by the loading rules: `quiet` for the first 150ms of a load (nothing yet, so a
+ * fast load never flashes a skeleton), `skeleton` after that, held at least 300ms, `failed` when a
+ * load ended in an error with nothing to show, and `content` otherwise. `refreshFailed` is a
+ * refresh that failed on a page already shown, and `waited` that the person saw the skeleton.
+ * Loadable swaps a whole region by it; a page that draws its frame at once (a list's bar and
+ * table head) reads it to hold back only its rows.
+ */
+export function useLoadPhase(query: LoadState) {
+  // A read that failed with nothing to show; one that failed on a refresh keeps its page.
+  const loadFailed = query.isError && !query.isRefetchError
+  const failed = loadFailed && !query.isFetching
+  const refreshFailed = query.isRefetchError && !query.isFetching
+  // Pending is the first load; a failed one read again is a retry.
+  const busy = (query.isPending && !query.isError) || (loadFailed && query.isFetching)
+  const shown = useDelayedBusy(busy)
+  // Whether the person saw the skeleton: what arrives after it may grow in, once.
+  const [waited, setWaited] = React.useState(false)
+  if (shown && !waited) setWaited(true)
+  const phase: LoadPhase = shown ? 'skeleton' : busy ? 'quiet' : failed ? 'failed' : 'content'
+  return { phase, refreshFailed, waited }
+}
+
 /**
  * Shows its content, or the loading or failed state of `query`, the read it shows. A load that ends
  * within 150ms shows nothing in between; a longer one shows the page-shaped skeleton for at least
@@ -253,25 +279,17 @@ export function Loadable({
   quiet?: boolean
   query: LoadState
 }) {
-  // A read that failed with nothing to show; one that failed on a refresh keeps its page.
-  const loadFailed = query.isError && !query.isRefetchError
-  const failed = loadFailed && !query.isFetching
-  const refreshFailed = query.isRefetchError && !query.isFetching
-  // Pending is the first load; a failed one read again is a retry.
-  const busy = (query.isPending && !query.isError) || (loadFailed && query.isFetching)
-  const shown = useDelayedBusy(busy)
-  // Whether the person saw the skeleton: what arrives after it may grow in, once.
-  const [waited, setWaited] = React.useState(false)
-  if (shown && !waited) setWaited(true)
-  if (shown)
+  const { phase, refreshFailed, waited } = useLoadPhase(query)
+  if (phase === 'skeleton')
     return (
       <ViewTransition key="loading" exit="vt-leave">
         <div>{skeleton}</div>
       </ViewTransition>
     )
   // Under 150ms: nothing yet, so a fast load never flashes a skeleton.
-  if (busy) return <div role="status" aria-busy="true" aria-label="Loading" className="min-h-24" />
-  if (failed)
+  if (phase === 'quiet')
+    return <div role="status" aria-busy="true" aria-label="Loading" className="min-h-24" />
+  if (phase === 'failed')
     return quiet ? null : (
       <LoadError what={what} className={errorClassName} onRetry={() => void query.refetch()} />
     )
