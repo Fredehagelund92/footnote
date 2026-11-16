@@ -57,9 +57,14 @@ test('Context: a second click on a header flips it, and the keyboard does the sa
 
 test('Context: the Sort menu offers both ways in words', async ({ page }) => {
   await go(page, '/context')
+  await loaded(page, page.locator('tbody [data-row-open]'))
   await page.getByRole('button', { name: /^Sort/ }).click()
-  await page.getByRole('menuitemradio', { name: /^Title/ }).click()
-  await expect(page.getByRole('menuitemradio', { name: 'A to Z', exact: true })).toBeChecked()
+  const title = page.getByRole('menuitemradio', { name: /^Title/ })
+  await expect(title).toBeVisible()
+  await title.click()
+  const aToZ = page.getByRole('menuitemradio', { name: 'A to Z', exact: true })
+  await expect(aToZ).toBeVisible()
+  await expect(aToZ).toBeChecked()
   await page.getByRole('menuitemradio', { name: 'Z to A', exact: true }).click()
   await page.keyboard.press('Escape')
   await expect(header(page, 'Context')).toHaveAttribute('aria-sort', 'descending')
@@ -73,19 +78,24 @@ test('Context: the Sort menu offers both ways in words', async ({ page }) => {
 
 test('Definitions: Name and Context headers sort, and flip', async ({ page }) => {
   await go(page, '/definitions')
+  const rows = page.locator('tbody [data-row-open]')
+  await loaded(page, rows)
   // Grouped by domain at first: the group button names the grouping.
   await page.getByRole('button', { name: 'Domain', exact: true }).click()
-  await page.getByRole('menuitemradio', { name: 'No grouping' }).click()
+  const ungrouped = page.getByRole('menuitemradio', { name: 'No grouping' })
+  await expect(ungrouped).toBeVisible()
+  await ungrouped.click()
   await page.keyboard.press('Escape')
-  const rows = page.locator('tbody [data-row-open]')
   await loaded(page, rows)
 
   await header(page, 'Name').getByRole('button').click()
   await expect(header(page, 'Name')).toHaveAttribute('aria-sort', 'ascending')
+  await loaded(page, rows)
   const ascendingNames = await names(rows)
   expect(ascendingNames).toEqual(ascendingNames.toSorted(by))
   await header(page, 'Name').getByRole('button').click()
   await expect(header(page, 'Name')).toHaveAttribute('aria-sort', 'descending')
+  await loaded(page, rows)
   const descendingNames = await names(rows)
   expect(descendingNames).toEqual(descendingNames.toSorted(by).reverse())
 
