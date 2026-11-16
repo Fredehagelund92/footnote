@@ -97,8 +97,13 @@ test('the skeleton rows sit where the rows will be, under the same table head', 
   const sk = (await first.boundingBox())!
   const skHead = (await page.locator('thead tr').boundingBox())!
   await go(page, '/context')
+  // The rows are measured once they are drawn and the skeleton has gone: until then the first
+  // row may be attached without a box.
+  await expect(page.locator('main tbody [data-skeleton-row]')).toHaveCount(0)
+  const firstRow = page.locator('main tbody tr').first()
+  await expect(firstRow).toBeVisible()
   const head = (await page.locator('thead tr').boundingBox())!
-  const row = (await page.locator('main tbody tr').first().boundingBox())!
+  const row = (await firstRow.boundingBox())!
   expect(Math.abs(skHead.y - head.y)).toBeLessThanOrEqual(1)
   expect(Math.abs(skHead.height - head.height)).toBeLessThanOrEqual(1)
   expect(Math.abs(sk.y - row.y)).toBeLessThanOrEqual(8)

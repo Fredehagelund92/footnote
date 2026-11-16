@@ -37,6 +37,7 @@ import { AGENT_TOOLS, logoFor } from '@/lib/agents'
 import {
   connectedLine,
   keysHint,
+  ownLine,
   toolsLine,
   toolsOn,
   usedLine,
@@ -67,13 +68,15 @@ const SENT_STATES: Record<string, string> = {
   withdrawn: 'withdrawn',
 }
 
-/** Revoking signs an agent out at once, so it asks first. */
+/** Revoking signs an agent out at once, so it asks first. Someone who isn't an admin ends their own. */
 function RevokeDialog({
   row,
+  own,
   onClose,
   onRevoke,
 }: {
   row?: Connected
+  own: boolean
   onClose: () => void
   onRevoke: () => void
 }) {
@@ -86,6 +89,13 @@ function RevokeDialog({
             <DialogDescription>
               It stops working at once, and whatever uses it stops reading context. A job that still
               needs one gets a new key.
+            </DialogDescription>
+          </DialogHeader>
+        ) : own ? (
+          <DialogHeader>
+            <DialogTitle>Disconnect {row?.agent}?</DialogTitle>
+            <DialogDescription>
+              It signs out at once and stops reading context as you. You can connect it again.
             </DialogDescription>
           </DialogHeader>
         ) : (
@@ -628,7 +638,10 @@ export function Agents() {
       >
         <ConnectAgent />
       </FrameSection>
-      <FrameSection title="Connected agents" description={connectedLine(rows)}>
+      <FrameSection
+        title="Connected agents"
+        description={admin ? connectedLine(rows) : ownLine(rows)}
+      >
         {rows.length > 0 && (
           <ul ref={arriveRef} className="border-t" aria-label="Connected agents">
             {shown.map((r) => (
@@ -653,6 +666,7 @@ export function Agents() {
       </FrameSection>
       <RevokeDialog
         row={revoking}
+        own={!admin}
         onClose={() => setRevoking(undefined)}
         onRevoke={() => {
           if (!revoking) return
@@ -664,7 +678,9 @@ export function Agents() {
                 toast(
                   kind === 'key'
                     ? `Access key ${agent} deleted`
-                    : `${agent} for ${who} disconnected`,
+                    : admin
+                      ? `${agent} for ${who} disconnected`
+                      : `${agent} disconnected`,
                 ),
               )
               .catch((e: unknown) =>
@@ -681,113 +697,124 @@ export function Agents() {
         onClose={() => setNaming((n) => ({ ...n, open: false }))}
         onSave={nameKey}
       />
-      <FrameSection
-        title="Pause sharing"
-        level={3}
-        description={
-          paused
-            ? 'Paused. Agents hear that context is paused, and get none.'
-            : 'For an emergency: stop agents getting context.'
-        }
-        collapsible
-        defaultOpen={false}
-      >
-        <FrameRows
-          rows={[
-            {
-              id: 'all',
-              label: <label htmlFor="pause-all">Pause everything</label>,
-              hint: 'For an emergency. It acts at once and is logged.',
-              value: <Switch id="pause-all" checked={paused} onCheckedChange={setPaused} />,
-            },
-            {
-              id: 'domain',
-              wide: true,
-              label: <label htmlFor="pause-domain">Pause one domain</label>,
-              hint: "Agents stop getting that domain's context; the rest goes on.",
-              value: (
-                <Select
-                  items={[
-                    { label: 'No domain paused', value: 'none' },
-                    ...domainIds.map((d) => ({ label: domains[d]?.name, value: d })),
-                  ]}
-                  value={pause.domain ?? 'none'}
-                  onValueChange={(v) => pauseDomain(v === 'none' || !v ? null : String(v))}
-                >
-                  <SelectTrigger id="pause-domain" className="w-full sm:w-52">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="none">No domain paused</SelectItem>
-                      {domainIds.map((d) => (
-                        <SelectItem key={d} value={d}>
-                          {domains[d]?.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              ),
-            },
-          ]}
-        />
-      </FrameSection>
+      {admin && (
+        <FrameSection
+          title="Pause sharing"
+          level={3}
+          description={
+            paused
+              ? 'Paused. Agents hear that context is paused, and get none.'
+              : 'For an emergency: stop agents getting context.'
+          }
+          collapsible
+          defaultOpen={false}
+        >
+          <FrameRows
+            rows={[
+              {
+                id: 'all',
+                label: <label htmlFor="pause-all">Pause everything</label>,
+                hint: 'For an emergency. It acts at once and is logged.',
+                value: <Switch id="pause-all" checked={paused} onCheckedChange={setPaused} />,
+              },
+              {
+                id: 'domain',
+                wide: true,
+                label: <label htmlFor="pause-domain">Pause one domain</label>,
+                hint: "Agents stop getting that domain's context; the rest goes on.",
+                value: (
+                  <Select
+                    items={[
+                      { label: 'No domain paused', value: 'none' },
+                      ...domainIds.map((d) => ({ label: domains[d]?.name, value: d })),
+                    ]}
+                    value={pause.domain ?? 'none'}
+                    onValueChange={(v) => pauseDomain(v === 'none' || !v ? null : String(v))}
+                  >
+                    <SelectTrigger id="pause-domain" className="w-full sm:w-52">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="none">No domain paused</SelectItem>
+                        {domainIds.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {domains[d]?.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                ),
+              },
+            ]}
+          />
+        </FrameSection>
+      )}
       {admin && <AutoPublishSection />}
-      <FrameSection
-        title="Tools and access keys"
-        level={3}
-        description={`The ${AGENT_TOOLS.length} tools agents can call, and keys for agents that can't sign in.`}
-        collapsible
-        defaultOpen={false}
-      >
-        <FrameRows
-          rows={[
-            ...AGENT_TOOLS.filter((t) => t.name !== 'get_related').map(({ name, title, what }) => ({
-              id: name,
-              label: (
-                <label htmlFor={`tool-${name}`} className="text-sm">
-                  {title} <code className="font-mono text-xs text-muted-foreground">{name}</code>
-                </label>
+      {admin && (
+        <FrameSection
+          title="Tools and access keys"
+          level={3}
+          description={`The ${AGENT_TOOLS.length} tools agents can call, and keys for agents that can't sign in.`}
+          collapsible
+          defaultOpen={false}
+        >
+          <FrameRows
+            rows={[
+              ...AGENT_TOOLS.filter((t) => t.name !== 'get_related').map(
+                ({ name, title, what }) => ({
+                  id: name,
+                  label: (
+                    <label htmlFor={`tool-${name}`} className="text-sm">
+                      {title}{' '}
+                      <code className="font-mono text-xs text-muted-foreground">{name}</code>
+                    </label>
+                  ),
+                  hint: what,
+                  value: (
+                    <Switch
+                      id={`tool-${name}`}
+                      checked={tools[name] ?? true}
+                      onCheckedChange={(on) => setTool(name, on)}
+                    />
+                  ),
+                }),
               ),
-              hint: what,
-              value: (
-                <Switch
-                  id={`tool-${name}`}
-                  checked={tools[name] ?? true}
-                  onCheckedChange={(on) => setTool(name, on)}
-                />
-              ),
-            })),
-            // Following links has its own switch: on in the demo, and it never changes what an answer includes.
-            {
-              id: 'get_related',
-              label: (
-                <label htmlFor="tool-get_related" className="flex flex-col gap-0.5">
-                  <span className="text-sm">
-                    Let agents follow links{' '}
-                    <code className="font-mono text-xs text-muted-foreground">get_related</code>
-                  </span>
-                </label>
-              ),
-              hint: 'Follows a link between context items, definitions and domains, one step at a time. It never changes what an answer includes, and never lets agents read comments.',
-              value: (
-                <Switch id="tool-get_related" checked={linksOn} onCheckedChange={setLinksEnabled} />
-              ),
-            },
-            {
-              id: 'keys',
-              label: 'Access keys',
-              hint: `A key is a long password for a program. Use one for a bot or a scheduled job that can't sign in. ${keysHint(rows)}`,
-              value: (
-                <Button variant="outline" onClick={() => openNaming()}>
-                  Create an access key
-                </Button>
-              ),
-            },
-          ]}
-        />
-      </FrameSection>
+              // Following links has its own switch: on in the demo, and it never changes what an answer includes.
+              {
+                id: 'get_related',
+                label: (
+                  <label htmlFor="tool-get_related" className="flex flex-col gap-0.5">
+                    <span className="text-sm">
+                      Let agents follow links{' '}
+                      <code className="font-mono text-xs text-muted-foreground">get_related</code>
+                    </span>
+                  </label>
+                ),
+                hint: 'Follows a link between context items, definitions and domains, one step at a time. It never changes what an answer includes, and never lets agents read comments.',
+                value: (
+                  <Switch
+                    id="tool-get_related"
+                    checked={linksOn}
+                    onCheckedChange={setLinksEnabled}
+                  />
+                ),
+              },
+              {
+                id: 'keys',
+                label: 'Access keys',
+                hint: `A key is a long password for a program. Use one for a bot or a scheduled job that can't sign in. ${keysHint(rows)}`,
+                value: (
+                  <Button variant="outline" onClick={() => openNaming()}>
+                    Create an access key
+                  </Button>
+                ),
+              },
+            ]}
+          />
+        </FrameSection>
+      )}
     </Frame>
   )
 }
