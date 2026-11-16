@@ -14,6 +14,7 @@ import {
   type ServingItem,
 } from '../editions/index.ts'
 import { missing } from '../../../contract/refusals.ts'
+import { UTC_CALENDAR } from '../../../domain/dates.ts'
 
 type Head = { seq: string; label: string; overlay: string }
 
@@ -191,6 +192,7 @@ export function previewDelivery(
           limits: {},
           rates: DEFAULT_MCP_RATES,
           about: '',
+          calendar: UTC_CALENDAR,
         }),
     },
     { write: noWrite, reportGap: noWrite, feedback: noWrite },

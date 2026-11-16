@@ -6,6 +6,7 @@ import { assistantRelatedTool, relatedCitations } from '../../../src/server/mcp/
 import { createToolService } from '../../../src/server/mcp/service.ts'
 import type { EditionSource } from '../../../src/server/modules/editions/index.ts'
 import { bundle, memoryStore } from './fixtures.ts'
+import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 
 function setup(enabled: boolean) {
   const data = bundle(),
@@ -28,6 +29,7 @@ function setup(enabled: boolean) {
     limits: {},
     rates: { person: 30, client: 120 },
     about: '',
+    calendar: UTC_CALENDAR,
   }
   const source: EditionSource = {
     bundle: () => Promise.resolve(data),

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import * as z from 'zod'
 import { canonicalJson } from '../../domain/canonical.ts'
+import { UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
 import { draftingGuide } from '../../domain/drafting-guide.ts'
 import {
   INSTRUCTIONS_READ_BY_ALL,
@@ -50,8 +51,11 @@ const prefix = 'Call get_context before answering a question about company data.
 export const instructionRules = rulesFor(productName)
 export { INSTRUCTIONS_READ_BY_ALL }
 /** FR-343: what the server tells a client when it connects (src/domain/mcp-text.ts). */
-export const serverInstructions = (dataTools: readonly string[], about = ''): string =>
-  instructionsFor(productName, dataTools, about)
+export const serverInstructions = (
+  dataTools: readonly string[],
+  about = '',
+  calendar: Calendar = UTC_CALENDAR,
+): string => instructionsFor(productName, dataTools, about, calendar)
 /** A tool's description for the model: the line people read first, then what the model needs. */
 const describe = (tool: AgentToolName, text: string, first = prefix) =>
   `${toolWords[tool].line} ${first}${text}`

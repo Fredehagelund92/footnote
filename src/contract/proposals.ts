@@ -259,13 +259,13 @@ export const previewReplySchema = z.object({
     ),
   ),
   /**
-   * The day Heed read a question at because it gave no dates: today, a UTC day, with a sentence
-   * for the person. Present whenever the reply used it.
+   * The day Heed read a question at because it gave no dates: today in the workspace's time zone,
+   * with a sentence for the person. Present whenever the reply used it.
    */
   assumed_date: z.optional(
     z.object({
       date: z.string(),
-      time_zone: z.literal('UTC'),
+      time_zone: z.string(),
       reason: z.literal('no date given'),
       sentence: z.string(),
     }),
