@@ -72,7 +72,9 @@ const chip =
 
 /**
  * A trigger with its card: hover opens it after a moment, keyboard focus opens it at once, a press
- * keeps it open; Escape or a press outside closes it.
+ * keeps it open; Escape or a press outside closes it. A trigger that opens a quick view (`onOpen`)
+ * closes its card on a press instead: the quick view shows the item, and on a phone it fills the
+ * screen, where the card would sit on top of it.
  */
 function HoverCard({
   trigger,
@@ -112,7 +114,15 @@ function HoverCard({
           if (returning.current) returning.current = false
           else if (e.currentTarget.matches(':focus-visible')) setOpen(true)
         }}
-        onClick={onOpen}
+        onClick={
+          onOpen &&
+          ((e) => {
+            // The press is the quick view's alone: kept from the popover, its hover still works.
+            e.preventBaseUIHandler()
+            setOpen(false)
+            onOpen()
+          })
+        }
       />
       <P.PopoverContent
         side="top"

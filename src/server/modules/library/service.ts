@@ -1,10 +1,22 @@
-import type { LibraryIndex, LibraryItem, SearchResults } from '../../../contract/index.ts'
+import type {
+  IndexedItem,
+  LibraryIndex,
+  LibraryItem,
+  SearchResults,
+} from '../../../contract/index.ts'
 import { SEARCH_GROUP_MAX } from '../../../contract/index.ts'
 import type { ContextItem } from '../../../domain/item.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { livePairs } from '../conflicts/index.ts'
 import { forReader } from './audience.ts'
+
+/**
+ * A library index row as the service reads it: with its scope by key too, which Ask's records
+ * read. `GET /library` leaves the scope out (libraryItemSchema): the list reads its names.
+ */
+export type ScopedItem = LibraryItem & Pick<IndexedItem, 'scope'>
+export type ScopedIndex = Omit<LibraryIndex, 'items'> & { items: ScopedItem[] }
 
 /**
  * The library read model: accepted and retired items as the front end shows them, from
@@ -16,7 +28,7 @@ import { forReader } from './audience.ts'
  */
 export interface LibraryService {
   getItem(id: string): Promise<ContextItem | null>
-  getIndex(): Promise<LibraryIndex>
+  getIndex(): Promise<ScopedIndex>
   /** One item's index row; null for one the person cannot read or that is not in the library. */
   getIndexRow(id: string): Promise<LibraryItem | null>
   /**
@@ -42,17 +54,17 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
    * The library index's rows, or one item's (`id`): each row is the item's index entry with what
    * the list's columns read from it.
    */
-  async function indexRows(id: string | null): Promise<LibraryItem[]> {
+  async function indexRows(id: string | null): Promise<ScopedItem[]> {
     const today = clock.today()
     // Each row is the item's index entry with what the list's columns read from it: the last
     // acceptance of its version (a recheck is one; the rule of cl_version_review), its trust
     // today by the rule of itemTrust in src/domain/status.ts, and its scope by name. Each is read
-    // in one pass over its table, joined by version.
-    const [row] = await database.query<{ items: LibraryItem[] }>(
+    // in one pass, joined by version. The scope's keys come from the entry, which holds them,
+    // rather than from the scope's tables again, whose row security checks each row's version.
+    const [row] = await database.query<{ items: ScopedItem[] }>(
       `with listed as materialized (
-         select i.id, i.entry, v.id as version_id
+         select i.id, i.entry, i.version_id
            from v_item_index i
-           join item_versions v on v.item_id = i.id and v.version_no = (i.entry->>'version')::int
           where cl_audience_allows(i.audience_groups) and ($2::text is null or i.id = $2)),
        checked as (
          select distinct on (d.item_version_id) d.item_version_id as version_id,
@@ -63,14 +75,14 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
        names as materialized (
          select t.key, t.name from serving_vocabulary((select seq from live_edition)) t),
        keys as (
-         select 1 as part, m.version_id, m.metric_key as key, substr(m.metric_key, 8) as id
-           from item_version_metrics m join listed using (version_id)
+         select 1 as part, l.version_id, 'metric:' || m.id as key, m.id
+           from listed l, jsonb_array_elements_text(l.entry->'scope'->'metrics') m(id)
          union all
-         select 2, d.version_id, d.dimension_key, substr(d.dimension_key, 5)
-           from item_version_dimensions d join listed using (version_id)
+         select 2, l.version_id, 'dim:' || d.id, d.id
+           from listed l, jsonb_array_elements_text(l.entry->'scope'->'dimensions') d(id)
          union all
-         select 3, d.version_id, d.value_key, split_part(d.value_key, '/', 2)
-           from item_version_dimension_values d join listed using (version_id)),
+         select 3, l.version_id, 'val:' || (v->>'dimension') || '/' || (v->>'value'), v->>'value'
+           from listed l, jsonb_array_elements(l.entry->'scope'->'dimensionValues') v),
        chips as (
          select k.version_id,
                 jsonb_agg(coalesce(n.name, k.id) order by k.part, k.key collate "C") as names
