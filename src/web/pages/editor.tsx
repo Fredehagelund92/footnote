@@ -91,7 +91,7 @@ import { closeDock, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { HeaderMore, SaveStatus } from '@/components/heed/editor-header'
 import { Panel, PanelGroup } from '@/components/heed/panel'
-import { ChoiceGroup, ViewToggle } from '@/components/heed/switches'
+import { ChoiceMenu, ViewToggle } from '@/components/heed/switches'
 import {
   Dialog,
   DialogClose,
@@ -107,6 +107,7 @@ import { href, navigate, useRoute } from '@/lib/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
+import { relationWords } from '@domain/clash-relations'
 import { draftFromTextQuery, itemPageQuery, useInbox, useVocabulary, useWrite } from '@/api/queries'
 import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useWide } from '@/hooks/use-wide'
@@ -292,11 +293,67 @@ const domainOptions = (domains: Domain[]) =>
     icon: <DomainDot id={d.id} />,
   }))
 
-const RELATIONS: Option<Relation>[] = [
-  { value: 'replaces', label: 'Replaces it' },
-  { value: 'disagree', label: 'Disagrees' },
-  { value: 'unrelated', label: 'Unrelated' },
+// Unrelated first: most overlaps keep it. Each answer says what it does when this is published.
+const RELATIONS: { value: Relation; label: string; hint: string }[] = [
+  { value: 'unrelated', label: 'Unrelated', hint: relationWords.unrelated.hint },
+  { value: 'disagree', label: 'Disagrees', hint: relationWords.disagrees.hint },
+  { value: 'replaces', label: 'Replaces it', hint: relationWords.replaces.hint },
 ]
+const relationHint = (r: Relation | undefined) => RELATIONS.find((x) => x.value === r)?.hint
+
+/**
+ * One overlap as a row: its title, which opens it, and how this relates to it as a menu at the
+ * end. Once the answer is more than Unrelated, what it does sits under the title, in amber when
+ * publishing archives the live item.
+ */
+function RelationRow({
+  itemId,
+  title,
+  value,
+  onChange,
+  titleProps,
+  className,
+}: {
+  itemId: string
+  title: string
+  value: Relation | undefined
+  onChange: (v: Relation) => void
+  titleProps: React.ComponentProps<'button'>
+  className?: string
+}) {
+  return (
+    // On the first line's baseline, so the answer sits beside the title at any button height.
+    <li data-relation={itemId} className={cn('flex items-baseline gap-3', className)}>
+      <div className="min-w-0 flex-1 pb-1">
+        <button
+          type="button"
+          className="line-clamp-2 text-left text-sm underline-offset-4 hover:underline"
+          {...titleProps}
+        >
+          {title}
+        </button>
+        {value && value !== 'unrelated' && (
+          <p
+            className={cn(
+              'mt-0.5 text-xs text-muted-foreground',
+              value === 'replaces' && 'text-caution',
+            )}
+          >
+            {relationHint(value)}
+          </p>
+        )}
+      </div>
+      <ChoiceMenu
+        label={`How this relates to ${title}`}
+        options={RELATIONS}
+        value={value}
+        onChange={onChange}
+        quiet="unrelated"
+        className="-mr-2"
+      />
+    </li>
+  )
+}
 
 /* ---------- the page ---------- */
 
@@ -503,7 +560,10 @@ function Editor({
     else if (asksWhen) focusField('when')
     else if (!form.source || (quoteNeeded && !form.quote.trim()) || linkProblem) setSourceOpen(true)
     else if (unanswered)
-      document.getElementById(`${ids}-clashes`)?.querySelector<HTMLElement>('[role=radio]')?.focus()
+      document
+        .getElementById(`${ids}-clashes`)
+        ?.querySelector<HTMLElement>(`[data-relation="${unanswered.itemId}"] [aria-haspopup=menu]`)
+        ?.focus()
   }
 
   const commit = async () => {
@@ -664,13 +724,41 @@ function Editor({
     </Dialog>
   )
 
-  // The panel: the preview and the overlaps as groups that fold (the preview starts folded when
-  // there are overlaps, so the choices are in view), and the Ready line as its footer.
+  // The panel: the overlaps first, one row each with its answer, so the decisions are in view
+  // above the preview of what agents get. Both are groups that fold.
   const side = (
     <>
+      {/* Until it says where it applies, nothing can overlap it, so there is nothing to say. */}
+      {(overlaps.length > 0 || form.where.length > 0) && (
+        <PanelGroup
+          title="Overlaps"
+          count={overlaps.length}
+          description={
+            overlaps.length
+              ? 'Context on the same metric and market. Say how this one relates to each.'
+              : `Nothing else applies to ${scopeWords(form.where)}.`
+          }
+        >
+          {/* The group's own bottom line closes the list; the menus line up under its chevron. */}
+          {overlaps.length > 0 && (
+            <ul className="-mx-4 -mb-4 divide-y border-t">
+              {overlaps.map((f) => (
+                <RelationRow
+                  key={f.id}
+                  itemId={f.id}
+                  title={f.title}
+                  value={overlap[f.id] ?? 'unrelated'}
+                  onChange={(v) => setOverlap((o) => ({ ...o, [f.id]: v }))}
+                  titleProps={{ ...ahead(f.id), onClick: () => openDock('context', f.id) }}
+                  className="px-4 py-1.5 md:pr-6"
+                />
+              ))}
+            </ul>
+          )}
+        </PanelGroup>
+      )}
       <PanelGroup
         title="Preview"
-        defaultOpen={!overlaps.length}
         description={
           form.where.length
             ? `Agents asking about ${scopeWords(form.where)}${form.when === 'always' ? '' : `, ${whenText(form).replace(/^From/, 'from')}`} get this, live as you type.`
@@ -729,57 +817,8 @@ function Editor({
           </p>
         )}
       </PanelGroup>
-      <PanelGroup
-        title="Overlaps"
-        count={overlaps.length}
-        description={
-          overlaps.length
-            ? 'Context on the same metric and market. Say how this one relates to each.'
-            : 'None. Nothing else covers the same place.'
-        }
-      >
-        {overlaps.length > 0 && (
-          <div className="flex flex-col gap-4">
-            {overlaps.map((f) => (
-              <div key={f.id} className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  className="text-left text-sm font-medium underline-offset-4 hover:underline"
-                  {...ahead(f.id)}
-                  onClick={() => openDock('context', f.id)}
-                >
-                  {f.title}
-                </button>
-                <ChoiceGroup
-                  label={`How this relates to ${f.title}`}
-                  value={overlap[f.id] ?? 'unrelated'}
-                  onChange={(v) => setOverlap((o) => ({ ...o, [f.id]: v }))}
-                  options={RELATIONS}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </PanelGroup>
     </>
   )
-  const notReady = holdLine(readiness) || (marked ? 'Fix what is marked.' : '')
-  const ready = (
-    <p className="flex items-start gap-2 p-4 text-sm">
-      {notReady ? (
-        <CircleDashedIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-      ) : (
-        <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-      )}
-      <span>
-        <span className="font-medium">{notReady ? 'Not ready yet.' : 'Ready.'}</span>{' '}
-        <span className="text-muted-foreground">
-          {notReady || 'Complete, and it reaches the questions it is meant for.'}
-        </span>
-      </span>
-    </p>
-  )
-
   return (
     <DocumentEditorShell
       editor={editor}
@@ -896,7 +935,6 @@ function Editor({
                 title="What agents get"
                 onClose={() => setSideChoice(false)}
                 closeLabel="Hide what agents get"
-                footer={ready}
               >
                 {side}
               </Panel>
@@ -1043,27 +1081,25 @@ function Editor({
                 Agents get these for the same questions. Say how this relates to each.
               </p>
             )}
-            {clashes.map((c) => (
-              <div key={c.itemId} className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  className="text-left font-medium underline-offset-4 hover:underline"
-                  {...ahead(c.itemId)}
-                  onClick={() => openDock('context', c.itemId)}
-                >
-                  {c.title}
-                </button>
-                <ChoiceGroup
-                  label={`How this relates to ${c.title}`}
+            <ul className="-mx-3 divide-y divide-foreground/10">
+              {clashes.map((c) => (
+                <RelationRow
+                  key={c.itemId}
+                  itemId={c.itemId}
+                  title={c.title}
                   value={overlap[c.itemId]}
                   onChange={(v) => {
                     setOverlap((o) => ({ ...o, [c.itemId]: v }))
                     reset()
                   }}
-                  options={RELATIONS}
+                  titleProps={{
+                    ...ahead(c.itemId),
+                    onClick: () => openDock('context', c.itemId),
+                  }}
+                  className="px-3 py-1"
                 />
-              </div>
-            ))}
+              ))}
+            </ul>
           </section>
         )}
         {/* The properties as a calm list under the title: what it is, when and where it applies,
@@ -1281,7 +1317,6 @@ function Editor({
             What agents get
           </h2>
           {side}
-          <div className="border-t">{ready}</div>
         </section>
       )}
     </DocumentEditorShell>

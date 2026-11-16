@@ -72,7 +72,7 @@ import { useLinksEnabled } from '@/lib/links-switch'
 import { Composer } from '@/components/templates/comment-box/composer'
 import { CommentBox } from '@/components/templates/comment-box'
 import { useCommentActions } from '@/lib/comments'
-import { ChoiceGroup, TextSwitch, ViewToggle } from '@/components/heed/switches'
+import { ChoiceMenu, TextSwitch, ViewToggle } from '@/components/heed/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DRAFT_LABEL } from '@/model/ask'
 import { itemPageQuery, useInbox, useReviews, useSavedQuestions, useWrite } from '@/api/queries'
@@ -727,9 +727,12 @@ function SyncedFrom({ r }: { r: Review }) {
   )
 }
 
-const relations = (['replaces', 'disagree', 'unrelated'] as const).map((id) => ({
-  id,
-  ...relationText[id],
+// Unrelated first, as in the editor: most overlaps keep it.
+const relationLabels = { unrelated: 'Unrelated', disagree: 'Disagrees', replaces: 'Replaces it' }
+const relations = (['unrelated', 'disagree', 'replaces'] as const).map((value) => ({
+  value,
+  label: relationLabels[value],
+  hint: relationText[value].hint,
 }))
 /** The owner's answer for each live item the suggestion overlaps, by its id, and how to give one. */
 const RelationContext = React.createContext<
@@ -792,18 +795,31 @@ function Clash({ r }: { r: Review }) {
               </p>
             )}
             <ClashPair r={r} title={item.title} live={live} pair={pair} />
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-xs text-muted-foreground">How do they relate?</legend>
-              <ChoiceGroup
+            {/* One row, as in the editor: the question, and its answer as a menu that says what
+                each answer does. What the answer does shows once it is more than Unrelated. */}
+            <div className="flex items-baseline gap-3 border-y py-1.5">
+              <div className="min-w-0 flex-1 pb-1">
+                <p className="text-sm">How do they relate?</p>
+                {relation !== 'unrelated' && (
+                  <p
+                    className={cn(
+                      'mt-0.5 text-xs text-muted-foreground',
+                      relation === 'replaces' && 'text-caution',
+                    )}
+                  >
+                    {relation ? relationText[relation].hint : 'Pick how they relate.'}
+                  </p>
+                )}
+              </div>
+              <ChoiceMenu
                 label={`How this relates to ${item.title}`}
-                options={relations.map((x) => ({ value: x.id, label: x.label }))}
+                options={relations}
                 value={relation}
                 onChange={(v) => answer(item.factId, v)}
+                quiet="unrelated"
+                className="-mr-2"
               />
-              <p className="text-xs text-muted-foreground">
-                {relation ? relationText[relation].hint : 'Pick how they relate.'}
-              </p>
-            </fieldset>
+            </div>
           </div>
         )
       })}
