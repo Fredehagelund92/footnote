@@ -2,6 +2,7 @@ import { BookAIcon, ExternalLinkIcon, NotebookPenIcon, PencilIcon } from '@/comp
 import { DefinitionDetails, TypeTile } from '@/components/heed/definition'
 import { Canvas, Paper } from '@/components/heed/doc'
 import { SiteHeader } from '@/components/site-header'
+import { useSidebar } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
@@ -17,6 +18,7 @@ import { NotFound } from '@/components/heed/not-found'
 
 export function DefinitionPage({ name }: { name: string }) {
   const glossary = useGlossary()
+  const { isMobile } = useSidebar()
   const page = useQuery(definitionPageQuery(name))
   // The page's own read shows it; the glossary knows it exists while that read loads.
   const d = page.data ?? glossary.find(name)
@@ -58,7 +60,7 @@ export function DefinitionPage({ name }: { name: string }) {
   const main = writable ? (
     <>
       {writeContext}
-      <span className="max-sm:hidden">{openSource('outline')}</span>
+      {!isMobile && openSource('outline')}
     </>
   ) : (
     openSource('outline')
