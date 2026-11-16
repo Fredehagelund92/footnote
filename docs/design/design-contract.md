@@ -236,7 +236,7 @@ Layers use the named `z-*` utilities, never a number. Lowest first: `z-base`, `z
 
 ### 2.6 Motion, focus, elevation
 
-Motion tokens are in [Motion](motion.md). **Focus** is shadcn's: the control's border takes the ring colour and a 3 px ring at 50 percent shows (`focus-visible:ring-3 ring-ring/50`). Fields take a calmer soft ring. A skip link comes first on every page. **Elevation** is mostly flat hairlines; a menu, a popover and a toast use shadcn's shadows (`shadow-md`, `shadow-sm`, `shadow-lg`).
+Motion tokens are in [Motion](motion.md). **Focus** is one ring everywhere, shadcn's: a 3 px ring at 50 percent (`focus-visible:ring-3 focus-visible:ring-ring/50`), drawn inside (`focus-visible:ring-inset`) for a row or card, and by the base style (the same look as an outline) for a text button or link that sets none. Never 1 or 2 px, never another opacity (a field's box keeps its calmer 25 percent); the class rules refuse them. Fields take a calmer soft ring. A skip link comes first on every page. **Elevation** is mostly flat hairlines; a menu, a popover and a toast use shadcn's shadows (`shadow-md`, `shadow-sm`, `shadow-lg`).
 
 ### 2.7 Icons and avatars
 

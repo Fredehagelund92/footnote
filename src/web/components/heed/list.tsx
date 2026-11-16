@@ -251,7 +251,7 @@ export function GroupRow({
           type="button"
           aria-expanded={open}
           onClick={onToggle}
-          className="flex h-8 w-full items-center gap-1.5 px-4 text-left text-xs font-medium outline-none hover:bg-muted focus-visible:bg-muted md:px-6"
+          className="flex h-8 w-full items-center gap-1.5 px-4 text-left text-xs font-medium outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:px-6"
         >
           {open ? (
             <ChevronDownIcon className="size-3.5 text-muted-foreground" aria-hidden />
@@ -469,7 +469,7 @@ export function SortTh<K extends string>({
         title={tip}
         onClick={(e) => onSort(by, e)}
         className={cn(
-          'group/sort -mx-1.5 inline-flex h-6 items-center gap-1 rounded-md px-1.5 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+          'group/sort -mx-1.5 inline-flex h-6 items-center gap-1 rounded-md px-1.5 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
           on && 'text-foreground',
         )}
       >

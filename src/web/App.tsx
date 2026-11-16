@@ -307,7 +307,7 @@ function Shell() {
       {/* The first stop for the keyboard: past the sidebar, straight to the page. A button, since a #link would change the address. */}
       <button
         type="button"
-        className="pointer-events-none fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium opacity-0 shadow-md ring-3 ring-ring/50 focus-visible:pointer-events-auto focus-visible:opacity-100"
+        className="pointer-events-none fixed top-3 left-3 z-skip rounded-md bg-background px-3 py-2 text-sm font-medium opacity-0 shadow-md focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50"
         onClick={() => {
           // A page can name where it starts (Ask: the box to ask in); otherwise the page itself.
           const main = document.querySelector<HTMLElement>('[data-slot=sidebar-inset]')

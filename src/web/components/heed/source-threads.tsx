@@ -114,7 +114,7 @@ function PlaceThread({
       tabIndex={-1}
       aria-label={`${placeLabel(at)}: ${thread.author}'s comment, ${resolved ? 'resolved' : 'open'}`}
       className={cn(
-        'flex flex-col border-l-2 pl-3 outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex flex-col border-l-2 pl-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
         resolved ? 'border-muted-foreground/50' : 'border-primary',
       )}
     >
@@ -296,7 +296,7 @@ export function SourceThreadsSummary({
               <button
                 type="button"
                 onClick={() => onGo(c.id)}
-                className="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="text-xs text-muted-foreground">
                   {placeLabel(placeOf(c.anchor!))}, {c.author}

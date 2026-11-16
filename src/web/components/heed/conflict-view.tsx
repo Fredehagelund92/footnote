@@ -997,7 +997,7 @@ function ConflictBody({
     <div
       ref={sides[col.i]}
       tabIndex={-1}
-      className="flex flex-col gap-0.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex flex-col gap-0.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       onFocus={() => setFocusSide(col.i)}
     >
       <span className="text-xs text-muted-foreground">{sideLabel(col)}</span>

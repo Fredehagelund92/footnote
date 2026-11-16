@@ -399,8 +399,7 @@ export function StackedBars({
       ref={box}
       className={cn(
         'relative m-0',
-        choosing &&
-          'rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-4 focus-visible:ring-offset-background',
+        choosing && 'rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
       )}
       {...(choosing
         ? {
