@@ -143,6 +143,38 @@ describe("Ask's loop", () => {
     }
   })
 
+  it('carries the subject the answer used, never the oldest read of the chat', async () => {
+    const api = await world.as(ML)
+    /** A turn that reads `about`, then cites the first item it found, if any. */
+    const reading = (about: string) => {
+      decide = ({ results, step }) =>
+        step === 0
+          ? { calls: [{ toolName: 'get_context', input: { about } }] }
+          : { text: `As written [${itemsOf(results[0]!.value)[0]?.id ?? 'itm_none0000'}].` }
+    }
+    try {
+      reading('net revenue')
+      const first = await api.ask({ question: 'what is net revenue' })
+      reading('orders in Norway')
+      const second = await api.ask({
+        question: 'why did orders drop in Norway',
+        turns: [turnOf(first)],
+      })
+      const cited = second.sources?.[0]
+      expect(cited).toBeDefined()
+      // A turn that reads nothing and cites what the second turn's read found.
+      decide = () => ({ text: `Because of what is written [${cited}].` })
+      const third = await api.ask({
+        question: 'are you sure?',
+        turns: [turnOf(first), turnOf(second)],
+      })
+      expect(third.sources).toEqual([cited])
+      expect(third.loop?.subject).toMatchObject({ names: ['Orders', 'Norway'], carried: true })
+    } finally {
+      decide = null
+    }
+  })
+
   it('changes nothing and keeps none of a chat’s words, in any table', async () => {
     const api = await world.as(ML)
     // The first question of a session marks Ask as used for the setup checklist; after it, nothing.
