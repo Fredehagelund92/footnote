@@ -582,6 +582,12 @@ const getInput = z.strictObject({
   ),
   from: day.optional().describe('With to: the days, when the words name none.'),
   to: day.optional(),
+  no_period: z
+    .boolean()
+    .optional()
+    .describe(
+      'Set it when the person asks what something is or means and names no dates: the subject is read at any date, not at today. Never set it for a question about a figure, a change or a time.',
+    ),
   widen: z
     .strictObject({
       other_name: words
@@ -702,7 +708,13 @@ function getContext(
     without,
     found: a.items.length,
   })
-  const first = lookup({ question: input.about, ...(window ? { window } : {}) })
+  const asked = lookup({ question: input.about, ...(window ? { window } : {}) })
+  // A subject read at no period, when its words name no dates: today is not assumed, so the state
+  // is not Partial for want of a date (the words' own dates, or from and to, still stand).
+  const first =
+    input.no_period && asked.assumed && asked.scope
+      ? lookup({ scope: { ...asked.scope, window: anyDate } })
+      : asked
   if (hidesName(first)) return unreadOf(view, input.about, [], window)
   const searched = [searchedOf(first, input.about, null)]
   let widened: z.infer<typeof widenedSchema> = input.widen ? 'not needed' : 'not asked'
