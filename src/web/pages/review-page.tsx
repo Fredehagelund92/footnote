@@ -31,6 +31,7 @@ import { ToolLogo } from '@/components/heed/tool-logo'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Panel } from '@/components/heed/panel'
 import { SiteHeader } from '@/components/site-header'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -1972,6 +1973,12 @@ export function ReviewPage({ id }: { id: string }) {
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
           deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
+          more={
+            <DropdownMenuItem onClick={() => setQueueOpen(true)}>
+              <ListIcon />
+              Waiting suggestions
+            </DropdownMenuItem>
+          }
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
@@ -1997,17 +2004,6 @@ export function ReviewPage({ id }: { id: string }) {
             </Breadcrumb>
           }
         >
-          {isMobile && (
-            // The icon alone, named for a screen reader: the title keeps the room.
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Waiting suggestions"
-              onClick={() => setQueueOpen(true)}
-            >
-              <ListIcon />
-            </Button>
-          )}
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
             {at + 1} of {reviews.length}
           </span>
