@@ -186,46 +186,52 @@ export function FactPage({ id }: { id: string }) {
   // A draft nobody linked to has nothing beside it: no panel, once the read says so.
   const sideEmpty = !!page.data && !related.links.length && !history.length
 
-  const moreItems = (
-    <>
-      <DropdownMenuGroup>
-        {owner && fact.status === 'Due for a check' && (
-          <DropdownMenuItem
-            onClick={() =>
-              void write('editItem', {
-                id: fact.id,
-                patch: {
-                  status: 'Live',
-                  outOfDate: undefined,
-                  checkedBy: me.name,
-                  checkedOn: '22 Oct 2026',
-                },
-              }).then(() => toast('Checked: still true'))
-            }
-          >
-            Still true
-          </DropdownMenuItem>
+  const canCheck = owner && fact.status === 'Due for a check'
+  const canEdit = !(isMobile && (owner || !pending))
+  const canArchive = owner && fact.status !== 'Archived' && fact.status !== 'Draft'
+  const canDelete = owner && fact.status !== 'Archived'
+  const moreItems =
+    canCheck || canEdit || canArchive || canDelete ? (
+      <>
+        {(canCheck || canEdit || canArchive) && (
+          <DropdownMenuGroup>
+            {canCheck && (
+              <DropdownMenuItem
+                onClick={() =>
+                  void write('editItem', {
+                    id: fact.id,
+                    patch: {
+                      status: 'Live',
+                      outOfDate: undefined,
+                      checkedBy: me.name,
+                      checkedOn: '22 Oct 2026',
+                    },
+                  }).then(() => toast('Checked: still true'))
+                }
+              >
+                Still true
+              </DropdownMenuItem>
+            )}
+            {canEdit && (
+              <DropdownMenuItem
+                onClick={() => navigate('/context/' + fact.id + (owner ? '/edit' : '/suggest'))}
+              >
+                {owner ? 'Edit' : 'Suggest a change'}
+              </DropdownMenuItem>
+            )}
+            {canArchive && (
+              <DropdownMenuItem onClick={() => void archive()}>Archive</DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
         )}
-        {/* On a phone the header's own button is this, so the menu does not say it twice. */}
-        {!(isMobile && (owner || !pending)) && (
-          <DropdownMenuItem
-            onClick={() => navigate('/context/' + fact.id + (owner ? '/edit' : '/suggest'))}
-          >
-            {owner ? 'Edit' : 'Suggest a change'}
-          </DropdownMenuItem>
+        {canDelete && (
+          <>
+            {(canCheck || canEdit || canArchive) && <DropdownMenuSeparator />}
+            <DropdownMenuItem onClick={() => setDeleting(true)}>Delete</DropdownMenuItem>
+          </>
         )}
-        {owner && fact.status !== 'Archived' && fact.status !== 'Draft' && (
-          <DropdownMenuItem onClick={() => void archive()}>Archive</DropdownMenuItem>
-        )}
-      </DropdownMenuGroup>
-      {owner && fact.status !== 'Archived' && (
-        <>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDeleting(true)}>Delete</DropdownMenuItem>
-        </>
-      )}
-    </>
-  )
+      </>
+    ) : undefined
 
   return (
     <Page
