@@ -3,7 +3,7 @@ import type { Catalogue } from '../../../contract/index.ts'
 import * as z from 'zod'
 import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
-import { answerStates } from '../../../domain/answer-state.ts'
+import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
 import { windowWords } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
@@ -665,6 +665,13 @@ const nearbyWhy = {
 } as const
 const isNearbyReason = (r: string): r is keyof typeof nearbyWhy => Object.hasOwn(nearbyWhy, r)
 
+/**
+ * A read's state follows what its items cover. Today read because the words named no dates never
+ * sets it: the read line says so ("Today · assumed"). Agents' replies keep their own rule.
+ */
+const coveredState = (a: Answer) =>
+  answerStateOf({ status: a.status, items: a.items, uncovered: a.uncovered, assumed: false })
+
 function getContext(view: View, input: z.output<typeof getInput>, today: string) {
   const window = input.from && input.to ? { from: input.from, to: input.to } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
@@ -765,7 +772,7 @@ function getContext(view: View, input: z.output<typeof getInput>, today: string)
   const readWords = searched.at(wider ? 0 : -1)!.words
   const synonyms = synonymsRead(view, readWords, keysOf(counted))
   return {
-    state: counted.state,
+    state: coveredState(counted),
     read: scope
       ? {
           words: readWords,
