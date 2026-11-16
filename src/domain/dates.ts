@@ -1,4 +1,5 @@
 import { anyDate, isAnyDate, isCalendarDate, shiftDate, type DateWindow } from './validity.ts'
+import { normalizeName } from './vocabulary.ts'
 
 /*
   The date reader: the period the words of a question name, read the same way for get_context,
@@ -1048,6 +1049,48 @@ export function readDates(
 
 const list = (names: readonly string[]) =>
   names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+
+/** Whether two readings name the same days, as far as they have happened. */
+export function sameDays(a: DateWindow, b: DateWindow, today: string) {
+  const happened = (w: DateWindow) => {
+    const tomorrow = shiftDate(today, 1)
+    return !w.end || w.end > tomorrow ? tomorrow : w.end
+  }
+  return a.start === b.start && happened(a) === happened(b)
+}
+
+/** Days with a last day, end exclusive. */
+type Days = { start: string; end: string }
+
+/**
+ * The days a period's own words are read for, cross-checked against the days a model read them
+ * as (FR-719): the reader's stand where it places the words, with how it read them, and the
+ * model's, when they differ, are `other`, to be said beside them. The model's stand where the
+ * reader places none, and where they are the words read with the chat: a year where the words
+ * name none, so the reader's was only its guess ("and in Q3?" after "last year"), or days inside
+ * the reader's ("and last year?" after August 2026); then the reader's are `other`. A month or
+ * quarter alone is read as "in" it. Null with neither.
+ */
+export function crossCheckedDays(
+  words: string | undefined,
+  model: Days | undefined,
+  today: string,
+): { window: Days; readsAs: string | null; other: Days | null } | null {
+  const named = words ? normalizeName(words) : ''
+  const first = named ? readDates(named, today, { loose: true }) : null
+  const read =
+    first && first.status !== 'read' ? readDates(`in ${named}`, today, { loose: true }) : first
+  const end = read?.status === 'read' && !isAnyDate(read.window) ? read.window.end : null
+  if (read?.status !== 'read' || !end)
+    return model ? { window: model, readsAs: null, other: null } : null
+  const window = { start: read.window.start, end }
+  if (!model || sameDays(model, window, today))
+    return { window, readsAs: read.readsAs, other: null }
+  const inside = model.start >= window.start && model.end <= window.end
+  return inside || read.readsAs.includes('year not given')
+    ? { window: model, readsAs: null, other: window }
+    : { window, readsAs: read.readsAs, other: model }
+}
 
 /**
  * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",

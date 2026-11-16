@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { loadGoldenSet } from '../../../db/seed/golden-set.ts'
-import { dateNote, monthWords, readDates, whatHeedReads } from '../../../src/domain/dates.ts'
+import {
+  crossCheckedDays,
+  dateNote,
+  monthWords,
+  readDates,
+  whatHeedReads,
+} from '../../../src/domain/dates.ts'
 import { anyDate, shiftDate } from '../../../src/domain/validity.ts'
 import { normalizeName } from '../../../src/domain/vocabulary.ts'
 
@@ -652,5 +658,69 @@ describe('the note a person reads beside the days', () => {
   })
   it('reads nothing into a phrase without its parts', () => {
     expect(dateNote('1-30 Nov 2025')).toBeNull()
+  })
+})
+
+describe("the model's days for a period, checked against the reader's", () => {
+  const today = '2026-10-23'
+  const q3 = (year: number) => ({ start: `${year}-07-01`, end: `${year}-10-01` })
+
+  it('takes the reader’s days and its words for them when both agree', () => {
+    expect(crossCheckedDays('last quarter', q3(2026), today)).toEqual({
+      window: q3(2026),
+      readsAs: '1 Jul to 30 Sep 2026 (last quarter, Q3 2026; UTC)',
+      other: null,
+    })
+  })
+
+  it('agrees on days that have not happened yet: this year to today or to its end', () => {
+    expect(
+      crossCheckedDays('this year', { start: '2026-01-01', end: '2027-01-01' }, today)?.other,
+    ).toBeNull()
+  })
+
+  it('keeps the reader’s days where they differ, and gives the model’s as the other', () => {
+    const q2 = { start: '2026-04-01', end: '2026-07-01' }
+    expect(crossCheckedDays('last quarter', q2, today)).toEqual({
+      window: q3(2026),
+      readsAs: '1 Jul to 30 Sep 2026 (last quarter, Q3 2026; UTC)',
+      other: q2,
+    })
+  })
+
+  it('takes the model’s days inside the reader’s, and gives the reader’s as the other', () => {
+    const august = { start: '2025-08-01', end: '2025-09-01' }
+    expect(crossCheckedDays('last year', august, today)).toEqual({
+      window: august,
+      readsAs: null,
+      other: { start: '2025-01-01', end: '2026-01-01' },
+    })
+  })
+
+  it('takes the model’s year where the words name none, and gives the reader’s as the other', () => {
+    expect(crossCheckedDays('in Q3', q3(2025), today)).toEqual({
+      window: q3(2025),
+      readsAs: null,
+      other: q3(2026),
+    })
+  })
+
+  it('takes the model’s days where the reader places none of the words', () => {
+    const september = { start: '2026-09-01', end: '2026-10-01' }
+    for (const words of ['forrige måned', 'since the launch', undefined])
+      expect(crossCheckedDays(words, september, today)).toEqual({
+        window: september,
+        readsAs: null,
+        other: null,
+      })
+  })
+
+  it('takes the reader’s where the model gives no days, and nothing with neither', () => {
+    expect(crossCheckedDays('in November', undefined, today)?.window).toEqual({
+      start: '2025-11-01',
+      end: '2025-12-01',
+    })
+    expect(crossCheckedDays('currently', undefined, today)).toBeNull()
+    expect(crossCheckedDays(undefined, undefined, today)).toBeNull()
   })
 })

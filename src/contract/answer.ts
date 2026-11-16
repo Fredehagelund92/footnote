@@ -412,7 +412,8 @@ export const loopTurnSchema = z.object({
       period: z.string(),
       /**
        * How the days were read where the words left room, said beside them: "year not given",
-       * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'";
+       * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'",
+       * "could also mean 1 Jul to 30 Sep 2025" (the days Ask read the words as, when they differ);
        * null when nothing was guessed.
        */
       note: z.nullable(z.string()),

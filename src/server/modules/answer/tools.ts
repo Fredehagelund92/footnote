@@ -5,7 +5,7 @@ import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
-import { windowWords } from '../../../domain/dates.ts'
+import { crossCheckedDays, windowWords } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
 import { anyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
@@ -579,7 +579,19 @@ const getInput = z.strictObject({
   about: words.describe(
     'The subject in words: the metrics, the values of dimensions and the dates, as the person wrote them. Dates in the words are read as people write them.',
   ),
-  from: day.optional().describe('With to: the days, when the words name none.'),
+  period_words: z
+    .string()
+    .min(1)
+    .max(120)
+    .optional()
+    .describe(
+      "The person's own words for the period, as they wrote them, such as 'in Q3' or 'last year': read to check the days you give.",
+    ),
+  from: day
+    .optional()
+    .describe(
+      'With to: the days you read the period as, with the chat: a month or quarter without a year is in the year the chat is about.',
+    ),
   to: day.optional(),
   widen: z
     .strictObject({
@@ -606,6 +618,8 @@ const readSchema = z.object({
   assumedToday: z.boolean(),
   /** How the words' dates were read, when they named some. */
   datesRead: z.nullable(z.string()),
+  /** The days the period's words were also given as, when the reader read them otherwise. */
+  otherDays: z.nullable(z.string()),
   /** The words read only by a synonym someone wrote in Definitions, and what each was read as. */
   synonyms: z.array(z.object({ word: z.string(), name: z.string() })).optional(),
 })
@@ -673,7 +687,13 @@ const coveredState = (a: Answer) =>
   answerStateOf({ status: a.status, items: a.items, uncovered: a.uncovered, assumed: false })
 
 function getContext(view: View, input: z.output<typeof getInput>, today: string) {
-  const window = input.from && input.to ? { from: input.from, to: input.to } : undefined
+  // The model's days for the period, cross-checked against the reader's of the person's words.
+  const days = crossCheckedDays(
+    input.period_words,
+    input.from && input.to ? { start: input.from, end: shiftDate(input.to, 1) } : undefined,
+    today,
+  )
+  const window = days ? { from: days.window.start, to: shiftDate(days.window.end, -1) } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
     answer(view.bundle, ask, { today, person: true })
   // A name the person may not see is read as one Heed does not know.
@@ -780,7 +800,8 @@ function getContext(view: View, input: z.output<typeof getInput>, today: string)
           about: keysOf(counted).map(nounId),
           period: windowWords(scope.window),
           assumedToday: counted.assumed !== null,
-          datesRead: counted.dates?.reads_as ?? null,
+          datesRead: days ? days.readsAs : (counted.dates?.reads_as ?? null),
+          otherDays: days?.other ? windowWords(days.other) : null,
           ...(synonyms.length ? { synonyms } : {}),
         }
       : null,

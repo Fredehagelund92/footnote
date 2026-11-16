@@ -2,7 +2,7 @@ import * as z from 'zod/mini'
 import { chatSources, type ChatTurn } from './ask-chat.ts'
 import { NO_FACT, OWN_VOICE } from './answer-words.ts'
 import { auditWords } from './audit.ts'
-import { periodWords, readDates } from './dates.ts'
+import { periodWords, readDates, sameDays } from './dates.ts'
 import type { ItemKind } from './item.ts'
 import {
   aboutOf,
@@ -854,15 +854,6 @@ function modelDays(
   if (!from) return null
   const end = shiftDate(real(c.to) ?? ctx.today, 1)
   return from < end ? { start: from, end } : null
-}
-
-/** Whether two readings name the same days, as far as they have happened. */
-function sameDays(a: DateWindow, b: DateWindow, today: string) {
-  const happened = (w: DateWindow) => {
-    const tomorrow = shiftDate(today, 1)
-    return !w.end || w.end > tomorrow ? tomorrow : w.end
-  }
-  return a.start === b.start && happened(a) === happened(b)
 }
 
 /**
