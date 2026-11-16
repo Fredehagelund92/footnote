@@ -625,7 +625,10 @@ function from(card: InboxCard) {
     return card.flag.by
       ? `Reported by ${card.flag.by} from ${card.flag.via === 'Ask' ? 'Ask' : 'a chat with an agent'}, ${when}`
       : `Reported from a chat with an agent, ${when}`
-  if (card.gap) return `From what agents asked ${when}`
+  if (card.gap)
+    return card.gap.times === 0 && card.gap.told
+      ? `From Ask, where someone found nothing, ${when}`
+      : `From what agents asked ${when}`
   if (card.look || card.alert)
     return `Raised by ${card.alert ? `the alert rule ${card.alert.name}` : 'an alert'}, ${when}`
   return `Due ${when}, from an automatic check`
