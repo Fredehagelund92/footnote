@@ -62,6 +62,9 @@ export default defineConfig({
     // J67 opens a loop answer by the mock's example address; the service's read line is covered by
     // tests/web/integration/ask-loop-shapes.test.ts.
     /\/j67-ask-dates-read\.spec\.ts$/,
+    // J69 opens answers that cite N items by the mock's example address (loop-used-N); the
+    // service's answers have the sources the demo week gives them.
+    /\/j69-ask-used-fold\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
