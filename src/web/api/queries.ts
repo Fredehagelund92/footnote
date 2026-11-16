@@ -431,9 +431,9 @@ export const sharedQueries = () => [
 ]
 
 /**
- * The reviews, read with the others but not waited for: their read waits for the Inbox's
- * (api/http.ts), so the shell draws without them, and a screen that reads them waits in its own
- * loading state.
+ * The reviews, read with the others but waited for only on the Inbox: their read waits for the
+ * Inbox's (api/http.ts), so the shell draws without them elsewhere, and a screen that reads them
+ * there waits in its own loading state.
  */
 export const laterQueries = () => [reviewsQuery()]
 
