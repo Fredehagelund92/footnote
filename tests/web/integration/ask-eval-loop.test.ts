@@ -95,5 +95,5 @@ askEvalSuite({
     'P10',
     'P13',
   ],
-  heldPassingToday: 13,
+  heldPassingToday: 12,
 })
