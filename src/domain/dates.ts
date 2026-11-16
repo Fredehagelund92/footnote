@@ -1052,7 +1052,7 @@ const list = (names: readonly string[]) =>
 /**
  * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",
  * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'" or
- * "covers 'q3' and 'fy26'", not the words that name the period or its time zone, which the days
+ * "not taken: 'fy26'", not the words that name the period or its time zone, which the days
  * already say. Null when the words left Heed nothing to guess.
  */
 export function dateNote(readsAs: string): string | null {
@@ -1063,12 +1063,12 @@ export function dateNote(readsAs: string): string | null {
     .split('; ')
     .flatMap((what) => {
       if (what.startsWith('year not given')) return ['year not given']
-      const calendar = /, as the calendar (year|quarter)$/.exec(what)
+      const calendar = / read as the calendar (year|quarter)$/.exec(what)
       if (calendar) {
         const fiscal = what.includes('financial') ? 'financial' : 'fiscal'
         return [`${fiscal} ${calendar[1]} read as the calendar ${calendar[1]}`]
       }
-      return what === 'day first' || /^(could not place|covers) /.test(what) ? [what] : []
+      return what === 'day first' || /^(could not place|not taken:) /.test(what) ? [what] : []
     })
   return notes.length ? [...new Set(notes)].join(' · ') : null
 }
