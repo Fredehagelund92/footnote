@@ -2,6 +2,7 @@ import * as React from 'react'
 import { dayMonthYear, dayMonthYearLong } from '@/lib/dates'
 import type { LoopItem, LoopRun, LoopTurn } from '@contract/answer'
 import { dimensionHue, nounKindOf } from '@domain/ask-nouns'
+import { answerLines } from '@domain/words'
 import type { Domain } from '@/model/people'
 import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/heed/answer'
@@ -352,6 +353,18 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
   }
 }
 
+/**
+ * Why an item needs a look before its words are trusted, or null when it is fine: archived, may be
+ * out of date (a read said so), or due for a check.
+ */
+export function needsLook(item: Pick<LoopItem, 'status' | 'outOfDate'>) {
+  if (item.status === 'archived') return 'Archived'
+  // The long form of the Outdated state, from the one list of its words.
+  if (item.outOfDate) return answerLines.stale.long
+  if (item.status === 'due') return 'Due for a check'
+  return null
+}
+
 /** A status with its dot, as the Context list draws it: live green, due for a check amber. */
 function StatusMark({ status }: { status: Status }) {
   const dot = status === 'Live' ? 'bg-good' : status === 'Due for a check' ? 'bg-caution' : 'bg-off'
@@ -534,6 +547,43 @@ export function ItemRow({
           {twin && '\u00a0· another item with the same title'}
         </span>
       </span>
+    </li>
+  )
+}
+
+/**
+ * An item that needs a look, on one line: its number with its card, its kind and title, and why,
+ * in words that stand out from the line's muted ones.
+ */
+export function LookRow({ item }: { item: LoopItem }) {
+  const P = useParts()
+  const ahead = P.useReadAhead()
+  const Icon = P.kindIcons[kindOf(item.kind)]
+  const why = needsLook(item)
+  return (
+    <li className="flex min-h-7 min-w-0 items-center gap-2 text-sm">
+      {item.n ? <CiteMark n={item.n} item={item} /> : null}
+      {/* As near its title as an open row's icon is. */}
+      <Icon aria-hidden className="-mr-1 size-3.5 shrink-0 text-muted-foreground" />
+      <button
+        type="button"
+        {...ahead(item.id)}
+        onClick={() => P.openDock('context', item.id)}
+        className="min-w-0 truncate rounded-sm text-left underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {item.title}
+      </button>
+      {why && (
+        <span
+          className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${why === 'Archived' ? 'text-muted-foreground' : 'text-caution'}`}
+        >
+          <span
+            aria-hidden
+            className={`size-2 rounded-full ${why === 'Archived' ? 'bg-off' : 'bg-caution'}`}
+          />
+          {why}
+        </span>
+      )}
     </li>
   )
 }

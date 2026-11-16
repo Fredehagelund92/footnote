@@ -3,9 +3,11 @@ import type { LoopBlock, LoopItem, LoopOverview, LoopRun, LoopTurn } from '@cont
 import type { LucideIcon } from '@/components/icons'
 import {
   ItemRow,
+  LookRow,
   NounChip,
   Runs,
   dayText,
+  needsLook,
   statusWords,
   PartsContext,
   useParts,
@@ -335,10 +337,11 @@ function Rows({
 
 /**
  * How fresh the items used are, in a few words: "all Live, checked 21 Aug to 3 Nov 2026", or each
- * status with its count when they differ; the days are the first and last they were checked.
+ * status with its count when they differ, in the words of its pinned row when it needs a look; the
+ * days are the first and last they were checked.
  */
 function freshness(items: readonly LoopItem[]) {
-  const statuses = items.map((i) => statusWords(i).words)
+  const statuses = items.map((i) => needsLook(i) ?? statusWords(i).words)
   const counts = [...new Set(statuses)].map((w) => ({
     w,
     n: statuses.filter((s) => s === w).length,
@@ -353,37 +356,60 @@ function freshness(items: readonly LoopItem[]) {
   const first = days[0]
   const last = days.at(-1)
   if (!first || !last) return said
-  const to = dayText(last, true)
+  // A day is never broken across two lines.
+  const whole = (day: string) => day.replaceAll(' ', '\u00a0')
+  const to = whole(dayText(last, true))
   if (first === last) return `${said}, checked ${to}`
-  const from = first.slice(0, 4) === last.slice(0, 4) ? dayMonth(first) : dayText(first, true)
+  const from = whole(
+    first.slice(0, 4) === last.slice(0, 4) ? dayMonth(first) : dayText(first, true),
+  )
   return `${said}, checked ${from} to ${to}`
 }
 
 /**
  * What the answer used, as one line: how many items and how fresh they are, closed whenever an
- * answer arrives, since each is already cited in the words with its card. Opening it lists them.
+ * answer arrives, since each is already cited in the words with its card. An item that needs a
+ * look is never folded: it stays under the line, one line each. Opening it lists the rest.
  */
 function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
   const P = useParts()
   const summary = React.useId()
+  const look = items.filter((i) => needsLook(i))
+  const rest = items.filter((i) => !needsLook(i))
+  const label = `Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`
   return (
     <P.Collapsible data-used className="flex max-w-reading flex-col gap-2">
-      <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-        <P.FoldTrigger
-          variant="inline"
-          label={`Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
-          aria-describedby={summary}
-          className="-ml-1 px-1 text-xs font-medium text-foreground"
-        />
-        {/* The fold's own padding is its space before the dot. */}
-        <span aria-hidden className="-ml-1">
+      {/* Inline text, so a summary too long for the line wraps after the dot, never before it. */}
+      <p className="text-xs text-muted-foreground">
+        {rest.length ? (
+          <P.FoldTrigger
+            variant="inline"
+            label={label}
+            aria-describedby={summary}
+            className="-ml-1 px-1 text-xs font-medium text-foreground"
+          />
+        ) : (
+          // Every item is in sight below: there is nothing more to open.
+          <span className="font-medium text-foreground">{label}</span>
+        )}
+        {/* The fold's own padding is most of its space before the dot. */}
+        <span aria-hidden className={rest.length ? 'mr-1.5 ml-0.5' : 'mx-1.5'}>
           ·
         </span>
         <span id={summary}>{freshness(items)}</span>
       </p>
-      <P.CollapsibleContent>
-        <Rows items={items} nouns={nouns} />
-      </P.CollapsibleContent>
+      {look.length > 0 && (
+        <ul data-pinned className="flex flex-col">
+          {look.map((item) => (
+            <LookRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
+      {rest.length > 0 && (
+        <P.CollapsibleContent>
+          <Rows items={rest} nouns={nouns} />
+        </P.CollapsibleContent>
+      )}
     </P.Collapsible>
   )
 }
