@@ -163,6 +163,39 @@ describe('what code writes from the reads', () => {
     expect(t.sources).toEqual([])
   })
 
+  it('carries the subject read the answer cites, else the latest, never the oldest', () => {
+    const about = (names: string[], id: string): MadeRead => {
+      const read = get('grounded', [{ ...item(id), match: 'all' }])
+      const result = read.result as { read: object }
+      return { ...read, result: { ...result, read: { ...result.read, names } } }
+    }
+    const revenue = about(['Net revenue'], 'itm_revenue01')
+    const norway = about(['Orders', 'Norway'], 'itm_norway001')
+    const sweden = about(['Orders', 'Sweden'], 'itm_sweden001')
+    const search = find([{ ...item('itm_germany01'), match: 'all' }], 1)
+    const names = (t: LoopTurn) =>
+      t.subject && { names: t.subject.names, carried: t.subject.carried }
+    // A turn that reads nothing takes the earlier read whose items it cites.
+    expect(names(turnOf('As written [itm_norway001].', [], [revenue, norway, sweden]))).toEqual({
+      names: ['Orders', 'Norway'],
+      carried: true,
+    })
+    // One that cites only what a search found takes the latest subject read.
+    expect(names(turnOf('As written [itm_germany01].', [], [revenue, norway, search]))).toEqual({
+      names: ['Orders', 'Norway'],
+      carried: true,
+    })
+    // Its own reads: the one it cites, else its first.
+    expect(names(turnOf('As written [itm_sweden001].', [norway, sweden], []))).toEqual({
+      names: ['Orders', 'Sweden'],
+      carried: false,
+    })
+    expect(names(turnOf('As written [itm_germany01].', [norway, sweden, search], []))).toEqual({
+      names: ['Orders', 'Norway'],
+      carried: false,
+    })
+  })
+
   it('takes what the cited items are when a search found what the subject read did not', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',

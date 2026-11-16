@@ -892,27 +892,40 @@ function disagreeing(made: readonly MadeRead[], sources: readonly string[]): str
 }
 
 /**
- * What the first get_context read that read a subject read: the names, as nouns too, the days and
- * what no item covers; `carried` when the read was an earlier turn's, made again.
+ * What the get_context read of the subject the answer used read: the names, as nouns too, the days
+ * and what no item covers. The latest such read whose items the answer cites; else the turn's first,
+ * or of the chat's earlier reads the latest, never the oldest; `carried` when the read was an
+ * earlier turn's, made again.
  */
-function subjectOf(made: readonly MadeRead[], carried = false): LoopTurn['subject'] {
-  for (const m of made) {
-    if (m.tool !== 'get_context' || !isObj(m.result) || isError(m.result) || !isObj(m.result.read))
-      continue
-    const { names, about, period, assumedToday } = m.result.read
-    if (!Array.isArray(names) || typeof period !== 'string') continue
-    const ids = (v: unknown) =>
-      Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
-    return {
-      names: ids(names),
-      about: ids(about),
-      period,
-      assumedToday: assumedToday === true,
-      carried,
-      uncovered: ids(m.result.uncovered),
-    }
+function subjectOf(
+  made: readonly MadeRead[],
+  carried = false,
+  cited: readonly string[] = [],
+): LoopTurn['subject'] {
+  const subjects = made.filter(
+    (m) =>
+      m.tool === 'get_context' &&
+      isObj(m.result) &&
+      !isError(m.result) &&
+      isObj(m.result.read) &&
+      Array.isArray(m.result.read.names) &&
+      typeof m.result.read.period === 'string',
+  )
+  const m =
+    subjects.findLast((s) => foundIds(s).some((id) => cited.includes(id))) ??
+    (carried ? subjects.at(-1) : subjects[0])
+  if (!m || !isObj(m.result) || !isObj(m.result.read)) return null
+  const { names, about, period, assumedToday } = m.result.read
+  const ids = (v: unknown) =>
+    Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
+  return {
+    names: ids(names),
+    about: ids(about),
+    period: String(period),
+    assumedToday: assumedToday === true,
+    carried,
+    uncovered: ids(m.result.uncovered),
   }
-  return null
 }
 
 /** The items the turn's get_context reads gave as nearby: about the same names, not applying. */
@@ -1246,7 +1259,8 @@ function evidenceOf(
   const fromEarlier = !made.length && order.length > 0
   const about = fromEarlier ? earlier : made
   const state = hasText || order.length ? stateOf(about, order, items, earlier) : null
-  const subject = subjectOf(about, fromEarlier) ?? (made.length ? null : subjectOf(earlier, true))
+  const subject =
+    subjectOf(about, fromEarlier, order) ?? (made.length ? null : subjectOf(earlier, true, order))
   return { items, about, state, subject, fromEarlier }
 }
 
