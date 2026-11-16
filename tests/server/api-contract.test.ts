@@ -166,7 +166,8 @@ describe('the API over HTTP', () => {
     expect(item.json()).toMatchObject({
       code: 'NOT_FOUND',
       defined: true,
-      message: refusals.notFound,
+      message:
+        "We couldn't find what you asked for. Nothing was changed. It may have been deleted, or you may not have access: reload the page and look again.",
     })
     const operation = await instance.inject({ method: 'GET', url: '/api/v1/nothing' })
     expect(operation.statusCode).toBe(404)
@@ -277,6 +278,7 @@ describe('the API over HTTP', () => {
       '/figures/read',
       '/figures/{id}',
       '/figures/{id}/try',
+      '/gaps/reports',
       '/gaps/{id}',
       '/imports',
       '/inbox/cards/decide',

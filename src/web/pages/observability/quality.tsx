@@ -48,7 +48,7 @@ import { ReadingLine } from '@/components/heed/reading'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SavedCheck } from '@/api'
 import { conflictsQuery, queryKeys, savedCheckQuery, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { openDock } from '@/lib/dock'
 import { savedCounts, type SavedQuestion, type SavedResult } from '@/model/saved-questions'
 import { useSavedQuestions } from '@/api/queries'
@@ -63,7 +63,7 @@ import { ObsPage } from '@/pages/observability'
 // Quality: the one list of saved questions and how each answers after the last change. Needs a look
 // first, then Changed, then Same; before and now in place; Open the item or Keep the new answer. The
 // check is free and the same every time: it runs after a publish, an archive, a restore, a sync or
-// a check date passing, or on Check now. The heavy checks (wording, with and without context, other
+// a check date passing, or on Run now. The answer tests (wording, with and without context, other
 // models) need a model key and live in Settings, Advanced. Drift is announced by Alerts, not here.
 
 const GROUPS: { result: SavedResult; title: string; icon: typeof CheckIcon }[] = [
@@ -88,7 +88,7 @@ function Quality({ first }: { first: SavedCheck }) {
   const all = useSavedQuestions()
   const write = useWrite()
   const queryClient = useQueryClient()
-  // Check now, while it runs here: where it stands is read again a few times a second.
+  // Run now, while it runs here: where it stands is read again a few times a second.
   const [checking, setChecking] = React.useState(false)
   const status =
     useQuery({ ...savedCheckQuery(), refetchInterval: checking ? 200 : false }).data ?? first
@@ -170,7 +170,7 @@ function Quality({ first }: { first: SavedCheck }) {
         onClick={() => online && !running && check()}
       >
         <RefreshCwIcon data-icon="inline-start" />
-        Check now
+        Run now
       </Button>
     </div>
   )
@@ -186,8 +186,8 @@ function Quality({ first }: { first: SavedCheck }) {
             </EmptyMedia>
             <EmptyTitle>No saved questions yet</EmptyTitle>
             <EmptyDescription>
-              Save a question from an answer in Ask, or from a gap's draft in the Inbox. Every
-              change is then checked against it, and the result shows here.
+              Save a question from an answer in Ask, or from a Not found card's draft in the Inbox.
+              Every change is then checked against it, and the result shows here.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent className="flex-row justify-center">
@@ -346,7 +346,7 @@ function Quality({ first }: { first: SavedCheck }) {
 function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean }) {
   const domains = useDomains()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const open = (
     <a
       key="open"
@@ -367,10 +367,9 @@ function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean })
       }
       onClick={() => {
         if (!canChange) return
-        void write('keepNewAnswer', { id: q.id }).then(({ undo }) => {
-          toast('The new answer is its saved one', {
+        void write('keepNewAnswer', { id: q.id }).then((kept) => {
+          undo.offer('The new answer is its saved one', kept.undo, {
             description: 'It is checked against it from now on.',
-            action: { label: 'Undo', onClick: () => void takeBack(undo) },
           })
         })
       }}
@@ -416,7 +415,7 @@ function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean })
             </div>
             {q.conflict && (
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Keep the new answer saves the conflict as the answer to expect. It does not settle
+                Keep the new answer saves the conflict as the answer to expect. It does not decide
                 it.
               </p>
             )}
@@ -451,7 +450,7 @@ function AddQuestion({ domains: choices, me }: { domains: DomainId[]; me: string
                 question: q.trim(),
                 domain: d,
                 savedBy: me,
-                expect: 'What it gets now, checked against every change.',
+                expect: 'What it gets now, run again after every change.',
                 factId: '',
               },
               origin: 'typed',

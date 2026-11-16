@@ -44,7 +44,7 @@ function setup() {
 }
 const question = 'Orders Norway August 2026'
 /** How the fixture's item was reviewed, in the reply's words (FR-326). */
-const reviewedSentence = 'Accepted 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.'
+const reviewedSentence = 'Published 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.'
 
 it('cuts links before items, respects multibyte budgets and never mutates the cached edition', async () => {
   const s = setup()
@@ -1041,7 +1041,7 @@ describe('a question without dates', () => {
       })
       expect(reply).not.toHaveProperty('assumed_date')
       expect(reply.say).toBe(
-        '1 fact applies to Orders in Norway from 1 to 7 October 2026 (the 7 days to today). Only that was checked.',
+        '1 context item applies to Orders in Norway from 1 to 7 October 2026 (the 7 days to today). Only that was checked.',
       )
       expect(reply.check_report.statements).not.toContain(statement)
     }
@@ -1152,7 +1152,7 @@ describe('get_context', () => {
     expect(keys(out)).toEqual(['asked', 'context', 'edition', 'reply_id', 'say', 'status'])
     expect(out).toMatchObject({
       status: 'matched',
-      say: 'Checked. 1 fact applies to Orders in Norway in August 2026. Only that was checked.',
+      say: 'Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.',
       asked: 'Orders in Norway in August 2026',
     })
     // The reply id is the delivery's id, which report takes.
@@ -1185,7 +1185,7 @@ describe('get_context', () => {
       context: { may_be_out_of_date?: boolean }[]
     }
     expect(out.status).toBe('stale')
-    expect(out.say).toMatch(/^Outdated\. Some of this may be old\. 1 fact applies /)
+    expect(out.say).toMatch(/^Outdated\. Some of this may be old\. 1 context item applies /)
     expect(out.context[0]!.may_be_out_of_date).toBe(true)
     // get_facts keeps the resolver's status and its own words.
     const legacy = (await s.call('get_facts', { question })).structuredContent as {
@@ -1193,7 +1193,7 @@ describe('get_context', () => {
       say: string
     }
     expect(legacy.status).toBe('matched')
-    expect(legacy.say).toMatch(/^1 fact applies /)
+    expect(legacy.say).toMatch(/^1 context item applies /)
   })
 
   it('says Partial only when no item covers the whole question', async () => {
@@ -1236,7 +1236,7 @@ describe('get_context', () => {
       context: { id: string; disagrees_with?: string[] }[]
     }
     expect(out.status).toBe('conflict')
-    expect(out.say).toMatch(/^Conflict\. Two items say different things\. 2 facts apply /)
+    expect(out.say).toMatch(/^Conflict\. Two items say different things\. 2 context items apply /)
     expect(out.next).toBe('Give both sides of disagrees_with and say they disagree.')
     expect(out.context.map((item) => [item.id, item.disagrees_with])).toEqual([
       ['itm_norway01', ['itm_norway02']],
@@ -1266,7 +1266,7 @@ describe('get_context', () => {
       say: string
     }
     expect(failed.status).toBe('check_failed')
-    expect(failed.say).toMatch(/^Not checked\. The check did not run\./)
+    expect(failed.say).toMatch(/^Not looked up\. Ask could not look this up just now\./)
   })
 
   it('keeps the full reply, with every detail of the item and how the question was read', async () => {
@@ -1303,7 +1303,7 @@ describe('get_context', () => {
       context: unknown[]
     }
     expect(out.context).toHaveLength(1)
-    expect(out.say).toContain("1 more fact applies but didn't fit in this reply.")
+    expect(out.say).toContain("1 more context item applies but didn't fit in this reply.")
     expect(out.next).toContain('Call again with a higher max_bytes to get them.')
   })
 })
@@ -1327,8 +1327,8 @@ describe('read_context and find_context', () => {
     const missing = (await s.call('read_context', { id: 'itm_missing001' })).structuredContent
     expect(missing).toMatchObject({
       status: 'no_match',
-      say: "There's no fact by that id that you can read.",
-      next: 'That says nothing about what else is written down: find facts with find_context or get_context.',
+      say: "There's no context item by that id that you can read.",
+      next: 'That says nothing about what else is written down: find context items with find_context or get_context.',
     })
   })
 

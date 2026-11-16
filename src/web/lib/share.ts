@@ -1,4 +1,5 @@
 import { askedOf, stateLabel, stateSentence, type Answer } from '@/model/ask'
+import { dayMonthYear } from './dates'
 import { today } from './today'
 import type { Fact } from '@/model/items'
 
@@ -6,13 +7,8 @@ import type { Fact } from '@/model/items'
 // the answer already says: its state, its words, and each source with who checked it and when.
 // There is no link: a link would show the context to whoever opens it, and that comes later.
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 /** "23 Oct 2026", from the service's today. */
-export const answeredOn = (iso: string = today()) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return `${d} ${MONTHS[m! - 1]} ${y}`
-}
+export const answeredOn = (iso: string = today()) => dayMonthYear(iso)
 
 /** The state line as it travels: "Checked (2 items)", "Partial (1 item). Only part of this is written down." */
 export function stateLineOf(answer: Pick<Answer, 'state'>, sources: number) {

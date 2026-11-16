@@ -28,6 +28,7 @@ import type { ClashRelation } from '../../../domain/readiness.ts'
 import { kinds, type Kind } from '../../../domain/words.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { conflictsOfItem } from '../conflicts/index.ts'
 import { enabledTools } from '../editions/index.ts'
@@ -37,6 +38,7 @@ import { draftVocabulary } from '../../mcp/draft-tool.ts'
 import { proposalEvent, readVersions, type ProposalsService } from '../proposals/index.ts'
 import { draftOf, type ReviewPath, type ReviewService } from '../review/index.ts'
 import { readableAddress, type PageReader } from '../web/index.ts'
+import { missing, signedOutKept } from '../../../contract/refusals.ts'
 
 /**
  * Context for people (docs/product.md, section 3): a context item's page and its history, the
@@ -98,7 +100,7 @@ export function createContextService(
   }
   async function me(): Promise<BulkPerson> {
     const found = await person(null)
-    if (!found) throw new ORPCError('UNAUTHORIZED')
+    if (!found) throw new ORPCError('UNAUTHORIZED', { message: signedOutKept })
     return found
   }
   async function domainNames(): Promise<(id: string) => string> {
@@ -246,7 +248,7 @@ export function createContextService(
     await review.checkSubmitted(submitted.id)
     const current = await proposals.get(submitted.id)
     const published = await path.publish({ id: current.id, revision: current.revision })
-    return published.undo.slice('decision:'.length)
+    return published.undo.token.slice('decision:'.length)
   }
 
   async function lastDecision(itemId: string, outcome: 'retire' | 'accept'): Promise<string> {
@@ -380,7 +382,7 @@ export function createContextService(
       skipped,
       failed,
       change: { id: change!.id, summary },
-      undo: `change:${change!.id}`,
+      undo: await undoOffer(tx, `change:${change!.id}`),
     }
   }
 
@@ -394,7 +396,7 @@ export function createContextService(
          from item_changes where id = $1::uuid`,
       [id],
     )
-    if (!change) throw new ORPCError('NOT_FOUND')
+    if (!change) throw new ORPCError('NOT_FOUND', { message: missing('this change') })
     if (!change.mine)
       throw new ORPCError('FORBIDDEN', {
         message: 'Only the person who made the change can undo it.',
@@ -425,7 +427,8 @@ export function createContextService(
   }
 
   async function markRead(id: string) {
-    if (!(await library.getIndexRow(id))) throw new ORPCError('NOT_FOUND')
+    if (!(await library.getIndexRow(id)))
+      throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
     await tx.query(
       `insert into item_reads (person_id, item_id) values (cl_person(), $1)
        on conflict (person_id, item_id) do update set read_at = now()`,
@@ -640,7 +643,7 @@ export function createContextService(
   /** An earlier version's words as a new draft of a change, for an owner or an admin (FR-140). */
   async function restoreAsDraft(input: { id: string; version: number }) {
     const row = await library.getIndexRow(input.id)
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
     const mine = await me()
     if (!mine.admin && !mine.owns.includes(row.areaId))
       throw new ORPCError('FORBIDDEN', {

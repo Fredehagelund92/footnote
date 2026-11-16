@@ -49,7 +49,7 @@ that data. Its default reply is short:
 ```json
 {
   "status": "matched",
-  "say": "Checked. 1 fact applies to Orders in Norway in August 2026. Only that was checked.",
+  "say": "Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.",
   "asked": "Orders in Norway in August 2026",
   "context": [
     {
@@ -76,7 +76,7 @@ that data. Its default reply is short:
 `status` carries the answer state (`src/domain/answer-state.ts`): `matched` (Checked), `partial`
 (Partial: no item covers the whole question, or `get_context` read a question with no dates at today), `no_match` (Not found), `conflict` (Conflict: two
 items that apply disagree), `stale` (Outdated: an item's check date passed or its source changed)
-and `check_failed` (Not checked); `need_more_detail` means the question could not be read, which is
+and `check_failed` (Not looked up); `need_more_detail` means the question could not be read, which is
 no answer state. `say` starts with the answer line, its label and, but for Checked, its sentence.
 `next` comes only when there is a step to take. Each item's `kind` is the label agents read
 (`event`, `warning`, `rule`, `guide`), `when` and `applies` say when and where it applies, `checked`
@@ -411,7 +411,8 @@ archive and a rollback also take an `Idempotency-Key`.
 Heed v1's one review screen and its Inbox (docs/product.md, sections 4 and 5) read and decide
 through these operations, typed in `src/contract/review-path.ts` and `src/contract/inbox.ts`.
 Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A decision
-that can be taken back answers with an `undo` token for `POST /decisions/undo`.
+that can be taken back answers with `undo: { token, until }`: the token for `POST /decisions/undo`,
+and when the service stops taking it (`cl_undo_until`; null when it is taken at any time).
 
 - `GET /review/{id}/sheet` is the review page's one read of a suggestion (FR-224), waiting or
   decided; a suggestion to archive shows the version it archives, and once archived the version
@@ -451,7 +452,7 @@ that can be taken back answers with an `undo` token for `POST /decisions/undo`.
   version (FR-226); a version that is no longer the one under review is 409.
   `POST /review/publish-read` takes `{ ids }` (up to 50) and publishes each suggestion the
   person read that needs no look of its own, each as Publish would: a plain change, with no
-  clash, no claim to check, no new source and no new value without one. A retirement and a
+  clash, no detail to compare, no new source and no new value without one. A retirement and a
   draft for a Not found card always get their own look. It names every one it left out, with a code
   (`not_read`, `needs_care`, `not_waiting`, `not_allowed` or `refused`), and one token undoes
   them all.
@@ -557,7 +558,7 @@ edition holds is built from them. Writes need the session cookie, `Origin`, `x-h
 Heed v1's Context list, a context item's page, the editor and Settings, Advanced (docs/product.md,
 section 3) read and change items through these operations, typed in `src/contract/context.ts`.
 Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A change that
-can be taken back answers with an `undo` token for `POST /decisions/undo`.
+can be taken back answers with `undo: { token, until }`, as a decision does.
 
 - `GET /items/{id}/page` is a context item's page: the item as published, what its list row
   reads (`lastChecked`, `trust`, `chips`), its own `owners` and its `history`, newest first. Each
@@ -772,9 +773,9 @@ and `next` as before.
   sentence is a `sentence` event, sent once it is complete and passes the check (citing only the
   items given, with no list, heading, link or number it was not given), and `words-end` closes
   them. A sentence that cites items may say only what those items, the definitions given and the
-  question say; one that cites none may only restate the question or what agents are told, or say
-  what a definition says, and before any that cites an item one short lead may say what the items
-  say, held until a sentence that cites an item has passed. A sentence that says more is left out
+  question say; one that cites none is not weighed by its words and is never left out for them
+  (its numbers are checked as every sentence's are), but waits until a sentence that cites an item,
+  or says what a definition says, has passed. A sentence that cites items and says more is left out
   and the words go on (the log says `sentences left out`, with the check's reason and how many).
   `[1, 2]` is read as `[1][2]`. A sentence that fails the first check ends the words there, and
   nothing after it is sent, and the words run to at most 1,200 characters. When no sentence passes, the spending limits leave no room, or the provider
@@ -1076,7 +1077,7 @@ Heed v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read and ch
   groups, each with Default (the first version, which the install wrote) or Changed and who changed
   it last: the person, or an update or a script when no person wrote the version. It also reads what
   was deleted (`GET /context/deleted`, `GET /terms/deleted`), the history log's latest entries
-  (`GET /audit`), the jobs (`GET /operations`) and the editions (`GET /editions`). Check the chain
+  (`GET /audit`), the jobs (`GET /operations`) and the editions (`GET /editions`). Verify the log
   is `GET /audit/verify`; the exports are `GET /audit/export` and the live edition's
   `GET /editions/{label}/export`.
 
@@ -1117,7 +1118,7 @@ the change, in its own transactions.
   for whoever kept it, once.
 - `DELETE /saved-questions/{id}`: removes it; it is kept, marked removed, out of every list and
   check.
-- `POST /saved-questions/check` (`{ areaId? }`, Check now): checks every saved question the person
+- `POST /saved-questions/check` (`{ areaId? }`, Run now): checks every saved question the person
   manages, or one domain's, counting as it goes, and answers with the run and how many are Same,
   Changed and Needs a look. Nothing is published.
 - `GET /saved-questions/status` (`areaId` to narrow): the newest run the person started or the job
@@ -1165,7 +1166,7 @@ the contract is in `src/contract/alerts.ts`.
   (`look:<domain>`, group `look`) that lists them. Each raise of the five rules with no other card
   (Conflict, More questions not found, Calls fail, Model spend, A connected tool did not sync) is
   an Alert card (`alert:<raise id>`, group `alert`, in the Alerts group after Saved questions) for
-  whom it reached, for a week or until its Inbox item is archived: its title, the rule, and where
+  whom it reached, for a week: its title, the rule, and where
   its one action goes. An Alert card, a Not found card, a Saved questions card and a card for an
   item whose check date passed do not reach anyone while their rule is off, nor someone who muted
   their rule for the card's domain. An Alert card is left out only when the person muted its rule

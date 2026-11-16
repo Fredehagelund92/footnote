@@ -23,7 +23,7 @@ import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/heed/tool-logo'
 import { pairOfKey } from '@/model/conflicts'
 import { integrationHref, lookOf } from '@/model/integrations'
-import { careLine, countWord, type Review } from '@/model/review'
+import { askedWords, careLine, changeWords, gapRowWords, type Review } from '@/model/review'
 import { QuickHead, QuickReview } from '@/pages/review'
 import {
   AskedAbout,
@@ -82,7 +82,7 @@ import {
   useWorkspace,
   useWrite,
 } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/heed/conflict-pair'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -126,20 +126,23 @@ function Cell({ className, ...props }: React.ComponentProps<typeof Card>) {
 
 /* ---------- the list ---------- */
 
-/** How big a suggestion is, from its review: "2 wording, 1 link - 12 questions". */
-function evidence(r: Review | undefined) {
-  if (!r) return ''
-  const size =
+/**
+ * What a suggestion does, from its review, in a sentence that starts with who it is from:
+ * "Ines Duarte changed 2 sentences and 2 links."
+ */
+function didWords(from: string, r: Review | undefined) {
+  if (!r) return from ? `From ${from}.` : ''
+  const did =
     r.mode === 'new'
-      ? 'New item'
+      ? 'suggests a new item'
       : r.mode === 'retire'
-        ? 'Archives an item'
-        : r.counts.map((c) => `${c.n} ${countWord(c.kind, c.n)}`).join(', ')
-  const reach = r.tryIt.reach
-  return reach ? [size, `${reach} ${reach === 1 ? 'question' : 'questions'}`].join(' - ') : size
+        ? 'suggests archiving an item'
+        : changeWords(r.counts)
+  if (!did) return from ? `From ${from}.` : ''
+  return from ? `${from} ${did}.` : `${did[0]!.toUpperCase()}${did.slice(1)}.`
 }
 
-/** What a row's suggestion needs before it can go out, from its review: "Overlaps live context". */
+/** What a row's suggestion needs before it can go out, from its review: "About the same thing as 2 published items". */
 function rowCare(row: InboxRow, reviews: Review[]) {
   if (row.kind !== 'card' || row.done) return undefined
   const review = reviews.find((r) => r.id === row.card.id)
@@ -167,17 +170,18 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
         ? `${s.agent}, with ${s.from}'s OK`
         : s.from
       : ''
-  if (s || card.source)
-    return [from, care, evidence(reviews.find((r) => r.id === card.id))]
-      .filter(Boolean)
-      .map((part, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && ' - '}
-          {part}
-        </React.Fragment>
-      ))
-  if (card.gap)
-    return `${card.gap.times === 0 ? 'Found nothing, not asked this week' : `Asked ${card.gap.times} times this week, found nothing`}${card.gap.acrossMonths ? ', across a month edge' : ''}`
+  if (s || card.source) {
+    const review = reviews.find((r) => r.id === card.id)
+    const reach = review?.tryIt.reach
+    return (
+      <>
+        {didWords(from, review)}
+        {care && <> {care}.</>}
+        {reach ? ` ${askedWords(reach)}` : ''}
+      </>
+    )
+  }
+  if (card.gap) return gapRowWords(card.gap)
   if (card.flag) return `Reported as ${card.flag.reason}: “${card.flag.note}”`
   if (card.look) return 'Raised by an alert: saved questions answer worse'
   if (card.alert) return `Raised by an alert: ${card.alert.name}`
@@ -564,7 +568,7 @@ function useActions(card: InboxCard) {
         return run({
           outcome: 'Checked',
           message: 'Checked: still true',
-          description: 'The next check is due on 20 Jan 2027.',
+          description: 'It comes back when it is due for a check.',
           patch: {
             status: 'Live',
             outOfDate: undefined,
@@ -621,7 +625,10 @@ function from(card: InboxCard) {
     return card.flag.by
       ? `Reported by ${card.flag.by} from ${card.flag.via === 'Ask' ? 'Ask' : 'a chat with an agent'}, ${when}`
       : `Reported from a chat with an agent, ${when}`
-  if (card.gap) return `From what agents asked ${when}`
+  if (card.gap)
+    return card.gap.times === 0 && card.gap.told
+      ? `From Ask, where someone found nothing, ${when}`
+      : `From what agents asked ${when}`
   if (card.look || card.alert)
     return `Raised by ${card.alert ? `the alert rule ${card.alert.name}` : 'an alert'}, ${when}`
   return `Due ${when}, from an automatic check`
@@ -831,7 +838,7 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
     <PrimaryAction
       onClick={() => {
         void commentActions.seenMention(subject)
-        toast('Done', { description: 'The comment stays in the thread.' })
+        toast('Done', { description: 'The comment stays in the comments.' })
         next()
       }}
     >
@@ -947,7 +954,7 @@ function MentionDetail({
       label={title}
       nav={nav}
       foot={
-        <PaneFoot follows="Reply in the thread, or mark it done">
+        <PaneFoot follows="Reply to the comment, or mark it done">
           <MentionDone subject={note.subject} next={next} />
         </PaneFoot>
       }
@@ -1002,7 +1009,7 @@ function whereContextGoes(me: Person, domains: Domain[]) {
   if (me.owns.includes(home.id)) return `Context goes to the domain ${home.name}, owned by you.`
   const by = home.owners.length ? `owned by ${listOf(home.owners)}` : 'which has no owner yet'
   return `Context goes to the domain ${home.name}, ${by}. ${
-    me.admin ? 'As an admin, you publish it at once.' : 'It goes live once an owner publishes it.'
+    me.admin ? 'As an admin, you publish it at once.' : 'Agents get it once an owner publishes it.'
   }`
 }
 
@@ -1071,7 +1078,7 @@ function Setup() {
         <div className="mx-auto flex w-full max-w-3xl flex-col p-4 md:p-6">
           <div className="grid grid-cols-1 gap-px bg-border p-px">
             <Cell className="gap-0 py-0">
-              <CardHeader className="border-b px-4 py-4">
+              <CardHeader className="border-b px-4 py-4 md:px-5">
                 <CardTitle className="text-base">
                   Set up your workspace so agents can use what you know
                 </CardTitle>
@@ -1206,7 +1213,7 @@ export function InboxPage() {
   const inbox = useInbox()
   const { install } = useSession()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const commentActions = useCommentActions()
   const { query } = useRoute()
   const isMobile = useIsMobile()
@@ -1324,28 +1331,43 @@ export function InboxPage() {
   })
 
   /**
-   * A decision on a card, without a wait: the row goes now and the next card opens; Undo stays for
-   * 6s; the save runs behind it (it takes as long as a send, and with ?decide=fail or
-   * ?state=failed the mock fails each card's first one), and if it fails the card comes back with
-   * Try again.
+   * A decision on a card, without a wait: the row goes now and the next card opens, with Undo;
+   * the save runs behind it (it takes as long as a send, and with ?decide=fail or ?state=failed the
+   * mock fails each card's first one), and if it fails the card comes back with Try again. Undo
+   * then stays for as long as the service's answer says it takes it.
    */
   const decide = (card: InboxCard, d: Decision) => {
     let undone = false
-    let saved: string | undefined
+    let gone = false
     next()
+    const said = toast(d.message, {
+      description: d.description,
+      duration: Infinity,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          undone = true
+        },
+      },
+      onDismiss: () => {
+        gone = true
+      },
+    })
     void leaveThen(card.id, () =>
       React.startTransition(async () => {
         addDecided({ card: card.id, outcome: d.outcome })
         try {
-          const { undo } = await write('decideCard', {
+          const decided = await write('decideCard', {
             card: card.id,
             outcome: d.outcome,
             patch: d.patch,
           })
-          saved = undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
-          if (undone) await takeBack(undo)
+          if (undone) await undo.takeBack(decided.undo)
+          else if (!gone)
+            undo.offer(d.message, decided.undo, { id: said, description: d.description })
         } catch {
+          toast.dismiss(said)
           if (undone) return
           toast.error("Couldn't save that decision", {
             description: 'Nothing changed. The card is back in the Inbox.',
@@ -1354,17 +1376,6 @@ export function InboxPage() {
         }
       }),
     )
-    toast(d.message, {
-      description: d.description,
-      duration: 6000,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          undone = true
-          if (saved) void takeBack(saved)
-        },
-      },
-    })
   }
 
   if (install === 'new') return <Setup />
@@ -1426,12 +1437,15 @@ export function InboxPage() {
   const list = (
     <div className="flex h-full min-h-0 flex-col gap-0">
       <Cell className="h-full min-h-0 gap-0 py-0">
-        <CardHeader className="border-b px-4 py-4">
-          <CardTitle className="text-base">{tab === 'all' ? 'Everything' : 'Needs you'}</CardTitle>
-          <CardDescription>
+        <CardHeader className="border-b px-4 py-4 md:px-5">
+          <CardTitle className="text-base @max-sm/card-header:col-span-full">
+            {tab === 'all' ? 'Everything' : 'Needs you'}
+          </CardTitle>
+          <CardDescription className="@max-sm/card-header:col-span-full">
             {tab === 'all' ? 'Yours, waiting on others, and done.' : <WeekLine />}
           </CardDescription>
-          <CardAction>
+          {/* Beside the introduction on a wide list; under it on a phone, where a 180 px column would run it to three lines. */}
+          <CardAction className="@max-sm/card-header:col-span-full @max-sm/card-header:row-span-1 @max-sm/card-header:row-start-3 @max-sm/card-header:mt-2 @max-sm/card-header:justify-self-start">
             {/* A filter, not navigation: quiet words with counts. */}
             <TextSwitch
               label="Show"

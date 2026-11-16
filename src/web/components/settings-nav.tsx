@@ -7,6 +7,7 @@ import {
   UsersIcon,
   WrenchIcon,
 } from '@/components/icons'
+import { memberSections } from '@/lib/settings-access'
 import {
   SidebarContent,
   SidebarGroup,
@@ -47,14 +48,12 @@ const settingsSections = [
 export function SettingsNav({ section, close }: { section: string; close: () => void }) {
   const connected = useConnected()
   const me = useMe()
-  // An owner who isn't an admin sees the two places they can use: domains and people.
+  // Someone who isn't an admin sees the places they can use: an owner's domains and people, and their agents.
+  const allowed = memberSections(me.owns.length > 0)
   const sections = me.admin
     ? settingsSections
     : settingsSections
-        .map((g) => ({
-          ...g,
-          items: g.items.filter((i) => i.id === 'domains' || i.id === 'people'),
-        }))
+        .map((g) => ({ ...g, items: g.items.filter((i) => allowed.includes(i.id)) }))
         .filter((g) => g.items.length)
   return (
     <>
@@ -68,7 +67,7 @@ export function SettingsNav({ section, close }: { section: string; close: () => 
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent label="Settings">
         {sections.map((g) => (
           <SidebarGroup key={g.group}>
             <SidebarGroupLabel>{g.group}</SidebarGroupLabel>

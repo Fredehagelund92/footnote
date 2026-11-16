@@ -95,6 +95,13 @@ const mustFlag: [string, string][] = [
   ['rounded-tile', 'radius'],
   ['rounded-mark', 'radius'],
   ['rounded-inset', 'radius'],
+  // One focus ring (contract 2.6)
+  ['focus-visible:ring-1', 'focus-ring'],
+  ['focus-visible:ring-2', 'focus-ring'],
+  ['focus-visible:ring-ring/40', 'focus-ring'],
+  ['focus-visible:ring-ring/25', 'focus-ring'],
+  ['focus-visible:ring-offset-4', 'focus-ring'],
+  ['focus-visible:outline-2', 'focus-ring'],
   // A soft fill is its colour at 8 percent (contract 2.1)
   ['bg-caution/12', 'soft-fill'],
   ['hover:bg-good/20', 'soft-fill'],
@@ -107,6 +114,7 @@ const mustNotFlag = `
   text-foreground text-muted-foreground hover:text-foreground placeholder:text-muted-foreground
   font-normal font-medium font-semibold font-bold
   bg-primary text-primary-foreground text-muted-foreground border-input ring-ring/50
+  focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset focus-visible:outline-none focus-visible:outline-hidden
   bg-mark-add decoration-mark-del-line text-good text-caution bg-caution/8 bg-good/8 border-caution/45
   bg-chip text-chip-foreground
   bg-[var(--mark-add)] decoration-[var(--mark-del-line)] max-w-(--container-sheet)

@@ -124,7 +124,7 @@ describe("the model's words, checked against the reads", () => {
     lookup('grounded', [row('itm_aaaa1111', ['metric:tickets_closed', 'value:team/billing'])]),
   ]
 
-  it('does not number an item that only a dropped sentence cited', () => {
+  it('keeps a sentence whose number no read holds, and numbers what it cites', () => {
     const two = [
       lookup('grounded', [
         row('itm_aaaa1111', ['metric:tickets_closed']),
@@ -137,7 +137,7 @@ describe("the model's words, checked against the reads", () => {
       ctxOf(two),
       cited,
     )
-    expect(cited).toEqual(['itm_aaaa1111'])
+    expect(cited).toEqual(['itm_bbbb2222', 'itm_aaaa1111'])
   })
 
   it('draws a mention a read named as its noun, and one no read named as plain words, flagged', () => {
@@ -151,7 +151,7 @@ describe("the model's words, checked against the reads", () => {
       { t: 'noun', id: 'value:team/billing' },
     ])
     expect(t.text).toBe(
-      'Tickets closed for Billing count reopened tickets once [1]. Mobile is not read.',
+      'Tickets closed for Billing count reopened tickets once.[1] Mobile is not read.',
     )
     expect(t.checks).toContainEqual({ kind: 'mention', words: 'value:team/mobile' })
     // A definition's id in a mark is no source and no noun: it is left out, never its name.
@@ -168,7 +168,7 @@ describe("the model's words, checked against the reads", () => {
     expect(t.nouns.map((n) => n.id)).toContain('dimension:team')
   })
 
-  it('fills a number from its read, and leaves out the sentence whose number no read holds', () => {
+  it('fills a number from its read, and keeps the sentence whose number no read holds', () => {
     const t = turnOf(
       'Of [#r1.outOf], [#r1.items.length] apply. It was checked on [#r1.items.0.checked.date]. It closed [#r1.tickets] tickets.',
       made,
@@ -179,10 +179,96 @@ describe("the model's words, checked against the reads", () => {
       { t: 'count', value: '1', of: null },
       { t: 'date', day: '2026-10-02' },
     ])
+    // The reference no read holds is left out of its sentence, which stays, and is flagged.
     expect(t.text).toBe(
-      'Of 12 published context items you may read, 1 apply. It was checked on 2 October 2026.',
+      'Of 12 published context items you may read, 1 apply. It was checked on 2 October 2026. It closed tickets.',
     )
     expect(t.checks).toEqual([{ kind: 'number', words: '[#r1.tickets]' }])
+  })
+
+  it("writes a reference to a read's words as those words, its sentence kept", () => {
+    const t = turnOf(
+      'Nothing written gives ticket counts for [#r1.read.period], only what is written about them.',
+      made,
+      [],
+    )
+    expect(t.text).toBe(
+      'Nothing written gives ticket counts for any date, only what is written about them.',
+    )
+    // Repaired, and flagged for the answer check: the words may not read as the model meant.
+    expect(t.checks).toEqual([{ kind: 'words', words: '[#r1.read.period]' }])
+    // Words that start with the word written before the reference say it once.
+    const dated: MadeRead = {
+      tool: 'read_context',
+      ref: 'r2',
+      input: {},
+      result: { item: { valid: 'From 1 January 2026 on' }, names: [], ids: [] },
+    }
+    expect(turnOf('Both apply from [#r2.item.valid].', [...made, dated], []).text).toBe(
+      'Both apply from 1 January 2026 on.',
+    )
+    // A reference to something that is not words or a number is left out, never its sentence.
+    expect(turnOf('It is [#r1.read] read.', made, []).text).toBe('It is read.')
+  })
+
+  it('writes a mention it cannot place as the name, never as nothing', () => {
+    // A mention written with the name in place of an id: the chip when a read named it, else words.
+    const t = turnOf(
+      'All of them are owned by [@person:Ada Okafor] and [@person:Bo Lind]: each one.',
+      made,
+      [],
+    )
+    expect(t.text).toBe('All of them are owned by Ada Okafor and Bo Lind: each one.')
+    expect(runs(t)).toContainEqual({ t: 'noun', id: 'person:p_ada' })
+    expect(t.checks).toContainEqual({ kind: 'mention', words: 'person:Bo Lind' })
+  })
+
+  it('gives a count with what it is out of once, when the words name its noun after it', () => {
+    const said = (words: string) => turnOf(words, made, []).text
+    expect(said('In that period [#r1.items.length] of [#r1.outOf] context items changed.')).toBe(
+      'In that period 1 of 12 published context items you may read changed.',
+    )
+    expect(said('Of [#r1.outOf] items, one applies.')).toBe(
+      'Of 12 published context items you may read, one applies.',
+    )
+    // Words after it that are not its noun stay.
+    expect(said('Of [#r1.outOf] read today, one applies.')).toBe(
+      'Of 12 published context items you may read read today, one applies.',
+    )
+  })
+
+  it('puts a source number after the full stop the model wrote it before', () => {
+    const t = turnOf(
+      'Billing counts once [itm_aaaa1111]. It is owned by [@person:p_ada] [itm_aaaa1111] . That is all.',
+      made,
+      [],
+    )
+    expect(t.body).toEqual([
+      {
+        t: 'p',
+        runs: [
+          { t: 'text', text: 'Billing counts once.' },
+          { t: 'cite', n: 1 },
+          { t: 'text', text: ' It is owned by ' },
+          { t: 'noun', id: 'person:p_ada' },
+          { t: 'text', text: '.' },
+          { t: 'cite', n: 1 },
+          { t: 'text', text: ' That is all.' },
+        ],
+      },
+    ])
+    expect(t.text).toBe('Billing counts once.[1] It is owned by Ada Okafor.[1] That is all.')
+    // Several citations before it, spaces between them, stay together after it.
+    expect(turnOf('It applies [itm_aaaa1111] [itm_aaaa1111].', made, []).text).toBe(
+      'It applies.[1] [1]',
+    )
+    // A sentence of only citations has nothing to move the stop before.
+    expect(turnOf('[itm_aaaa1111].', made, []).text).toBe('[1].')
+    // A list of citations the words lead into ends the sentence: its stop stays, never adrift.
+    const two = [lookup('grounded', [row('itm_aaaa1111', []), row('itm_bbbb2222', [])])]
+    expect(turnOf('Two apply, [itm_aaaa1111] and [itm_bbbb2222] .', two, []).text).toBe(
+      'Two apply, [1] and [2].',
+    )
   })
 
   it('cites an item the words name by a reference to its id, and keeps the sentence', () => {
@@ -194,7 +280,7 @@ describe("the model's words, checked against the reads", () => {
     expect(t.sources).toEqual(['itm_aaaa1111'])
     expect(t.state).toBe('grounded')
     expect(t.text).toBe(
-      'Reopened tickets count once for Billing [1]. Its check date is 2 October 2026.',
+      'Reopened tickets count once for Billing.[1] Its check date is 2 October 2026.',
     )
     expect(t.checks).toEqual([])
   })
@@ -337,7 +423,7 @@ describe("the model's words, checked against the reads", () => {
     // Another value run into the reference: the words' own stays, never two days in a row.
     expect(
       said('Finance removed them on 19 May [#r1.items.0.checked.date] [itm_aaaa1111].').text,
-    ).toBe('Finance removed them on 19 May [1].')
+    ).toBe('Finance removed them on 19 May.[1]')
     // A value in another clause, or none in the words, leaves the reference as it is.
     expect(said('Of 3 teams, [#r1.outOf.count] items are published.').text).toBe(
       'Of 3 teams, 12 items are published.',
@@ -431,7 +517,7 @@ describe("the model's words, checked against the reads", () => {
       'It is owned by Ada Okafor.',
     )
     expect(turnOf('[metric:tickets_closed] has a rule [itm_aaaa1111].', made, []).text).toBe(
-      'Tickets closed has a rule [1].',
+      'Tickets closed has a rule.[1]',
     )
     // Named already in the sentence, it is the name again, left out.
     expect(turnOf('Ada Okafor [person:p_ada] owns it.', made, []).text).toBe('Ada Okafor owns it.')
@@ -597,7 +683,7 @@ describe('the evidence, by code from the reads', () => {
     expect(JSON.stringify(t)).not.toMatch(/market/i)
   })
 
-  it('shows a definition only when the question turns on a word of it, marked, or asks what it is', () => {
+  it('shows a definition the turn read, marked where the question turns on a word of it', () => {
     const withDefinition: MadeRead[] = [
       ...[lookup('grounded', [row('itm_aaaa1111', ['metric:tickets_closed'])])],
       {
@@ -636,11 +722,15 @@ describe('the evidence, by code from the reads', () => {
     )
     expect(asks.definitions).toHaveLength(1)
     expect(asks.definitions[0]?.mark).toBeUndefined()
-    // Not when the question turns on nothing in it, and never when the words already say it.
-    expect(
-      turnOf('It counts once [itm_aaaa1111].', withDefinition, [], 'Why did tickets closed drop?')
-        .definitions,
-    ).toEqual([])
+    // The turn read it, so it shows when the question turns on nothing in it too, unmarked
+    // (decision 6); never when the words already say it.
+    const drop = turnOf(
+      'It counts once [itm_aaaa1111].',
+      withDefinition,
+      [],
+      'Why did tickets closed drop?',
+    ).definitions
+    expect(drop.map((d) => [d.id, d.mark])).toEqual([['metric:tickets_closed', undefined]])
     expect(
       turnOf(
         'Tickets marked solved in the help desk, reopened ones counted once [itm_aaaa1111].',
@@ -649,6 +739,40 @@ describe('the evidence, by code from the reads', () => {
         'What does tickets closed mean?',
       ).definitions,
     ).toEqual([])
+  })
+})
+
+describe('the definition beside the answer', () => {
+  const defined = (words: string): MadeRead[] => [
+    lookup('grounded', [row('itm_aaaa1111', ['metric:tickets_closed'])]),
+    {
+      tool: 'definitions',
+      ref: 'r2',
+      input: { names: ['Tickets closed'] },
+      result: {
+        definitions: [
+          {
+            id: 'metric:tickets_closed',
+            name: 'Tickets closed',
+            kind: 'metric',
+            words,
+            from: 'Cube (support.tickets_closed)',
+          },
+        ],
+        names,
+        ids: ['metric:tickets_closed'],
+      },
+    },
+  ]
+
+  it('never marks a word as short and common as "and"', () => {
+    const t = turnOf(
+      'It counts them once [itm_aaaa1111].',
+      defined('Tickets marked solved and closed in the help desk.'),
+      [],
+      'Are tickets closed and reopened the same?',
+    )
+    expect(t.definitions.map((d) => d.mark)).not.toContain('and')
   })
 })
 

@@ -5,6 +5,7 @@ import type {
   SavedQuestionRecord,
   SavedStatus,
 } from '../../../contract/saved-questions.ts'
+import type { UndoOffer } from '../../../contract/undo.ts'
 import { answer, type AnswerBundle } from '../../../domain/answer.ts'
 import {
   compareSaved,
@@ -17,8 +18,10 @@ import {
 } from '../../../domain/saved-check.ts'
 import type { Clock } from '../../clock.ts'
 import type { Database, Queryable } from '../../db/database.ts'
+import { lastingUndo } from '../../db/undo.ts'
 import type { BundleCache } from '../answer/index.ts'
 import type { ServingBundle } from '../editions/index.ts'
+import { missing } from '../../../contract/refusals.ts'
 
 /**
  * Saved questions and the free check on the service (FR-526, src/domain/saved-check.ts). A saved
@@ -309,7 +312,7 @@ export function createSavedQuestionsService(
 ): SavedQuestionsService {
   async function one(id: string): Promise<SavedQuestionRecord> {
     const [row] = await tx.query<ListRow>(`select ${listFields} ${listFrom} and q.id = $1`, [id])
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this saved question') })
     return recordOf(row)
   }
 
@@ -319,7 +322,7 @@ export function createSavedQuestionsService(
               exists (select 1 from areas where id = $1 and archived_at is null) as exists`,
       [areaId],
     )
-    if (!row?.exists) throw new ORPCError('NOT_FOUND')
+    if (!row?.exists) throw new ORPCError('NOT_FOUND', { message: missing('this domain') })
     if (!row.manages)
       throw new ORPCError('FORBIDDEN', {
         message: 'Owners of the domain and admins save questions about it.',
@@ -386,7 +389,7 @@ export function createSavedQuestionsService(
         reason: 'saved',
         now,
       })
-      return { question: await one(q!.id), undo: `saved:${q!.id}` }
+      return { question: await one(q!.id), undo: lastingUndo(`saved:${q!.id}`) }
     },
 
     async remove({ id }) {
@@ -411,7 +414,7 @@ export function createSavedQuestionsService(
         [id, JSON.stringify(now), head.seq],
       )
       await single(q, head, baseline!.id, 'kept', { result: 'same', reason: 'kept', now })
-      return { question: await one(id), undo: `kept:${baseline!.id}` }
+      return { question: await one(id), undo: lastingUndo(`kept:${baseline!.id}`) }
     },
 
     /** Undo of Save question: only its saver takes it back. */
@@ -504,9 +507,9 @@ export interface SavedQuestionsService {
     question: string
     origin: 'ask' | 'gap' | 'typed'
     expectItems?: string[]
-  }): Promise<{ question: SavedQuestionRecord; undo: string }>
+  }): Promise<{ question: SavedQuestionRecord; undo: UndoOffer }>
   remove(input: { id: string }): Promise<{ removed: boolean }>
-  keep(input: { id: string }): Promise<{ question: SavedQuestionRecord; undo: string }>
+  keep(input: { id: string }): Promise<{ question: SavedQuestionRecord; undo: UndoOffer }>
   undoSaved(id: string): Promise<{ edition: null }>
   undoKept(baselineId: string): Promise<{ edition: null }>
   status(input: { areaId?: string }): Promise<SavedStatus>

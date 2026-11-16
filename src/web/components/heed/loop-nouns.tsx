@@ -1,9 +1,11 @@
 import * as React from 'react'
+import { dayMonthYear, dayMonthYearLong } from '@/lib/dates'
 import type { LoopItem, LoopRun, LoopTurn } from '@contract/answer'
 import { dimensionHue, nounKindOf } from '@domain/ask-nouns'
 import type { Domain } from '@/model/people'
 import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/heed/answer'
+import type { AnswerFigure } from '@/components/heed/answer-figure'
 import type { LoopPartsOfAsk } from '@/components/heed/loop-parts'
 
 /** What the loop's answer uses of Ask, handed to it by Ask (loop-parts.ts). */
@@ -11,6 +13,7 @@ export type LoopParts = LoopPartsOfAsk & {
   AnswerActions: typeof AnswerActions
   ReportLine: typeof ReportLine
   SomethingWrong: typeof SomethingWrong
+  AnswerFigure: typeof AnswerFigure
 }
 export const PartsContext = React.createContext<LoopParts | null>(null)
 /** Ask's parts, as the answer was given them. */
@@ -58,25 +61,9 @@ function DimensionGlyph({ dimension, type }: { dimension: boolean; type: string 
   return <P.TagIcon aria-hidden className={cls} />
 }
 
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 /** A day as the answer says it: "4 August 2026"; `short` as a row says it: "4 Aug 2026". */
 export function dayText(day: string, short = false) {
-  const [y, m, d] = day.slice(0, 10).split('-').map(Number)
-  const month = MONTHS[(m ?? 1) - 1] ?? ''
-  return `${d} ${short ? month.slice(0, 3) : month} ${y}`
+  return short ? dayMonthYear(day) : dayMonthYearLong(day)
 }
 
 // 24px tall at the least, so each is a target a pointer can hit (WCAG 2.5.8).
@@ -350,14 +337,14 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
   const due = item.status === 'due' || !!item.outOfDate
   return {
     due,
-    words: (item.status === 'archived' ? 'Archived' : due ? 'Needs checking' : 'Live') as Status,
+    words: (item.status === 'archived' ? 'Archived' : due ? 'Due for a check' : 'Live') as Status,
     day: item.outOfDate ?? (item.checked ? `checked ${dayText(item.checked, true)}` : null),
   }
 }
 
-/** A status with its dot, as the Context list draws it: live green, needs checking amber. */
+/** A status with its dot, as the Context list draws it: live green, due for a check amber. */
 function StatusMark({ status }: { status: Status }) {
-  const dot = status === 'Live' ? 'bg-good' : status === 'Needs checking' ? 'bg-caution' : 'bg-off'
+  const dot = status === 'Live' ? 'bg-good' : status === 'Due for a check' ? 'bg-caution' : 'bg-off'
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <span aria-hidden className={`size-2 shrink-0 rounded-full ${dot}`} />

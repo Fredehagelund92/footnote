@@ -265,11 +265,15 @@ for (const { name, width, height } of widths) {
         expect(await violations(page)).toEqual([])
       })
 
-      // Folds open: the context item's row with its text and the way to its page, and a
-      // suggestion's evidence in the quick view.
+      // Folds open: the context item's row with its text and the way to its page (a card that
+      // asks whether the item is still true opens it itself), and a suggestion's evidence in the
+      // quick view.
       test('the Inbox pane with its folds open', async ({ page }) => {
         await page.goto(withTheme('/inbox?card=check-returns', theme))
-        await page.getByRole('button', { name: /^The context item: / }).click()
+        await expect(page.getByRole('button', { name: /^The context item: / })).toHaveAttribute(
+          'aria-expanded',
+          'true',
+        )
         await expect(page.getByRole('link', { name: 'Open the context item' })).toBeVisible()
         expect(await violations(page)).toEqual([])
         await page.goto(withTheme('/inbox?card=sug-ines', theme))
@@ -442,14 +446,14 @@ for (const { name, width, height } of widths) {
         await expect(source.getByText('Was 312 ever right?')).toBeVisible()
         await source
           .getByRole('region', { name: /^Removed line 1: / })
-          .getByRole('button', { name: 'Resolve' })
+          .getByRole('button', { name: 'Mark as done' })
           .click()
         await source.locator('[data-source-place="field:sources"]').focus()
         await page.keyboard.press('c')
         await expect(source.getByRole('textbox', { name: 'Comment on source' })).toBeFocused()
         await page.keyboard.type('Which page?')
         await expect(source.getByRole('textbox', { name: 'Comment on source' })).toBeVisible()
-        // The pointer rests where Resolve was, which the fold moves under another button.
+        // The pointer rests where Mark as done was, which the fold moves under another button.
         await page.mouse.move(0, 0)
         expect(await violations(page)).toEqual([])
       })

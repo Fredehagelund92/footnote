@@ -10,6 +10,7 @@ import { clashRelations } from '../domain/readiness.ts'
 import { draftSchema } from '../domain/draft.ts'
 import { itemKinds, itemSchema } from '../domain/item.ts'
 import { itemChecks, itemTrusts } from '../domain/status.ts'
+import { undoOfferSchema } from './undo.ts'
 
 const isoDate = z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/))
 const personId = z.string().check(z.uuid())
@@ -52,7 +53,7 @@ export const itemBulkResultSchema = z.object({
   failed: z.array(z.object({ id: z.string(), title: z.string(), message: z.string() })),
   /** Its line in the History log; null when it changed nothing. */
   change: z.nullable(z.object({ id: z.string(), summary: z.string() })),
-  undo: z.nullable(z.string()),
+  undo: z.nullable(undoOfferSchema),
 })
 
 /** A change to many items, as the History log in Settings, Advanced lists it. */
@@ -234,7 +235,7 @@ export const publishItemResultSchema = z.union([
     itemId: z.string(),
     proposalId: z.string(),
     edition: z.nullable(z.string()),
-    undo: z.string(),
+    undo: undoOfferSchema,
   }),
   z.object({
     published: z.literal(false),

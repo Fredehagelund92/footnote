@@ -47,8 +47,17 @@ async function sendAnswering(page: Page, button: 'Publish' | 'Save') {
       expect(left() || (await refused.isVisible())).toBe(true)
     }).toPass()
     if (left()) break
-    for (const group of await before.getByRole('radiogroup').all())
-      await group.getByRole('radio', { name: 'Unrelated' }).click()
+    for (const answer of await before
+      .getByRole('button', { name: /^How this relates to / })
+      .all()) {
+      // The open menu only, by its button's name: the one before it may still be closing.
+      const name = (await answer.getAttribute('aria-label'))!
+      await answer.click()
+      await page
+        .getByRole('menu', { name })
+        .getByRole('menuitemradio', { name: 'Unrelated' })
+        .click()
+    }
     await expect(refused).toHaveCount(0)
   }
 }

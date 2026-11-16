@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadGoldenSet } from '../../../db/seed/golden-set.ts'
-import { monthWords, readDates, whatHeedReads } from '../../../src/domain/dates.ts'
+import { dateNote, monthWords, readDates, whatHeedReads } from '../../../src/domain/dates.ts'
 import { anyDate, shiftDate } from '../../../src/domain/validity.ts'
 import { normalizeName } from '../../../src/domain/vocabulary.ts'
 
@@ -430,8 +430,6 @@ describe('loose dates, as Ask reads them', () => {
     ['by the end of the year', anyDate.start, '2026-12-31'],
     ['around august', '2026-08-01', '2026-08-31'],
     ['august and september', '2026-08-01', '2026-09-30'],
-    ['august vs september', '2026-08-01', '2026-09-30'],
-    ['last year and this year', '2025-01-01', '2026-10-23'],
   ])('reads "%s"', (text, from, to) => {
     expect(read(text)).toEqual([from, to])
   })
@@ -453,6 +451,39 @@ describe('loose dates, as Ask reads them', () => {
     const got = readDates('since the launch', today, { loose: true })
     expect(got).toMatchObject({ status: 'read', window: anyDate, unplaced: ['since the launch'] })
     if (got.status === 'read') expect(got.readsAs).toContain("could not place 'since the launch'")
+  })
+
+  it.each([
+    ['orders in norway in q3 fy26', '1 Jul to 30 Sep 2026 (FY26 read as the calendar year; UTC)'],
+    ['q3 of fy26', '1 Jul to 30 Sep 2026 (FY26 read as the calendar year; UTC)'],
+    ['fy26 q3', '1 Jul to 30 Sep 2026 (FY26 read as the calendar year; UTC)'],
+    [
+      'q1 fiscal year 2027',
+      '1 Jan to 31 Mar 2027 (fiscal year 2027 read as the calendar year; UTC)',
+    ],
+    ['h2 fy25', '1 Jul to 31 Dec 2025 (FY25 read as the calendar year; UTC)'],
+    ['august fy26', '1-31 Aug 2026 (FY26 read as the calendar year; UTC)'],
+  ])('reads "%s" as a part of the fiscal year, never the whole year', (text, readsAs) => {
+    expect(readDates(text, today, { loose: true })).toMatchObject({ status: 'read', readsAs })
+  })
+
+  it('reads the quarter in its fiscal year, not the latest that has started', () => {
+    expect(readDates('q3 fy26', '2026-02-10', { loose: true })).toMatchObject({
+      window: { start: '2026-07-01', end: '2026-10-01' },
+    })
+  })
+
+  it.each([
+    ['august vs september', "1-31 Aug 2026 (year not given, so 2026; not taken: 'september'; UTC)"],
+    ['last year and this year', "1 Jan to 31 Dec 2025 (last year; not taken: 'this year'; UTC)"],
+    ['on 2026-08-03 and on 2026-08-05', "3 Aug 2026 (not taken: '2026-08-05'; UTC)"],
+    ['q3 2026 in 2025', "1 Jul to 30 Sep 2026 (not taken: '2025'; UTC)"],
+  ])('keeps the first of two periods in "%s" and names the other as not taken', (text, readsAs) => {
+    // Never the span between them, which neither named.
+    expect(readDates(text, today, { loose: true })).toMatchObject({
+      status: 'read',
+      readsAs,
+    })
   })
 
   it('says the resolved days and the words they came from', () => {
@@ -591,5 +622,35 @@ describe('loose dates, as Ask reads them', () => {
   it('is off for agents: get_context keeps the strict reader', () => {
     for (const text of ['early august', 'last summer', 'two weeks ago'])
       expect(readDates(text, today).status).toBe('unreadable')
+  })
+})
+
+// Period slice R1: the read line says how the dates were read, beside the days, only where Heed
+// guessed; the days and the time zone it never repeats.
+describe('the note a person reads beside the days', () => {
+  const today = '2026-10-23'
+  const note = (text: string) => {
+    const got = readDates(normalizeName(text), today, { loose: true })
+    if (got.status !== 'read') throw new Error(`${text} read as ${got.status}`)
+    return dateNote(got.readsAs)
+  }
+  it.each([
+    ['orders in november', 'year not given'],
+    ['net revenue in fiscal year 2026', 'fiscal year read as the calendar year'],
+    ['net revenue in fy26', 'fiscal year read as the calendar year'],
+    ['orders this fiscal quarter', 'fiscal quarter read as the calendar quarter'],
+    ['orders this financial year', 'financial year read as the calendar year'],
+    ['orders since the launch', "could not place 'since the launch'"],
+    ['orders on 12/10/2026', 'day first'],
+    ['orders in q3 fy26', 'fiscal year read as the calendar year'],
+    ['orders in q3 and fy26', "year not given · not taken: 'fy26'"],
+    ['orders last quarter', null],
+    ['orders in 2026', null],
+    ['orders from 1 august 2026 to today', null],
+  ])('%s: %s', (text, expected) => {
+    expect(note(text)).toBe(expected)
+  })
+  it('reads nothing into a phrase without its parts', () => {
+    expect(dateNote('1-30 Nov 2025')).toBeNull()
   })
 })

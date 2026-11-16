@@ -21,7 +21,7 @@ async function hold(page: Page) {
 const bulk = (page: Page) =>
   page
     .getByRole('complementary', { name: 'Waiting suggestions' })
-    .getByRole('button', { name: /publish/i })
+    .getByRole('button', { name: /^(Publish the|Read one to publish)/ })
 
 test('opening and leaving does not count as read', async ({ page }) => {
   await page.clock.install()
@@ -61,6 +61,9 @@ test('a few seconds on the whole change counts; bulk lists them, and Undo restor
     /Online sales to Norway stopped on 4 August 2026/,
     /What to rule out before explaining a jump in Gross margin/,
   ])
+  // Undo holds until the time the service gives. The page's clock ran ahead in its steps, so it is
+  // set to the service's time first, as a real one is.
+  await page.clock.setSystemTime(Date.now())
   await confirm.getByRole('button', { name: 'Publish 2' }).click()
   await settle(page, 700)
   await expect(page.getByText('Published 2')).toBeVisible()

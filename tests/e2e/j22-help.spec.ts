@@ -13,7 +13,7 @@ test('one Help row opens the menu; Documentation lives in it', async ({ page }) 
   await sidebar.getByRole('button', { name: 'Help' }).click()
   const menu = page.getByRole('menu')
   for (const row of [
-    'Answer lines and words',
+    'Answer labels and words',
     'Keyboard shortcuts',
     'Documentation',
     "What's new",
@@ -22,7 +22,7 @@ test('one Help row opens the menu; Documentation lives in it', async ({ page }) 
   ])
     await expect(menu.getByRole('menuitem', { name: new RegExp(row) })).toBeVisible()
   await expect(menu.getByRole('menuitem', { name: /Get started/ })).toHaveCount(0)
-  await menu.getByRole('menuitem', { name: 'Answer lines and words' }).click()
+  await menu.getByRole('menuitem', { name: 'Answer labels and words' }).click()
   await expect(page).toHaveURL(/\/help$/)
 })
 
@@ -59,7 +59,7 @@ test('the Help page searches its own words, and sends the rest to the documentat
   page,
 }) => {
   await go(page, '/help')
-  await expect(page.getByRole('table', { name: 'Answer lines' })).toContainText('Checked')
+  await expect(page.getByRole('table', { name: 'Answer labels' })).toContainText('Checked')
   await page.getByRole('searchbox', { name: 'Search help' }).fill('synonym')
   await expect(page.getByText('Another name for a metric or a dimension')).toBeVisible()
   await page.getByRole('searchbox', { name: 'Search help' }).fill('refund')
@@ -75,7 +75,7 @@ test('the answer line explains itself', async ({ page }) => {
     await page.getByRole('log').getByRole('button', { name: 'Not found', exact: true }).click()
     await expect(page.getByText('Nothing is written about this yet.')).toBeVisible()
     await expect(page.getByText('What you do.')).toBeVisible()
-    await expect(page.getByRole('link', { name: /All answer lines/ })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /All answer labels/ })).toHaveAttribute(
       'href',
       '/help',
     )
@@ -127,7 +127,7 @@ test('Contact support goes to GitHub issues, and asks for a connector the same w
   await page.keyboard.press('Escape')
   await go(page, '/settings/integrations')
   for (const link of [
-    page.getByRole('link', { name: 'Request a connector' }),
+    page.getByRole('link', { name: 'Request an integration' }),
     page.getByRole('link', { name: 'Open an issue' }),
   ])
     await expect(link).toHaveAttribute(

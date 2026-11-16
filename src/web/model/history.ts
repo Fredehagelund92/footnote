@@ -1,4 +1,5 @@
 import { DEMO_TODAY, today } from '@/lib/today'
+import { dayMonth, dayMonthYear, monthYearLong } from '@/lib/dates'
 import type { LogEntry } from '@/model/items'
 // A context item's or a definition's versions as the app reads them (src/web/api): a number,
 // who, when and what changed. Pure types and the words a version list says them with.
@@ -65,25 +66,17 @@ export const VERB: Record<VersionKind, string> = {
 /** The demo world's today, as the mock dates its data; the app reads the service's (`today()`). */
 export const TODAY = DEMO_TODAY
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 /** "today", "yesterday", "4 days ago", "12 Oct", "3 Oct 2025". */
 export function relativeDate(iso: string) {
   const days = Math.round((Date.parse(today()) - Date.parse(iso)) / 86400000)
   if (days <= 0) return 'today'
   if (days === 1) return 'yesterday'
   if (days < 7) return `${days} days ago`
-  const [y, m, d] = iso.split('-').map(Number)
-  return `${d} ${MONTHS[m! - 1]}${y === Number(today().slice(0, 4)) ? '' : ` ${y}`}`
+  return iso.slice(0, 4) === today().slice(0, 4) ? dayMonth(iso) : dayMonthYear(iso)
 }
 
 /** "October 2026": a version list's group header. */
-export const monthOf = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
+export const monthOf = (iso: string) => monthYearLong(iso)
 
 /** A change to many items, as the History log says it: "Archived “A”, “B” and 3 more". */
 export function logLine(e: Pick<LogEntry, 'what' | 'summary' | 'items'>) {

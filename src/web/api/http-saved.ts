@@ -4,6 +4,7 @@
  * reasons and answers; the words are the domain's (src/domain/saved-check.ts), so they read the
  * same as the service's own pages say them.
  */
+import { dayMonth } from '@/lib/dates'
 import type { SavedQuestionRecord, SavedStatus } from '@contract/saved-questions'
 import { answerText, expectWords, savedWhy } from '@domain/saved-check'
 import type { SavedQuestion } from '@/model/saved-questions'
@@ -38,9 +39,6 @@ export function savedQuestionOf(q: SavedQuestionRecord, now: Date): SavedQuestio
   }
 }
 
-const MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')
-const month = (iso: string) => MONTHS[Number(iso.slice(5, 7)) - 1]!
-
 /** Where the check stands, as Quality reads it; a week is named by its Monday, "1 Sep". */
 export function savedCheckOf(status: SavedStatus, now: Date): SavedCheck {
   const run = status.run
@@ -51,7 +49,7 @@ export function savedCheckOf(status: SavedStatus, now: Date): SavedCheck {
     total: run && state !== 'idle' ? run.total : 0,
     checkedAt: status.checkedAt ? commentWhen(status.checkedAt, now) : null,
     trend: {
-      labels: status.weeks.map((w) => `${Number(w.week.slice(8, 10))} ${month(w.week)}`),
+      labels: status.weeks.map((w) => dayMonth(w.week)),
       same: status.weeks.map((w) => w.same),
       total: status.weeks.map((w) => w.total),
     },

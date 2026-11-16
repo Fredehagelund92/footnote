@@ -37,7 +37,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { conflictQuery, conflictsQuery, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { heldWords, useHeld, useUndo } from '@/lib/undo'
+import type { UndoOffer } from '@/api/client'
 import { ApiError } from '@/api/errors'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -104,7 +105,7 @@ export function Legend({ how }: { how: Compared['how'] }) {
 export function SaysBox({ said, className }: { said: Said; className?: string }) {
   return (
     <div className={cn('flex flex-col gap-2 rounded-frame border bg-muted/40 p-3', className)}>
-      <StateLine state={said.state} tip={false} />
+      <StateLine state={said.state} tip={false} sentence />
       <p className="text-sm leading-relaxed text-pretty">{said.text}</p>
     </div>
   )
@@ -209,9 +210,9 @@ function dialogCopy(p: Pending, c: Conflict) {
     }
   return {
     title: 'Not a conflict',
-    description: `Removes the Conflict flag from “${sideTitle(c.holder)}”. Agents then give both and say nothing about a difference.`,
+    description: `Removes the Conflict mark from “${sideTitle(c.holder)}”. Agents then give both and say nothing about a difference.`,
     reason: 'Why is this not a conflict?',
-    empty: 'Add a reason to remove the flag.',
+    empty: 'Add a reason to remove the Conflict mark.',
     confirm: 'Not a conflict',
     failure: "Couldn't remove the Conflict mark. Nothing changed. Try again.",
     then: said?.withoutFlag ?? null,
@@ -291,7 +292,7 @@ function SettleDialog({
           {pending?.how !== 'suggest_archive' && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-quote`}>
-                A line that settles it{' '}
+                A line that decides it{' '}
                 <span className="font-normal text-muted-foreground">(optional)</span>
               </Label>
               <Input
@@ -402,7 +403,7 @@ function AskOwnerDialog({ about, onClose }: { about: ConflictSide | null; onClos
 
 /* ---------- the outcome ---------- */
 
-type Done = { conflict: Conflict; decision: ConflictDecision; undo: string }
+type Done = { conflict: Conflict; decision: ConflictDecision; undo: UndoOffer }
 
 function outcomeOf({ conflict: c, decision: d }: Done): {
   chip: string
@@ -426,7 +427,7 @@ function outcomeOf({ conflict: c, decision: d }: Done): {
     }
   return {
     chip: 'Settled',
-    line: `Not a conflict. The flag is removed from “${sideTitle(c.holder)}”.`,
+    line: `Not a conflict. The Conflict mark is removed from “${sideTitle(c.holder)}”.`,
     now: c.said?.withoutFlag ?? null,
   }
 }
@@ -444,6 +445,7 @@ function Outcome({
 }) {
   const reduced = useReducedMotion()
   const [held, setHeld] = React.useState(false)
+  const undoable = useHeld(done.undo)
   const ref = React.useRef<HTMLDivElement>(null)
   const o = outcomeOf(done)
   React.useEffect(() => ref.current?.focus(), [])
@@ -472,10 +474,12 @@ function Outcome({
             {o.chip}
           </span>
           <span className="min-w-0 flex-1 text-pretty">{o.line}</span>
-          <Button variant="ghost" onClick={onUndo}>
-            <Undo2Icon data-icon="inline-start" />
-            Undo
-          </Button>
+          {undoable && (
+            <Button variant="ghost" onClick={onUndo}>
+              <Undo2Icon data-icon="inline-start" />
+              Undo
+            </Button>
+          )}
         </p>
         <p className="text-sm text-muted-foreground">
           {done.decision.by}, today, {done.decision.at}. Reason: {done.decision.reason}
@@ -547,7 +551,7 @@ export function ConflictView({
   const list = useQuery(conflictsQuery('all'))
   const me = useMe()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const online = useOnline()
   const isMobile = useIsMobile()
   const [measure, wide] = useWide<HTMLDivElement>(SIDE_BY_SIDE)
@@ -667,13 +671,14 @@ export function ConflictView({
           key,
           done: { conflict: c, decision: result.decision, undo: result.undo },
         })
+        const left = heldWords(result.undo)
         toast(
           outcome === 'kept_one'
             ? 'Kept one, archived the other'
             : outcome === 'kept_both'
               ? 'Kept both'
               : 'Not a conflict',
-          { description: 'You can undo this for a few seconds.' },
+          left ? { description: `You can undo this for ${left}.` } : {},
         )
       },
       (error: unknown) =>
@@ -688,7 +693,7 @@ export function ConflictView({
 
   const undoDone = async () => {
     if (!done) return
-    if (!(await takeBack(done.undo))) return
+    if (!(await undo.takeBack(done.undo))) return
     dispatch({ type: 'finish' })
     toast('Undone', { description: 'Both items are as they were.' })
   }
@@ -803,7 +808,7 @@ export function ConflictView({
           <Sheet open={settling} onOpenChange={setSettling}>
             <SheetContent side="bottom" className="gap-0">
               <SheetHeader>
-                <SheetTitle>Settle it</SheetTitle>
+                <SheetTitle>Choose what to do</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col pb-2">
                 {[
@@ -992,7 +997,7 @@ function ConflictBody({
     <div
       ref={sides[col.i]}
       tabIndex={-1}
-      className="flex flex-col gap-0.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex flex-col gap-0.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       onFocus={() => setFocusSide(col.i)}
     >
       <span className="text-xs text-muted-foreground">{sideLabel(col)}</span>
@@ -1062,7 +1067,7 @@ function ConflictBody({
       ? null
       : any
         ? `You can do all of this: you own ${c.holder.domainName}, where both live. An admin can too. Anyone else can ask the owner.`
-        : `You own neither item, so you can ask the owner. ${ownerNames(c.holder)} or an admin can settle it.`
+        : `You own neither item, so you can ask the owner. ${ownerNames(c.holder)} or an admin can decide it.`
 
   return (
     <>
@@ -1135,7 +1140,7 @@ function ConflictBody({
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
             <h3 id="other-ways" className="text-sm font-semibold">
-              Or settle it another way
+              Or choose another way
             </h3>
             <p className="text-xs text-muted-foreground">
               Agents keep saying Conflict until one of these changes what they get.
@@ -1171,7 +1176,7 @@ function ConflictBody({
         </div>
         {!c.rights.notConflict && (
           <p id="not-conflict-why" className="text-xs text-muted-foreground">
-            Not a conflict removes the flag that “{sideTitle(c.holder)}” holds. Only{' '}
+            Not a conflict removes the Conflict mark that “{sideTitle(c.holder)}” holds. Only{' '}
             {ownerNames(c.holder)} or an admin can do that.
           </p>
         )}
@@ -1212,7 +1217,7 @@ function ConflictBody({
           </Button>
           <Button className="h-11 flex-1" disabled={held || !any} onClick={onSettle}>
             <SplitIcon data-icon="inline-start" />
-            Settle it
+            Choose what to do
           </Button>
         </div>
       )}

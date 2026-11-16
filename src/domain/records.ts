@@ -1278,7 +1278,7 @@ function recordsAnswerOf(ask: RecordsAsk, world: RecordsWorld, nowIso: string): 
           area && owners.length
             ? `${domain!.name} is owned by ${list(owners)}.`
             : area
-              ? `${domain!.name} has no owner to check them. An administrator can add one.`
+              ? `${domain!.name} has no owner to check them. An admin can add one.`
               : null,
         columns: read.section?.columns ?? [],
         rows: read.section?.rows ?? [],
@@ -1500,7 +1500,7 @@ function ownerAnswer(
       sentence: none.length
         ? `${list(none.map((a) => a.name))} ${none.length === 1 ? 'has' : 'have'} no owner, so ${itemsWords(orphans.length)} ${orphans.length === 1 ? 'has' : 'have'} nobody to check ${orphans.length === 1 ? 'it' : 'them'}.`
         : 'Every domain has an owner, so every context item has someone to check it.',
-      detail: none.length ? 'An administrator can add an owner to a domain.' : null,
+      detail: none.length ? 'An admin can add an owner to a domain.' : null,
       columns: ['Domain', 'Context items with no owner'],
       rows: none.slice(0, RECORDS_ROWS).map((a) => ({
         type: 'area' as const,
@@ -1546,7 +1546,7 @@ function ownerAnswer(
       read: `Read ${area.name} and its ${itemsWords(n)}`,
       sentence: who.length
         ? own(who, area.name)
-        : `${area.name} has no owner. An administrator can add one.`,
+        : `${area.name} has no owner. An admin can add one.`,
       detail: `${itemsWords(n)} in ${area.name} ${n === 1 ? 'is' : 'are'} ${who.length ? 'theirs' : 'waiting for an owner'} to check.`,
       more: domainLink(area),
     }
@@ -1560,7 +1560,7 @@ function ownerAnswer(
         understood: `Owner of ${metric.name}`,
         read: `Read ${metric.name} and ${count(world.areas.length)} domains`,
         sentence: `${metric.name} is in no domain, so nobody owns it.`,
-        detail: 'A domain has owners, not a single metric. An administrator can put it in one.',
+        detail: 'A domain has owners, not a single metric. An admin can put it in one.',
       }
     const who = names(home)
     return {
@@ -1570,7 +1570,7 @@ function ownerAnswer(
       read: `Read ${metric.name} and its domain, ${home.name}`,
       sentence: who.length
         ? own(who, metric.name)
-        : `${metric.name} is in ${home.name}, which has no owner. An administrator can add one.`,
+        : `${metric.name} is in ${home.name}, which has no owner. An admin can add one.`,
       detail: `${metric.name} is a definition in ${home.name}. A domain has owners, not a single metric.`,
       more: domainLink(home),
     }

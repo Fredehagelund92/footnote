@@ -1,5 +1,5 @@
 import { useChats, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import type { Answer, Thread } from '@/model/ask'
 
 // The chats under Ask as the screens use them, from the shared chats read (src/web/api). Only the
@@ -15,7 +15,7 @@ export const findThread = (threads: Thread[], id: string | null | undefined) =>
 /** Starting, renaming and deleting chats. */
 export function useThreadActions() {
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   return {
     /** A chat the person just started, at the top of Today. */
     add: (id: string, question: string) => void write('saveChat', { id, question }),
@@ -23,8 +23,8 @@ export function useThreadActions() {
     keep: (id: string, question: string, answers: Answer[]) =>
       void write('saveChat', { id, question, answers }),
     rename: (id: string, title: string) => void write('renameChat', { id, title }),
-    /** Deletes a chat; the token puts it back where it was. */
-    remove: async (id: string) => (await write('deleteChat', { id })).undo,
-    undo: (token: string) => void takeBack(token),
+    /** Deletes a chat, saying so with Undo, which puts it back where it was. */
+    remove: async (id: string, title: string) =>
+      undo.offer('Chat deleted', (await write('deleteChat', { id })).undo, { description: title }),
   }
 }

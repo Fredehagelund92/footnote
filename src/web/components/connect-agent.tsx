@@ -232,7 +232,7 @@ function LiveLine({
         )}
         {(phase === 'hint' || phase === 'timeout' || phase === 'declined') && (
           <div className="flex flex-wrap gap-2 pt-1">
-            {phase === 'timeout' && <Button onClick={onAgain}>Check again</Button>}
+            {phase === 'timeout' && <Button onClick={onAgain}>Keep waiting</Button>}
             <Button variant="outline" onClick={onCopyAgain}>
               <CopyIcon data-icon="inline-start" />
               Copy prompt again
@@ -276,7 +276,7 @@ function TextButton({ children, ...props }: React.ComponentProps<'button'>) {
   return (
     <button
       type="button"
-      className="-mx-1 inline-flex min-h-6 items-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      className="-mx-1 inline-flex min-h-6 items-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       {...props}
     >
       {children}
@@ -498,8 +498,8 @@ export function ConnectAgent({ inDialog }: { inDialog?: boolean }) {
   if (!address)
     return (
       <p className={cn('text-sm text-muted-foreground', inDialog ? 'p-4' : 'px-4 pb-5 md:px-5')}>
-        Agents can&apos;t connect here yet: this workspace has no address for them. Whoever runs it
-        sets one.
+        Agents can&apos;t connect here yet: this workspace has no address for them. The person who
+        hosts this app sets one.
       </p>
     )
   return (

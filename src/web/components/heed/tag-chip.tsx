@@ -49,7 +49,7 @@ export function TagChip({
           type="button"
           aria-label={removeLabel}
           onClick={onRemove}
-          className="relative grid size-5 shrink-0 place-items-center rounded-xs outline-none after:absolute after:-inset-2 hover:bg-chip-hover focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative grid size-5 shrink-0 place-items-center rounded-xs outline-none after:absolute after:-inset-2 hover:bg-chip-hover focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <XIcon aria-hidden className="size-3" />
         </button>

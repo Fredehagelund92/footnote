@@ -538,7 +538,7 @@ describe('review and release', () => {
     const stale = await decide(p.id, 'accept')
     expect(stale.statusCode, stale.body).toBe(409)
     expect(stale.json<{ message: string }>().message).toBe(
-      'The accepted fact changed after this version was written. Ask for changes.',
+      'The published context item changed after this version was written. Ask for changes.',
     )
     // The owner does what the refusal says, and the author sends it again.
     expect((await decide(p.id, 'request_changes')).statusCode).toBe(200)

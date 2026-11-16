@@ -31,6 +31,7 @@ import { ToolLogo } from '@/components/heed/tool-logo'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Panel } from '@/components/heed/panel'
 import { SiteHeader } from '@/components/site-header'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -57,6 +58,7 @@ import type { JSONContent } from '@tiptap/core'
 import { isTyping, pageKey } from '@/lib/keys'
 import { open as openOverlay } from '@/lib/events'
 import { useOnline, useSend } from '@/lib/send'
+import type { UndoOffer } from '@/api/client'
 import { toApiError } from '@/api/errors'
 import type { ReviewAction, ReviewActions } from '@domain/review-actions'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -72,14 +74,14 @@ import { useLinksEnabled } from '@/lib/links-switch'
 import { Composer } from '@/components/templates/comment-box/composer'
 import { CommentBox } from '@/components/templates/comment-box'
 import { useCommentActions } from '@/lib/comments'
-import { ChoiceGroup, TextSwitch, ViewToggle } from '@/components/heed/switches'
+import { ChoiceMenu, TextSwitch, ViewToggle } from '@/components/heed/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DRAFT_LABEL } from '@/model/ask'
 import { itemPageQuery, useInbox, useReviews, useSavedQuestions, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useHeld, useUndo } from '@/lib/undo'
 import { checkDraft, itemOfReview, savesQuestion } from '@/lib/saved-check'
 import { SavedLine } from '@/components/obs/saved-line'
-import { careLine, marks, readiness, type Relation, type Review } from '@/model/review'
+import { careLine, clashWords, marks, readiness, type Relation, type Review } from '@/model/review'
 import {
   decide,
   idle,
@@ -102,6 +104,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 import { navigate } from '@/lib/router'
 import { useDomains, useFacts } from '@/lib/workspace'
+import { useInboxRows } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
 import { Summary } from '@/pages/review'
 import { TruncatedText } from '@/components/heed/truncated'
@@ -123,14 +126,14 @@ function QueueRail({ count, onShow }: { count: number; onShow: () => void }) {
             <Button
               variant="ghost"
               size="icon-lg"
-              aria-label={`Show the queue, ${count} waiting`}
+              aria-label={`Show waiting suggestions, ${count} waiting`}
               onClick={onShow}
             />
           }
         >
           <ListIcon />
         </TooltipTrigger>
-        <TooltipContent side="right">Show the queue</TooltipContent>
+        <TooltipContent side="right">Show waiting suggestions</TooltipContent>
       </Tooltip>
       <span aria-hidden className="text-xs text-muted-foreground tabular-nums">
         {count}
@@ -236,7 +239,7 @@ function Queue({ current, onPick }: { current: string; onPick: (id: string) => v
           <button
             type="button"
             onClick={() => opened.forEach((r) => void write('markReviewed', { id: r.id }))}
-            className="inline-flex min-h-7 items-center self-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-7 items-center self-center rounded-sm px-1 text-xs text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             Mark the {opened.length} I've opened as read
           </button>
@@ -263,25 +266,18 @@ function PublishReady({
   apart: number
 }) {
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const [confirm, setConfirm] = React.useState(false)
   const sender = useSend()
   const n = items.length
   // Each one is published as a single Publish would, and Undo takes back exactly these, whatever else happened since.
   const publishAll = async () => {
-    const { undo } = await write('publishReviews', { ids: items.map((r) => r.id) })
+    const published = await write('publishReviews', { ids: items.map((r) => r.id) })
     setConfirm(false)
-    toast(`Published ${n}`, {
+    undo.offer(`Published ${n}`, published.undo, {
       description:
         "Agents get them from the next question. The ones you haven't read are still waiting.",
-      action: {
-        label: 'Undo',
-        onClick: () =>
-          void takeBack(undo).then(
-            (back) =>
-              back && toast(`Back: ${n} waiting again`, { description: 'Nothing was published.' }),
-          ),
-      },
+      onUndone: () => toast(`Back: ${n} waiting again`, { description: 'Nothing was published.' }),
     })
   }
   const button = (
@@ -311,7 +307,7 @@ function PublishReady({
           {unread ? `${unread} more ${unread === 1 ? 'is' : 'are'} ready but not read yet. ` : ''}
           Only what you've read, so “Checked by” stays true.
           {apart
-            ? ` ${apart} ${apart === 1 ? 'needs' : 'need'} a look of ${apart === 1 ? 'its' : 'their'} own first (a claim, a new link or an unchecked value) and ${apart === 1 ? 'stays' : 'stay'} out of it.`
+            ? ` ${apart} ${apart === 1 ? 'needs' : 'need'} a look of ${apart === 1 ? 'its' : 'their'} own first (a detail to compare, a new link or an unchecked value) and ${apart === 1 ? 'stays' : 'stay'} out of it.`
             : ''}
         </TooltipContent>
       </Tooltip>
@@ -421,7 +417,7 @@ function ReadMark({ r }: { r: Review }) {
           <button
             type="button"
             onClick={() => void write('markReviewed', { id: r.id })}
-            className="inline-flex min-h-6 items-center rounded-sm px-1 text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-6 items-center rounded-sm px-1 text-foreground underline decoration-foreground/30 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             Mark as read
           </button>
@@ -641,7 +637,7 @@ function TheChange({
     <div className="flex flex-col">
       {r.retire?.withdrawn && (
         <section
-          aria-label="What the thread decided"
+          aria-label="What the comment decided"
           className="mb-6 flex flex-col gap-2 rounded-frame border border-dashed bg-muted/40 p-4"
         >
           <p className="flex items-center gap-2 text-sm font-medium">
@@ -726,9 +722,12 @@ function SyncedFrom({ r }: { r: Review }) {
   )
 }
 
-const relations = (['replaces', 'disagree', 'unrelated'] as const).map((id) => ({
-  id,
-  ...relationText[id],
+// Unrelated first, as in the editor: most overlaps keep it.
+const relationLabels = { unrelated: 'Unrelated', disagree: 'Disagrees', replaces: 'Replaces it' }
+const relations = (['unrelated', 'disagree', 'replaces'] as const).map((value) => ({
+  value,
+  label: relationLabels[value],
+  hint: relationText[value].hint,
 }))
 /** The owner's answer for each live item the suggestion overlaps, by its id, and how to give one. */
 const RelationContext = React.createContext<
@@ -765,7 +764,7 @@ function Clash({ r }: { r: Review }) {
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />
         <Mark role="needs" icon={false} className="text-sm">
-          Overlaps live context
+          {clashWords(items.length)}
         </Mark>
         <span className="text-sm text-muted-foreground">
           {items.length > 1
@@ -791,18 +790,31 @@ function Clash({ r }: { r: Review }) {
               </p>
             )}
             <ClashPair r={r} title={item.title} live={live} pair={pair} />
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-xs text-muted-foreground">How do they relate?</legend>
-              <ChoiceGroup
+            {/* One row, as in the editor: the question, and its answer as a menu that says what
+                each answer does. What the answer does shows once it is more than Unrelated. */}
+            <div className="flex items-baseline gap-3 border-y py-1.5">
+              <div className="min-w-0 flex-1 pb-1">
+                <p className="text-sm">How do they relate?</p>
+                {relation !== 'unrelated' && (
+                  <p
+                    className={cn(
+                      'mt-0.5 text-xs text-muted-foreground',
+                      relation === 'replaces' && 'text-caution',
+                    )}
+                  >
+                    {relation ? relationText[relation].hint : 'Pick how they relate.'}
+                  </p>
+                )}
+              </div>
+              <ChoiceMenu
                 label={`How this relates to ${item.title}`}
-                options={relations.map((x) => ({ value: x.id, label: x.label }))}
+                options={relations}
                 value={relation}
                 onChange={(v) => answer(item.factId, v)}
+                quiet="unrelated"
+                className="-mr-2"
               />
-              <p className="text-xs text-muted-foreground">
-                {relation ? relationText[relation].hint : 'Pick how they relate.'}
-              </p>
-            </fieldset>
+            </div>
           </div>
         )
       })}
@@ -946,7 +958,7 @@ function TryItPanel({ r, now }: { r: Review; now?: string }) {
           value={version}
           onChange={setVersion}
           options={[
-            { value: 'draft', label: 'Draft' },
+            { value: 'draft', label: 'With this change' },
             { value: 'published', label: 'Published' },
           ]}
         />
@@ -986,8 +998,8 @@ type Finished = {
   outcome: string
   message: string
   description: string
-  /** Pass to `undo`: takes back exactly this decision. */
-  undo: string
+  /** Takes back exactly this decision, while the service takes it. */
+  undo: UndoOffer
   now?: string
   next?: string
   /** What Undo puts back on this screen beyond the decision: a returned note, back in the editor. */
@@ -1161,6 +1173,7 @@ function Decision({
   const first = r.from.split(' ')[0]
   const done = state.done[r.id]
   const finished = flow.kind === 'done' ? flow.done : null
+  const undoable = useHeld(finished?.undo)
   const returning = writingReturn(flow)
   const sending = sendingOf(flow)
   const blockedBySend = !online || sending !== null
@@ -1239,7 +1252,7 @@ function Decision({
   const returnButton = (
     <Button size="lg" variant="outline" disabled={sending !== null} onClick={() => ask('return')}>
       <span>
-        Return<span className="max-sm:hidden"> with a note</span>
+        Send back<span className="max-sm:hidden"> with a note</span>
       </span>
     </Button>
   )
@@ -1248,7 +1261,7 @@ function Decision({
     <>
       <Button size="lg" variant="outline" onClick={() => navigate('/context/new', { gap: r.id })}>
         <span>
-          Edit<span className="max-sm:hidden"> the draft</span>
+          Edit<span className="max-sm:hidden"> the first version</span>
         </span>
       </Button>
       <Button
@@ -1281,7 +1294,7 @@ function Decision({
         onClick={() => ask('return')}
       >
         <span>
-          Return<span className="max-sm:hidden"> with a note</span>
+          Send back<span className="max-sm:hidden"> with a note</span>
         </span>
       </Button>
     </>
@@ -1351,8 +1364,9 @@ function Decision({
       offered
     )
 
-  // What just happened, in place: what agents now say, a short countdown to the next one, and Undo.
-  // The pointer or focus on it holds the wait, so Undo is never a race.
+  // What just happened, in place: what agents now say, a short countdown to the next one, and Undo
+  // while the service takes it. The pointer or focus on it holds the wait, so Undo is never a race
+  // with the next one.
   const outcome = finished && (
     <div
       role="status"
@@ -1367,10 +1381,12 @@ function Decision({
       <p className="flex items-center gap-2 text-sm font-medium">
         <CircleCheckIcon className="size-4 text-primary" aria-hidden />
         {finished.message}
-        <Button variant="ghost" className="ml-auto pointer-coarse:h-10" onClick={onUndo}>
-          <Undo2Icon data-icon="inline-start" />
-          Undo
-        </Button>
+        {undoable && (
+          <Button variant="ghost" className="ml-auto pointer-coarse:h-10" onClick={onUndo}>
+            <Undo2Icon data-icon="inline-start" />
+            Undo
+          </Button>
+        )}
       </p>
       {variant === 'panel' && (
         <p className="line-clamp-1 text-sm text-muted-foreground">{finished.description}</p>
@@ -1509,7 +1525,7 @@ function Decision({
             <div className="flex flex-wrap gap-2">{shownActions}</div>
             {draft && (
               <p className="text-xs text-muted-foreground">
-                Your note for {first} is kept. Return with a note opens it again.
+                Your note for {first} is kept. Send back with a note opens it again.
               </p>
             )}
             {/* The key is for people with a keyboard, and only when it acts: never on a touch screen. */}
@@ -1528,6 +1544,7 @@ function Decision({
 
 /** Everything in the queue decided: how it went, Undo for the last one, and the way back. */
 function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUndo: () => void }) {
+  const undoable = useHeld(last.undo)
   const state = useInbox()
   const reviews = useReviews()
   const tally = new Map<string, number>()
@@ -1555,10 +1572,12 @@ function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUnd
         Last: <span className="text-foreground">{title}</span>, {last.outcome.toLowerCase()}.
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={onUndo}>
-          <Undo2Icon data-icon="inline-start" />
-          Undo the last one
-        </Button>
+        {undoable && (
+          <Button variant="outline" onClick={onUndo}>
+            <Undo2Icon data-icon="inline-start" />
+            Undo the last one
+          </Button>
+        )}
         <Button onClick={() => navigate('/inbox')}>Back to the Inbox</Button>
       </div>
     </div>
@@ -1587,9 +1606,10 @@ export function ReviewPage({ id }: { id: string }) {
   const r = reviews.find((x) => x.id === id)
   const me = useMe()
   const state = useInbox()
+  const { waiting: sent } = useInboxRows()
   const domains = useDomains()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const commentActions = useCommentActions()
   const isMobile = useIsMobile()
   // The source is the review; the preview is a second look, kept while you go through the queue.
@@ -1745,16 +1765,19 @@ export function ReviewPage({ id }: { id: string }) {
   }, [at, go, leave, returning, finished, moveOn, reviews, step])
 
   if (!r) {
-    // An old link: say why it is empty, and offer the next suggestion that still waits.
+    // An old link: say why it is empty, and offer the next suggestion that still waits. The sender
+    // of one that waits on others is told who can review it.
     const waiting = reviews.find((x) => !state.done[x.id])
+    const own = sent.find((w) => w.card === id || w.id === id)
     return (
       <div className="flex h-full min-h-0 flex-col">
         <SiteHeader title="Review" />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="font-medium">Nothing to review here</p>
+          <p className="font-medium">{own ? 'Not yours to review' : 'Nothing to review here'}</p>
           <p className="max-w-sm text-sm text-pretty text-muted-foreground">
-            This suggestion was probably published, returned or withdrawn, or the link is from
-            before it was.
+            {own
+              ? `${own.title} is waiting for ${own.waitingFor}, who can review it. You'll see in your Inbox when it is published or returned.`
+              : 'This suggestion is not waiting for you. It may be published, returned or withdrawn, or the link is from before it was.'}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {waiting && <Button onClick={() => go(waiting.id)}>Open the next suggestion</Button>}
@@ -1853,7 +1876,7 @@ export function ReviewPage({ id }: { id: string }) {
       step({ type: 'error', id: r.id, failure: kind, reason: reasonOf(toApiError(error)) })
     })
   }
-  const undo = () => {
+  const undoFinished = () => {
     window.clearTimeout(hold.current.timer)
     hold.current.timer = 0
     // Exactly this decision goes back: its outcome and the context items it changed, nothing else.
@@ -1862,7 +1885,7 @@ export function ReviewPage({ id }: { id: string }) {
       return
     }
     const { afterUndo } = finished
-    void takeBack(finished.undo).then((back) => {
+    void undo.takeBack(finished.undo).then((back) => {
       if (!back) return
       step({ type: 'finish' })
       afterUndo?.()
@@ -1871,7 +1894,7 @@ export function ReviewPage({ id }: { id: string }) {
   const undoLast = () => {
     if (!allDone) return
     const { afterUndo } = allDone
-    void takeBack(allDone.undo).then((back) => {
+    void undo.takeBack(allDone.undo).then((back) => {
       if (!back) return
       setAllDone(null)
       focusChange()
@@ -1907,7 +1930,7 @@ export function ReviewPage({ id }: { id: string }) {
     // A failed note goes again as the editor holds it now, so an edit made after the failure is sent.
     retry: () =>
       send({ type: 'retry', actions, note: drafts[r.id], reason: closeReasons[r.id] ?? '' }),
-    onUndo: undo,
+    onUndo: undoFinished,
     draft: drafts[r.id],
     onDraft,
     closeReason: closeReasons[r.id] ?? '',
@@ -1950,6 +1973,12 @@ export function ReviewPage({ id }: { id: string }) {
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
           deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
+          more={
+            <DropdownMenuItem onClick={() => setQueueOpen(true)}>
+              <ListIcon />
+              Waiting suggestions
+            </DropdownMenuItem>
+          }
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
@@ -1975,17 +2004,6 @@ export function ReviewPage({ id }: { id: string }) {
             </Breadcrumb>
           }
         >
-          {isMobile && (
-            // The icon alone, named for a screen reader: the title keeps the room.
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Queue"
-              onClick={() => setQueueOpen(true)}
-            >
-              <ListIcon />
-            </Button>
-          )}
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
             {at + 1} of {reviews.length}
           </span>

@@ -68,13 +68,13 @@ describe('the sentence of an edition', () => {
         }),
       ),
     ).toBe(
-      '7 facts in Commercial, Finance and Payments: 1 added, 4 changed, 2 archived. Ravi Kapoor went back to edition 2026-10-07.2. Why: Wrong caveat went out.',
+      '7 context items in Commercial, Finance and Payments: 1 added, 4 changed, 2 archived. Ravi Kapoor went back to edition 2026-10-07.2. Why: Wrong caveat went out.',
     )
     expect(
       changeSentence(
         edition({ counts: counts({ changed: 2 }), areas: ['A', 'B', 'C', 'D'], actor: 'Jon' }),
       ),
-    ).toBe('2 facts in 4 domains (changed). Accepted by Jon.')
+    ).toBe('2 context items in 4 domains (changed). Accepted by Jon.')
   })
 
   it('says when the proposer accepted their own change, and falls back to the service', () => {
@@ -117,7 +117,7 @@ describe('the sentence of an edition', () => {
         }),
       ),
     ).toBe(
-      '"Fee" was added to Payments; 2 facts that only some groups see changed. Accepted by Ann.',
+      '"Fee" was added to Payments; 2 context items that only some groups see changed. Accepted by Ann.',
     )
     expect(changeSentence(edition({ reason: 'bootstrap' }))).toBe(
       'Nothing different. The first edition.',
@@ -135,7 +135,7 @@ describe('the sentence of an edition', () => {
         why: 'ignored',
       }),
     ).toBe(
-      '7 facts in Finance: 1 added, 4 changed, 1 checked and still correct, 1 archived. Across 10 editions.',
+      '7 context items in Finance: 1 added, 4 changed, 1 checked and still correct, 1 archived. Across 10 editions.',
     )
   })
 })

@@ -1,14 +1,23 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import type { Press } from '@/lib/list-motion'
+import { ChevronDownIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // The three ways the app lets someone pick between things, one component each, so a later
 // change is one edit:
 //   ViewToggle   another view of the same thing, usually an advanced one: one quiet icon button
 //   TextSwitch   a filter or a two-way option: words (with counts), the chosen one underlined
-//   ChoiceGroup  a decision with a few answers, all visible: outline buttons, one checked
+//   ChoiceMenu   a decision in a row, usually left as it is: the answer as a quiet menu button,
+//                each answer in its menu with what it does
 // No pill tabs, no segmented tracks.
 
 /** Another view of the same thing: one icon button, pressed while that view is on. */
@@ -182,50 +191,70 @@ export function TextSwitch<T extends string>({
   )
 }
 
-/** A decision with a few answers, all visible at once: outline buttons, one checked. */
-export function ChoiceGroup<T extends string>({
+/**
+ * A decision that sits at the end of a row and is usually left as it is: the answer as a quiet
+ * button with a chevron, and a menu that says what each answer does. The button is named for the
+ * decision and its answer ("How this relates to X: Unrelated").
+ */
+export function ChoiceMenu<T extends string>({
   label,
   options,
   value,
   onChange,
+  quiet,
+  placeholder = 'Choose',
   className,
 }: {
   label: string
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; hint: string }[]
   value: T | undefined
   onChange: (v: T) => void
+  /** The answer most rows keep: shown muted, so the rows that say more stand out. */
+  quiet?: T
+  /** The button's words while there is no answer yet. */
+  placeholder?: string
   className?: string
 }) {
-  const onKeyDown = useArrows(
-    options.map((o) => o.value),
-    value ?? options[0]!.value,
-    onChange,
-  )
+  const chosen = options.find((o) => o.value === value)
   return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      onKeyDown={onKeyDown}
-      className={cn('flex flex-wrap gap-2', className)}
-    >
-      {options.map((o, i) => {
-        const on = o.value === value
-        return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
           <Button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            tabIndex={on || (value === undefined && i === 0) ? 0 : -1}
-            data-value={o.value}
-            variant="outline"
-            onClick={() => onChange(o.value)}
-            className={cn(on && 'border-foreground/60 bg-muted text-foreground hover:bg-muted')}
-          >
-            {o.label}
-          </Button>
-        )
-      })}
-    </div>
+            variant="ghost"
+            aria-label={`${label}: ${chosen?.label ?? placeholder}`}
+            className={cn(
+              'shrink-0 gap-1 px-2 font-normal',
+              chosen && chosen.value === quiet && 'text-muted-foreground',
+              className,
+            )}
+          />
+        }
+      >
+        {chosen?.label ?? placeholder}
+        <ChevronDownIcon aria-hidden className="size-3.5 opacity-60" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuRadioGroup
+          aria-label={label}
+          value={value ?? null}
+          onValueChange={(v) => onChange(v as T)}
+        >
+          {options.map((o) => (
+            <DropdownMenuRadioItem
+              key={o.value}
+              value={o.value}
+              closeOnClick
+              className="items-start py-1.5"
+            >
+              <span className="flex flex-col">
+                <span>{o.label}</span>
+                <span className="text-xs text-muted-foreground">{o.hint}</span>
+              </span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -54,7 +54,7 @@ export const areas: Area[] = [
     summary: 'Orders, revenue and the basket: what customers buy and send back, and what we earn.',
     description: `Sales covers the money side of the business: **gross sales**, **net revenue** and **units sold**, the basket figures behind them (units per order, average order value, gross margin, online share) and orders (orders and returns).
 
-Facts here are mostly events and notes that move these numbers, such as a market's online sales stopping, a payment provider outage or a change in how discounts are netted off. Marketing spend and discount cost live in Marketing.`,
+Context items here are mostly events and notes that move these numbers, such as a market's online sales stopping, a payment provider outage or a change in how discounts are netted off. Marketing spend and discount cost live in Marketing.`,
     ownerIds: ['per_jon', 'per_sofia'],
     label: 'teal',
     revision: 1,
@@ -80,7 +80,7 @@ Expect notes on campaign launches and pauses, tracking changes that break a seri
       'Customers over their lifetime: new and active customers, first-time buyers, repeat purchases, churn and lifetime value.',
     description: `Customer value covers the customer base and how it develops: **new customers**, **first-time buyers**, **active customers**, **repeat purchase rate**, **churn rate** and **customer lifetime value**.
 
-Most facts here explain definitions (what counts as active, when a customer churns) and breaks in the series, such as a change in the activity window or a market where accounts were merged.`,
+Most context items here explain definitions (what counts as active, when a customer churns) and breaks in the series, such as a change in the activity window or a market where accounts were merged.`,
     ownerIds: ['per_noor', 'per_alex'],
     label: 'indigo',
     revision: 1,
@@ -92,7 +92,7 @@ Most facts here explain definitions (what counts as active, when a customer chur
     summary: 'Buying ads: return on ad spend by campaign, channel and format.',
     description: `Paid media covers what we buy from ad networks and what it brings back: **return on ad spend**, by campaign, channel and campaign format (search, social, video, display, email).
 
-Facts here are about attribution windows, tracking outages and campaigns whose spend was booked late.`,
+Context items here are about attribution windows, tracking outages and campaigns whose spend was booked late.`,
     ownerIds: ['per_priya'],
     label: 'violet',
     revision: 1,

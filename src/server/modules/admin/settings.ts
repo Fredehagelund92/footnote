@@ -40,7 +40,8 @@ export async function setSetting(
   plainReason(input.reason)
   if (!editable(input.key))
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
-      message: "You can't change this setting here. The data team sets it where the app runs.",
+      message:
+        "You can't change this setting here. The person who hosts this app sets it where the app runs.",
     })
   const parsed = settingSchemas[input.key].safeParse(input.value)
   if (!parsed.success)

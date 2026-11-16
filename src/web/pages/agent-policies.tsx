@@ -320,7 +320,10 @@ function SetPolicyDialog({
           </div>
           <ul className="flex list-disc flex-col gap-1 pl-5 text-xs text-muted-foreground">
             <li>It never changes or archives a live item.</li>
-            <li>A suggestion that clashes with live context, or has a claim to check, waits.</li>
+            <li>
+              A suggestion that clashes with live context, or has a detail to compare with the
+              source, waits.
+            </li>
             <li>It stays on until someone turns it off.</li>
           </ul>
           {problem && (

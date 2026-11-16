@@ -3,12 +3,14 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/heed/fold'
-import type { Figure, FigureView } from '@/model/figures'
+import { useQuery } from '@tanstack/react-query'
+import { figureAskOf, type Figure, type FigureView } from '@/model/figures'
+import { useFigures } from '@/lib/figures'
 import { useDomains, useFacts } from '@/lib/workspace'
 import { openDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { plainText } from '@/lib/mentions'
-import { useWrite } from '@/api/queries'
+import { figureQuery, useWrite } from '@/api/queries'
 import type { Answer } from '@/model/ask'
 
 // A figure in an answer, kept apart from the context: its own line and icon, its own words ("From
@@ -229,4 +231,21 @@ export function FigureLink({ view }: { view: Extract<FigureView, { kind: 'link' 
       </span>
     </a>
   )
+}
+
+/**
+ * The data an answer of Ask's loop asks about, read as the router's answer reads it (FR-716): one
+ * figure line, the figure beside the item it doesn't fit, a link into the tool while figures are
+ * off, or why there is none. Nothing while it reads, and nothing when there is nothing to show.
+ */
+export function AnswerFigure({ answer }: { answer: Answer }) {
+  const figures = useFigures()
+  const figure = useQuery({ ...figureQuery(figureAskOf(answer)), enabled: answer.state !== null })
+  const view = figure.data ?? null
+  if (view?.kind === 'line') return <FigureLine view={view} metric={answer.metric} />
+  if (view?.kind === 'against')
+    return <FigureAgainst view={view} answer={answer} contact={figures.contact(view.source)} />
+  if (view?.kind === 'none') return <NoFigure view={view} />
+  if (view?.kind === 'link') return <FigureLink view={view} />
+  return null
 }

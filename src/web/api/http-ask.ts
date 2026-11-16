@@ -11,9 +11,11 @@ import type { Term } from '@domain/vocabulary'
 import { plainText as wordsOfMarkdown } from '@domain/doc-diff'
 import { shiftDate } from '@domain/validity'
 import { windowWords } from '@domain/dates'
+import { lookupFailedNote } from '@domain/words'
 import { plainText } from '@/lib/mentions'
 import { ALL_VALUES } from '@/model/observability'
 import type { Answer, AnswerLinks, AskedRow, AskedWeek, Example, Thread } from '@/model/ask'
+import type { Undoable } from './client'
 import {
   closestNames,
   midSentence,
@@ -264,7 +266,7 @@ function engineAnswerOf(
   if (a.state === 'failed')
     return {
       ...base,
-      note: "The check couldn't run just now. That is not the same as nothing written down: ask again in a minute.",
+      note: lookupFailedNote,
       text: '',
     }
   // A market on its own: what it has is written for a metric, so say so, naming them.
@@ -340,7 +342,7 @@ export const failedAnswer = (question: string): Answer => ({
   metric: '',
   markets: [],
   state: 'failed',
-  note: "The check couldn't run just now. That is not the same as nothing written down: ask again in a minute.",
+  note: lookupFailedNote,
   text: '',
   sources: [],
   said: "The check failed. Do not say that nothing is known; say that the check couldn't run.",
@@ -589,7 +591,7 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
       )
     },
     /** Deletes a chat; the token puts it back as it was. */
-    remove(person: string, id: string): { undo: string } {
+    remove(person: string, id: string): Undoable {
       const gone = read(person).find((c) => c.id === id)
       write(
         person,
@@ -599,7 +601,8 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
       undos.set(token, () => {
         if (gone && !read(person).some((c) => c.id === id)) write(person, [...read(person), gone])
       })
-      return { undo: token }
+      // Kept in this browser, it can be put back until the page goes.
+      return { undo: { token, until: null } }
     },
     /** Whether a token is one of these chats' own; it puts the chat back once. */
     undo(token: string): boolean {

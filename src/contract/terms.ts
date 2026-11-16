@@ -15,6 +15,7 @@ import {
   termRefPattern,
   termRefusalCodes,
 } from '../domain/terms.ts'
+import { undoOfferSchema } from './undo.ts'
 
 const personId = z.string()
 const termId = z.string().check(z.uuid())
@@ -126,7 +127,7 @@ const termSkipSchema = z.object({
 export const termChangeResultSchema = z.object({
   done: z.array(z.object({ id: z.string(), name: z.string() })),
   skipped: z.array(termSkipSchema),
-  undo: z.nullable(z.string()),
+  undo: z.nullable(undoOfferSchema),
 })
 
 export const termRestoreResultSchema = z.object({

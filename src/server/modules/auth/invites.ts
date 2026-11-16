@@ -11,6 +11,7 @@ import {
 } from '../../../contract/members.ts'
 import type { Queryable } from '../../db/database.ts'
 import { lockRoles } from './roles.ts'
+import { signedOutKept } from '../../../contract/refusals.ts'
 
 /*
   Invites (FR-417): an address asked to join as an Admin or a Member, owning some domains from
@@ -79,7 +80,7 @@ export async function createInvites(
     'select cl_person()::text as id, cl_is_admin_now() as admin, cl_owns_all($1::text[]) as owns',
     [areaIds],
   )
-  if (!actor?.id) throw new ORPCError('UNAUTHORIZED')
+  if (!actor?.id) throw new ORPCError('UNAUTHORIZED', { message: signedOutKept })
   if (!actor.admin && (input.role !== 'member' || !areaIds.length || !actor.owns))
     throw new ORPCError('FORBIDDEN', {
       message:

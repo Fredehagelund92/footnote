@@ -216,8 +216,9 @@ it('accepts one proposal within budget, and never twice', async () => {
   expect(response.json<{ proposal: ReviewProposal }>().proposal.state).toBe('accepted')
   expect(ms).toBeLessThan(DECIDE_BUDGET_MS)
   // Publish reads the suggestion as its review shows it (clashes, relations, a take-back) before
-  // the decision: 62 statements when the web app's review replaced the old one (30 Oct 2026).
-  expect(statements.length).toBeLessThanOrEqual(62)
+  // the decision: 62 statements when the web app's review replaced the old one (30 Oct 2026), 63
+  // with the one that asks the service for the end of the Undo window (cl_undo_until).
+  expect(statements.length).toBeLessThanOrEqual(63)
   // Whether it is a rescue (FR-814) is read with the live version, so it costs no statement.
   const rescue = statements.filter((text) => text.includes('rescue_proposal'))
   expect(rescue).toHaveLength(1)

@@ -26,11 +26,11 @@ describe('the answer lines', () => {
       missing: ['Not found', 'Nothing is written about this yet.'],
       conflict: ['Conflict', 'Two items say different things.'],
       stale: ['Outdated', 'Some of this may be old.'],
-      failed: ['Not checked', 'The check did not run.'],
+      failed: ['Not looked up', 'Ask could not look this up just now.'],
     })
-    // One or two plain words, and something to do for each.
+    // One to three plain words, and something to do for each.
     for (const line of ANSWER_LINES) {
-      expect(line.label.split(' ').length, line.state).toBeLessThanOrEqual(2)
+      expect(line.label.split(' ').length, line.state).toBeLessThanOrEqual(3)
       expect(line.todo.length, line.state).toBeGreaterThan(0)
     }
   })

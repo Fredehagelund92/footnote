@@ -100,7 +100,7 @@ test('Esc closes the list and keeps the words; a time like 10:30 opens nothing',
 
 test('the Return note takes emoji too', async ({ page }) => {
   await go(page, '/inbox/sug-ines-format/review')
-  await page.getByRole('button', { name: 'Return with a note' }).first().click()
+  await page.getByRole('button', { name: 'Send back with a note' }).first().click()
   const note = page.getByRole('textbox', { name: /^A note for / })
   await note.click()
   await page.keyboard.type('Nearly there :ey')
@@ -202,7 +202,7 @@ test('a mention of you waits in the Inbox until you read it', async ({ page }) =
   await row.click()
   await expect(page.getByText(/^Tomas Eriksen mentioned you, /)).toBeVisible()
   await page.getByRole('button', { name: 'Done', exact: true }).click()
-  await expect(page.getByText('The comment stays in the thread.')).toBeVisible()
+  await expect(page.getByText('The comment stays in the comments.')).toBeVisible()
   await expect(row).toHaveCount(0)
   // Read for good: the Inbox read again from the start no longer has it.
   await go(page, '/ask')
@@ -214,7 +214,7 @@ test('a mention of you waits in the Inbox until you read it', async ({ page }) =
 test("a return's note is the suggestion's first comment", async ({ page }) => {
   await go(page, '/inbox/sug-ines/review')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  await decide.getByRole('button', { name: 'Return with a note' }).click()
+  await decide.getByRole('button', { name: 'Send back with a note' }).click()
   await page
     .getByRole('textbox', { name: 'A note for Ines Duarte' })
     .pressSequentially('Which page says 340?')

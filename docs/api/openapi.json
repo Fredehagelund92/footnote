@@ -1123,7 +1123,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -2867,7 +2867,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -4525,7 +4525,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -6204,7 +6204,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -7889,7 +7889,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -11253,7 +11253,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -11751,7 +11751,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -11885,7 +11884,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -14715,7 +14713,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -15213,7 +15211,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -15347,7 +15344,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -15899,7 +15895,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -16397,7 +16393,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -16531,7 +16526,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -17203,8 +17197,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -17416,7 +17429,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -17914,7 +17927,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -18048,7 +18060,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -18612,8 +18623,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -18824,7 +18854,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -19322,7 +19352,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -19456,7 +19485,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -20012,8 +20040,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -20224,7 +20271,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -20722,7 +20769,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -20856,7 +20902,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -21248,8 +21293,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -21466,7 +21530,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -21964,7 +22028,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -22098,7 +22161,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -22848,7 +22910,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -23346,7 +23408,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -23480,7 +23541,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -25237,7 +25297,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents already get this edition, or some of its facts can't be shared with agents again."
+                          "default": "Agents already get this edition, or some of its context items can't be shared with agents again."
                         },
                         "data": {
                           "type": "object",
@@ -25775,7 +25835,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -25909,7 +25968,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -27855,7 +27913,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -28353,7 +28411,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -28487,7 +28544,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -39003,7 +39059,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -39214,7 +39290,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -39712,7 +39788,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -39846,7 +39921,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -40815,7 +40889,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41096,7 +41170,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41437,7 +41511,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41738,7 +41812,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -41798,7 +41872,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -42892,7 +42966,27 @@
                           ]
                         },
                         "undo": {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         }
                       },
                       "required": [
@@ -43070,7 +43164,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -43130,7 +43224,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -43628,7 +43722,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -43762,7 +43855,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -44231,7 +44323,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -44450,7 +44562,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -44948,7 +45060,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -45082,7 +45193,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -46466,7 +46576,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -50363,7 +50473,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -50711,7 +50841,27 @@
                     "undo": {
                       "anyOf": [
                         {
-                          "type": "string"
+                          "type": "object",
+                          "properties": {
+                            "token": {
+                              "type": "string",
+                              "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                            },
+                            "until": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "token",
+                            "until"
+                          ]
                         },
                         {
                           "type": "null"
@@ -52233,7 +52383,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this fact. It may have been deleted, or you may not have access."
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
                         },
                         "data": {}
                       },
@@ -54597,7 +54747,7 @@
     "/archived-areas": {
       "get": {
         "operationId": "areas.archived",
-        "summary": "The deleted domains that history keeps, newest first, with what restoring each gives back",
+        "summary": "The deleted domains that history keeps, newest first",
         "tags": [
           "admin"
         ],
@@ -54635,15 +54785,6 @@
                       },
                       "archivedAt": {
                         "type": "string"
-                      },
-                      "team": {
-                        "type": "number"
-                      },
-                      "terms": {
-                        "type": "number"
-                      },
-                      "binnedItems": {
-                        "type": "number"
                       }
                     },
                     "required": [
@@ -54651,10 +54792,7 @@
                       "name",
                       "label",
                       "summary",
-                      "archivedAt",
-                      "team",
-                      "terms",
-                      "binnedItems"
+                      "archivedAt"
                     ]
                   }
                 }
@@ -55448,6 +55586,591 @@
                         "code",
                         "status",
                         "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gaps/reports": {
+      "post": {
+        "operationId": "gaps.report",
+        "summary": "Say something is missing about a scope (FR-606 case 5, Ask's Tell the owner): counts one report against the topic, as an agent's report of kind missing does, and records no person",
+        "tags": [
+          "gaps"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "metrics": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  },
+                  "dimension_filters": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "dimension": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "values": {
+                          "type": "array",
+                          "maxItems": 50,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          }
+                        }
+                      },
+                      "required": [
+                        "dimension",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "window": {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "type": {
+                    "enum": [
+                      "missing",
+                      "outdated",
+                      "incorrect",
+                      "duplicate",
+                      "contradictory",
+                      "wrong_item_chosen",
+                      "scope_too_narrow",
+                      "scope_too_wide",
+                      "unclear_question"
+                    ],
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find it. It may have been deleted, or you may not have access."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "412",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "PRECONDITION_FAILED"
+                        },
+                        "status": {
+                          "const": 412
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNPROCESSABLE_CONTENT"
+                        },
+                        "status": {
+                          "const": 422
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Some details need attention. Fix the problems shown, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "findings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "severity": {
+                                    "enum": [
+                                      "error",
+                                      "warning"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "field",
+                                  "message",
+                                  "severity"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "findings"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "TOO_MANY_REQUESTS"
+                        },
+                        "status": {
+                          "const": 429
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You've sent a lot of reports. Try again in a minute."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "retryAfterSeconds": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "retryAfterSeconds"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message",
+                        "data"
                       ]
                     },
                     {
@@ -66425,6 +67148,9 @@
                                   }
                                 ]
                               },
+                              "told": {
+                                "type": "number"
+                              },
                               "draft": {
                                 "anyOf": [
                                   {
@@ -66448,6 +67174,7 @@
                               "title",
                               "scope",
                               "times",
+                              "told",
                               "draft"
                             ]
                           },
@@ -68001,7 +68728,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -68499,7 +69226,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -68633,7 +69359,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -69287,8 +70012,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string",
-                      "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -69499,7 +70243,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -69997,7 +70741,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -70131,7 +70874,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -76021,7 +76763,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The proposal, or what agents get, changed after you opened it. Look at the latest version, then try again."
+                          "default": "This suggestion, or the published context, changed after you opened it. Reload to see the latest, then decide again."
                         },
                         "data": {}
                       },
@@ -76519,7 +77261,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -76653,7 +77394,6 @@
                                               },
                                               "runState": {
                                                 "enum": [
-                                                  "estimated",
                                                   "awaiting_approval",
                                                   "queued",
                                                   "running",
@@ -77605,7 +78345,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -77810,7 +78550,6 @@
                       },
                       "state": {
                         "enum": [
-                          "estimated",
                           "awaiting_approval",
                           "queued",
                           "running",
@@ -78358,7 +79097,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -78542,7 +79281,6 @@
                         },
                         "state": {
                           "enum": [
-                            "estimated",
                             "awaiting_approval",
                             "queued",
                             "running",
@@ -79627,7 +80365,6 @@
                           },
                           "state": {
                             "enum": [
-                              "estimated",
                               "awaiting_approval",
                               "queued",
                               "running",
@@ -79979,7 +80716,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -80160,7 +80897,6 @@
                     },
                     "state": {
                       "enum": [
-                        "estimated",
                         "awaiting_approval",
                         "queued",
                         "running",
@@ -80707,7 +81443,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -80887,7 +81623,6 @@
                     },
                     "state": {
                       "enum": [
-                        "estimated",
                         "awaiting_approval",
                         "queued",
                         "running",
@@ -81434,7 +82169,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -81615,7 +82350,6 @@
                     },
                     "state": {
                       "enum": [
-                        "estimated",
                         "awaiting_approval",
                         "queued",
                         "running",
@@ -82162,7 +82896,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -87542,7 +88276,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this proposal after you opened it. Look at the latest version, then try again."
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
                         },
                         "data": {
                           "type": "object",
@@ -89474,7 +90208,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Agents don't get any facts yet. Ask an admin to finish the setup."
+                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },
@@ -93148,6 +93882,16 @@
                                             "period": {
                                               "type": "string"
                                             },
+                                            "note": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
                                             "assumedToday": {
                                               "type": "boolean"
                                             },
@@ -93165,6 +93909,7 @@
                                             "names",
                                             "about",
                                             "period",
+                                            "note",
                                             "assumedToday",
                                             "carried",
                                             "uncovered"
@@ -93221,6 +93966,24 @@
                                           "tool"
                                         ]
                                       }
+                                    },
+                                    "defined": {
+                                      "type": "object",
+                                      "properties": {
+                                        "names": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "tool": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "names",
+                                        "tool"
+                                      ]
                                     },
                                     "choices": {
                                       "type": "array",
@@ -94118,6 +94881,1130 @@
                                     "owners",
                                     "overview",
                                     "checks"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "turn"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "const": "words"
+                                },
+                                "turn": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "kind": {
+                                          "enum": [
+                                            "answer",
+                                            "question",
+                                            "stopped"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "text": {
+                                          "type": "string"
+                                        },
+                                        "sources": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "state": {
+                                          "anyOf": [
+                                            {
+                                              "enum": [
+                                                "failed",
+                                                "missing",
+                                                "conflict",
+                                                "partial",
+                                                "stale",
+                                                "grounded"
+                                              ],
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "footer": {
+                                          "type": "object",
+                                          "properties": {
+                                            "denominator": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
+                                            "notSeen": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            },
+                                            "stale": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "denominator",
+                                            "notSeen",
+                                            "stale"
+                                          ]
+                                        },
+                                        "read": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "subject": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "names": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "about": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "period": {
+                                                  "type": "string"
+                                                },
+                                                "note": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ]
+                                                },
+                                                "assumedToday": {
+                                                  "type": "boolean"
+                                                },
+                                                "carried": {
+                                                  "type": "boolean"
+                                                },
+                                                "uncovered": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "string"
+                                                  }
+                                                }
+                                              },
+                                              "required": [
+                                                "names",
+                                                "about",
+                                                "period",
+                                                "note",
+                                                "assumedToday",
+                                                "carried",
+                                                "uncovered"
+                                              ]
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "nearby": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "conflict": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "definitions": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "name": {
+                                                "type": "string"
+                                              },
+                                              "words": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "tool": {
+                                                "type": "string"
+                                              },
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "mark": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "name",
+                                              "words",
+                                              "tool"
+                                            ]
+                                          }
+                                        },
+                                        "defined": {
+                                          "type": "object",
+                                          "properties": {
+                                            "names": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "tool": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "names",
+                                            "tool"
+                                          ]
+                                        },
+                                        "choices": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "reads": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "tool": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 40
+                                              },
+                                              "input": {
+                                                "type": "object",
+                                                "propertyNames": {
+                                                  "type": "string",
+                                                  "maxLength": 40
+                                                },
+                                                "additionalProperties": {}
+                                              }
+                                            },
+                                            "required": [
+                                              "tool",
+                                              "input"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "stopped": {
+                                          "anyOf": [
+                                            {
+                                              "enum": [
+                                                "steps",
+                                                "time",
+                                                "spending",
+                                                "model"
+                                              ],
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "body": {
+                                          "type": "array",
+                                          "items": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "t": {
+                                                    "const": "p"
+                                                  },
+                                                  "runs": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "t": {
+                                                              "const": "text"
+                                                            },
+                                                            "text": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "t",
+                                                            "text"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "t": {
+                                                              "const": "noun"
+                                                            },
+                                                            "id": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "t",
+                                                            "id"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "t": {
+                                                              "const": "cite"
+                                                            },
+                                                            "n": {
+                                                              "type": "number"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "t",
+                                                            "n"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "t": {
+                                                              "const": "count"
+                                                            },
+                                                            "value": {
+                                                              "type": "string"
+                                                            },
+                                                            "of": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string"
+                                                                },
+                                                                {
+                                                                  "type": "null"
+                                                                }
+                                                              ]
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "t",
+                                                            "value",
+                                                            "of"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "t": {
+                                                              "const": "date"
+                                                            },
+                                                            "day": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "t",
+                                                            "day"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                },
+                                                "required": [
+                                                  "t",
+                                                  "runs"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "t": {
+                                                    "const": "ul"
+                                                  },
+                                                  "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "text"
+                                                              },
+                                                              "text": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "text"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "noun"
+                                                              },
+                                                              "id": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "id"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "cite"
+                                                              },
+                                                              "n": {
+                                                                "type": "number"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "n"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "count"
+                                                              },
+                                                              "value": {
+                                                                "type": "string"
+                                                              },
+                                                              "of": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "string"
+                                                                  },
+                                                                  {
+                                                                    "type": "null"
+                                                                  }
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "value",
+                                                              "of"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "date"
+                                                              },
+                                                              "day": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "day"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "required": [
+                                                  "t",
+                                                  "items"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "t": {
+                                                    "const": "list"
+                                                  },
+                                                  "rows": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "more": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "t",
+                                                  "rows",
+                                                  "more"
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "said": {
+                                          "type": "string"
+                                        },
+                                        "nouns": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "name": {
+                                                "type": "string"
+                                              },
+                                              "of": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "id": {
+                                                        "type": "string"
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "id",
+                                                      "name"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "type": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "id",
+                                              "name",
+                                              "of",
+                                              "type"
+                                            ]
+                                          }
+                                        },
+                                        "items": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "title": {
+                                                "type": "string"
+                                              },
+                                              "kind": {
+                                                "type": "string"
+                                              },
+                                              "domain": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "about": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "status": {
+                                                "enum": [
+                                                  "live",
+                                                  "due",
+                                                  "archived"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "checked": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "outOfDate": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "n": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "number"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "id",
+                                              "title",
+                                              "kind",
+                                              "domain",
+                                              "about",
+                                              "status",
+                                              "checked",
+                                              "outOfDate",
+                                              "n"
+                                            ]
+                                          }
+                                        },
+                                        "closest": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "by": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ]
+                                                },
+                                                "counts": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "id": {
+                                                        "type": "string"
+                                                      },
+                                                      "count": {
+                                                        "type": "number"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "id",
+                                                      "count"
+                                                    ]
+                                                  }
+                                                },
+                                                "items": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "string"
+                                                  }
+                                                }
+                                              },
+                                              "required": [
+                                                "by",
+                                                "counts",
+                                                "items"
+                                              ]
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "owners": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "domain": {
+                                                "type": "string"
+                                              },
+                                              "people": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "domain",
+                                              "people"
+                                            ]
+                                          }
+                                        },
+                                        "overview": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "from": {
+                                                  "enum": [
+                                                    "inbox",
+                                                    "records"
+                                                  ],
+                                                  "type": "string"
+                                                },
+                                                "by": {
+                                                  "type": "string"
+                                                },
+                                                "total": {
+                                                  "type": "number"
+                                                },
+                                                "headline": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "text"
+                                                          },
+                                                          "text": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "text"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "noun"
+                                                          },
+                                                          "id": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "id"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "cite"
+                                                          },
+                                                          "n": {
+                                                            "type": "number"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "n"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "count"
+                                                          },
+                                                          "value": {
+                                                            "type": "string"
+                                                          },
+                                                          "of": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "string"
+                                                              },
+                                                              {
+                                                                "type": "null"
+                                                              }
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "value",
+                                                          "of"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "date"
+                                                          },
+                                                          "day": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "day"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                "page": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "count": {
+                                                          "type": "number"
+                                                        },
+                                                        "why": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "count",
+                                                        "why"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ]
+                                                },
+                                                "order": {
+                                                  "type": "string"
+                                                },
+                                                "groups": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "key": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "null"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      },
+                                                      "count": {
+                                                        "type": "number"
+                                                      },
+                                                      "rows": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "title": {
+                                                              "type": "string"
+                                                            },
+                                                            "item": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string"
+                                                                },
+                                                                {
+                                                                  "type": "null"
+                                                                }
+                                                              ]
+                                                            },
+                                                            "about": {
+                                                              "type": "array",
+                                                              "items": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "domain": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string"
+                                                                },
+                                                                {
+                                                                  "type": "null"
+                                                                }
+                                                              ]
+                                                            },
+                                                            "status": {
+                                                              "type": "string"
+                                                            },
+                                                            "date": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string"
+                                                                },
+                                                                {
+                                                                  "type": "null"
+                                                                }
+                                                              ]
+                                                            },
+                                                            "card": {
+                                                              "anyOf": [
+                                                                {
+                                                                  "type": "string"
+                                                                },
+                                                                {
+                                                                  "type": "null"
+                                                                }
+                                                              ]
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "title",
+                                                            "item",
+                                                            "about",
+                                                            "domain",
+                                                            "status",
+                                                            "date",
+                                                            "card"
+                                                          ]
+                                                        }
+                                                      },
+                                                      "more": {
+                                                        "type": "number"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "key",
+                                                      "name",
+                                                      "count",
+                                                      "rows",
+                                                      "more"
+                                                    ]
+                                                  }
+                                                },
+                                                "note": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "text"
+                                                              },
+                                                              "text": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "text"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "noun"
+                                                              },
+                                                              "id": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "id"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "cite"
+                                                              },
+                                                              "n": {
+                                                                "type": "number"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "n"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "count"
+                                                              },
+                                                              "value": {
+                                                                "type": "string"
+                                                              },
+                                                              "of": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "type": "string"
+                                                                  },
+                                                                  {
+                                                                    "type": "null"
+                                                                  }
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "value",
+                                                              "of"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "t": {
+                                                                "const": "date"
+                                                              },
+                                                              "day": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "t",
+                                                              "day"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    },
+                                                    {
+                                                      "type": "null"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "from",
+                                                "by",
+                                                "total",
+                                                "headline",
+                                                "page",
+                                                "order",
+                                                "groups",
+                                                "note"
+                                              ]
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "checks": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "kind": {
+                                                "type": "string"
+                                              },
+                                              "words": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "kind",
+                                              "words"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "kind",
+                                        "text",
+                                        "sources",
+                                        "state",
+                                        "footer",
+                                        "read",
+                                        "subject",
+                                        "nearby",
+                                        "conflict",
+                                        "definitions",
+                                        "choices",
+                                        "reads",
+                                        "stopped",
+                                        "body",
+                                        "said",
+                                        "nouns",
+                                        "items",
+                                        "closest",
+                                        "owners",
+                                        "overview",
+                                        "checks"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
                                   ]
                                 }
                               },
@@ -108062,7 +109949,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [
@@ -108921,7 +110828,27 @@
                       ]
                     },
                     "undo": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$"
+                        },
+                        "until": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "until"
+                      ]
                     }
                   },
                   "required": [

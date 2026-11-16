@@ -183,7 +183,7 @@ describe('what is left out, and why', () => {
     // An item for another group is never named, not even by its id: it is counted.
     expect(result.forAnotherGroup).toBe(1)
     expect(JSON.stringify(result)).not.toContain('itm_00000003')
-    expect(result.say).toContain("1 more fact applies but didn't fit in this reply.")
+    expect(result.say).toContain("1 more context item applies but didn't fit in this reply.")
   })
 
   it('lists at most ten near misses, and counts the rest', () => {

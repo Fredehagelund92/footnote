@@ -14,12 +14,13 @@ import { logos, type Connector, type ConnectorKind } from './integrations'
  */
 const words: Record<
   string,
-  Pick<Connector, 'lead' | 'domainField' | 'endpointExample' | 'noFileLinks'>
+  Pick<Connector, 'lead' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'>
 > = {
   cube: {
     lead: "Reads your Cube definition files from Git. Read-only, and it keeps no calculation. It has two connections: definitions from Git, and figures, when switched on, from Cube's data API at the time of the answer.",
     domainField: 'meta.domain',
     endpointExample: 'https://cube.example.com/cubejs-api/v1/load',
+    serverSetting: 'CUBE_MODEL_DIR',
   },
   'dbt-metricflow': {
     lead: 'Reads the semantic manifest your dbt pipeline writes, from where you keep it. Read-only, and it keeps no calculation and no value.',

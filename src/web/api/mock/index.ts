@@ -1,10 +1,13 @@
 import { heedApiMethods, readMethods } from '../client'
-import type { HeedApi, HeedApiMethod, Inbox, ObsPageInput } from '../client'
+import { clockTime } from '@/lib/dates'
+import type { HeedApi, HeedApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
 import { asksNothing, nothingAskedSaid } from '@domain/ask-again'
 import { asksUndefinedWords, limitOf, readsBeyond } from '@domain/ask-plan'
 import { limitAlone, limitSaid } from '@domain/records'
 import { ApiError } from '../errors'
+import { missing } from '@contract/refusals'
+import { reviewActions, type ReviewAction } from '@domain/review-actions'
 import type { SavedView } from '@/lib/obs-views'
 import { mentionNotesOf, type Subject } from '@/model/comments'
 import { servedToAgents, type DomainId } from '@/model/items'
@@ -40,7 +43,14 @@ import {
   readDefinitionsFrom,
   readQuestion,
 } from './data/ask'
-import { advancedOf, contextFile, demoAccessKey, historyFile, type Pins } from './advanced'
+import {
+  advancedOf,
+  contextFile,
+  demoAccessKey,
+  historyFile,
+  UNDO_SECONDS,
+  type Pins,
+} from './advanced'
 import { loopExample, playAnswer } from './ask-live'
 import { cannotAnswer, followsOn, heldFor, plannedFor } from './planner'
 import { createChats } from './chats'
@@ -145,13 +155,19 @@ export function createMockApi() {
       ([h, o]) => (h.id === a && o.id === b) || (h.id === b && o.id === a),
     )
 
-  /** What Undo needs, by token: the state before, and what the write touched. */
-  const undos = new Map<string, () => void>()
+  /**
+   * What Undo needs, by token: the state before and what the write touched, who made it, and until
+   * when. As the service: only its maker undoes it, once, in the demo's window, or until the page
+   * goes when the service would take it at any time (`lasting`). The window reads the browser's
+   * clock, which a journey can move.
+   */
+  const undos = new Map<string, { run: () => void; by: string | null; until: number | null }>()
   let undoCount = 0
-  const remember = (undo: () => void) => {
+  const remember = (undo: () => void, lasting = false): Undoable => {
     const token = `undo_${++undoCount}`
-    undos.set(token, undo)
-    return { undo: token }
+    const until = lasting ? null : Date.now() + UNDO_SECONDS * 1000
+    undos.set(token, { run: undo, by: me(), until })
+    return { undo: { token, until: until === null ? null : new Date(until).toISOString() } }
   }
   /** Undo for a write over the store: exactly those cards, items and log line go back. */
   const revertTo = (
@@ -213,6 +229,39 @@ export function createMockApi() {
       })
       touched.also?.()
     })
+  }
+
+  /** Why a move is not offered for a suggestion, in the service's words. */
+  const notOffered = (action: ReviewAction, r: Review) =>
+    action === 'close'
+      ? 'Only a suggestion to archive is closed. Decide this one instead.'
+      : action === 'archive'
+        ? 'Only a suggestion to archive is archived. Publish or return this one.'
+        : r.mode === 'retire'
+          ? `A suggestion to archive is archived or closed, not ${action === 'publish' ? 'published' : 'returned'}.`
+          : 'Nobody wrote this draft, so there is no note to answer. Publish it or edit it.'
+  /**
+   * As the service, before every decision: a suggestion is decided while it waits, once, by an
+   * owner of its domain or an admin, and only with a move `reviewActions` offers for it.
+   */
+  const mayDecide = (id: string, action: ReviewAction) => {
+    const r = reviews.find((x) => x.id === id)
+    const card = cards.find((c) => c.id === id)
+    if (!r || !card || state.fresh) throw new ApiError('not-found', missing('this suggestion'))
+    if (state.done[id])
+      throw new ApiError('conflict', 'This suggestion no longer waits for a decision.')
+    const who = meAsPerson()
+    if (!who.admin && !who.owns.includes(card.domain))
+      throw new ApiError('forbidden', 'Only an owner of its domain, or an admin, decides it.')
+    const { can } = reviewActions({
+      mode: r.mode,
+      withdrawn: !!reviewNow(r).retire?.withdrawn,
+      stale: !!r.stale,
+      clashes: 0,
+      claimsToCheck: 0,
+      drafted: !!r.drafted,
+    })
+    if (!can.includes(action)) throw new ApiError('conflict', notOffered(action, r))
   }
 
   /** The threads where `who` may take back what they hang on: a suggestion to archive they sent, while it waits. */
@@ -466,14 +515,14 @@ export function createMockApi() {
       now(() => {
         const result = workspace.revokeInvite(id)
         if (!result) throw new ApiError('not-found', 'This invite is not open any more.')
-        return remember(result.restore)
+        return remember(result.restore, true)
       }),
     removePerson: ({ id }) =>
       now(() => {
         const result = workspace.removePerson(id)
         return 'alone' in result
           ? { removed: false as const, alone: result.alone }
-          : { removed: true as const, ...remember(result.restore) }
+          : { removed: true as const, ...remember(result.restore, true) }
       }),
 
     // The library
@@ -563,7 +612,7 @@ export function createMockApi() {
           reason: input.reason.trim(),
           quote: input.quote?.trim() || null,
           by: me(),
-          at: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+          at: clockTime(new Date()),
         }
         const patches: Record<string, Partial<Fact>> = {}
         if (keep) {
@@ -579,7 +628,7 @@ export function createMockApi() {
             ? `Settled a conflict: kept one, archived the other. Reason: ${decision.reason}`
             : input.outcome === 'kept_both'
               ? `Kept both items of a conflict. Reason: ${decision.reason}`
-              : `Not a conflict: the flag was removed. Reason: ${decision.reason}`
+              : `Not a conflict: the Conflict mark was removed. Reason: ${decision.reason}`
         const entry = {
           id: `log-settled-${key}-${Date.now()}`,
           on: TODAY,
@@ -596,15 +645,17 @@ export function createMockApi() {
             decision,
             stamps: { [holder.id]: stampOf(holder), [other.id]: stampOf(other) },
           })
-        const undo = revertTo(before, { facts: [holder.id, other.id], entry: entry.id })
-        const token = undo.undo
-        const revert = undos.get(token)!
-        undos.set(token, () => {
-          revert()
-          if (keptBefore) keptPairs.set(key, keptBefore)
-          else keptPairs.delete(key)
+        const { undo } = revertTo(before, { facts: [holder.id, other.id], entry: entry.id })
+        const offer = undos.get(undo.token)!
+        undos.set(undo.token, {
+          ...offer,
+          run: () => {
+            offer.run()
+            if (keptBefore) keptPairs.set(key, keptBefore)
+            else keptPairs.delete(key)
+          },
         })
-        return { undo: token, decision }
+        return { undo, decision }
       }),
     suggestArchiving: ({ id }) =>
       now(() => {
@@ -699,8 +750,17 @@ export function createMockApi() {
     withdrawSuggestion: ({ id }) => now(() => dispatch({ type: 'withdraw', id })),
     undo: ({ token }) =>
       now(() => {
-        undos.get(token)?.()
+        const offer = undos.get(token)
+        if (!offer) throw new ApiError('conflict', 'This decision is already undone.')
+        if (offer.by !== me())
+          throw new ApiError('forbidden', 'Only the person who decided can undo it.')
+        if (offer.until !== null && Date.now() >= offer.until)
+          throw new ApiError(
+            'conflict',
+            'It is too late to undo this decision. Change it again instead.',
+          )
         undos.delete(token)
+        offer.run()
       }),
 
     // Comments
@@ -782,6 +842,7 @@ export function createMockApi() {
       }),
     publishReview: ({ id, relations = {}, saveQuestion }) =>
       now(() => {
+        mayDecide(id, 'publish')
         // As the service: every live item it overlaps needs its own answer first.
         const open = reviews
           .find((r) => r.id === id)
@@ -797,6 +858,7 @@ export function createMockApi() {
       }),
     publishReviews: ({ ids }) =>
       now(() => {
+        for (const id of ids) mayDecide(id, 'publish')
         const before = state
         const also = ids.map((id) => {
           const undo = publishOne(id)
@@ -810,21 +872,18 @@ export function createMockApi() {
         })
       }),
     archiveReview: ({ id }) =>
-      now(() =>
-        decideReview(id, 'Archived', () => {
+      now(() => {
+        mayDecide(id, 'archive')
+        return decideReview(id, 'Archived', () => {
           const r = reviews.find((x) => x.id === id)
           if (r?.retire)
             dispatch({ type: 'editFact', id: r.retire.factId, patch: { status: 'Archived' } })
-        }),
-      ),
+        })
+      }),
     closeReview: ({ id, reason }) =>
       now(() => {
-        const r = reviews.find((x) => x.id === id)
-        if (!r?.retire || state.done[id])
-          throw new ApiError(
-            'conflict',
-            'Only a suggestion to archive is closed. Decide this one instead.',
-          )
+        mayDecide(id, 'close')
+        const r = reviews.find((x) => x.id === id)!
         if (!reviewNow(r).retire?.withdrawn && !reason?.trim())
           throw new ApiError(
             'invalid',
@@ -833,13 +892,14 @@ export function createMockApi() {
         return decideReview(id, 'Closed', () => {})
       }),
     returnReview: ({ id, note }) =>
-      now(() =>
-        decideReview(id, 'Returned', () => {
+      now(() => {
+        mayDecide(id, 'return')
+        return decideReview(id, 'Returned', () => {
           const subject: Subject = `review:${id}`
           const posted = comments.post(subject, me(), note, { returned: true })
           return { also: () => comments.unpost(subject, posted) }
-        }),
-      ),
+        })
+      }),
 
     // Ask
     readQuestion: ({ question }) =>
@@ -848,6 +908,9 @@ export function createMockApi() {
         return { metric: read.metric, markets: read.markets }
       }),
     ask: (input, live) => {
+      // A typed question is asked of the service, so offline nothing comes back; an example is kept here.
+      if (input.question && !input.example && scenario.offline())
+        return Promise.reject(new ApiError('unanswered', "You're offline."))
       // Ask's loop answers, as the service wrote them on the demo week: shown by address only.
       if (input.example?.startsWith('loop-')) return loopExample(input.example)
       // ?loop=1: a typed question is answered as Ask's loop answers it.
@@ -887,7 +950,7 @@ export function createMockApi() {
     saveChat: ({ id, question, answers }) =>
       now(() => (answers ? chats.keep(id, answers) : chats.add(id, question))),
     renameChat: ({ id, title }) => now(() => chats.rename(id, title)),
-    deleteChat: ({ id }) => now(() => remember(chats.remove(id))),
+    deleteChat: ({ id }) => now(() => remember(chats.remove(id), true)),
     // A named report waits in this visit's memory; the demo's owners don't act on it here.
     reportAnswer: ({ question }) =>
       now(() => {
@@ -895,6 +958,8 @@ export function createMockApi() {
         reports.unshift({ id, question, at: new Date() })
         return { id }
       }),
+    // The demo's owners don't see it here: it waits in this visit's memory, as a report does.
+    tellOwner: () => now(() => ({ id: `gap-report-${reports.length + 1}` })),
     getMyReports: () =>
       now(() =>
         reports.map((r) => ({ id: r.id, question: r.question, on: reportedOn(r.at, new Date()) })),
@@ -1170,10 +1235,10 @@ export function createMockApi() {
     saveQuestion: ({ question }) =>
       now(() => {
         const id = saved.save(question)
-        return { id, ...remember(() => saved.remove(id)) }
+        return { id, ...remember(() => saved.remove(id), true) }
       }),
     removeSavedQuestion: ({ id }) => now(() => saved.remove(id)),
-    keepNewAnswer: ({ id }) => now(() => remember(saved.keepNew(id))),
+    keepNewAnswer: ({ id }) => now(() => remember(saved.keepNew(id), true)),
   }
 
   // Every write is sent as the scenario plays a send: refused offline, failing its first try under

@@ -44,7 +44,7 @@ const originWords = (request: ConnectRequest) =>
   `${
     request.clientKind === 'document'
       ? `The agent describes itself at ${request.clientHost}.`
-      : `The agent registered itself with ${PRODUCT}.`
+      : 'This agent gave its own name. Allow it only if you just started it.'
   } You go back to ${request.redirectHost} when you answer.`
 
 /** A phone's finger needs 44px: the answers fill the row there, side by side. */
@@ -254,7 +254,8 @@ function Decide({
           <p className="flex gap-2 text-sm text-muted-foreground">
             <ShieldCheckIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
             It sees only what you can see. What it suggests waits for an owner, unless the owner
-            lets it publish without review. An admin can disconnect it for you at any time.
+            lets it publish without review. You can disconnect it at any time in Settings, under
+            Agents and access.
           </p>
         </section>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -284,16 +285,17 @@ function Decide({
             variant="outline"
             className={phoneTarget}
             loading={answer.isPending && answer.variables?.allow === false}
-            loadingLabel="Denying…"
+            loadingLabel="Not allowing…"
             disabled={answer.isPending}
             onClick={() => decide(false)}
           >
-            Deny
+            Don&apos;t allow
           </Button>
         </div>
         <p className="flex gap-2 text-sm text-muted-foreground">
           <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
-          Allow only an agent you just asked to connect. If you didn&apos;t, choose Deny.
+          Allow only an agent you just asked to connect. If you didn&apos;t, choose Don&apos;t
+          allow.
         </p>
       </CardContent>
     </Card>

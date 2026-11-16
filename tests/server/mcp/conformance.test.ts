@@ -250,7 +250,9 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     ])
     expect(short).toMatchObject({
       status: 'matched',
-      say: expect.stringMatching(/^Checked\. 1 fact applies to Orders in Norway /) as string,
+      say: expect.stringMatching(
+        /^Checked\. 1 context item applies to Orders in Norway /,
+      ) as string,
       asked: 'Orders in Norway in August 2026',
       context: [
         {
@@ -537,7 +539,7 @@ describe.each(['legacy', 'auto'] as const)('item pages in Heed (FR-347), %s', (m
       arguments: { ...call.params.arguments, response_format: 'full' },
     })
     expect((full.content as { text: string }[])[1]!.text).toBe(
-      'Open in Heed - Norway closure: http://localhost:5173/context/itm_norway01 - Accepted 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.',
+      'Open in Heed - Norway closure: http://localhost:5173/context/itm_norway01 - Published 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.',
     )
   })
 })
@@ -596,11 +598,11 @@ describe.each(['legacy', 'auto'] as const)('the server instructions (FR-343), %s
         'say nothing is written down only for exactly what you asked, never the whole topic',
       )
       // How the agent speaks with people: a fact, the owner of its domain checked it, its
-      // source, and the What not to conclude line.
-      expect(read).toContain('it is a fact')
+      // source, and the Don't conclude line.
+      expect(read).toContain('it is a context item')
       expect(read).toContain('the owner of its domain checked it')
       expect(read).toContain('its source')
-      expect(read).toContain('What not to conclude')
+      expect(read).toContain("Don't conclude")
     }
     expect(instructionRules.length).toBeLessThanOrEqual(INSTRUCTIONS_READ_BY_ALL)
     // The longest product name the setting takes still leaves every rule in what all clients read.
@@ -1055,7 +1057,7 @@ it('answers find_context by names, with recovery when a name is unknown', async 
   expect(found.structuredContent).toMatchObject({
     status: 'matched',
     edition: '2026-10-07.1',
-    say: "1 fact matches these words. The definition of Orders is here too, in its source's own words.",
+    say: "1 context item matches these words. The definition of Orders is here too, in its source's own words.",
     context: [
       {
         id: 'itm_norway01',

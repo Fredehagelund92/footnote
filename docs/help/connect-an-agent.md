@@ -48,7 +48,7 @@ Your browser opens a screen that names the agent and what it can do: read publis
 
 ## If nothing signs in
 
-The page checks every few seconds. After two minutes it shows what usually helps, and after ten it stops, with Check again:
+The page looks every few seconds. After two minutes it shows what usually helps, and after ten it stops, with Keep waiting:
 
 <!-- include checks -->
 
@@ -59,7 +59,7 @@ The page checks every few seconds. After two minutes it shows what usually helps
 
 <!-- /include -->
 
-> **Revoking.** Revoke your own agent from Connected agents; an admin can revoke any. It signs out at once, and you can connect it again.
+> **Disconnecting.** **Disconnect** your own agent from Connected agents; an admin can disconnect any. It signs out at once, and you can connect it again.
 
 ## The tools each agent may call
 
@@ -85,4 +85,4 @@ A job that runs on its own, with nobody there to approve a sign-in, uses an acce
 2. Press **Create an access key**, give it a name, such as what the job does, then Copy. The key is shown once: keep it where the job keeps its secrets.
 3. Give the job the MCP address, with the key as its bearer token.
 
-A key reads published context and sends feedback. It names no person, so it never sends a suggestion. It shows in Connected agents by its name, with who made it and when it was last used, until you **Revoke** it, which ends it at once. Rename it, or switch its tools off for a while, in its Details. A key can never have suggest_context.
+A key reads published context and sends feedback. It names no person, so it never sends a suggestion. It shows in Connected agents by its name, with who made it and when it was last used, until you delete it, which ends it at once. Rename it, or switch its tools off for a while, in its Details. A key can never have suggest_context.

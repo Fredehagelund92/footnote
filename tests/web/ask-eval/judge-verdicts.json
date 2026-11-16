@@ -1,5 +1,5 @@
 {
-  "digest": "849b521e22468abd",
+  "digest": "0f8e4e2160036170",
   "model": "anthropic/claude-haiku-5.5",
   "verdicts": {
     "J01": {
@@ -87,8 +87,8 @@
       "unsupported": []
     },
     "J17": {
-      "advice": ["No."],
-      "verdict": ["No."],
+      "advice": [],
+      "verdict": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
       "unsupported": []
     },
     "J18": {
@@ -230,8 +230,7 @@
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "I searched every domain, including archived items and drafts",
-        "nothing is written about Black Friday"
+        "I searched every domain, including archived items and drafts, and nothing is written about Black Friday."
       ]
     },
     "J45": {

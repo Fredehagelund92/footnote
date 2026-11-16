@@ -25,12 +25,14 @@ import { matchingProbes } from '../../../domain/review.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { undoOffer } from '../../db/undo.ts'
 import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { areaOwners, askedOf, itemOwners } from './live.ts'
 import type { ServingBundle, ServingItem } from '../editions/index.ts'
 import type { LibraryService } from '../library/index.ts'
 import { rejectMentions, rejectSensitive, type ProposalsService } from '../proposals/index.ts'
 import type { ReviewPath, ReviewService } from '../review/index.ts'
+import { missing, signedOutKept } from '../../../contract/refusals.ts'
 
 /**
  * Conflicts (FR-220, the conflict view): the pairs of live items an owner said disagree, one pair
@@ -103,7 +105,7 @@ export function createConflictsService(
          from people p
         where p.id = cl_person() and p.deactivated_at is null and p.erased_at is null`,
     )
-    if (!row) throw new ORPCError('UNAUTHORIZED')
+    if (!row) throw new ORPCError('UNAUTHORIZED', { message: signedOutKept })
     return row
   }
 
@@ -286,7 +288,7 @@ export function createConflictsService(
     const { bundle, pair, holder, other } = found
     const open = await readable([holder.id, other.id])
     // A pair is shown whole or not at all, as the list does.
-    if (open.size !== 2) throw new ORPCError('NOT_FOUND')
+    if (open.size !== 2) throw new ORPCError('NOT_FOUND', { message: missing('this pair') })
     const mine = await me()
     const settled = await answering([holder, other])
     const rights = settleRights(
@@ -348,7 +350,7 @@ export function createConflictsService(
     await review.checkSubmitted(submitted.id)
     const current = await proposals.get(submitted.id)
     const published = await path.publish({ id: current.id, revision: current.revision })
-    return published.undo.slice('decision:'.length)
+    return published.undo.token.slice('decision:'.length)
   }
 
   async function retireDecision(itemId: string): Promise<string> {
@@ -401,7 +403,7 @@ export function createConflictsService(
       })
     const { holder, other } = found
     const open = await readable([holder.id, other.id])
-    if (open.size !== 2) throw new ORPCError('NOT_FOUND')
+    if (open.size !== 2) throw new ORPCError('NOT_FOUND', { message: missing('this pair') })
     // The versions the person saw: a newer one of either holds the decision, as Publish does.
     const saw =
       input.holderId === holder.id
@@ -499,13 +501,13 @@ export function createConflictsService(
       await tell(holder, settled(holder).owners, mine, told)
       await tell(other, settled(other).owners, mine, told)
     }
-    return { decision: publicDecision(row!), undo: `conflict:${row!.id}` }
+    return { decision: publicDecision(row!), undo: await undoOffer(tx, `conflict:${row!.id}`) }
   }
 
   /** Takes back a decision, by the person who made it, within the undo window. */
   async function undo(input: { id: string }): Promise<{ edition: string | null }> {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.id))
-      throw new ORPCError('NOT_FOUND')
+      throw new ORPCError('NOT_FOUND', { message: missing('this decision') })
     const [row] = await tx.query<{
       decisions: string[]
       mine: boolean
@@ -513,13 +515,11 @@ export function createConflictsService(
       fresh: boolean
     }>(
       `select d.decisions::text[] as decisions, d.decided_by = cl_person() as mine,
-              d.undone_at is not null as undone,
-              d.decided_at > now() - make_interval(secs => coalesce(
-                (select (value #>> '{}')::int from settings_current where key = 'limits.undo_seconds'), 0)) as fresh
+              d.undone_at is not null as undone, now() < cl_undo_until(d.decided_at) as fresh
          from conflict_decisions d where d.id = $1::uuid`,
       [input.id],
     )
-    if (!row) throw new ORPCError('NOT_FOUND')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this decision') })
     if (!row.mine)
       throw new ORPCError('FORBIDDEN', { message: 'Only the person who decided can undo it.' })
     if (row.undone) throw new ORPCError('CONFLICT', { message: 'This decision is already undone.' })
@@ -527,9 +527,12 @@ export function createConflictsService(
       throw new ORPCError('CONFLICT', {
         message: 'It is too late to undo this decision. Decide again instead.',
       })
-    await tx.query('update conflict_decisions set undone_at = now() where id = $1::uuid', [
-      input.id,
-    ])
+    // The row policy holds it too: by its maker, once, in the window.
+    const [marked] = await tx.query<{ id: string }>(
+      'update conflict_decisions set undone_at = now() where id = $1::uuid returning id::text',
+      [input.id],
+    )
+    if (!marked) throw new ORPCError('CONFLICT', { message: 'This decision is already undone.' })
     return row.decisions.length ? path.undoDecisions(row.decisions) : { edition: null }
   }
 

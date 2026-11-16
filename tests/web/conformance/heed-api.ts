@@ -10,7 +10,13 @@ import { settingKeys } from '@contract/admin'
 import { agentToolNames } from '@domain/agents'
 import { toolsOn } from '@/lib/connect'
 import { ApiError } from '@/api/errors'
-import { heedApiMethods, type HeedApi, type HeedApiMethod, type Related } from '@/api/client'
+import {
+  heedApiMethods,
+  type HeedApi,
+  type HeedApiMethod,
+  type Related,
+  type Undoable,
+} from '@/api/client'
 import type { ObsData } from '@/model/observability'
 import { labelDay, whenLabel } from '@/model/validity'
 import type { CardType, InboxCard } from '@/model/inbox'
@@ -46,12 +52,16 @@ export type HeedApiConformance = {
    * take it back with a comment. The mock's sign-in offers nobody who did.
    */
   sender?: string
+  /** Someone the sign-in offers who owns no domain and is not an admin: they decide nothing. */
+  bystander: string
+  /** Runs `run` as if every Undo offered so far had outlived its window, then puts the clock back. */
+  afterUndoWindow: (run: () => Promise<void>) => Promise<void>
 }
 
 export function describeHeedApi(
   name: string,
   getApi: () => HeedApi,
-  { person, wired, colleague, repository, sender }: HeedApiConformance,
+  { person, wired, colleague, repository, sender, bystander, afterUndoWindow }: HeedApiConformance,
 ) {
   const api = () => getApi()
   const lacks = (...methods: HeedApiMethod[]) => methods.some((m) => !wired.includes(m))
@@ -90,7 +100,7 @@ export function describeHeedApi(
         expect(new Set(items.map((f) => f.id)).size).toBe(items.length)
         for (const f of items) {
           expect(['event', 'issue', 'note', 'guide'], f.id).toContain(f.kind)
-          expect(['Draft', 'Live', 'Needs checking', 'Archived'], f.id).toContain(f.status)
+          expect(['Draft', 'Live', 'Due for a check', 'Archived'], f.id).toContain(f.status)
           expect(f.when, f.id).toBe(whenLabel(f.valid))
           expect(f.title, f.id).not.toBe('')
           for (const name of f.where) expect(name, f.id).not.toBe('')
@@ -209,7 +219,7 @@ export function describeHeedApi(
         // Removing it, and Undo.
         const { undo } = await live.removeTerm({ name: word })
         expect(findDefinition(await live.getDefinitions(), word)).toBeUndefined()
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect(findDefinition(await live.getDefinitions(), word)).toMatchObject({
           sameAs: metric.name,
         })
@@ -264,7 +274,7 @@ export function describeHeedApi(
 
         const moved = await live.moveTerms({ names: ['Conformance weeks'], domain: away })
         expect((await named('Conformance weeks'))?.domain).toBe(away)
-        await live.undo({ token: moved.undo })
+        await live.undo({ token: moved.undo.token })
         expect((await named('Conformance weeks'))?.domain).toBe(home)
 
         const entry = {
@@ -278,7 +288,7 @@ export function describeHeedApi(
         const deleted = await live.deleteTerms({ names: ['Conformance weeks'], entry })
         expect(await named('Conformance weeks')).toBeUndefined()
         expect(await named('Suite weeks')).toBeUndefined()
-        await live.undo({ token: deleted.undo })
+        await live.undo({ token: deleted.undo.token })
         expect(await named('Conformance weeks')).toMatchObject({ domain: home })
         expect(await named('Suite weeks')).toMatchObject({ sameAs: 'Conformance weeks' })
         await live.deleteTerms({ names: ['Conformance weeks'], entry })
@@ -397,7 +407,7 @@ export function describeHeedApi(
         const status = async (id: string) =>
           (await live.getLibrary()).items.find((f) => f.id === id)?.status
         expect(await status(a!.id)).toBe('Archived')
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect(await status(a!.id)).toBe('Live')
         expect(await status(b!.id)).toBe('Live')
       },
@@ -488,7 +498,7 @@ export function describeHeedApi(
         const kept = (await live.conflict({ holderId, otherId }))!
         expect(kept.said?.now.state).toBe('conflict')
         expect(kept.keptBoth?.reason).toBe('Both hold until Finance rules on it.')
-        await live.undo({ token: done.undo })
+        await live.undo({ token: done.undo.token })
         expect((await listed()).some((r) => r.key === norway!.key)).toBe(true)
         expect((await live.conflict({ holderId, otherId }))?.keptBoth).toBeNull()
       },
@@ -511,7 +521,7 @@ export function describeHeedApi(
         const { domains } = await live.getWorkspace()
         const mine = new Set(domains.filter((d) => d.owners.includes(person)).map((d) => d.id))
         const due = (await live.getLibrary()).items.find(
-          (f) => f.status === 'Needs checking' && mine.has(f.domain),
+          (f) => f.status === 'Due for a check' && mine.has(f.domain),
         )!
         await live.editItem({
           id: due.id,
@@ -542,7 +552,7 @@ export function describeHeedApi(
       // answers each.
       const overlaps = items.filter(
         (f) =>
-          (f.status === 'Live' || f.status === 'Needs checking') &&
+          (f.status === 'Live' || f.status === 'Due for a check') &&
           item.where.every((w) => f.where.includes(w)),
       )
       return {
@@ -827,7 +837,7 @@ export function describeHeedApi(
         // Taken back, it is gone; Undo invites them again.
         const taken = await live.revokeInvite({ id: invite.id })
         expect((await live.getWorkspace()).invites.some((i) => i.email === email)).toBe(false)
-        await live.undo({ token: taken.undo })
+        await live.undo({ token: taken.undo.token })
         const back = (await live.getWorkspace()).invites.find((i) => i.email === email)!
         expect(back).toMatchObject({ willOwn: [domain] })
         await live.revokeInvite({ id: back.id })
@@ -880,7 +890,7 @@ export function describeHeedApi(
         const removed = await live.removePerson({ id: leaver.id })
         expect(removed).toMatchObject({ removed: true })
         expect((await live.getWorkspace()).people.some((p) => p.name === leaver.name)).toBe(false)
-        await live.undo({ token: (removed as { undo: string }).undo })
+        await live.undo({ token: (removed as Undoable).undo.token })
         expect((await live.getWorkspace()).people.some((p) => p.name === leaver.name)).toBe(true)
       },
     )
@@ -922,7 +932,7 @@ export function describeHeedApi(
         const items = (await live.getLibrary()).items
         const held = domains.find((d) =>
           items.some(
-            (f) => f.domain === d.id && (f.status === 'Live' || f.status === 'Needs checking'),
+            (f) => f.domain === d.id && (f.status === 'Live' || f.status === 'Due for a check'),
           ),
         )!
         await expect(live.removeDomain({ id: held.id })).rejects.toMatchObject({
@@ -1033,7 +1043,7 @@ export function describeHeedApi(
             await live.readFigure({ ...orders, markets: [], values: ['val:product/footwear'] }),
           ).toEqual({
             kind: 'none',
-            why: "Cube can't split orders the way the question does, so no figure is read for it.",
+            why: 'Cube can\'t split "Orders" the way the question does, so no figure is read for it.',
             closest: [],
           })
           // A figure that can't be read for the question is no figure, never a guess.
@@ -1148,7 +1158,7 @@ export function describeHeedApi(
               on: false,
               allowed: false,
             })
-          expect(r.since).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}$/)
+          expect(r.since).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
           expect(r.used).not.toBe('')
         }
         // Kofi's Claude Code is named, and so is what it sent.
@@ -1214,7 +1224,7 @@ export function describeHeedApi(
         used: 'Never',
       })
       expect(toolsOn(made[0]!)).toEqual(agentToolNames.filter((t) => t !== 'suggest_context'))
-      expect(made[0]!.since).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}$/)
+      expect(made[0]!.since).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
       // Only the answer that made it holds the key: no read says it again.
       expect(JSON.stringify(rows)).not.toContain(key)
       expect(JSON.stringify(await live.getSettings())).not.toContain(key)
@@ -1287,7 +1297,7 @@ export function describeHeedApi(
           today: 0,
           canEnd: true,
         })
-        expect(set.setOn).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{4}$/)
+        expect(set.setOn).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
         expect(
           (await live.listAgentConnections()).find((r) => r.id === app.id)!.policies,
         ).toMatchObject([{ id: set.id, domain }])
@@ -1675,7 +1685,7 @@ export function describeHeedApi(
         const card = await cardOf('flag')
         const { undo } = await api().completeCard({ card: card.id, outcome: 'Not a problem' })
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Not a problem')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
       },
     )
@@ -1695,7 +1705,7 @@ export function describeHeedApi(
         expect(plain, `a suggestion for ${person} with no clash`).toBeDefined()
         const { undo } = await api().publishReview({ id: plain!.id })
         expect((await api().inboxPage()).done[plain!.id]?.label).toBe('Published')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[plain!.id]).toBeUndefined()
       },
     )
@@ -1722,7 +1732,7 @@ export function describeHeedApi(
         expect(await status(replaced.factId)).toBe('Archived')
         for (const c of items.filter((x) => x !== replaced))
           expect(await status(c.factId), c.title).toBe('Live')
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect(await status(replaced.factId)).toBe('Live')
       },
     )
@@ -1737,8 +1747,110 @@ export function describeHeedApi(
         }
         const { undo } = await api().returnReview({ id: card.id, note })
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Returned')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
+      },
+    )
+
+    /* ---------- the rules of a decision ---------- */
+
+    const note = {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Which markets?' }] }],
+    }
+    /** A suggestion of `mode` that waits for the person, with no clash to answer: a change someone wrote. */
+    async function waiting(mode: 'retire' | 'change') {
+      await api().signIn({ name: person })
+      const inbox = await api().inboxPage()
+      const r = (await api().getReviews()).find(
+        (x) =>
+          (mode === 'retire' ? x.mode === 'retire' : x.mode !== 'retire' && !x.drafted) &&
+          !x.clash &&
+          inbox.cards.some((c) => c.id === x.id && c.for === person && !inbox.done[c.id]),
+      )
+      expect(r, `a waiting ${mode} for ${person}`).toBeDefined()
+      return r!
+    }
+    const doneOf = async (id: string) => (await api().inboxPage()).done[id]?.label
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'returnReview'))(
+      'refuses to return a suggestion to archive: it is archived or closed',
+      async () => {
+        const r = await waiting('retire')
+        await expect(api().returnReview({ id: r.id, note })).rejects.toMatchObject({
+          kind: 'conflict',
+        })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'publishReview', 'returnReview', 'undo'))(
+      'refuses a second decision on a decided suggestion, until Undo makes it wait again',
+      async () => {
+        const r = await waiting('change')
+        const { undo } = await api().publishReview({ id: r.id })
+        await expect(api().publishReview({ id: r.id })).rejects.toMatchObject({ kind: 'conflict' })
+        await expect(api().returnReview({ id: r.id, note })).rejects.toMatchObject({
+          kind: 'conflict',
+        })
+        expect(await doneOf(r.id)).toBe('Published')
+        await api().undo({ token: undo.token })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'publishReview', 'returnReview'))(
+      'refuses a decision from someone who owns no domain and is not an admin',
+      async () => {
+        const r = await waiting('change')
+        await api().signIn({ name: bystander })
+        // Not theirs to decide; the http binding cannot even name it, as it is in no Inbox of theirs.
+        const kindOf = (write: Promise<unknown>) =>
+          write.then(
+            () => 'answered',
+            (error: unknown) => (error as ApiError).kind,
+          )
+        expect(['forbidden', 'not-found']).toContain(
+          await kindOf(api().publishReview({ id: r.id })),
+        )
+        expect(['forbidden', 'not-found']).toContain(
+          await kindOf(api().returnReview({ id: r.id, note })),
+        )
+        await api().signIn({ name: person })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'publishReview', 'undo'))(
+      'undoes a decision for the person who made it, once',
+      async () => {
+        const r = await waiting('change')
+        const { undo } = await api().publishReview({ id: r.id })
+        await api().signIn({ name: colleague })
+        await expect(api().undo({ token: undo.token })).rejects.toMatchObject({ kind: 'forbidden' })
+        await api().signIn({ name: person })
+        await api().undo({ token: undo.token })
+        expect(await doneOf(r.id)).toBeUndefined()
+        await expect(api().undo({ token: undo.token })).rejects.toMatchObject({ kind: 'conflict' })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'returnReview', 'undo'))(
+      'refuses an Undo once its window has ended: the decision stays',
+      async () => {
+        const r = await waiting('change')
+        const { undo } = await api().returnReview({ id: r.id, note })
+        expect(undo.until).not.toBeNull()
+        await afterUndoWindow(async () => {
+          await expect(api().undo({ token: undo.token })).rejects.toMatchObject({
+            kind: 'conflict',
+          })
+        })
+        expect(await doneOf(r.id)).toBe('Returned')
+        // Back in the window, it is undone as any other.
+        await api().undo({ token: undo.token })
+        expect(await doneOf(r.id)).toBeUndefined()
       },
     )
 
@@ -1874,7 +1986,7 @@ export function describeHeedApi(
         const card = await cardOf('check')
         const { undo } = await api().decideCard({ card: card.id, outcome: 'Checked' })
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Checked')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
       },
     )
@@ -1896,7 +2008,7 @@ export function describeHeedApi(
         const { undo } = await api().publishReviews({ ids: plain.map((r) => r.id) })
         const after = await api().inboxPage()
         for (const r of plain) expect(after.done[r.id]?.label, r.id).toBe('Published')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         const back = await api().inboxPage()
         for (const r of plain) expect(back.done[r.id], r.id).toBeUndefined()
       },
@@ -1915,7 +2027,7 @@ export function describeHeedApi(
         expect(retire, `a suggestion to archive for ${person}`).toBeDefined()
         const { undo } = await api().archiveReview({ id: retire!.id })
         expect((await api().inboxPage()).done[retire!.id]?.label).toBe('Archived')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[retire!.id]).toBeUndefined()
       },
     )
@@ -2032,7 +2144,7 @@ export function describeHeedApi(
         const { undo } = await api().closeReview({ id: r!.id })
         expect((await api().inboxPage()).done[r!.id]?.label).toBe('Closed')
         expect(await live()).toBe(before)
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[r!.id]).toBeUndefined()
         expect((await withdrawnRetirement())?.id).toBe(r!.id)
       },
@@ -2291,7 +2403,7 @@ export function describeHeedApi(
       async () => {
         const items = await listed()
         const due = await records('what is due for a check?')
-        expect(due.total).toBe(items.filter((f) => f.status === 'Needs checking').length)
+        expect(due.total).toBe(items.filter((f) => f.status === 'Due for a check').length)
         const archived = await records('what is archived?')
         expect(archived.total).toBe(items.filter((f) => f.status === 'Archived').length)
         // A domain by its name: the service names its domains by ids of its own.
@@ -2449,7 +2561,7 @@ export function describeHeedApi(
         expect((await a.listChats()).find((t) => t.id === id)?.title).toBe('Spain in October')
         const { undo } = await a.deleteChat({ id })
         expect((await a.listChats()).some((t) => t.id === id)).toBe(false)
-        await a.undo({ token: undo })
+        await a.undo({ token: undo.token })
         expect((await a.listChats()).find((t) => t.id === id)?.title).toBe('Spain in October')
       },
     )
@@ -2638,7 +2750,7 @@ export function describeHeedApi(
           // A result that moved shows what it said when saved and what it says now.
           expect(!!q.diff, q.id).toBe(q.result !== 'same')
         }
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect((await live.getSavedQuestions()).some((q) => q.id === id)).toBe(false)
 
         const again = await live.saveQuestion({
@@ -2660,7 +2772,7 @@ export function describeHeedApi(
         const kept = (await live.getSavedQuestions()).find((q) => q.id === moved.id)!
         expect(kept).toMatchObject({ result: 'same' })
         expect(kept.diff).toBeUndefined()
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         const back = (await live.getSavedQuestions()).find((q) => q.id === moved.id)!
         expect(back).toMatchObject({ result: moved.result, diff: moved.diff })
       },
@@ -2785,7 +2897,7 @@ export function describeHeedApi(
         expect(['grounded', 'partial', 'missing', 'conflict', 'stale', 'failed']).toContain(
           now!.answer.state,
         )
-        expect(now!.before.label).toMatch(/^Before \d{1,2} [A-Z][a-z]{2}$/)
+        expect(now!.before.label).toMatch(/^Before \d{1,2} [A-Z][a-z]{2,4}$/)
         const before = await api().replayTopic({ topic: topic.id, when: 'before' })
         expect(before!.steps).toHaveLength(6)
         expect(await api().replayTopic({ topic: 'no-such-topic', when: 'now' })).toBeNull()

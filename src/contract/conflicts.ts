@@ -8,6 +8,7 @@ import * as z from 'zod/mini'
 import { SETTLE_QUOTE_MAX, SETTLE_REASON_MAX, settleOutcomes } from '../domain/conflicts.ts'
 import { itemKinds } from '../domain/item.ts'
 import { answerBriefSchema } from './review-path.ts'
+import { undoOfferSchema } from './undo.ts'
 
 const isoDate = z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/))
 const itemIdSchema = z.string().check(z.regex(/^itm_[a-z0-9]{8,16}$/))
@@ -122,7 +123,7 @@ export const settleConflictInputSchema = z.strictObject({
 export const settledConflictSchema = z.object({
   decision: conflictDecisionSchema,
   /** `conflict:<id>`, for Undo (decisions.undo) within the undo window, by the person who decided. */
-  undo: z.string(),
+  undo: undoOfferSchema,
 })
 
 export type ConflictSide = z.infer<typeof conflictSideSchema>

@@ -134,6 +134,7 @@ const markets = [
   'slovenia',
   'bulgaria',
   'luxembourg',
+  'andorra',
 ]
 const inMarket = (market: string) => ({
   scope: {
@@ -178,7 +179,7 @@ const sheet = (id: string, who: Who = 'owner') =>
 type Published = {
   proposal: { state: string; revision: number }
   edition: { label: string } | null
-  undo: string
+  undo: { token: string; until: string | null }
 }
 const publish = (id: string, revision: number, extra: object = {}, who: Who = 'owner') =>
   call('POST', `/review/${id}/publish`, who, { revision, ...extra })
@@ -332,7 +333,7 @@ describe('the review sheet (FR-224)', () => {
       bulk: false,
       publishable: true,
     })
-    expect(s.readiness.title).toMatch(/^Ready, with \d claims? to check$/)
+    expect(s.readiness.title).toMatch(/^Compare \d details? with the source first$/)
     expect(s.tryIt.before.state).toBe('missing')
     expect(s.tryIt.after.items.map((i) => i.title)).toEqual(['Payments delayed in Spain'])
   })
@@ -759,11 +760,11 @@ describe('a suggestion to archive taken back in the comments (P9c)', () => {
     const editions = async () =>
       Number((await client.query<{ n: string }>('select count(*) as n from editions')).rows[0]!.n)
     const before = await editions()
-    const closed = await ok<{ proposal: { state: string }; undo: string }>(
+    const closed = await ok<{ proposal: { state: string }; undo: { token: string } }>(
       call('POST', `/review/${proposal.id}/close`, 'owner', { revision: s.proposal.revision }),
     )
     expect(closed.proposal.state).toBe('rejected')
-    expect(closed.undo).toMatch(/^decision:/)
+    expect(closed.undo.token).toMatch(/^decision:/)
     // The context item stays live, and no edition was written.
     expect(await served(itemId)).toBe(1)
     expect(await editions()).toBe(before)
@@ -778,7 +779,7 @@ describe('a suggestion to archive taken back in the comments (P9c)', () => {
     )
     expect(rows).toHaveLength(1)
     // Undo: it waits again, still taken back.
-    await ok(call('POST', '/decisions/undo', 'owner', { token: closed.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: closed.undo.token }))
     const back = await sheet(proposal.id)
     expect(back.proposal.state).toBe('submitted')
     expect(back.withdrawn?.commentId).toBe(said.id)
@@ -867,7 +868,7 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     const result = await ok<{
       published: { id: string }[]
       skipped: { id: string; code: string }[]
-      undo: string | null
+      undo: { token: string } | null
     }>(call('POST', '/review/publish-read', 'owner', { ids: [ra.id, rb.id, rc.id] }))
     expect(result.published.map((x) => x.id).sort()).toEqual([ra.id, rb.id].sort())
     expect(result.skipped).toEqual([
@@ -875,7 +876,7 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     ])
     expect([await served(a), await served(b)]).toEqual([2, 2])
     const undone = await ok<{ edition: string | null }>(
-      call('POST', '/decisions/undo', 'owner', { token: result.undo }),
+      call('POST', '/decisions/undo', 'owner', { token: result.undo!.token }),
     )
     expect(undone.edition).toEqual(expect.any(String))
     expect([await served(a), await served(b)]).toEqual([1, 1])
@@ -892,7 +893,7 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     // Waiting again, it can be published again, and that publish undone again.
     const again = await ok<Published>(publish(ra.id, (await sheet(ra.id)).proposal.revision))
     expect(await served(a)).toBe(2)
-    await ok(call('POST', '/decisions/undo', 'owner', { token: again.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: again.undo.token }))
     expect(await served(a)).toBe(1)
   })
 
@@ -925,15 +926,15 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     const p = await submitted({ title: 'Brand new', ...inMarket('italy') })
     const done = await ok<Published>(publish(p.id, p.revision))
     expect(await served(p.itemId!)).toBe(1)
-    expect((await call('POST', '/decisions/undo', 'admin', { token: done.undo })).statusCode).toBe(
-      403,
-    )
-    await ok(call('POST', '/decisions/undo', 'owner', { token: done.undo }))
+    expect(
+      (await call('POST', '/decisions/undo', 'admin', { token: done.undo.token })).statusCode,
+    ).toBe(403)
+    await ok(call('POST', '/decisions/undo', 'owner', { token: done.undo.token }))
     expect(await served(p.itemId!)).toBeNull()
     // Twice is once.
-    expect((await call('POST', '/decisions/undo', 'owner', { token: done.undo })).statusCode).toBe(
-      409,
-    )
+    expect(
+      (await call('POST', '/decisions/undo', 'owner', { token: done.undo.token })).statusCode,
+    ).toBe(409)
     // Too late: the window has passed.
     const late = await submitted({ title: 'Too late', ...inMarket('poland') })
     const decided = await ok<Published>(publish(late.id, late.revision))
@@ -943,7 +944,7 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     )
     try {
       expect(
-        (await call('POST', '/decisions/undo', 'owner', { token: decided.undo })).statusCode,
+        (await call('POST', '/decisions/undo', 'owner', { token: decided.undo.token })).statusCode,
       ).toBe(409)
     } finally {
       await client.query(
@@ -953,9 +954,36 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     }
   })
 
+  it('says until when Undo is taken, in the window the admin set (#195)', async () => {
+    // An admin sets the window to its least, 6 seconds: the offer ends 6 seconds after the decision,
+    // when the row policies stop taking it.
+    const windowOf = (seconds: number) =>
+      client.query(
+        `insert into settings_versions(key,version,value,reason)
+         select 'limits.undo_seconds',max(version)+1,$1,'test' from settings_versions where key='limits.undo_seconds'`,
+        [String(seconds)],
+      )
+    await windowOf(6)
+    try {
+      const p = await submitted({ title: 'Six seconds', ...inMarket('andorra') })
+      const done = await ok<Published>(publish(p.id, p.revision))
+      const [decision] = (
+        await client.query<{ at: Date; until: Date }>(
+          `select decided_at as at, cl_undo_until(decided_at) as until from decisions
+            where proposal_id=$1 and outcome='accept'`,
+          [p.id],
+        )
+      ).rows
+      expect(Date.parse(done.undo.until!) - decision!.at.getTime()).toBe(6000)
+      expect(done.undo.until).toBe(decision!.until.toISOString())
+    } finally {
+      await windowOf(15)
+    }
+  })
+
   it('returns a suggestion with a note as its first comment, and an undo sends it back to waiting', async () => {
     const p = await submitted({ title: 'Return me' })
-    const returned = await ok<{ proposal: { state: string }; undo: string }>(
+    const returned = await ok<{ proposal: { state: string }; undo: { token: string } }>(
       call('POST', `/review/${p.id}/return`, 'owner', {
         revision: p.revision,
         note: 'Which markets does this cover?',
@@ -969,7 +997,7 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     expect(JSON.stringify(threads[0]!.comments[0]!.body)).toContain(
       'Which markets does this cover?',
     )
-    await ok(call('POST', '/decisions/undo', 'owner', { token: returned.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: returned.undo.token }))
     const back = await ok<{ state: string }>(call('GET', `/proposals/${p.id}`, 'author'))
     expect(back.state).toBe('submitted')
   })
@@ -989,7 +1017,7 @@ describe('reading, publishing what was read, and undo (FR-226, FR-227)', () => {
     const rows = (await feed('owner', 'all')).cards.filter((c) => c.id === `proposal:${p.id}`)
     expect(rows.map((c) => c.done?.outcome)).toEqual(['Published'])
     // Taken back, so the next tests' items do not clash with this one.
-    await ok(call('POST', '/decisions/undo', 'owner', { token: published.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: published.undo.token }))
   })
 })
 
@@ -1096,7 +1124,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
   })
 
   it('closes a report that is not a problem for every owner, and undoes it', async () => {
-    const decided = await ok<{ undo: string }>(
+    const decided = await ok<{ undo: { token: string } }>(
       call('POST', '/inbox/cards/decide', 'owner', {
         card: `feedback:${feedbackId}`,
         action: 'not_a_problem',
@@ -1118,19 +1146,21 @@ describe('the Inbox (docs/product.md, section 5)', () => {
         })
       ).statusCode,
     ).toBe(403)
-    await ok(call('POST', '/decisions/undo', 'owner', { token: decided.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: decided.undo.token }))
     expect((await feed()).cards.find((c) => c.id === `feedback:${feedbackId}`)).toBeDefined()
   })
 
   it('says a Not found is not something we write down, and undoes it', async () => {
-    const decided = await ok<{ undo: string }>(
+    const decided = await ok<{ undo: { token: string; until: string | null } }>(
       call('POST', '/inbox/cards/decide', 'owner', { card: `gap:${gapId}`, action: 'not_written' }),
     )
+    // Opening a gap again is anyone's who owns its domain, at any time: the offer has no end.
+    expect(decided.undo).toEqual({ token: `gap:${gapId}`, until: null })
     const status = async () =>
       (await client.query<{ status: string }>('select status::text from gaps where id=$1', [gapId]))
         .rows[0]!.status
     expect(await status()).toBe('wont_fix')
-    await ok(call('POST', '/decisions/undo', 'owner', { token: decided.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: decided.undo.token }))
     expect(await status()).toBe('open')
     // A card that does not offer that decision.
     expect(
@@ -1144,7 +1174,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
   })
 
   it('checks a due item as still true and archives one, each with an undo', async () => {
-    const checked = await ok<{ edition: string | null; undo: string }>(
+    const checked = await ok<{ edition: string | null; undo: { token: string } }>(
       call('POST', '/inbox/cards/decide', 'owner', {
         card: `check:${dueItem}`,
         action: 'still_true',
@@ -1152,18 +1182,18 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     )
     expect(checked.edition).toEqual(expect.any(String))
     expect(await served(dueItem)).toBe(2)
-    await ok(call('POST', '/decisions/undo', 'owner', { token: checked.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: checked.undo.token }))
     expect(await served(dueItem)).toBe(1)
-    const archived = await ok<{ undo: string }>(
+    const archived = await ok<{ undo: { token: string } }>(
       call('POST', '/inbox/cards/decide', 'owner', { card: `check:${dueItem}`, action: 'archive' }),
     )
     expect(await served(dueItem)).toBeNull()
-    await ok(call('POST', '/decisions/undo', 'owner', { token: archived.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: archived.undo.token }))
     expect(await served(dueItem)).toBe(1)
   })
 
   it('lets an admin who owns no domain check a due item as still true, as Mark as checked does', async () => {
-    const checked = await ok<{ undo: string }>(
+    const checked = await ok<{ undo: { token: string } }>(
       call('POST', '/inbox/cards/decide', 'admin', {
         card: `check:${dueItem}`,
         action: 'still_true',
@@ -1171,7 +1201,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     )
     // The check is a version of its own, served from now on.
     expect(await served(dueItem)).toBeGreaterThan(1)
-    await ok(call('POST', '/decisions/undo', 'admin', { token: checked.undo }))
+    await ok(call('POST', '/decisions/undo', 'admin', { token: checked.undo.token }))
     expect(await served(dueItem)).toBe(1)
   })
 
@@ -1432,7 +1462,7 @@ describe('named reports from Ask (FR-622)', () => {
         what: 'It says a day, it is two now.',
       }),
     )
-    const closed = await ok<{ undo: string }>(
+    const closed = await ok<{ undo: { token: string } }>(
       call('POST', '/inbox/cards/decide', 'owner', {
         card: `report:${report.id}`,
         action: 'not_a_problem',
@@ -1445,7 +1475,7 @@ describe('named reports from Ask (FR-622)', () => {
     expect((await card(report.id, 'owner', 'all'))?.done).toMatchObject({
       outcome: 'Not a problem',
     })
-    await ok(call('POST', '/decisions/undo', 'owner', { token: closed.undo }))
+    await ok(call('POST', '/decisions/undo', 'owner', { token: closed.undo.token }))
     expect((await mine('author')).find((r) => r.id === report.id)?.outcome).toBeNull()
     expect(await card(report.id)).toBeDefined()
     // The owner checks the item again instead: that is what the sender reads back.

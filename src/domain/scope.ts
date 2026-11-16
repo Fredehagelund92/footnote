@@ -267,7 +267,7 @@ function unknownValuesByPlace(
  */
 export function assumedDate(assumed: AssumedDate) {
   const day = dayWords(assumed.date)
-  // The words an agent says to the person, so they read as a person says them (voice.md).
+  // The words an agent says to the person, so they read as a person says them (copy.md).
   const sentence = `I assumed today, ${fullDayWords(assumed.date)}. Tell me if you meant a different period.`
   return {
     note: { ...assumed, sentence },

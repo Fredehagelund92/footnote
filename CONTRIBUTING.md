@@ -160,18 +160,21 @@ migration.
 
 ## The first-load budget
 
-The first load of the web app, the scripts and styles `index.html` loads, is held to **439 KB of
-script and 33 KB of CSS**, gzipped. The budget is a ratchet: a change that makes the first load
-smaller may lower it, and it is raised only on purpose, in a pull request that says why. Load route code on demand instead: every page but the Inbox and
-Ask is a lazy route (`routes/**/*.lazy.tsx`), and so should heavy parts be. How and when it moves is
-in `scripts/check-bundle-size.mjs`.
+The first load of the web app, the scripts and styles `index.html` loads, is held by two rules,
+gzipped. A pull request may add at most **1 KB of script** over `main` as CI builds it for that
+pull request, so a pull request that merges first never fails the others by a few bytes. And the
+first load may never pass a hard ceiling of **443 KB of script and 33 KB of CSS**, which the
+maintainer raises only on purpose, in a pull request that says why. Load route code on demand
+instead: every page but the Inbox and Ask is a lazy route (`routes/**/*.lazy.tsx`), and so should
+heavy parts be. The rules are in `scripts/check-bundle-size.mjs`.
 
 ```sh
 npm run size      # builds the web app as it ships (http mode), as CI does, and checks it
 ```
 
-It prints the bytes, the budget and the margin. CI counts 1.3 to 1.8 KB more script than a Mac
-for the same build, so go by the margin CI prints.
+It prints the bytes, the ceilings and the margins; `npm run size -- --base <dir>` also checks the
+growth over another build's `dist/web`. CI counts 1.3 to 1.8 KB more script than a Mac for the
+same build, so go by the numbers CI prints.
 
 ## How reviews work
 
@@ -347,16 +350,15 @@ decision: FR-121 says what an agent may never set.
 
 Use everyday names in the UI. The web app in `src/web` takes them from glossary v2 in
 `src/domain/words.ts` and writes as `docs/design/copy.md` says: "context item", "suggestion",
-"owner", "People". The service's own sentences still follow the earlier glossary in
-`src/domain/words-v1.ts` and `docs/design/voice.md` until they move. Do not show ids or database
+"owner", "People". The service's own sentences, the contract's errors, the connectors' forms, the
+demo's fixtures and the command line's help follow the same glossary. Do not show ids or database
 words to people: a contributor must never need to know Git, YAML or MCP (NFR-015 in the
 requirements). Say what an empty state means and what to do about
 it.
 
 The plain-words lint enforces this. `npm run lint:words` (also part of `npm run check`) reports a
 word the glossary bans on a screen, with the word to write instead. In the web app the count of
-old words is zero and stays there; in the service's sentences no file may gain any
-(`plain-words.baseline.json`). The same check holds what people read outside the web app to the
+old words is zero and stays there. The same check holds what people read outside the web app to the
 same glossary, and keeps the shape of the copy: no sentence glued together in code, none over 25
 words, one word for one thing, no error without a message, no fixed locale and no demo in code
 every install runs. Each rule counts against `copy-checks.baseline.json` and fails only on a rise.

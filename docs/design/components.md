@@ -29,7 +29,7 @@ All in `components/ui`, built on Base UI. The ones marked * are not shadcn's own
 | Collapsible        | `collapsible.tsx`      | Details, folds                                                             |
 | Command            | `command.tsx`          | The palette, the `@` and `:` pickers                                       |
 | Dialog             | `dialog.tsx`           | Confirmations, Connect an agent, Report a problem (square)                 |
-| Dropdown menu      | `dropdown-menu.tsx`    | Row menus, More, the user and theme menus                                  |
+| Dropdown menu      | `dropdown-menu.tsx`    | Row menus, More, the user and theme menus, `ChoiceMenu`                    |
 | Empty              | `empty.tsx`            | Empty states with the next step                                            |
 | Field              | `field.tsx`            | Label, hint and error of a form field                                      |
 | Input              | `input.tsx`            | Text fields                                                                |
@@ -40,7 +40,7 @@ All in `components/ui`, built on Base UI. The ones marked * are not shadcn's own
 | Message *          | `message.tsx`          | One turn of Ask                                                            |
 | Message scroller * | `message-scroller.tsx` | Ask's thread scroll, pinned to the newest turn                             |
 | Popover            | `popover.tsx`          | Pickers and small cards (square)                                           |
-| Radio group        | `radio-group.tsx`      | `ChoiceGroup`                                                              |
+| Radio group        | `radio-group.tsx`      | The When presets, which part of an answer is wrong                         |
 | Resizable          | `resizable.tsx`        | The dock, the Inbox panes, History                                         |
 | Scroll area        | `scroll-area.tsx`      | Thin scroll areas                                                          |
 | Select             | `select.tsx`           | Small choices                                                              |
@@ -84,6 +84,7 @@ Unused primitives in the mockup (about seven) are not imported.
 | Show more          | `components/heed/show-more.tsx`                                                                                                                                               | "Show 10 more (24 not shown)", the one way a long list asks for more                                                                                                                    |
 | Fold               | `components/heed/fold.tsx`                                                                                                                                                    | One trigger for section folds, Details, panel groups, inline toggles                                                                                                                    |
 | Loading states     | `components/heed/load-state.tsx`, `lib/loading.ts`, `lib/read.ts`, `components/heed/app-skeleton.tsx`, `components/heed/list-skeleton.tsx`, `components/obs/obs-skeleton.tsx` | Where a read stands (`readOf`: loading, failed, missing, ready); skeleton in the page's shape (app shell, tables), a failed load with Retry, a failed refresh kept on the page, offline |
+| Not found          | `components/heed/not-found.tsx`                                                                                                                                               | The one design for somewhere that is not there (address, item, definition, domain, documentation page): what is missing and a link to where to go instead                               |
 | Presence           | `lib/presence.ts`                                                                                                                                                             | Rows that leave and arrive                                                                                                                                                              |
 
 ## 3. Heed parts by role
@@ -162,7 +163,7 @@ Unused primitives in the mockup (about seven) are not imported.
 | Definition actions | `components/heed/definitions-bulk.tsx`        | Terms only; synced items are left alone                                          |
 | Delete dialog      | `components/heed/delete-dialog.tsx`           | The one confirmation before a delete                                             |
 | Suggest list       | `components/heed/suggest-list.tsx`            | The one list a text box offers while typing                                      |
-| Switches           | `components/heed/switches.tsx`                | `ViewToggle`, `TextSwitch`, `ChoiceGroup`                                        |
+| Switches           | `components/heed/switches.tsx`                | `ViewToggle`, `TextSwitch`, `ChoiceMenu`                                         |
 
 ### The Inbox and the review
 

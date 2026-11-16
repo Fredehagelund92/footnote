@@ -7,19 +7,15 @@ import { copyRatchetConfigs } from '../eslint.plain-words.js'
 import { compareToBaseline, countWords, type WordCounts } from './plain-words-baseline.ts'
 
 /*
-  The ratchets on the words people read (docs/design/copy.md, "The voice"; docs/design/voice.md,
-  "The guard rail"), run in CI after the lint: `npm run lint:words`. They count, for each file,
+  The checks on the words people read (docs/design/copy.md, "The voice"), run in CI after the
+  lint: `npm run lint:words`. The web app in src/web is held to glossary v2 with no baseline: any
+  word heed/plain-words reports there fails. The rest are ratchets. They count, for each file,
   what a rule reports in the code, and compare the counts with a baseline, word by word. A count
   that rises fails, and so does a file that is new with a hit, so no change adds to the drift. A
   fall is only a note: a baseline is lowered with --update whenever it suits, and no change has to
   touch it to pass.
 
-  Two baselines:
-
-  - plain-words.baseline.json: heed/plain-words, the earlier glossary on the server's sentences and
-    the demo's fixtures. The web app in src/web is counted too: it starts at zero and has no entry,
-    so any word there fails.
-  - copy-checks.baseline.json: everything else, by rule. The glossary of the web app on the text
+  copy-checks.baseline.json: by rule. The glossary of the web app on the text
     that the narrow reading takes for code (plain-words-wide) and on what people read outside the
     web app (plain-words-v2), and the rules of eslint.copy-rules.js: whole sentences, sentence
     length, one word for one thing, errors that say three things, no fixed locale, no demo in
@@ -31,7 +27,6 @@ import { compareToBaseline, countWords, type WordCounts } from './plain-words-ba
 */
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-const baselineFile = join(root, 'plain-words.baseline.json')
 const copyBaselineFile = join(root, 'copy-checks.baseline.json')
 
 /** The rules counted in copy-checks.baseline.json, by the name they are reported under. */
@@ -57,7 +52,7 @@ type Finding = {
 }
 type CopyCounts = Record<string, WordCounts>
 
-/** What heed/plain-words reports in the code. Only that rule runs, so no type information is read. */
+/** What heed/plain-words and the ratchets report in the code. Only that rule runs, so no type information is read. */
 async function codeFindings(): Promise<Finding[]> {
   const eslint = new ESLint({
     cwd: root,
@@ -74,6 +69,7 @@ async function codeFindings(): Promise<Finding[]> {
     'src/domain',
     'src/contract',
     'src/connectors',
+    'src/cli',
     'db/seed/fixtures',
   ])
   return results.flatMap((result) =>
@@ -124,10 +120,6 @@ const readCopyBaseline = (): CopyCounts =>
   JSON.parse(readFileSync(copyBaselineFile, 'utf8')) as CopyCounts
 
 if (args[0] === '--update') {
-  writeFileSync(baselineFile, `${JSON.stringify(counts, null, 2)}\n`)
-  console.log(
-    `plain-words.baseline.json: ${total} words to change in ${Object.keys(counts).length} files.`,
-  )
   writeFileSync(copyBaselineFile, `${JSON.stringify(copyCounts(), null, 2)}\n`)
   console.log(`copy-checks.baseline.json: ${copyFindings.length} places to rewrite, by rule.`)
 } else if (args[0] === '--list') {
@@ -139,16 +131,12 @@ if (args[0] === '--update') {
     `${copyFindings.length} places to rewrite, by the rules of copy, and ${notes20.length} sentences over 20 words.`,
   )
 } else {
-  const baseline = JSON.parse(readFileSync(baselineFile, 'utf8')) as WordCounts
-  const { more, notes } = compareToBaseline(counts, baseline)
-  for (const path of new Set(more.map((entry) => entry.path))) {
-    for (const { word, count, allowed } of more.filter((entry) => entry.path === path))
-      console.log(
-        `${path}: "${word}" is found ${count} times, ${allowed} in the baseline. Write the new text in the glossary's words:`,
-      )
+  // The web app starts at zero and stays there: no baseline.
+  const more = Object.entries(counts).map(([path]) => path)
+  for (const path of more) {
+    console.log(`${path}: write the text in the glossary's words:`)
     print(findings.filter((finding) => finding.path === path))
   }
-  for (const note of notes) console.log(note)
   // The rules of copy, each against its own baseline.
   const copyBaseline = readCopyBaseline()
   const nowByRule = copyCounts()
@@ -169,9 +157,7 @@ if (args[0] === '--update') {
     copyMore += rises.length
   }
   if (more.length || copyMore) process.exit(1)
-  console.log(
-    `Plain words: ${total} words to change in ${Object.keys(counts).length} files, no more than the baseline counts.`,
-  )
+  console.log(`Plain words: no old words in the web app.`)
   console.log(
     `Copy: ${copyFindings.length} places to rewrite and ${notes20.length} sentences over 20 words, no more than the baseline counts. Run \`npm run lint:words -- --list\` to see them.`,
   )

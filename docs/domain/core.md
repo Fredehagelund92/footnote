@@ -73,7 +73,10 @@ project: `npx vitest run --project server tests/server/domain`.
   back to today ("the last 30 days", "this past week"). A named period is whole, "this" runs to
   today, "last" is the last complete one, and weeks start on Monday. Words that name a period it
   cannot read ("since the launch", "the first week of October", a numeric date such as 12/10/2026) or more than one period are never
-  replaced: it says which words and what it reads.
+  replaced: it says which words and what it reads. In Ask only (`loose`), two periods are read as
+  the first and the others are named as not taken, never the span between them, and a quarter,
+  half or month of a fiscal year ("Q3 FY26") is that part of the year, with the fiscal year read
+  as the calendar year and said so.
 - `scope-search.ts`: the page of terms behind the "Applies to" picker (FR-107): before anything
   is typed, the person's recent terms, the busiest metrics and the dimensions with a count but no
   values; then metrics and, per dimension, "any value", a count and a

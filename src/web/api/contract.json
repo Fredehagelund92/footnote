@@ -1207,7 +1207,7 @@
           "tags": [
             "admin"
           ],
-          "summary": "The deleted domains that history keeps, newest first, with what restoring each gives back"
+          "summary": "The deleted domains that history keeps, newest first"
         }
       }
     }
@@ -1226,6 +1226,22 @@
             "gaps"
           ],
           "summary": "One gap, and for its owners and administrators its notes and history"
+        }
+      }
+    },
+    "report": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/gaps/reports",
+          "tags": [
+            "gaps"
+          ],
+          "summary": "Say something is missing about a scope (FR-606 case 5, Ask's Tell the owner): counts one report against the topic, as an agent's report of kind missing does, and records no person"
         }
       }
     }

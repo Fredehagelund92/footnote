@@ -87,17 +87,40 @@ test("a slow load waits, shows the page's shape, then the content, without the l
   ).toBeLessThanOrEqual(0.02)
 })
 
-test('a skeleton sits where its table will be', async ({ page }) => {
+test('the skeleton rows sit where the rows will be, under the same table head', async ({
+  page,
+}) => {
   await go(page, '/context?state=loading')
-  // The page itself is in, its table loading: before that, the app's own page shape stands in.
   await expect(page.getByRole('heading', { name: 'Context', level: 1 })).toBeVisible()
-  const band = page.getByRole('status', { name: 'Loading' }).locator('> div').nth(1)
-  await expect(band).toBeVisible()
-  const sk = (await band.boundingBox())!
+  const first = page.locator('main tbody [data-skeleton-row]').first()
+  await expect(first).toBeVisible()
+  const sk = (await first.boundingBox())!
+  const skHead = (await page.locator('thead tr').boundingBox())!
   await go(page, '/context')
+  // The rows are measured once they are drawn and the skeleton has gone: until then the first
+  // row may be attached without a box.
+  await expect(page.locator('main tbody [data-skeleton-row]')).toHaveCount(0)
+  const firstRow = page.locator('main tbody tr').first()
+  await expect(firstRow).toBeVisible()
   const head = (await page.locator('thead tr').boundingBox())!
-  expect(Math.abs(sk.y - head.y)).toBeLessThanOrEqual(8)
-  expect(Math.abs(sk.height - head.height)).toBeLessThanOrEqual(8)
+  const row = (await firstRow.boundingBox())!
+  expect(Math.abs(skHead.y - head.y)).toBeLessThanOrEqual(1)
+  expect(Math.abs(skHead.height - head.height)).toBeLessThanOrEqual(1)
+  expect(Math.abs(sk.y - row.y)).toBeLessThanOrEqual(8)
+  expect(Math.abs(sk.height - row.height)).toBeLessThanOrEqual(8)
+})
+
+test('a slow Context load shows nothing under 150ms, then the rows as a skeleton, never an empty table', async ({
+  page,
+}) => {
+  await go(page, '/context?slow=1')
+  const frame = page.getByPlaceholder('Search context')
+  await expect(frame).toBeVisible()
+  await expect(page.locator('main tbody [data-skeleton-row]').first()).toBeVisible({
+    timeout: 1500,
+  })
+  await expect(page.locator('main tbody tr:not([data-skeleton-row])').first()).toBeVisible()
+  await expect(page.locator('main tbody [data-skeleton-row]')).toHaveCount(0)
 })
 
 test('once a page is still, nothing loops or moves', async ({ page }) => {
@@ -440,6 +463,112 @@ test('moving between places never blanks the page on the way', async ({ page }) 
     }, to)
     expect(blank, to).toBe(0)
   }
+})
+
+const place = (page: Page, name: string) =>
+  page.locator('[data-sidebar="menu-button"]').filter({ hasText: name })
+const highlight = (page: Page) => page.locator('.nav-highlight')
+
+test('a press on a place answers at once, and the one highlight travels there', async ({
+  page,
+}) => {
+  await go(page, '/inbox')
+  await expect(place(page, 'Context')).toBeVisible()
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 0;')
+
+  // Write the travel down as it starts, so a slow machine cannot let it finish unseen.
+  await highlight(page).evaluate((el) => {
+    const w = window as unknown as { __travel: string[] }
+    w.__travel = []
+    ;(el as HTMLElement).ontransitionrun = (e) => {
+      if (e.target !== el) return
+      const style = getComputedStyle(el)
+      w.__travel.push(
+        [
+          e.propertyName,
+          parseFloat(style.transitionDuration) * 1000,
+          style.transitionTimingFunction,
+        ].join(' | '),
+      )
+    }
+  })
+  const box = (await place(page, 'Context').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  // The press is answered by itself: the place pressed is the selected one and the highlight is on
+  // its way there, while the address and the page are still the Inbox's.
+  await expect(place(page, 'Context')).toHaveAttribute('data-pending', 'true')
+  await expect(place(page, 'Context')).toHaveAttribute('data-active')
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
+  expect(new URL(page.url()).pathname).toBe('/inbox')
+
+  const travelled = () =>
+    page.evaluate(() => (window as unknown as { __travel: string[] }).__travel)
+  // With reduced motion the highlight is in its new place at once, with nothing to run. Otherwise
+  // the transitionrun event arrives on the frame after the style changes, so wait for it.
+  if (await reduced(page)) {
+    expect(await travelled()).toEqual([])
+  } else {
+    await expect.poll(travelled).toEqual(['translate | 150 | cubic-bezier(0.77, 0, 0.175, 1)'])
+  }
+
+  await page.mouse.up()
+  await expect(page.locator('main tbody tr').first()).toBeVisible()
+  await expect(place(page, 'Context')).not.toHaveAttribute('data-pending')
+})
+
+test('Back after a press follows the address, not the press', async ({ page }) => {
+  await go(page, '/inbox')
+  await expect(place(page, 'Context')).toBeVisible()
+  const box = (await place(page, 'Context').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.up()
+  await expect(page).toHaveURL(/\/context/)
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
+  await page.waitForTimeout(500)
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/inbox/)
+  await expect(place(page, 'Inbox')).toHaveAttribute('data-active')
+  await expect(place(page, 'Context')).not.toHaveAttribute('data-active')
+  await expect(place(page, 'Context')).not.toHaveAttribute('data-pending')
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 0;')
+})
+
+test('a press whose move never comes gives the sidebar back to the address', async ({ page }) => {
+  await go(page, '/context/itm_norway_stop/edit')
+  await page.getByRole('textbox', { name: 'What agents should know' }).click()
+  await page.keyboard.insertText(' A sentence that nobody has saved.')
+  await expect(place(page, 'Inbox')).toBeVisible()
+
+  const box = (await place(page, 'Inbox').boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await expect(place(page, 'Inbox')).toHaveAttribute('data-pending', 'true')
+  await page.waitForTimeout(600)
+  await expect(place(page, 'Inbox')).toHaveAttribute('data-pending', 'true')
+  await page.mouse.up()
+
+  const ask = page.getByRole('dialog', { name: 'Leave without saving?' })
+  await expect(ask).toBeVisible()
+  await ask.getByRole('button', { name: 'Keep editing' }).click()
+  await expect(page).toHaveURL(/\/context\/itm_norway_stop\/edit/)
+  await expect(place(page, 'Inbox')).not.toHaveAttribute('data-pending')
+  await expect(place(page, 'Inbox')).not.toHaveAttribute('data-active')
+  await expect(place(page, 'Context')).toHaveAttribute('data-active')
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 2;')
+})
+
+test('from the keyboard the highlight is simply in its new place', async ({ page }) => {
+  await go(page, '/inbox')
+  await expect(place(page, 'Definitions')).toBeVisible()
+  await place(page, 'Definitions').focus()
+  await page.keyboard.press('Enter')
+  await expect(place(page, 'Definitions')).toHaveAttribute('data-active')
+  await expect(highlight(page)).toHaveAttribute('style', '--selected: 3;')
+  await expect(highlight(page)).not.toHaveAttribute('data-travel')
+  expect(await highlight(page).evaluate((el) => getComputedStyle(el).transitionDuration)).toBe('0s')
 })
 
 test.describe('with reduced motion', () => {
