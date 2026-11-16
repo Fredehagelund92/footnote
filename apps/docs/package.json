@@ -15,10 +15,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.5",
-    "@astrojs/starlight": "0.42.9",
+    "@astrojs/markdown-remark": "7.3.8",
+    "@astrojs/starlight": "0.42.10",
     "@fontsource-variable/nunito-sans": "5.3.0",
-    "astro": "7.4.7",
+    "astro": "7.4.11",
     "mdast-util-from-markdown": "2.1.0",
     "mdast-util-gfm": "3.1.0",
     "micromark-extension-gfm": "3.0.0",
@@ -30,7 +30,7 @@
     "@astrojs/check": "0.9.12",
     "@types/mdast": "4.0.4",
     "@types/node": "26.6.6",
-    "oxlint": "1.91.0",
+    "oxlint": "1.93.0",
     "typescript": "6.0.3",
     "vfile": "6.0.3",
     "vitest": "5.1.0"

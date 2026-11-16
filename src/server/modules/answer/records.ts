@@ -1,7 +1,6 @@
 import type { Asked, LookupInput, RecordsAnswer } from '../../../contract/answer.ts'
 import type { Catalogue } from '../../../contract/index.ts'
 import type { ConflictList } from '../../../contract/conflicts.ts'
-import type { LibraryIndex } from '../../../contract/schemas.ts'
 import type {
   AuditItem,
   AuditMembers,
@@ -25,6 +24,7 @@ import { asksDefinition, readQuestion } from '../../../domain/scope.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import type { ServingBundle } from '../editions/index.ts'
+import type { ScopedIndex } from '../library/index.ts'
 
 /*
   Records answers on the service (src/domain/records.ts): a question about the context's own
@@ -48,8 +48,8 @@ export type UnlistedTopic = NonNullable<RecordsWorld['asked']>['rows'][number]
 
 /** The reads a records answer is made from, each as the person's request makes it. */
 export type RecordsReads = {
-  /** The Context list's items, as `library.index` gives them to the person. */
-  index: () => Promise<LibraryIndex>
+  /** The Context list's items, as `library.index` reads them for the person, with each scope by key. */
+  index: () => Promise<ScopedIndex>
   /** The domains and their owners, by id. */
   areas: () => Promise<{ id: string; name: string; ownerIds: string[] }[]>
   /** The workspace's people, by name, as Context names owners. */
@@ -139,7 +139,7 @@ const isRecordsKind = (kind: string): kind is RecordsKind =>
  */
 export async function itemsOf(
   tx: Queryable,
-  index: LibraryIndex,
+  index: ScopedIndex,
   moment: Pick<ReturnType<typeof momentOf>, 'moved'>,
   dated = true,
 ): Promise<RecordsItem[]> {
@@ -219,7 +219,7 @@ const auditTermOf = (t: Catalogue['terms'][number]): AuditTerm => ({
 })
 
 /** The Context list's live items as an analysis compares them, by the same keys Definitions has. */
-function auditItemsOf(index: LibraryIndex, conflicts: ConflictList | null): AuditItem[] {
+function auditItemsOf(index: ScopedIndex, conflicts: ConflictList | null): AuditItem[] {
   const marked = (id: string) =>
     (conflicts?.rows ?? []).flatMap((r) =>
       r.holder.id === id ? [r.other.id] : r.other.id === id ? [r.holder.id] : [],
