@@ -604,7 +604,12 @@ const monthOfYearPattern = sticky(
 const lastMonthNamePattern = sticky(`(last|this) (${monthNames.join('|')}|q[1-4])\\b`)
 const yearAgoPattern = sticky('(?:this|the same) (time|week|month|quarter)(?: as)? last year\\b')
 const fiscalNamedPattern = sticky('(this|last|next) (?:fiscal|financial) (year|quarter)\\b')
-const fiscalYearPattern = sticky(`(?:fy|fiscal(?: year)?|financial year) ?'?(\\d{4}|\\d{2})\\b`)
+const FISCAL_YEAR = `((?:fy|fiscal(?: year)?|financial year) ?'?(\\d{4}|\\d{2}))\\b`
+const fiscalYearPattern = sticky(FISCAL_YEAR)
+/** A quarter, half or month of a fiscal year, either way round: "Q3 FY26", "FY26 Q3". */
+const FISCAL_PART = `(q[1-4]|h[12]|${monthNames.join('|')}|sept|${shortMonths.join('|').toLowerCase()})`
+const fiscalPartPattern = sticky(`${FISCAL_PART}(?: of| in)? ${FISCAL_YEAR}`)
+const fiscalYearPartPattern = sticky(`${FISCAL_YEAR} ${FISCAL_PART}\\b`)
 const halfNamePattern = sticky(`h([12])(?:(?: of)? (?:${YEAR}|(last|this) year))?\\b`)
 const periodEndPattern = sticky('(?:the )?(week|month|quarter|year)[- ]end\\b')
 const weekOfPattern = sticky(
@@ -646,6 +651,25 @@ function partOf(period: Period, part: string): Period {
   return { from: start, to: end > to ? to : end }
 }
 
+/** The calendar year a fiscal year is read as, while Heed knows no fiscal year start. */
+const fiscalYear = (digits: string) => {
+  const year = digits.length === 2 ? 2000 + Number(digits) : Number(digits)
+  return year < 1900 || year > 9000 ? null : year
+}
+/** How a fiscal year was read, as it was written: "FY26 read as the calendar year". */
+const fiscalSaid = (words: string) => `${words.replace(/^fy/, 'FY')} read as the calendar year`
+
+/** A quarter, half or month of a fiscal year, in that year: never the year around it. */
+function fiscalPart(part: string, year: number): Period {
+  if (/^q[1-4]$/.test(part)) return bounds(quarter(Number(part[1]), String(year)), year)!
+  if (/^h[12]$/.test(part))
+    return partOf(
+      { from: iso(year, 1, 1), to: iso(year, 12, 31) },
+      `${part === 'h1' ? 'first' : 'second'} half`,
+    )
+  return bounds({ unit: 'month', year, month: monthNumber(part), day: 1 }, year)!
+}
+
 /** A loose period at `index`, with where it ends and how it is said, or null. */
 function looseAt(text: string, index: number, today: string): (Named & { end: number }) | null {
   const said = (m: RegExpExecArray, period: Period, what = m[0]) => ({
@@ -660,6 +684,13 @@ function looseAt(text: string, index: number, today: string): (Named & { end: nu
       const period = partOf(base.period, m[1]!)
       return { period, what: [text.slice(index, base.end)], end: base.end }
     }
+  }
+  m = at(fiscalPartPattern, text, index)
+  const fy = m ?? at(fiscalYearPartPattern, text, index)
+  if (fy) {
+    const [part, words, digits] = m ? [m[1]!, m[2]!, m[3]!] : [fy[3]!, fy[1]!, fy[2]!]
+    const year = fiscalYear(digits)
+    if (year) return said(fy, fiscalPart(part, year), fiscalSaid(words))
   }
   m = /(?:^|\s)(?:by|before|until|till|up to|up until|prior to) $/.test(text.slice(0, index))
     ? at(periodEndPattern, text, index)
@@ -790,17 +821,13 @@ function looseAt(text: string, index: number, today: string): (Named & { end: nu
   m = at(fiscalNamedPattern, text, index)
   if (m) {
     const key = `${m[1]}${capital(m[2]!)}` as keyof ReturnType<typeof periods>
-    return said(m, periods(today)[key], `${m[0]}, as the calendar ${m[2]}`)
+    return said(m, periods(today)[key], `${m[0]} read as the calendar ${m[2]}`)
   }
   m = at(fiscalYearPattern, text, index)
   if (m) {
-    const year = m[1]!.length === 2 ? 2000 + Number(m[1]) : Number(m[1])
-    if (year < 1900 || year > 9000) return null
-    return said(
-      m,
-      { from: iso(year, 1, 1), to: iso(year, 12, 31) },
-      `${m[0]}, as the calendar year`,
-    )
+    const year = fiscalYear(m[2]!)
+    if (!year) return null
+    return said(m, { from: iso(year, 1, 1), to: iso(year, 12, 31) }, fiscalSaid(m[1]!))
   }
   m = at(weekOfPattern, text, index)
   if (m) {
@@ -974,23 +1001,18 @@ export function readDates(
   const read = claims.filter((c): c is DateSpan & Named => 'period' in c)
   const distinct = new Map(read.map((c) => [`${c.period.from}/${c.period.to}`, c]))
   if (loose && (unreadable.length || distinct.size > 1)) {
-    const placed = [...distinct.values()]
-    const window = placed.length
-      ? {
-          start: placed.map((c) => c.period.from).sort()[0]!,
-          end: shiftDate(
-            placed
-              .map((c) => c.period.to)
-              .sort()
-              .at(-1)!,
-            1,
-          ),
-        }
+    // Two periods are read as the first, and the others are named: never the span between them,
+    // which none of them named ("Q3 and FY26" is not the whole year).
+    const first = read[0]
+    const others = [...distinct.values()].filter(
+      (c) => c.period.from !== first!.period.from || c.period.to !== first!.period.to,
+    )
+    const window = first
+      ? { start: first.period.from, end: shiftDate(first.period.to, 1) }
       : anyDate
     const what = [
-      ...(placed.length > 1
-        ? [`covers ${list(placed.map(words))}`]
-        : placed.flatMap((c) => c.what)),
+      ...new Set(first?.what),
+      ...(others.length ? [`not taken: ${list(others.map(words))}`] : []),
       ...(unreadable.length ? [`could not place ${list(unreadable.map(words))}`] : []),
       timeZone,
     ]
