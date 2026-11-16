@@ -55,6 +55,7 @@ describe('the figure an answer asks for', () => {
       names: ['Orders', 'Norway'],
       about: ['metric:orders', 'value:market/norway'],
       period: '1 to 31 Aug 2026',
+      note: null,
       assumedToday: false,
       carried: false,
       uncovered: [],

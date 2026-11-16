@@ -410,6 +410,12 @@ export const loopTurnSchema = z.object({
       names: z.array(z.string()),
       about: z.array(z.string()),
       period: z.string(),
+      /**
+       * How the days were read where the words left room, said beside them: "year not given",
+       * "fiscal year read as the calendar year", "day first", "could not place 'since the launch'";
+       * null when nothing was guessed.
+       */
+      note: z.nullable(z.string()),
       assumedToday: z.boolean(),
       carried: z.boolean(),
       /** The asked metrics and values no item covers in full, as nouns' ids. */
