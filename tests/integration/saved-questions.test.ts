@@ -125,14 +125,14 @@ async function publishNew(summary: string) {
 
 describe('saving a question', () => {
   it("keeps the question with its saver's name and what the answer engine gives it now", async () => {
-    const created = await ok<{ question: SavedQuestionRecord; undo: string }>(
+    const created = await ok<{ question: SavedQuestionRecord; undo: { token: string } }>(
       'owner',
       'POST',
       '/saved-questions',
       { areaId: 'finance', question, origin: 'ask' },
     )
     saved = created.question
-    expect(created.undo).toBe(`saved:${saved.id}`)
+    expect(created.undo.token).toBe(`saved:${saved.id}`)
     expect(saved).toMatchObject({
       areaId: 'finance',
       question,
@@ -175,7 +175,7 @@ describe('saving a question', () => {
   })
 
   it('keeps only the items of the answer it should answer from, and Undo removes it', async () => {
-    const typed = await ok<{ question: SavedQuestionRecord; undo: string }>(
+    const typed = await ok<{ question: SavedQuestionRecord; undo: { token: string } }>(
       'admin',
       'POST',
       '/saved-questions',
@@ -184,9 +184,9 @@ describe('saving a question', () => {
     expect(typed.question.expectItems).toEqual([])
     expect((await list('admin')).map((q) => q.id)).toContain(typed.question.id)
     // Only its saver undoes it.
-    const theirs = await api('owner', 'POST', '/decisions/undo', { token: typed.undo })
+    const theirs = await api('owner', 'POST', '/decisions/undo', { token: typed.undo.token })
     expect(theirs.statusCode).toBe(403)
-    await ok('admin', 'POST', '/decisions/undo', { token: typed.undo })
+    await ok('admin', 'POST', '/decisions/undo', { token: typed.undo.token })
     expect((await list('admin')).map((q) => q.id)).toEqual([saved.id])
   })
 })
@@ -282,7 +282,7 @@ describe('the free check', () => {
     })
     expect(unchanged.map((d) => [d.id, d.result])).toEqual([[saved.id, 'same']])
 
-    const kept = await ok<{ question: SavedQuestionRecord; undo: string }>(
+    const kept = await ok<{ question: SavedQuestionRecord; undo: { token: string } }>(
       'owner',
       'POST',
       `/saved-questions/${saved.id}/keep`,
@@ -295,10 +295,10 @@ describe('the free check', () => {
       409,
     )
     // Only its keeper undoes it, and the answer before is the saved one again.
-    expect((await api('admin', 'POST', '/decisions/undo', { token: kept.undo })).statusCode).toBe(
-      409,
-    )
-    await ok('owner', 'POST', '/decisions/undo', { token: kept.undo })
+    expect(
+      (await api('admin', 'POST', '/decisions/undo', { token: kept.undo.token })).statusCode,
+    ).toBe(409)
+    await ok('owner', 'POST', '/decisions/undo', { token: kept.undo.token })
     const [back] = await list('owner')
     expect(back!.saved).toEqual(changed!.saved)
     expect(back!.result).toMatchObject({ result: 'changed', reason: 'words' })

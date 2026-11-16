@@ -289,7 +289,9 @@ describe('settling a conflict', () => {
       [people.stranger, second],
     )
     expect(mentions.rows[0]!.n).toBe(1)
-    expect((await call('POST', '/decisions/undo', 'owner', { token: r.undo })).statusCode).toBe(200)
+    expect(
+      (await call('POST', '/decisions/undo', 'owner', { token: r.undo.token })).statusCode,
+    ).toBe(200)
     expect(await status(first)).toBe('accepted')
     expect((await view('owner', second, first)).said?.now.state).toBe('conflict')
   })
@@ -309,7 +311,9 @@ describe('settling a conflict', () => {
     expect((await ok<ItemPage>(call('GET', `/items/${second}/page`, 'owner'))).conflicts).toEqual(
       [],
     )
-    expect((await call('POST', '/decisions/undo', 'owner', { token: r.undo })).statusCode).toBe(200)
+    expect(
+      (await call('POST', '/decisions/undo', 'owner', { token: r.undo.token })).statusCode,
+    ).toBe(200)
     expect((await view('owner', second, first)).holder.version).toBe(1)
   })
 
@@ -423,7 +427,9 @@ describe('settling a conflict', () => {
         versions: { holder: 1, other: 1 },
       }),
     )
-    expect((await call('POST', '/decisions/undo', 'owner', { token: r.undo })).statusCode).toBe(200)
+    expect(
+      (await call('POST', '/decisions/undo', 'owner', { token: r.undo.token })).statusCode,
+    ).toBe(200)
     // Keeping the item that holds the flag drops its flag on the archived one, the same way.
     const kept = await ok<SettledConflict>(
       settle('owner', {
@@ -436,9 +442,9 @@ describe('settling a conflict', () => {
       }),
     )
     expect(await status(first)).toBe('retired')
-    expect((await call('POST', '/decisions/undo', 'owner', { token: kept.undo })).statusCode).toBe(
-      200,
-    )
+    expect(
+      (await call('POST', '/decisions/undo', 'owner', { token: kept.undo.token })).statusCode,
+    ).toBe(200)
   })
 
   it('answers a malformed conflict undo token with not found', async () => {
@@ -496,12 +502,12 @@ describe('row security', () => {
         versions: { holder: 1, other: 1 },
       }),
     )
-    const id = r.undo.slice('conflict:'.length)
+    const id = r.undo.token.slice('conflict:'.length)
     const changed = await database.transaction(people.stranger, (tx) =>
       tx.query('update conflict_decisions set undone_at = now() where id = $1 returning id', [id]),
     )
     expect(changed).toEqual([])
-    const refused = await call('POST', '/decisions/undo', 'stranger', { token: r.undo })
+    const refused = await call('POST', '/decisions/undo', 'stranger', { token: r.undo.token })
     expect(refused.statusCode).toBe(403)
   })
 

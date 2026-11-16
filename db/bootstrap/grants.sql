@@ -252,3 +252,6 @@ grant execute on function cl_auto_publish_on() to :api;
 -- The names a read makes (FR-141): an owner or an administrator leaves a member out and takes it back. Nothing
 -- here is granted to the serving or the analytics role.
 grant select, insert, delete on names_left_out to :api;
+-- The undo window (FR-227): the row policies read it, and the service tells the screens how long Undo
+-- is offered. Nothing here is granted to the serving or the analytics role.
+grant execute on function cl_undo_until(timestamptz) to :api;

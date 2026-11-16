@@ -33,7 +33,7 @@ import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import { itemPageQuery, useInbox, useLibrary, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { useCommentActions } from '@/lib/comments'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import type { LogEntry } from '@/model/items'
@@ -59,7 +59,7 @@ export function FactPage({ id }: { id: string }) {
   const domains = useDomains()
   const me = useMe()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const commentActions = useCommentActions()
   const [deleting, setDeleting] = React.useState(false)
   const [bodyRef, wide] = useWide<HTMLDivElement>()
@@ -97,31 +97,28 @@ export function FactPage({ id }: { id: string }) {
   })
   const archive = async () => {
     const entry = entryFor('archived', 'Archived: agents stop getting it.')
-    const { undo } = await write('applyBulk', {
+    const archived = await write('applyBulk', {
       action: 'archive',
       patches: { [fact.id]: { status: 'Archived' } },
       remove: [],
       entry,
     })
-    toast('Archived', {
+    undo.offer('Archived', archived.undo, {
       description: 'Agents stop getting it from the next question.',
-      action: { label: 'Undo', onClick: () => void takeBack(undo) },
     })
   }
   // A draft nobody published is deleted for good, after a confirmation, with Undo for a few seconds.
   const deleteDraft = async () => {
     const entry = entryFor('deleted', 'Deleted: a draft nobody published.')
-    const { undo } = await write('applyBulk', {
+    const deleted = await write('applyBulk', {
       action: 'delete',
       patches: {},
       remove: [fact.id],
       entry,
     })
     navigate('/context')
-    toast('Deleted 1 draft', {
-      description: 'You can undo it for 10 seconds; then it is gone for good.',
-      duration: 10_000,
-      action: { label: 'Undo', onClick: () => void takeBack(undo) },
+    undo.offer('Deleted 1 draft', deleted.undo, {
+      description: (held) => `You can undo it for ${held}; then it is gone for good.`,
     })
   }
   const pending = sent.find((x) => x.factId === fact.id && x.by === me.name)

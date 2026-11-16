@@ -10,7 +10,13 @@ import { settingKeys } from '@contract/admin'
 import { agentToolNames } from '@domain/agents'
 import { toolsOn } from '@/lib/connect'
 import { ApiError } from '@/api/errors'
-import { heedApiMethods, type HeedApi, type HeedApiMethod, type Related } from '@/api/client'
+import {
+  heedApiMethods,
+  type HeedApi,
+  type HeedApiMethod,
+  type Related,
+  type Undoable,
+} from '@/api/client'
 import type { ObsData } from '@/model/observability'
 import { labelDay, whenLabel } from '@/model/validity'
 import type { CardType, InboxCard } from '@/model/inbox'
@@ -209,7 +215,7 @@ export function describeHeedApi(
         // Removing it, and Undo.
         const { undo } = await live.removeTerm({ name: word })
         expect(findDefinition(await live.getDefinitions(), word)).toBeUndefined()
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect(findDefinition(await live.getDefinitions(), word)).toMatchObject({
           sameAs: metric.name,
         })
@@ -264,7 +270,7 @@ export function describeHeedApi(
 
         const moved = await live.moveTerms({ names: ['Conformance weeks'], domain: away })
         expect((await named('Conformance weeks'))?.domain).toBe(away)
-        await live.undo({ token: moved.undo })
+        await live.undo({ token: moved.undo.token })
         expect((await named('Conformance weeks'))?.domain).toBe(home)
 
         const entry = {
@@ -278,7 +284,7 @@ export function describeHeedApi(
         const deleted = await live.deleteTerms({ names: ['Conformance weeks'], entry })
         expect(await named('Conformance weeks')).toBeUndefined()
         expect(await named('Suite weeks')).toBeUndefined()
-        await live.undo({ token: deleted.undo })
+        await live.undo({ token: deleted.undo.token })
         expect(await named('Conformance weeks')).toMatchObject({ domain: home })
         expect(await named('Suite weeks')).toMatchObject({ sameAs: 'Conformance weeks' })
         await live.deleteTerms({ names: ['Conformance weeks'], entry })
@@ -397,7 +403,7 @@ export function describeHeedApi(
         const status = async (id: string) =>
           (await live.getLibrary()).items.find((f) => f.id === id)?.status
         expect(await status(a!.id)).toBe('Archived')
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect(await status(a!.id)).toBe('Live')
         expect(await status(b!.id)).toBe('Live')
       },
@@ -488,7 +494,7 @@ export function describeHeedApi(
         const kept = (await live.conflict({ holderId, otherId }))!
         expect(kept.said?.now.state).toBe('conflict')
         expect(kept.keptBoth?.reason).toBe('Both hold until Finance rules on it.')
-        await live.undo({ token: done.undo })
+        await live.undo({ token: done.undo.token })
         expect((await listed()).some((r) => r.key === norway!.key)).toBe(true)
         expect((await live.conflict({ holderId, otherId }))?.keptBoth).toBeNull()
       },
@@ -827,7 +833,7 @@ export function describeHeedApi(
         // Taken back, it is gone; Undo invites them again.
         const taken = await live.revokeInvite({ id: invite.id })
         expect((await live.getWorkspace()).invites.some((i) => i.email === email)).toBe(false)
-        await live.undo({ token: taken.undo })
+        await live.undo({ token: taken.undo.token })
         const back = (await live.getWorkspace()).invites.find((i) => i.email === email)!
         expect(back).toMatchObject({ willOwn: [domain] })
         await live.revokeInvite({ id: back.id })
@@ -880,7 +886,7 @@ export function describeHeedApi(
         const removed = await live.removePerson({ id: leaver.id })
         expect(removed).toMatchObject({ removed: true })
         expect((await live.getWorkspace()).people.some((p) => p.name === leaver.name)).toBe(false)
-        await live.undo({ token: (removed as { undo: string }).undo })
+        await live.undo({ token: (removed as Undoable).undo.token })
         expect((await live.getWorkspace()).people.some((p) => p.name === leaver.name)).toBe(true)
       },
     )
@@ -1675,7 +1681,7 @@ export function describeHeedApi(
         const card = await cardOf('flag')
         const { undo } = await api().completeCard({ card: card.id, outcome: 'Not a problem' })
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Not a problem')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
       },
     )
@@ -1695,7 +1701,7 @@ export function describeHeedApi(
         expect(plain, `a suggestion for ${person} with no clash`).toBeDefined()
         const { undo } = await api().publishReview({ id: plain!.id })
         expect((await api().inboxPage()).done[plain!.id]?.label).toBe('Published')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[plain!.id]).toBeUndefined()
       },
     )
@@ -1722,7 +1728,7 @@ export function describeHeedApi(
         expect(await status(replaced.factId)).toBe('Archived')
         for (const c of items.filter((x) => x !== replaced))
           expect(await status(c.factId), c.title).toBe('Live')
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect(await status(replaced.factId)).toBe('Live')
       },
     )
@@ -1737,7 +1743,7 @@ export function describeHeedApi(
         }
         const { undo } = await api().returnReview({ id: card.id, note })
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Returned')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
       },
     )
@@ -1874,7 +1880,7 @@ export function describeHeedApi(
         const card = await cardOf('check')
         const { undo } = await api().decideCard({ card: card.id, outcome: 'Checked' })
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Checked')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
       },
     )
@@ -1896,7 +1902,7 @@ export function describeHeedApi(
         const { undo } = await api().publishReviews({ ids: plain.map((r) => r.id) })
         const after = await api().inboxPage()
         for (const r of plain) expect(after.done[r.id]?.label, r.id).toBe('Published')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         const back = await api().inboxPage()
         for (const r of plain) expect(back.done[r.id], r.id).toBeUndefined()
       },
@@ -1915,7 +1921,7 @@ export function describeHeedApi(
         expect(retire, `a suggestion to archive for ${person}`).toBeDefined()
         const { undo } = await api().archiveReview({ id: retire!.id })
         expect((await api().inboxPage()).done[retire!.id]?.label).toBe('Archived')
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[retire!.id]).toBeUndefined()
       },
     )
@@ -2032,7 +2038,7 @@ export function describeHeedApi(
         const { undo } = await api().closeReview({ id: r!.id })
         expect((await api().inboxPage()).done[r!.id]?.label).toBe('Closed')
         expect(await live()).toBe(before)
-        await api().undo({ token: undo })
+        await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[r!.id]).toBeUndefined()
         expect((await withdrawnRetirement())?.id).toBe(r!.id)
       },
@@ -2449,7 +2455,7 @@ export function describeHeedApi(
         expect((await a.listChats()).find((t) => t.id === id)?.title).toBe('Spain in October')
         const { undo } = await a.deleteChat({ id })
         expect((await a.listChats()).some((t) => t.id === id)).toBe(false)
-        await a.undo({ token: undo })
+        await a.undo({ token: undo.token })
         expect((await a.listChats()).find((t) => t.id === id)?.title).toBe('Spain in October')
       },
     )
@@ -2638,7 +2644,7 @@ export function describeHeedApi(
           // A result that moved shows what it said when saved and what it says now.
           expect(!!q.diff, q.id).toBe(q.result !== 'same')
         }
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         expect((await live.getSavedQuestions()).some((q) => q.id === id)).toBe(false)
 
         const again = await live.saveQuestion({
@@ -2660,7 +2666,7 @@ export function describeHeedApi(
         const kept = (await live.getSavedQuestions()).find((q) => q.id === moved.id)!
         expect(kept).toMatchObject({ result: 'same' })
         expect(kept.diff).toBeUndefined()
-        await live.undo({ token: undo })
+        await live.undo({ token: undo.token })
         const back = (await live.getSavedQuestions()).find((q) => q.id === moved.id)!
         expect(back).toMatchObject({ result: moved.result, diff: moved.diff })
       },

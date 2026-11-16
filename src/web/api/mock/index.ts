@@ -1,6 +1,6 @@
 import { heedApiMethods, readMethods } from '../client'
 import { clockTime } from '@/lib/dates'
-import type { HeedApi, HeedApiMethod, Inbox, ObsPageInput } from '../client'
+import type { HeedApi, HeedApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
 import { asksNothing, nothingAskedSaid } from '@domain/ask-again'
 import { asksUndefinedWords, limitOf, readsBeyond } from '@domain/ask-plan'
@@ -41,7 +41,14 @@ import {
   readDefinitionsFrom,
   readQuestion,
 } from './data/ask'
-import { advancedOf, contextFile, demoAccessKey, historyFile, type Pins } from './advanced'
+import {
+  advancedOf,
+  contextFile,
+  demoAccessKey,
+  historyFile,
+  UNDO_SECONDS,
+  type Pins,
+} from './advanced'
 import { loopExample, playAnswer } from './ask-live'
 import { cannotAnswer, followsOn, heldFor, plannedFor } from './planner'
 import { createChats } from './chats'
@@ -146,13 +153,17 @@ export function createMockApi() {
       ([h, o]) => (h.id === a && o.id === b) || (h.id === b && o.id === a),
     )
 
-  /** What Undo needs, by token: the state before, and what the write touched. */
+  /**
+   * What Undo needs, by token: the state before, and what the write touched. It is offered for the
+   * demo's window, or until the page goes when the service would take it at any time (`lasting`).
+   */
   const undos = new Map<string, () => void>()
   let undoCount = 0
-  const remember = (undo: () => void) => {
+  const remember = (undo: () => void, lasting = false): Undoable => {
     const token = `undo_${++undoCount}`
     undos.set(token, undo)
-    return { undo: token }
+    const until = lasting ? null : new Date(Date.now() + UNDO_SECONDS * 1000).toISOString()
+    return { undo: { token, until } }
   }
   /** Undo for a write over the store: exactly those cards, items and log line go back. */
   const revertTo = (
@@ -467,14 +478,14 @@ export function createMockApi() {
       now(() => {
         const result = workspace.revokeInvite(id)
         if (!result) throw new ApiError('not-found', 'This invite is not open any more.')
-        return remember(result.restore)
+        return remember(result.restore, true)
       }),
     removePerson: ({ id }) =>
       now(() => {
         const result = workspace.removePerson(id)
         return 'alone' in result
           ? { removed: false as const, alone: result.alone }
-          : { removed: true as const, ...remember(result.restore) }
+          : { removed: true as const, ...remember(result.restore, true) }
       }),
 
     // The library
@@ -597,15 +608,15 @@ export function createMockApi() {
             decision,
             stamps: { [holder.id]: stampOf(holder), [other.id]: stampOf(other) },
           })
-        const undo = revertTo(before, { facts: [holder.id, other.id], entry: entry.id })
-        const token = undo.undo
+        const { undo } = revertTo(before, { facts: [holder.id, other.id], entry: entry.id })
+        const { token } = undo
         const revert = undos.get(token)!
         undos.set(token, () => {
           revert()
           if (keptBefore) keptPairs.set(key, keptBefore)
           else keptPairs.delete(key)
         })
-        return { undo: token, decision }
+        return { undo, decision }
       }),
     suggestArchiving: ({ id }) =>
       now(() => {
@@ -891,7 +902,7 @@ export function createMockApi() {
     saveChat: ({ id, question, answers }) =>
       now(() => (answers ? chats.keep(id, answers) : chats.add(id, question))),
     renameChat: ({ id, title }) => now(() => chats.rename(id, title)),
-    deleteChat: ({ id }) => now(() => remember(chats.remove(id))),
+    deleteChat: ({ id }) => now(() => remember(chats.remove(id), true)),
     // A named report waits in this visit's memory; the demo's owners don't act on it here.
     reportAnswer: ({ question }) =>
       now(() => {
@@ -1174,10 +1185,10 @@ export function createMockApi() {
     saveQuestion: ({ question }) =>
       now(() => {
         const id = saved.save(question)
-        return { id, ...remember(() => saved.remove(id)) }
+        return { id, ...remember(() => saved.remove(id), true) }
       }),
     removeSavedQuestion: ({ id }) => now(() => saved.remove(id)),
-    keepNewAnswer: ({ id }) => now(() => remember(saved.keepNew(id))),
+    keepNewAnswer: ({ id }) => now(() => remember(saved.keepNew(id), true)),
   }
 
   // Every write is sent as the scenario plays a send: refused offline, failing its first try under

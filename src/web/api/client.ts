@@ -136,8 +136,15 @@ export type ObsValueList = {
   nextCursor: string | null
 }
 
-/** The result of a write that can be taken back: pass `undo` to `HeedApi.undo`. */
-export type Undoable = { undo: string }
+/**
+ * What a write that can be taken back offers: its token for `HeedApi.undo`, until `until`, the
+ * service's end of the window (an ISO time; null when it is taken at any time). The screens offer
+ * Undo for exactly that long (lib/undo.ts).
+ */
+export type UndoOffer = { token: string; until: string | null }
+
+/** The result of a write that can be taken back. */
+export type Undoable = { undo: UndoOffer }
 
 /* ---------- the library ---------- */
 

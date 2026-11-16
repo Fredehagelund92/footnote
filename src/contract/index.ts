@@ -346,6 +346,7 @@ export type {
 } from './terms.ts'
 export type { AuditEntry, ClientPolicy, ItemImportReport, Setting, SettingKey } from './admin.ts'
 export type { AreaDetail, AreaHoldings, AreaRemoved, ArchivedArea } from './areas.ts'
+export type { UndoOffer } from './undo.ts'
 export type { OperationsOverviewView } from './operations.ts'
 export type { ConnectInfo, TryItReading, TryItReadInput } from './connect.ts'
 export type { HeldRole, PeopleRoleFilter, PeopleSignInFilter, PersonStatus } from './people.ts'

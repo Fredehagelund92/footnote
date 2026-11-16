@@ -25,6 +25,7 @@ import {
 } from '../../../domain/inbox.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { lastingUndo, undoOffer } from '../../db/undo.ts'
 import type { BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
 import { syncedOf } from '../connectors/index.ts'
@@ -807,7 +808,7 @@ export function createInboxFeedService(
         })
       if (input.action === 'not_written') {
         await deps.gaps.move(key.id, 'set_aside', input.reason ?? 'Not something we write down.')
-        return { edition: null, undo: `gap:${key.id}` }
+        return { edition: null, undo: lastingUndo(`gap:${key.id}`) }
       }
       if (input.action === 'not_a_problem') {
         const [row] = await tx.query<{ area: string | null }>(
@@ -832,7 +833,7 @@ export function createInboxFeedService(
               })
             throw error
           })
-        return { edition: null, undo: `card:${input.card}` }
+        return { edition: null, undo: await undoOffer(tx, `card:${input.card}`) }
       }
       const reason =
         input.reason ??
@@ -846,7 +847,10 @@ export function createInboxFeedService(
           [result.proposal.id],
         )
         if (!decision) throw new Error('The check was not recorded')
-        return { edition: result.edition?.label ?? null, undo: `decision:${decision.id}` }
+        return {
+          edition: result.edition?.label ?? null,
+          undo: await undoOffer(tx, `decision:${decision.id}`),
+        }
       }
       const edition = await deps.review.retire(key.id, reason)
       const [decision] = await tx.query<{ id: string }>(
@@ -856,7 +860,7 @@ export function createInboxFeedService(
         [key.id],
       )
       if (!decision) throw new Error('The archive was not recorded')
-      return { edition: edition.label, undo: `decision:${decision.id}` }
+      return { edition: edition.label, undo: await undoOffer(tx, `decision:${decision.id}`) }
     },
 
     /** Opens a card again that its maker closed moments ago (FR-227). */

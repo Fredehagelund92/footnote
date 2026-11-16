@@ -411,7 +411,8 @@ archive and a rollback also take an `Idempotency-Key`.
 Heed v1's one review screen and its Inbox (docs/product.md, sections 4 and 5) read and decide
 through these operations, typed in `src/contract/review-path.ts` and `src/contract/inbox.ts`.
 Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A decision
-that can be taken back answers with an `undo` token for `POST /decisions/undo`.
+that can be taken back answers with `undo: { token, until }`: the token for `POST /decisions/undo`,
+and when the service stops taking it (`cl_undo_until`; null when it is taken at any time).
 
 - `GET /review/{id}/sheet` is the review page's one read of a suggestion (FR-224), waiting or
   decided; a suggestion to archive shows the version it archives, and once archived the version
@@ -557,7 +558,7 @@ edition holds is built from them. Writes need the session cookie, `Origin`, `x-h
 Heed v1's Context list, a context item's page, the editor and Settings, Advanced (docs/product.md,
 section 3) read and change items through these operations, typed in `src/contract/context.ts`.
 Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A change that
-can be taken back answers with an `undo` token for `POST /decisions/undo`.
+can be taken back answers with `undo: { token, until }`, as a decision does.
 
 - `GET /items/{id}/page` is a context item's page: the item as published, what its list row
   reads (`lastChecked`, `trust`, `chips`), its own `owners` and its `history`, newest first. Each

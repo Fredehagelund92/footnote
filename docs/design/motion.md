@@ -108,7 +108,7 @@ Rules:
 
 ## Decisions are optimistic
 
-Inbox decisions, review publishes and bulk changes show their result at once (`useOptimistic`), with Undo for 6 seconds (10 seconds after a delete) and a rollback if the save fails. See section 5.10 of the design contract.
+Inbox decisions, review publishes and bulk changes show their result at once (`useOptimistic`), with Undo for as long as the service takes it (the `until` of its answer) and a rollback if the save fails. See section 5.10 of the design contract.
 
 ## Testing slow networks
 

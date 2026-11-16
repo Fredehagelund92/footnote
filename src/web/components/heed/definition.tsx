@@ -39,7 +39,7 @@ import { MoreProperties, Property } from '@/components/heed/doc'
 import { VersionHistory } from '@/components/heed/version-history'
 import { useQuery } from '@tanstack/react-query'
 import { definitionHistoryQuery, useWrite } from '@/api/queries'
-import { useTakeBack } from '@/lib/undo'
+import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/heed/show-more'
 
@@ -207,7 +207,7 @@ export function SynonymTags({
   const H = level === 2 ? 'h2' : 'h3'
   const glossary = useGlossary()
   const write = useWrite()
-  const takeBack = useTakeBack()
+  const undo = useUndo()
   const point = d.sameAs ? glossary.meaningOf(d) : d
   const synonyms = glossary.synonymsOf(point.name)
   const [text, setText] = React.useState('')
@@ -306,11 +306,10 @@ export function SynonymTags({
         return
       }
       try {
-        const { undo } = await write('removeTerm', { name })
+        const removed = await write('removeTerm', { name })
         setSaid(`Removed synonym ${name}.`)
-        toast(`Removed “${name}”`, {
+        undo.offer(`Removed “${name}”`, removed.undo, {
           description: `${point.name} itself is unchanged.`,
-          action: { label: 'Undo', onClick: () => void takeBack(undo) },
         })
       } catch {
         toast.error(`Couldn't remove “${name}”`, {

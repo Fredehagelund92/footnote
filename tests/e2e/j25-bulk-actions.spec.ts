@@ -64,6 +64,31 @@ test('Delete names the drafts it removes, keeps published items, and Settings re
   await expect(page.getByText(/Deleted by Jon Abara, today/).first()).toBeVisible()
 })
 
+test('Undo of a deletion is offered for as long as the service takes it, and says so', async ({
+  page,
+}) => {
+  // The demo takes an Undo for 15 seconds after the write (limits.undo_seconds): the toast says
+  // so, never more, and its Undo goes when they end.
+  await page.clock.install()
+  await go(page, '/context')
+  await onlyDrafts(page)
+  await page.getByRole('checkbox', { name: 'Select all context shown' }).click()
+  await bar(page)
+    .getByRole('button', { name: /^Delete/ })
+    .click()
+  await page
+    .getByRole('dialog', { name: 'Delete 3 drafts?' })
+    .getByRole('button', { name: 'Delete 3 drafts' })
+    .click()
+  await expect(
+    page.getByText('You can undo it for 15 seconds; then they are gone for good.'),
+  ).toBeVisible()
+  const undo = page.getByRole('button', { name: 'Undo' })
+  await expect(undo).toBeVisible()
+  await page.clock.fastForward(15_000)
+  await expect(undo).toHaveCount(0)
+})
+
 test('Published items are archived, not deleted: the confirmation offers Archive instead', async ({
   page,
 }) => {

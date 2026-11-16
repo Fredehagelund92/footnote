@@ -445,10 +445,10 @@ describe('deleting, moving and Undo', () => {
     expect(await listed(t.id)).toBeUndefined()
     expect(await listed(s.id)).toBeUndefined()
     // Only its maker undoes it, once; nobody else even reads it, but an admin.
-    expect((await undo('stranger', r.undo!)).statusCode).toBe(404)
-    expect((await undo('admin', r.undo!)).statusCode).toBe(403)
-    expect((await undo('owner', r.undo!)).statusCode).toBe(200)
-    expect((await undo('owner', r.undo!)).statusCode).toBe(409)
+    expect((await undo('stranger', r.undo!.token)).statusCode).toBe(404)
+    expect((await undo('admin', r.undo!.token)).statusCode).toBe(403)
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(409)
     expect(await listed(t.id)).toMatchObject({ name: t.name })
     expect(await listed(s.id)).toMatchObject({ sameAs: { ref: `term:${t.id}` } })
   })
@@ -458,9 +458,9 @@ describe('deleting, moving and Undo', () => {
     const r = await remove('owner', [t.id])
     await client.query(
       "update term_changes set made_at = now() - interval '1 hour' where id = $1::uuid",
-      [r.undo!.slice('terms:'.length)],
+      [r.undo!.token.slice('terms:'.length)],
     )
-    const late = await undo('owner', r.undo!)
+    const late = await undo('owner', r.undo!.token)
     expect(late.statusCode).toBe(409)
     expect(late.json<{ message: string }>().message).toBe(
       'It is too late to undo this change. Change them again instead.',
@@ -487,7 +487,7 @@ describe('deleting, moving and Undo', () => {
       call('POST', '/terms/move', 'owner', { ids: [t.id], areaId: 'finance' }),
     )
     expect(back.done).toEqual([])
-    expect((await undo('admin', moved.undo!)).statusCode).toBe(200)
+    expect((await undo('admin', moved.undo!.token)).statusCode).toBe(200)
     expect(await listed(t.id)).toMatchObject({ areaId: 'finance' })
     expect(await listed(s.id)).toMatchObject({ areaId: 'finance' })
   })

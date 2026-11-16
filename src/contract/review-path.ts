@@ -18,6 +18,7 @@ import { REVIEW_SHEETS_MAX } from './limits.ts'
 import { commentInputBodySchema } from './comments.ts'
 import { editionSchema, reviewProposalSchema } from './review.ts'
 import { savedDraftSchema } from './saved-questions.ts'
+import { undoOfferSchema, undoTokenSchema } from './undo.ts'
 
 const markSchema = z.enum(marks)
 const textField = z.enum(['title', 'text', 'notToConclude', 'quote'])
@@ -299,9 +300,6 @@ export const reviewSheetsInputSchema = z.strictObject({
 /** Each sheet asked for, in the order asked; one that went, or the person may not read, is left out. */
 export const reviewSheetsSchema = z.object({ sheets: z.array(reviewSheetSchema) })
 
-/** A token that takes one decision, or one step of several, back (FR-227). */
-export const undoTokenSchema = z.string().check(z.regex(/^[a-z]+:[A-Za-z0-9_.:,-]{1,4000}$/))
-
 export const publishInputSchema = z.strictObject({
   id: z.string().check(z.uuid()),
   revision: z.number().check(z.int(), z.minimum(1)),
@@ -321,7 +319,7 @@ export const publishInputSchema = z.strictObject({
 export const publishResultSchema = z.object({
   proposal: reviewProposalSchema,
   edition: z.nullable(editionSchema),
-  undo: undoTokenSchema,
+  undo: undoOfferSchema,
 })
 
 export const returnInputSchema = z.strictObject({
@@ -334,7 +332,7 @@ export const returnInputSchema = z.strictObject({
 })
 export const returnResultSchema = z.object({
   proposal: reviewProposalSchema,
-  undo: undoTokenSchema,
+  undo: undoOfferSchema,
 })
 
 /**
@@ -348,7 +346,7 @@ export const closeInputSchema = z.strictObject({
 })
 export const closeResultSchema = z.object({
   proposal: reviewProposalSchema,
-  undo: undoTokenSchema,
+  undo: undoOfferSchema,
 })
 
 export const markReadInputSchema = z.strictObject({
@@ -374,7 +372,7 @@ export const publishReadResultSchema = z.object({
     z.object({ id: z.string(), code: z.enum(publishSkipCodes), message: z.string() }),
   ),
   /** Takes back every one published, together; null when none was. */
-  undo: z.nullable(undoTokenSchema),
+  undo: z.nullable(undoOfferSchema),
 })
 
 export const undoInputSchema = z.strictObject({ token: undoTokenSchema })

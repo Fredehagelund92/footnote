@@ -144,7 +144,7 @@ describe('the http binding', () => {
     await watched.saveChat({ id: 'chat-private', question: 'Is the Quillfeather deal in?' })
     await watched.renameChat({ id: 'chat-private', title: 'Quillfeather in October' })
     const { undo } = await watched.deleteChat({ id: 'chat-private' })
-    await watched.undo({ token: undo })
+    await watched.undo({ token: undo.token })
     expect((await watched.listChats()).map((t) => t.title)).toContain('Quillfeather in October')
     expect(sent.length).toBeGreaterThan(0)
     expect(sent.join('\n')).not.toContain('Quillfeather')
