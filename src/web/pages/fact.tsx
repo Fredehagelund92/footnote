@@ -207,7 +207,7 @@ export function FactPage({ id }: { id: string }) {
           </DropdownMenuItem>
         )}
         {/* On a phone the header's own button is this, so the menu does not say it twice. */}
-        {!isMobile && (
+        {!(isMobile && (owner || !pending)) && (
           <DropdownMenuItem
             onClick={() => navigate('/context/' + fact.id + (owner ? '/edit' : '/suggest'))}
           >
