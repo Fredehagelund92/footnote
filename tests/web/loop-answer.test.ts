@@ -484,6 +484,7 @@ describe('the nouns of an answer on any workspace', () => {
       names: ['Tickets closed', 'Billing'],
       about: ['metric:tickets_closed', 'value:team/billing'],
       period: 'any date',
+      note: null,
       assumedToday: false,
       carried: false,
       uncovered: [],
