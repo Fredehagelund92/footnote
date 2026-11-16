@@ -173,15 +173,18 @@ export function createMockApi() {
   const revertTo = (
     before: State,
     touched: { cards?: string[]; facts?: string[]; entry?: string },
+    lasting = false,
   ) =>
-    remember(() =>
-      dispatch({
-        type: 'revert',
-        before,
-        cards: touched.cards ?? [],
-        facts: touched.facts ?? [],
-        entry: touched.entry,
-      }),
+    remember(
+      () =>
+        dispatch({
+          type: 'revert',
+          before,
+          cards: touched.cards ?? [],
+          facts: touched.facts ?? [],
+          entry: touched.entry,
+        }),
+      lasting,
     )
 
   /** The Inbox as the person sees it: none of the demo's cards on a new install. */
@@ -828,11 +831,14 @@ export function createMockApi() {
     markReviewed: ({ id }) => now(() => dispatch({ type: 'reviewed', card: id })),
     decideCard: ({ card, outcome, patch }) =>
       now(() => {
-        const factId = cards.find((c) => c.id === card)?.factId
+        const found = cards.find((c) => c.id === card)
+        const factId = found?.factId
         const before = state
         if (patch && factId) dispatch({ type: 'editFact', id: factId, patch })
         dispatch({ type: 'complete', card, outcome })
-        return revertTo(before, { cards: [card], facts: patch && factId ? [factId] : [] })
+        // As the service: a gap set aside is opened again at any time, so its Undo has no end.
+        const setAside = found?.type === 'gap' && outcome === 'Closed'
+        return revertTo(before, { cards: [card], facts: patch && factId ? [factId] : [] }, setAside)
       }),
     completeCard: ({ card, outcome }) =>
       now(() => {

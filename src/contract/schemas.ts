@@ -34,8 +34,12 @@ export const indexedItemSchema = z.pick(itemSchema, {
   updatedAt: true,
 })
 
-/** One row of the library index: the item's fields and what the list's columns read from them. */
-export const libraryItemSchema = z.extend(indexedItemSchema, {
+/**
+ * One row of the library index: the item's fields and what the list's columns read from them. Its
+ * scope only by name (`chips`), as a list shows it: by key it is a fifth of the index, and the
+ * item's own page has it.
+ */
+export const libraryItemSchema = z.extend(z.omit(indexedItemSchema, { scope: true }), {
   /**
    * The last time someone confirmed the current version: its acceptance, which a recheck
    * ("checked, still correct") renews. Null when no decision is on record.
