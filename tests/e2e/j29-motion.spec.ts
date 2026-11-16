@@ -87,17 +87,35 @@ test("a slow load waits, shows the page's shape, then the content, without the l
   ).toBeLessThanOrEqual(0.02)
 })
 
-test('a skeleton sits where its table will be', async ({ page }) => {
+test('the skeleton rows sit where the rows will be, under the same table head', async ({
+  page,
+}) => {
   await go(page, '/context?state=loading')
-  // The page itself is in, its table loading: before that, the app's own page shape stands in.
   await expect(page.getByRole('heading', { name: 'Context', level: 1 })).toBeVisible()
-  const band = page.getByRole('status', { name: 'Loading' }).locator('> div').nth(1)
-  await expect(band).toBeVisible()
-  const sk = (await band.boundingBox())!
+  const first = page.locator('main tbody [data-skeleton-row]').first()
+  await expect(first).toBeVisible()
+  const sk = (await first.boundingBox())!
+  const skHead = (await page.locator('thead tr').boundingBox())!
   await go(page, '/context')
   const head = (await page.locator('thead tr').boundingBox())!
-  expect(Math.abs(sk.y - head.y)).toBeLessThanOrEqual(8)
-  expect(Math.abs(sk.height - head.height)).toBeLessThanOrEqual(8)
+  const row = (await page.locator('main tbody tr').first().boundingBox())!
+  expect(Math.abs(skHead.y - head.y)).toBeLessThanOrEqual(1)
+  expect(Math.abs(skHead.height - head.height)).toBeLessThanOrEqual(1)
+  expect(Math.abs(sk.y - row.y)).toBeLessThanOrEqual(8)
+  expect(Math.abs(sk.height - row.height)).toBeLessThanOrEqual(8)
+})
+
+test('a slow Context load shows nothing under 150ms, then the rows as a skeleton, never an empty table', async ({
+  page,
+}) => {
+  await go(page, '/context?slow=1')
+  const frame = page.getByPlaceholder('Search context')
+  await expect(frame).toBeVisible()
+  await expect(page.locator('main tbody [data-skeleton-row]').first()).toBeVisible({
+    timeout: 1500,
+  })
+  await expect(page.locator('main tbody tr:not([data-skeleton-row])').first()).toBeVisible()
+  await expect(page.locator('main tbody [data-skeleton-row]')).toHaveCount(0)
 })
 
 test('once a page is still, nothing loops or moves', async ({ page }) => {
