@@ -245,14 +245,18 @@ test('Offline, changes are off with the reason, and export still works', async (
 
 test('Mark as checked counts only the items that were opened', async ({ page }) => {
   await go(page, '/context')
-  await titles(page).nth(1).click()
+  const opened = titles(page).nth(1)
+  const name = await opened.innerText()
+  await opened.click()
   await expect(page).toHaveURL(/dock=context\./)
+  // The item is opened once its quick view has loaded (its code comes in on first use, slower under
+  // load): closing the dock before that opens nothing, and nothing is recorded as read.
+  await expect(page.getByRole('heading', { name, level: 2 })).toBeVisible()
   await page
     .getByRole('button', { name: /^Close/ })
     .last()
     .click()
-  // Opening records itself with the service: let that write land before asking what was opened.
-  await page.waitForLoadState('networkidle')
+  await expect(page).not.toHaveURL(/dock=/)
   await boxes(page).nth(0).click()
   await boxes(page)
     .nth(1)
