@@ -97,7 +97,7 @@ test('a review keeps its preview switch in the header and the queue in More', as
 
 test('the More menu of a deep page holds Ask, the nav, search and the theme', async ({ page }) => {
   await go(page, '/context/itm_norway_stop')
-  await page.getByRole('button', { name: 'More' }).click()
+  await page.getByRole('button', { name: 'More', exact: true }).click()
   for (const name of ['Archive', 'Ask about this', 'Open the menu', 'Search']) {
     await expect(page.getByRole('menuitem', { name })).toBeVisible()
   }
@@ -159,7 +159,7 @@ test('a deep page on a phone leaves the theme to the nav menu, which still has i
 }) => {
   await go(page, '/context/itm_norway_stop')
   await expect(page.getByRole('button', { name: /^Theme:/ })).toHaveCount(0)
-  await page.getByRole('button', { name: 'More' }).click()
+  await page.getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Open the menu' }).click()
   await page.getByRole('button', { name: /Jon Abara/ }).click()
   await page.getByRole('menuitemradio', { name: 'Dark' }).click()
