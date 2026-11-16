@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { IndexedItem, LibraryItem } from '../../src/contract/index.ts'
+import type { IndexedItem } from '../../src/contract/index.ts'
 import { indexedItemSchema } from '../../src/contract/schemas.ts'
 import { itemCheck, itemTrust } from '../../src/domain/status.ts'
 import { systemClock } from '../../src/server/clock.ts'
-import { createLibraryService } from '../../src/server/modules/library/index.ts'
+import { createLibraryService, type ScopedIndex } from '../../src/server/modules/library/index.ts'
 import { generateItems, versionDays } from '../../db/seed/fixtures/items.ts'
 import { vocabulary } from '../../db/seed/fixtures/reference-data.ts'
 import { accept, foundation, openEdition, people, servingEdition, version } from './fixtures.ts'
@@ -40,7 +40,7 @@ describe('the library index on PostgreSQL', () => {
       expect(index.items.some((item) => item.scope.dimensions.length > 0)).toBe(true)
       expect(index.items.some((item) => item.reviewQuestion === 'still_going_on')).toBe(true)
       expect(index.items.some((item) => item.validity.end !== null)).toBe(true)
-      const itemFields = (item: LibraryItem) =>
+      const itemFields = (item: ScopedIndex['items'][number]) =>
         Object.fromEntries(fields.map((field) => [field, item[field]]))
       expect(index.items.map(itemFields)).toEqual(docs.rows[0]!.items)
     } finally {

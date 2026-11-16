@@ -14,7 +14,10 @@ const DAYS = /[?&]days=\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}(&|$)/
 
 /** A drag across the chart's plot, from one share of its width to another. */
 async function drag(page: Page, from: number, to: number) {
-  const box = (await chart(page).locator('svg').first().boundingBox())!
+  // The mouse goes where the plot is on the screen now: a click before may have scrolled it away.
+  const plot = chart(page).locator('svg').first()
+  await plot.scrollIntoViewIfNeeded()
+  const box = (await plot.boundingBox())!
   const y = box.y + box.height * 0.5
   await page.mouse.move(box.x + box.width * from, y)
   await page.mouse.down()

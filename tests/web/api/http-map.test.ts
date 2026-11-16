@@ -25,11 +25,6 @@ const row = (patch: Partial<LibraryItem> = {}): LibraryItem => ({
   version: 2,
   title: 'Norway stopped taking orders',
   summary: 'From 4 August.',
-  scope: {
-    metrics: ['orders'],
-    dimensions: [],
-    dimensionValues: [{ dimension: 'market', value: 'norway' }],
-  },
   validity: { start: '2026-08-04', end: null },
   reviewDate: '2027-01-01',
   reviewQuestion: 'still_correct',

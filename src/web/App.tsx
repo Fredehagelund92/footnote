@@ -7,6 +7,7 @@ import {
   afterSomeoneElse,
   InDock,
   isPageQuery,
+  laterQueries,
   sessionQuery,
   sharedQueries,
   useSession,
@@ -165,7 +166,11 @@ function DockContent() {
   if (!dock) return null
   switch (dock.kind) {
     case 'review':
-      return <ReviewSheet cardId={dock.id!} />
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.review} />}>
+          <ReviewSheet cardId={dock.id!} />
+        </React.Suspense>
+      )
     case 'context':
       return (
         <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.context} />}>
@@ -422,7 +427,8 @@ function Gate() {
  * the app is drawn, so a screen reads them from the cache and never waits. Until then the app shows
  * its own skeleton (ShellSkeleton), never a blank window. Signed out, only the session: the sign-in
  * page and the documentation need nothing else. A read that failed does not hold the app back: a
- * screen that needs it shows the failure in its own frame.
+ * screen that needs it shows the failure in its own frame. The reviews start at the same time
+ * and hold back only the Inbox, whose page they are (laterQueries).
  */
 function Loaded({ children }: { children: React.ReactNode }) {
   const session = useQuery(sessionQuery())
@@ -430,12 +436,21 @@ function Loaded({ children }: { children: React.ReactNode }) {
   const rest = useQueries({
     queries: sharedQueries().map((q) => ({ ...q, enabled: signedIn })),
   })
+  const later = useQueries({
+    queries: laterQueries().map((q) => ({ ...q, enabled: signedIn })),
+  })
   const { parts } = useRoute()
   // The sign-in page and an agent's consent page wait for the session alone; anything else waits
   // in the shape it will have.
   const waiting = ['signin', 'connect'].includes(parts[0] ?? '') ? null : <ShellSkeleton />
+  // Opened at the Inbox, the shell waits for the reviews too, the page's own read: the page draws
+  // with it, never later under a search or a click already started. Once drawn, the shell stays,
+  // and a move to the Inbox waits in the page's own frame.
+  const [drawn, setDrawn] = React.useState(false)
+  const held = parts[0] === 'inbox' && !drawn ? [...rest, ...later] : rest
   if (!session.data) return waiting
-  if (signedIn && rest.some((q) => q.data === undefined && !q.isError)) return waiting
+  if (signedIn && held.some((q) => q.data === undefined && !q.isError)) return waiting
+  if (signedIn && !drawn) setDrawn(true)
   return children
 }
 
