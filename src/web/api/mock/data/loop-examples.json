@@ -18,6 +18,7 @@
         "names": ["Orders", "Germany"],
         "about": ["metric:orders", "value:market/germany"],
         "period": "1-23 Oct 2026",
+        "note": null,
         "assumedToday": false,
         "carried": false,
         "uncovered": []
@@ -183,6 +184,7 @@
         "names": ["Orders", "Poland"],
         "about": ["metric:orders", "value:market/poland"],
         "period": "23 Oct 2026",
+        "note": null,
         "assumedToday": true,
         "carried": false,
         "uncovered": []
@@ -481,6 +483,7 @@
         "names": ["Net revenue", "Spain"],
         "about": ["metric:net_revenue", "value:market/spain"],
         "period": "23 Oct 2026",
+        "note": null,
         "assumedToday": true,
         "carried": false,
         "uncovered": []
@@ -966,6 +969,7 @@
         "names": ["Orders", "Norway"],
         "about": ["metric:orders", "value:market/norway"],
         "period": "23 Oct 2026",
+        "note": null,
         "assumedToday": true,
         "carried": false,
         "uncovered": []
@@ -2514,6 +2518,187 @@
       "items": [],
       "closest": null,
       "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-dates-guessed": {
+    "question": "What happened to orders in Norway in November?",
+    "turn": {
+      "kind": "answer",
+      "text": "Two rules for Orders in Norway disagree in November 2025: one counts card and cash payments only [1], the other counts store credit too.[2]",
+      "sources": ["itm_giftcardonly", "itm_giftstorecredit"],
+      "state": "conflict",
+      "footer": {
+        "denominator": "2 of 21 published context items you may read apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Looked up Orders and Norway, 1-30 Nov 2025: 2 items apply, 7 nearby items do not."],
+      "subject": {
+        "names": ["Orders", "Norway"],
+        "about": ["metric:orders", "value:market/norway"],
+        "period": "1-30 Nov 2025",
+        "note": "year not given",
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": []
+      },
+      "nearby": [],
+      "conflict": ["itm_giftcardonly", "itm_giftstorecredit"],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "orders in Norway in November"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Two rules for "
+            },
+            {
+              "t": "noun",
+              "id": "metric:orders"
+            },
+            {
+              "t": "text",
+              "text": " in "
+            },
+            {
+              "t": "noun",
+              "id": "value:market/norway"
+            },
+            {
+              "t": "text",
+              "text": " disagree in November 2025: one counts card and cash payments only "
+            },
+            {
+              "t": "cite",
+              "n": 1
+            },
+            {
+              "t": "text",
+              "text": ", the other counts store credit too."
+            },
+            {
+              "t": "cite",
+              "n": 2
+            }
+          ]
+        }
+      ],
+      "said": "Two rules for [@metric:orders] in [@value:market/norway] disagree in November 2025: one counts card and cash payments only [itm_giftcardonly], the other counts store credit too.[itm_giftstorecredit]",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_giftcardonly",
+          "title": "Norway orders are card and cash payments only",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-02",
+          "outOfDate": null,
+          "n": 1
+        },
+        {
+          "id": "itm_giftstorecredit",
+          "title": "Norway orders count store credit",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-09-05",
+          "outOfDate": null,
+          "n": 2
+        }
+      ],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
       "overview": null,
       "checks": []
     }

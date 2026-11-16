@@ -20,6 +20,7 @@ import type {
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
+import { dateNote } from '../../../domain/dates.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
 import {
@@ -810,13 +811,14 @@ function foundIds(m: MadeRead, whole = false): string[] {
  * The answer state (FR-720.4), by code from what this turn read, never by the model. The reads
  * about the question's subject are its get_context reads, whose state the engine computes; with
  * several, the least sure stands. An item the answer cites is one it uses, unless it is only
- * nearby: when the turn read its subject, an item that read gave as nearby, or that a search
- * matched on some of its words only, is nearby, not used.
+ * nearby: when the turn read its subject, an item that read gave as nearby, though a search found
+ * it, or that a search matched on some of its words only, is nearby, not used.
  *
  * An answer whose every item the records listed is an answer from the records and carries none,
  * and so is one that uses no item after a read of the records. One that uses an item the subject
  * read found carries that read's state; one that uses only items a search or a read of an item
- * found carries what they are (Outdated when one may be out of date, else Checked). An answer
+ * found carries what they are (Outdated when one may be out of date, else Checked), except when
+ * every subject read found no item: then nothing covers the subject, and it is Partial. An answer
  * that uses none carries the subject read's state when the turn made one, Not found after a
  * search, and none after no read at all. A subject read that could not read a value its words
  * name ("orders in jordan") is a read that found nothing: Not found. A turn that cites an item a
@@ -858,11 +860,15 @@ function readsState(
     ok.filter((m) => !RECORDS_TOOLS.has(m.tool)).flatMap((m) => foundIds(m, subject.length > 0)),
   )
   const ofRecords = new Set(ok.filter((m) => RECORDS_TOOLS.has(m.tool)).flatMap((m) => foundIds(m)))
-  const used = cited.filter((id) => ofContext.has(id) || ofRecords.has(id))
+  const nearby = new Set(nearbyOf(ok))
+  const used = cited.filter(
+    (id) => ofRecords.has(id) || (ofContext.has(id) && (ofSubject.has(id) || !nearby.has(id))),
+  )
   if (used.length && used.every((id) => ofRecords.has(id))) return null
   if (!used.length && ok.some((m) => RECORDS_TOOLS.has(m.tool))) return null
   if (used.length) {
     if (subject.length && used.some((id) => ofSubject.has(id))) return leastSure(subject)
+    if (subject.length && subject.every((s) => s === 'missing')) return 'partial'
     return used.some((id) => items.get(id)?.outOfDate) ? 'stale' : 'grounded'
   }
   if (subject.length) return leastSure(subject)
@@ -893,13 +899,14 @@ function disagreeing(made: readonly MadeRead[], sources: readonly string[]): str
 
 /**
  * What the first get_context read that read a subject read: the names, as nouns too, the days and
- * what no item covers; `carried` when the read was an earlier turn's, made again.
+ * how they were read, and what no item covers; `carried` when the read was an earlier turn's, made
+ * again.
  */
 function subjectOf(made: readonly MadeRead[], carried = false): LoopTurn['subject'] {
   for (const m of made) {
     if (m.tool !== 'get_context' || !isObj(m.result) || isError(m.result) || !isObj(m.result.read))
       continue
-    const { names, about, period, assumedToday } = m.result.read
+    const { names, about, period, assumedToday, datesRead } = m.result.read
     if (!Array.isArray(names) || typeof period !== 'string') continue
     const ids = (v: unknown) =>
       Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
@@ -907,6 +914,7 @@ function subjectOf(made: readonly MadeRead[], carried = false): LoopTurn['subjec
       names: ids(names),
       about: ids(about),
       period,
+      note: typeof datesRead === 'string' ? dateNote(datesRead) : null,
       assumedToday: assumedToday === true,
       carried,
       uncovered: ids(m.result.uncovered),

@@ -143,6 +143,12 @@ function ReadLine({
           {subject.assumedToday ? 'Today · assumed' : subject.period}
         </span>
       </span>
+      {subject.note && (
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden>·</span>
+          <span>{subject.note}</span>
+        </span>
+      )}
       {subject.carried && <span>carried from your last question</span>}
       {onRescope && (
         <button

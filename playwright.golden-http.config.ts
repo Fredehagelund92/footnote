@@ -59,6 +59,9 @@ export default defineConfig({
     // J66 opens an answer of Ask's loop by the mock's example address; the golden service answers
     // with its router, and Tell the owner on the service is tests/web/integration/ask-tell-owner.
     /\/j66-ask-tell-owner\.spec\.ts$/,
+    // J67 opens a loop answer by the mock's example address; the service's read line is covered by
+    // tests/web/integration/ask-loop-shapes.test.ts.
+    /\/j67-ask-dates-read\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
