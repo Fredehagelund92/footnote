@@ -268,3 +268,66 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(a.sources).toEqual([found[0]!.id])
   })
 })
+
+describe("Ask's loop on a question that names no dates", () => {
+  /** A model that reads with `calls`, then answers in the words `text` writes from the reads. */
+  const asked = async (
+    question: string,
+    calls: { toolName: string; input: Record<string, unknown> }[],
+    text: (results: ScriptedPrompt['results']) => string,
+  ) => {
+    const api = await world.as(ML)
+    decide = ({ results, step }) => (step === 0 ? { calls } : { text: text(results) })
+    try {
+      return await api.ask({ question })
+    } finally {
+      decide = null
+    }
+  }
+  /** Reads the subject at no dates, and answers citing every item the read gave. */
+  const citingAll = async (question: string, about: string) => {
+    let cited: string[] = []
+    const a = await asked(question, [{ toolName: 'get_context', input: { about } }], (results) => {
+      cited = itemsOf(results[0]!.value).map((i) => i.id)
+      return `This is what is written ${cited.map((id) => `[${id}]`).join(' ')}.`
+    })
+    expect(cited.length).toBeGreaterThan(0)
+    expect(a.sources).toEqual(cited)
+    // The read line still says the date was assumed.
+    expect(a.loop?.subject?.assumedToday).toBe(true)
+    return a
+  }
+
+  it('gives a definition its label and no state', async () => {
+    const a = await asked(
+      'what is net revenue',
+      [
+        { toolName: 'definitions', input: { names: ['Net revenue'] } },
+        { toolName: 'get_context', input: { about: 'net revenue' } },
+      ],
+      (results) => {
+        const found = results[0]!.value as { definitions: { words: string | null }[] }
+        return found.definitions[0]!.words!
+      },
+    )
+    expect(a.loop?.subject?.assumedToday).toBe(true)
+    expect(a.loop?.defined?.names).toEqual(['Net revenue'])
+    expect(a.state).toBeNull()
+  })
+
+  it('takes the state from what the items cover, never from today assumed', async () => {
+    expect(
+      (await citingAll('does net revenue in Spain include VAT', 'net revenue in Spain')).state,
+    ).toBe('grounded')
+    expect((await citingAll('what applies to orders in Germany', 'orders in Germany')).state).toBe(
+      'grounded',
+    )
+  })
+
+  it('stays Partial when the items cover only part of the question', async () => {
+    expect((await citingAll('what is net revenue', 'net revenue')).state).toBe('partial')
+    expect(
+      (await citingAll('net revenue in Spain and Poland', 'net revenue in Spain and Poland')).state,
+    ).toBe('partial')
+  })
+})
