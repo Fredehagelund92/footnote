@@ -52,12 +52,16 @@ export type HeedApiConformance = {
    * take it back with a comment. The mock's sign-in offers nobody who did.
    */
   sender?: string
+  /** Someone the sign-in offers who owns no domain and is not an admin: they decide nothing. */
+  bystander: string
+  /** Runs `run` as if every Undo offered so far had outlived its window, then puts the clock back. */
+  afterUndoWindow: (run: () => Promise<void>) => Promise<void>
 }
 
 export function describeHeedApi(
   name: string,
   getApi: () => HeedApi,
-  { person, wired, colleague, repository, sender }: HeedApiConformance,
+  { person, wired, colleague, repository, sender, bystander, afterUndoWindow }: HeedApiConformance,
 ) {
   const api = () => getApi()
   const lacks = (...methods: HeedApiMethod[]) => methods.some((m) => !wired.includes(m))
@@ -1745,6 +1749,108 @@ export function describeHeedApi(
         expect((await api().inboxPage()).done[card.id]?.label).toBe('Returned')
         await api().undo({ token: undo.token })
         expect((await api().inboxPage()).done[card.id]).toBeUndefined()
+      },
+    )
+
+    /* ---------- the rules of a decision ---------- */
+
+    const note = {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Which markets?' }] }],
+    }
+    /** A suggestion of `mode` that waits for the person, with no clash to answer: a change someone wrote. */
+    async function waiting(mode: 'retire' | 'change') {
+      await api().signIn({ name: person })
+      const inbox = await api().inboxPage()
+      const r = (await api().getReviews()).find(
+        (x) =>
+          (mode === 'retire' ? x.mode === 'retire' : x.mode !== 'retire' && !x.drafted) &&
+          !x.clash &&
+          inbox.cards.some((c) => c.id === x.id && c.for === person && !inbox.done[c.id]),
+      )
+      expect(r, `a waiting ${mode} for ${person}`).toBeDefined()
+      return r!
+    }
+    const doneOf = async (id: string) => (await api().inboxPage()).done[id]?.label
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'returnReview'))(
+      'refuses to return a suggestion to archive: it is archived or closed',
+      async () => {
+        const r = await waiting('retire')
+        await expect(api().returnReview({ id: r.id, note })).rejects.toMatchObject({
+          kind: 'conflict',
+        })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'publishReview', 'returnReview', 'undo'))(
+      'refuses a second decision on a decided suggestion, until Undo makes it wait again',
+      async () => {
+        const r = await waiting('change')
+        const { undo } = await api().publishReview({ id: r.id })
+        await expect(api().publishReview({ id: r.id })).rejects.toMatchObject({ kind: 'conflict' })
+        await expect(api().returnReview({ id: r.id, note })).rejects.toMatchObject({
+          kind: 'conflict',
+        })
+        expect(await doneOf(r.id)).toBe('Published')
+        await api().undo({ token: undo.token })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'publishReview', 'returnReview'))(
+      'refuses a decision from someone who owns no domain and is not an admin',
+      async () => {
+        const r = await waiting('change')
+        await api().signIn({ name: bystander })
+        // Not theirs to decide; the http binding cannot even name it, as it is in no Inbox of theirs.
+        const kindOf = (write: Promise<unknown>) =>
+          write.then(
+            () => 'answered',
+            (error: unknown) => (error as ApiError).kind,
+          )
+        expect(['forbidden', 'not-found']).toContain(
+          await kindOf(api().publishReview({ id: r.id })),
+        )
+        expect(['forbidden', 'not-found']).toContain(
+          await kindOf(api().returnReview({ id: r.id, note })),
+        )
+        await api().signIn({ name: person })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'publishReview', 'undo'))(
+      'undoes a decision for the person who made it, once',
+      async () => {
+        const r = await waiting('change')
+        const { undo } = await api().publishReview({ id: r.id })
+        await api().signIn({ name: colleague })
+        await expect(api().undo({ token: undo.token })).rejects.toMatchObject({ kind: 'forbidden' })
+        await api().signIn({ name: person })
+        await api().undo({ token: undo.token })
+        expect(await doneOf(r.id)).toBeUndefined()
+        await expect(api().undo({ token: undo.token })).rejects.toMatchObject({ kind: 'conflict' })
+        expect(await doneOf(r.id)).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'returnReview', 'undo'))(
+      'refuses an Undo once its window has ended: the decision stays',
+      async () => {
+        const r = await waiting('change')
+        const { undo } = await api().returnReview({ id: r.id, note })
+        expect(undo.until).not.toBeNull()
+        await afterUndoWindow(async () => {
+          await expect(api().undo({ token: undo.token })).rejects.toMatchObject({
+            kind: 'conflict',
+          })
+        })
+        expect(await doneOf(r.id)).toBe('Returned')
+        // Back in the window, it is undone as any other.
+        await api().undo({ token: undo.token })
+        expect(await doneOf(r.id)).toBeUndefined()
       },
     )
 
