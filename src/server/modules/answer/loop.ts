@@ -121,7 +121,7 @@ How to work:
 - Read before you answer: every fact about the business or its context comes from a tool. The chat so far is in the messages, with what each earlier turn read, read again just now.
 - Answer a follow-up as one. When the person asks about an earlier answer, answer about that answer: confirm it or correct it from what was read. Read again only when the follow-up needs something not yet read.
 - When a read finds nothing, read once more, wider: by another name of the same thing, or without one part. Only then say that nothing written covers it.
-- When the question can mean two things and the answers would differ, call ask_back with one short question and the readings as its choices; never ask it in your own words. Otherwise answer the likelier reading without saying which one you chose: the page shows under the question how it was read.
+- Ask back only with ask_back, as its description says; never ask in your own words. Otherwise answer the likelier reading without saying which one you chose: the page shows under the question how it was read.
 - When the person asks for a whole set at once (an overview, what needs doing or waits on them, what is due or out of date, what changed, how a domain stands), read the set with a tool that groups it (inbox, or records with group_by) and answer with show_overview, naming that read: the page draws its groups, their counts and their rows from the read, in its own order. Never write such a set out in sentences.
 - Answer every part of the question, or say which part you could not answer.
 
@@ -148,6 +148,14 @@ How to write it:
 Today is ${dayWords(today)} (UTC). The person is ${asker.admin ? 'an administrator' : 'not an administrator'}. ${owns}`
 }
 
+/**
+ * When to ask back, said where the model chooses the tool (S18 of the chat audit): a bare word or
+ * a question that names no metric, unless the chat settles it; never on a follow-up the chat
+ * settles, nor on a question that names one metric.
+ */
+export const ASK_BACK =
+  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those.'
+
 /** The question back, the one tool that ends a turn: the model's own words and choices. */
 const askBackInput = z.strictObject({
   question: z.string().min(1).max(300).describe('One short question.'),
@@ -158,8 +166,7 @@ const askBackInput = z.strictObject({
     .describe('The readings you see, each as a short choice the person can pick.'),
 })
 const askBack = tool({
-  description:
-    'Ask the person one short question back, when their question can mean two things and the answers would differ. This ends your turn: they answer, and you go on from there.',
+  description: ASK_BACK,
   inputSchema: askBackInput,
 })
 

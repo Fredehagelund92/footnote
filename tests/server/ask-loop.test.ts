@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LookupEvent, LoopTurn } from '../../src/contract/answer.ts'
 import type { Database } from '../../src/server/db/database.ts'
 import {
+  ASK_BACK,
   askLoop,
   loopSystem,
   readLines,
@@ -408,6 +409,21 @@ describe('the instructions', () => {
     )
     // Nothing left that asks for the third person or forbids the definition.
     expect(system).not.toMatch(/third person|never restate a definition|The person asking is/)
+  })
+})
+
+describe('the question back', () => {
+  it('says in its own description when to ask, with the two cases it must not ask on', () => {
+    // When: a bare word, or no metric named, and the chat does not settle it.
+    expect(ASK_BACK).toMatch(/one bare word, or names no metric/)
+    expect(ASK_BACK).toContain('the metrics it could mean as the choices')
+    // Never: a follow-up the chat settles, nor a question that names one metric.
+    expect(ASK_BACK).toMatch(/Never ask back on a follow-up whose subject the chat already settles/)
+    expect(ASK_BACK).toMatch(/nor on a question that names one metric/)
+    // The instructions leave the rule to the tool, and only forbid asking in the words.
+    const system = loopSystem('2026-10-23', { admin: false, owns: [] })
+    expect(system).not.toContain('can mean two things and the answers would differ')
+    expect(system).toContain('Ask back only with ask_back, as its description says')
   })
 })
 
