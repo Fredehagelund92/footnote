@@ -247,12 +247,13 @@ test('Mark as checked counts only the items that were opened', async ({ page }) 
   await go(page, '/context')
   await titles(page).nth(1).click()
   await expect(page).toHaveURL(/dock=context\./)
+  // The address changes before the quick view has loaded its code: an item counts as opened once
+  // the quick view has drawn it, so close it only then.
+  await expect(page.getByRole('button', { name: 'Details', exact: true })).toBeVisible()
   await page
     .getByRole('button', { name: /^Close/ })
     .last()
     .click()
-  // Opening records itself with the service: let that write land before asking what was opened.
-  await page.waitForLoadState('networkidle')
   await boxes(page).nth(0).click()
   await boxes(page)
     .nth(1)
