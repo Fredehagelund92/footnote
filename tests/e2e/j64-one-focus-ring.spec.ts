@@ -74,10 +74,10 @@ const read = (page: Page) =>
 
 /** The alpha of a computed colour: "oklab(0.5 0 0 / 0.5)" or "rgba(44, 93, 189, 0.5)". */
 const alphaOf = (look: string) => {
-  const slash = look.match(/\/\s*([\d.]+%?)\s*\)/)
-  if (slash) return slash[1].endsWith('%') ? parseFloat(slash[1]) / 100 : parseFloat(slash[1])
-  const rgba = look.match(/rgba\(([^)]+)\)/)
-  return rgba ? parseFloat(rgba[1].split(',')[3]) : 1
+  const slash = look.match(/\/\s*([\d.]+%?)\s*\)/)?.[1]
+  if (slash) return slash.endsWith('%') ? parseFloat(slash) / 100 : parseFloat(slash)
+  const rgba = look.match(/rgba\(([^)]+)\)/)?.[1]
+  return rgba ? parseFloat(rgba.split(',')[3] ?? '1') : 1
 }
 
 for (const path of pages) {
