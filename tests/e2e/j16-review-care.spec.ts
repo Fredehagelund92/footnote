@@ -47,11 +47,18 @@ test('an overlap with several live items asks about each, and archives only the 
   const cardOnly = 'Norway orders are card and cash payments only'
   const credit = 'Norway orders count store credit'
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  const relate = (title: string, answer: string) =>
-    page
-      .getByRole('radiogroup', { name: `How this relates to ${title}` })
-      .getByRole('radio', { name: answer })
+  // Each answer is a menu at the end of its row, and the menu says what each answer does.
+  const relate = async (title: string, answer: string) => {
+    await page.getByRole('button', { name: `How this relates to ${title}:` }).click()
+    // The open menu only: the one before it may still be closing.
+    await page
+      .getByRole('menu', { name: `How this relates to ${title}:` })
+      .getByRole('menuitemradio', { name: answer })
       .click()
+    await expect(
+      page.getByRole('button', { name: `How this relates to ${title}: ${answer}` }),
+    ).toBeVisible()
+  }
   await go(page, '/inbox/sug-sofia-clash/review')
   // The two that say something about the same thing side by side; the stop, which shares no
   // words with it, folded into one line with one answer.
