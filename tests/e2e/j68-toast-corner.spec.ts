@@ -27,7 +27,9 @@ for (const [name, size] of sizes) {
       await page.clock.runFor(600)
       const gaps = async () => {
         const box = (await toast.boundingBox())!
-        return [size.width - (box.x + box.width), size.height - (box.y + box.height)].map(Math.round)
+        return [size.width - (box.x + box.width), size.height - (box.y + box.height)].map(
+          Math.round,
+        )
       }
       await expect.poll(gaps).toEqual([name === 'phone' ? 16 : 24, 64])
     })
