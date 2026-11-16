@@ -80,6 +80,7 @@ import { TruncatedText } from '@/components/heed/truncated'
 import { plainText } from '@/lib/mentions'
 import { allLoaded, LoadError, RefreshError, useLoadPhase } from '@/components/heed/load-state'
 import { TableBodySkeleton } from '@/components/heed/list-skeleton'
+import { WindowRows, type WindowRowsHandle } from '@/components/heed/window-rows'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
 import { useLeavingRows } from '@/lib/presence'
 import { WhereChip } from '@/components/heed/tag-chip'
@@ -129,10 +130,17 @@ const items = (n: number) => `${count(n)} context ${n === 1 ? 'item' : 'items'}`
 const metricOf = (f: Fact, metrics: Set<string>) =>
   f.where.find((w) => metrics.has(w)) ?? 'No metric'
 const NO_FACTS: Fact[] = []
+const NO_LINES: Line[] = []
 const COLS = 8
+/** A line of the list: a group's heading, or an item. */
+type Line = { group: string; rows: number; open: boolean } | Fact
+const keyOfLine = (l: Line) => ('group' in l ? `group:${l.group}` : l.id)
+/** The heights the lines are drawn at (h-8 and h-row), until a phone's taller rows are measured. */
+const heightOfLine = (l: Line) => ('group' in l ? 32 : 36)
 
 export function ContextPage() {
-  // The shell's shared read holds these rows, so a first visit draws them and reads again behind them.
+  // The shell's shared read holds these rows, so a visit draws them at once; the page's read is that
+  // same library, read again only once it is stale (api/queries.ts).
   const load = useQuery({ ...contextPageQuery(), placeholderData: heldRows(useFacts()) })
   const facts = load.data ?? NO_FACTS
   const showRows = useRowsAfterFirstFrame()
@@ -190,7 +198,7 @@ export function ContextPage() {
     (skip === 'status' || !status.length || status.includes(f.status)) &&
     (skip === 'kind' || !kind.length || kind.includes(f.kind)) &&
     (skip === 'conflict' || !onlyConflicts || conflictOf.has(f.id)) &&
-    matches(text, haystack(f))
+    (!text.trim() || matches(text, haystack(f)))
   const titleHits = (f: Fact) => words(text).filter((w) => f.title.toLowerCase().includes(w)).length
   const filtered = facts
     .filter((f) => pass(f))
@@ -216,6 +224,16 @@ export function ContextPage() {
         : [{ key: '', rows: filtered }]
   const visible = groups.flatMap((g) => (folded.includes(g.key) ? [] : g.rows))
   const order = visible.map((f) => f.id)
+  // One flat list of lines, not a fragment per group: a row keeps its place in the tree when the
+  // grouping changes, so it moves to its new place instead of being drawn again.
+  const lines: Line[] = groups.flatMap((g) => {
+    const open = !folded.includes(g.key)
+    return [
+      ...(g.key ? [{ group: g.key, rows: g.rows.length, open }] : []),
+      ...(open ? g.rows : []),
+    ]
+  })
+  const drawn = React.useRef<WindowRowsHandle>(null)
   usePublishOrder('context', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
@@ -228,6 +246,7 @@ export function ContextPage() {
   // The two items of the conflict open in the dock are marked as a peeked row is.
   const compared = dock?.kind === 'conflict' ? (dock.id?.split('.') ?? []) : []
   const rowKeys = useRowKeys({
+    rows: { order, reveal: (id, then) => drawn.current?.reveal(id, then) },
     onMove: (id) => peeked && openDock('context', id),
     // Escape closes the peek first, then clears the selection, as in the Heed app.
     onEscape: () => {
@@ -259,7 +278,7 @@ export function ContextPage() {
 
   // Rows that leave (archived or deleted in bulk) fade out first.
   const leaving = useLeavingRows()
-  const row = (f: Fact) => {
+  const row = (f: Fact, measure: React.ComponentProps<'tr'>) => {
     const isSel = sel.isSelected(f.id)
     const where =
       f.where.length > 2
@@ -269,7 +288,7 @@ export function ContextPage() {
     const pair = conflictOf.get(f.id)
     return (
       <tr
-        key={f.id}
+        {...measure}
         aria-selected={isSel}
         data-state={isSel ? 'selected' : undefined}
         data-peeked={peeked === f.id || compared.includes(f.id) || undefined}
@@ -693,11 +712,16 @@ export function ContextPage() {
                       <span className="sr-only">Kind</span>
                     </Th>
                     {sortTh('title', 'w-full px-1.5 @max-xl/main:px-3')}
-                    <Th className="hidden w-px min-w-50.5 px-1.5 @min-[60rem]/main:table-cell">
+                    <Th
+                      data-steady
+                      className="hidden w-px min-w-50.5 px-1.5 @min-[60rem]/main:table-cell"
+                    >
                       Applies to
                     </Th>
                     <Th className="hidden w-18 min-w-18 px-1.5 @xl/main:table-cell">Status</Th>
-                    <Th className="hidden w-39 min-w-39 px-1.5 @xl/main:table-cell">When</Th>
+                    <Th data-steady className="hidden w-39 min-w-39 px-1.5 @xl/main:table-cell">
+                      When
+                    </Th>
                     {sortTh(
                       'checked',
                       'w-19 min-w-19 px-1.5 text-center @max-xl/main:hidden',
@@ -711,76 +735,81 @@ export function ContextPage() {
                     </Th>
                   </tr>
                 </thead>
-                <tbody
+                <WindowRows
+                  handle={drawn}
+                  entries={rowsShown ? lines : NO_LINES}
+                  keyOf={keyOfLine}
+                  estimate={heightOfLine}
+                  colSpan={COLS}
+                  keep={[peeked, ...compared]}
                   onKeyDown={(e) => {
                     sel.onKeyDown(e)
                     rowKeys(e)
                   }}
-                >
-                  {!ready ? null : noConflicts ? (
-                    <tr>
-                      <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
-                        <p className="font-medium">No conflicts</p>
-                        <p className="mt-1 text-muted-foreground">
-                          Nothing disagrees. A conflict shows here when an owner marks two items as
-                          disagreeing.
-                        </p>
-                        <Button
-                          variant="outline"
-                          className="mt-3"
-                          onClick={() => void setOnlyConflicts(false)}
-                        >
-                          Show all context
-                        </Button>
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.length === 0 && (
-                      <tr>
-                        <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
-                          <p className="font-medium">No context matches</p>
-                          <p className="mt-1 text-muted-foreground">
-                            {[text.trim() && `Searching for “${text.trim()}”`, ...on]
-                              .filter(Boolean)
-                              .join(', ')}
-                            .
-                          </p>
-                          <Button variant="outline" className="mt-3" onClick={clearAll}>
-                            Clear search and filters
-                          </Button>
-                        </td>
-                      </tr>
+                  before={
+                    <>
+                      {!ready ? null : noConflicts ? (
+                        <tr>
+                          <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
+                            <p className="font-medium">No conflicts</p>
+                            <p className="mt-1 text-muted-foreground">
+                              Nothing disagrees. A conflict shows here when an owner marks two items
+                              as disagreeing.
+                            </p>
+                            <Button
+                              variant="outline"
+                              className="mt-3"
+                              onClick={() => void setOnlyConflicts(false)}
+                            >
+                              Show all context
+                            </Button>
+                          </td>
+                        </tr>
+                      ) : (
+                        filtered.length === 0 && (
+                          <tr>
+                            <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
+                              <p className="font-medium">No context matches</p>
+                              <p className="mt-1 text-muted-foreground">
+                                {[text.trim() && `Searching for “${text.trim()}”`, ...on]
+                                  .filter(Boolean)
+                                  .join(', ')}
+                                .
+                              </p>
+                              <Button variant="outline" className="mt-3" onClick={clearAll}>
+                                Clear search and filters
+                              </Button>
+                            </td>
+                          </tr>
+                        )
+                      )}
+                      {phase === 'skeleton' && <TableBodySkeleton colSpan={COLS} />}
+                    </>
+                  }
+                  render={(l, measure) =>
+                    'group' in l ? (
+                      <GroupRow
+                        {...measure}
+                        label={l.group}
+                        detail={String(l.rows)}
+                        open={l.open}
+                        colSpan={COLS}
+                        onToggle={() => setFolded((x) => toggle(x, l.group))}
+                      />
+                    ) : (
+                      row(l, measure)
                     )
-                  )}
-                  {/* One flat list of rows, not a fragment per group: a row keeps its place in
-                        the tree when the grouping changes, so it moves to its new place instead of
-                        being drawn again. */}
-                  {phase === 'skeleton' && <TableBodySkeleton colSpan={COLS} />}
-                  {rowsShown &&
-                    groups.flatMap((g) => {
-                      const open = !folded.includes(g.key)
-                      return [
-                        g.key ? (
-                          <GroupRow
-                            key={`group:${g.key}`}
-                            label={g.key}
-                            detail={String(g.rows.length)}
-                            open={open}
-                            colSpan={COLS}
-                            onToggle={() => setFolded((x) => toggle(x, g.key))}
-                          />
-                        ) : null,
-                        ...(open ? g.rows.map(row) : []),
-                      ]
-                    })}
-                  {rowsShown && (
-                    <AddRow
-                      label="Write context"
-                      colSpan={COLS}
-                      onClick={() => navigate('/context/new')}
-                    />
-                  )}
-                </tbody>
+                  }
+                  after={
+                    rowsShown && (
+                      <AddRow
+                        label="Write context"
+                        colSpan={COLS}
+                        onClick={() => navigate('/context/new')}
+                      />
+                    )
+                  }
+                />
                 {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
                 <tfoot
                   className={cn(
