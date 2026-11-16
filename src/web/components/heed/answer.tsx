@@ -769,7 +769,7 @@ function AnswerWords({
           // py-1: an inline box is its font's height (about 19px), so one that fits a line is under the
           // 24px target size; the padding makes it 24px or more and leaves the line height alone.
           opens &&
-            'cursor-pointer py-1 decoration-muted-foreground/40 underline-offset-4 hover:underline focus-visible:underline focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary/12 dark:aria-pressed:bg-primary/25',
+            'cursor-pointer py-1 decoration-muted-foreground/40 underline-offset-4 hover:underline focus-visible:underline focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-primary/12 dark:aria-pressed:bg-primary/25',
         )}
       >
         {words}

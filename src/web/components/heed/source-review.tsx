@@ -52,7 +52,7 @@ export const placeOfRow = (row: Row): SourcePlace =>
 
 /** A place to comment, focusable for C and the arrow keys; ringed while in focus. */
 const place =
-  'group/row outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+  'group/row outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset'
 
 /** The "+" beside a line or a field, on hover; a finger gets the Comment button instead. */
 function AddNote({
@@ -190,7 +190,7 @@ function SourceValue({
         href={source.url}
         target="_blank"
         rel="noreferrer"
-        className="break-all underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="break-all underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Words words={side === 'before' ? l : r} side={side} />
       </a>

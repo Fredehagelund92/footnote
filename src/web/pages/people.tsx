@@ -96,7 +96,7 @@ function Locked({ reason, children }: { reason?: string; children: React.ReactEl
         render={
           <span
             tabIndex={0}
-            className="inline-flex rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+            className="inline-flex rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           />
         }
       >
@@ -275,7 +275,7 @@ function InviteBody({
                   disabled={!allowed}
                   title={allowed ? undefined : 'Only its owners and admins add owners'}
                   onClick={() => setOwns(on ? owns.filter((x) => x !== d) : [...owns, d])}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50 aria-pressed:border-ring aria-pressed:bg-muted"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-pressed:border-ring aria-pressed:bg-muted"
                 >
                   <DomainDot id={d} />
                   {domains[d]?.name}
@@ -396,7 +396,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                             toast(`${p.name} is ${r === 'Admin' ? 'an admin' : 'a member'} now`),
                           )
                         }
-                        className="h-7 rounded-sm px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed aria-checked:bg-muted aria-checked:font-medium"
+                        className="h-7 rounded-sm px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed aria-checked:bg-muted aria-checked:font-medium"
                       >
                         {r}
                       </button>
@@ -618,7 +618,7 @@ export function People() {
       <button
         type="button"
         onClick={() => setOpen(p.id)}
-        className="grid w-full grid-cols-(--cols-around) items-center gap-x-3 gap-y-1.5 border-t px-4 py-3 text-left outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:px-5 @3xl/main:grid-cols-(--cols-people)"
+        className="grid w-full grid-cols-(--cols-around) items-center gap-x-3 gap-y-1.5 border-t px-4 py-3 text-left outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:px-5 @3xl/main:grid-cols-(--cols-people)"
       >
         <PersonAvatar name={nameOf(p)} />
         <span className="min-w-0">

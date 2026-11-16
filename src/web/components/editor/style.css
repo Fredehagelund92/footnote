@@ -670,8 +670,8 @@ button.rte-control-button:active {
 }
 
 .rte-root[data-variant='default'] .rte-controls-group > button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
-  outline-offset: 1px;
+  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+  outline-offset: 0;
 }
 
 .rte-root[data-variant='default'] .rte-controls-group > button[data-state='on'],
@@ -717,8 +717,8 @@ button.rte-control-button:active {
 }
 
 .rte-root[data-variant='subtle'] .rte-controls-group > button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
-  outline-offset: 1px;
+  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+  outline-offset: 0;
   background-color: var(--accent);
   color: var(--accent-foreground);
 }
@@ -767,10 +767,15 @@ button.rte-control-button:active {
 }
 
 .rte-root[data-variant='compact'] .rte-controls-group > button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
-  outline-offset: 1px;
+  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+  outline-offset: 0;
   background-color: var(--accent);
   color: var(--accent-foreground);
+}
+
+/* A toolbar control with a ring of its own (a menu trigger) draws that one, not the outline too. */
+.rte-root .rte-controls-group > button[class*='focus-visible:ring']:focus-visible {
+  outline: none;
 }
 
 .rte-root[data-variant='compact'] .rte-controls-group > button[data-state='on'],
@@ -1389,8 +1394,8 @@ button.rte-control-button:active {
 }
 
 .rte-bubble-color-swatch:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
+  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+  outline-offset: 0;
 }
 
 .rte-bubble-color-swatch--text {

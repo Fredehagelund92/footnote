@@ -122,7 +122,7 @@ function Domains() {
                 role="listitem"
                 data-cell
                 href={`/settings/domains/${id}`}
-                className="group/cell flex min-h-36 flex-col gap-2 bg-background p-4 outline-none hover:bg-muted/40 focus-visible:z-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 @2xl/main:min-h-44"
+                className="group/cell flex min-h-36 flex-col gap-2 bg-background p-4 outline-none hover:bg-muted/40 focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset md:p-5 @2xl/main:min-h-44"
               >
                 <span className="flex items-center gap-2">
                   <DomainDot id={id} />
@@ -172,7 +172,7 @@ function Domains() {
             role="listitem"
             data-cell
             href="/settings/domains/new"
-            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset @2xl/main:min-h-44"
+            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
           >
             <PlusIcon aria-hidden className="size-5" />
             Add a domain

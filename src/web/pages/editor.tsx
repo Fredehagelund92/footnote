@@ -1041,7 +1041,7 @@ function Editor({
           ref={titleRef}
           aria-label="Title"
           rows={1}
-          className="mb-4 field-sizing-content w-full resize-none overflow-hidden bg-transparent text-2xl leading-tight font-bold tracking-tight outline-none placeholder:text-muted-foreground sm:mb-5 sm:text-3xl"
+          className="mb-4 field-sizing-content w-full resize-none overflow-hidden rounded-md bg-transparent text-2xl leading-tight font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:mb-5 sm:text-3xl"
           placeholder="What should agents know?"
           value={form.title}
           onChange={(e) => set('title', e.target.value.replace(/\n/g, ' '))}
