@@ -293,6 +293,44 @@ describe('a turn that uses no context item', () => {
     ).toEqual({ names: ['Orders'], tool: 'Cube' })
   })
 
+  it('shows a definition the turn read whenever the words do not give it, in any language', () => {
+    const words =
+      'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
+    // Asked in Norwegian, answered in Norwegian: the definition shows as its source words it.
+    const asked = turnOf(
+      'Ordrer er verdien av betalte ordrer.',
+      [subject('partial'), definitions(words)],
+      [],
+      'Hva betyr ordrer?',
+    )
+    expect(asked.definitions).toEqual([
+      { name: 'Orders', words, tool: 'Cube', id: 'metric:orders' },
+    ])
+    // Not asked what it is: still shown, since the turn read it and the words do not give it.
+    expect(
+      turnOf(
+        'Nothing written covers why orders fell.',
+        [subject('missing'), definitions(words)],
+        [],
+        '¿Por qué bajaron los pedidos?',
+      ).definitions.map((d) => d.name),
+    ).toEqual(['Orders'])
+    // The words give it: not again.
+    expect(
+      turnOf(
+        `Orders is ${words}`,
+        [subject('partial'), definitions(words)],
+        [],
+        'Hva betyr ordrer?',
+      ).definitions,
+    ).toEqual([])
+    // An earlier turn read it: a follow-up that reads again does not show it again.
+    expect(
+      turnOf('Sofia Brandt owns it.', [subject('partial')], [definitions(words)], 'Who owns that?')
+        .definitions,
+    ).toEqual([])
+  })
+
   it('keeps its state when it is not about a definition, or no definition was read', () => {
     const notAbout = turnOf(
       'Nothing written covers why orders fell.',
@@ -364,6 +402,10 @@ describe('the instructions', () => {
     expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
     expect(system).toContain('in every language')
     expect(system).toContain('answer the likelier reading without saying which one you chose')
+    // The person's language, with every name as the reads give it.
+    expect(system).toContain(
+      'Write the names of metrics, dimensions, values, domains and people exactly as the reads give them, never translated',
+    )
     // Nothing left that asks for the third person or forbids the definition.
     expect(system).not.toMatch(/third person|never restate a definition|The person asking is/)
   })
