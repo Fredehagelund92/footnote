@@ -111,7 +111,7 @@ const SORTS = {
 } satisfies Record<string, SortKey>
 type Sort = keyof typeof SORTS
 const CUES: Record<Cue, string> = {
-  conflict: 'Conflict',
+  conflict: 'Two meanings',
   changed: 'Definition changed',
   none: 'No context yet',
 }

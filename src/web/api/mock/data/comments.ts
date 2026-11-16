@@ -70,7 +70,7 @@ export const seedComments: Partial<Record<Subject, CommentItem[]>> = {
       author: 'Tomas Eriksen',
       when: 'Today, 08:44',
       content: text(
-        "Marketing's weekly note uses store credit in Norway orders. If this goes live, the note changes from November too.",
+        "Marketing's weekly note uses store credit in Norway orders. If this is published, the note changes from November too.",
       ),
       reactions: [{ emoji: '👍', by: ['Sofia Brandt', 'Jon Abara'] }],
       replies: [
@@ -143,7 +143,7 @@ export const seedComments: Partial<Record<Subject, CommentItem[]>> = {
           id: 'c_norway_5',
           author: 'Maria Lindqvist',
           when: '17 Oct',
-          content: text('Thanks, that settles it for the weekly note.'),
+          content: text('Thanks, that answers it for the weekly note.'),
         },
       ],
     },

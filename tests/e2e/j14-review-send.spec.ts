@@ -24,7 +24,7 @@ test('a failed publish changes nothing, and Try again publishes', async ({ page 
   await expect(page.getByText('Agents now say')).toHaveCount(0)
   // One way forward: Try again, with Return beside it, and no second Publish.
   await expect(decide.getByRole('button', { name: 'Publish', exact: true })).toHaveCount(0)
-  await expect(decide.getByRole('button', { name: 'Return with a note' })).toBeVisible()
+  await expect(decide.getByRole('button', { name: 'Send back with a note' })).toBeVisible()
   await decide.getByRole('button', { name: 'Try again' }).click()
   await expect(decide.getByText('Agents now say')).toBeVisible()
 })
@@ -32,7 +32,7 @@ test('a failed publish changes nothing, and Try again publishes', async ({ page 
 test('a failed return keeps the note', async ({ page }) => {
   await go(page, '/inbox/sug-ines/review?state=failed')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  await decide.getByRole('button', { name: 'Return with a note' }).click()
+  await decide.getByRole('button', { name: 'Send back with a note' }).click()
   const note = page.getByRole('textbox', { name: 'A note for Ines Duarte' })
   await note.pressSequentially('Which page says 340?')
   await decide.getByRole('button', { name: 'Return to Ines' }).click()
@@ -52,7 +52,7 @@ test("offline, the quick view's actions wait too", async ({ page }) => {
 test('Try again after a failed return sends the note as it stands now', async ({ page }) => {
   await go(page, '/inbox/sug-ines/review?state=failed')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
-  await decide.getByRole('button', { name: 'Return with a note' }).click()
+  await decide.getByRole('button', { name: 'Send back with a note' }).click()
   const note = page.getByRole('textbox', { name: 'A note for Ines Duarte' })
   await note.pressSequentially('Which page says 340?')
   await decide.getByRole('button', { name: 'Return to Ines' }).click()

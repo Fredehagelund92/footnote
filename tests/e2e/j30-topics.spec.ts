@@ -13,7 +13,13 @@ test('Overview groups topics by metric and values, opens to the months, and neve
     .getByRole('row')
     .filter({ has: page.getByRole('button', { name: /^Orders in Norway/ }) })
   await expect(orders).toContainText('31')
-  await expect(orders).toContainText('Sep, Oct 2026')
+  // The browser's own short September ("Sep" or "Sept", by its ICU data), as the page writes it.
+  const sept = await page.evaluate(() =>
+    new Intl.DateTimeFormat(navigator.language, { month: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2026, 8, 15)),
+    ),
+  )
+  await expect(orders).toContainText(`${sept}, Oct 2026`)
   await onMockOnly("record of an agent's fields and words disagreeing", () =>
     expect(orders).toContainText('Agent and words disagree'),
   )

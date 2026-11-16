@@ -68,6 +68,13 @@ describe('heed/plain-words in the web app (glossary v2)', () => {
     ])
   })
 
+  it('reports a banned button label written as JSX text', () => {
+    expect(said(`export const a = <button>\n  Resolve\n</button>`)).toEqual([
+      write('Resolve', 'Mark as done'),
+    ])
+    expect(said(`export const b = <button>\n  Choose what to do\n</button>`)).toEqual([])
+  })
+
   it('reports the earlier answer labels and kind names as labels, not the words in a sentence', () => {
     expect(said(`export const a = <span>Based on checked context</span>`)).toEqual([
       write('Based on checked context', 'Checked'),
@@ -134,9 +141,12 @@ describe('heed/plain-words in the web app (glossary v2)', () => {
   })
 
   it('maps each place to its files', () => {
-    expect(webPlacesOf('src/web/pages/settings.tsx')).toEqual(['Settings'])
-    expect(webPlacesOf('src/web/components/heed/review-parts.tsx')).toEqual(['the review'])
-    expect(webPlacesOf('src/web/pages/inbox.tsx')).toEqual([])
+    expect(webPlacesOf('src/web/pages/settings.tsx')).toEqual(['the web app', 'Settings'])
+    expect(webPlacesOf('src/web/components/heed/review-parts.tsx')).toEqual([
+      'the web app',
+      'the review',
+    ])
+    expect(webPlacesOf('src/web/pages/inbox.tsx')).toEqual(['the web app'])
     for (const { files } of webSurfaces)
       for (const glob of files) expect(glob, 'a place of the web app').toMatch(/^src\/web\//)
   })

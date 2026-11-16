@@ -157,7 +157,7 @@ test('a tick is on the screen in the frame after the press, and the rows follow'
   await page.keyboard.press('Escape')
   await page.keyboard.press('Escape')
   const partial = page
-    .getByRole('complementary', { name: 'Facets' })
+    .getByRole('complementary', { name: 'Filter lists' })
     .getByRole('region', { name: 'Answer' })
     .getByRole('checkbox', { name: 'Partial' })
   expect(await firstFrameAfter(page, partial)).toMatchObject({ ticked: true, vt: false })
@@ -192,7 +192,7 @@ test("the rows' move takes pictures of what is on the screen only", async ({ pag
     requestAnimationFrame(look)
   })
   await page
-    .getByRole('complementary', { name: 'Facets' })
+    .getByRole('complementary', { name: 'Filter lists' })
     .getByRole('region', { name: 'Answer' })
     .getByRole('checkbox', { name: 'Partial' })
     .click()

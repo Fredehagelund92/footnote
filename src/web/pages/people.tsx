@@ -209,7 +209,7 @@ function InviteBody({
       <DialogHeader>
         <DialogTitle>Invite people</DialogTitle>
         <DialogDescription>
-          They can read, ask, flag and suggest from the start. Owners publish and check their
+          They can read, ask, report and suggest from the start. Owners publish and check their
           domain's context.
         </DialogDescription>
       </DialogHeader>
@@ -376,7 +376,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                   ? `Invited as ${p.admin ? 'an Admin' : 'a Member'}. An invite keeps the role it was sent with.`
                   : p.admin
                     ? 'Admins change Settings, invite and remove people.'
-                    : 'Members read, ask, flag and suggest.'}
+                    : 'Members read, ask, report and suggest.'}
               </p>
             </div>
             {p.kind === 'member' && can.role !== 'absent' && (
@@ -492,7 +492,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
               disabled={!!leave}
               onClick={() => setRemoving(true)}
             >
-              {invited ? 'Revoke the invite' : 'Remove from the workspace'}
+              {invited ? 'Cancel the invite' : 'Remove from the workspace'}
             </Button>
           </Locked>
         </div>
@@ -521,7 +521,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
               <>
                 <DialogHeader>
                   <DialogTitle>
-                    {invited ? `Revoke the invite to ${name}?` : `Remove ${name}?`}
+                    {invited ? `Cancel the invite to ${name}?` : `Remove ${name}?`}
                   </DialogTitle>
                   <DialogDescription>
                     {p.kind === 'invite'
@@ -545,7 +545,10 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                       void leaveThen(p.id, () =>
                         (p.kind === 'invite'
                           ? write('revokeInvite', { id: p.id }).then((r) =>
-                              toast('Invite revoked', { description: name, action: undo(r.undo) }),
+                              toast('Invite cancelled', {
+                                description: name,
+                                action: undo(r.undo),
+                              }),
                             )
                           : write('removePerson', { id: p.id }).then((r) => {
                               if (!r.removed) {
@@ -560,7 +563,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                         ).catch((e: unknown) =>
                           toast(
                             invited
-                              ? `Couldn't revoke the invite to ${name}`
+                              ? `Couldn't cancel the invite to ${name}`
                               : `Couldn't remove ${name}`,
                             { description: toApiError(e).message },
                           ),
@@ -568,7 +571,7 @@ function PersonSheet({ p, onOpenChange }: { p: Party | null; onOpenChange: (o: b
                       )
                     }}
                   >
-                    {invited ? 'Revoke' : 'Remove'}
+                    {invited ? 'Cancel the invite' : 'Remove'}
                   </Button>
                 </DialogFooter>
               </>
@@ -658,7 +661,7 @@ export function People() {
     <Frame>
       <FrameSection
         title="People"
-        description="Everyone here can read, ask, flag and suggest. Owners publish and check their domain's context; admins change Settings."
+        description="Everyone here can read, ask, report and suggest. Owners publish and check their domain's context; admins change Settings."
         action={
           <Locked reason={me.admin ? undefined : 'Only an admin invites people'}>
             <Button disabled={!me.admin} onClick={() => setInviting(true)}>

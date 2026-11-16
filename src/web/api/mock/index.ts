@@ -1,4 +1,5 @@
 import { heedApiMethods, readMethods } from '../client'
+import { clockTime } from '@/lib/dates'
 import type { HeedApi, HeedApiMethod, Inbox, ObsPageInput } from '../client'
 import { agentNameProblem } from '@domain/agents'
 import { asksNothing, nothingAskedSaid } from '@domain/ask-again'
@@ -563,7 +564,7 @@ export function createMockApi() {
           reason: input.reason.trim(),
           quote: input.quote?.trim() || null,
           by: me(),
-          at: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+          at: clockTime(new Date()),
         }
         const patches: Record<string, Partial<Fact>> = {}
         if (keep) {
@@ -579,7 +580,7 @@ export function createMockApi() {
             ? `Settled a conflict: kept one, archived the other. Reason: ${decision.reason}`
             : input.outcome === 'kept_both'
               ? `Kept both items of a conflict. Reason: ${decision.reason}`
-              : `Not a conflict: the flag was removed. Reason: ${decision.reason}`
+              : `Not a conflict: the Conflict mark was removed. Reason: ${decision.reason}`
         const entry = {
           id: `log-settled-${key}-${Date.now()}`,
           on: TODAY,

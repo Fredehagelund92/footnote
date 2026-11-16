@@ -34,6 +34,7 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${webPort}`,
     viewport: { width: 1440, height: 900 },
+    locale: 'en-GB',
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium' }],

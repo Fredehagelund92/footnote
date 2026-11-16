@@ -67,7 +67,7 @@ function Usage() {
             <EmptyTitle>No agent has called yet</EmptyTitle>
             <EmptyDescription>
               Connect an agent, and its calls show here by tool and by kind of agent. Ask in the app
-              counts toward the model spend.
+              counts toward the AI cost this month.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -128,7 +128,7 @@ function Usage() {
         />
         <Kpi
           icon={<CoinsIcon />}
-          label="Model spend"
+          label="AI cost this month"
           value={money(usage.spend.total)}
           sub={`of ${money(usage.spend.cap).replace('.00', '')} this month`}
         />
@@ -212,8 +212,8 @@ function Usage() {
 
       <section className="border-t">
         <FrameSection
-          title="Model spend"
-          description="From the ledger, this month. A cap stops a feature and says why."
+          title="AI cost this month"
+          description="Counted this month. A limit stops a feature and says why."
           action={<PageLink href="/settings/advanced">Limits</PageLink>}
         >
           <Spend />
@@ -370,10 +370,10 @@ function Spend() {
           Answering agents costs nothing. Answer tests ran once, from the command line.
         </p>
       </div>
-      <table className="w-full self-start text-sm @4xl/main:border-l" aria-label="Spend caps">
+      <table className="w-full self-start text-sm @4xl/main:border-l" aria-label="Spend limits">
         <thead>
           <tr className="border-t bg-band text-xs text-muted-foreground @4xl/main:border-t-0">
-            <th className="h-9 px-4 text-left font-medium md:pl-5">Cap</th>
+            <th className="h-9 px-4 text-left font-medium md:pl-5">Limit</th>
             <th className="h-9 px-4 text-right font-medium">Used</th>
             <th className="h-9 px-4 text-right font-medium md:pr-5">Of</th>
           </tr>

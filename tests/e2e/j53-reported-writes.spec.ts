@@ -37,9 +37,7 @@ test('an invite the service refuses keeps the dialog and the address, says why, 
   )
   await dialog.getByRole('button', { name: 'Invite', exact: true }).click()
 
-  await expect(dialog.getByRole('alert')).toHaveText(
-    "Nobody was invited. The service didn't reply.",
-  )
+  await expect(dialog.getByRole('alert')).toHaveText("Nobody was invited. The app didn't reply.")
   await expect(dialog.getByLabel('Email addresses')).toHaveValue('nina@larchwood.example')
   await expect(toasts(page).filter({ hasText: 'Invited' })).toHaveCount(0)
 
@@ -120,7 +118,7 @@ test('an access key the service refuses keeps its name and says why', async ({ p
   await naming.getByRole('button', { name: 'Create' }).click()
 
   await expect(naming.getByRole('alert')).toHaveText(
-    "No access key was created. The service didn't reply.",
+    "No access key was created. The app didn't reply.",
   )
   await expect(naming.getByLabel('Name')).toHaveValue('Weekly sales digest')
 

@@ -173,7 +173,7 @@ test('keep one: needs a reason, archives the other, says what agents now say, an
   const box = page.getByRole('dialog', { name: /^Keep “/ })
   await expect(box.getByText('Agents will then say')).toBeVisible()
   await box.getByLabel('Why does this one stay?').fill('The finance memo of 2 Oct replaced it.')
-  await box.getByLabel('A line that settles it').fill('Order value is taken from settlements.')
+  await box.getByLabel('A line that decides it').fill('Order value is taken from settlements.')
   await box.getByRole('button', { name: 'Keep this one' }).click()
   const outcome = page.getByRole('status').filter({ hasText: /Archived “/ })
   await expect(outcome).toContainText('Agents now say')
@@ -337,7 +337,7 @@ test('a typo fix saved from a conflict settles nothing, and cancelling leaves it
 
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } })
-  test('one pile per item, no sideways scroll, and Settle it opens the choices', async ({
+  test('one pile per item, no sideways scroll, and Choose what to do opens the choices', async ({
     page,
   }) => {
     await go(page, '/context?show=conflicts')
@@ -353,8 +353,8 @@ test.describe('on a phone', () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true)
-    await page.getByRole('button', { name: 'Settle it' }).click()
-    const sheet = page.getByRole('dialog', { name: 'Settle it' })
+    await page.getByRole('button', { name: 'Choose what to do' }).click()
+    const sheet = page.getByRole('dialog', { name: 'Choose what to do' })
     for (const name of ['Edit one of them', 'Keep both', 'Not a conflict', 'Ask the owner'])
       await expect(sheet.getByRole('button', { name })).toBeVisible()
   })

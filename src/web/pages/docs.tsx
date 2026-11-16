@@ -1,4 +1,5 @@
 import { usePageTitle } from '@/lib/page-title'
+import { dayMonth } from '@/lib/dates'
 import * as React from 'react'
 import {
   ArrowLeftIcon,
@@ -657,7 +658,7 @@ function Landing({ onSearch }: { onSearch: () => void }) {
         <section className="bg-background px-5 py-5 md:px-6 lg:px-8">
           <h2 className="mb-2 text-sm font-medium">In the app</h2>
           <p className="text-sm leading-6 text-pretty text-muted-foreground">
-            Help, from the sidebar, has the product's own words, the answer lines and the keyboard
+            Help, from the sidebar, has the product's own words, the answer labels and the keyboard
             shortcuts, and works without leaving your page.
           </p>
           <a
@@ -694,12 +695,7 @@ function Landing({ onSearch }: { onSearch: () => void }) {
   )
 }
 
-const day = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  })
+const day = (iso: string) => dayMonth(iso)
 
 function Changelog() {
   return (
@@ -756,7 +752,7 @@ function SearchDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Search the docs"
-      description="Search guides, answer lines and words"
+      description="Search guides, answer labels and words"
     >
       <Command shouldFilter={false}>
         <CommandInput placeholder="Search the docs" value={value} onValueChange={setValue} />

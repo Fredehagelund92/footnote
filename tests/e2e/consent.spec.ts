@@ -144,7 +144,7 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
   await expect(can.getByText('Read context', { exact: true })).toBeVisible()
   await expect(can.getByText('Suggest changes', { exact: true })).toBeVisible()
   await expect(page.getByText('Signed in as Ines Duarte')).toBeVisible()
-  await page.getByRole('button', { name: 'Allow' }).click()
+  await page.getByRole('button', { name: 'Allow', exact: true }).click()
   await agent.back(true)
   expect(await agent.reads()).toBe(200)
 
@@ -164,10 +164,10 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
     .filter({ hasText: AGENT })
     .filter({ hasText: 'Ines Duarte' })
   await expect(row).toBeVisible()
-  await row.getByRole('button', { name: 'Revoke' }).click()
+  await row.getByRole('button', { name: 'Disconnect' }).click()
   await page
-    .getByRole('dialog', { name: /^Revoke / })
-    .getByRole('button', { name: 'Revoke' })
+    .getByRole('dialog', { name: /^Disconnect / })
+    .getByRole('button', { name: 'Disconnect' })
     .click()
   await expect(row).toHaveCount(0)
   if (mode === 'http') await expect.poll(() => agent.reads()).toBe(401)
@@ -176,7 +176,7 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
 test('deny sends the browser back with a no, and the agent gets nothing', async ({ page }) => {
   const agent = await agentAsks(page)
   await expect(page.getByText('Signed in as Jon Abara')).toBeVisible()
-  await page.getByRole('button', { name: 'Deny' }).click()
+  await page.getByRole('button', { name: "Don't allow" }).click()
   await agent.back(false)
   await open(page, '/settings/agents')
   await expect(
@@ -203,7 +203,7 @@ test("an agent's suggestion links to where it waits, in the person's Inbox", asy
   await signOut(page)
   const agent = await agentAsks(page)
   await page.getByRole('button', { name: /Ines Duarte/ }).click()
-  await page.getByRole('button', { name: 'Allow' }).click()
+  await page.getByRole('button', { name: 'Allow', exact: true }).click()
   await agent.back(true)
   const sent = await agent.calls('suggest_context', {
     text: 'Orders in Norway include the accounts our teams use to test the webshop until 1 November 2026.',

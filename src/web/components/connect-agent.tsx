@@ -498,8 +498,8 @@ export function ConnectAgent({ inDialog }: { inDialog?: boolean }) {
   if (!address)
     return (
       <p className={cn('text-sm text-muted-foreground', inDialog ? 'p-4' : 'px-4 pb-5 md:px-5')}>
-        Agents can&apos;t connect here yet: this workspace has no address for them. Whoever runs it
-        sets one.
+        Agents can&apos;t connect here yet: this workspace has no address for them. The person who
+        hosts this app sets one.
       </p>
     )
   return (

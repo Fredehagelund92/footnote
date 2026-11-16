@@ -1,4 +1,11 @@
 import { COMPARE_FROM, countChange, shareChange, type Change } from '@domain/observability'
+import {
+  dayMonth,
+  monthShort as monthOnly,
+  monthYear,
+  monthYearLong,
+  weekdayDay,
+} from '@/lib/dates'
 import { stateLabel, type AnswerState } from './ask'
 import type { DomainId } from './items'
 import { flipped, type SortKey, type Sorting } from '@/lib/sort'
@@ -41,45 +48,25 @@ export const shownCount = (n: Count) =>
 
 /* ---------- the days ---------- */
 
-const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 /** "Thu 22": a day as a chart's axis says it. */
 export function dayLabel(at: number) {
-  const d = new Date(at)
-  return `${DOW[d.getUTCDay()]} ${d.getUTCDate()}`
+  return weekdayDay(at, { utc: true })
 }
 export const dateLabel = (at: number) => {
-  const d = new Date(at)
-  return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`
+  return dayMonth(at, { utc: true })
 }
 
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
 /** "2026-10" as "October 2026". */
-export const monthName = (m: string) => `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`
+export const monthName = (m: string) => monthYearLong(`${m}-15`)
 /** "2026-10" as "Oct 2026". */
-export const monthShort = (m: string) =>
-  `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]!.slice(0, 3)} ${m.slice(0, 4)}`
+export const monthShort = (m: string) => monthYear(`${m}-15`)
 
 /** Months in time order, the year once when they share it: "Sep, Oct 2026"; "Dec 2026, Jan 2027". */
 export function monthsLabel(months: string[]) {
   const asc = [...months].sort()
   const years = new Set(asc.map((m) => m.slice(0, 4)))
   if (years.size === 1)
-    return `${asc.map((m) => monthShort(m).split(' ')[0]).join(', ')} ${asc[0]!.slice(0, 4)}`
+    return `${asc.map((m) => monthOnly(`${m}-15`)).join(', ')} ${asc[0]!.slice(0, 4)}`
   return asc.map(monthShort).join(', ')
 }
 

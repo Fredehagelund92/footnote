@@ -170,10 +170,10 @@ export function FilterBar({
           }
         >
           <PanelLeftIcon />
-          Facets
+          Filter lists
         </TooltipTrigger>
         <TooltipContent>
-          {facets.sheet ? 'Every value with what it counts' : 'Show or hide the facets'}
+          {facets.sheet ? 'Every value with what it counts' : 'Show or hide the filter lists'}
         </TooltipContent>
       </Tooltip>
       {time && (

@@ -442,14 +442,14 @@ for (const { name, width, height } of widths) {
         await expect(source.getByText('Was 312 ever right?')).toBeVisible()
         await source
           .getByRole('region', { name: /^Removed line 1: / })
-          .getByRole('button', { name: 'Resolve' })
+          .getByRole('button', { name: 'Mark as done' })
           .click()
         await source.locator('[data-source-place="field:sources"]').focus()
         await page.keyboard.press('c')
         await expect(source.getByRole('textbox', { name: 'Comment on source' })).toBeFocused()
         await page.keyboard.type('Which page?')
         await expect(source.getByRole('textbox', { name: 'Comment on source' })).toBeVisible()
-        // The pointer rests where Resolve was, which the fold moves under another button.
+        // The pointer rests where Mark as done was, which the fold moves under another button.
         await page.mouse.move(0, 0)
         expect(await violations(page)).toEqual([])
       })

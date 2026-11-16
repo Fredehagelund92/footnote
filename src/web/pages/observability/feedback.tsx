@@ -76,8 +76,8 @@ function Feedback() {
             </EmptyMedia>
             <EmptyTitle>Nothing said about answers yet</EmptyTitle>
             <EmptyDescription>
-              When someone marks an answer in Ask, or reports one, or an agent reports a gap, it
-              shows here. Open reports wait in the Inbox.
+              When someone marks an answer in Ask, or reports one, or an agent reports a Not found,
+              it shows here. Open reports wait in the Inbox.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -129,7 +129,7 @@ function Feedback() {
           icon={<BotIcon />}
           label="From agents"
           value={agents}
-          sub="reported a gap or gave feedback"
+          sub="reported a Not found or gave feedback"
         />
       </div>
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-3-2)">

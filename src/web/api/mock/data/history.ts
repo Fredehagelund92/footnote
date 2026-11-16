@@ -1,4 +1,5 @@
 import type { Fact, LogEntry } from '@/model/items'
+import { parseDay } from '@/lib/dates'
 import { TODAY, type Version, type VersionKind } from '@/model/history'
 import { domains, people } from './world'
 
@@ -19,12 +20,9 @@ function seeded(seed: string) {
   }
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const isoOf = (label: string) => {
-  const m = label.match(/(\d+) (\w{3}) (\d{4})/)
-  return m
-    ? `${m[3]}-${String(MONTHS.indexOf(m[2]!) + 1).padStart(2, '0')}-${m[1]!.padStart(2, '0')}`
-    : TODAY
+  const at = parseDay(label.match(/\d+ \w{3} \d{4}/)?.[0] ?? '')
+  return at === null ? TODAY : new Date(at).toISOString().slice(0, 10)
 }
 const daysBefore = (iso: string, days: number) =>
   new Date(Date.parse(iso) - days * 86400000).toISOString().slice(0, 10)

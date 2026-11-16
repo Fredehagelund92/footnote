@@ -6,6 +6,7 @@
  * The service decides what needs care, whether a suggestion is ready, what counts as read and what
  * agents say before and after; this only says it in the app's shapes and words.
  */
+import { dayMonth, monthShort } from '@/lib/dates'
 import type { Card, Feed } from '@contract/inbox'
 import type { ReviewSheet } from '@contract/review-path'
 import type { Area } from '@domain/item'
@@ -28,7 +29,6 @@ import { dateLabel, whenLabel } from '@/model/validity'
 
 /* ---------- words for times ---------- */
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const twoDigits = (n: number) => String(n).padStart(2, '0')
 
 /** "Today, 09:12", "Yesterday, 16:40" or "20 Oct": when something happened, as the Inbox says it. */
@@ -40,7 +40,7 @@ export function whenWords(at: string, now: Date): string {
   const time = `${twoDigits(t.getHours())}:${twoDigits(t.getMinutes())}`
   if (days === 0) return `Today, ${time}`
   if (days === 1) return `Yesterday, ${time}`
-  return `${t.getDate()} ${MONTHS[t.getMonth()]}`
+  return dayMonth(t)
 }
 
 /** A day the service gives ("2026-10-02", or a time on it) as people read it: "2 Oct 2026". */
@@ -476,7 +476,7 @@ function timelineOf(
     from: day(from),
     was: day(last(was)),
     now: day(last(now)),
-    month: MONTHS[Number(month.slice(5, 7)) - 1]!,
+    month: monthShort(`${month}-15`),
   }
 }
 

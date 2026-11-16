@@ -362,13 +362,13 @@ describe('how a turn ended (one outcome per turn)', () => {
 
 describe('the sentence for a question that got no answer', () => {
   it('says why after the colon, with an ordinary first word lower-cased', () => {
-    expect(unansweredIn("The service didn't reply.", true)).toBe(
-      "Couldn't get an answer: the service didn't reply.",
+    expect(unansweredIn("The app didn't reply.", true)).toBe(
+      "Couldn't get an answer: the app didn't reply.",
     )
     expect(unansweredIn('AI Gateway is down', true)).toBe(
       "Couldn't get an answer: AI Gateway is down.",
     )
-    expect(unansweredIn('', true)).toBe("Couldn't get an answer: the service didn't reply.")
+    expect(unansweredIn('', true)).toBe("Couldn't get an answer: the app didn't reply.")
   })
 
   it("offline, blames neither the service nor the question: 'You're offline.'", () => {

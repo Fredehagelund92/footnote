@@ -126,7 +126,7 @@ export const HOW_AGENTS_USE_IT: {
   },
   {
     key: 'line',
-    lead: 'Every answer starts with an answer line.',
+    lead: 'Every answer starts with an answer label.',
     rest: 'It says what the answer rests on, in Ask and in your own agent.',
   },
   {

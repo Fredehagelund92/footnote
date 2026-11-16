@@ -122,7 +122,7 @@ describe('where the check stands', () => {
       total: 12,
       checkedAt: null,
       trend: {
-        labels: ['31 Aug', '7 Sep', '14 Sep', '21 Sep', '28 Sep', '5 Oct', '12 Oct', '19 Oct'],
+        labels: ['31 Aug', '7 Sept', '14 Sept', '21 Sept', '28 Sept', '5 Oct', '12 Oct', '19 Oct'],
         same: [0, 1, 2, 3, 4, 5, 6, 7],
         total: [8, 8, 8, 8, 8, 8, 8, 8],
       },

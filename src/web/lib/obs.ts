@@ -62,9 +62,9 @@ export const OBS_PURPOSE: Record<ObsSection, string> = {
   quality:
     'Saved questions are answered again after every change. Free, no model key needed. It reads what agents get, not how an agent words it.',
   feedback:
-    'What people and agents said about answers. Open reports wait in the Inbox, which is the queue: nothing is scored here.',
+    'What people and agents said about answers. Open reports wait in the Inbox, which holds what is waiting: nothing is scored here.',
   usage:
-    'How agents use the tools, how fast they get answers, and what the model costs. Agents are counted by kind, never by person.',
+    'How agents use the tools, how fast they get answers, and what AI costs. Agents are counted by kind, never by person.',
   alerts:
     'What raises a card in the Inbox. An alert is never an email or a bell: it is a card, with the same Review and Undo as any other.',
 }

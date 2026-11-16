@@ -36,7 +36,7 @@ The job calls the MCP address and sends the key as its bearer token:
 Authorization: Bearer hak_...
 ```
 
-A key can read and send reports. It names no person, so it never sends a suggestion. It lasts until it is revoked, and it keeps working after the person who made it leaves, so revoke it when the job ends.
+A key can read and send reports. It names no person, so it never sends a suggestion. It lasts until it is deleted, and it keeps working after the person who made it leaves, so delete it when the job ends.
 
 ## On your own computer, with a dev token
 

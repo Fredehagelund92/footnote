@@ -31,7 +31,7 @@ export const docControls: DocControl[] = [
     drawn: 'button',
     open: 'Show or hide Tools and access keys',
   },
-  { phrase: 'Revoke', page: 'connect-an-agent', at: '/settings/agents', drawn: 'button' },
+  { phrase: 'Disconnect', page: 'connect-an-agent', at: '/settings/agents', drawn: 'button' },
   { phrase: 'Settings', page: 'publish-without-review', at: '/inbox', drawn: 'link' },
   {
     phrase: 'Agents and access',

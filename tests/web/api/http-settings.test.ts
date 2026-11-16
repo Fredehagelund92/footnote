@@ -256,7 +256,7 @@ describe('Settings, Advanced', () => {
       'Review',
       'Privacy and retention',
       'Agents and requests',
-      'Model spend',
+      'AI cost this month',
       'Models',
       'Other',
     ])
@@ -467,7 +467,7 @@ describe('Settings, Advanced', () => {
     )
     expect(row).toMatchObject({
       who: 'Claude Code for Kofi Mensah',
-      what: "Published “Gift cards are not orders” under Jon Abara's policy",
+      what: "Published “Gift cards are not orders” with Jon Abara's permission to publish without review",
     })
   })
 

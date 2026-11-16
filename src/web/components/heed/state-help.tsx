@@ -74,7 +74,7 @@ export function StateHelp({
       title={`${line.label}: ${line.sentence.charAt(0).toLowerCase() + line.sentence.slice(1)}`}
       means={line.means}
       todo={line.todo}
-      more={{ href: '/help', label: 'All answer lines' }}
+      more={{ href: '/help', label: 'All answer labels' }}
     >
       {children}
     </BadgeCard>
