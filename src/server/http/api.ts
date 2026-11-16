@@ -137,7 +137,7 @@ import {
   type TransactionHooks,
   type WorkspaceSources,
 } from '../modules/connectors/index.ts'
-import { createGapsService, gapReportsPerMinute } from '../modules/gaps/index.ts'
+import { createGapsService, gapReportsPerMinute, reportGap } from '../modules/gaps/index.ts'
 import { createLibraryService } from '../modules/library/index.ts'
 import { createObservabilityService, readerScope } from '../modules/observability/index.ts'
 import {
@@ -178,6 +178,9 @@ export interface ApiServices {
   profileLabel?: string | null
 }
 type RequestContext = { request: FastifyRequest; reply: FastifyReply }
+/** A retry key of 128 random bits: 32 hex digits or a version 4 UUID (the web binding's). */
+const randomRetryKey =
+  /^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i
 const idempotencyKey = (context: RequestContext) =>
   context.request.headers['idempotency-key'] as string | undefined
 
@@ -928,6 +931,31 @@ export function createRouter({
     },
     gaps: {
       get: authorized.gaps.get.handler(({ context, input }) => context.gaps.get(input.id)),
+      report: authorized.gaps.report.handler(async ({ context, input }) => {
+        const key = idempotencyKey(context)
+        // 128 random bits, as the web binding sends: the stored digest mixes in the caller, so a
+        // key that could be guessed would let anyone with the table test who reported what.
+        if (!key || !randomRetryKey.test(key))
+          throw new ORPCError('BAD_REQUEST', {
+            message: 'Send an Idempotency-Key header of 32 random hex digits or a random UUID.',
+          })
+        // FR-408: a person's reports have a tighter limit of their own. The key lives in memory
+        // only, for its minute, and the report records no person.
+        const retry = limitGapReports([
+          {
+            key: `gap-report:${context.session!.person.id}`,
+            limit: await gapReportsPerMinute(context.tx),
+          },
+        ])
+        if (retry) {
+          context.reply.header('retry-after', String(retry))
+          throw new ORPCError('TOO_MANY_REQUESTS', {
+            message: `You've sent a lot of reports. Try again in ${retry} seconds.`,
+            data: { retryAfterSeconds: retry },
+          })
+        }
+        return reportGap(context.tx, clock.today(), context.session!.person.id, input, key)
+      }),
     },
     sources: {
       list: authorized.sources.list.handler(({ context }) => workspaceSources.list(context.tx)),

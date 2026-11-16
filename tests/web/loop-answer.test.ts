@@ -17,6 +17,7 @@ import examples from '@/api/mock/data/loop-examples.json'
 
 const world = vi.hoisted(() => ({
   me: { name: 'Jon Abara', role: 'Owner of Sales, admin', owns: ['area_sales'], admin: true },
+  writes: [] as { op: string; input: unknown }[],
 }))
 vi.mock('@/lib/workspace', () => ({
   useFacts: () => [],
@@ -34,7 +35,12 @@ vi.mock('@/lib/workspace', () => ({
   usePeople: () => [world.me],
 }))
 vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
-vi.mock('@/api/queries', () => ({ useWrite: () => vi.fn(() => Promise.resolve()) }))
+vi.mock('@/api/queries', () => ({
+  useWrite: () => (op: string, input: unknown) => {
+    world.writes.push({ op, input })
+    return Promise.resolve({ id: 'g1' })
+  },
+}))
 vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
 // Reading items ahead needs the app's query cache, which a static drawing has not.
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
@@ -118,6 +124,32 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).toMatch(/owned by/)
     expect(text(el)).toMatch(/Write context for Orders in Poland/)
     expect(text(el)).toMatch(/^.*0 of 21 published context items you may read apply/)
+  })
+
+  it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
+    const owner = world.me
+    world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    world.writes.length = 0
+    try {
+      const el = render(example('loop-missing'))
+      expect(text(el)).not.toMatch(/Write context/)
+      const tell = [...el.querySelectorAll('button')].find((b) => text(b) === 'Tell the owner')
+      expect(tell).toBeDefined()
+      await act(async () => {
+        tell!.click()
+        await Promise.resolve()
+      })
+      // The subject's metric and values, and no date since none was named: nothing of the words.
+      expect(world.writes).toEqual([
+        { op: 'tellOwner', input: { about: ['metric:orders', 'value:market/poland'] } },
+      ])
+      expect(text(el)).toContain('Sent to the owners of Sales. It waits in their Inbox.')
+      expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Tell the owner')).toBe(
+        false,
+      )
+    } finally {
+      world.me = owner
+    }
   })
 
   it('makes the chips and the citations the buttons in the words, never a sentence', () => {

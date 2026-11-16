@@ -199,6 +199,7 @@ describe('the Inbox', () => {
         month: '2026-10',
       },
       times: 9,
+      told: 0,
       draft: 'p9',
     }
     const inbox = inboxOf(
@@ -222,6 +223,19 @@ describe('the Inbox', () => {
     // With no draft yet, the card keeps the service's name and writes context from the editor.
     const [blank] = inboxOf(feed([{ ...gap, draft: null }]), 'Jon Abara', domains, now).cards
     expect(blank).toMatchObject({ id: 'gap:g1', primary: 'Write context' })
+    // Someone pressed Tell the owner in Ask: the card says so, and what agents found when they asked.
+    const line = (times: number, told: number) =>
+      inboxOf(feed([{ ...gap, draft: null, times, told }]), 'Jon Abara', domains, now).cards[0]!
+        .line
+    expect(line(0, 1)).toBe(
+      'Someone asked Ask about this, found nothing written down and told you.',
+    )
+    expect(line(0, 2)).toBe(
+      'People asked Ask about this, found nothing written down and told you, 2 times this week.',
+    )
+    expect(line(9, 1)).toBe(
+      'Agents found nothing written down for this, 9 times this week. Someone asked Ask about this, found nothing written down and told you.',
+    )
     // Once its draft is published, the card is done with it.
     const published = inboxOf(
       feed([

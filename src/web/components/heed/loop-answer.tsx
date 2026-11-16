@@ -554,22 +554,62 @@ function WhatAskRead({ loop, footer }: { loop: LoopTurn; footer: string[] }) {
   )
 }
 
-/** What to do next that fits the state: write the missing context, or check what may be old. */
+/**
+ * What to do next that fits the state: write the missing context, or check what may be old. Under
+ * Not found a reader who may not write tells the owners instead (decision 7): Ask writes nothing.
+ */
 function Next({
   loop,
   nouns,
   items,
+  dates,
 }: {
   loop: LoopTurn
   nouns: Nouns
   items: readonly LoopItem[]
+  /** The days the answer was read for, as it says them; none when it named none. */
+  dates?: string
 }) {
   const P = useParts()
   const me = P.useMe()
   const write = P.useWrite()
+  const [told, setTold] = React.useState(false)
   const subject = loop.subject
   const owned = new Set(loop.owners.map((o) => o.domain.replace(/^domain:(area_)?/, '')))
   const owns = me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
+  if (loop.state === 'missing' && !owns && subject?.about.length) {
+    const domains = loop.owners.flatMap((o) =>
+      nouns.has(o.domain) ? [nouns.get(o.domain)!.name] : [],
+    )
+    const whose = domains.length
+      ? `the owners of ${domains.length === 1 ? domains[0] : `${domains.slice(0, -1).join(', ')} and ${domains.at(-1)}`}`
+      : 'the owners'
+    if (told)
+      return (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <P.CheckIcon aria-hidden className="size-4 shrink-0 text-good" />
+          Sent to {whose}. It waits in their Inbox.
+        </p>
+      )
+    return (
+      <P.Button
+        variant="outline"
+        className="w-fit"
+        onClick={() =>
+          void write('tellOwner', { about: subject.about, ...(dates ? { dates } : {}) }).then(
+            () => setTold(true),
+            () =>
+              P.toast.error("It wasn't sent", {
+                description: 'Nothing was lost: try again in a moment.',
+              }),
+          )
+        }
+      >
+        <P.BellIcon data-icon="inline-start" />
+        Tell the owner
+      </P.Button>
+    )
+  }
   if (loop.state === 'missing' || loop.state === 'partial') {
     // What is not written: the subject under Not found, what no item covers under Partial.
     const about = (
@@ -1160,7 +1200,12 @@ function Finished({
           {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
           <Definitions loop={loop} nouns={maps.nouns} />
           {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
-          <Next loop={loop} nouns={maps.nouns} items={used} />
+          <Next
+            loop={loop}
+            nouns={maps.nouns}
+            items={used}
+            {...(answer.dates ? { dates: answer.dates } : {})}
+          />
           {(footer.length > 0 || loop.read.length > 0) && (
             <WhatAskRead loop={loop} footer={footer} />
           )}

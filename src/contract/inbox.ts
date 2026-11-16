@@ -77,6 +77,11 @@ export const cardSchema = z.union([
     }),
     /** How often agents found nothing for it this week. */
     times: shownCount,
+    /**
+     * How often people said this week that it is missing, with Tell the owner in Ask: the card
+     * reaches only those who manage the gap, who see its reports in full.
+     */
+    told: z.number(),
     /** The draft started from it, if any. */
     draft: z.nullable(z.string()),
   }),

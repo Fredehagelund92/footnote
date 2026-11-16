@@ -577,6 +577,13 @@ export interface HeedApi {
   }) => Promise<{ id: string }>
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
+  /**
+   * Tells the owners that nothing is written about what an answer of Ask was about (decision 7 of
+   * the chat audit): the report of kind missing agents file, as a gap on the subject's topic, with
+   * its metrics and values by id (`metric:orders`, `value:market/poland`) and its days. It names
+   * no one and sends no words of the question; the owners see it in their Inbox.
+   */
+  tellOwner: (input: { about: string[]; dates?: string }) => Promise<{ id: string }>
 
   // Observability: what agents asked and how it was answered, as scopes and counts only
   /**
@@ -887,6 +894,7 @@ export const heedApiMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'tellOwner',
   'observabilityPage',
   'obsDimensions',
   'obsValues',
