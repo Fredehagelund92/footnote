@@ -41,3 +41,38 @@ test('a failed start shows the app error page, and Try again opens the app', asy
   await expect(page).toHaveURL(/\/inbox$/)
   expect(await page.evaluate(() => (window as unknown as { stayed?: boolean }).stayed)).toBe(true)
 })
+
+test('a refused start (429) shows the same app error page, and Try again opens the app', async ({
+  page,
+}) => {
+  test.skip(mode !== 'http', "The mock's shared reads always answer.")
+  // The service refuses the shell's read of the workspace's people for sending too many requests.
+  const refuse = /\/api\/v1\/members(\?|$)/
+  await page.route(refuse, (route) =>
+    route.fulfill({
+      status: 429,
+      contentType: 'application/json',
+      headers: { 'x-request-id': REQUEST_ID, 'retry-after': '1' },
+      body: JSON.stringify({
+        defined: false,
+        code: 'TOO_MANY_REQUESTS',
+        status: 429,
+        message: 'Too many requests',
+      }),
+    }),
+  )
+  await go(page, '/inbox')
+  await expect(page.getByRole('heading', { name: "Your workspace didn't open" })).toBeVisible()
+  await expect(page.getByText('Something went wrong!')).toHaveCount(0)
+  await expect(page.getByText(REQUEST_ID)).toBeVisible()
+  const retry = page.getByRole('button', { name: 'Try again' })
+  await expect(retry).toBeVisible()
+
+  // The service answers again: Try again opens the app where it was, without loading the page.
+  await page.unroute(refuse)
+  await page.evaluate(() => ((window as unknown as { stayed: boolean }).stayed = true))
+  await retry.click()
+  await expect(page.getByRole('heading', { name: 'Inbox', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/\/inbox$/)
+  expect(await page.evaluate(() => (window as unknown as { stayed?: boolean }).stayed)).toBe(true)
+})

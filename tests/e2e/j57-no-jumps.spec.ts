@@ -8,7 +8,7 @@ import { expect, go, test } from './go.ts'
 
 type Shift = { v: number; t: number; src: string }
 
-async function shifts(page: Page, route: string) {
+async function shifts(page: Page, route: string, drawn?: string) {
   await page.addInitScript(() => {
     const seen: Shift[] = []
     ;(window as unknown as { __shifts: Shift[] }).__shifts = seen
@@ -31,17 +31,24 @@ async function shifts(page: Page, route: string) {
     }).observe({ type: 'layout-shift', buffered: true })
   })
   await go(page, route)
+  // On the service a page can take longer than the wait below to draw: a list that has not drawn yet
+  // cannot be seen to move.
+  if (drawn) await page.getByRole('list', { name: drawn }).getByRole('listitem').first().waitFor()
   await page.waitForTimeout(1800)
   return page.evaluate(() => (window as unknown as { __shifts: Shift[] }).__shifts)
 }
 
-for (const [name, route] of [
+const pages: [name: string, route: string, drawn?: string][] = [
   ['a review', '/inbox/sug-ines-link/review'],
   ['Ask', '/ask'],
   ['Observability questions', '/observability/questions'],
-] as const) {
+  ['Settings, People', '/settings/people', 'People'],
+  ['Settings, Agents', '/settings/agents', 'Connected agents'],
+]
+
+for (const [name, route, drawn] of pages) {
   test(`${name} does not move once it has drawn`, async ({ page }) => {
-    const found = await shifts(page, route)
+    const found = await shifts(page, route, drawn)
     expect(
       found.reduce((n, s) => n + s.v, 0),
       JSON.stringify(found),
