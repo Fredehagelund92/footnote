@@ -23,7 +23,7 @@ import {
   PeekTitle,
 } from '@/components/heed/peek'
 import { Button } from '@/components/ui/button'
-import { cubeRef, kindName, sourceUrl, SYNCED_AT, useGlossary } from '@/lib/definitions'
+import { cubeRef, kindName, sourceUrl, useGlossary } from '@/lib/definitions'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -134,7 +134,7 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekFacts>
             {d.synced ? (
               <PeekFact icon={LockIcon}>
-                <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} {SYNCED_AT} -{' '}
+                <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} -{' '}
                 <a
                   href={sourceUrl(d)}
                   target="_blank"
