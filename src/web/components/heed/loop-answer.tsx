@@ -339,34 +339,32 @@ function Rows({
 }
 
 /**
- * How fresh the items used are, in a few words: "all Live, checked 21 Aug to 3 Nov 2026", or each
- * status with its count when they differ, in the words of its pinned row when it needs a look; the
- * days are the first and last they were checked.
+ * How fresh the items used are, in a few words: "all Live, checked 21 Aug to 3 Nov 2026". An item
+ * that needs a look says so on its own pinned row, so only the rest are counted, "4 Live"; the
+ * days are the first and last any of them was checked.
  */
-function freshness(items: readonly LoopItem[], needsLook: ReturnType<typeof useNeedsLook>) {
-  const statuses = items.map((i) => needsLook(i) ?? 'Live')
-  const counts = [...new Set(statuses)].map((w) => ({
-    w,
-    n: statuses.filter((s) => s === w).length,
-  }))
+function freshness(items: readonly LoopItem[], rest: readonly LoopItem[]) {
   const said =
-    counts.length > 1
-      ? counts.map(({ w, n }) => `${n} ${w}`).join(', ')
+    rest.length < items.length
+      ? rest.length
+        ? `${rest.length} Live`
+        : null
       : items.length > 1
-        ? `all ${counts[0]!.w}`
-        : counts[0]!.w
+        ? 'all Live'
+        : 'Live'
   const days = items.flatMap((i) => (i.checked ? [i.checked] : [])).sort()
   const first = days[0]
   const last = days.at(-1)
   if (!first || !last) return said
+  const checked = said ? `${said}, checked` : 'checked'
   // A day is never broken across two lines.
   const whole = (day: string) => day.replaceAll(' ', '\u00a0')
   const to = whole(dayText(last, true))
-  if (first === last) return `${said}, checked ${to}`
+  if (first === last) return `${checked} ${to}`
   const from = whole(
     first.slice(0, 4) === last.slice(0, 4) ? dayMonth(first) : dayText(first, true),
   )
-  return `${said}, checked ${from} to ${to}`
+  return `${checked} ${from} to ${to}`
 }
 
 /**
@@ -391,6 +389,7 @@ function Used({
   const rest: LoopItem[] = []
   for (const i of items) (needsLook(i) ? look : rest).push(i)
   const label = `Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`
+  const fresh = freshness(items, rest)
   return (
     <P.Collapsible data-used className="@container/used flex max-w-reading flex-col gap-2">
       {/* Inline text, so a summary too long for the line wraps after the dot, never before it. */}
@@ -406,14 +405,19 @@ function Used({
           // Every item is in sight below: there is nothing more to open.
           <span className="font-medium text-foreground">{label}</span>
         )}
-        {/* The fold's own padding is most of its space before the dot. */}
-        <span aria-hidden className={rest.length ? 'mr-1.5 ml-0.5' : 'mx-1.5'}>
-          ·
-        </span>
-        <span id={summary}>{freshness(items, needsLook)}</span>
+        {fresh && (
+          <>
+            {/* The fold's own padding is most of its space before the dot. */}
+            <span aria-hidden className={rest.length ? 'mr-1.5 ml-0.5' : 'mx-1.5'}>
+              ·
+            </span>
+            <span id={summary}>{fresh}</span>
+          </>
+        )}
       </p>
       {look.length > 0 && (
-        <ul data-pinned className="flex flex-col gap-0.5">
+        // 4 px under the line, so k of them stay within 24 + 32k px (J70).
+        <ul data-pinned className="-mt-1 flex flex-col gap-0.5">
           {look.map((item) => (
             <PinnedRow key={item.id} item={item} owns={owns} />
           ))}

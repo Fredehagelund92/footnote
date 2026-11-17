@@ -65,10 +65,8 @@ for (const { name, viewport } of widths)
       const fold = turn.getByRole('button', { name: 'Used 6 items' })
       await expect(fold).toHaveAttribute('aria-expanded', 'false')
       const used = turn.locator('[data-used]')
-      // The line counts each in the words of its row.
-      await expect(used).toContainText(
-        '4 Live, 1 Due for a check, 1 May be out of date, checked 30 Jul to 3 Nov 2026',
-      )
+      // The line counts the live ones; each that needs a look says why on its own row.
+      await expect(used).toContainText('Used 6 items·4 Live, checked 30 Jul to 3 Nov 2026')
       const pinned = used.locator('[data-pinned] > li')
       await expect(pinned).toHaveCount(2)
       await expect(pinned.nth(0).getByRole('button', { name: /^Source 2: / })).toBeVisible()
@@ -94,3 +92,40 @@ for (const { name, viewport } of widths)
       await expect(used.getByRole('button', { name: /^Source \d+: / })).toHaveCount(6)
     })
   })
+
+// The height budget: what an answer used never outgrows its words. All live, Used is at most a
+// quarter of the words' height, and one source, whose answer may be a single line, keeps to its
+// one line of 24 px; with k items that need a look, at most 24 px for the line and 32 px for each
+// of them, however many it cites (loop-used-N-look-K: K of N need a look).
+const budget = [1, 4, 10, 20, 50].map((n) => ({ n, look: 0 }))
+const looks = [
+  { n: 4, look: 1 },
+  { n: 6, look: 2 },
+  { n: 10, look: 3 },
+  { n: 20, look: 5 },
+  { n: 50, look: 8 },
+]
+
+for (const { name, viewport } of widths)
+  for (const colorScheme of ['light', 'dark'] as const)
+    test.describe(`height budget, ${name} ${colorScheme}`, () => {
+      test.use({ viewport, colorScheme })
+      for (const { n, look } of [...budget, ...looks])
+        test(`${n} ${n === 1 ? 'source' : 'sources'}, ${look} that need a look`, async ({
+          page,
+        }) => {
+          await go(page, `/ask?example=loop-used-${n}${look ? `-look-${look}` : ''}`)
+          const turn = page.locator('[data-turn]').first()
+          await expect(turn.getByRole('group', { name: 'Answer actions' })).toBeVisible({
+            timeout: 20_000,
+          })
+          const used = turn.locator('[data-used]')
+          await expect(used.locator('[data-pinned] > li')).toHaveCount(look)
+          const height = (await used.boundingBox())!.height
+          const words = (await turn.locator('[data-answer-words]').boundingBox())!.height
+          if (look) expect(height).toBeLessThanOrEqual(24 + 32 * look)
+          else if (n === 1) expect(height).toBeLessThanOrEqual(24)
+          else
+            expect(height / words, `Used ${height} px, words ${words} px`).toBeLessThanOrEqual(0.25)
+        })
+    })

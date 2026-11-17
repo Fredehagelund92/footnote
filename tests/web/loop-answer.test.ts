@@ -206,7 +206,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(el.querySelector('time')?.getAttribute('dateTime')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it('Used: one closed line with how many items and each status counted when they differ', () => {
+  it('Used: one closed line with how many items, counting the live ones when some need a look', () => {
     const base = usedTurn(4)
     const statuses = ['live', 'due', 'archived', 'live'] as const
     const el = render({
@@ -217,7 +217,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(fold).toHaveLength(1)
     expect(fold[0]!.getAttribute('aria-expanded')).toBe('false')
     expect(text(el.querySelector('[data-used]')!)).toMatch(
-      /^Used 4 items·2 Live, 1 Due for a check, 1 Archived, checked .+ to .+ 2026/,
+      /^Used 4 items·2 Live, checked .+ to .+ 2026/,
     )
   })
 
@@ -251,7 +251,7 @@ describe("Ask's loop answer, state by state", () => {
   })
 
   it('Used: each pinned item due for a check has its own Mark it still true, naming its title', () => {
-    const base = usedTurn(4, { trust: true })
+    const base = usedTurn(4, { look: 2 })
     const turn = {
       ...base,
       items: base.items.map((i, k) =>
