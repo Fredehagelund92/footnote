@@ -4,8 +4,9 @@ import type { LoopBlock, LoopItem, LoopTurn } from '@contract/answer'
 // (`?example=loop-used-10`). The service's turns on the demo week cite at most a few, so these are
 // built from the shape of its Orders answer (loop-checked): N live items in Sales, each cited once,
 // one sentence each, as the words of an answer about all of Orders would cite them.
-// `loop-used-trust` cites six, of which the second is due for a check and the third may be out of
-// date, as the Outdated state reads them.
+// With `look`, that many items from the second on need a look, in turn due for a check, may be out
+// of date (as the Outdated state reads them) and archived: `loop-used-trust` cites six, of which the
+// second is due and the third may be out of date.
 
 const titles = [
   'Orders lags by one day in the source tool',
@@ -41,13 +42,16 @@ const itemOf = (n: number): LoopItem => {
   }
 }
 
-/** An answer about all of Orders that cites `count` live items, or with `trust` two that need a look. */
-export function usedTurn(count: number, { trust = false } = {}): LoopTurn {
+const looks: Partial<LoopItem>[] = [
+  { status: 'due' },
+  { outOfDate: 'its check date has passed' },
+  { status: 'archived' },
+]
+
+/** An answer about all of Orders that cites `count` items, `look` of which need a look. */
+export function usedTurn(count: number, { look = 0 } = {}): LoopTurn {
   const items = Array.from({ length: count }, (_, i) => itemOf(i + 1))
-  if (trust) {
-    items[1] = { ...items[1]!, status: 'due' }
-    items[2] = { ...items[2]!, outOfDate: 'its check date has passed' }
-  }
+  for (let k = 0; k < look; k++) items[k + 1] = { ...items[k + 1]!, ...looks[k % looks.length] }
   const stale = items
     .filter((i) => i.outOfDate)
     .map((i) => `“${i.title}” may be out of date: ${i.outOfDate}.`)

@@ -58,8 +58,8 @@ export async function playAnswer(answer: Answer, live: AskLive): Promise<Answer>
 /**
  * One of Ask's loop answers by its example id (`?example=loop-missing`), as the service wrote it on
  * the demo week (tests/web/integration/ask-loop-shapes.test.ts writes them): loaded only when asked.
- * `loop-used-N` is an answer that cites N items, `loop-used-trust` six with two that need a look
- * (loop-used.ts).
+ * `loop-used-N` is an answer that cites N items, `loop-used-N-look-K` N of which K need a look, and
+ * `loop-used-trust` six with two that need a look (loop-used.ts).
  */
 export async function loopExample(id: string): Promise<Answer> {
   const names = {
@@ -68,10 +68,12 @@ export async function loopExample(id: string): Promise<Answer> {
     metricKey: () => undefined,
     marketKey: () => undefined,
   }
-  const sized = /^loop-used-(\d+|trust)$/.exec(id)
+  const sized = /^loop-used-(?:(\d+)(?:-look-(\d+))?|trust)$/.exec(id)
   if (sized) {
     const { usedTurn } = await import('./loop-used')
-    const turn = sized[1] === 'trust' ? usedTurn(6, { trust: true }) : usedTurn(Number(sized[1]))
+    const turn = sized[1]
+      ? usedTurn(Number(sized[1]), { look: Number(sized[2] ?? 0) })
+      : usedTurn(6, { look: 2 })
     return { ...loopAnswerOf(turn, 'Give me all about Orders', names), id: `example-${id}` }
   }
   const { default: examples } = await import('./data/loop-examples.json')
