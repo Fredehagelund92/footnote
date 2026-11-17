@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadGoldenSet } from '../../../db/seed/golden-set.ts'
 import {
   anchorOf,
+  carriedDays,
   crossCheckedDays,
   dateNote,
   monthWords,
@@ -829,5 +830,88 @@ describe("the model's days for a period, checked against the reader's", () => {
     })
     expect(crossCheckedDays('currently', undefined, today)).toBeNull()
     expect(crossCheckedDays(undefined, undefined, today)).toBeNull()
+  })
+})
+
+describe('carriedDays: a follow-up’s period read against the last question’s', () => {
+  const august = { start: '2026-08-01', end: '2026-09-01' }
+  const september = { start: '2026-09-01', end: '2026-10-01' }
+  const today = '2026-10-23'
+  const days = (words: string | undefined, last: { start: string; end: string }) =>
+    carriedDays(words, last, today)?.window ?? null
+
+  it('gives a month, quarter or part without a year the last period’s year', () => {
+    expect(carriedDays('what about September?', august, today)).toEqual({
+      window: september,
+      readsAs: '1-30 Sep 2026 (from your last question; UTC)',
+    })
+    const y2025 = { start: '2025-01-01', end: '2026-01-01' }
+    expect(days('Q3', y2025)).toEqual({ start: '2025-07-01', end: '2025-10-01' })
+    expect(days('early August', y2025)).toEqual({ start: '2025-08-01', end: '2025-08-11' })
+    expect(days('5 September', y2025)).toEqual({ start: '2025-09-05', end: '2025-09-06' })
+    // A period up to a day reads only the year it ends in, never every year before it.
+    expect(days('September', { start: '0001-01-01', end: '2026-10-24' })).toEqual(september)
+    // Across two years, the year whose month the last period holds.
+    expect(days('January', { start: '2025-11-01', end: '2026-03-01' })).toEqual({
+      start: '2026-01-01',
+      end: '2026-02-01',
+    })
+  })
+
+  it('shifts the last period at its own grain', () => {
+    const sep2025 = { start: '2025-09-01', end: '2025-10-01' }
+    for (const words of [
+      'and last year?',
+      'same period last year',
+      'the year before',
+      'a year ago',
+    ])
+      expect(days(words, september)).toEqual(sep2025)
+    expect(days('next year', september)).toEqual({ start: '2027-09-01', end: '2027-10-01' })
+    expect(days('the month before', september)).toEqual(august)
+    expect(days('two months earlier', september)).toEqual({
+      start: '2026-07-01',
+      end: '2026-08-01',
+    })
+    expect(days('the previous quarter', { start: '2025-07-01', end: '2025-10-01' })).toEqual({
+      start: '2025-04-01',
+      end: '2025-07-01',
+    })
+  })
+
+  it('keeps the last period with no words, or words that only point at it', () => {
+    for (const words of [
+      undefined,
+      'same period',
+      'for the same months',
+      'then',
+      'in September 2026',
+    ])
+      expect(days(words, september)).toEqual(september)
+  })
+
+  it('leaves words that name another period of their own to the reader', () => {
+    for (const words of ['last quarter', 'September 2025', 'this month', 'since the launch'])
+      expect(carriedDays(words, september, today)).toBeNull()
+  })
+
+  it('stands over the model’s days, which become the other reading', () => {
+    expect(
+      crossCheckedDays(
+        'September',
+        { start: '2025-09-01', end: '2025-10-01' },
+        '2026-10-23',
+        undefined,
+        august,
+      ),
+    ).toEqual({
+      window: september,
+      readsAs: '1-30 Sep 2026 (from your last question; UTC)',
+      other: { start: '2025-09-01', end: '2025-10-01' },
+    })
+  })
+
+  it('is said on the read line', () => {
+    expect(dateNote('1-30 Sep 2025 (from your last question; UTC)')).toBe('from your last question')
   })
 })

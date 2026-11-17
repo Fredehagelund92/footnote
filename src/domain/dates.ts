@@ -1263,6 +1263,86 @@ export function sameDays(a: DateWindow, b: DateWindow, today: string) {
 /** Days with a last day, end exclusive. */
 type Days = { start: string; end: string }
 
+/** The words of a follow-up that keep the last question's period: "same period", "then". */
+const keepPattern =
+  /^(?:(?:for|in|over|during) )?(?:(?:the )?same (?:period|days|dates|time|weeks?|months?|quarters?|years?)|that (?:period|time|week|month|quarter|year)|then)$/
+/** "last year", "same period last year", "the previous year": a year from the last period. */
+const yearShiftPattern =
+  /^(?:(?:for|in|over|during) )?(?:(?:the )?same (?:period|days|dates|time|week|month|quarter) )?(?:the )?(last|previous|prior|next|following) year$/
+/** "the previous quarter", "the month after": one unit from the last period. */
+const unitShiftPattern = /* @__PURE__ */ new RegExp(
+  `^(?:(?:for|in|over|during) )?(?:the )?(?:(previous|prior|following) (week|month|quarter|year)|(${NUMBER_WORD}) (weeks?|months?|quarters?|years?) (before|earlier|after|later|ago)|(week|month|quarter|year) (before|after))(?: that| then)?$`,
+)
+/** A part of a month, quarter or half that names no year of its own: "early August", "end of Q3". */
+const yearless = /* @__PURE__ */ new RegExp(
+  `^(?!.*\\b(?:(?:19|20)\\d{2}|fy\\S*|fiscal|financial|last|this|next|previous|past|ago)\\b).*\\b(?:${monthNames.join('|')}|${shortMonths.join('|').toLowerCase()}|q[1-4]|h[12])\\b`,
+)
+/** The words that lead a follow-up, before its period: "and", "what about", "how about". */
+const followUpLead = /^(?:and |but |so )?(?:(?:what|how) about |what of )?(?:in )?/
+
+/** Days some weeks or months away from a period's, at the same grain. */
+function shifted(last: Days, unit: string, count: number): Days {
+  if (unit === 'week')
+    return { start: shiftDate(last.start, 7 * count), end: shiftDate(last.end, 7 * count) }
+  const months = monthsIn[unit]! * count
+  return { start: addMonths(last.start, months), end: addMonths(last.end, months) }
+}
+
+/**
+ * The days a follow-up's period words name, read against the last question's period (`last`):
+ * no words, or "same period", keep it; "last year" or "the year before" shift it by a year, and
+ * "the previous quarter" or "two months later" by their units, at its grain; a month, quarter or
+ * day without a year takes the year of the last period ("what about September?" after August
+ * 2026); words that name the last period's own days ("in August 2026" after August 2026) keep
+ * it too. Null where the words name another period of their own ("last quarter", "September
+ * 2025"): the reader then reads them as it would.
+ */
+export function carriedDays(
+  words: string | undefined,
+  last: Days,
+  today: string,
+  calendar: Calendar = UTC_CALENDAR,
+): { window: Days; readsAs: string } | null {
+  const said = (window: Days) => ({
+    window,
+    readsAs: `${windowWords(window)} (from your last question; ${calendar.timeZone})`,
+  })
+  const named = normalizeName(words ?? '')
+    .replace(/[?.!]+$/, '')
+    .replace(followUpLead, '')
+    .trim()
+  if (!named || keepPattern.test(named)) return said(last)
+  const year = yearShiftPattern.exec(named)
+  if (year) return said(shifted(last, 'year', /next|following/.test(year[1]!) ? 1 : -1))
+  const unit = unitShiftPattern.exec(named)
+  if (unit) {
+    const [, side, one, count, many, way, alone, aside] = unit
+    const later = (w: string) => /following|after|later/.test(w)
+    if (one) return said(shifted(last, one, later(side!) ? 1 : -1))
+    if (many)
+      return said(shifted(last, many.replace(/s$/, ''), (later(way!) ? 1 : -1) * countOf(count!)))
+    return said(shifted(last, alone!, later(aside!) ? 1 : -1))
+  }
+  const options = { loose: true, ...calendar }
+  const read = readDates(named, today, options)
+  if (read.status !== 'read') return null
+  if (sameDays(read.window, last, today)) return said(last)
+  // A month, quarter or day without a year: in the year the last period ends in, or the year
+  // it starts in where only that one holds it (January after November to February).
+  if (!(read.readsAs.includes('year not given') || yearless.test(named))) return null
+  const readIn = (y: number) => {
+    const r = readDates(`${named} ${y}`, today, options)
+    return r.status === 'read' && !isAnyDate(r.window) && r.window.end
+      ? { start: r.window.start, end: r.window.end }
+      : null
+  }
+  const holds = (w: Days | null) => !!w && w.start < last.end && w.end > last.start
+  const ending = readIn(yearOf(shiftDate(last.end, -1)))
+  const starting = holds(ending) ? null : readIn(yearOf(last.start))
+  const window = holds(starting) ? starting : ending
+  return window ? said(window) : null
+}
+
 /**
  * The days a period's own words are read for, cross-checked against the days a model read them
  * as (FR-719): the reader's stand where it places the words, with how it read them, and the
@@ -1277,7 +1357,15 @@ export function crossCheckedDays(
   model: Days | undefined,
   today: string,
   calendar: Calendar = UTC_CALENDAR,
+  last: Days | null = null,
 ): { window: Days; readsAs: string | null; other: Days | null } | null {
+  // A period read against the last question's stands, as the reader's would.
+  const carried = last ? carriedDays(words, last, today, calendar) : null
+  if (carried)
+    return {
+      ...carried,
+      other: model && !sameDays(model, carried.window, today) ? model : null,
+    }
   const read = words ? readPeriodWords(words, today, calendar) : null
   if (!read) return model ? { window: model, readsAs: null, other: null } : null
   const { window } = read
@@ -1310,6 +1398,7 @@ export function dateNote(readsAs: string): string | null {
       }
       if (/, fiscal year from \d{1,2} [A-Z][a-z]+$/.test(what)) return [what]
       if (/^(?:from|after|before) “/.test(what)) return [what]
+      if (what === 'from your last question') return [what]
       return what === 'day first' || /^(could not place|not taken:) /.test(what) ? [what] : []
     })
   return notes.length ? [...new Set(notes)].join(' · ') : null

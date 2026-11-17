@@ -16,10 +16,10 @@
       "advice": [
         "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
       ],
-      "verdict": [
-        "Yes: both are read as Net revenue, which is gross sales after returns, discounts, VAT and payment fees, in euros."
-      ],
-      "unsupported": []
+      "verdict": [],
+      "unsupported": [
+        "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
+      ]
     },
     "J04": {
       "advice": [],
@@ -89,8 +89,8 @@
       "unsupported": []
     },
     "J17": {
-      "advice": [],
-      "verdict": ["No."],
+      "advice": ["No."],
+      "verdict": [],
       "unsupported": []
     },
     "J18": {
@@ -140,7 +140,9 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": ["so 12 May was only the plan [1]"]
+      "unsupported": [
+        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
+      ]
     },
     "J27": {
       "advice": [],
@@ -152,9 +154,7 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "Another note counts only card and cash payments [2], but the owners have not marked them as conflicting."
-      ]
+      "unsupported": ["but the owners have not marked them as conflicting"]
     },
     "J29": {
       "advice": [],
@@ -206,9 +206,7 @@
     "J38": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "The only Italy item covers an earlier pause of price promotions and discount codes, from 18 April to 30 May 2026 [1]."
-      ]
+      "unsupported": []
     },
     "J39": {
       "advice": [],
@@ -223,7 +221,9 @@
     "J41": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "He last checked it on 20 June 2026, and its check date passed on 18 September [1]."
+      ]
     },
     "J42": {
       "advice": [],
@@ -238,9 +238,13 @@
       ]
     },
     "J45": {
-      "advice": [],
+      "advice": [
+        "The only related item is general: return on ad spend for one campaign counts orders for 30 days after sign-up, so a campaign should be read only once those 30 days have passed [1]."
+      ],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "The only related item is general: return on ad spend for one campaign counts orders for 30 days after sign-up, so a campaign should be read only once those 30 days have passed [1]."
+      ]
     },
     "J46": {
       "advice": ["Do not report it weekly [1]."],

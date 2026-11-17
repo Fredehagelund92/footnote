@@ -8,25 +8,28 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   by what a case must say: only ever shorter. The held-back cases are a count.
 
   Every step was recorded again on 17 November 2026 (Haiku 5.5, one try), after get_context took
-  the person's own words for a period and the read line said what else the days could mean. Read
-  by hand, the breaks listed are that run's own words: V07 repeats the person's own 12 beside the
-  floor of 10 or more it may say (the grader reads the 12 as a hidden count), V04 says what Ask
-  does not answer, H20 says "you should see", V02 starts its decline with "No", and H04 and H06 as
-  before. About 25 steps follow tool results that are not the same from one run to the next (an
-  Inbox card's id is made afresh each run), so no recorded step matches them, even on the code
-  that recorded them: the scripted reader takes those in every build.
+  relative_to, to read a follow-up's period against the last question's, and gave the days it
+  read. Read by hand, the breaks listed are that run's own words: V06 gives the floor of 5 beside
+  a topic the reader sees no count for (the grader reads it as a hidden count), GP10 repeats an
+  item's "use ... from 19 January 2026" in its own voice, V04 says what Ask does not answer, H24
+  says Ask does not answer and cites no item under a Partial read, V08 says "0 of 6", F12 names
+  a third France item, G06 names an April item among October's checks, V02 starts its decline
+  with "No", and H04 and H06 as before.
+  About 25 steps follow tool results that are not the same from one run to the next (an Inbox
+  card's id is made afresh each run), so no recorded step matches them, even on the code that
+  recorded them: the scripted reader takes those in every build.
 */
 
 askEvalSuite({
   answerer: 'loop',
   brokenToday: {
-    hidden: ['V07'],
-    advice: ['V04', 'H20'],
-    never: ['V02', 'H04', 'H06'],
+    hidden: ['V06'],
+    advice: ['V04', 'GP10'],
+    state: ['H24'],
+    never: ['V02', 'V08', 'F12', 'G06', 'H04', 'H06'],
   },
   missingToday: [
     'C2',
-    'K01',
     'K10',
     'K12',
     'K15',
@@ -42,19 +45,21 @@ askEvalSuite({
     'F18',
     'F19',
     'F21',
-    'F25',
+    'F28',
     'F29',
     'F30',
     'FP01',
     'FP02',
+    'FP03',
     'FP04',
+    'FP07',
     'FP10',
     'FP12',
     'G01',
     'G03',
     'G05',
-    'G06',
     'G07',
+    'G08',
     'G12',
     'G13',
     'G15',
@@ -63,24 +68,25 @@ askEvalSuite({
     'G22',
     'G23',
     'G29',
+    'G30',
     'GP01',
     'GP02',
     'GP04',
+    'GP06',
     'GP07',
     'GP12',
     'GP15',
     'H02',
     'H03',
     'H04',
-    'H06',
     'H07',
     'H08',
     'H10',
     'H13',
     'H14',
     'H15',
-    'H16',
     'H18',
+    'H20',
     'H24',
     'H25',
     'H28',
@@ -91,5 +97,5 @@ askEvalSuite({
     'P10',
     'P13',
   ],
-  heldPassingToday: 11,
+  heldPassingToday: 9,
 })

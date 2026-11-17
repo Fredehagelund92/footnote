@@ -437,3 +437,77 @@ describe("Ask's loop on the days the model read a period as", () => {
     expect(a.loop?.subject).toMatchObject({ period: '1 Jan to 31 Dec 2025', note: null })
   })
 })
+
+describe("Ask's loop on a follow-up that changes only the period", () => {
+  /** A model that reads Orders in Norway with this period, then answers citing nothing. */
+  const read = async (
+    question: string,
+    input: Record<string, unknown>,
+    turns: Parameters<Awaited<ReturnType<typeof world.as>>['ask']>[0]['turns'] = [],
+  ) => {
+    const api = await world.as(ML)
+    decide = ({ step }) =>
+      step === 0
+        ? { calls: [{ toolName: 'get_context', input: { about: 'orders in Norway', ...input } }] }
+        : { text: 'Nothing more is written.' }
+    try {
+      return await api.ask({ question, turns })
+    } finally {
+      decide = null
+    }
+  }
+
+  it('reads a bare month and a delta against the last question’s period, and says so', async () => {
+    const august = await read('why did orders drop in Norway in August 2026', {
+      period_words: 'August 2026',
+    })
+    expect(august.loop?.subject).toMatchObject({ period: '1-31 Aug 2026', note: null })
+    const september = await read(
+      'what about September?',
+      { period_words: 'September', relative_to: 'last question' },
+      [turnOf(august)],
+    )
+    expect(september.loop?.subject).toMatchObject({
+      period: '1-30 Sep 2026',
+      note: 'from your last question',
+    })
+    const lastYear = await read(
+      'and last year?',
+      { period_words: 'last year', relative_to: 'last question' },
+      [turnOf(august), turnOf(september)],
+    )
+    // A year before the last question's September, not the whole of last year.
+    expect(lastYear.loop?.subject).toMatchObject({
+      period: '1-30 Sep 2025',
+      note: 'from your last question',
+    })
+  })
+})
+
+describe("Ask's loop on a follow-up that keeps the period", () => {
+  it('reads the same period for another market, and says it is the last question’s', async () => {
+    const api = await world.as(ML)
+    const step =
+      (input: Record<string, unknown>) =>
+      ({ step }: ScriptedPrompt): ScriptedStep =>
+        step === 0
+          ? { calls: [{ toolName: 'get_context', input }] }
+          : { text: 'Nothing more is written.' }
+    try {
+      decide = step({ about: 'orders in Norway in August 2026', period_words: 'August 2026' })
+      const august = await api.ask({ question: 'orders in Norway in August 2026' })
+      decide = step({ about: 'orders in Sweden', relative_to: 'last question' })
+      const sweden = await api.ask({ question: 'and in Sweden?', turns: [turnOf(august)] })
+      expect(sweden.loop?.subject).toMatchObject({
+        period: '1-31 Aug 2026',
+        note: 'from your last question',
+      })
+      // Without the mark, a follow-up's own words are read as they stand: today, assumed.
+      decide = step({ about: 'orders in Sweden' })
+      const alone = await api.ask({ question: 'and in Sweden?', turns: [turnOf(august)] })
+      expect(alone.loop?.subject).toMatchObject({ assumedToday: true })
+    } finally {
+      decide = null
+    }
+  })
+})

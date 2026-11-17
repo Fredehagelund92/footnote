@@ -9,6 +9,7 @@ import {
   anchorOf,
   crossCheckedDays,
   dayWords,
+  readDates,
   windowWords,
   type Calendar,
 } from '../../../domain/dates.ts'
@@ -600,6 +601,12 @@ const getInput = z.strictObject({
       'With to: the days you read the period as, with the chat: a month or quarter without a year is in the year the chat is about.',
     ),
   to: day.optional(),
+  relative_to: z
+    .enum(['last question'])
+    .optional()
+    .describe(
+      "Set it on a follow-up about the last question's subject whose period is only a month, a quarter or a change of the last question's, such as 'what about September?', 'and last year?' or 'same period, in Sweden': the period is read against the last question's.",
+    ),
   no_period: z
     .boolean()
     .optional()
@@ -631,6 +638,8 @@ const readSchema = z.object({
   assumedToday: z.boolean(),
   /** How the words' dates were read, when they named some. */
   datesRead: z.nullable(z.string()),
+  /** The days read, first and last; null at any date. */
+  days: z.nullable(z.object({ from: z.string(), to: z.string() })),
   /** The days the period's words were also given as, when the reader read them otherwise. */
   otherDays: z.nullable(z.string()),
   /** The words read only by a synonym someone wrote in Definitions, and what each was read as. */
@@ -768,18 +777,27 @@ function eventAnchor(
   }
 }
 
+/** Whether a subject's words name dates of their own. */
+const namesDates = (words: string, today: string, calendar: Calendar) =>
+  readDates(normalizeName(words), today, { loose: true, ...calendar }).status !== 'none'
+
 function getContext(
   view: View,
   input: z.output<typeof getInput>,
   today: string,
   calendar: Calendar,
+  { lastPeriod }: ReadContext,
 ) {
-  // The model's days for the period, cross-checked against the reader's of the person's words.
+  // The model's days for the period, cross-checked against the reader's of the person's words,
+  // or read against the last question's period on a follow-up that changes only the period.
   const days = crossCheckedDays(
     input.period_words,
     input.from && input.to ? { start: input.from, end: shiftDate(input.to, 1) } : undefined,
     today,
     calendar,
+    input.relative_to && (input.period_words || !namesDates(input.about, today, calendar))
+      ? lastPeriod
+      : null,
   )
   const given = days ? { from: days.window.start, to: shiftDate(days.window.end, -1) } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
@@ -903,6 +921,12 @@ function getContext(
           assumedToday: counted.assumed !== null,
           datesRead:
             anchored?.datesRead ?? (days ? days.readsAs : (counted.dates?.reads_as ?? null)),
+          days: isAnyDate(scope.window)
+            ? null
+            : {
+                from: scope.window.start,
+                to: shiftDate(scope.window.end ?? shiftDate(today, 1), -1),
+              },
           otherDays: days?.other ? windowWords(days.other) : null,
           ...(synonyms.length ? { synonyms } : {}),
         }
@@ -1913,9 +1937,20 @@ export type AskToolOutput<N extends AskToolName> = z.output<(typeof definitionsF
 export type AskToolResult<N extends AskToolName> =
   AskToolOutput<N> | z.output<typeof toolErrorSchema>
 
+/**
+ * What a read knows of the chat beside its input: the days of the last question's period, which
+ * a follow-up's period may be read against (`relative_to`); null when it read none, or the day it
+ * assumed.
+ */
+export type ReadContext = { lastPeriod: { start: string; end: string } | null }
+
 /** Each tool's read, given the person's view, their reads and the checked input. */
 type Handlers = {
-  [N in AskToolName]: (view: View, input: z.output<(typeof definitionsFor)[N]['input']>) => unknown
+  [N in AskToolName]: (
+    view: View,
+    input: z.output<(typeof definitionsFor)[N]['input']>,
+    context: ReadContext,
+  ) => unknown
 }
 
 /**
@@ -1930,7 +1965,7 @@ export function createAskTools(reads: ToolReads) {
   const today = reads.today
   const handlers: Handlers = {
     find_context: (v, input) => findContext(v, input, today),
-    get_context: (v, input) => getContext(v, input, today, reads.calendar),
+    get_context: (v, input, context) => getContext(v, input, today, reads.calendar, context),
     read_context: (v, input) => readContext(v, reads, input, today),
     definitions: (v, input) => definitions(v, reads, input),
     records: (v, input) => records(v, reads, input),
@@ -1941,6 +1976,7 @@ export function createAskTools(reads: ToolReads) {
   async function run<N extends AskToolName>(
     toolName: N,
     input: unknown,
+    context: ReadContext = { lastPeriod: null },
   ): Promise<AskToolResult<N>> {
     const definition = definitionsFor[toolName]
     const parsed = definition.input.safeParse(input)
@@ -1950,7 +1986,7 @@ export function createAskTools(reads: ToolReads) {
         ids: [],
       }
     try {
-      const out = await handlers[toolName](await viewNow(), parsed.data as never)
+      const out = await handlers[toolName](await viewNow(), parsed.data as never, context)
       return definition.output.parse(out) as AskToolResult<N>
     } catch (error) {
       if (error instanceof ToolInputError) return { error: error.message, ids: [] }
