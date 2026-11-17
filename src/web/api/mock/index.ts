@@ -942,7 +942,7 @@ export function createMockApi() {
       // In a live chat it arrives as it would from the service, a sentence at a time.
       return live?.onEvent ? answered.then((a) => playAnswer(a, live)) : answered
     },
-    askedThisWeek: () => now(() => askedThisWeek(factsOf(state))),
+    askedThisWeek: () => read('askedThisWeek', '', () => askedThisWeek(factsOf(state))),
     getAskExamples: () => now(() => examples),
     listChats: () =>
       now(() =>

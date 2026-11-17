@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { JSONContent } from '@tiptap/core'
-import Placeholder from '@tiptap/extension-placeholder'
+import Placeholder, { type PlaceholderOptions } from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { ArrowUpIcon, AtSignIcon, SquareIcon } from '@/components/icons'
@@ -182,6 +182,14 @@ export function AskComposer({
   React.useEffect(() => {
     send.current = submit
   }, [submit])
+  // A placeholder that changes with the width shows at once, without a new editor.
+  React.useEffect(() => {
+    const hint = editor?.extensionManager?.extensions.find((e) => e.name === 'placeholder')
+    const options = hint?.options as PlaceholderOptions | undefined
+    if (!options || editor.isDestroyed || options.placeholder === placeholder) return
+    options.placeholder = placeholder
+    editor.view.dispatch(editor.state.tr)
+  }, [editor, placeholder])
 
   React.useImperativeHandle(
     ref,
