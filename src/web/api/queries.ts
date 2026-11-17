@@ -8,7 +8,7 @@ import {
   type QueryKey,
 } from '@tanstack/react-query'
 import type { SourceRead } from '@domain/source-state'
-import { api, type HeedApi, type HeedApiMethod } from '@/api'
+import { api, mockControls, type HeedApi, type HeedApiMethod } from '@/api'
 import {
   isPageRead,
   type readMethods,
@@ -168,8 +168,20 @@ export const scopeSearchQuery = (input: ScopeSearchInput) =>
     staleTime: 60_000,
   })
 
+/**
+ * The Context list: the library's items, which the shell already holds. While the library's answer
+ * is fresh a visit reads nothing; once it is stale, the list and the shell share one read of it, so
+ * the 1.4 MB of the demo's library is never read twice for one visit. The mock's review flags play
+ * the page's own read instead, so its loading can be seen.
+ */
 export const contextPageQuery = () =>
-  queryOptions({ queryKey: queryKeys.contextPage, queryFn: () => api.contextPage() })
+  queryOptions({
+    queryKey: queryKeys.contextPage,
+    queryFn: async ({ client }) =>
+      mockControls?.showsLoads()
+        ? api.contextPage()
+        : (await client.fetchQuery(libraryQuery())).items,
+  })
 
 export const itemPageQuery = (id: string) =>
   queryOptions({ queryKey: queryKeys.itemPage(id), queryFn: () => api.itemPage({ id }) })
