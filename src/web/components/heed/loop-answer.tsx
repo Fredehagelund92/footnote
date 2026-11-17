@@ -209,6 +209,12 @@ function PeriodChip({
   const [open, setOpen] = React.useState(false)
   const [picking, setPicking] = React.useState(false)
   const heading = React.useId()
+  const pickRow = React.useRef<HTMLButtonElement>(null)
+  const wasPicking = React.useRef(false)
+  React.useEffect(() => {
+    if (wasPicking.current && !picking) pickRow.current?.focus()
+    wasPicking.current = picking
+  }, [picking])
   const chip =
     'inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground'
   if (!onChoose) return <span className={chip}>{days}</span>
@@ -252,7 +258,12 @@ function PeriodChip({
               </button>
             ))}
             <div aria-hidden className="-mx-1 my-1 h-px bg-border" />
-            <button type="button" className={periodRow} onClick={() => setPicking(true)}>
+            <button
+              ref={pickRow}
+              type="button"
+              className={periodRow}
+              onClick={() => setPicking(true)}
+            >
               Pick dates
             </button>
           </div>
@@ -289,6 +300,7 @@ function PeriodDays({
       <label className={field}>
         First day
         <P.Input
+          autoFocus
           type="date"
           value={from}
           onChange={(e) => {

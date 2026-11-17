@@ -334,7 +334,17 @@ export function AskChat({
       // The question is in the chat at once; its answer follows as the look-up runs.
       setTurns((ts) => [
         ...ts,
-        askedTurn(id, q, repeated ? { again: repeated, scope: repeated.scope } : { parts, scope }),
+        askedTurn(
+          id,
+          q,
+          repeated
+            ? {
+                again: repeated,
+                scope: repeated.scope,
+                ...(again?.period ? { period: again.period } : {}),
+              }
+            : { parts, scope, ...(period ? { period } : {}) },
+        ),
       ])
       keepFocus()
       // Any answered turn can start the chat in the history, once; the session says whether it does.
@@ -378,10 +388,12 @@ export function AskChat({
   const askAgain = (i: number) =>
     one(async () => {
       const before = turns[i]!
-      const { question, parts, scope, id, again } = before.answer
+      const { question, parts, scope, id, again, period } = before.answer
       follow.current = true
       setTurns((ts) =>
-        ts.map((t, j) => (j === i ? askedTurn(id, question, { parts, scope, again }) : t)),
+        ts.map((t, j) =>
+          j === i ? askedTurn(id, question, { parts, scope, again, period }) : t,
+        ),
       )
       const words = askedWords(before.answer)
       /** The answer it had comes back. */
