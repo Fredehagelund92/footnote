@@ -181,6 +181,20 @@ const cases: Case[] = [
       }
     },
   },
+  {
+    id: 'loop-dates-anchored',
+    question: 'What happened to orders in Norway since the customs rule?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'orders in Norway since the customs rule' } },
+    ],
+    write: (p) => {
+      const r = readOf(p, 'get_context')
+      const stop = arr(r.items).find((i) => String(i.title).startsWith('Online sales to Norway'))
+      return {
+        text: `Online sales to Norway stopped on 4 August 2026 under the customs rule [${String(stop!.id)}].`,
+      }
+    },
+  },
 ]
 
 let current: Case | undefined
@@ -320,6 +334,17 @@ describe("Ask's loop answers, as the page draws them", () => {
     })
     // Dates the words named in full need no note.
     expect(turns['loop-checked']!.loop!.subject?.note).toBeNull()
+  })
+
+  it('reads "since" an event the reader cannot place from the day the event started', async () => {
+    const loop = await ask(cases[11]!)
+    // The customs rule is no date, but the event it names started on 4 August 2026: from then to today.
+    expect(loop.subject).toMatchObject({
+      period: '4 Aug to 23 Oct 2026',
+      note: 'from “Online sales to Norway stopped”, 4 Aug 2026',
+      assumedToday: false,
+    })
+    expect(loop.state).not.toBe('missing')
   })
 
   it('writes the examples the mock shows, when asked to', () => {

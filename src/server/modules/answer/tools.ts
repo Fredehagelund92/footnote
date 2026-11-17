@@ -5,9 +5,9 @@ import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
-import { windowWords, type Calendar } from '../../../domain/dates.ts'
+import { anchorOf, dayWords, windowWords, type Calendar } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
-import { anyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
+import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
 import { productName } from '../../brand.ts'
@@ -679,15 +679,91 @@ const isNearbyReason = (r: string): r is keyof typeof nearbyWhy => Object.hasOwn
 const coveredState = (a: Answer) =>
   answerStateOf({ status: a.status, items: a.items, uncovered: a.uncovered, assumed: false })
 
+/** A word as its stem, so "stopped" is "stop" and "rules" is "rule": plural, "-ing" and "-ed" off. */
+const stemOf = (word: string) =>
+  word
+    .replace(/ies$/, 'y')
+    .replace(/(?<=s|x|ch|sh)es$|(?<!s)s$/, '')
+    .replace(/(?:ing|ed)$/, '')
+    .replace(/e$/, '')
+    .replace(/([b-df-hj-np-tv-z])\1$/, '$1')
+const ANCHOR_FILLERS = new Set(['the', 'a', 'an', 'our', 'of', 'new'])
+const stemsOf = (text: string) =>
+  normalizeName(text)
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !ANCHOR_FILLERS.has(w))
+    .map(stemOf)
+/** A title without the day it ends on, which the read says itself: "Online sales to Norway stopped". */
+const eventName = (title: string) =>
+  title.replace(/ (?:on|from|since) \d{1,2} [A-Z][a-z]+ \d{4}$/, '')
+
+/**
+ * The days "since", "after" or "before" an event run, when the words name one the reader cannot
+ * place (R9, D5): the one event the person may read whose title and summary hold every word of the
+ * name ("since the customs rule": "Online sales to Norway stopped on 4 August 2026", whose summary
+ * names a new customs rule). Of several, the one about more of the subject's names, then with more
+ * of the words in its title. "since" starts on the event's first day, "after" the day after, both
+ * to today; "before" ends the day before. Null when no event, or more than one alike, matches.
+ */
+function eventAnchor(
+  view: View,
+  about: string,
+  subject: ResolvedScope,
+  today: string,
+  calendar: Calendar,
+) {
+  const anchor = anchorOf(about)
+  const wanted = anchor ? stemsOf(anchor.words) : []
+  if (!anchor || !wanted.length) return null
+  const scored = view.bundle.items.flatMap((item) => {
+    if (item.kind !== 'event' || item.status !== 'accepted') return []
+    const title = stemsOf(item.title)
+    const all = new Set([...title, ...stemsOf(item.summary)])
+    if (!wanted.every((w) => all.has(w))) return []
+    const named = [
+      ...subject.metrics.filter((m) => item.scope.metrics.includes(m)),
+      ...Object.entries(subject.filters).flatMap(([dimension, values]) =>
+        values.filter((v) =>
+          item.scope.dimensionValues.some((d) => d.dimension === dimension && d.value === v),
+        ),
+      ),
+    ].length
+    return [{ item, score: named * 100 + wanted.filter((w) => title.includes(w)).length }]
+  })
+  const best = Math.max(...scored.map((s) => s.score))
+  const top = scored.filter((s) => s.score === best)
+  if (top.length !== 1) return null
+  const { item } = top[0]!
+  const start = item.validity.start
+  const window =
+    anchor.lead === 'before'
+      ? { from: anyDate.start, to: shiftDate(start, -1) }
+      : { from: anchor.lead === 'since' ? start : shiftDate(start, 1), to: today }
+  if (window.from > window.to) return null
+  const days = { start: window.from, end: shiftDate(window.to, 1) }
+  const lead = anchor.lead === 'since' ? 'from' : anchor.lead
+  return {
+    window,
+    datesRead: `${windowWords(days, { upTo: true })} (${lead} “${eventName(item.title)}”, ${dayWords(start)}; ${calendar.timeZone})`,
+  }
+}
+
 function getContext(
   view: View,
   input: z.output<typeof getInput>,
   today: string,
   calendar: Calendar,
 ) {
-  const window = input.from && input.to ? { from: input.from, to: input.to } : undefined
+  const given = input.from && input.to ? { from: input.from, to: input.to } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
     answer(view.bundle, ask, { today, calendar, person: true })
+  const plain = lookup({ question: input.about, ...(given ? { window: given } : {}) })
+  // Words the reader placed no period for may name an event the days start or end at.
+  const anchored =
+    !given && plain.scope && (plain.assumed || isAnyDate(plain.scope.window))
+      ? eventAnchor(view, input.about, plain.scope, today, calendar)
+      : null
+  const window = anchored?.window ?? given
   // A name the person may not see is read as one Heed does not know.
   const hidesName = (a: Answer) =>
     !!a.scope &&
@@ -708,7 +784,7 @@ function getContext(
     without,
     found: a.items.length,
   })
-  const asked = lookup({ question: input.about, ...(window ? { window } : {}) })
+  const asked = anchored ? lookup({ question: input.about, window: anchored.window }) : plain
   // A subject read at no period, when its words name no dates: today is not assumed, so the state
   // is not Partial for want of a date (the words' own dates, or from and to, still stand).
   const first =
@@ -796,9 +872,9 @@ function getContext(
           words: readWords,
           names: keysOf(counted).map((k) => termName(view, k)),
           about: keysOf(counted).map(nounId),
-          period: windowWords(scope.window),
+          period: windowWords(scope.window, { upTo: true }),
           assumedToday: counted.assumed !== null,
-          datesRead: counted.dates?.reads_as ?? null,
+          datesRead: anchored?.datesRead ?? counted.dates?.reads_as ?? null,
           ...(synonyms.length ? { synonyms } : {}),
         }
       : null,

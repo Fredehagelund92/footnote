@@ -1197,10 +1197,40 @@ export function readDates(
 const list = (names: readonly string[]) =>
   names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
+/** "since", "after" or "before" an event, and the words that name it: "since the customs rule". */
+export type DateAnchor = { lead: 'since' | 'after' | 'before'; words: string }
+
+const anchorPattern =
+  /\b(since|after|before) (?:the |our )?([a-z0-9][a-z0-9'-]*(?: [a-z0-9][a-z0-9'-]*){0,5})/
+/** The words that end an event's name: a preposition, a joining word or a verb of the question. */
+const anchorEnds = new Set(
+  'in on at for to from by with and or but so than vs versus compared when while was were is are did does do has have had this last next'.split(
+    ' ',
+  ),
+)
+
+/**
+ * The event a question's dates hang on, as written: "orders since the customs rule" gives
+ * { lead: 'since', words: 'customs rule' }, read up to the first word that ends a name ("since the
+ * rename in Norway" gives 'rename'). Null when the words name no "since", "after" or "before"
+ * something. Only the words: whether an event matches them is the caller's to find, and only
+ * where `readDates` placed no period.
+ */
+export function anchorOf(text: string): DateAnchor | null {
+  const m = anchorPattern.exec(text.toLowerCase())
+  if (!m) return null
+  const words: string[] = []
+  for (const word of m[2]!.split(' ')) {
+    if (anchorEnds.has(word)) break
+    words.push(word)
+  }
+  return words.length ? { lead: m[1] as DateAnchor['lead'], words: words.join(' ') } : null
+}
+
 /**
  * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",
- * "fiscal year read as the calendar year", "Q3 FY26, fiscal year from 1 April", "day first", "could not place 'since the launch'" or
- * "not taken: 'fy26'", not the words that name the period or its time zone, which the days
+ * "fiscal year read as the calendar year", "Q3 FY26, fiscal year from 1 April", "day first", "could not place 'since the launch'",
+ * "not taken: 'fy26'" or the event the days start at, "from “Online sales to Norway stopped”, 4 Aug 2026"; not the words that name the period or its time zone, which the days
  * already say. Null when the words left Heed nothing to guess.
  */
 export function dateNote(readsAs: string): string | null {
@@ -1217,6 +1247,7 @@ export function dateNote(readsAs: string): string | null {
         return [`${fiscal} ${calendar[1]} read as the calendar ${calendar[1]}`]
       }
       if (/, fiscal year from \d{1,2} [A-Z][a-z]+$/.test(what)) return [what]
+      if (/^(?:from|after|before) “/.test(what)) return [what]
       return what === 'day first' || /^(could not place|not taken:) /.test(what) ? [what] : []
     })
   return notes.length ? [...new Set(notes)].join(' · ') : null

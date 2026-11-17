@@ -14,3 +14,17 @@ test('a month asked without a year shows its days and that the year was not give
   await expect(line.getByText('year not given', { exact: true })).toBeVisible()
   expect(await line.textContent()).toMatch(/1-30 Nov 2025·year not given/)
 })
+
+// "since the customs rule" names no date, but the event it means does: Ask reads from the day the
+// event started to today and names the event on the read line (period slice R9).
+test('a period since an event starts on the event, and the read line names it', async ({
+  page,
+}) => {
+  await go(page, '/ask?example=loop-dates-anchored')
+  const line = page.locator('p', { hasText: /^Read as/ })
+  await expect(line).toBeVisible()
+  await expect(line.getByText('4 Aug to 23 Oct 2026', { exact: true })).toBeVisible()
+  await expect(
+    line.getByText('from “Online sales to Norway stopped”, 4 Aug 2026', { exact: true }),
+  ).toBeVisible()
+})

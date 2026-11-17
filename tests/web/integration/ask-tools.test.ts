@@ -321,6 +321,69 @@ describe('the dates a read takes', () => {
       expect(two.read?.datesRead).toContain("not taken: 'september'")
     })
   })
+  // R9: "since", "after" or "before" words the reader cannot place, matched to an event's title
+  // and summary; the days start or end at the event, and the read says which.
+  describe('at an event the words name', () => {
+    it('reads since an event from its first day to today, and names it', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const since = await ok(tools, 'get_context', {
+          about: 'orders in Norway since the customs rule',
+        })
+        expect(since.read).toMatchObject({ period: '4 Aug to 23 Oct 2026', assumedToday: false })
+        expect(since.read?.datesRead).toBe(
+          '4 Aug to 23 Oct 2026 (from “Online sales to Norway stopped”, 4 Aug 2026; UTC)',
+        )
+        expect(since.items.map((i) => i.title)).toContain(
+          'Online sales to Norway stopped on 4 August 2026',
+        )
+      })
+    })
+
+    it('reads after an event from the day after it, and before one up to the day before', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const after = await ok(tools, 'get_context', { about: 'orders in Norway after the stop' })
+        expect(after.read?.period).toBe('5 Aug to 23 Oct 2026')
+        const before = await ok(tools, 'get_context', {
+          about: 'orders in Norway before the customs rule',
+        })
+        expect(before.read?.period).toBe('up to 3 Aug 2026')
+        expect(dateNote(before.read?.datesRead ?? '')).toBe(
+          'before “Online sales to Norway stopped”, 4 Aug 2026',
+        )
+      })
+    })
+
+    it('of several alike, takes the event about the subject, and none of two about it', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const spain = await ok(tools, 'get_context', {
+          about: 'first-time buyers in Spain since the payment provider switch',
+        })
+        expect(dateNote(spain.read?.datesRead ?? '')).toBe(
+          'from “Payment provider switched in Spain”, 21 Oct 2025',
+        )
+        // France switched on 12 and on 21 May 2026: which is not Ask's to guess.
+        const france = await ok(tools, 'get_context', {
+          about: 'orders in France since the payment provider switch',
+        })
+        expect(france.read?.assumedToday).toBe(true)
+      })
+    })
+
+    it('keeps the read as it was when no event matches, or the days are given', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const rename = await ok(tools, 'get_context', {
+          about: 'orders in Norway since the rename',
+        })
+        expect(rename.read?.assumedToday).toBe(true)
+        const given = await ok(tools, 'get_context', {
+          about: 'orders in Norway since the customs rule',
+          from: '2026-09-01',
+          to: '2026-09-30',
+        })
+        expect(given.read?.period).toBe('1-30 Sep 2026')
+      })
+    })
+  })
 })
 
 describe('a read of a subject with no period', () => {
