@@ -6,34 +6,52 @@ import * as React from 'react'
  * Arrow keys (or J and K) move between rows, Home and End jump. The rows' open buttons are the
  * stops; when a peek is open, moving the cursor opens the next row in it, as in a mail list. Picking
  * rows (X, Shift and an arrow) is the selection's, in hooks/use-selection.ts, and runs first.
+ *
+ * A list that draws only the rows in view (components/heed/window-rows.tsx) passes `rows`: its
+ * whole order and how to bring a row into view, so the keys move through every row, drawn or not.
  */
 export function useRowKeys({
   onMove,
   onEscape,
+  rows,
 }: {
   onMove?: (id: string) => void
   onEscape?: () => boolean
+  rows?: {
+    order: readonly string[]
+    reveal: (id: string, then: (row: HTMLElement) => void) => void
+  }
 }) {
   return (e: React.KeyboardEvent<HTMLElement>) => {
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return
     const target = e.target as HTMLElement
     if (target.closest('input, textarea')) return
     const stops = [...e.currentTarget.querySelectorAll<HTMLElement>('[data-row-open]')]
-    const at = stops.findIndex(
+    const here = stops.findIndex(
       (s) => s === target || s.contains(target) || s.closest('tr')?.contains(target),
     )
+    const ids = rows?.order ?? stops.map((s) => s.dataset.rowOpen!)
+    const at = here < 0 ? -1 : ids.indexOf(stops[here]!.dataset.rowOpen!)
     const go = (i: number) => {
-      const next = stops[Math.max(0, Math.min(stops.length - 1, i))]
-      if (!next) return
+      const id = ids[Math.max(0, Math.min(ids.length - 1, i))]
+      if (id === undefined) return
       e.preventDefault()
-      next.focus()
-      next.scrollIntoView({ block: 'nearest' })
-      onMove?.(next.dataset.rowOpen!)
+      const focus = (next: HTMLElement) => {
+        next.focus()
+        next.scrollIntoView({ block: 'nearest' })
+      }
+      if (rows)
+        rows.reveal(id, (row) => {
+          const next = row.querySelector<HTMLElement>('[data-row-open]')
+          if (next) focus(next)
+        })
+      else focus(stops.find((s) => s.dataset.rowOpen === id)!)
+      onMove?.(id)
     }
     if (e.key === 'ArrowDown' || e.key === 'j') go(at + 1)
     else if (e.key === 'ArrowUp' || e.key === 'k') go(at - 1)
     else if (e.key === 'Home') go(0)
-    else if (e.key === 'End') go(stops.length - 1)
+    else if (e.key === 'End') go(ids.length - 1)
     else if (e.key === 'Escape' && onEscape?.()) e.preventDefault()
   }
 }
