@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { card, expect, go, mode, moveTo, onMockOnly, signInAs, test } from './go.ts'
 
 // J28: the three Ask ideas to try first. An answer travels with its state and its sources; a
@@ -347,8 +347,8 @@ test('Asked this week on a phone: the whole card above the box, its rows lined u
   expect(last.y + last.height).toBeLessThanOrEqual(composer.y)
   expect(footer.y + footer.height).toBeLessThanOrEqual(composer.y)
   const title = (await week.getByRole('heading', { name: 'Asked this week' }).boundingBox())!
-  const topic = (await rows.first().getByRole('button').boundingBox())!
-  expect(topic.x).toBe(title.x)
+  const tile = (await rows.first().locator('span').first().boundingBox())!
+  expect(tile.x).toBe(title.x)
 })
 
 for (const size of [
@@ -410,4 +410,130 @@ test.describe('on a touch phone', () => {
     await page.touchscreen.tap(count.x + count.width / 2, count.y + count.height / 2)
     await expect(page.getByRole('log')).toContainText(shown)
   })
+})
+
+/** Each move an element makes from here on, as it starts: its frames and its timing. */
+async function movesOf(el: Locator) {
+  await el.evaluate((el) => {
+    const animate = el.animate.bind(el)
+    const moves: unknown[] = []
+    Object.assign(el, { moves })
+    el.animate = (frames, options) => {
+      moves.push({ frames, options })
+      return animate(frames, options)
+    }
+  })
+  return () => el.evaluate((el) => (el as unknown as { moves: unknown[] }).moves)
+}
+
+/** A question that is no example: it is asked in this chat, so the box stays the same box. */
+const plain = 'What should I know about Orders in Germany?'
+
+test('Ask on a wide pane: the box sits under the question until the first question, then docks and keeps focus', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await go(page, `/ask?n=${Date.now()}`)
+  const dock = page.locator('[data-dock]')
+  const pane = dock.locator('xpath=..')
+  const box = page.getByRole('textbox', { name: 'Ask a question' })
+  await expect(box).toBeFocused()
+  const lifted = (await box.boundingBox())!
+  const frame = (await pane.boundingBox())!
+  expect(lifted.y).toBeLessThan(frame.y + frame.height / 2)
+  // The states are taught once, under the box.
+  await expect(dock).toContainText(/Checked,\s*Outdated,\s*Not found\.\s*Every answer says which\./)
+  // The week comes after the box, in the same scroll.
+  const week = (await page.getByRole('region', { name: 'Asked this week' }).boundingBox())!
+  expect(week.y).toBeGreaterThan(lifted.y + lifted.height)
+
+  const moves = await movesOf(dock)
+  await box.pressSequentially(plain)
+  await box.press('Enter')
+  await expect(page.getByRole('log')).toContainText(plain)
+  // It moves from under the question to the bottom edge in 220 ms on the move curve.
+  expect(await moves()).toEqual([
+    {
+      frames: [
+        { transform: expect.stringMatching(/^translateY\(-\d+(\.\d+)?px\)$/) },
+        { transform: 'none' },
+      ],
+      options: {
+        duration: 220,
+        easing: expect.stringMatching(/^cubic-bezier\(0?\.77, 0, 0?\.175, 1\)$/),
+      },
+    },
+  ])
+  await expect(dock).not.toContainText('Every answer says which.')
+  // Once it has arrived, it is docked to the bottom edge.
+  await dock.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
+  expect((await box.boundingBox())!.y).toBeGreaterThan(frame.y + frame.height / 2)
+  const docked = (await dock.boundingBox())!
+  expect(Math.abs(docked.y + docked.height - (frame.y + frame.height))).toBeLessThanOrEqual(1)
+  await expect(box).toBeFocused()
+})
+
+test.describe('with reduced motion', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test('the box docks on the first question without moving through the page', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await go(page, `/ask?n=${Date.now()}`)
+    const dock = page.locator('[data-dock]')
+    const box = page.getByRole('textbox', { name: 'Ask a question' })
+    const moves = await movesOf(dock)
+    await box.click()
+    await box.pressSequentially(plain)
+    await box.press('Enter')
+    await expect(page.getByRole('log')).toContainText(plain)
+    expect(await moves()).toEqual([])
+    await expect(dock).not.toContainText('Every answer says which.')
+    await expect(box).toBeFocused()
+  })
+})
+
+test('Ask on a phone keeps the box docked at the bottom edge from the start', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await go(page, `/ask?n=${Date.now()}`)
+  const dock = page.locator('[data-dock]')
+  const frame = (await dock.locator('xpath=..').boundingBox())!
+  const docked = (await dock.boundingBox())!
+  expect(Math.abs(docked.y + docked.height - (frame.y + frame.height))).toBeLessThanOrEqual(1)
+  await expect(dock).not.toContainText('Every answer says which.')
+})
+
+test("Asked this week: a bar of the week's topics by state, its counts the rows' own", async ({
+  page,
+}) => {
+  await go(page, '/ask')
+  const week = page.getByRole('region', { name: 'Asked this week' })
+  const more = week.getByRole('button', { name: /^Show \d+ more$/ })
+  const topics = Number((await more.textContent())!.match(/\d+/)![0]) + 4
+  await more.click()
+  const rows = week.getByRole('listitem')
+  await expect(rows).toHaveCount(topics)
+  // Every topic shown was asked 5 times or more; fewer stays out of the rows and the bar.
+  for (const count of await rows.locator('[id$="-count"]').allTextContents())
+    expect(parseInt(count)).toBeGreaterThanOrEqual(5)
+  const states: Record<string, number> = {}
+  for (const row of await rows.all()) {
+    const state = (await row.getByText(STATE).textContent())!
+    states[state] = (states[state] ?? 0) + 1
+  }
+  const bar = week.getByRole('img', { name: /topics: / })
+  const label = (await bar.getAttribute('aria-label'))!
+  expect(label).toMatch(new RegExp(`^${topics} topics: `))
+  const named = Object.fromEntries(
+    label
+      .replace(/^\d+ topics: /, '')
+      .split(', ')
+      .map((part) => {
+        const [, n, state] = part.match(/^(\d+) (.+)$/)!
+        return [state!, Number(n)]
+      }),
+  )
+  expect(named).toEqual(states)
+  // Each row has its state's icon on a tile, and the word in the state's colour.
+  const checked = rows.filter({ has: page.getByText('Checked', { exact: true }) }).first()
+  await expect(checked.locator('svg').first()).toBeVisible()
 })

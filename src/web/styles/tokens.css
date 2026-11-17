@@ -501,8 +501,8 @@
      from 560 px of pane, in the Inbox and in the dock, and one above the other below it. */
   --container-pane-split: 35rem;
 
-  /* Shadows: hairlines drawn inside a box, the peeked row's edge, the sidebar's ring and a phone
-     sheet lifting from the bottom. */
+  /* Shadows: hairlines drawn inside a box, the peeked row's edge, the sidebar's ring, a phone
+     sheet lifting from the bottom and the Ask box lifted under its question. */
   --shadow-hairline: inset 0 0 0 1px var(--border);
   --shadow-hairline-top: inset 0 1px 0 var(--border);
   --shadow-hairline-bottom: inset 0 -1px 0 var(--border);
@@ -510,6 +510,7 @@
   --shadow-sidebar-ring: 0 0 0 1px var(--sidebar-border);
   --shadow-sidebar-ring-hover: 0 0 0 1px var(--sidebar-accent);
   --shadow-sheet-up: 0 -8px 24px -12px rgb(0 0 0 / 0.25);
+  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -12px rgb(0 0 0 / 0.25);
 
   /* Sizes with a rule of their own: a dialog or sheet inside the window, a short caption's
      measure, the safe area at the foot of a phone, the palette's place, the sidebar's rail and

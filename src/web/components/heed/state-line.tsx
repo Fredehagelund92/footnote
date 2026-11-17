@@ -13,7 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { AnswerState } from '@/model/ask'
 import { ANSWER_LINES } from '@/lib/help-content'
 
-const stateIcon: Record<AnswerState, typeof CircleCheckIcon> = {
+/** Each state's icon, the same wherever the state shows. */
+export const stateIcon: Record<AnswerState, typeof CircleCheckIcon> = {
   grounded: CircleCheckIcon,
   partial: ContrastIcon,
   missing: CircleDashedIcon,

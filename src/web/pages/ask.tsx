@@ -75,12 +75,13 @@ import type { Fact } from '@/model/items'
 import { useDraft } from '@/lib/draft'
 import { useOpeningRead } from '@/lib/opening-read'
 import { useIsMobile, useMedia } from '@/hooks/use-mobile'
+import { useWide } from '@/hooks/use-wide'
 import { readWidth, saveWidth } from '@/lib/pane-width'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { composerSurface } from '@/lib/surfaces'
 import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threads'
 import { TruncatedText } from '@/components/heed/truncated'
-import { AskedThisWeek } from '@/components/heed/asked-week'
+import { AskedThisWeek, StateLegend } from '@/components/heed/asked-week'
 import { Answering, Suggestions } from '@/components/heed/suggestions'
 import { arriveRef, leaveThen, useLeaving } from '@/lib/presence'
 import { asksAgain } from '@domain/ask-again'
@@ -125,8 +126,14 @@ const lastAsked = (turns: readonly Turn[]) =>
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+/** A CSS time in milliseconds: the build writes 220ms as .22s. */
+const msOf = (time: string) => parseFloat(time) * (time.trim().endsWith('ms') ? 1 : 1000)
+
 /** How near the bottom, in pixels, the reader counts as at the bottom: the view follows the answer (`ASK_ANCHOR` follow). */
 const FOLLOW_SLACK = 24
+
+/** How wide, in pixels, a pane holds the box under the question until the first question. */
+const LIFT_MIN = 640
 
 const AskComposer = React.lazy(() =>
   import('@/pages/ask-composer').then((m) => ({ default: m.AskComposer })),
@@ -290,6 +297,29 @@ export function AskChat({
   function keepFocus() {
     if (!touch) composer.current?.focus()
   }
+  // On a pane wide enough, an empty chat has its box under the question, lifted a little; the first
+  // question docks it to the bottom edge, where a phone keeps it all along.
+  const [pane, wide] = useWide<HTMLDivElement>(LIFT_MIN)
+  const up = wide && !compact && turns.length === 0
+  const dock = React.useRef<HTMLDivElement>(null)
+  const lifted = React.useRef<number | null>(null)
+  React.useLayoutEffect(() => {
+    const from = lifted.current
+    lifted.current = null
+    const el = dock.current
+    if (up || from === null || !el || reducedMotion()) return
+    const style = getComputedStyle(el)
+    el.animate(
+      [
+        { transform: `translateY(${from - el.getBoundingClientRect().top}px)` },
+        { transform: 'none' },
+      ],
+      {
+        duration: msOf(style.getPropertyValue('--dur-3')),
+        easing: style.getPropertyValue('--ease-move'),
+      },
+    )
+  }, [up])
   const { fresh } = useSession()
   const examples = useAskExamples()
   // What agents asked this week; with nothing asked yet (a new workspace), its starters instead.
@@ -306,8 +336,10 @@ export function AskChat({
     if (index === 0 && !scope?.length && (parts ?? []).every((p) => typeof p === 'string'))
       queryClient.setQueryData(askQuery({ question }).queryKey, answer)
   }
-  const add = (asked: string | AskQuestion, period?: ChosenPeriodInput) =>
-    one(async () => {
+  const add = (asked: string | AskQuestion, period?: ChosenPeriodInput) => {
+    // Where the box was, under the question, so it moves from there to the bottom edge.
+    if (up) lifted.current = dock.current?.getBoundingClientRect().top ?? null
+    return one(async () => {
       const {
         text: q,
         parts,
@@ -374,6 +406,7 @@ export function AskChat({
         })
       }
     })
+  }
 
   // "Change it" under a misread question: the question goes back in the box with what it was read as, as chips to keep or swap.
   const rescope = (parts: QuestionPart[]) => composer.current?.set(parts)
@@ -526,19 +559,42 @@ export function AskChat({
       ? 'Ask about a number'
       : 'Ask what is written about a number, such as orders in Norway'
 
+  // What agents asked this week; a new workspace, with nothing asked yet, gets its starters instead.
+  const start = draft ? null : fresh || (week && !week.rows.length) ? (
+    <Suggestions grid items={starters.slice(0, 4)} onPick={(q) => void add(q)} />
+  ) : (
+    <AskedThisWeek onPick={(q) => void add(q)} />
+  )
+
   return (
     <Answering value={answering}>
-      <div data-touch-targets className="@container flex h-full min-h-0 flex-col">
+      {/* Lifted, the whole page scrolls: the question, the box under it and what was asked. */}
+      <div
+        ref={pane}
+        data-touch-targets
+        className={cn(
+          '@container flex h-full min-h-0 flex-col',
+          up && 'scrollbar-stable overflow-y-auto',
+        )}
+      >
         {/* Positioned, so what is placed inside a turn (a citation's screen-reader words) stays in
             this scroll box and never makes the page around it taller. */}
         <div
           ref={viewport}
           data-thread
-          className="relative min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+          className={cn(
+            'relative',
+            up ? 'shrink-0' : 'min-h-0 flex-1 scrollbar-stable overflow-y-auto',
+          )}
         >
           <div ref={content} className={cn('mx-auto flex min-h-full w-full flex-col', width)}>
             {turns.length === 0 ? (
-              <div className="flex flex-1 flex-col gap-5 pt-8 pb-10 sm:pt-ask-greeting">
+              <div
+                className={cn(
+                  'flex flex-1 flex-col gap-5 pt-8 sm:pt-ask-greeting',
+                  up ? 'pb-1' : 'pb-10',
+                )}
+              >
                 <div className="px-2 text-center">
                   <h2 className="text-2xl font-medium tracking-tight text-balance">
                     What do you want to know about your metrics?
@@ -547,13 +603,7 @@ export function AskChat({
                     Answers come from what your team wrote and an owner checked.
                   </p>
                 </div>
-                {/* What agents asked this week; a new workspace, with nothing asked yet, gets its starters instead. */}
-                {!draft &&
-                  (fresh || (week && !week.rows.length) ? (
-                    <Suggestions grid items={starters.slice(0, 4)} onPick={(q) => void add(q)} />
-                  ) : (
-                    <AskedThisWeek onPick={(q) => void add(q)} />
-                  ))}
+                {!up && start}
               </div>
             ) : (
               // A log, so a screen reader hears each answer arrive.
@@ -601,23 +651,37 @@ export function AskChat({
         <p role="status" className="sr-only">
           {status}
         </p>
-        {/* Docked to the bottom edge, part of the frame: a hairline above, the box at reading width. */}
-        <div className="shrink-0 border-t bg-background">
+        {/* Docked to the bottom edge, part of the frame: a hairline above, the box at reading width.
+            Lifted, it sits under the question with a soft shadow and the states' legend under it. */}
+        <div
+          ref={dock}
+          data-dock
+          className={cn('shrink-0 bg-background', up ? 'pt-5' : 'border-t')}
+        >
           <div className={cn('mx-auto flex w-full flex-col gap-2 pt-3 pb-4', width)}>
-            <React.Suspense fallback={<ComposerPlaceholder placeholder={placeholder} />}>
-              <AskComposer
-                ref={composer}
-                onSubmit={(q) => void add(q)}
-                onStop={stop}
-                busy={busy}
-                waiting={waiting}
-                placeholder={placeholder}
-                prefill={prefill}
-                autoFocus={(turns.length === 0 || !!prefill) && !touch}
-              />
-            </React.Suspense>
+            <div
+              className={cn(
+                'rounded-composer transition-shadow duration-(--dur-3)',
+                up && 'shadow-lift',
+              )}
+            >
+              <React.Suspense fallback={<ComposerPlaceholder placeholder={placeholder} />}>
+                <AskComposer
+                  ref={composer}
+                  onSubmit={(q) => void add(q)}
+                  onStop={stop}
+                  busy={busy}
+                  waiting={waiting}
+                  placeholder={placeholder}
+                  prefill={prefill}
+                  autoFocus={(turns.length === 0 || !!prefill) && !touch}
+                />
+              </React.Suspense>
+            </div>
+            {up && <StateLegend />}
           </div>
         </div>
+        {up && start && <div className={cn('mx-auto w-full pt-6 pb-10', width)}>{start}</div>}
       </div>
     </Answering>
   )
