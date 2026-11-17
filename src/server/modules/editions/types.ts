@@ -3,6 +3,7 @@ import type { EditionBundle, ResolverItem } from '../../../domain/resolver.ts'
 import type { LinkTerm, RawLink, RetiredItem } from '../../../domain/links.ts'
 import type { ServedReview } from '../../../domain/served-review.ts'
 import type { WrittenTerm } from '../../../domain/served-terms.ts'
+import type { Calendar } from '../../../domain/dates.ts'
 
 export type ServingItem = ResolverItem & {
   kind: ItemKind
@@ -70,6 +71,8 @@ export type ServingPolicy = {
    * (`business.about`), background and never evidence. Empty when there is none.
    */
   about: string
+  /** The workspace's calendar (R8), which get_context reads dates on and the instructions name. */
+  calendar: Calendar
 }
 export type McpRates = { person: number; client: number }
 export interface EditionSource {

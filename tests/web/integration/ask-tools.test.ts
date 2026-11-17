@@ -1,4 +1,5 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { dateNote } from '../../../src/domain/dates.ts'
 import { people } from '@/api/mock/data/world'
 import type { AskToolName, AskTools } from '../../../src/server/modules/answer/index.ts'
 import { tableContents } from '../../integration/support.ts'
@@ -269,8 +270,45 @@ describe('the dates a read takes', () => {
   it('reads a quarter of a fiscal year as the quarter, never the whole year (R3)', async () => {
     await world.withTools('Jon Abara', async (tools) => {
       const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
+      // Until the workspace says when its fiscal year starts, the read line says how FY26 was read.
       expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
       expect(q3.read?.datesRead).toContain('FY26 read as the calendar year')
+    })
+  })
+
+  describe("on the workspace's calendar (R8)", () => {
+    const set = (key: string, value: unknown) =>
+      world.client.query(
+        `insert into settings_versions (key, version, value, reason)
+         select $1, coalesce(max(version), 0) + 1, $2::jsonb, 'ask tools'
+           from settings_versions where key = $1`,
+        [key, JSON.stringify(value)],
+      )
+    beforeAll(async () => {
+      await set('calendar.fiscal_year_start', { month: 4, day: 1 })
+      await set('calendar.time_zone', 'Europe/Oslo')
+    })
+    afterAll(async () => {
+      await set('calendar.fiscal_year_start', null)
+      await set('calendar.time_zone', 'UTC')
+    })
+
+    it('reads Q3 FY26 as 1 Oct to 31 Dec 2025 with the fiscal year from 1 April, and the read line says fiscal', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
+        expect(q3.read?.period).toBe('1 Oct to 31 Dec 2025')
+        expect(q3.read?.datesRead).toBe(
+          '1 Oct to 31 Dec 2025 (Q3 FY26, fiscal year from 1 April; Europe/Oslo)',
+        )
+        expect(dateNote(q3.read?.datesRead ?? '')).toBe('Q3 FY26, fiscal year from 1 April')
+      })
+    })
+
+    it('names the time zone today is read in', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const august = await ok(tools, 'get_context', { about: 'orders in Norway in August 2026' })
+        expect(august.read?.datesRead).toBe('1-31 Aug 2026 (Europe/Oslo)')
+      })
     })
   })
 

@@ -10,6 +10,7 @@ import type { ServedToolName } from '../../../src/server/mcp/tools.ts'
 import type { ServingBundle } from '../../../src/server/modules/editions/index.ts'
 import type { WaitingTerms } from '../../../src/server/mcp/reads.ts'
 import { bundle, fakeReads, memoryStore } from './fixtures.ts'
+import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 
 type Line = Record<string, unknown>
 /** The fields of the outcome tools' replies these tests read. */
@@ -48,6 +49,7 @@ function setup(change: (data: ServingBundle) => void = () => {}, waiting?: Waiti
           limits: {},
           rates: { person: 30, client: 120 },
           about: '',
+          calendar: UTC_CALENDAR,
         }),
     },
     memory.store,

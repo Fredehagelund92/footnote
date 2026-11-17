@@ -6,6 +6,7 @@ import type { CheckFlag, ClaimLevel, ItemKind, RiskLevel } from '../../../domain
 import type { AcceptedAs } from '../../../domain/served-review.ts'
 import { servedWords, type WrittenTerm } from '../../../domain/served-terms.ts'
 import type { Term } from '../../../domain/vocabulary.ts'
+import { calendarOf } from '../admin/index.ts'
 import { connectorType } from '../connectors/index.ts'
 import type {
   ClientPolicy,
@@ -80,15 +81,15 @@ export const DEFAULT_MCP_RATES: McpRates = { person: 30, client: 120 }
 /**
  * What a client may call and how often, read on every request so an administrator's change
  * reaches the next one: the client's policy, the switched-on tools (FR-407), the per-tool limits
- * and the per-person and per-client rates per minute (FR-408), and About our business, which the
- * server instructions end with.
+ * and the per-person and per-client rates per minute (FR-408), About our business, which the
+ * server instructions end with, and the workspace's calendar, which they name.
  */
 export async function loadServingPolicy(tx: Queryable, label: string): Promise<ServingPolicy> {
   const [clients, tools, settings] = await Promise.all([
     tx.query<ClientPolicy>('select * from client_policies where client_label=$1', [label]),
     enabledTools(tx),
     tx.query<{ key: string; value: unknown }>(
-      "select key,value from settings_current where key in ('limits.mcp_rate_per_minute','limits.mcp_requests_per_minute','business.about')",
+      "select key,value from settings_current where key in ('limits.mcp_rate_per_minute','limits.mcp_requests_per_minute','business.about','calendar.fiscal_year_start','calendar.time_zone')",
     ),
   ])
   const value = (key: string) => settings.find((row) => row.key === key)?.value
@@ -111,6 +112,7 @@ export async function loadServingPolicy(tx: Queryable, label: string): Promise<S
         : {},
     rates: rates.success ? rates.data : DEFAULT_MCP_RATES,
     about: typeof about === 'string' ? about : '',
+    calendar: calendarOf(value),
   }
 }
 

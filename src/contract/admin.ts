@@ -8,6 +8,7 @@ import {
   aboutBusinessLength,
   normalizeAboutBusiness,
 } from '../domain/about-business.ts'
+import { isTimeZone } from '../domain/dates.ts'
 import { EDITION_EXPORT_FORMAT } from '../domain/edition-export.ts'
 import { ITEM_FILE_MAX_LENGTH } from '../domain/item-file.ts'
 import { itemVersionSchema } from '../domain/item-version.ts'
@@ -133,6 +134,19 @@ export const settingSchemas = {
     .check(
       z.maxLength(PINNED_MAX),
       z.refine((keys) => new Set(keys).size === keys.length, 'Each dimension is pinned once'),
+    ),
+  // The workspace's calendar, which Ask and agents read dates on (R8). When its fiscal year
+  // starts, a month and a day to the 28th; a fiscal year is named by the calendar year it ends in,
+  // so with 1 April FY26 is 1 Apr 2025 to 31 Mar 2026. Null (the default) reads a fiscal year as
+  // the calendar year and says so.
+  'calendar.fiscal_year_start': z.nullable(z.strictObject({ month: int(1, 12), day: int(1, 28) })),
+  // The time zone today is counted in, an IANA name such as Europe/Oslo; UTC by default. Days
+  // stay calendar days: only which day is today changes.
+  'calendar.time_zone': z
+    .string()
+    .check(
+      z.maxLength(64),
+      z.refine(isTimeZone, 'Expected a time zone such as Europe/Oslo or UTC'),
     ),
   // The workspace's name, as the share card and the people of the workspace read it (FR-818).
   // Empty until an admin names it; one line, with no space at either end.

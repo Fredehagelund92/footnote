@@ -41,6 +41,7 @@ import {
 } from './scope.ts'
 import { overlaps, shiftDate, type DateWindow } from './validity.ts'
 import type { Term } from './vocabulary.ts'
+import type { Calendar } from './dates.ts'
 
 /**
  * The six answer states (FR-349), in the order a state wins: an answer that could not run is Not
@@ -92,8 +93,13 @@ export type AnswerAsk =
   | { scope: ResolvedScope }
 
 export type AnswerOptions = {
-  /** The UTC day the answer is for: what "no dates" means, and when a check date has passed. */
+  /**
+   * The day the answer is for, in the workspace's time zone: what "no dates" means, and when a
+   * check date has passed.
+   */
   today: string
+  /** The workspace's calendar the question's dates are read on; UTC and no fiscal year without it. */
+  calendar?: Calendar
   /** How many items the answer gives at most; the rest are left out as `cut`. */
   maxItems?: number
   /** A clock in milliseconds, to time the steps; without it every step takes 0 ms. */
@@ -212,6 +218,7 @@ export function readAsk(
   terms: readonly Term[],
   today: string,
   person = false,
+  calendar?: Calendar,
 ): ScopeResult {
   if ('scope' in ask) return { status: 'resolved', scope: ask.scope }
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
@@ -224,6 +231,7 @@ export function readAsk(
       ? {}
       : { window: { start: ask.window.from, end: shiftDate(ask.window.to, 1) } }),
     ...(person ? { loose: true } : {}),
+    ...(calendar ? { calendar } : {}),
   })
 }
 
@@ -363,7 +371,14 @@ function nearMisses(
 export function* lookUp(
   bundle: AnswerBundle,
   ask: AnswerAsk,
-  { today, maxItems = ANSWER_MAX_ITEMS, now = () => 0, voice, person = false }: AnswerOptions,
+  {
+    today,
+    calendar,
+    maxItems = ANSWER_MAX_ITEMS,
+    now = () => 0,
+    voice,
+    person = false,
+  }: AnswerOptions,
 ): Generator<AnswerStep, Answer, void> {
   const steps: AnswerStep[] = []
   // A step's time is its own work: the clock starts again when the caller asks for the next step.
@@ -379,7 +394,7 @@ export function* lookUp(
     return value
   }
 
-  const read = readAsk(ask, bundle.terms, today, person)
+  const read = readAsk(ask, bundle.terms, today, person, calendar)
   const scope = read.status === 'resolved' ? read.scope : null
   const dates = (read.status === 'resolved' && read.dates) || null
   const assumed = (read.status === 'resolved' && read.assumed) || null

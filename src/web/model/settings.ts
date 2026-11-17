@@ -53,6 +53,21 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         value: (v) => text(v, 'No name yet'),
       },
       {
+        key: 'calendar.fiscal_year_start',
+        what: 'When the fiscal year starts, for reading FY26 and Q3 FY26; a fiscal year is named by the year it ends in',
+        value: (v) => {
+          const month = n(field(v, 'month'))
+          return month
+            ? `${n(field(v, 'day'))} ${new Intl.DateTimeFormat(undefined, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(2026, month - 1, 1))}`
+            : 'Not set: fiscal years read as calendar years'
+        },
+      },
+      {
+        key: 'calendar.time_zone',
+        what: 'The time zone today is counted in, for Ask and agents',
+        value: (v) => text(v, 'UTC'),
+      },
+      {
         key: 'observability.pinned_dimensions',
         what: 'Dimensions pinned on Observability’s Overview: a filter list each, first in its filter',
         value: (v) => (Array.isArray(v) && v.length ? count(v.length, 'dimension') : 'None'),
