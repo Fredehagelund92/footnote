@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { JSONContent } from '@tiptap/core'
+import { Extension, type JSONContent } from '@tiptap/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
@@ -74,6 +74,19 @@ function read(doc: JSONContent): AskQuestion {
   return { text, parts, scope: scope.filter((m, i) => scope.findIndex((x) => x.id === m.id) === i) }
 }
 
+declare module '@tiptap/core' {
+  interface Storage {
+    hint: { text: string }
+  }
+
+  interface Commands<ReturnType> {
+    hint: {
+      /** The composer's placeholder text, which follows the width. */
+      setHint: (text: string) => ReturnType
+    }
+  }
+}
+
 export function AskComposer({
   onSubmit,
   onStop,
@@ -119,7 +132,21 @@ export function AskComposer({
         strike: false,
         underline: false,
       }),
-      Placeholder.configure({ placeholder }),
+      Extension.create<unknown, { text: string }>({
+        name: 'hint',
+        addStorage: () => ({ text: placeholder }),
+        addCommands() {
+          return {
+            setHint: (text) => () => {
+              this.storage.text = text
+              return true
+            },
+          }
+        },
+      }),
+      Placeholder.configure({
+        placeholder: ({ editor: e }) => e.storage.hint.text,
+      }),
       mentionExtension({
         kinds: SCOPE_KINDS,
         empty: 'Mention a domain, a definition, a context item or a market.',
@@ -182,6 +209,12 @@ export function AskComposer({
   React.useEffect(() => {
     send.current = submit
   }, [submit])
+  // A placeholder that changes with the width shows at once, without a new editor.
+  React.useEffect(() => {
+    if (!editor || editor.isDestroyed) return
+    if (editor.storage.hint.text === placeholder) return
+    editor.commands.setHint(placeholder)
+  }, [editor, placeholder])
 
   React.useImperativeHandle(
     ref,

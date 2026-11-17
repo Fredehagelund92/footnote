@@ -1027,6 +1027,7 @@ export const readMethods = [
  * the app is drawn.
  */
 export const pageReads = [
+  'askedThisWeek',
   'contextPage',
   'itemPage',
   'conflicts',

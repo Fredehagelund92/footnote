@@ -149,9 +149,10 @@
 
 /* On a touch screen every control in Ask can be hit with a finger: its tap area grows to 44px
    around it, the control itself stays the size it is drawn. Controls that already make their own
-   tap area (with an after: class) are left alone. */
+   tap area (with an after: class) are left alone; one marked static covers its own row. */
 @media (pointer: coarse) {
-  [data-touch-targets] :where(button, a[href], [role='button']):not(.absolute, .fixed, .sticky) {
+  [data-touch-targets]
+    :where(button, a[href], [role='button']):not(.absolute, .fixed, .sticky, .static) {
     position: relative;
   }
 

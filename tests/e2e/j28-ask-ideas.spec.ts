@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { card, expect, go, mode, signInAs, test } from './go.ts'
+import { card, expect, go, mode, moveTo, onMockOnly, signInAs, test } from './go.ts'
 
 // J28: the three Ask ideas to try first. An answer travels with its state and its sources; a
 // sentence shows where it says that; the empty page shows what is asked this week.
@@ -146,15 +146,13 @@ test('Asked this week: topics with the state Ask gives now and a count; an owner
 }) => {
   await go(page, '/ask')
   const week = page.getByRole('region', { name: 'Asked this week' })
-  await expect(week).toContainText(
-    'Agents asked 142 times. Counts only, never the words or who asked. Each state is what Ask gives today.',
-  )
+  await expect(week).toContainText('142 times · counts only, never the words')
   const rows = week.getByRole('listitem')
   // The four most asked; the rest open in place.
   await expect(rows).toHaveCount(4)
   await expect(rows.first()).toContainText('Orders in Norway')
   await expect(rows.first()).toContainText('31 times')
-  const more = week.getByRole('button', { name: 'More asked this week (9)' })
+  const more = week.getByRole('button', { name: 'Show 9 more' })
   await more.click()
   await expect(rows).toHaveCount(13)
   const spain = rows.filter({ hasText: 'Orders in Spain' })
@@ -248,4 +246,168 @@ test('Asked this week shows no draft to someone who does not own the domain, and
     await expect(page.getByText('What do you want to know about your metrics?')).toBeVisible()
     await expect(starters).toHaveCount(0)
   } else await expect(starters).toBeVisible()
+})
+
+test('Asked this week: one line per topic, the state in its own column, the count in another', async ({
+  page,
+}) => {
+  await go(page, '/ask')
+  const week = page.getByRole('region', { name: 'Asked this week' })
+  const rows = week.getByRole('listitem')
+  await expect(rows).toHaveCount(4)
+  await page.evaluate(() => document.fonts.ready)
+  const boxes = await rows.evaluateAll((li) => li.map((l) => l.getBoundingClientRect().height))
+  expect(boxes).toEqual([52, 52, 52, 52])
+  const counts = await rows.evaluateAll((li) =>
+    li.map((l) => l.querySelector('[id$="-count"]')!.getBoundingClientRect().right),
+  )
+  expect(new Set(counts).size).toBe(1)
+  // Each row says its state in words; the sentence is the tooltip and the row's description.
+  for (const row of await rows.all()) await expect(row.getByText(STATE)).toBeVisible()
+  const first = rows.first()
+  const state = (await first.getByText(STATE).textContent())!
+  const sentence = {
+    Checked: 'This is written down and checked.',
+    Partial: 'Only part of this is written down.',
+    'Not found': 'Nothing is written about this yet.',
+    Conflict: 'Two items say different things.',
+    Outdated: 'Some of this may be old.',
+    'Not looked up': 'Ask could not look this up just now.',
+  }[state]!
+  await expect(first.getByRole('button')).toHaveAccessibleDescription(
+    new RegExp(`^${state}\\. ${sentence.replace('.', '\\.')} \\d+\\+? times$`),
+  )
+  await first.getByText(STATE).hover()
+  await expect(page.locator('[data-slot=tooltip-content]')).toHaveText(sentence)
+
+  // The subline is one line in the Ask column, the caption one line in the card.
+  const subline = page.getByText('Answers come from what your team wrote and an owner checked.')
+  expect(await subline.evaluate((p) => p.getBoundingClientRect().height)).toBe(20)
+  const caption = week.getByText(/times · counts only, never the words$/)
+  expect(await caption.evaluate((p) => p.getBoundingClientRect().height)).toBe(16)
+})
+
+test("Asked this week: an owner's next step is a link after the topic, and the count stays put", async ({
+  page,
+}) => {
+  await go(page, '/ask')
+  const week = page.getByRole('region', { name: 'Asked this week' })
+  // The box takes focus as Ask opens; the row is reached from there.
+  await expect(page.getByRole('textbox', { name: 'Ask a question' })).toBeFocused()
+  await week.getByRole('button', { name: /^Show \d+ more$/ }).click()
+  const row = week
+    .getByRole('listitem')
+    .filter({
+      has: page.getByRole('link', { name: /^(Write it|Review it|Open the card) for / }),
+    })
+    .first()
+  const link = row.getByRole('link')
+  await expect(link).toBeVisible()
+  const button = row.getByRole('button').first()
+  // After the topic, before the state.
+  const [b, l, s] = await Promise.all([
+    button.boundingBox(),
+    link.boundingBox(),
+    row.getByText(STATE).boundingBox(),
+  ])
+  expect(l!.x).toBeGreaterThan(b!.x + b!.width)
+  expect(l!.x + l!.width).toBeLessThan(s!.x)
+  // The row is reached from the button, not the box.
+  await button.focus()
+  await page.keyboard.press('Tab')
+  await expect(link).toBeFocused()
+  const right = await week
+    .getByRole('listitem')
+    .evaluateAll((li) =>
+      li.map((l) => l.querySelector('[id$="-count"]')!.getBoundingClientRect().right),
+    )
+  expect(new Set(right).size).toBe(1)
+})
+
+test('Asked this week on a phone: the whole card above the box, its rows lined up with its title', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await go(page, '/ask')
+  const week = page.getByRole('region', { name: 'Asked this week' })
+  const rows = week.getByRole('listitem')
+  await expect(rows).toHaveCount(4)
+  const hint = page.locator('[data-placeholder]')
+  await expect(hint).toHaveAttribute('data-placeholder', /^Ask what is written about a number/)
+  // A short placeholder, whole on a phone, and it follows the width.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(hint).toHaveAttribute('data-placeholder', 'Ask about a number')
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await expect(hint).toHaveAttribute('data-placeholder', /^Ask what is written about a number/)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(hint).toHaveAttribute('data-placeholder', 'Ask about a number')
+  const composer = (await page.getByRole('textbox', { name: 'Ask a question' }).boundingBox())!
+  const footer = (await week.getByRole('button', { name: 'Show 9 more' }).boundingBox())!
+  const last = (await rows.last().boundingBox())!
+  expect(last.y + last.height).toBeLessThanOrEqual(composer.y)
+  expect(footer.y + footer.height).toBeLessThanOrEqual(composer.y)
+  const title = (await week.getByRole('heading', { name: 'Asked this week' }).boundingBox())!
+  const topic = (await rows.first().getByRole('button').boundingBox())!
+  expect(topic.x).toBe(title.x)
+})
+
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 390, height: 844 },
+]) {
+  test(`Asked this week while it loads holds its place at ${size.width} px, and a failed load says so`, async ({
+    page,
+  }) => {
+    await onMockOnly('review flags ?state=loading and ?state=failed', async () => {
+      await page.setViewportSize(size)
+      await go(page, '/ask?state=loading')
+      const week = page.getByRole('region', { name: 'Asked this week' })
+      await expect(week.getByRole('status', { name: 'Loading' })).toBeVisible()
+      const skeletons = week.locator('[data-skeleton-row]')
+      await expect(skeletons).toHaveCount(4)
+      await page.evaluate(() => document.fonts.ready)
+      const top = async () => (await week.boundingBox())!.y
+      const held = await skeletons.evaluateAll((els) =>
+        els.map((e) => {
+          const r = e.getBoundingClientRect()
+          return { y: r.y, height: r.height }
+        }),
+      )
+      const cardTop = await top()
+      await moveTo(page, '/ask')
+      const rows = week.getByRole('listitem')
+      await expect(rows).toHaveCount(4)
+      const shown = await rows.evaluateAll((els) =>
+        els.map((e) => {
+          const r = e.getBoundingClientRect()
+          return { y: r.y, height: r.height }
+        }),
+      )
+      shown.forEach((r, i) => {
+        expect(Math.abs(r.y - held[i]!.y)).toBeLessThanOrEqual(0.5)
+        expect(Math.abs(r.height - held[i]!.height)).toBeLessThanOrEqual(0.5)
+      })
+      expect(Math.abs((await top()) - cardTop)).toBeLessThanOrEqual(0.5)
+
+      await go(page, '/ask?state=failed')
+      const alert = week.getByRole('alert')
+      await expect(alert).toHaveText(/Couldn't load this week's counts\./)
+      await alert.getByRole('button', { name: 'Try again' }).click()
+      await expect(rows).toHaveCount(4)
+    })
+  })
+}
+
+test.describe('on a touch phone', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+  test("a tap on a row's count asks the row's question", async ({ page }) => {
+    await go(page, '/ask')
+    const week = page.getByRole('region', { name: 'Asked this week' })
+    const row = week.getByRole('listitem').first()
+    const shown = (await row.getByRole('button').first().textContent())!
+    const count = (await row.locator('[id$="-count"]').boundingBox())!
+    await page.touchscreen.tap(count.x + count.width / 2, count.y + count.height / 2)
+    await expect(page.getByRole('log')).toContainText(shown)
+  })
 })
