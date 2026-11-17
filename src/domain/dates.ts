@@ -1270,11 +1270,11 @@ const keepPattern =
 const yearShiftPattern =
   /^(?:(?:for|in|over|during) )?(?:(?:the )?same (?:period|days|dates|time|week|month|quarter) )?(?:the )?(last|previous|prior|next|following) year$/
 /** "the previous quarter", "the month after": one unit from the last period. */
-const unitShiftPattern = new RegExp(
+const unitShiftPattern = /* @__PURE__ */ new RegExp(
   `^(?:(?:for|in|over|during) )?(?:the )?(?:(previous|prior|following) (week|month|quarter|year)|(${NUMBER_WORD}) (weeks?|months?|quarters?|years?) (before|earlier|after|later|ago)|(week|month|quarter|year) (before|after))(?: that| then)?$`,
 )
 /** A part of a month, quarter or half that names no year of its own: "early August", "end of Q3". */
-const yearless = new RegExp(
+const yearless = /* @__PURE__ */ new RegExp(
   `^(?!.*\\b(?:(?:19|20)\\d{2}|fy\\S*|fiscal|financial|last|this|next|previous|past|ago)\\b).*\\b(?:${monthNames.join('|')}|${shortMonths.join('|').toLowerCase()}|q[1-4]|h[12])\\b`,
 )
 /** The words that lead a follow-up, before its period: "and", "what about", "how about". */
