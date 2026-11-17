@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { LoopTurn } from '@contract/answer'
 import { dimensionHue } from '@domain/ask-nouns'
+import { answerLines } from '@domain/words'
 import examples from '@/api/mock/data/loop-examples.json'
 import { usedTurn } from '@/api/mock/loop-used'
 
@@ -194,10 +195,10 @@ describe("Ask's loop answer, state by state", () => {
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Compare the two')).toBe(true)
   })
 
-  it('Outdated: the item row says it is due for a check, once, and an admin can mark it still true', () => {
+  it('Outdated: the item stays in sight saying it may be out of date, and an admin can mark it still true', () => {
     const el = render(example('loop-stale'))
     expect(text(el)).toContain('Some of this may be old.')
-    expect(text(el)).toContain('Due for a check')
+    expect(text(el.querySelector('[data-pinned]')!)).toContain('May be out of date')
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Mark it still true')).toBe(
       true,
     )
@@ -218,6 +219,40 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el.querySelector('[data-used]')!)).toMatch(
       /^Used 4 items·2 Live, 1 Due for a check, 1 Archived, checked .+ to .+ 2026/,
     )
+  })
+
+  it('Used: an item due, out of date or archived stays in sight under the closed line, one each', () => {
+    const base = usedTurn(5)
+    const el = render({
+      ...base,
+      items: base.items.map((i, k) =>
+        k === 1
+          ? { ...i, status: 'due' as const }
+          : k === 2
+            ? { ...i, outOfDate: 'its check date has passed' }
+            : k === 4
+              ? { ...i, status: 'archived' as const }
+              : i,
+      ),
+    })
+    const pinned = [...el.querySelectorAll('[data-used] [data-pinned] > li')]
+    expect(pinned.map((li) => buttons(li, /^Source \d+: /)[0]?.getAttribute('aria-label'))).toEqual(
+      [
+        expect.stringMatching(/^Source 2: /),
+        expect.stringMatching(/^Source 3: /),
+        expect.stringMatching(/^Source 5: /),
+      ],
+    )
+    expect(pinned.map(text)).toEqual([
+      expect.stringContaining('Due for a check'),
+      expect.stringContaining(answerLines.stale.long),
+      expect.stringContaining('Archived'),
+    ])
+  })
+
+  it('Used: an answer whose items are all live pins none', () => {
+    const el = render(usedTurn(4))
+    expect(el.querySelectorAll('[data-used] [data-pinned]')).toHaveLength(0)
   })
 
   it("A list: the count bold with what it is out of, then the read's items as rows", () => {

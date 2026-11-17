@@ -352,6 +352,23 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
   }
 }
 
+/**
+ * Why an item needs a look before its words are trusted, or null when it is fine: archived, may be
+ * out of date (a read said so), or due for a check. The words are the page's, from the one list.
+ */
+export function useNeedsLook() {
+  const { ANSWER_LINES } = useParts()
+  const stale = ANSWER_LINES.find((l) => l.state === 'stale')!.long
+  return (item: Pick<LoopItem, 'status' | 'outOfDate'>) =>
+    item.status === 'archived'
+      ? 'Archived'
+      : item.outOfDate
+        ? stale
+        : item.status === 'due'
+          ? 'Due for a check'
+          : null
+}
+
 /** A status with its dot, as the Context list draws it: live green, due for a check amber. */
 function StatusMark({ status }: { status: Status }) {
   const dot = status === 'Live' ? 'bg-good' : status === 'Due for a check' ? 'bg-caution' : 'bg-off'
@@ -541,12 +558,15 @@ export function ItemRow({
 /**
  * A cited item in one line: its number, its kind's icon and its title, cut to the line when long
  * (the number's card and the name say it whole). Its domain, status, day and the rest are on the
- * card. A press on the title opens it.
+ * card. A press on the title opens it. An item that needs a look ends in why, in words that stand
+ * out from the line's muted ones.
  */
 export function CompactItemRow({ item }: { item: LoopItem }) {
   const P = useParts()
   const ahead = P.useReadAhead()
   const Icon = P.kindIcons[kindOf(item.kind)]
+  const why = useNeedsLook()(item)
+  const muted = why === 'Archived'
   return (
     <li className="flex h-7 min-w-0 items-center gap-2 text-sm">
       {item.n && <CiteMark n={item.n} item={item} />}
@@ -559,6 +579,14 @@ export function CompactItemRow({ item }: { item: LoopItem }) {
       >
         {item.title}
       </button>
+      {why && (
+        <span
+          className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${muted ? 'text-muted-foreground' : 'text-caution'}`}
+        >
+          <span aria-hidden className={`size-2 rounded-full ${muted ? 'bg-off' : 'bg-caution'}`} />
+          {why}
+        </span>
+      )}
     </li>
   )
 }

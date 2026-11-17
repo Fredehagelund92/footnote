@@ -4,6 +4,8 @@ import type { LoopBlock, LoopItem, LoopTurn } from '@contract/answer'
 // (`?example=loop-used-10`). The service's turns on the demo week cite at most a few, so these are
 // built from the shape of its Orders answer (loop-checked): N live items in Sales, each cited once,
 // one sentence each, as the words of an answer about all of Orders would cite them.
+// `loop-used-trust` cites six, of which the second is due for a check and the third may be out of
+// date, as the Outdated state reads them.
 
 const titles = [
   'Orders lags by one day in the source tool',
@@ -39,9 +41,16 @@ const itemOf = (n: number): LoopItem => {
   }
 }
 
-/** An answer about all of Orders that cites `count` live items. */
-export function usedTurn(count: number): LoopTurn {
+/** An answer about all of Orders that cites `count` live items, or with `trust` two that need a look. */
+export function usedTurn(count: number, { trust = false } = {}): LoopTurn {
   const items = Array.from({ length: count }, (_, i) => itemOf(i + 1))
+  if (trust) {
+    items[1] = { ...items[1]!, status: 'due' }
+    items[2] = { ...items[2]!, outOfDate: 'its check date has passed' }
+  }
+  const stale = items
+    .filter((i) => i.outOfDate)
+    .map((i) => `“${i.title}” may be out of date: ${i.outOfDate}.`)
   const sentence = (i: LoopItem) => `${i.title}.`
   const body: LoopBlock[] = [
     {
@@ -58,11 +67,11 @@ export function usedTurn(count: number): LoopTurn {
     kind: 'answer',
     text,
     sources: items.map((i) => i.id),
-    state: 'grounded',
+    state: stale.length ? 'stale' : 'grounded',
     footer: {
       denominator: `${applies} of 1,209 published context items you may read apply.`,
       notSeen: null,
-      stale: null,
+      stale: stale.length ? stale.join(' ') : null,
     },
     read: [`Looked up Orders, 1-16 Nov 2026: ${applies} items apply.`],
     subject: {
