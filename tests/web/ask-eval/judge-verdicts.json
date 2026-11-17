@@ -3,7 +3,9 @@
   "model": "anthropic/claude-haiku-5.5",
   "verdicts": {
     "J01": {
-      "advice": ["Check which rule your comparison assumes, because it changes the order total."],
+      "advice": [
+        "Check which rule your comparison assumes, because it changes the order total."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -16,10 +18,10 @@
       "advice": [
         "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
       ],
-      "verdict": [
-        "Yes: both are read as Net revenue, which is gross sales after returns, discounts, VAT and payment fees, in euros."
-      ],
-      "unsupported": []
+      "verdict": [],
+      "unsupported": [
+        "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
+      ]
     },
     "J04": {
       "advice": [],
@@ -27,12 +29,16 @@
       "unsupported": []
     },
     "J05": {
-      "advice": ["Leave out the last day whenever you compare weeks."],
+      "advice": [
+        "Leave out the last day whenever you compare weeks."
+      ],
       "verdict": [],
       "unsupported": []
     },
     "J06": {
-      "advice": ["You should not flag one good week to the board."],
+      "advice": [
+        "You should not flag one good week to the board."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -47,12 +53,16 @@
       "unsupported": []
     },
     "J09": {
-      "advice": ["I'd check the file dates before you explain it."],
+      "advice": [
+        "I'd check the file dates before you explain it."
+      ],
       "verdict": [],
       "unsupported": []
     },
     "J10": {
-      "advice": ["So you should compare only months from 19 January 2026 onwards."],
+      "advice": [
+        "So you should compare only months from 19 January 2026 onwards."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -67,7 +77,9 @@
       "unsupported": []
     },
     "J13": {
-      "advice": ["That figure should be checked in your reporting tool."],
+      "advice": [
+        "That figure should be checked in your reporting tool."
+      ],
       "verdict": [],
       "unsupported": []
     },
@@ -89,8 +101,10 @@
       "unsupported": []
     },
     "J17": {
-      "advice": [],
-      "verdict": ["No."],
+      "advice": [
+        "No."
+      ],
+      "verdict": [],
       "unsupported": []
     },
     "J18": {
@@ -100,7 +114,9 @@
     },
     "J19": {
       "advice": [],
-      "verdict": ["The 12 May date has more support in the record [3]."],
+      "verdict": [
+        "The 12 May date has more support in the record [3]."
+      ],
       "unsupported": []
     },
     "J20": {
@@ -122,8 +138,12 @@
     },
     "J23": {
       "advice": [],
-      "verdict": ["Sales will probably come back once the rule is lifted."],
-      "unsupported": ["Sales will probably come back once the rule is lifted."]
+      "verdict": [
+        "Sales will probably come back once the rule is lifted."
+      ],
+      "unsupported": [
+        "Sales will probably come back once the rule is lifted."
+      ]
     },
     "J24": {
       "advice": [],
@@ -140,7 +160,9 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": ["so 12 May was only the plan [1]"]
+      "unsupported": [
+        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
+      ]
     },
     "J27": {
       "advice": [],
@@ -153,7 +175,7 @@
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "Another note counts only card and cash payments [2], but the owners have not marked them as conflicting."
+        "but the owners have not marked them as conflicting"
       ]
     },
     "J29": {
@@ -171,12 +193,16 @@
     "J31": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Nothing is written about returns in Norway."]
+      "unsupported": [
+        "Nothing is written about returns in Norway."
+      ]
     },
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway, and one of them is archived."]
+      "unsupported": [
+        "Seven items are about Norway, and one of them is archived."
+      ]
     },
     "J33": {
       "advice": [],
@@ -196,19 +222,21 @@
     "J36": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Nothing in Heed is about Poland."]
+      "unsupported": [
+        "Nothing in Heed is about Poland."
+      ]
     },
     "J37": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["The fall most likely comes from card payment failures that week."]
+      "unsupported": [
+        "The fall most likely comes from card payment failures that week."
+      ]
     },
     "J38": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "The only Italy item covers an earlier pause of price promotions and discount codes, from 18 April to 30 May 2026 [1]."
-      ]
+      "unsupported": []
     },
     "J39": {
       "advice": [],
@@ -218,17 +246,23 @@
     "J40": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["The Italy item is owned by Priya Nair, who last checked it on 20 June 2026."]
+      "unsupported": [
+        "The Italy item is owned by Priya Nair, who last checked it on 20 June 2026."
+      ]
     },
     "J41": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "He last checked it on 20 June 2026, and its check date passed on 18 September [1]."
+      ]
     },
     "J42": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Yes, it is due for a check: Jon Abara last checked it on 3 October 2026."]
+      "unsupported": [
+        "Yes, it is due for a check: Jon Abara last checked it on 3 October 2026."
+      ]
     },
     "J43": {
       "advice": [],
@@ -238,12 +272,18 @@
       ]
     },
     "J45": {
-      "advice": [],
+      "advice": [
+        "The only related item is general: return on ad spend for one campaign counts orders for 30 days after sign-up, so a campaign should be read only once those 30 days have passed [1]."
+      ],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "The only related item is general: return on ad spend for one campaign counts orders for 30 days after sign-up, so a campaign should be read only once those 30 days have passed [1]."
+      ]
     },
     "J46": {
-      "advice": ["Do not report it weekly [1]."],
+      "advice": [
+        "Do not report it weekly [1]."
+      ],
       "verdict": [],
       "unsupported": []
     },

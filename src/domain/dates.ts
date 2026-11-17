@@ -1327,20 +1327,19 @@ export function carriedDays(
   const read = readDates(named, today, options)
   if (read.status !== 'read') return null
   if (sameDays(read.window, last, today)) return said(last)
-  // A month, quarter or day without a year: in the last period's year, the one it overlaps.
+  // A month, quarter or day without a year: in the year the last period ends in, or the year
+  // it starts in where only that one holds it (January after November to February).
   if (!(read.readsAs.includes('year not given') || yearless.test(named))) return null
-  const years = [...Array(yearOf(shiftDate(last.end, -1)) - yearOf(last.start) + 1).keys()].map(
-    (k) => yearOf(last.start) + k,
-  )
   const readIn = (y: number) => {
     const r = readDates(`${named} ${y}`, today, options)
     return r.status === 'read' && !isAnyDate(r.window) && r.window.end
       ? { start: r.window.start, end: r.window.end }
       : null
   }
-  const window =
-    years.map(readIn).find((w) => w && w.start < last.end && w.end > last.start) ??
-    readIn(years.at(-1)!)
+  const holds = (w: Days | null) => !!w && w.start < last.end && w.end > last.start
+  const ending = readIn(yearOf(shiftDate(last.end, -1)))
+  const starting = holds(ending) ? null : readIn(yearOf(last.start))
+  const window = holds(starting) ? starting : ending
   return window ? said(window) : null
 }
 

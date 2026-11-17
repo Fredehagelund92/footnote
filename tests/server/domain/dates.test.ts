@@ -849,6 +849,8 @@ describe('carriedDays: a follow-up’s period read against the last question’s
     expect(days('Q3', y2025)).toEqual({ start: '2025-07-01', end: '2025-10-01' })
     expect(days('early August', y2025)).toEqual({ start: '2025-08-01', end: '2025-08-11' })
     expect(days('5 September', y2025)).toEqual({ start: '2025-09-05', end: '2025-09-06' })
+    // A period up to a day reads only the year it ends in, never every year before it.
+    expect(days('September', { start: '0001-01-01', end: '2026-10-24' })).toEqual(september)
     // Across two years, the year whose month the last period holds.
     expect(days('January', { start: '2025-11-01', end: '2026-03-01' })).toEqual({
       start: '2026-01-01',
