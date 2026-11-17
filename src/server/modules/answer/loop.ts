@@ -21,6 +21,7 @@ import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
 import { dateNote } from '../../../domain/dates.ts'
+import { shiftDate } from '../../../domain/validity.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
 import {
@@ -32,7 +33,13 @@ import {
   type SpendLimits,
   type SpendStop,
 } from '../models/index.ts'
-import { askToolDefinitions, askToolNames, type AskToolName, type AskTools } from './tools.ts'
+import {
+  askToolDefinitions,
+  askToolNames,
+  type AskToolName,
+  type AskTools,
+  type ReadContext,
+} from './tools.ts'
 import {
   bodyMarkup,
   bodyWords,
@@ -245,17 +252,22 @@ function serialReads(deps: Pick<LoopDeps, 'database' | 'person' | 'toolsIn' | 'o
   }
   return {
     /** One read; a read that fails says so to the model, and its name goes to the log. */
-    one: (name: AskToolName, input: unknown) =>
-      inTx((tools) => tools.run(name, input)).catch((error: unknown) => {
+    one: (name: AskToolName, input: unknown, context: ReadContext) =>
+      inTx((tools) => tools.run(name, input, context)).catch((error: unknown) => {
         deps.onError?.(error)
         return { error: 'This read could not be made just now.', ids: [] }
       }),
-    /** Several reads in one transaction, in order: the chat's earlier reads, made again. */
-    all: (reads: readonly LoopRead[]) =>
+    /**
+     * Several reads in one transaction, in order: the chat's earlier reads, made again, each with
+     * what it knows of the chat from the reads before it.
+     */
+    all: (reads: readonly LoopRead[], contextOf: (i: number, made: unknown[]) => ReadContext) =>
       inTx(async (tools) => {
         const made: unknown[] = []
-        for (const r of reads)
-          made.push(isToolName(r.tool) ? await tools.run(r.tool, r.input) : null)
+        for (const [i, r] of reads.entries())
+          made.push(
+            isToolName(r.tool) ? await tools.run(r.tool, r.input, contextOf(i, made)) : null,
+          )
         return made
       }),
   }
@@ -270,6 +282,43 @@ function earlierReadsOf(turns: readonly ChatTurnInput[]) {
 }
 
 const ITEM_ID = /^itm_[a-z0-9]{8,16}$/
+
+/**
+ * The last question's period, for a read of turn `turn` (`relative_to`): the days of the subject
+ * read of the latest turn before it that read a subject, as its read line took it (the
+ * `get_context` whose items its answer cites, else its first). Null when that read assumed today
+ * or read any date.
+ */
+function lastPeriodOf(
+  turn: number,
+  turns: readonly ChatTurnInput[],
+  earlier: readonly { turn: number; read: LoopRead; result: unknown }[],
+): ReadContext['lastPeriod'] {
+  for (let t = turn - 1; t >= 0; t--) {
+    const subjects = earlier.flatMap((e) =>
+      e.turn === t && e.read.tool === 'get_context' && isObj(e.result) && isObj(e.result.read)
+        ? [
+            {
+              tool: 'get_context' as const,
+              input: e.read.input,
+              result: e.result,
+              read: e.result.read,
+            },
+          ]
+        : [],
+    )
+    if (!subjects.length) continue
+    const cited = turns[t]?.sources ?? []
+    const { read } =
+      subjects.findLast((s) => foundIds(s).some((id) => cited.includes(id))) ?? subjects[0]!
+    const days = read.days
+    if (read.assumedToday === true || !isObj(days)) return null
+    return typeof days.from === 'string' && typeof days.to === 'string'
+      ? { start: days.from, end: shiftDate(days.to, 1) }
+      : null
+  }
+  return null
+}
 
 /** Every id a read's result lists (tools.ts: each result names every id it returned). */
 const idsOf = (result: unknown): string[] =>
@@ -439,7 +488,16 @@ export async function* askLoop(
   if (wanted.length) {
     yield { type: 'progress', working: 'Reading the chat’s earlier reads again…' }
     try {
-      const made = await reads.all(wanted.map((w) => w.read))
+      const made = await reads.all(
+        wanted.map((w) => w.read),
+        (i, done) => ({
+          lastPeriod: lastPeriodOf(
+            wanted[i]!.turn,
+            turns,
+            done.map((result, k) => ({ ...wanted[k]!, result })),
+          ),
+        }),
+      )
       earlier = wanted.map((w, i) => ({ ...w, result: made[i], ref: `r${i + 1}` }))
     } catch (error) {
       deps.onError?.(error)
@@ -456,7 +514,9 @@ export async function* askLoop(
         inputSchema: askToolDefinitions[name].input as z.ZodType<Record<string, unknown>>,
         execute: (given: Record<string, unknown>, { toolCallId }: { toolCallId: string }) => {
           const read = (async () => {
-            const result = await reads.one(name, given)
+            const result = await reads.one(name, given, {
+              lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+            })
             // Numbered as it comes back, after the chat's earlier reads: what the words cite it by.
             const ref = `r${earlier.length + made.length + 1}`
             made.push({ tool: name, input: given, result, ref, call: toolCallId })
@@ -932,7 +992,7 @@ function subjectOf(
     period: String(period),
     note:
       [
-        typeof datesRead === 'string' ? dateNote(datesRead) : null,
+        typeof datesRead === 'string' ? carriedNote(dateNote(datesRead), carried) : null,
         typeof otherDays === 'string' ? `could also mean ${otherDays}` : null,
       ]
         .filter(Boolean)
@@ -942,6 +1002,18 @@ function subjectOf(
     uncovered: ids(m.result.uncovered),
   }
 }
+
+/**
+ * A read's date note on the read line: an earlier turn's read, carried, already says it is from
+ * the last question, so its own "from your last question" goes.
+ */
+const carriedNote = (note: string | null, carried: boolean) =>
+  carried
+    ? note
+        ?.split(' · ')
+        .filter((n) => n !== 'from your last question')
+        .join(' · ') || null
+    : note
 
 /** The items the turn's get_context reads gave as nearby: about the same names, not applying. */
 const nearbyOf = (made: readonly MadeRead[]) =>
