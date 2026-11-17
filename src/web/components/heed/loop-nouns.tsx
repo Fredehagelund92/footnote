@@ -552,19 +552,20 @@ export function ItemRow({
 }
 
 /**
- * An item that needs a look, on one line: its number with its card, its kind and title, and why,
- * in words that stand out from the line's muted ones.
+ * A cited item in one line: its number, its kind's icon and its title, cut to the line when long
+ * (the number's card and the name say it whole). Its domain, status, day and the rest are on the
+ * card. A press on the title opens it. An item that needs a look ends in why, in words that stand
+ * out from the line's muted ones.
  */
-export function LookRow({ item }: { item: LoopItem }) {
+export function CompactItemRow({ item }: { item: LoopItem }) {
   const P = useParts()
   const ahead = P.useReadAhead()
   const Icon = P.kindIcons[kindOf(item.kind)]
   const why = needsLook(item)
   return (
-    <li className="flex min-h-7 min-w-0 items-center gap-2 text-sm">
-      {item.n ? <CiteMark n={item.n} item={item} /> : null}
-      {/* As near its title as an open row's icon is. */}
-      <Icon aria-hidden className="-mr-1 size-3.5 shrink-0 text-muted-foreground" />
+    <li className="flex h-7 min-w-0 items-center gap-2 text-sm">
+      {item.n && <CiteMark n={item.n} item={item} />}
+      <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       <button
         type="button"
         {...ahead(item.id)}

@@ -1,9 +1,10 @@
 import { expect, go, test } from './go.ts'
 
 // J70: what an answer used is one line, however many items it cites: "Used N items" and how fresh
-// they are, closed when the answer arrives; opening it lists the rows. Each answer cites N live
-// items (src/web/api/mock/loop-used.ts), and the words fold after five sentences. An item that
-// needs a look is never folded: it stays in sight under the line, one line each.
+// they are, closed when the answer arrives; opening it lists the rows, one line each: the number,
+// the kind's icon and the title, the details on the number's card. Each answer cites N live items
+// (src/web/api/mock/loop-used.ts), and the words fold after five sentences. An item that needs a
+// look is never folded: it stays in sight under the line, one line each.
 
 const counts = [1, 4, 10, 20, 50]
 const widths = [
@@ -36,7 +37,21 @@ for (const { name, viewport } of widths)
         await fold.click()
         await expect(fold).toHaveAttribute('aria-expanded', 'true')
         await expect(used.getByRole('listitem')).toHaveCount(n)
-        await expect(used.getByRole('button', { name: /^Source \d+: / })).toHaveCount(n)
+        const sources = used.getByRole('button', { name: /^Source \d+: / })
+        await expect(sources).toHaveCount(n)
+        await expect(sources.first()).toHaveAccessibleName(
+          'Source 1: Orders lags by one day in the source tool',
+        )
+        // Each row one line, however long its title or narrow the page; its name says the title whole.
+        const rows = await used.getByRole('listitem').all()
+        for (const [k, row] of rows.entries()) {
+          expect((await row.boundingBox())!.height, `row ${k + 1}`).toBeLessThanOrEqual(28)
+          const label = await row
+            .getByRole('button', { name: /^Source \d+: / })
+            .getAttribute('aria-label')
+          const title = label!.replace(/^Source \d+: /, '')
+          await expect(row.getByRole('button', { name: title, exact: true })).toBeVisible()
+        }
       })
 
     test('the items that need a look stay in sight under the line, one line each', async ({

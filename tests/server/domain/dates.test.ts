@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { loadGoldenSet } from '../../../db/seed/golden-set.ts'
-import { dateNote, monthWords, readDates, whatHeedReads } from '../../../src/domain/dates.ts'
+import {
+  anchorOf,
+  dateNote,
+  monthWords,
+  readDates,
+  whatHeedReads,
+} from '../../../src/domain/dates.ts'
 import { anyDate, shiftDate } from '../../../src/domain/validity.ts'
 import { normalizeName } from '../../../src/domain/vocabulary.ts'
 
@@ -652,6 +658,31 @@ describe('the note a person reads beside the days', () => {
   })
   it('reads nothing into a phrase without its parts', () => {
     expect(dateNote('1-30 Nov 2025')).toBeNull()
+  })
+  it('names the event the days start or end at', () => {
+    expect(
+      dateNote('4 Aug to 23 Oct 2026 (from “Online sales to Norway stopped”, 4 Aug 2026; UTC)'),
+    ).toBe('from “Online sales to Norway stopped”, 4 Aug 2026')
+    expect(dateNote('up to 3 Aug 2026 (before “The rename”, 4 Aug 2026; UTC)')).toBe(
+      'before “The rename”, 4 Aug 2026',
+    )
+  })
+})
+
+// Period slice R9: "since", "after" or "before" something the reader cannot place gives the words
+// that name it, for Ask to match against the events the person may read.
+describe('the event a period hangs on', () => {
+  it.each([
+    ['orders in Norway since the customs rule', { lead: 'since', words: 'customs rule' }],
+    ['what happened after our rebrand?', { lead: 'after', words: 'rebrand' }],
+    ['returns before the Norway stop', { lead: 'before', words: 'norway stop' }],
+    ['orders since the rename in Norway', { lead: 'since', words: 'rename' }],
+    ['orders since launch', { lead: 'since', words: 'launch' }],
+    ['net revenue since the price change was made', { lead: 'since', words: 'price change' }],
+    ['orders in Norway', null],
+    ['orders since in Norway', null],
+  ])('%s', (text, expected) => {
+    expect(anchorOf(text)).toEqual(expected)
   })
 })
 

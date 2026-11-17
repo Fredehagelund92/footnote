@@ -81,7 +81,13 @@ project: `npx vitest run --project server tests/server/domain`.
   ends in: with 1 April, "Q3 FY26" is 1 Oct to 31 Dec 2025, said as "Q3 FY26, fiscal year from 1
   April", for agents too. Until the start is set, Ask reads a fiscal year as the calendar year and
   says so ("FY26 read as the calendar year"), and get_context asks for the days. Ask's read line
-  carries that note beside the days.
+  carries that note beside the days. `anchorOf` returns the words after "since", "after" or
+  "before" ("since the customs rule" gives `customs rule`), up to the first word that ends a name;
+  it only extracts them. Where the reader placed no period, `get_context` (`tools.ts`) matches
+  them against the titles and summaries of accepted events the person may read: "since" starts on
+  the event's first day, "after" the day after, both to today, and "before" ends the day before.
+  Of several matches the one about more of the subject's names wins, and a tie matches none. The
+  read line names the event ("from “Online sales to Norway stopped”, 4 Aug 2026").
 - `scope-search.ts`: the page of terms behind the "Applies to" picker (FR-107): before anything
   is typed, the person's recent terms, the busiest metrics and the dimensions with a count but no
   values; then metrics and, per dimension, "any value", a count and a

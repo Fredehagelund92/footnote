@@ -2,8 +2,8 @@ import * as React from 'react'
 import type { LoopBlock, LoopItem, LoopOverview, LoopRun, LoopTurn } from '@contract/answer'
 import type { LucideIcon } from '@/components/icons'
 import {
+  CompactItemRow,
   ItemRow,
-  LookRow,
   NounChip,
   Runs,
   dayText,
@@ -135,24 +135,20 @@ function ReadLine({
   return (
     <p className="flex max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-right text-xs text-muted-foreground @lg:max-w-4/5">
       <span>{subject.carried ? 'Read with' : 'Read as'}</span>
-      {about.map((id, i) => (
+      {/* Each dot stays with what it follows, so a line that wraps never starts with one. */}
+      {about.map((id) => (
         <span key={id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
-          {i > 0 && <span aria-hidden>·</span>}
           <NounChip id={id} nouns={nouns} />
+          <span aria-hidden>·</span>
         </span>
       ))}
       <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        {about.length > 0 && <span aria-hidden>·</span>}
         <span className="inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground">
           {subject.assumedToday ? 'Today · assumed' : subject.period}
         </span>
+        {subject.note && <span aria-hidden>·</span>}
       </span>
-      {subject.note && (
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden>·</span>
-          <span>{subject.note}</span>
-        </span>
-      )}
+      {subject.note && <span>{subject.note}</span>}
       {subject.carried && <span>carried from your last question</span>}
       {onRescope && (
         <button
@@ -297,12 +293,15 @@ function Rows({
   more,
   shown = Infinity,
   moreLabel,
+  compact,
 }: {
   items: readonly LoopItem[]
   nouns: Nouns
   more?: number
   shown?: number
   moreLabel?: (n: number) => string
+  /** One line a row: the number, the kind's icon and the title; the details on the number's card. */
+  compact?: boolean
 }) {
   const [all, setAll] = React.useState(false)
   const unique = items.filter((x, i) => items.findIndex((y) => y.id === x.id) === i)
@@ -312,10 +311,14 @@ function Rows({
   const hidden = unique.length - visible.length
   return (
     <div className="flex flex-col gap-2">
-      <ul className="flex flex-col gap-2.5">
-        {visible.map((item) => (
-          <ItemRow key={item.id} item={item} nouns={nouns} twin={titles.get(item.title)! > 1} />
-        ))}
+      <ul className={compact ? 'flex flex-col gap-0.5' : 'flex flex-col gap-2.5'}>
+        {visible.map((item) =>
+          compact ? (
+            <CompactItemRow key={item.id} item={item} />
+          ) : (
+            <ItemRow key={item.id} item={item} nouns={nouns} twin={titles.get(item.title)! > 1} />
+          ),
+        )}
       </ul>
       {hidden > 0 && (
         <button
@@ -399,15 +402,15 @@ function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
         <span id={summary}>{freshness(items)}</span>
       </p>
       {look.length > 0 && (
-        <ul data-pinned className="flex flex-col">
+        <ul data-pinned className="flex flex-col gap-0.5">
           {look.map((item) => (
-            <LookRow key={item.id} item={item} />
+            <CompactItemRow key={item.id} item={item} />
           ))}
         </ul>
       )}
       {rest.length > 0 && (
         <P.CollapsibleContent>
-          <Rows items={rest} nouns={nouns} />
+          <Rows items={rest} nouns={nouns} compact />
         </P.CollapsibleContent>
       )}
     </P.Collapsible>

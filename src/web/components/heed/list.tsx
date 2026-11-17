@@ -237,15 +237,16 @@ export function GroupRow({
   open,
   onToggle,
   colSpan,
+  ...row
 }: {
   label: string
   detail: string
   open: boolean
   onToggle: () => void
   colSpan: number
-}) {
+} & Omit<React.ComponentProps<'tr'>, 'children' | 'className'>) {
   return (
-    <tr className="border-b bg-muted/40">
+    <tr {...row} className="border-b bg-muted/40">
       <td colSpan={colSpan} className="h-8 p-0">
         <button
           type="button"
@@ -428,8 +429,8 @@ export const thClass =
   'h-9 bg-band px-3 text-left align-middle text-xs font-medium whitespace-nowrap text-muted-foreground shadow-[inset_0_-1px_0_color-mix(in_oklab,var(--border),var(--foreground)_14%)]'
 
 /** A header cell. */
-export function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
-  return <th className={cn(thClass, className)}>{children}</th>
+export function Th({ className, ...th }: React.ComponentProps<'th'>) {
+  return <th {...th} className={cn(thClass, className)} />
 }
 
 const DirArrow = ({ dir, className }: { dir: Dir; className?: string }) => {
