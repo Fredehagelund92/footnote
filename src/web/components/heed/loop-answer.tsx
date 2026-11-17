@@ -2,6 +2,7 @@ import * as React from 'react'
 import type { LoopBlock, LoopItem, LoopOverview, LoopRun, LoopTurn } from '@contract/answer'
 import type { LucideIcon } from '@/components/icons'
 import {
+  CompactItemRow,
   ItemRow,
   NounChip,
   Runs,
@@ -291,12 +292,15 @@ function Rows({
   more,
   shown = Infinity,
   moreLabel,
+  compact,
 }: {
   items: readonly LoopItem[]
   nouns: Nouns
   more?: number
   shown?: number
   moreLabel?: (n: number) => string
+  /** One line a row: the number, the kind's icon and the title; the details on the number's card. */
+  compact?: boolean
 }) {
   const [all, setAll] = React.useState(false)
   const unique = items.filter((x, i) => items.findIndex((y) => y.id === x.id) === i)
@@ -306,10 +310,14 @@ function Rows({
   const hidden = unique.length - visible.length
   return (
     <div className="flex flex-col gap-2">
-      <ul className="flex flex-col gap-2.5">
-        {visible.map((item) => (
-          <ItemRow key={item.id} item={item} nouns={nouns} twin={titles.get(item.title)! > 1} />
-        ))}
+      <ul className={compact ? 'flex flex-col gap-0.5' : 'flex flex-col gap-2.5'}>
+        {visible.map((item) =>
+          compact ? (
+            <CompactItemRow key={item.id} item={item} />
+          ) : (
+            <ItemRow key={item.id} item={item} nouns={nouns} twin={titles.get(item.title)! > 1} />
+          ),
+        )}
       </ul>
       {hidden > 0 && (
         <button
@@ -357,7 +365,8 @@ function freshness(items: readonly LoopItem[]) {
 
 /**
  * What the answer used, as one line: how many items and how fresh they are, closed whenever an
- * answer arrives, since each is already cited in the words with its card. Opening it lists them.
+ * answer arrives, since each is already cited in the words with its card. Opening it lists them,
+ * one line each.
  */
 function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
   const P = useParts()
@@ -378,7 +387,7 @@ function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
         <span id={summary}>{freshness(items)}</span>
       </p>
       <P.CollapsibleContent>
-        <Rows items={items} nouns={nouns} />
+        <Rows items={items} nouns={nouns} compact />
       </P.CollapsibleContent>
     </P.Collapsible>
   )
