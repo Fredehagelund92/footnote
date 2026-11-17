@@ -218,7 +218,7 @@ function Row({
       <span className={cn(stateClassName, 'relative', answering && 'opacity-60')}>
         <Tooltip>
           <TooltipTrigger render={<span aria-hidden className="flex w-fit" onClick={pick} />}>
-            <StateLine state={r.state} tip={false} className="px-1.5 py-0.5 text-xs" />
+            <StateLine state={r.state} tip={false} className="h-5 px-1.5 py-0 text-xs" />
           </TooltipTrigger>
           <TooltipContent className="max-w-64 text-pretty">{line.sentence}</TooltipContent>
         </Tooltip>

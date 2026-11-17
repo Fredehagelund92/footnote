@@ -293,9 +293,14 @@ test("Asked this week: an owner's next step is a link after the topic, and the c
   await go(page, '/ask')
   const week = page.getByRole('region', { name: 'Asked this week' })
   await week.getByRole('button', { name: /^Show \d+ more$/ }).click()
-  const link = week.getByRole('link', { name: /^(Write it|Review it|Open the card) for / }).first()
+  const row = week
+    .getByRole('listitem')
+    .filter({
+      has: page.getByRole('link', { name: /^(Write it|Review it|Open the card) for / }),
+    })
+    .first()
+  const link = row.getByRole('link')
   await expect(link).toBeVisible()
-  const row = week.getByRole('listitem').filter({ has: link })
   const button = row.getByRole('button').first()
   // After the topic, before the state.
   const [b, l, s] = await Promise.all([
@@ -400,7 +405,8 @@ test.describe('on a touch phone', () => {
     const week = page.getByRole('region', { name: 'Asked this week' })
     const row = week.getByRole('listitem').first()
     const shown = (await row.getByRole('button').first().textContent())!
-    await row.locator('[id$="-count"]').tap()
+    const count = (await row.locator('[id$="-count"]').boundingBox())!
+    await page.touchscreen.tap(count.x + count.width / 2, count.y + count.height / 2)
     await expect(page.getByRole('log')).toContainText(shown)
   })
 })
