@@ -176,7 +176,7 @@ export async function reportGap(
       message: "Agents don't get any context yet. Ask an admin to finish the setup.",
     })
   const { type, note, ...scopeInput } = input
-  const scope = scopeOf({ ...scopeInput, question: '' }, bundle, today)
+  const { scope } = scopeOf({ ...scopeInput, question: '' }, bundle, today)
   if (scope.status !== 'resolved')
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
       message: "Add the metric, the market or the dates it's about.",

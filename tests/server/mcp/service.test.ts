@@ -1151,7 +1151,15 @@ describe('get_context', () => {
     const s = setup()
     const reply = await s.call('get_context', { question })
     const out = reply.structuredContent
-    expect(keys(out)).toEqual(['asked', 'context', 'edition', 'reply_id', 'say', 'status'])
+    expect(keys(out)).toEqual([
+      'asked',
+      'context',
+      'edition',
+      'period_read',
+      'reply_id',
+      'say',
+      'status',
+    ])
     expect(out).toMatchObject({
       status: 'matched',
       say: 'Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.',
@@ -1343,5 +1351,112 @@ describe('read_context and find_context', () => {
     const events = (await s.call('find_context', { query: 'Norway', kind: 'event' }))
       .structuredContent as { status: string }
     expect(events.status).toBe('no_match')
+  })
+})
+
+describe('the period a get_context reads (R11)', () => {
+  /** The fixture with an item about Norway orders in August 2025 too. */
+  const withLastAugust = () => {
+    const s = setup()
+    s.data.items.push({
+      ...s.data.items[0]!,
+      id: 'itm_norway25',
+      title: 'Norway VAT change',
+      validity: { start: '2025-08-01', end: '2025-09-01' },
+    })
+    return s
+  }
+  type Read = {
+    from: string | null
+    to: string | null
+    reads_as: string
+    provenance: string
+    words?: string
+    note?: string
+  }
+  const reply = async (s: ReturnType<typeof setup>, input: Record<string, unknown>) =>
+    (await s.call('get_context', input)).structuredContent as Record<string, unknown> & {
+      status: string
+      say: string
+      next: string
+      period_read?: Read
+      options?: { field: string; options: unknown[] }[]
+    }
+  const question = 'orders in Norway in August last year'
+
+  it('offers the loose reading as an option when the strict reader refuses the dates', async () => {
+    const s = withLastAugust()
+    for (const response_format of ['concise', 'full']) {
+      const out = await reply(s, { question, response_format })
+      expect(out.status).toBe('need_more_detail')
+      expect(out.options).toContainEqual(
+        expect.objectContaining({
+          field: 'dates',
+          options: [expect.objectContaining({ from: '2025-08-01', to: '2025-08-31' })],
+        }),
+      )
+      expect(out.next).toContain('1-31 Aug 2025')
+      expect(out).not.toHaveProperty('period_read')
+    }
+  })
+
+  it("reads the person's period words loosely, and says how in period_read", async () => {
+    const s = withLastAugust()
+    const out = await reply(s, { question, period: { words: 'August last year' } })
+    expect(out.status).toBe('matched')
+    expect(out.period_read).toEqual({
+      from: '2025-08-01',
+      to: '2025-08-31',
+      reads_as: '1-31 Aug 2025 (august last year; UTC)',
+      provenance: 'period',
+      words: 'August last year',
+    })
+    expect((out.context as { id: string }[]).map((item) => item.id)).toEqual(['itm_norway25'])
+    // Words that place no days are refused, never read as every date.
+    const unplaced = await reply(s, { question, period: { words: 'since the launch' } })
+    expect(unplaced.status).toBe('need_more_detail')
+    expect(unplaced.say).toContain('"since the launch" can\'t be read as dates.')
+    // report reads them the same way, and refuses the same words.
+    const sent = await s.call('report', {
+      kind: 'missing',
+      question,
+      period: { words: 'August last year' },
+    })
+    expect(sent.structuredContent).toMatchObject({ status: 'recorded', recorded: true })
+    const refused = await s.call('report', {
+      kind: 'missing',
+      question,
+      period: { words: 'since the launch' },
+    })
+    expect(refused.structuredContent).toMatchObject({ status: 'need_more_detail', recorded: false })
+  })
+
+  it('carries period_read in every reply that looked something up, concise and full', async () => {
+    const s = setup()
+    for (const response_format of ['concise', 'full']) {
+      expect(
+        (await reply(s, { question: 'Orders Norway August 2026', response_format })).period_read,
+      ).toEqual({
+        from: '2026-08-01',
+        to: '2026-08-31',
+        reads_as: '1-31 Aug 2026 (UTC)',
+        provenance: 'question',
+        words: 'August 2026',
+      })
+      expect((await reply(s, { question: 'Orders Norway', response_format })).period_read).toEqual({
+        from: '2026-10-07',
+        to: '2026-10-07',
+        reads_as: '7 Oct 2026 (no dates given, so today; UTC)',
+        provenance: 'assumed',
+      })
+      const window = { from: '2026-08-01', to: '2026-08-10' }
+      expect(
+        (await reply(s, { question: 'Orders Norway', window, response_format })).period_read,
+      ).toEqual({ ...window, reads_as: '1-10 Aug 2026', provenance: 'window' })
+    }
+    // A year the words do not give is a guess the note names.
+    expect(
+      (await reply(s, { question: 'Orders Norway', period: { words: 'in November' } })).period_read,
+    ).toMatchObject({ from: '2025-11-01', to: '2025-11-30', note: 'year not given' })
   })
 })

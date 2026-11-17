@@ -191,7 +191,9 @@ export const namesRule =
 
 /**
  * How dates are read, on the workspace's calendar (R8): the time zone today is counted in, and
- * when its fiscal year starts, or that it has not said, so fiscal words ask for the days.
+ * when its fiscal year starts, or that it has not said, so fiscal words ask for the days. The
+ * person's own words for the period go in period (R11); get_context's description says the rest,
+ * since these instructions are near the length every client reads.
  */
 export function datesRuleFor(calendar: Calendar = UTC_CALENDAR): string {
   const start = calendar.fiscalYearStart
@@ -202,7 +204,7 @@ export function datesRuleFor(calendar: Calendar = UTC_CALENDAR): string {
   const unread = start
     ? 'unreadable dates'
     : 'unreadable dates, and fiscal ones until the workspace sets its fiscal year,'
-  return `Dates in the question (${examples}) are read and said in say; ${unread} get need_more_detail. Without dates, today (${calendar.timeZone}) is read, as say says: say it too. Pass window for exact days.`
+  return `Dates in the question (${examples}) are read and said in say; ${unread} get need_more_detail. Without dates, today (${calendar.timeZone}) is read, as say says: say it too. Pass window, or period words.`
 }
 
 /** What the short reply leaves out, and where the rest is. */

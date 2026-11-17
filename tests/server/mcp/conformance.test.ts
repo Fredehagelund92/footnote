@@ -246,6 +246,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
       'asked',
       'context',
       'edition',
+      'period_read',
       'reply_id',
       'say',
       'status',
@@ -351,13 +352,13 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     s.data.items[0]!.body = '🦊'.repeat(5000)
     const reply = await client.callTool({
       ...call.params,
-      arguments: { ...call.params.arguments, max_bytes: 4000, response_format: 'full' },
+      arguments: { ...call.params.arguments, max_bytes: 4500, response_format: 'full' },
     })
     expect(reply.structuredContent).toMatchObject({
       context: [],
       check_report: { cut: true, cut_ids: ['itm_norway01'] },
     })
-    expect(Buffer.byteLength(JSON.stringify(reply))).toBeLessThanOrEqual(4000)
+    expect(Buffer.byteLength(JSON.stringify(reply))).toBeLessThanOrEqual(4500)
     s.source.bundle = () => Promise.reject(new Error('database private details'))
     expect((await client.callTool(call.params)).structuredContent).toMatchObject({
       status: 'check_failed',

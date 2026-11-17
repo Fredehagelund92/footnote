@@ -404,7 +404,7 @@ describe('golden questions: answering which, in Ask', () => {
 
 describe('golden questions: as an agent asks', () => {
   const agent = (question: string) =>
-    short(scopeOf({ question }, { terms } as unknown as ServingBundle, today))
+    short(scopeOf({ question }, { terms } as unknown as ServingBundle, today).scope)
 
   it.each<[string, Reading]>([
     // Read as before V1: an agent passes structured fields, and a word in no list is dropped.
@@ -433,7 +433,7 @@ describe('golden questions: as an agent asks', () => {
     ['orders from usa', 'val:market/united_states'],
   ])('reads the lowercase short code in "%s" as main does', (question, value) => {
     // Larchwood's names: United Kingdom has the other name UK, United States USA.
-    const r = scopeOf({ question }, planBundle as unknown as ServingBundle, PLAN_TODAY)
+    const r = scopeOf({ question }, planBundle as unknown as ServingBundle, PLAN_TODAY).scope
     expect(r).toMatchObject({ status: 'resolved', scope: { filters: { 'dim:market': [value] } } })
   })
 

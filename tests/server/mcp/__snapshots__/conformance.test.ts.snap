@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "00bf7ac770e033bab2f87f8a57f3f292d5dd847aea852ca4de2d04f53b9c5789",
+  "digest": "1d4610ee8a0fbb22c09679cb34ca4590703dad792bc59e8c856d53c94577b760",
   "tools": [
     {
       "annotations": {
@@ -11,7 +11,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "The context that applies to a question, with one sentence to relay. Call get_context before answering a question about company data. Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
+      "description": "The context that applies to a question, with one sentence to relay. Call get_context before answering a question about company data. Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -70,6 +70,22 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             },
             "maxItems": 10,
             "type": "array",
+          },
+          "period": {
+            "additionalProperties": false,
+            "description": "The period in the person's own words, read as people write dates; period_read says the days. Pass window instead for exact days.",
+            "properties": {
+              "words": {
+                "description": "The person's words for the period, as they wrote them, such as 'August last year'.",
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string",
+              },
+            },
+            "required": [
+              "words",
+            ],
+            "type": "object",
           },
           "question": {
             "maxLength": 2000,
@@ -171,6 +187,54 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
             "minLength": 1,
             "type": "string",
+          },
+          "period_read": {
+            "additionalProperties": false,
+            "description": "The days that were looked up, inclusive, and how they were read: say them.",
+            "properties": {
+              "from": {
+                "type": "string",
+              },
+              "note": {
+                "description": "What was guessed, such as year not given: tell the person.",
+                "type": "string",
+              },
+              "provenance": {
+                "description": "Where the days came from: your window, the person's period words, the question's words, or today, assumed because no dates were given.",
+                "enum": [
+                  "window",
+                  "period",
+                  "question",
+                  "assumed",
+                ],
+                "type": "string",
+              },
+              "reads_as": {
+                "description": "The days in words, and how they were read.",
+                "type": "string",
+              },
+              "to": {
+                "type": "string",
+              },
+              "unplaced": {
+                "description": "Words that name dates and could not be placed: tell the person.",
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "words": {
+                "description": "The words the days were read from.",
+                "type": "string",
+              },
+            },
+            "required": [
+              "from",
+              "to",
+              "reads_as",
+              "provenance",
+            ],
+            "type": "object",
           },
           "reply_id": {
             "description": "The id of this reply, for report when the person says what was wrong or helped.",
@@ -733,6 +797,22 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "maxLength": 500,
             "minLength": 1,
             "type": "string",
+          },
+          "period": {
+            "additionalProperties": false,
+            "description": "The period in the person's own words, read as people write dates; period_read says the days. Pass window instead for exact days.",
+            "properties": {
+              "words": {
+                "description": "The person's words for the period, as they wrote them, such as 'August last year'.",
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string",
+              },
+            },
+            "required": [
+              "words",
+            ],
+            "type": "object",
           },
           "question": {
             "description": "For missing without a reply_id: the question, read in memory only for its metrics, markets and dates, never kept.",
