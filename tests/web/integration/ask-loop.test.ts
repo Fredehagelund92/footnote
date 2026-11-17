@@ -511,3 +511,66 @@ describe("Ask's loop on a follow-up that keeps the period", () => {
     }
   })
 })
+
+describe("Ask's loop on a period with two readings that find different items", () => {
+  /**
+   * A model that reads the subject with these words, then asks back with the read's choices of
+   * period when it returns some, else answers citing nothing.
+   */
+  const read = async (input: Record<string, unknown>) => {
+    const api = await world.as(ML)
+    const seen: unknown[] = []
+    decide = ({ step, results }) => {
+      if (step === 0) return { calls: [{ toolName: 'get_context', input }] }
+      const got = results.find((r) => r.toolName === 'get_context')?.value as {
+        choices?: { period: string }[]
+      }
+      seen.push(got)
+      return got?.choices?.length
+        ? {
+            calls: [
+              {
+                toolName: 'ask_back',
+                input: {
+                  question: 'Which August do you mean?',
+                  choices: got.choices.map((c) => c.period),
+                },
+              },
+            ],
+          }
+        : { text: 'Nothing more is written.' }
+    }
+    try {
+      return { answer: await api.ask({ question: String(input.about) }), seen }
+    } finally {
+      decide = null
+    }
+  }
+
+  it('asks back with both Augusts when only last year’s has items (R7)', async () => {
+    // The Norway VAT rule applies from 3 August 2025 to 5 June 2026: nothing in August 2026.
+    const { answer, seen } = await read({
+      about: 'discount cost in Norway in August',
+      period_words: 'August',
+      from: '2026-08-01',
+      to: '2026-08-31',
+    })
+    expect(seen[0]).toMatchObject({
+      choices: [
+        { period: '1-31 Aug 2025', from: '2025-08-01', to: '2025-08-31', found: 1 },
+        { period: '1-31 Aug 2026', from: '2026-08-01', to: '2026-08-31', found: 0 },
+      ],
+    })
+    expect(answer.loop?.kind).toBe('question')
+    expect(answer.choices).toEqual(['1-31 Aug 2025', '1-31 Aug 2026'])
+  })
+
+  it('offers no choice where the words name the year', async () => {
+    const { answer, seen } = await read({
+      about: 'discount cost in Norway in August 2026',
+      period_words: 'August 2026',
+    })
+    expect(seen[0]).not.toHaveProperty('choices')
+    expect(answer.loop?.kind).toBe('answer')
+  })
+})

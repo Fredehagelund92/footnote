@@ -1377,6 +1377,44 @@ export function crossCheckedDays(
     : { window, readsAs: read.readsAs, other: model }
 }
 
+/** A day written with numbers, its day and month in either order: "12/10/2026". */
+const numericDay = /\b(\d{1,2})[/.](\d{1,2})[/.]((?:19|20)?\d{2})\b/
+
+/**
+ * The other reading of a period's words where they leave two (R7, D6), beside the days taken for
+ * them (`taken`): a month, quarter or day written without a year, in the other year a person may
+ * mean, this year's where the days taken are in an earlier year, else the year before's ("August"
+ * on 23 October 2026 is August 2026 or August 2025, "November" November 2025 or 2026); a day
+ * written with numbers and read day first, read month first ("12/10/2026" is 12 Oct or 10 Dec
+ * 2026). Null where the words leave one reading.
+ */
+export function otherReading(
+  words: string,
+  taken: Days,
+  today: string,
+  calendar: Calendar = UTC_CALENDAR,
+): Days | null {
+  const named = normalizeName(words).replace(/[?.!]+$/, '')
+  const read = named ? readPeriodWords(named, today, calendar) : null
+  if (!read) return null
+  if (read.readsAs.includes('day first')) {
+    const [, first, second, year] = numericDay.exec(named) ?? []
+    if (!sameDays(read.window, taken, today) || !first || first === second) return null
+    if (Number(first) > 12 || Number(second) > 12) return null
+    const y = Number(year) < 100 ? 2000 + Number(year) : Number(year)
+    const day = iso(y, Number(first), Number(second))
+    return isCalendarDate(day) ? { start: day, end: shiftDate(day, 1) } : null
+  }
+  if (!(read.readsAs.includes('year not given') || yearless.test(named))) return null
+  const year = yearOf(taken.start) < yearOf(today) ? yearOf(today) : yearOf(taken.start) - 1
+  const other = readPeriodWords(`${named} ${year}`, today, calendar)
+  // The same period a year away, or no other reading: never one the year changed the length of.
+  const sameIn = (w: Days) => yearOf(w.start) === year && w.start.slice(4) === taken.start.slice(4)
+  return other && !other.readsAs.includes('year not given') && sameIn(other.window)
+    ? other.window
+    : null
+}
+
 /**
  * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",
  * "fiscal year read as the calendar year", "Q3 FY26, fiscal year from 1 April", "day first", "could not place 'since the launch'",
