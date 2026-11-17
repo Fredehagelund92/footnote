@@ -814,7 +814,7 @@ describe("the model's days for a period, checked against the reader's", () => {
 
   it('takes the model’s days where the reader places none of the words', () => {
     const september = { start: '2026-09-01', end: '2026-10-01' }
-    for (const words of ['forrige måned', 'since the launch', undefined])
+    for (const words of ['currently', 'since the launch', undefined])
       expect(crossCheckedDays(words, september, today)).toEqual({
         window: september,
         readsAs: null,
