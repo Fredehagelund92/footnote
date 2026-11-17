@@ -250,6 +250,31 @@ describe("Ask's loop answer, state by state", () => {
     ])
   })
 
+  it('Used: each pinned item due for a check has its own Mark it still true, naming its title', () => {
+    const base = usedTurn(4, { trust: true })
+    const turn = {
+      ...base,
+      items: base.items.map((i, k) =>
+        k === 2 ? { ...i, status: 'due' as const, outOfDate: null } : i,
+      ),
+    }
+    const el = render(turn)
+    const pinned = [...el.querySelectorAll('[data-used] [data-pinned] > li')]
+    expect(pinned).toHaveLength(2)
+    const marks = pinned.map((li) => buttons(li, /^Mark it still true/))
+    expect(marks.map((b) => b.map((m) => m.getAttribute('aria-label')))).toEqual([
+      [`Mark it still true: ${turn.items[1]!.title}`],
+      [`Mark it still true: ${turn.items[2]!.title}`],
+    ])
+    // None is left that does not say which item it marks.
+    expect(buttons(el, /^Mark it still true$/)).toHaveLength(0)
+    world.writes.length = 0
+    act(() => (marks[1]![0] as HTMLElement).click())
+    expect(world.writes.map((w) => [w.op, (w.input as { id: string }).id])).toEqual([
+      ['editItem', turn.items[2]!.id],
+    ])
+  })
+
   it('Used: an answer whose items are all live pins none', () => {
     const el = render(usedTurn(4))
     expect(el.querySelectorAll('[data-used] [data-pinned]')).toHaveLength(0)

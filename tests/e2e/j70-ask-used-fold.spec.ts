@@ -77,6 +77,15 @@ for (const { name, viewport } of widths)
       await expect(pinned.nth(1)).toContainText('May be out of date')
       for (const row of await pinned.all())
         expect((await row.boundingBox())!.height).toBeLessThanOrEqual(28)
+      // Each row marks its own item still true, and says which (an admin reads it here).
+      const titles = [
+        'Payment provider switched in France on 12 May 2026',
+        'Net revenue in Spain includes VAT',
+      ]
+      for (const [k, title] of titles.entries())
+        await expect(
+          pinned.nth(k).getByRole('button', { name: `Mark it still true: ${title}`, exact: true }),
+        ).toBeVisible()
       // The footer still says which item may be out of date (FR-720.5).
       await expect(turn).toContainText(/“.+” may be out of date: its check date has passed\./)
 

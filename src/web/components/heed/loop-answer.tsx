@@ -374,7 +374,16 @@ function freshness(items: readonly LoopItem[], needsLook: ReturnType<typeof useN
  * answer arrives, since each is already cited in the words with its card. An item that needs a
  * look is never folded: it stays under the line, one line each. Opening it lists the rest.
  */
-function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
+function Used({
+  items,
+  nouns,
+  owns,
+}: {
+  items: readonly LoopItem[]
+  nouns: Nouns
+  /** Whether the reader may mark what is due still true. */
+  owns: boolean
+}) {
   const P = useParts()
   const needsLook = useNeedsLook()
   const summary = React.useId()
@@ -383,7 +392,7 @@ function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
   for (const i of items) (needsLook(i) ? look : rest).push(i)
   const label = `Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`
   return (
-    <P.Collapsible data-used className="flex max-w-reading flex-col gap-2">
+    <P.Collapsible data-used className="@container/used flex max-w-reading flex-col gap-2">
       {/* Inline text, so a summary too long for the line wraps after the dot, never before it. */}
       <p className="text-xs text-muted-foreground">
         {rest.length ? (
@@ -406,7 +415,7 @@ function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
       {look.length > 0 && (
         <ul data-pinned className="flex flex-col gap-0.5">
           {look.map((item) => (
-            <CompactItemRow key={item.id} item={item} />
+            <PinnedRow key={item.id} item={item} owns={owns} />
           ))}
         </ul>
       )}
@@ -416,6 +425,105 @@ function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
         </P.CollapsibleContent>
       )}
     </P.Collapsible>
+  )
+}
+
+/** Whether a check of this item, due or out of date, is the reader's to say it still holds. */
+const checkable = (item: LoopItem) =>
+  item.status !== 'archived' && (item.status === 'due' || !!item.outOfDate)
+
+/**
+ * An item that needs a look, in one line, with what its owner can do about it there: say it is
+ * still true. The row then reads as checked, as the item now is.
+ */
+function PinnedRow({ item, owns }: { item: LoopItem; owns: boolean }) {
+  const [checked, setChecked] = React.useState(false)
+  const shown = checked ? { ...item, status: 'live' as const, outOfDate: null } : item
+  return (
+    <CompactItemRow
+      item={shown}
+      action={
+        checked ? (
+          <CheckedStillTrue />
+        ) : owns && checkable(item) ? (
+          <>
+            <span aria-hidden className="text-xs text-muted-foreground">
+              ·
+            </span>
+            <MarkStillTrue inline item={item} onDone={() => setChecked(true)} />
+          </>
+        ) : null
+      }
+    />
+  )
+}
+
+/** Says an item was just checked as still true, where its button was. */
+function CheckedStillTrue() {
+  const P = useParts()
+  return (
+    <span
+      role="status"
+      className="inline-flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
+    >
+      <P.CheckIcon aria-hidden className="size-3.5 text-good" />
+      Checked: still true
+    </span>
+  )
+}
+
+/**
+ * Marks one item still true, as its owner. It names the item it marks, since an answer may have
+ * more than one due. In a row it is words of the row's own size; under the answer, a button.
+ */
+function MarkStillTrue({
+  item,
+  onDone,
+  inline,
+}: {
+  item: LoopItem
+  onDone: () => void
+  inline?: boolean
+}) {
+  const P = useParts()
+  const me = P.useMe()
+  const write = P.useWrite()
+  const [sending, setSending] = React.useState(false)
+  const press = {
+    'aria-label': `Mark it still true: ${item.title}`,
+    disabled: sending,
+    onClick: () => {
+      setSending(true)
+      void write('editItem', {
+        id: item.id,
+        patch: { status: 'Live', outOfDate: undefined, checkedBy: me.name },
+      }).then(
+        () => onDone(),
+        () => {
+          setSending(false)
+          P.toast.error('It was not marked still true', {
+            description: 'Nothing changed: try again in a moment.',
+          })
+        },
+      )
+    },
+  }
+  if (!inline)
+    return (
+      <P.Button variant="outline" {...press}>
+        Mark it still true
+      </P.Button>
+    )
+  // Where the column is narrow, the words would cut the title to a few letters: its icon alone.
+  return (
+    <button
+      type="button"
+      {...press}
+      className="relative -ml-1 inline-flex shrink-0 items-center rounded-sm px-1 text-xs font-medium text-foreground underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:text-muted-foreground @max-md/used:after:-inset-2"
+    >
+      <span className="@max-md/used:hidden">Mark it still true</span>
+      <P.CheckIcon aria-hidden className="hidden size-4 @max-md/used:block" />
+    </button>
   )
 }
 
@@ -648,9 +756,17 @@ function WhatAskRead({ loop, footer }: { loop: LoopTurn; footer: string[] }) {
   )
 }
 
+/** Whether the reader owns what the answer is about, or is an admin: theirs to write or check. */
+function useOwns(loop: LoopTurn) {
+  const me = useParts().useMe()
+  const owned = new Set(loop.owners.map((o) => o.domain.replace(/^domain:(area_)?/, '')))
+  return me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
+}
+
 /**
- * What to do next that fits the state: write the missing context, or check what may be old. Under
- * Not found a reader who may not write tells the owners instead (decision 7): Ask writes nothing.
+ * What to do next that fits the state: write the missing context, or check what may be old when
+ * no row of Used already offers it. Under Not found a reader who may not write tells the owners
+ * instead (decision 7): Ask writes nothing.
  */
 function Next({
   loop,
@@ -660,17 +776,16 @@ function Next({
 }: {
   loop: LoopTurn
   nouns: Nouns
+  /** The items used that no row of Used pins: a check of one of them is offered here. */
   items: readonly LoopItem[]
   /** The days the answer was read for, as it says them; none when it named none. */
   dates?: string
 }) {
   const P = useParts()
-  const me = P.useMe()
   const write = P.useWrite()
   const [told, setTold] = React.useState(false)
   const subject = loop.subject
-  const owned = new Set(loop.owners.map((o) => o.domain.replace(/^domain:(area_)?/, '')))
-  const owns = me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
+  const owns = useOwns(loop)
   if (loop.state === 'missing' && !owns && subject?.about.length) {
     const domains = loop.owners.flatMap((o) =>
       nouns.has(o.domain) ? [nouns.get(o.domain)!.name] : [],
@@ -724,25 +839,18 @@ function Next({
     )
   }
   if (loop.state === 'stale') {
-    const f = items.find((i) => i.status === 'due' || i.outOfDate)
+    const f = items.find(checkable)
     if (!f || !owns) return null
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <P.Button
-          variant="outline"
-          onClick={() =>
-            void write('editItem', {
-              id: f.id,
-              patch: { status: 'Live', outOfDate: undefined, checkedBy: me.name },
-            }).then(() =>
-              P.toast('Checked: still true', {
-                description: 'Agents get it without the warning from now on.',
-              }),
-            )
+        <MarkStillTrue
+          item={f}
+          onDone={() =>
+            P.toast('Checked: still true', {
+              description: 'Agents get it without the warning from now on.',
+            })
           }
-        >
-          Mark it still true
-        </P.Button>
+        />
         <P.Button
           variant="ghost"
           nativeButton={false}
@@ -1227,7 +1335,8 @@ function Finished({
     return item && !loop.conflict.includes(item.id) ? [item] : []
   })
   const listed = new Set(loop.body.flatMap((b) => (b.t === 'list' ? b.rows : [])))
-  const usedRows = used.filter((i) => !listed.has(i.id))
+  const shownUsed = loop.overview ? [] : used.filter((i) => !listed.has(i.id))
+  const owns = useOwns(loop)
   const showOwners = loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale'
   const footer = footerLines(loop)
   return (
@@ -1284,7 +1393,7 @@ function Finished({
             </p>
           )}
           {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
-          {usedRows.length > 0 && !loop.overview && <Used items={usedRows} nouns={maps.nouns} />}
+          {shownUsed.length > 0 && <Used items={shownUsed} nouns={maps.nouns} owns={owns} />}
           {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
           {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
           <Definitions loop={loop} nouns={maps.nouns} />
@@ -1292,7 +1401,7 @@ function Finished({
           <Next
             loop={loop}
             nouns={maps.nouns}
-            items={used}
+            items={used.filter((i) => !shownUsed.includes(i))}
             {...(answer.dates ? { dates: answer.dates } : {})}
           />
           {(footer.length > 0 || loop.read.length > 0) && (
