@@ -4,6 +4,7 @@ import { createToolService, type ToolResult } from '../../../src/server/mcp/serv
 import type { ServedToolName } from '../../../src/server/mcp/tools.ts'
 import type { EditionSource, ServingBundle } from '../../../src/server/modules/editions/index.ts'
 import { bundle, memoryStore, withRevenue } from './fixtures.ts'
+import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 
 /*
   What get_context, find_context and read_context give of the terms and synonyms people write in
@@ -62,6 +63,7 @@ function setup(data: ServingBundle) {
         limits: {},
         rates: { person: 30, client: 120 },
         about: '',
+        calendar: UTC_CALENDAR,
       }),
   }
   const execute = createToolService(

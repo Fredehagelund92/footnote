@@ -7,6 +7,7 @@ import {
   type WorkspaceInfo,
 } from '../../../contract/admin.ts'
 import { canonicalJson } from '../../../domain/canonical.ts'
+import { UTC_CALENDAR, type Calendar } from '../../../domain/dates.ts'
 import type { Queryable } from '../../db/database.ts'
 import { ModelConfigError } from '../models/index.ts'
 import { plainReason, recordAudit } from './audit.ts'
@@ -104,4 +105,28 @@ export async function readWorkspace(tx: Queryable): Promise<WorkspaceInfo> {
     `select value from settings_versions where key = 'workspace.name' order by version desc limit 1`,
   )
   return { name: typeof row?.value === 'string' ? row.value : '' }
+}
+
+/**
+ * The workspace's calendar (R8), as everyone signed in and every agent reads dates on it: when its
+ * fiscal year starts and the time zone today is counted in. A missing or unreadable value reads as
+ * the default, no fiscal year start and UTC.
+ */
+export async function readCalendar(tx: Queryable): Promise<Calendar> {
+  const rows = await tx.query<{ key: string; value: unknown }>(
+    "select key, value from settings_current where key in ('calendar.fiscal_year_start', 'calendar.time_zone')",
+  )
+  return calendarOf((key) => rows.find((row) => row.key === key)?.value)
+}
+
+/** The calendar the settings' values give, by key. */
+export function calendarOf(value: (key: string) => unknown): Calendar {
+  const start = settingSchemas['calendar.fiscal_year_start'].safeParse(
+    value('calendar.fiscal_year_start'),
+  )
+  const zone = settingSchemas['calendar.time_zone'].safeParse(value('calendar.time_zone'))
+  return {
+    fiscalYearStart: start.success ? start.data : UTC_CALENDAR.fiscalYearStart,
+    timeZone: zone.success ? zone.data : UTC_CALENDAR.timeZone,
+  }
 }

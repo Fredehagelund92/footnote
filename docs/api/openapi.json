@@ -96370,7 +96370,7 @@
                                                   "type": "string"
                                                 },
                                                 "time_zone": {
-                                                  "const": "UTC"
+                                                  "type": "string"
                                                 },
                                                 "reason": {
                                                   "const": "no date given"
@@ -96947,7 +96947,7 @@
                                               "type": "string"
                                             },
                                             "time_zone": {
-                                              "const": "UTC"
+                                              "type": "string"
                                             },
                                             "reason": {
                                               "const": "no date given"
@@ -97351,7 +97351,7 @@
                                                         "type": "string"
                                                       },
                                                       "time_zone": {
-                                                        "const": "UTC"
+                                                        "type": "string"
                                                       },
                                                       "reason": {
                                                         "const": "no date given"
@@ -107632,7 +107632,7 @@
                                   "type": "string"
                                 },
                                 "time_zone": {
-                                  "const": "UTC"
+                                  "type": "string"
                                 },
                                 "reason": {
                                   "const": "no date given"
@@ -108036,7 +108036,7 @@
                                             "type": "string"
                                           },
                                           "time_zone": {
-                                            "const": "UTC"
+                                            "type": "string"
                                           },
                                           "reason": {
                                             "const": "no date given"

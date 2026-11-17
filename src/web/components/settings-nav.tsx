@@ -57,7 +57,7 @@ export function SettingsNav({ section, close }: { section: string; close: () => 
         .filter((g) => g.items.length)
   return (
     <>
-      <SidebarHeader className="h-bar justify-center border-b px-2">
+      <SidebarHeader className="h-bar justify-center px-2 shadow-hairline-bottom">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip={BACK_TO_APP} render={<a href="/inbox" onClick={close} />}>

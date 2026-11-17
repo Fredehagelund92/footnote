@@ -62,7 +62,9 @@ tests that need PostgreSQL 18, against `TEST_DATABASE_URL` (default
   writes them for review in a pull request.
 - **The demo install (Playwright).** `tests/e2e-seed` signs in on what `docker compose up` gives a
   new install and checks that every main screen draws on its data, with no call refused
-  (`npm run test:e2e:seed`).
+  (`npm run test:e2e:seed`). Its 1,500 items are also where a long list's cost shows, which the
+  mock's 25 hide: Context must draw its first rows within 500 ms of a click, hold no task over
+  200 ms in the five seconds after, and read no second `/library` (`context-rows.spec.ts`).
 - **An own manifest to a Checked answer (Playwright).** `tests/e2e-own` starts from an empty
   database with no demo: it connects an invented dbt project through the app, publishes the names its
   read made, publishes a context item about one of its metrics, and gets Checked from `get_context`

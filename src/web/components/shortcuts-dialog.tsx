@@ -51,7 +51,8 @@ export function ShortcutsDialog() {
         <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>
-            Single keys work when you are not typing. On Windows, use Ctrl for ⌘ and Alt for ⌥.
+            Single keys work when you are not typing. On Windows, use Ctrl for Command and Alt for
+            Option.
           </DialogDescription>
         </DialogHeader>
         {/* Two columns, each a stack, filled in reading order: groups of any length pack without gaps. */}
