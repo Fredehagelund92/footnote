@@ -363,3 +363,77 @@ describe("Ask's loop on a question that names no dates", () => {
     ).toBe('partial')
   })
 })
+
+describe("Ask's loop on the days the model read a period as", () => {
+  /** A model that reads the subject with these days and words, then answers citing nothing. */
+  const read = async (
+    question: string,
+    input: Record<string, unknown>,
+    turns: Parameters<Awaited<ReturnType<typeof world.as>>['ask']>[0]['turns'] = [],
+  ) => {
+    const api = await world.as(ML)
+    decide = ({ step }) =>
+      step === 0
+        ? { calls: [{ toolName: 'get_context', input: { about: 'net revenue', ...input } }] }
+        : { text: 'Nothing more is written.' }
+    try {
+      return await api.ask({ question, turns })
+    } finally {
+      decide = null
+    }
+  }
+
+  it('says the other reading when the model’s days and the reader’s differ: "and in Q3?" after "last year"', async () => {
+    const first = await read("what was net revenue's definition last year", {
+      period_words: 'last year',
+      from: '2025-01-01',
+      to: '2025-12-31',
+    })
+    expect(first.loop?.subject).toMatchObject({ period: '1 Jan to 31 Dec 2025', note: null })
+    const q3 = await read(
+      'and in Q3?',
+      { period_words: 'Q3', from: '2025-07-01', to: '2025-09-30' },
+      [turnOf(first)],
+    )
+    // The words name no year, so the model's, from the chat, stands, and the reader's is said.
+    expect(q3.loop?.subject).toMatchObject({
+      period: '1 Jul to 30 Sep 2025',
+      note: 'could also mean 1 Jul to 30 Sep 2026',
+    })
+  })
+
+  it('keeps the reader’s days where it placed the words, and says the model’s beside them', async () => {
+    const a = await read('net revenue last quarter', {
+      period_words: 'last quarter',
+      from: '2026-04-01',
+      to: '2026-06-30',
+    })
+    expect(a.loop?.subject).toMatchObject({
+      period: '1 Jul to 30 Sep 2026',
+      note: 'could also mean 1 Apr to 30 Jun 2026',
+    })
+  })
+
+  it('takes the reader’s own words for the days when both agree', async () => {
+    const a = await read('net revenue last quarter', {
+      period_words: 'last quarter',
+      from: '2026-07-01',
+      to: '2026-09-30',
+    })
+    expect(a.loop?.subject).toMatchObject({ period: '1 Jul to 30 Sep 2026', note: null })
+  })
+
+  it('takes the model’s days where the reader places no words', async () => {
+    const a = await read('net revenue in the month before last', {
+      period_words: 'the month before last',
+      from: '2026-08-01',
+      to: '2026-08-31',
+    })
+    expect(a.loop?.subject).toMatchObject({ period: '1-31 Aug 2026', note: null })
+  })
+
+  it('takes the reader’s days where the model gives none', async () => {
+    const a = await read('net revenue last year', { period_words: 'last year' })
+    expect(a.loop?.subject).toMatchObject({ period: '1 Jan to 31 Dec 2025', note: null })
+  })
+})

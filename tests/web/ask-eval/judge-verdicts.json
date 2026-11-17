@@ -16,7 +16,9 @@
       "advice": [
         "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
       ],
-      "verdict": [],
+      "verdict": [
+        "Yes: both are read as Net revenue, which is gross sales after returns, discounts, VAT and payment fees, in euros."
+      ],
       "unsupported": []
     },
     "J04": {
@@ -88,7 +90,7 @@
     },
     "J17": {
       "advice": [],
-      "verdict": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
+      "verdict": ["No."],
       "unsupported": []
     },
     "J18": {
@@ -150,7 +152,9 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["but the owners have not marked them as conflicting"]
+      "unsupported": [
+        "Another note counts only card and cash payments [2], but the owners have not marked them as conflicting."
+      ]
     },
     "J29": {
       "advice": [],
@@ -172,7 +176,7 @@
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway"]
+      "unsupported": ["Seven items are about Norway, and one of them is archived."]
     },
     "J33": {
       "advice": [],
@@ -192,7 +196,7 @@
     "J36": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": ["Nothing in Heed is about Poland."]
     },
     "J37": {
       "advice": [],
