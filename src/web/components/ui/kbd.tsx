@@ -1,6 +1,22 @@
+import * as React from 'react'
+import { CommandIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
-function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
+/** The web font has no command key sign, so the system font would draw it: a drawn icon takes its place. */
+function withCommandIcon(children: React.ReactNode) {
+  return React.Children.map(children, (child) =>
+    typeof child === 'string' && child.includes('⌘')
+      ? child
+          .split('⌘')
+          .flatMap((part, i) => [
+            i > 0 && <CommandIcon key={i} role="img" aria-label="Command" />,
+            part,
+          ])
+      : child,
+  )
+}
+
+function Kbd({ className, children, ...props }: React.ComponentProps<'kbd'>) {
   return (
     <kbd
       data-slot="kbd"
@@ -9,7 +25,9 @@ function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
         className,
       )}
       {...props}
-    />
+    >
+      {withCommandIcon(children)}
+    </kbd>
   )
 }
 

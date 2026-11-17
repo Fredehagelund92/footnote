@@ -244,7 +244,7 @@ export function ShellShape() {
       }
     >
       <Sidebar collapsible="icon" className="*:data-[slot=sidebar-inner]:bg-background">
-        <SidebarHeader className="h-bar justify-center border-b px-2">
+        <SidebarHeader className="h-bar justify-center px-2 shadow-hairline-bottom">
           <div className="flex h-8 items-center px-2">
             <Skeleton className="h-5 w-20 group-data-[collapsible=icon]:w-4" />
           </div>
@@ -271,7 +271,7 @@ export function ShellShape() {
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="h-bar justify-center border-t py-0">
+        <SidebarFooter className="h-bar justify-center py-0 shadow-hairline-top">
           <div className="flex h-12 items-center gap-2 p-2 group-data-[collapsible=icon]:p-0">
             <Skeleton className="size-8 shrink-0 rounded-full" />
             <div className="flex flex-1 flex-col gap-1.5 group-data-[collapsible=icon]:hidden">

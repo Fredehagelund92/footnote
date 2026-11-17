@@ -10,7 +10,8 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { API_PREFIX, contract } from '../../contract/index.ts'
 import { missing, notAllowed, refusalOfCode, refusals } from '../../contract/refusals.ts'
 import { forRequest, type Database, type Queryable } from '../db/database.ts'
-import type { Clock } from '../clock.ts'
+import { todayIn, type Clock } from '../clock.ts'
+import type { Calendar } from '../../domain/dates.ts'
 import {
   createProposalsService,
   retryWrite,
@@ -39,6 +40,7 @@ import {
   listClients,
   listSettings,
   plainReason,
+  readCalendar,
   readWorkspace,
   saveClient,
   searchAudit,
@@ -273,9 +275,10 @@ export function askToolsOf(
   clock: Clock,
   answerBundles: BundleCache,
   services: ReturnType<typeof requestServices>,
+  calendar: Calendar,
 ) {
   return createAskTools(
-    toolReadsIn(tx, clock, answerBundles, { ...services, people: () => listMembers(tx) }),
+    toolReadsIn(tx, clock, answerBundles, { ...services, people: () => listMembers(tx) }, calendar),
   )
 }
 
@@ -435,6 +438,8 @@ export function createRouter({
     const limits = live ? await readSpendLimits(context.tx, 'assistant') : null
     const scope = await readerScope(context.tx)
     const areas = await context.areas.list()
+    // The workspace's calendar, read once a turn: every read of the turn counts on the same today.
+    const calendar = await readCalendar(context.tx)
     const log = context.request.log
     const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
     return askWithLoop(
@@ -447,6 +452,7 @@ export function createRouter({
             clock,
             answerBundles,
             requestServices(tx, person, { clock, answerBundles, models, readPage, hooks: noHooks }),
+            calendar,
           ),
         model,
         limits,
@@ -454,7 +460,8 @@ export function createRouter({
           admin: scope.admin,
           owns: areas.filter((a) => scope.areas.includes(a.id)).map((a) => a.name),
         },
-        today: clock.today(),
+        today: todayIn(clock, calendar.timeZone),
+        timeZone: calendar.timeZone,
         steps,
         timeoutMs: seconds * 1000,
         ...(signal ? { signal } : {}),

@@ -9,6 +9,7 @@ import { toolWords } from '../../../src/domain/mcp-text.ts'
 import type { ServedToolName } from '../../../src/server/mcp/tools.ts'
 import type { EditionSource, ServingBundle } from '../../../src/server/modules/editions/index.ts'
 import { bundle, fakeReads, memoryStore, withRevenue } from './fixtures.ts'
+import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 
 /*
   FR-344: every read result carries `say`, plain sentences for its status that an AI agent may
@@ -30,6 +31,7 @@ function setup(change: (data: ServingBundle) => void = () => {}) {
         limits: {},
         rates: { person: 30, client: 120 },
         about: '',
+        calendar: UTC_CALENDAR,
       }),
   }
   const execute = createToolService(
