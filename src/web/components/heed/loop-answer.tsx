@@ -288,7 +288,6 @@ function PeriodDays({
   const [from, setFrom] = React.useState('')
   const [to, setTo] = React.useState('')
   const ready = !!from && !!to && from <= to
-  const field = 'flex flex-col gap-1 px-1.5 text-xs text-muted-foreground'
   return (
     <form
       className="flex flex-col gap-2 pt-1.5"
@@ -297,7 +296,7 @@ function PeriodDays({
         if (ready) onPick({ from, to })
       }}
     >
-      <label className={field}>
+      <label className="flex flex-col gap-1 px-1.5 text-xs text-muted-foreground">
         First day
         <P.Input
           autoFocus
@@ -310,7 +309,7 @@ function PeriodDays({
           className="text-foreground"
         />
       </label>
-      <label className={field}>
+      <label className="flex flex-col gap-1 px-1.5 text-xs text-muted-foreground">
         Last day
         <P.Input
           type="date"
