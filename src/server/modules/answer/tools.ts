@@ -7,6 +7,8 @@ import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
 import {
   anchorOf,
+  chosenDays,
+  chosenPeriodNames,
   crossCheckedDays,
   dayWords,
   otherReading,
@@ -629,6 +631,14 @@ const getInput = z.strictObject({
       'If nothing applies, read once more, wider: by another name of the same subject, or without one part.',
     ),
 })
+/**
+ * get_context as the service reads it: the model's input, and the period the person chose on the
+ * read line (R12), which Ask's loop adds to every get_context of that turn. The model never sees
+ * it, so it stands over the words and the model's days.
+ */
+const getReadInput = getInput.extend({
+  period: z.union([z.enum(chosenPeriodNames), z.strictObject({ from: day, to: day })]).optional(),
+})
 const readSchema = z.object({
   words: z.string(),
   names: z.array(z.string()),
@@ -799,22 +809,26 @@ const namesDates = (words: string, today: string, calendar: Calendar) =>
 
 function getContext(
   view: View,
-  input: z.output<typeof getInput>,
+  input: z.output<typeof getReadInput>,
   today: string,
   calendar: Calendar,
   { lastPeriod }: ReadContext,
 ) {
-  // The model's days for the period, cross-checked against the reader's of the person's words,
-  // or read against the last question's period on a follow-up that changes only the period.
-  const days = crossCheckedDays(
-    input.period_words,
-    input.from && input.to ? { start: input.from, end: shiftDate(input.to, 1) } : undefined,
-    today,
-    calendar,
-    input.relative_to && (input.period_words || !namesDates(input.about, today, calendar))
-      ? lastPeriod
-      : null,
-  )
+  // The period the person chose stands. Else the model's days for the period, cross-checked
+  // against the reader's of the person's words, or read against the last question's period on a
+  // follow-up that changes only the period.
+  const chosen = input.period ? chosenDays(input.period, today, calendar) : null
+  const days = chosen?.end
+    ? { window: { start: chosen.start, end: chosen.end }, readsAs: null, other: null }
+    : crossCheckedDays(
+        input.period_words,
+        input.from && input.to ? { start: input.from, end: shiftDate(input.to, 1) } : undefined,
+        today,
+        calendar,
+        input.relative_to && (input.period_words || !namesDates(input.about, today, calendar))
+          ? lastPeriod
+          : null,
+      )
   const given = days ? { from: days.window.start, to: shiftDate(days.window.end, -1) } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
     answer(view.bundle, ask, { today, calendar, person: true })
@@ -931,7 +945,7 @@ function getContext(
   // or from an event, where the words leave one reading.
   const taken = scope && !isAnyDate(scope.window) ? scope.window : null
   const fork =
-    taken?.end && !anchored && !days?.readsAs?.includes('from your last question')
+    taken?.end && !anchored && !chosen && !days?.readsAs?.includes('from your last question')
       ? otherReading(
           input.period_words ?? input.about,
           { start: taken.start, end: taken.end },
@@ -2029,7 +2043,7 @@ export function createAskTools(reads: ToolReads) {
     context: ReadContext = { lastPeriod: null },
   ): Promise<AskToolResult<N>> {
     const definition = definitionsFor[toolName]
-    const parsed = definition.input.safeParse(input)
+    const parsed = (toolName === 'get_context' ? getReadInput : definition.input).safeParse(input)
     if (!parsed.success)
       return {
         error: `The input does not fit ${toolName}: ${parsed.error.issues.map((i) => `${i.path.join('.') || 'input'} ${i.message}`).join('; ')}.`,

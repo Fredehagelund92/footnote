@@ -93531,6 +93531,36 @@
                       ],
                       "additionalProperties": false
                     }
+                  },
+                  "period": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "today",
+                          "any date",
+                          "last month",
+                          "last quarter",
+                          "last year"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
                   }
                 },
                 "required": [

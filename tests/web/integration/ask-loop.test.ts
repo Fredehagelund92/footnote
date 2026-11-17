@@ -512,6 +512,89 @@ describe("Ask's loop on a follow-up that keeps the period", () => {
   })
 })
 
+describe("Ask's loop on a period the person chose on the read line", () => {
+  /** A model that reads the subject with these words, then answers citing nothing. */
+  const reading =
+    (input: Record<string, unknown>) =>
+    ({ step }: ScriptedPrompt): ScriptedStep =>
+      step === 0
+        ? { calls: [{ toolName: 'get_context', input }] }
+        : { text: 'Nothing more is written.' }
+
+  it('reads a question that named no dates at the period chosen, never assumed', async () => {
+    const api = await world.as(ML)
+    const assumed = await api.ask({ question: 'orders in Norway' })
+    expect(assumed.loop?.subject).toMatchObject({ assumedToday: true })
+    const any = await api.ask({ question: 'orders in Norway', period: 'any date' })
+    expect(any.loop?.subject).toMatchObject({ period: 'any date', assumedToday: false })
+    const quarter = await api.ask({ question: 'orders in Norway', period: 'last quarter' })
+    expect(quarter.loop?.subject).toMatchObject({
+      period: '1 Jul to 30 Sep 2026',
+      assumedToday: false,
+      note: null,
+    })
+  })
+
+  it("stands over the words' own dates and the model's days", async () => {
+    const api = await world.as(ML)
+    decide = reading({
+      about: 'orders in Norway in August 2026',
+      period_words: 'August 2026',
+      from: '2026-08-01',
+      to: '2026-08-31',
+    })
+    try {
+      const picked = await api.ask({
+        question: 'orders in Norway in August 2026',
+        period: { from: '2026-10-05', to: '2026-10-11' },
+      })
+      expect(picked.loop?.subject).toMatchObject({ period: '5-11 Oct 2026', note: null })
+      const any = await api.ask({ question: 'orders in Norway in August 2026', period: 'any date' })
+      expect(any.loop?.subject).toMatchObject({ period: 'any date' })
+    } finally {
+      decide = null
+    }
+  })
+
+  it('is read again with the chat, and never shown to the model as its own input', async () => {
+    const api = await world.as(ML)
+    const first = await api.ask({ question: 'orders in Norway', period: 'any date' })
+    const sent = turnOf(first)
+    expect(sent.reads?.find((r) => r.tool === 'get_context')?.input).toMatchObject({
+      period: 'any date',
+    })
+    let calls: unknown[] = []
+    let results: unknown[] = []
+    decide = ({ prompt }) => {
+      const parts = prompt.flatMap(
+        (m): { type: string; input?: unknown; output?: { type: string; value?: unknown } }[] =>
+          Array.isArray(m.content) ? m.content : [],
+      )
+      calls = parts.flatMap((c) => (c.type === 'tool-call' ? [c.input] : []))
+      results = parts.flatMap((c) =>
+        c.type === 'tool-result' && c.output?.type === 'json' ? [c.output.value] : [],
+      )
+      return { text: 'Nothing more is written.' }
+    }
+    try {
+      await api.ask({ question: 'and what applies?', turns: [sent] })
+    } finally {
+      decide = null
+    }
+    // The earlier get_context, made again at the period chosen; its input as the model wrote it.
+    expect(results[0]).toMatchObject({ read: { period: 'any date' } })
+    expect(calls[0]).toEqual({ about: 'orders in Norway' })
+    for (const input of calls) expect(input).not.toHaveProperty('period')
+  })
+
+  it('refuses days that end before they start', async () => {
+    const api = await world.as(ML)
+    await expect(
+      api.ask({ question: 'orders in Norway', period: { from: '2026-10-11', to: '2026-10-05' } }),
+    ).rejects.toThrow()
+  })
+})
+
 describe("Ask's loop on a period with two readings that find different items", () => {
   /**
    * A model that reads the subject with these words, then asks back with the read's choices of

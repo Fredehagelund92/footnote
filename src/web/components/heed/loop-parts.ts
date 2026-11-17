@@ -7,6 +7,7 @@ import {
   CalendarClockIcon,
   CalendarIcon,
   CheckIcon,
+  ChevronDownIcon,
   CircleDashedIcon,
   CircleStopIcon,
   FlagIcon,
@@ -24,6 +25,7 @@ import {
 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { PersonAvatar } from '@/components/heed/bits'
 import { FoldTrigger } from '@/components/heed/fold'
@@ -59,6 +61,7 @@ export const loopParts = {
   CalendarClockIcon,
   CalendarIcon,
   CheckIcon,
+  ChevronDownIcon,
   CircleDashedIcon,
   CircleStopIcon,
   FlagIcon,
@@ -76,6 +79,7 @@ export const loopParts = {
   Button,
   Collapsible,
   CollapsibleContent,
+  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,

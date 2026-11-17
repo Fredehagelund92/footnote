@@ -1453,3 +1453,29 @@ export function whatHeedReads(today: string): string {
   const quarter = `Q${Math.floor((monthOf(lastQuarter.from) - 1) / 3) + 1} ${yearOf(lastQuarter.from)}`
   return `The dates that can be read: a day (${dayWords(today)}), a range of days (${range}), a month (${month}), a quarter (${quarter}), a year (${yearOf(today)}), this, last or next week, month, quarter or year, year to date, and the last 30 days. Ask with one of these, or pass window with from and to.`
 }
+
+/**
+ * The periods a person may choose for a question on Ask's read line (R12): named ones, each read
+ * as its words are, any date, or the days they picked, first and last.
+ */
+export const chosenPeriodNames = [
+  'today',
+  'any date',
+  'last month',
+  'last quarter',
+  'last year',
+] as const
+export type ChosenPeriod = (typeof chosenPeriodNames)[number] | { from: string; to: string }
+
+/** The days a chosen period stands for, counted from today on the workspace's calendar. */
+export function chosenDays(
+  period: ChosenPeriod,
+  today: string,
+  calendar: Calendar = UTC_CALENDAR,
+): DateWindow {
+  if (typeof period !== 'string') return { start: period.from, end: shiftDate(period.to, 1) }
+  if (period === 'any date') return anyDate
+  const read = readDates(period, today, calendar)
+  if (read.status !== 'read') throw new Error(`"${period}" reads as no period`)
+  return read.window
+}

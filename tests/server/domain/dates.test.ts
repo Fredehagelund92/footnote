@@ -3,6 +3,7 @@ import { loadGoldenSet } from '../../../db/seed/golden-set.ts'
 import {
   anchorOf,
   carriedDays,
+  chosenDays,
   crossCheckedDays,
   dateNote,
   monthWords,
@@ -960,5 +961,27 @@ describe('otherReading: the other period a person’s words may mean (R7)', () =
     expect(other('2026-08-01', days('2026-08-01', '2026-08-01'))).toBeNull()
     expect(other('orders in Norway', days('2026-10-23', '2026-10-23'))).toBeNull()
     expect(other('since the launch', days('2026-01-01', '2026-10-23'))).toBeNull()
+  })
+})
+
+describe('chosenDays: a period a person chose on the read line (R12)', () => {
+  const today = '2026-10-23'
+  it('reads each named period from today, and any date as every date', () => {
+    expect(chosenDays('today', today)).toEqual({ start: today, end: '2026-10-24' })
+    expect(chosenDays('any date', today)).toEqual(anyDate)
+    expect(chosenDays('last month', today)).toEqual({ start: '2026-09-01', end: '2026-10-01' })
+    expect(chosenDays('last quarter', today)).toEqual({ start: '2026-07-01', end: '2026-10-01' })
+    expect(chosenDays('last year', today)).toEqual({ start: '2025-01-01', end: '2026-01-01' })
+  })
+
+  it('takes the days picked, both included, and counts from the day it is', () => {
+    expect(chosenDays({ from: '2026-10-05', to: '2026-10-11' }, today)).toEqual({
+      start: '2026-10-05',
+      end: '2026-10-12',
+    })
+    expect(chosenDays('last quarter', '2027-01-03')).toEqual({
+      start: '2026-10-01',
+      end: '2027-01-01',
+    })
   })
 })
