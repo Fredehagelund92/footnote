@@ -67,7 +67,7 @@
     "J13": {
       "advice": ["That figure should be checked in your reporting tool."],
       "verdict": [],
-      "unsupported": []
+      "unsupported": ["That figure should be checked in your reporting tool."]
     },
     "J14": {
       "advice": [],
@@ -88,7 +88,7 @@
     },
     "J17": {
       "advice": [],
-      "verdict": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
+      "verdict": ["No."],
       "unsupported": []
     },
     "J18": {
@@ -121,7 +121,7 @@
     "J23": {
       "advice": [],
       "verdict": ["Sales will probably come back once the rule is lifted."],
-      "unsupported": ["Sales will probably come back once the rule is lifted."]
+      "unsupported": []
     },
     "J24": {
       "advice": [],
@@ -138,7 +138,9 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": ["so 12 May was only the plan [1]"]
+      "unsupported": [
+        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
+      ]
     },
     "J27": {
       "advice": [],
@@ -150,7 +152,7 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["but the owners have not marked them as conflicting"]
+      "unsupported": ["but the owners have not marked them as conflicting."]
     },
     "J29": {
       "advice": [],
@@ -172,7 +174,7 @@
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway"]
+      "unsupported": ["Seven items are about Norway, and one of them is archived."]
     },
     "J33": {
       "advice": [],
@@ -192,7 +194,7 @@
     "J36": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": ["Nothing in Heed is about Poland."]
     },
     "J37": {
       "advice": [],
@@ -202,9 +204,7 @@
     "J38": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "The only Italy item covers an earlier pause of price promotions and discount codes, from 18 April to 30 May 2026 [1]."
-      ]
+      "unsupported": []
     },
     "J39": {
       "advice": [],
