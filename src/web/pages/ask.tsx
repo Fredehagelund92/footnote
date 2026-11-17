@@ -71,6 +71,7 @@ import {
 } from '@/model/ask-turn'
 import { isOnline } from '@/lib/send'
 import type { AskQuestion, ComposerHandle } from '@/pages/ask-composer'
+import type * as LiftMotion from '@/lib/lift-motion'
 import type { Fact } from '@/model/items'
 import { useDraft } from '@/lib/draft'
 import { useOpeningRead } from '@/lib/opening-read'
@@ -125,9 +126,6 @@ const lastAsked = (turns: readonly Turn[]) =>
   turns.findLastIndex((turn) => turn.answer.reply !== 'nothing_asked')
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-/** A CSS time in milliseconds: the build writes 220ms as .22s. */
-const msOf = (time: string) => parseFloat(time) * (time.trim().endsWith('ms') ? 1 : 1000)
 
 /** How near the bottom, in pixels, the reader counts as at the bottom: the view follows the answer (`ASK_ANCHOR` follow). */
 const FOLLOW_SLACK = 24
@@ -303,22 +301,17 @@ export function AskChat({
   const up = wide && !compact && turns.length === 0
   const dock = React.useRef<HTMLDivElement>(null)
   const lifted = React.useRef<number | null>(null)
+  // The motion's code comes while the box is up, ready for the first question.
+  const motion = React.useRef<typeof LiftMotion>(null)
+  React.useEffect(() => {
+    if (up) void import('@/lib/lift-motion').then((m) => (motion.current = m))
+  }, [up])
   React.useLayoutEffect(() => {
     const from = lifted.current
     lifted.current = null
     const el = dock.current
     if (up || from === null || !el || reducedMotion()) return
-    const style = getComputedStyle(el)
-    el.animate(
-      [
-        { transform: `translateY(${from - el.getBoundingClientRect().top}px)` },
-        { transform: 'none' },
-      ],
-      {
-        duration: msOf(style.getPropertyValue('--dur-3')),
-        easing: style.getPropertyValue('--ease-move'),
-      },
-    )
+    motion.current?.dockFrom(el, from)
   }, [up])
   const { fresh } = useSession()
   const examples = useAskExamples()

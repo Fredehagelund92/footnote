@@ -239,3 +239,25 @@ function Row({
     </li>
   )
 }
+
+/** Under the lifted box: the three states an answer is most often in, taught once. */
+const LEGEND: AnswerState[] = ['grounded', 'stale', 'missing']
+
+export function Legend({ parts }: { parts: WeekParts }) {
+  const { cn, stateIcon, stateInk, stateLabel } = parts
+  return (
+    <p className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      {LEGEND.map((s, i) => {
+        const Icon = stateIcon[s]
+        return (
+          <span key={s} className="inline-flex items-center gap-1">
+            <Icon aria-hidden className={cn('size-3 shrink-0', stateInk[s])} />
+            {stateLabel[s]}
+            <span className="sr-only">{i < LEGEND.length - 1 ? ',' : '.'}</span>
+          </span>
+        )
+      })}
+      <span>Every answer says which.</span>
+    </p>
+  )
+}

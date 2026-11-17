@@ -20,6 +20,8 @@ async function ask(page: Page, question: string, state: string) {
   await box.click()
   await box.pressSequentially(question)
   await box.press('Enter')
+  // The box was clicked under the question, where the answer now lands: the pointer leaves, so no sentence is hovered.
+  await page.mouse.move(0, 0)
   await expect(page.getByText(state, { exact: true }).first()).toBeVisible()
 }
 
