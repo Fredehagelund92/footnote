@@ -251,7 +251,7 @@ describe("Ask's loop answer, state by state", () => {
   })
 
   it('Used: each pinned item due for a check has its own Mark it still true, naming its title', () => {
-    const base = usedTurn(4, { trust: true })
+    const base = usedTurn(4, { look: 2 })
     const turn = {
       ...base,
       items: base.items.map((i, k) =>
