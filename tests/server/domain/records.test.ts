@@ -514,6 +514,11 @@ describe('a ranking across domains', () => {
 
 describe('the period a question names', () => {
   const read = (words: string, at = now) => readRecordsPeriod(words, at)
+  it('reads fiscal words on the workspace calendar', () => {
+    const april = { fiscalYearStart: { month: 4, day: 1 }, timeZone: 'UTC' }
+    const q3 = readRecordsPeriod('Q3 FY26', now, april)!
+    expect([q3.start, q3.end]).toEqual(['2025-10-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'])
+  })
   it('reads hours and days back from now', () => {
     expect(read('in the last 24 hours')).toMatchObject({
       start: '2026-10-29T15:30:00.000Z',

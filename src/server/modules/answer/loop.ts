@@ -111,7 +111,7 @@ const dayWords = (today: string) =>
  * case and no example of a question is in them. The day and what the person owns come last, so
  * the rest is the same for every turn.
  */
-export function loopSystem(today: string, asker: Asker): string {
+export function loopSystem(today: string, asker: Asker, timeZone = 'UTC'): string {
   const owns = asker.owns.length
     ? `They own the domain${asker.owns.length === 1 ? '' : 's'} ${asker.owns.join(', ')}.`
     : 'They own no domain.'
@@ -145,7 +145,7 @@ How to write it:
 - The page shows, beside your words and from the reads: the state, what was searched and out of how many, the items written nearest, who owns the subject, the definition when it helps, and what may be out of date. Never say the rest of these yourself, and never describe the reads or how the tools work.
 - End with the answer: offer no further reads, and ask nothing, since only ask_back asks.
 
-Today is ${dayWords(today)} (UTC). The person is ${asker.admin ? 'an administrator' : 'not an administrator'}. ${owns}`
+Today is ${dayWords(today)} (${timeZone}). The person is ${asker.admin ? 'an administrator' : 'not an administrator'}. ${owns}`
 }
 
 /**
@@ -220,7 +220,9 @@ export type LoopDeps = {
   /** The person's spending limits, or null where nothing is metered (the scripted mock). */
   limits: SpendLimits | null
   asker: Asker
+  /** Today in the workspace's time zone, and that zone (`calendar.time_zone`). */
   today: string
+  timeZone?: string
   steps: number
   timeoutMs: number
   /** The request's: aborted when the person presses Stop or leaves. */
@@ -497,7 +499,7 @@ export async function* askLoop(
           'shown' in r.output,
       )
 
-  const system = loopSystem(deps.today, deps.asker)
+  const system = loopSystem(deps.today, deps.asker, deps.timeZone)
   const messages: ModelMessage[] = [
     ...chatMessages(turns, earlier),
     { role: 'user', content: input.question },

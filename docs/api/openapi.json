@@ -47422,46 +47422,6 @@
                             "type": "string",
                             "maxLength": 280
                           },
-                          "scope": {
-                            "type": "object",
-                            "properties": {
-                              "metrics": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
-                              },
-                              "dimensions": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                },
-                                "default": []
-                              },
-                              "dimensionValues": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "dimension": {
-                                      "type": "string"
-                                    },
-                                    "value": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "dimension",
-                                    "value"
-                                  ]
-                                }
-                              }
-                            },
-                            "required": [
-                              "metrics",
-                              "dimensionValues"
-                            ]
-                          },
                           "validity": {
                             "type": "object",
                             "properties": {
@@ -47610,7 +47570,6 @@
                           "version",
                           "title",
                           "summary",
-                          "scope",
                           "validity",
                           "reviewDate",
                           "reviewQuestion",
@@ -96411,7 +96370,7 @@
                                                   "type": "string"
                                                 },
                                                 "time_zone": {
-                                                  "const": "UTC"
+                                                  "type": "string"
                                                 },
                                                 "reason": {
                                                   "const": "no date given"
@@ -96988,7 +96947,7 @@
                                               "type": "string"
                                             },
                                             "time_zone": {
-                                              "const": "UTC"
+                                              "type": "string"
                                             },
                                             "reason": {
                                               "const": "no date given"
@@ -97392,7 +97351,7 @@
                                                         "type": "string"
                                                       },
                                                       "time_zone": {
-                                                        "const": "UTC"
+                                                        "type": "string"
                                                       },
                                                       "reason": {
                                                         "const": "no date given"
@@ -107673,7 +107632,7 @@
                                   "type": "string"
                                 },
                                 "time_zone": {
-                                  "const": "UTC"
+                                  "type": "string"
                                 },
                                 "reason": {
                                   "const": "no date given"
@@ -108077,7 +108036,7 @@
                                             "type": "string"
                                           },
                                           "time_zone": {
-                                            "const": "UTC"
+                                            "type": "string"
                                           },
                                           "reason": {
                                             "const": "no date given"

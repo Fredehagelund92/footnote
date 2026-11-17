@@ -16,7 +16,9 @@
       "advice": [
         "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
       ],
-      "verdict": [],
+      "verdict": [
+        "Yes: both are read as Net revenue, which is gross sales after returns, discounts, VAT and payment fees, in euros."
+      ],
       "unsupported": []
     },
     "J04": {
@@ -67,7 +69,7 @@
     "J13": {
       "advice": ["That figure should be checked in your reporting tool."],
       "verdict": [],
-      "unsupported": ["That figure should be checked in your reporting tool."]
+      "unsupported": []
     },
     "J14": {
       "advice": [],
@@ -121,7 +123,7 @@
     "J23": {
       "advice": [],
       "verdict": ["Sales will probably come back once the rule is lifted."],
-      "unsupported": []
+      "unsupported": ["Sales will probably come back once the rule is lifted."]
     },
     "J24": {
       "advice": [],
@@ -138,9 +140,7 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": [
-        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
-      ]
+      "unsupported": ["so 12 May was only the plan [1]"]
     },
     "J27": {
       "advice": [],
@@ -152,7 +152,9 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["but the owners have not marked them as conflicting."]
+      "unsupported": [
+        "Another note counts only card and cash payments [2], but the owners have not marked them as conflicting."
+      ]
     },
     "J29": {
       "advice": [],
@@ -204,7 +206,9 @@
     "J38": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "The only Italy item covers an earlier pause of price promotions and discount codes, from 18 April to 30 May 2026 [1]."
+      ]
     },
     "J39": {
       "advice": [],

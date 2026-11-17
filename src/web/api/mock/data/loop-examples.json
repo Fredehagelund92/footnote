@@ -2702,5 +2702,153 @@
       "overview": null,
       "checks": []
     }
+  },
+  "loop-dates-anchored": {
+    "question": "What happened to orders in Norway since the customs rule?",
+    "turn": {
+      "kind": "answer",
+      "text": "Online sales to Norway stopped on 4 August 2026 under the customs rule.[1]",
+      "sources": ["itm_norwaystop"],
+      "state": "conflict",
+      "footer": {
+        "denominator": "3 of 21 published context items you may read apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up Orders and Norway, 4 Aug to 23 Oct 2026: 3 items apply, 6 nearby items do not."
+      ],
+      "subject": {
+        "names": ["Orders", "Norway"],
+        "about": ["metric:orders", "value:market/norway"],
+        "period": "4 Aug to 23 Oct 2026",
+        "note": "from “Online sales to Norway stopped”, 4 Aug 2026",
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "orders in Norway since the customs rule"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Online sales to Norway stopped on 4 August 2026 under the customs rule."
+            },
+            {
+              "t": "cite",
+              "n": 1
+            }
+          ]
+        }
+      ],
+      "said": "Online sales to Norway stopped on 4 August 2026 under the customs rule.[itm_norwaystop]",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_norwaystop",
+          "title": "Online sales to Norway stopped on 4 August 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-03",
+          "outOfDate": null,
+          "n": 1
+        }
+      ],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
   }
 }

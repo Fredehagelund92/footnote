@@ -5,9 +5,15 @@ import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
-import { crossCheckedDays, windowWords } from '../../../domain/dates.ts'
+import {
+  anchorOf,
+  crossCheckedDays,
+  dayWords,
+  windowWords,
+  type Calendar,
+} from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
-import { anyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
+import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
 import { productName } from '../../brand.ts'
@@ -200,6 +206,7 @@ async function viewOf(reads: ToolReads): Promise<View> {
           limits: {},
           rates: DEFAULT_MCP_RATES,
           about: '',
+          calendar: reads.calendar,
         }),
     },
     { write: noWrite, reportGap: noWrite, feedback: noWrite },
@@ -593,6 +600,12 @@ const getInput = z.strictObject({
       'With to: the days you read the period as, with the chat: a month or quarter without a year is in the year the chat is about.',
     ),
   to: day.optional(),
+  no_period: z
+    .boolean()
+    .optional()
+    .describe(
+      'Set it when the person asks what something is or means and names no dates: the subject is read at any date, not at today. Never set it for a question about a figure, a change or a time.',
+    ),
   widen: z
     .strictObject({
       other_name: words
@@ -686,16 +699,98 @@ const isNearbyReason = (r: string): r is keyof typeof nearbyWhy => Object.hasOwn
 const coveredState = (a: Answer) =>
   answerStateOf({ status: a.status, items: a.items, uncovered: a.uncovered, assumed: false })
 
-function getContext(view: View, input: z.output<typeof getInput>, today: string) {
+/** A word as its stem, so "stopped" is "stop" and "rules" is "rule": plural, "-ing" and "-ed" off. */
+const stemOf = (word: string) =>
+  word
+    .replace(/ies$/, 'y')
+    .replace(/(?<=s|x|ch|sh)es$|(?<!s)s$/, '')
+    .replace(/(?:ing|ed)$/, '')
+    .replace(/e$/, '')
+    .replace(/([b-df-hj-np-tv-z])\1$/, '$1')
+const ANCHOR_FILLERS = new Set(['the', 'a', 'an', 'our', 'of', 'new'])
+const stemsOf = (text: string) =>
+  normalizeName(text)
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !ANCHOR_FILLERS.has(w))
+    .map(stemOf)
+/** A title without the day it ends on, which the read says itself: "Online sales to Norway stopped". */
+const eventName = (title: string) =>
+  title.replace(/ (?:on|from|since) \d{1,2} [A-Z][a-z]+ \d{4}$/, '')
+
+/**
+ * The days "since", "after" or "before" an event run, when the words name one the reader cannot
+ * place (R9, D5): the one event the person may read whose title and summary hold every word of the
+ * name ("since the customs rule": "Online sales to Norway stopped on 4 August 2026", whose summary
+ * names a new customs rule). Of several, the one about more of the subject's names, then with more
+ * of the words in its title. "since" starts on the event's first day, "after" the day after, both
+ * to today; "before" ends the day before. Null when no event, or more than one alike, matches.
+ */
+function eventAnchor(
+  view: View,
+  about: string,
+  subject: ResolvedScope,
+  today: string,
+  calendar: Calendar,
+) {
+  const anchor = anchorOf(about)
+  const wanted = anchor ? stemsOf(anchor.words) : []
+  if (!anchor || !wanted.length) return null
+  const scored = view.bundle.items.flatMap((item) => {
+    if (item.kind !== 'event' || item.status !== 'accepted') return []
+    const title = stemsOf(item.title)
+    const all = new Set([...title, ...stemsOf(item.summary)])
+    if (!wanted.every((w) => all.has(w))) return []
+    const named = [
+      ...subject.metrics.filter((m) => item.scope.metrics.includes(m)),
+      ...Object.entries(subject.filters).flatMap(([dimension, values]) =>
+        values.filter((v) =>
+          item.scope.dimensionValues.some((d) => d.dimension === dimension && d.value === v),
+        ),
+      ),
+    ].length
+    return [{ item, score: named * 100 + wanted.filter((w) => title.includes(w)).length }]
+  })
+  const best = Math.max(...scored.map((s) => s.score))
+  const top = scored.filter((s) => s.score === best)
+  if (top.length !== 1) return null
+  const { item } = top[0]!
+  const start = item.validity.start
+  const window =
+    anchor.lead === 'before'
+      ? { from: anyDate.start, to: shiftDate(start, -1) }
+      : { from: anchor.lead === 'since' ? start : shiftDate(start, 1), to: today }
+  if (window.from > window.to) return null
+  const days = { start: window.from, end: shiftDate(window.to, 1) }
+  const lead = anchor.lead === 'since' ? 'from' : anchor.lead
+  return {
+    window,
+    datesRead: `${windowWords(days, { upTo: true })} (${lead} “${eventName(item.title)}”, ${dayWords(start)}; ${calendar.timeZone})`,
+  }
+}
+
+function getContext(
+  view: View,
+  input: z.output<typeof getInput>,
+  today: string,
+  calendar: Calendar,
+) {
   // The model's days for the period, cross-checked against the reader's of the person's words.
   const days = crossCheckedDays(
     input.period_words,
     input.from && input.to ? { start: input.from, end: shiftDate(input.to, 1) } : undefined,
     today,
+    calendar,
   )
-  const window = days ? { from: days.window.start, to: shiftDate(days.window.end, -1) } : undefined
+  const given = days ? { from: days.window.start, to: shiftDate(days.window.end, -1) } : undefined
   const lookup = (ask: Parameters<typeof answer>[1]) =>
-    answer(view.bundle, ask, { today, person: true })
+    answer(view.bundle, ask, { today, calendar, person: true })
+  const plain = lookup({ question: input.about, ...(given ? { window: given } : {}) })
+  // Words the reader placed no period for may name an event the days start or end at.
+  const anchored =
+    !given && plain.scope && (plain.assumed || isAnyDate(plain.scope.window))
+      ? eventAnchor(view, input.about, plain.scope, today, calendar)
+      : null
+  const window = anchored?.window ?? given
   // A name the person may not see is read as one Heed does not know.
   const hidesName = (a: Answer) =>
     !!a.scope &&
@@ -716,7 +811,13 @@ function getContext(view: View, input: z.output<typeof getInput>, today: string)
     without,
     found: a.items.length,
   })
-  const first = lookup({ question: input.about, ...(window ? { window } : {}) })
+  const asked = anchored ? lookup({ question: input.about, window: anchored.window }) : plain
+  // A subject read at no period, when its words name no dates: today is not assumed, so the state
+  // is not Partial for want of a date (the words' own dates, or from and to, still stand).
+  const first =
+    input.no_period && asked.assumed && asked.scope
+      ? lookup({ scope: { ...asked.scope, window: anyDate } })
+      : asked
   if (hidesName(first)) return unreadOf(view, input.about, [], window)
   const searched = [searchedOf(first, input.about, null)]
   let widened: z.infer<typeof widenedSchema> = input.widen ? 'not needed' : 'not asked'
@@ -798,9 +899,10 @@ function getContext(view: View, input: z.output<typeof getInput>, today: string)
           words: readWords,
           names: keysOf(counted).map((k) => termName(view, k)),
           about: keysOf(counted).map(nounId),
-          period: windowWords(scope.window),
+          period: windowWords(scope.window, { upTo: true }),
           assumedToday: counted.assumed !== null,
-          datesRead: days ? days.readsAs : (counted.dates?.reads_as ?? null),
+          datesRead:
+            anchored?.datesRead ?? (days ? days.readsAs : (counted.dates?.reads_as ?? null)),
           otherDays: days?.other ? windowWords(days.other) : null,
           ...(synonyms.length ? { synonyms } : {}),
         }
@@ -1828,7 +1930,7 @@ export function createAskTools(reads: ToolReads) {
   const today = reads.today
   const handlers: Handlers = {
     find_context: (v, input) => findContext(v, input, today),
-    get_context: (v, input) => getContext(v, input, today),
+    get_context: (v, input) => getContext(v, input, today, reads.calendar),
     read_context: (v, input) => readContext(v, reads, input, today),
     definitions: (v, input) => definitions(v, reads, input),
     records: (v, input) => records(v, reads, input),

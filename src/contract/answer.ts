@@ -49,7 +49,8 @@ const issueSchema = z.object({
 const datesSchema = z.object({ words: z.string(), reads_as: z.string() })
 const assumedSchema = z.object({
   date: z.string(),
-  time_zone: z.literal('UTC'),
+  /** The workspace's time zone today was counted in (`calendar.time_zone`), UTC until it sets one. */
+  time_zone: z.string(),
   reason: z.literal('no date given'),
 })
 

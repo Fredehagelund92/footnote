@@ -56,6 +56,7 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 - The service makes its own request ids and ignores one a client sends. `heed audit --request <id>` finds history entries by request id, and an entry a scheduled job wrote has none.
 - A session never opens `/metrics`. It also reports request durations and the live edition's age. The people picker logs a warning at start.
 - The service sets its own security headers (`SECURITY_HEADERS` in `src/server/app.ts`) on what it answers, on port 3000 too, not only behind the web image's nginx.
+- The service compresses what `/api/v1` answers for a caller that accepts it (`@fastify/compress` in `src/server/http/api.ts`), as the web image's nginx does, so a service without that proxy in front sends the 1.5 MB library index as about a tenth of it. Event streams are never compressed.
 
 ## Settings named CL_ before 0.1.0
 

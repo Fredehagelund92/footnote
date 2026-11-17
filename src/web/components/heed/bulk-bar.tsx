@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { Skip } from '@/lib/bulk'
 import { countLine } from '@/lib/selection'
 import { useLinger } from '@/lib/presence'
+import { useReportBulkBar } from '@/lib/bulk-bar-presence'
 
 // The one bar for rows picked in a list (Context, Definitions, the Inbox): the count, Clear, and the
 // list's actions, on the ink surface the Heed app uses. It takes a band of its own under the list,
@@ -42,6 +43,7 @@ export function BulkBar({
   // appears with its text is often not read.
   // The bar leaves the way it came: it stays for its exit, still showing the count it had.
   const { present, leaving } = useLinger(count > 0)
+  useReportBulkBar(present)
   const [shown, setShown] = React.useState(count)
   if (count > 0 && count !== shown) setShown(count)
   const [said, setSaid] = React.useState('')
@@ -69,14 +71,14 @@ export function BulkBar({
             className="flex h-11 max-w-full items-center gap-1 rounded-md bg-foreground pr-2 pl-4 text-sm text-background shadow-md max-md:h-auto max-md:min-h-14 max-md:w-full max-md:rounded-none max-md:px-2 max-md:shadow-none"
           >
             <span className="px-1 font-semibold whitespace-nowrap tabular-nums">
-              {shown} selected
+              {shown.toLocaleString()} selected
             </span>
             {matching && matching.count > shown && (
               <BulkButton
                 onClick={matching.onSelect}
                 className="underline-offset-4 hover:underline max-md:hidden"
               >
-                Select all {matching.count} matching
+                Select all {matching.count.toLocaleString()} matching
               </BulkButton>
             )}
             <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-background/30" />

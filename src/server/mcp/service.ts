@@ -21,6 +21,7 @@ import {
   extractScope,
   type ResolvedScope,
 } from '../../domain/scope.ts'
+import { dayIn, UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
 import { shiftDate } from '../../domain/validity.ts'
 import {
   termEntry,
@@ -218,6 +219,7 @@ export function scopeOf(
   input: Pick<ContextInput, 'question' | 'metrics' | 'dimension_filters' | 'window'>,
   bundle: ServingBundle,
   today: string,
+  calendar: Calendar = UTC_CALENDAR,
 ) {
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
   for (const filter of input.dimension_filters ?? [])
@@ -228,6 +230,7 @@ export function scopeOf(
     ...(input.window === undefined
       ? {}
       : { window: { start: input.window.from, end: shiftDate(input.window.to, 1) } }),
+    calendar,
   })
 }
 const domainName = (bundle: ServingBundle, areaId: string) =>
@@ -454,6 +457,7 @@ export function createToolService(
     maxBytes: number,
     onEdition: (seq: string) => void,
     today: string,
+    calendar: Calendar,
   ): Promise<ToolResult> {
     const args = findArgsOf(findContextInput.parse(input))
     const edition = args.edition
@@ -473,6 +477,7 @@ export function createToolService(
       today,
       // What a domain's source has beyond the vocabulary, read only for a domain named.
       reads && namesDomain(bundle, args) ? await reads.waiting() : null,
+      calendar,
     )
     const body = contextFound(found, bundle, today)
     // FR-342: a concise find_context leaves out the source details its definitions already say in
@@ -570,6 +575,7 @@ export function createToolService(
     principal: Principal,
     onEdition: (seq: string) => void,
     today: string,
+    calendar: Calendar,
   ): Promise<ToolResult> {
     const args = reportInput.parse(input)
     const note = safeNote(args.note, args.question)
@@ -620,6 +626,7 @@ export function createToolService(
         },
         bundle,
         today,
+        calendar,
       )
       if (scope.status !== 'resolved')
         return resultFor({
@@ -664,14 +671,16 @@ export function createToolService(
     maxBytes: number,
     record: (r: AnonymousRecord) => void,
     onEdition: (seq: string) => void = () => {},
+    /** The workspace's calendar (R8): dates are read on it, and today is its zone's. */
+    calendar: Calendar = UTC_CALENDAR,
   ): Promise<ToolResult> {
     const started = performance.now()
     const date = now(),
-      today = date.toISOString().slice(0, 10)
+      today = dayIn(date, calendar.timeZone)
     try {
-      if (name === 'report') return await reportFor(input, principal, onEdition, today)
+      if (name === 'report') return await reportFor(input, principal, onEdition, today, calendar)
       if (name === 'find_context')
-        return await outcome(input, principal, maxBytes, onEdition, today)
+        return await outcome(input, principal, maxBytes, onEdition, today, calendar)
       const args =
         name === 'get_facts'
           ? contextInput.parse(input)
@@ -697,7 +706,7 @@ export function createToolService(
         // tool any more, only the reply a draft's preview and the evals read.
         const v1 = name === 'get_context'
         // A question without dates is read at today, and the reply says so.
-        const scope = scopeOf(scoped, bundle, today)
+        const scope = scopeOf(scoped, bundle, today, calendar)
         const assumed =
           scope.status === 'resolved' && scope.assumed ? assumedDate(scope.assumed) : null
         // How Heed read the dates in the question's words, said with the scope (FR-304).
@@ -791,7 +800,7 @@ export function createToolService(
         )
         const dated = {
           ...(assumed ? { assumed_date: assumed.note } : {}),
-          ...(read ? { dates_read: read } : {}),
+          ...(read ? { dates_read: { words: read.words, reads_as: read.reads_as } } : {}),
         }
         // The domains the question is about, with what their owners wrote about them (FR-813).
         const domains = askedDomains(bundle, resolution.scope, concise)

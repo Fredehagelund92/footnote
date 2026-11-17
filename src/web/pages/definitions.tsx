@@ -347,7 +347,7 @@ export function DefinitionsPage() {
               <button
                 type="button"
                 data-row-open={d.name}
-                className="flex min-w-0 shrink text-left font-medium outline-none hover:underline"
+                className="flex min-h-6 min-w-0 shrink items-center text-left font-medium outline-none hover:underline"
                 onClick={(e) => {
                   e.stopPropagation()
                   if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
@@ -685,7 +685,7 @@ export function DefinitionsPage() {
             {/* Where the definitions come from, as the catalogue says it under its toolbar. */}
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
-              <span>
+              <span className="max-w-reading">
                 Metrics and dimensions come from {tool ?? 'your definitions tool'}. To change one,
                 change it in the tool. Terms are words your company uses. The owner of their domain
                 writes them here.{' '}

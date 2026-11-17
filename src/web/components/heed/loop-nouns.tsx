@@ -72,7 +72,9 @@ const chip =
 
 /**
  * A trigger with its card: hover opens it after a moment, keyboard focus opens it at once, a press
- * keeps it open; Escape or a press outside closes it.
+ * keeps it open; Escape or a press outside closes it. A trigger that opens a quick view (`onOpen`)
+ * closes its card on a press instead: the quick view shows the item, and on a phone it fills the
+ * screen, where the card would sit on top of it.
  */
 function HoverCard({
   trigger,
@@ -112,7 +114,15 @@ function HoverCard({
           if (returning.current) returning.current = false
           else if (e.currentTarget.matches(':focus-visible')) setOpen(true)
         }}
-        onClick={onOpen}
+        onClick={
+          onOpen &&
+          ((e) => {
+            // The press is the quick view's alone: kept from the popover, its hover still works.
+            e.preventBaseUIHandler()
+            setOpen(false)
+            onOpen()
+          })
+        }
       />
       <P.PopoverContent
         side="top"
@@ -342,6 +352,23 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
   }
 }
 
+/**
+ * Why an item needs a look before its words are trusted, or null when it is fine: archived, may be
+ * out of date (a read said so), or due for a check. The words are the page's, from the one list.
+ */
+export function useNeedsLook() {
+  const { ANSWER_LINES } = useParts()
+  const stale = ANSWER_LINES.find((l) => l.state === 'stale')!.long
+  return (item: Pick<LoopItem, 'status' | 'outOfDate'>) =>
+    item.status === 'archived'
+      ? 'Archived'
+      : item.outOfDate
+        ? stale
+        : item.status === 'due'
+          ? 'Due for a check'
+          : null
+}
+
 /** A status with its dot, as the Context list draws it: live green, due for a check amber. */
 function StatusMark({ status }: { status: Status }) {
   const dot = status === 'Live' ? 'bg-good' : status === 'Due for a check' ? 'bg-caution' : 'bg-off'
@@ -524,6 +551,43 @@ export function ItemRow({
           {twin && '\u00a0· another item with the same title'}
         </span>
       </span>
+    </li>
+  )
+}
+
+/**
+ * A cited item in one line: its number, its kind's icon and its title, cut to the line when long
+ * (the number's card and the name say it whole). Its domain, status, day and the rest are on the
+ * card. A press on the title opens it. An item that needs a look ends in why, in words that stand
+ * out from the line's muted ones, then what can be done about it.
+ */
+export function CompactItemRow({ item, action }: { item: LoopItem; action?: React.ReactNode }) {
+  const P = useParts()
+  const ahead = P.useReadAhead()
+  const Icon = P.kindIcons[kindOf(item.kind)]
+  const why = useNeedsLook()(item)
+  const muted = why === 'Archived'
+  return (
+    <li className="flex h-7 min-w-0 items-center gap-2 text-sm">
+      {item.n && <CiteMark n={item.n} item={item} />}
+      <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+      <button
+        type="button"
+        {...ahead(item.id)}
+        onClick={() => P.openDock('context', item.id)}
+        className="min-w-0 truncate rounded-sm text-left underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {item.title}
+      </button>
+      {why && (
+        <span
+          className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${muted ? 'text-muted-foreground' : 'text-caution'}`}
+        >
+          <span aria-hidden className={`size-2 rounded-full ${muted ? 'bg-off' : 'bg-caution'}`} />
+          {why}
+        </span>
+      )}
+      {action}
     </li>
   )
 }

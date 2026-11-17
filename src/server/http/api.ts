@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import compress from '@fastify/compress'
 import { fallbackORPCErrorMessage, onError, ORPCError } from '@orpc/client'
 import { SmartCoercionPlugin } from '@orpc/json-schema'
 import { OpenAPIGenerator } from '@orpc/openapi'
@@ -9,7 +10,8 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { API_PREFIX, contract } from '../../contract/index.ts'
 import { missing, notAllowed, refusalOfCode, refusals } from '../../contract/refusals.ts'
 import { forRequest, type Database, type Queryable } from '../db/database.ts'
-import type { Clock } from '../clock.ts'
+import { todayIn, type Clock } from '../clock.ts'
+import type { Calendar } from '../../domain/dates.ts'
 import {
   createProposalsService,
   retryWrite,
@@ -38,6 +40,7 @@ import {
   listClients,
   listSettings,
   plainReason,
+  readCalendar,
   readWorkspace,
   saveClient,
   searchAudit,
@@ -272,9 +275,10 @@ export function askToolsOf(
   clock: Clock,
   answerBundles: BundleCache,
   services: ReturnType<typeof requestServices>,
+  calendar: Calendar,
 ) {
   return createAskTools(
-    toolReadsIn(tx, clock, answerBundles, { ...services, people: () => listMembers(tx) }),
+    toolReadsIn(tx, clock, answerBundles, { ...services, people: () => listMembers(tx) }, calendar),
   )
 }
 
@@ -434,6 +438,8 @@ export function createRouter({
     const limits = live ? await readSpendLimits(context.tx, 'assistant') : null
     const scope = await readerScope(context.tx)
     const areas = await context.areas.list()
+    // The workspace's calendar, read once a turn: every read of the turn counts on the same today.
+    const calendar = await readCalendar(context.tx)
     const log = context.request.log
     const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
     return askWithLoop(
@@ -446,6 +452,7 @@ export function createRouter({
             clock,
             answerBundles,
             requestServices(tx, person, { clock, answerBundles, models, readPage, hooks: noHooks }),
+            calendar,
           ),
         model,
         limits,
@@ -453,7 +460,8 @@ export function createRouter({
           admin: scope.admin,
           owns: areas.filter((a) => scope.areas.includes(a.id)).map((a) => a.name),
         },
-        today: clock.today(),
+        today: todayIn(clock, calendar.timeZone),
+        timeZone: calendar.timeZone,
         steps,
         timeoutMs: seconds * 1000,
         ...(signal ? { signal } : {}),
@@ -1667,9 +1675,16 @@ export function registerApiRoutes(app: FastifyInstance, services: ApiServices): 
     if (matched) return reply
     return reply.code(404).send({ code: 'NOT_FOUND', message: 'No such API operation' })
   }
-  // An item file can hold a whole exported edition, and a batch of terms a whole model's members;
-  // every other body keeps Fastify's 1 MiB.
-  app.post(`${API_PREFIX}/imports`, { bodyLimit: 2 * ITEM_FILE_MAX_LENGTH + 65_536 }, serve)
-  app.post(`${API_PREFIX}/vocabulary/batches`, { bodyLimit: TERM_BATCH_BODY_MAX }, serve)
-  app.all(`${API_PREFIX}/*`, serve)
+  // An answer is compressed when the caller takes it so, as the web image's nginx does
+  // (docker/web.conf.template): the library index is 1.5 MB of JSON, about a tenth of that
+  // compressed. An event stream never is, and nothing a caller sends is decompressed. The routes
+  // are added inside the plugin's scope, so it sees each of them.
+  void app.register(async (api) => {
+    await api.register(compress, { globalDecompression: false })
+    // An item file can hold a whole exported edition, and a batch of terms a whole model's
+    // members; every other body keeps Fastify's 1 MiB.
+    api.post(`${API_PREFIX}/imports`, { bodyLimit: 2 * ITEM_FILE_MAX_LENGTH + 65_536 }, serve)
+    api.post(`${API_PREFIX}/vocabulary/batches`, { bodyLimit: TERM_BATCH_BODY_MAX }, serve)
+    api.all(`${API_PREFIX}/*`, serve)
+  })
 }

@@ -19,6 +19,7 @@ import {
 } from '../../domain/resolver.ts'
 import { termShown } from '../../domain/links.ts'
 import { assumedDate, extractScope, unknownName } from '../../domain/scope.ts'
+import { UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
 import { acceptedByRole, ownerRole } from '../../domain/served-review.ts'
 import { shiftDate } from '../../domain/validity.ts'
 import {
@@ -637,6 +638,8 @@ export function findContext(
   today: string,
   /** The source members domains have that are no term yet, when the caller reads them. */
   waiting: WaitingTerms | null = null,
+  /** The workspace's calendar the query's dates are read on. */
+  calendar: Calendar = UTC_CALENDAR,
 ) {
   const [one, many] = contextVoice.item
   const domain = domainOf(args.domain, bundle)
@@ -655,7 +658,10 @@ export function findContext(
   if (!found.length) {
     // The scope the words name, on the dates the question or the window gives, else today.
     const window = args.window && { start: args.window.from, end: shiftDate(args.window.to, 1) }
-    const scope = extractScope(args.query, bundle.terms, today, window ? { window } : {})
+    const scope = extractScope(args.query, bundle.terms, today, {
+      ...(window ? { window } : {}),
+      calendar,
+    })
     if (scope.status === 'resolved') {
       assumed = scope.assumed ? assumedDate(scope.assumed) : null
       const resolution = resolve(bundle, {
@@ -675,7 +681,9 @@ export function findContext(
       scoped = {
         scope_used: used,
         ...(assumed ? { assumed_date: assumed.note } : {}),
-        ...(scope.dates ? { dates_read: scope.dates } : {}),
+        ...(scope.dates
+          ? { dates_read: { words: scope.dates.words, reads_as: scope.dates.reads_as } }
+          : {}),
         note: found.length
           ? `No ${one}'s words matched, so these are the ${many} that apply to what the words name${assumed ? `, today (${today})` : ''}, as ${contextVoice.get} finds them.`
           : `No ${one}'s words matched, and no ${one} applies to what the words name${assumed ? ` today (${today})` : ''}.`,

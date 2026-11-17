@@ -313,7 +313,8 @@ about it, counted per term in the same answer. It reads as the library does.
 `GET /api/v1/library` is the library index: every item the person may read, with what a list's
 columns read from it. `lastChecked` is the last acceptance of the current version (a recheck is
 one), `trust` is `current`, `needs_check` or `ended`, `chips` is the scope by name, and `opened` says whether the person opened the item
-(Mark as checked takes only those). `GET /api/v1/search?q=` is search everywhere, for
+(Mark as checked takes only those). The index carries the scope by name only; an item's page
+(`GET /items/{id}/page`) has it by key. `GET /api/v1/search?q=` is search everywhere, for
 the command palette: items, definitions (by name or another name), domains and people whose names
 have the words, at most five of each, a name that starts with the words first.
 
@@ -1033,6 +1034,11 @@ Heed v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read and ch
   settings. An administrator names it as any other setting, `PUT /settings/workspace.name` (one
   line, at most 80 characters); a new install's is empty, and an answer's share card then says
   only when it was answered.
+- The workspace's calendar, which Ask and agents read dates on: `PUT /settings/calendar.fiscal_year_start`
+  (`{ "month": 4, "day": 1 }`, a day up to the 28th, or null, the default, which reads a fiscal
+  year as the calendar year) and `PUT /settings/calendar.time_zone` (an IANA name such as
+  `Europe/Oslo`, UTC by default; it moves only which day is today). The MCP instructions name
+  both.
 - `POST /areas` takes a domain from its own page with a name, its owners (`team.ownerIds`) and its
   text alone: the hue is the one the fewest domains have, the review time the default, and no
   chat channel or owner team. `PUT /areas/{id}/description` takes a `name` beside the summary and

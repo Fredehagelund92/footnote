@@ -188,7 +188,7 @@ export function AppSidebar({
         <ObservabilityNav section={route.parts[1] ?? 'overview'} close={close} />
       ) : (
         <>
-          <SidebarHeader className="h-bar justify-center border-b px-2">
+          <SidebarHeader className="h-bar justify-center px-2 shadow-hairline-bottom">
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -299,7 +299,7 @@ export function AppSidebar({
           </SidebarContent>
         </>
       )}
-      <SidebarFooter className="h-bar justify-center border-t py-0">
+      <SidebarFooter className="h-bar justify-center py-0 shadow-hairline-top">
         <NavUser />
       </SidebarFooter>
       <ResizeRail onWidth={onWidth} />

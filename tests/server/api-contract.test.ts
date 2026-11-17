@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { Writable } from 'node:stream'
+import { gunzipSync } from 'node:zlib'
 import { minifyContractRouter } from '@orpc/contract'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ORPCError } from '@orpc/client'
@@ -139,6 +140,53 @@ describe('the API over HTTP', () => {
       initials: 'ML',
       permissions: { roles: [], assignments: [] },
     })
+  })
+
+  it('compresses a read for a caller that takes it so, and leaves the scope by key out of the index', async () => {
+    // The library service's rows carry each item's scope by key for Ask's records; the index
+    // answers with its names (chips) alone.
+    const item = (n: number) => ({
+      id: `itm_norway${String(n).padStart(4, '0')}`,
+      kind: 'event',
+      areaId: 'area_sales',
+      status: 'accepted',
+      version: 2,
+      title: 'Norway stopped taking orders',
+      summary: 'From 4 August.',
+      scope: { metrics: ['orders'], dimensions: [], dimensionValues: [] },
+      validity: { start: '2026-08-04', end: null },
+      reviewDate: '2027-01-01',
+      reviewQuestion: 'still_correct',
+      checkFlag: null,
+      ownerId: 'per_jon',
+      proposerId: 'per_maria',
+      updatedAt: '2026-10-01T09:00:00Z',
+      lastChecked: null,
+      trust: 'current',
+      check: null,
+      chips: ['Orders'],
+      owners: [],
+      opened: false,
+      conflicts: [],
+    })
+    const { instance } = app({ rows: [{ items: Array.from({ length: 40 }, (_, n) => item(n)) }] })
+    const zipped = await instance.inject({
+      method: 'GET',
+      url: '/api/v1/library',
+      headers: { 'accept-encoding': 'gzip' },
+    })
+    expect(zipped.statusCode).toBe(200)
+    expect(zipped.headers['content-encoding']).toBe('gzip')
+    expect(zipped.headers.vary).toMatch(/accept-encoding/i)
+    const index = JSON.parse(gunzipSync(zipped.rawPayload).toString()) as {
+      items: Record<string, unknown>[]
+    }
+    expect(index.items).toHaveLength(40)
+    expect(index.items[0]).toMatchObject({ id: 'itm_norway0000', chips: ['Orders'] })
+    expect(index.items[0]).not.toHaveProperty('scope')
+    const plain = await instance.inject({ method: 'GET', url: '/api/v1/library' })
+    expect(plain.headers['content-encoding']).toBeUndefined()
+    expect(plain.json<typeof index>().items).toEqual(index.items)
   })
 
   it('reads numbers and filters from the query string, and refuses invalid ones', async () => {

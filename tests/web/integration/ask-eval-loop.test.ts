@@ -9,21 +9,25 @@ import { askEvalSuite } from './ask-eval-suite.ts'
 
   Every step was recorded again on 17 November 2026 (Haiku 5.5, one try), after get_context took
   the person's own words for a period and the read line said what else the days could mean. Read
-  by hand, the breaks listed are that run's own words: C2 lists the nearest items with their
-  advice, H16 says what Ask does not decide, F12 names a near-repeat's other date, G23 says "0 of"
-  while declining the share, and G06, H04 and H06 as before. About 25 steps follow tool results
-  that are not the same from one run to the next (an Inbox card's id is made afresh each run), so
-  no recorded step matches them, even on the code that recorded them: the scripted reader takes
-  those in every build.
+  by hand, the breaks listed are that run's own words: V07 repeats the person's own 12 beside the
+  floor of 10 or more it may say (the grader reads the 12 as a hidden count), V04 says what Ask
+  does not answer, H20 says "you should see", V02 starts its decline with "No", and H04 and H06 as
+  before. About 25 steps follow tool results that are not the same from one run to the next (an
+  Inbox card's id is made afresh each run), so no recorded step matches them, even on the code
+  that recorded them: the scripted reader takes those in every build.
 */
 
 askEvalSuite({
   answerer: 'loop',
   brokenToday: {
-    advice: ['C2', 'H16'],
-    never: ['F12', 'G06', 'G23', 'H04', 'H06'],
+    hidden: ['V07'],
+    advice: ['V04', 'H20'],
+    never: ['V02', 'H04', 'H06'],
   },
   missingToday: [
+    'C2',
+    'K01',
+    'K10',
     'K12',
     'K15',
     'V09',
@@ -35,10 +39,12 @@ askEvalSuite({
     'F15',
     'F16',
     'F17',
+    'F18',
     'F19',
     'F21',
     'F25',
-    'F28',
+    'F29',
+    'F30',
     'FP01',
     'FP02',
     'FP04',
@@ -47,24 +53,26 @@ askEvalSuite({
     'G01',
     'G03',
     'G05',
+    'G06',
     'G07',
-    'G08',
     'G12',
     'G13',
     'G15',
     'G18',
+    'G21',
     'G22',
     'G23',
     'G29',
-    'G30',
     'GP01',
     'GP02',
     'GP04',
     'GP07',
+    'GP12',
     'GP15',
     'H02',
     'H03',
     'H04',
+    'H06',
     'H07',
     'H08',
     'H10',
@@ -73,7 +81,6 @@ askEvalSuite({
     'H15',
     'H16',
     'H18',
-    'H20',
     'H24',
     'H25',
     'H28',
@@ -84,5 +91,5 @@ askEvalSuite({
     'P10',
     'P13',
   ],
-  heldPassingToday: 10,
+  heldPassingToday: 11,
 })

@@ -11,7 +11,8 @@ import {
   type AuditWorld,
   type QueueLine,
 } from './audit.ts'
-import { periodWords, readDates, wholePeriod } from './dates.ts'
+import { UTC_CALENDAR, dayIn, periodWords, readDates, wholePeriod } from './dates.ts'
+import type { Calendar } from './dates.ts'
 import {
   recordsKinds,
   type AnswerFooter,
@@ -349,12 +350,16 @@ function period(start: number, end: number, words: string, now: number, assumed 
  * "the past 3 days"), or whole UTC days from midnight ("today", "yesterday", "since Monday", "this
  * week", "last week", "this month"). A week starts on Monday. Null when the words name none.
  */
-export function readRecordsPeriod(text: string, nowIso: string): RecordsPeriod | null {
+export function readRecordsPeriod(
+  text: string,
+  nowIso: string,
+  calendar: Calendar = UTC_CALENDAR,
+): RecordsPeriod | null {
   const exact = exactPeriod(text, nowIso)
   // "The last week of September" and "a week ago" only sound like the exact periods.
   return exact && !PART_OF_A_PERIOD.test(plain(text))
     ? exact
-    : (spokenPeriod(text, nowIso) ?? exact)
+    : (spokenPeriod(text, nowIso, false, calendar) ?? exact)
 }
 
 const PART_OF_A_PERIOD =
@@ -364,10 +369,19 @@ const PART_OF_A_PERIOD =
  * The period the words name as a person says it, as Ask's date reader reads it against today, any
  * date when it names dates it cannot place. `whole` keeps the days after now: what comes due.
  */
-export function spokenPeriod(text: string, nowIso: string, whole = false): RecordsPeriod | null {
+export function spokenPeriod(
+  text: string,
+  nowIso: string,
+  whole = false,
+  calendar: Calendar = UTC_CALENDAR,
+): RecordsPeriod | null {
   const read = ((): ReturnType<typeof readDates> => {
     try {
-      return readDates(normalizeName(text), nowIso.slice(0, 10), { loose: true })
+      return readDates(normalizeName(text), dayIn(new Date(nowIso), calendar.timeZone), {
+        loose: true,
+        timeZone: calendar.timeZone,
+        fiscalYearStart: calendar.fiscalYearStart,
+      })
     } catch {
       return { status: 'read', window: anyDate, readsAs: '', spans: [], unplaced: [text.trim()] }
     }
@@ -770,12 +784,16 @@ export function aboutOf(
 }
 
 /** What comes due in a period, to its end: "today" is what is due now, so it names no period. */
-export function duePeriod(text: string, nowIso: string): RecordsPeriod | null {
+export function duePeriod(
+  text: string,
+  nowIso: string,
+  calendar: Calendar = UTC_CALENDAR,
+): RecordsPeriod | null {
   const t = plain(text)
   if (/\b(?:today|now)\b/.test(t)) return null
   const unit = /\bthis (week|month|quarter|year)\b/.exec(t)?.[1]
   if (!unit || PART_OF_A_PERIOD.test(t) || /\b(?:next|last|previous)\b/.test(t))
-    return spokenPeriod(text, nowIso, true)
+    return spokenPeriod(text, nowIso, true, calendar)
   const { from, to } = wholePeriod(unit, nowIso.slice(0, 10))
   const end = Date.parse(to) + DAY
   return period(Date.parse(from), end, `this ${unit}`, Date.parse(nowIso))

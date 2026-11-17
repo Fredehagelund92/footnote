@@ -1,4 +1,5 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { dateNote } from '../../../src/domain/dates.ts'
 import { people } from '@/api/mock/data/world'
 import type { AskToolName, AskTools } from '../../../src/server/modules/answer/index.ts'
 import { tableContents } from '../../integration/support.ts'
@@ -269,8 +270,45 @@ describe('the dates a read takes', () => {
   it('reads a quarter of a fiscal year as the quarter, never the whole year (R3)', async () => {
     await world.withTools('Jon Abara', async (tools) => {
       const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
+      // Until the workspace says when its fiscal year starts, the read line says how FY26 was read.
       expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
       expect(q3.read?.datesRead).toContain('FY26 read as the calendar year')
+    })
+  })
+
+  describe("on the workspace's calendar (R8)", () => {
+    const set = (key: string, value: unknown) =>
+      world.client.query(
+        `insert into settings_versions (key, version, value, reason)
+         select $1, coalesce(max(version), 0) + 1, $2::jsonb, 'ask tools'
+           from settings_versions where key = $1`,
+        [key, JSON.stringify(value)],
+      )
+    beforeAll(async () => {
+      await set('calendar.fiscal_year_start', { month: 4, day: 1 })
+      await set('calendar.time_zone', 'Europe/Oslo')
+    })
+    afterAll(async () => {
+      await set('calendar.fiscal_year_start', null)
+      await set('calendar.time_zone', 'UTC')
+    })
+
+    it('reads Q3 FY26 as 1 Oct to 31 Dec 2025 with the fiscal year from 1 April, and the read line says fiscal', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const q3 = await ok(tools, 'get_context', { about: 'orders in Norway in Q3 FY26' })
+        expect(q3.read?.period).toBe('1 Oct to 31 Dec 2025')
+        expect(q3.read?.datesRead).toBe(
+          '1 Oct to 31 Dec 2025 (Q3 FY26, fiscal year from 1 April; Europe/Oslo)',
+        )
+        expect(dateNote(q3.read?.datesRead ?? '')).toBe('Q3 FY26, fiscal year from 1 April')
+      })
+    })
+
+    it('names the time zone today is read in', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const august = await ok(tools, 'get_context', { about: 'orders in Norway in August 2026' })
+        expect(august.read?.datesRead).toBe('1-31 Aug 2026 (Europe/Oslo)')
+      })
     })
   })
 
@@ -281,6 +319,111 @@ describe('the dates a read takes', () => {
       })
       expect(two.read?.period).toBe('1-31 Aug 2026')
       expect(two.read?.datesRead).toContain("not taken: 'september'")
+    })
+  })
+  // R9: "since", "after" or "before" words the reader cannot place, matched to an event's title
+  // and summary; the days start or end at the event, and the read says which.
+  describe('at an event the words name', () => {
+    it('reads since an event from its first day to today, and names it', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const since = await ok(tools, 'get_context', {
+          about: 'orders in Norway since the customs rule',
+        })
+        expect(since.read).toMatchObject({ period: '4 Aug to 23 Oct 2026', assumedToday: false })
+        expect(since.read?.datesRead).toBe(
+          '4 Aug to 23 Oct 2026 (from “Online sales to Norway stopped”, 4 Aug 2026; UTC)',
+        )
+        expect(since.items.map((i) => i.title)).toContain(
+          'Online sales to Norway stopped on 4 August 2026',
+        )
+      })
+    })
+
+    it('reads after an event from the day after it, and before one up to the day before', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const after = await ok(tools, 'get_context', { about: 'orders in Norway after the stop' })
+        expect(after.read?.period).toBe('5 Aug to 23 Oct 2026')
+        const before = await ok(tools, 'get_context', {
+          about: 'orders in Norway before the customs rule',
+        })
+        expect(before.read?.period).toBe('up to 3 Aug 2026')
+        expect(dateNote(before.read?.datesRead ?? '')).toBe(
+          'before “Online sales to Norway stopped”, 4 Aug 2026',
+        )
+      })
+    })
+
+    it('of several alike, takes the event about the subject, and none of two about it', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const spain = await ok(tools, 'get_context', {
+          about: 'first-time buyers in Spain since the payment provider switch',
+        })
+        expect(dateNote(spain.read?.datesRead ?? '')).toBe(
+          'from “Payment provider switched in Spain”, 21 Oct 2025',
+        )
+        // France switched on 12 and on 21 May 2026: which is not Ask's to guess.
+        const france = await ok(tools, 'get_context', {
+          about: 'orders in France since the payment provider switch',
+        })
+        expect(france.read?.assumedToday).toBe(true)
+      })
+    })
+
+    it('keeps the read as it was when no event matches, or the days are given', async () => {
+      await world.withTools('Jon Abara', async (tools) => {
+        const rename = await ok(tools, 'get_context', {
+          about: 'orders in Norway since the rename',
+        })
+        expect(rename.read?.assumedToday).toBe(true)
+        const given = await ok(tools, 'get_context', {
+          about: 'orders in Norway since the customs rule',
+          from: '2026-09-01',
+          to: '2026-09-30',
+        })
+        expect(given.read?.period).toBe('1-30 Sep 2026')
+      })
+    })
+  })
+})
+
+describe('a read of a subject with no period', () => {
+  it('assumes today when the words name no dates, which the read says but the state does not', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const dated = await ok(tools, 'get_context', { about: 'return on ad spend' })
+      expect(dated.read?.assumedToday).toBe(true)
+      expect(dated.items.map((i) => i.match)).toContain('full')
+      expect(dated.notCovered).toEqual([])
+      expect(dated.read?.period).not.toBe('any date')
+      expect(dated.state).toBe('grounded')
+    })
+  })
+
+  it('reads a definition question at any date when asked to, so the dates are not assumed', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const undated = await ok(tools, 'get_context', {
+        about: 'return on ad spend',
+        no_period: true,
+      })
+      expect(undated.read).toMatchObject({ period: 'any date', assumedToday: false })
+      expect(undated.state).toBe('grounded')
+    })
+  })
+
+  it('still says Partial when something else is not covered, whatever no_period says', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const revenue = await ok(tools, 'get_context', { about: 'revenue', no_period: true })
+      expect(revenue.read?.assumedToday).toBe(false)
+      expect(revenue.state).toBe('partial')
+    })
+  })
+
+  it('keeps the dates the words name', async () => {
+    await world.withTools('Jon Abara', async (tools) => {
+      const q3 = await ok(tools, 'get_context', {
+        about: 'orders in Norway in Q3 FY26',
+        no_period: true,
+      })
+      expect([q3.read?.period, q3.read?.assumedToday]).toEqual(['1 Jul to 30 Sep 2026', false])
     })
   })
 })

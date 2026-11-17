@@ -2,12 +2,13 @@ import type { Catalogue } from '../../../contract/index.ts'
 import type { ConflictList } from '../../../contract/conflicts.ts'
 import type { ItemPage } from '../../../contract/context.ts'
 import type { Feed } from '../../../contract/inbox.ts'
-import type { LibraryIndex } from '../../../contract/schemas.ts'
 import type { TermList, TermVersion } from '../../../contract/terms.ts'
+import type { Calendar } from '../../../domain/dates.ts'
 import type { RecordsItem } from '../../../domain/records.ts'
-import type { Clock } from '../../clock.ts'
+import { todayIn, type Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import type { ServingBundle } from '../editions/index.ts'
+import type { ScopedIndex } from '../library/index.ts'
 import { itemsOf, momentOf, type RecordsReads } from './records.ts'
 import { askedFor, liveBundle, type BundleCache } from './service.ts'
 
@@ -25,8 +26,8 @@ export type ToolArea = { id: string; name: string; ownerIds: readonly string[] }
 export type ToolReads = {
   /** What agents get now: the live edition. One bundle serves everyone. */
   bundle: () => Promise<ServingBundle>
-  /** The Context list, as `library.index` gives it to the person. */
-  index: () => Promise<LibraryIndex>
+  /** The Context list, as `library.index` reads it for the person, with each scope by key. */
+  index: () => Promise<ScopedIndex>
   /** The Context list's items as the records keep them, with when each was published. */
   records: () => Promise<readonly RecordsItem[]>
   areas: () => Promise<readonly ToolArea[]>
@@ -46,7 +47,9 @@ export type ToolReads = {
   inbox: () => Promise<Feed>
   /** What agents asked, as this reader may have it (FR-614). */
   asked: RecordsReads['asked']
-  /** The service's UTC day. */
+  /** The workspace's calendar (R8): its fiscal year start and the time zone of `today`. */
+  calendar: Calendar
+  /** Today in the workspace's time zone. */
   today: string
   /** The service's moment, for a period such as "this week". */
   now: string
@@ -73,7 +76,7 @@ function inTurn() {
 
 /** The services of the person's request the tools read through. */
 export type ToolServices = {
-  library: { getIndex(): Promise<LibraryIndex> }
+  library: { getIndex(): Promise<ScopedIndex> }
   areas: { list(): Promise<{ id: string; name: string; ownerIds: string[] }[]> }
   catalogue: { list(): Promise<Catalogue> }
   terms: { list(): Promise<TermList>; history(id: string): Promise<TermVersion[]> }
@@ -89,6 +92,7 @@ export function toolReadsIn(
   clock: Clock,
   cache: BundleCache,
   services: ToolServices,
+  calendar: Calendar,
 ): ToolReads {
   const turn = inTurn()
   const serial = <T>(read: () => Promise<T>) => once(() => turn(read))
@@ -111,7 +115,8 @@ export function toolReadsIn(
     conflicts: serial(() => services.conflicts.list({ whose: 'all' })),
     inbox: serial(() => services.cards.feed('needs')),
     asked: serial(() => askedFor(tx, clock, cache)),
-    today: clock.today(),
+    calendar,
+    today: todayIn(clock, calendar.timeZone),
     now: moment.now,
   }
 }

@@ -52,7 +52,6 @@ const reported = {
 export const writesStillToReport = [
   'src/web/components/heed/answer.tsx',
   'src/web/components/heed/fact-peek.tsx',
-  'src/web/components/heed/loop-answer.tsx',
   'src/web/components/obs/save-question.tsx',
   'src/web/components/obs/topic-filters.tsx',
   'src/web/lib/links-switch.ts',

@@ -362,7 +362,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
         collapsible
       >
         <div className="space-y-2 border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
-          <p>
+          <p className="max-w-reading">
             Each setting is kept in the database, and only an Admin can change one. The change
             applies at once, and the History log keeps who made it and why. About our business can
             also be changed in General, and the Not found level in Observability, Alerts.
@@ -370,14 +370,14 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           <Collapsible>
             <FoldTrigger variant="inline" label="For engineers" className="-ml-1 px-1 text-xs" />
             <CollapsibleContent>
-              <p className="mt-2">
+              <p className="mt-2 max-w-reading">
                 An Admin changes a setting through the API:{' '}
                 <code className={CODE}>PUT /api/v1/settings/{'{key}'}</code> with the version they
                 read, the new value and a reason.
               </p>
             </CollapsibleContent>
           </Collapsible>
-          <p>
+          <p className="max-w-reading">
             Default means the value the app was installed with. Changed names who changed it last:
             an Admin, or, with no person, an update of the app or a script run on the database.
             Whether a real model is called at all, and its key, are set by the person who hosts this
