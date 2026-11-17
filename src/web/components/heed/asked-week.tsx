@@ -58,7 +58,7 @@ export function AskedThisWeek({ onPick }: { onPick: (question: string) => void }
               onClick={() => void week.refetch()}
               className="shrink-0 rounded-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              Retry
+              Try again
             </button>
           </div>
         ) : (

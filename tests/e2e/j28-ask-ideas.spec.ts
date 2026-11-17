@@ -392,7 +392,7 @@ for (const size of [
       await go(page, '/ask?state=failed')
       const alert = week.getByRole('alert')
       await expect(alert).toHaveText(/Couldn't load this week's counts\./)
-      await alert.getByRole('button', { name: 'Retry' }).click()
+      await alert.getByRole('button', { name: 'Try again' }).click()
       await expect(rows).toHaveCount(4)
     })
   })
