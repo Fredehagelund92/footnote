@@ -391,9 +391,7 @@ export function AskChat({
       const { question, parts, scope, id, again, period } = before.answer
       follow.current = true
       setTurns((ts) =>
-        ts.map((t, j) =>
-          j === i ? askedTurn(id, question, { parts, scope, again, period }) : t,
-        ),
+        ts.map((t, j) => (j === i ? askedTurn(id, question, { parts, scope, again, period }) : t)),
       )
       const words = askedWords(before.answer)
       /** The answer it had comes back. */
