@@ -526,8 +526,11 @@ describe('the question back', () => {
     // When: a bare word, or no metric named, and the chat does not settle it.
     expect(ASK_BACK).toMatch(/one bare word, or names no metric/)
     expect(ASK_BACK).toContain('the metrics it could mean as the choices')
-    // Never: a follow-up the chat settles, nor a question that names one metric.
-    expect(ASK_BACK).toMatch(/Never ask back on a follow-up whose subject the chat already settles/)
+    // And on a period whose two readings find other items, with both as the choices (R7).
+    expect(ASK_BACK).toContain('when a get_context read returns choices')
+    expect(ASK_BACK).toContain('with both periods as the choices, even one that finds nothing')
+    // Otherwise never: a follow-up the chat settles, nor a question that names one metric.
+    expect(ASK_BACK).toMatch(/never ask back on a follow-up whose subject the chat already settles/)
     expect(ASK_BACK).toMatch(/nor on a question that names one metric/)
     // The instructions leave the rule to the tool, and only forbid asking in the words.
     const system = loopSystem('2026-10-23', { admin: false, owns: [] })

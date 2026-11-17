@@ -9,6 +9,7 @@ import {
   anchorOf,
   crossCheckedDays,
   dayWords,
+  otherReading,
   readDates,
   windowWords,
   type Calendar,
@@ -689,6 +690,21 @@ const getOutput = z.object({
     }),
   ),
   nothing: z.nullable(z.string()),
+  /**
+   * The two readings of the period's words, when each finds other items: a month without a year
+   * in two years, a day written with numbers either way round. Only then.
+   */
+  choices: z
+    .array(
+      z.object({
+        period: z.string(),
+        from: z.string(),
+        to: z.string(),
+        /** How many items apply at it. */
+        found: z.number(),
+      }),
+    )
+    .optional(),
   names: namesSchema,
   ids,
 })
@@ -910,6 +926,39 @@ function getContext(
   const shownItems = [...items, ...widerItems, ...nearby].flatMap((i) => byId.get(i.id) ?? [])
   const readWords = searched.at(wider ? 0 : -1)!.words
   const synonyms = synonymsRead(view, readWords, keysOf(counted))
+  // The other reading of the period's words, when it finds other items (R7, D6): the read gives
+  // both as choices, for the model to ask back with. Never for days read from the last question
+  // or from an event, where the words leave one reading.
+  const taken = scope && !isAnyDate(scope.window) ? scope.window : null
+  const fork =
+    taken?.end && !anchored && !days?.readsAs?.includes('from your last question')
+      ? otherReading(
+          input.period_words ?? input.about,
+          { start: taken.start, end: taken.end },
+          today,
+          calendar,
+        )
+      : null
+  const forked = fork && scope ? lookup({ scope: { ...scope, window: fork } }) : null
+  const idsOf = (a: Answer) =>
+    a.items
+      .map((i) => i.id)
+      .sort()
+      .join()
+  const choices =
+    taken?.end && fork && forked?.items.length && idsOf(forked) !== idsOf(counted)
+      ? [
+          { start: taken.start, end: taken.end, found: counted.items.length },
+          { ...fork, found: forked.items.length },
+        ]
+          .sort((a, b) => a.start.localeCompare(b.start))
+          .map((c) => ({
+            period: windowWords(c),
+            from: c.start,
+            to: shiftDate(c.end, -1),
+            found: c.found,
+          }))
+      : null
   return {
     state: coveredState(counted),
     read: scope
@@ -949,6 +998,7 @@ function getContext(
     nothing: items.length
       ? null
       : `No context item you may read applies to all of it. ${nothingSaid(searched, view)}${synonyms.map((x) => ` "${x.word}" was read as ${x.name} only by a synonym written in Definitions, and may mean something else.`).join('')}`,
+    ...(choices ? { choices } : {}),
     names: itemNames(view, shownItems, {
       terms: [...keysOf(counted), ...(wider ? keysOf(wider) : [])],
       areas: owners.map((o) => o.id.slice('domain:'.length)),
