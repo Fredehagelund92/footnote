@@ -19,10 +19,22 @@ import {
   assumedDate,
   asksDefinition,
   extractScope,
+  readQuestion,
   type ResolvedScope,
+  type ScopeIssue,
+  type ScopeResult,
 } from '../../domain/scope.ts'
-import { dayIn, UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
-import { shiftDate } from '../../domain/validity.ts'
+import {
+  dateNote,
+  dayIn,
+  dayWords,
+  readPeriodWords,
+  UTC_CALENDAR,
+  whatHeedReads,
+  windowWords,
+  type Calendar,
+} from '../../domain/dates.ts'
+import { isAnyDate, shiftDate } from '../../domain/validity.ts'
 import {
   termEntry,
   termsIn,
@@ -215,23 +227,101 @@ export const failure = (message = 'The checks could not run. Try again shortly.'
   }
 }
 
+/**
+ * R11: the days a reply read and where they came from, in every reply that looked something up:
+ * the caller's window, the person's period words (read as people write them), the question's own
+ * words (read strictly), or today, assumed because none were given.
+ */
+export type PeriodRead = {
+  from: string
+  to: string
+  reads_as: string
+  provenance: 'window' | 'period' | 'question' | 'assumed'
+  words?: string
+  note?: string
+  unplaced?: string[]
+}
+
+/**
+ * A question's scope, and the period it read (`period`, null when nothing was looked up). A
+ * window stands over the person's period words, and they over the question's: words that place
+ * no days need more detail, never every date.
+ */
 export function scopeOf(
-  input: Pick<ContextInput, 'question' | 'metrics' | 'dimension_filters' | 'window'>,
+  input: Pick<ContextInput, 'question' | 'metrics' | 'dimension_filters' | 'window' | 'period'>,
   bundle: ServingBundle,
   today: string,
   calendar: Calendar = UTC_CALENDAR,
-) {
+): { scope: ScopeResult; period: PeriodRead | null } {
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
   for (const filter of input.dimension_filters ?? [])
     filters[filter.dimension] = [...(filters[filter.dimension] ?? []), ...filter.values]
-  return extractScope(input.question, bundle.terms, today, {
+  const words = input.window === undefined ? input.period?.words : undefined
+  const placed = words === undefined ? null : readPeriodWords(words, today, calendar)
+  const window = input.window
+    ? { start: input.window.from, end: shiftDate(input.window.to, 1) }
+    : placed?.window
+  const scope = extractScope(input.question, bundle.terms, today, {
     ...(input.metrics === undefined ? {} : { metrics: input.metrics }),
     ...(input.dimension_filters === undefined ? {} : { filters }),
-    ...(input.window === undefined
-      ? {}
-      : { window: { start: input.window.from, end: shiftDate(input.window.to, 1) } }),
+    ...(window === undefined ? {} : { window }),
     calendar,
   })
+  if (words !== undefined && !placed) {
+    const issue: ScopeIssue = {
+      field: 'dates',
+      input: words,
+      options: [],
+      message: `'${words}' cannot be read as dates. ${whatHeedReads(today)}`,
+    }
+    const others = scope.status === 'need_more_detail' ? scope.issues : []
+    return { scope: { status: 'need_more_detail', issues: [...others, issue] }, period: null }
+  }
+  if (scope.status !== 'resolved') return { scope, period: null }
+  const { start, end } = scope.scope.window
+  const days = { from: start, to: shiftDate(end!, -1) }
+  const said = (reads_as: string) => {
+    const note = dateNote(reads_as)
+    return { reads_as, ...(note ? { note } : {}) }
+  }
+  const period: PeriodRead = input.window
+    ? { ...days, reads_as: windowWords(scope.scope.window), provenance: 'window' }
+    : placed
+      ? {
+          ...days,
+          ...said(placed.readsAs),
+          provenance: 'period',
+          words: words!,
+          ...(placed.unplaced ? { unplaced: placed.unplaced } : {}),
+        }
+      : scope.dates
+        ? {
+            ...days,
+            ...said(scope.dates.reads_as),
+            provenance: 'question',
+            words: scope.dates.words,
+          }
+        : {
+            ...days,
+            reads_as: `${dayWords(today)} (no dates given, so today; ${calendar.timeZone})`,
+            provenance: 'assumed',
+          }
+  return { scope, period }
+}
+
+/**
+ * D7: the days a question's dates read as, read as people write them, when the strict reader
+ * could not: a choice for the agent to confirm, never taken for it.
+ */
+function looseReading(question: string, bundle: ServingBundle, today: string, calendar: Calendar) {
+  const read = readQuestion(question, bundle.terms, today, { loose: true, calendar })
+  if (!read.window || !read.dates || isAnyDate(read.window) || !read.window.end) return null
+  return {
+    from: read.window.start,
+    to: shiftDate(read.window.end, -1),
+    reads_as: read.dates.reads_as,
+    words: read.dates.words,
+  }
 }
 const domainName = (bundle: ServingBundle, areaId: string) =>
   bundle.areas.find((area) => area.id === areaId)?.name ?? areaId
@@ -617,12 +707,13 @@ export function createToolService(
     if (args.kind === 'missing' && scoped) {
       const bundle = await source.bundle()
       onEdition(bundle.seq)
-      const scope = scopeOf(
+      const { scope } = scopeOf(
         {
           question: args.question ?? '',
           ...(args.metrics ? { metrics: args.metrics } : {}),
           ...(args.dimension_filters ? { dimension_filters: args.dimension_filters } : {}),
           ...(args.window ? { window: args.window } : {}),
+          ...(args.period ? { period: args.period } : {}),
         },
         bundle,
         today,
@@ -706,11 +797,16 @@ export function createToolService(
         // tool any more, only the reply a draft's preview and the evals read.
         const v1 = name === 'get_context'
         // A question without dates is read at today, and the reply says so.
-        const scope = scopeOf(scoped, bundle, today, calendar)
+        const { scope, period } = scopeOf(scoped, bundle, today, calendar)
         const assumed =
           scope.status === 'resolved' && scope.assumed ? assumedDate(scope.assumed) : null
         // How Heed read the dates in the question's words, said with the scope (FR-304).
-        const read = (scope.status === 'resolved' && scope.dates) || null
+        // The person's period words, read loosely, say how the same way (R11).
+        const read =
+          (scope.status === 'resolved' && scope.dates) ||
+          (period?.provenance === 'period'
+            ? { words: period.words!, reads_as: period.reads_as }
+            : null)
         const resolution = resolve(bundle, {
           scope,
           today,
@@ -782,6 +878,20 @@ export function createToolService(
                 .slice(0, 5)
             : []
         const definitions = defined.map((term) => definitionOf(bundle, term, today))
+        // D7: dates the strict reader refused come back with the reading a person would mean, as
+        // a choice in options, when the caller gave neither window nor period words.
+        const loose =
+          resolution.issues.some((issue) => issue.field === 'dates') &&
+          !scoped.window &&
+          !scoped.period
+            ? looseReading(scoped.question, bundle, today, calendar)
+            : null
+        const options = resolution.issues.map((issue) =>
+          loose && issue.field === 'dates' ? { ...issue, options: [loose] } : issue,
+        )
+        const looseNext = loose
+          ? `Read as people write dates, it is ${loose.reads_as}, in options: if the person meant that, call again with it as window, or with period words.`
+          : null
         // The words of the question a person defined (FR-138): what they mean here, never a
         // checked source, so they change neither the items nor the answer state.
         const terms = v1 ? termsOf(bundle, scoped.question) : []
@@ -828,8 +938,8 @@ export function createToolService(
               })
             : resolution.status
         // FR-344: what the reply read and did not, as it stands after any cut.
-        const said = () =>
-          withTermsNext(
+        const said = () => {
+          const out = withTermsNext(
             contextSaid(
               bundle,
               {
@@ -851,6 +961,10 @@ export function createToolService(
             ),
             terms,
           )
+          return looseNext
+            ? { ...out, next: out.next ? `${out.next} ${looseNext}` : looseNext }
+            : out
+        }
         // What was looked up, in words, for the agent contract's reply.
         const askedWords = resolution.scope
           ? scopeWords(bundle, resolution.scope, { show: true, readsAs: read?.reads_as ?? null })
@@ -877,6 +991,7 @@ export function createToolService(
             status: statusNow(),
             ...saidFields(said()),
             asked: askedWords,
+            ...(period ? { period_read: period } : {}),
           }
           return concise
             ? resultFor({
@@ -885,9 +1000,7 @@ export function createToolService(
                 ...(terms.length ? { terms } : {}),
                 ...(definitions.length ? { definitions } : {}),
                 // Which one a word means is the person's to say: the agent needs what to pass back.
-                ...(resolution.issues.some((issue) => issue.meanings)
-                  ? { options: resolution.issues }
-                  : {}),
+                ...(resolution.issues.some((issue) => issue.meanings) || loose ? { options } : {}),
                 reply_id: delivery,
                 ...common,
               })
@@ -902,7 +1015,7 @@ export function createToolService(
                 ...dated,
                 ...(domains.length ? { domains } : {}),
                 ...(definitions.length ? { definitions } : {}),
-                options: resolution.issues,
+                options,
                 check_report: check,
                 instructions,
               })
@@ -916,7 +1029,7 @@ export function createToolService(
           ...(domains.length ? { domains } : {}),
           ...(definitions.length ? { definitions } : {}),
           items,
-          options: resolution.issues,
+          options,
           check_report: check,
           instructions,
         }

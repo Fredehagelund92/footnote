@@ -1228,6 +1228,29 @@ export function anchorOf(text: string): DateAnchor | null {
   return words.length ? { lead: m[1] as DateAnchor['lead'], words: words.join(' ') } : null
 }
 
+/**
+ * The days a period's own words name, read as a person writes them (`loose`), with how they were
+ * read: "August last year" is 1-31 Aug 2025. A month or quarter alone is read as "in" it. Null when
+ * the words place no days, and when they place none but every date ("since the launch").
+ */
+export function readPeriodWords(
+  words: string,
+  today: string,
+  calendar: Calendar = UTC_CALENDAR,
+): { window: Days; readsAs: string; unplaced?: string[] } | null {
+  const named = normalizeName(words)
+  if (!named) return null
+  const first = readDates(named, today, { loose: true, ...calendar })
+  const read =
+    first.status !== 'read' ? readDates(`in ${named}`, today, { loose: true, ...calendar }) : first
+  if (read.status !== 'read' || isAnyDate(read.window) || !read.window.end) return null
+  return {
+    window: { start: read.window.start, end: read.window.end },
+    readsAs: read.readsAs,
+    ...(read.unplaced ? { unplaced: read.unplaced } : {}),
+  }
+}
+
 /** Whether two readings name the same days, as far as they have happened. */
 export function sameDays(a: DateWindow, b: DateWindow, today: string) {
   const happened = (w: DateWindow) => {
@@ -1255,16 +1278,9 @@ export function crossCheckedDays(
   today: string,
   calendar: Calendar = UTC_CALENDAR,
 ): { window: Days; readsAs: string | null; other: Days | null } | null {
-  const named = words ? normalizeName(words) : ''
-  const first = named ? readDates(named, today, { loose: true, ...calendar }) : null
-  const read =
-    first && first.status !== 'read'
-      ? readDates(`in ${named}`, today, { loose: true, ...calendar })
-      : first
-  const end = read?.status === 'read' && !isAnyDate(read.window) ? read.window.end : null
-  if (read?.status !== 'read' || !end)
-    return model ? { window: model, readsAs: null, other: null } : null
-  const window = { start: read.window.start, end }
+  const read = words ? readPeriodWords(words, today, calendar) : null
+  if (!read) return model ? { window: model, readsAs: null, other: null } : null
+  const { window } = read
   if (!model || sameDays(model, window, today))
     return { window, readsAs: read.readsAs, other: null }
   const inside = model.start >= window.start && model.end <= window.end

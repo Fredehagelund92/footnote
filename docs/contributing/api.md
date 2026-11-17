@@ -107,6 +107,18 @@ the word, as `word`, and its `meanings`, each with its `key` and `name`. A metri
 still wins. Ask says the same sentence, from the fixed rules and not from a model, and the turn that
 asks keeps its reading, so "net", "the second one" or "both" settles it with the period kept.
 
+Every reply that looked something up carries `period_read`, in the short reply too: the inclusive
+days (`from`, `to`), how they were read (`reads_as`), where they came from (`provenance`: the
+caller's `window`, the person's `period` words, the `question`'s own words, or today, `assumed`),
+the words they were read from, and what was guessed (`note`, such as "year not given"). The
+question's own dates are read strictly; to read the person's words as people write dates, as Ask
+does, pass them as `period: { "words": "August last year" }`. A `window` stands over `period`, and
+`period` over the question's words; words that place no days ("since the launch") get
+`need_more_detail`, never every date. When the strict reader refuses the question's dates
+("orders in Norway in August last year"), `need_more_detail`'s `options` offers the loose reading
+as a choice, `{ "from": "2025-08-01", "to": "2025-08-31", "reads_as": ..., "words": ... }`, and
+`next` says to confirm it and call again: it is never taken for the agent.
+
 With `response_format: "full"` (FR-342) the reply keeps the same fields and adds what it always
 carried: each item's version, body, validity, claim level, every source, owner, review stamp and
 links (FR-326, FR-331), `scope_used`, `dates_read` and `assumed_date`, the domains the question is

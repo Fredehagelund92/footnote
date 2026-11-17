@@ -744,7 +744,7 @@ export function readQuestion(
   question: string,
   terms: readonly Term[],
   today: string,
-  { loose = false }: { loose?: boolean } = {},
+  { loose = false, calendar = UTC_CALENDAR }: { loose?: boolean; calendar?: Calendar } = {},
 ): {
   terms: Term[]
   window: DateWindow | null
@@ -755,7 +755,7 @@ export function readQuestion(
   spans: Span[]
 } {
   calendarDateSchema.parse(today)
-  const found = readWords(question, terms, today, undefined, loose)
+  const found = readWords(question, terms, today, undefined, loose, [], calendar)
   const keys = [
     ...unique(found.metrics),
     ...Object.entries(found.filters)

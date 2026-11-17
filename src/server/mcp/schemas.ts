@@ -45,6 +45,24 @@ const scopeFields = {
     .strictObject({ from: date, to: date })
     .refine((w) => w.from <= w.to, 'Window ends before it starts')
     .optional(),
+  /**
+   * R11: the person's own words for the period, read as people write them, as Ask reads them
+   * ("August last year", "early May"). A window stands over them, and they over the question's.
+   */
+  period: z
+    .strictObject({
+      words: z
+        .string()
+        .min(1)
+        .max(120)
+        .describe(
+          "The person's words for the period, as they wrote them, such as 'August last year'.",
+        ),
+    })
+    .optional()
+    .describe(
+      "The period in the person's own words, read as people write dates; period_read says the days. Pass window instead for exact days.",
+    ),
 }
 /**
  * FR-342: how much a reply of get_context or find_context says. `concise` keeps what an answer
@@ -166,6 +184,7 @@ export const reportInput = z.strictObject({
   metrics: scopeFields.metrics,
   dimension_filters: scopeFields.dimension_filters,
   window: scopeFields.window,
+  period: scopeFields.period,
   note: z
     .string()
     .min(1)
@@ -440,6 +459,32 @@ const terms = z
     'The words that a person defined in Definitions: what each means here, as they wrote it. Read the words by them; a term never makes an answer checked.',
   )
 /**
+ * R11: the days a get_context reply read, in every reply that looked something up, and where they
+ * came from: the caller's window, the person's period words, the question's words, or today
+ * because none were given.
+ */
+const periodRead = z
+  .object({
+    from: z.string(),
+    to: z.string(),
+    reads_as: z.string().describe('The days in words, and how they were read.'),
+    provenance: z
+      .enum(['window', 'period', 'question', 'assumed'])
+      .describe(
+        "Where the days came from: your window, the person's period words, the question's words, or today, assumed because no dates were given.",
+      ),
+    words: z.string().optional().describe('The words the days were read from.'),
+    note: z
+      .string()
+      .optional()
+      .describe('What was guessed, such as year not given: tell the person.'),
+    unplaced: z
+      .array(z.string())
+      .optional()
+      .describe('Words that name dates and could not be placed: tell the person.'),
+  })
+  .describe('The days that were looked up, inclusive, and how they were read: say them.')
+/**
  * What get_context returns (its MCP output schema, FR-344 and FR-349): the status, which carries
  * the answer state, `say` and `next`, what was asked, the items that apply, the reply id
  * to report on and the edition. `response_format` full adds the details of each item and how the
@@ -459,6 +504,7 @@ export const contextOutput = z
       .nullable()
       .optional()
       .describe('What was looked up: the metrics, markets and dates, in words.'),
+    period_read: periodRead.optional(),
     context: z.array(contextEntry).optional(),
     terms,
     reply_id: z
