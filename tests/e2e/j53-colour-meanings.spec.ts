@@ -46,11 +46,15 @@ for (const theme of ['light', 'dark'] as const)
       const good = await token(page, '--good')
       expect(good).not.toBe(await token(page, '--primary'))
 
-      // The chip of a topic that Ask answers from checked context.
+      // A topic that Ask answers from checked context: its word, its icon and its part of the bar.
       const week = page.getByRole('region', { name: 'Asked this week' })
-      const chip = week.getByText('Checked', { exact: true }).first()
-      await expect(chip).toBeVisible()
-      expect(await css(chip.locator('xpath=..').locator('svg').first(), 'color')).toBe(good)
+      const word = week.getByText('Checked', { exact: true }).first()
+      await expect(word).toBeVisible()
+      expect(await css(word, 'color')).toBe(good)
+      const row = word.locator('xpath=ancestor::li')
+      expect(await css(row.locator('svg').first(), 'color')).toBe(good)
+      for (const part of await week.locator('[data-part="grounded"] rect').all())
+        expect(await css(part, 'fill')).toBe(good)
 
       // Observability's chart: every Checked part of a bar, and its square in the legend.
       await go(page, '/observability')
