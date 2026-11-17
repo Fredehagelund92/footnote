@@ -185,6 +185,20 @@ describe("the mock's answers in a live chat", () => {
   })
 })
 
+describe('a turn asked at a chosen period', () => {
+  const period = 'last month' as const
+  const chosen = () => askedTurn('t2', engine.question, { parts: [engine.question], period })
+
+  it('keeps the period when nothing came back or the person stopped it', () => {
+    expect(run(chosen(), { type: 'error', message: 'offline' }).answer.period).toEqual(period)
+    expect(run(chosen(), { type: 'stop' }).answer.period).toEqual(period)
+  })
+
+  it('keeps the period over the answer that comes in', () => {
+    expect(run(chosen(), { type: 'done', answer: engine }).answer.period).toEqual(period)
+  })
+})
+
 describe('a turn asked again in words', () => {
   const again = { question: engine.question, parts: [engine.question] }
   const repeated = () => askedTurn('t1', 'try again', { again })

@@ -130,18 +130,24 @@ const origin = process.env.GOLDEN_WEB_ORIGIN ?? ''
 
 /** The workspace the service answers on now: the demo week, or a new install. */
 let workspace: 'week' | 'empty' = 'week'
+/** Whether the service answers Ask with its loop now (the `askLoop` option). */
+let loopOn = false
 
 /**
  * A fresh copy of a workspace on its own service, with Jon signed in, as the mock starts. The
  * harness reads the app's demo week under the app's aliases (tsconfig.web.json), so it is loaded
  * by name, in http mode only.
  */
-async function startService(page: Page, on: 'week' | 'empty') {
+async function startService(page: Page, on: 'week' | 'empty', askLoop = loopOn) {
   const harness = './http/harness.ts'
   const { freshService } = (await import(harness)) as {
-    freshService: (workspace: 'week' | 'empty') => Promise<{ close: () => Promise<void> }>
+    freshService: (
+      workspace: 'week' | 'empty',
+      options: { askLoop: boolean },
+    ) => Promise<{ close: () => Promise<void> }>
   }
-  const service = await freshService(on)
+  const service = await freshService(on, { askLoop })
+  loopOn = askLoop
   workspace = on
   const signedIn = await page.request.post('/api/v1/auth/sign-in', {
     headers: { 'x-heed-csrf': 'dev-sign-in', origin },
@@ -167,10 +173,14 @@ export async function settle(page: Page, ms: number) {
   await page.clock.runFor(ms)
 }
 
-/** In http mode each journey gets a fresh demo week on its own service, signed in as Jon. */
-export const test = base.extend<{ demoWeek: void }>({
+/**
+ * In http mode each journey gets a fresh demo week on its own service, signed in as Jon. A journey
+ * that sets `askLoop` gets Ask's loop on that service, with the scripted reader.
+ */
+export const test = base.extend<{ askLoop: boolean; demoWeek: void }>({
+  askLoop: [false, { option: true }],
   demoWeek: [
-    async ({ page }, use) => {
+    async ({ page, askLoop }, use) => {
       if (!http) return use()
       const api = (url: string) => new URL(url).pathname.startsWith('/api/v1/')
       const count = (by: number) => (url: string) => {
@@ -179,7 +189,7 @@ export const test = base.extend<{ demoWeek: void }>({
       page.on('request', (r) => count(1)(r.url()))
       page.on('requestfinished', (r) => count(-1)(r.url()))
       page.on('requestfailed', (r) => count(-1)(r.url()))
-      const service = await startService(page, 'week')
+      const service = await startService(page, 'week', askLoop)
       try {
         await use()
       } finally {

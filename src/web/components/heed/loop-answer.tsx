@@ -1,5 +1,12 @@
 import * as React from 'react'
-import type { LoopBlock, LoopItem, LoopOverview, LoopRun, LoopTurn } from '@contract/answer'
+import type {
+  ChosenPeriodInput,
+  LoopBlock,
+  LoopItem,
+  LoopOverview,
+  LoopRun,
+  LoopTurn,
+} from '@contract/answer'
 import type { LucideIcon } from '@/components/icons'
 import {
   CompactItemRow,
@@ -106,6 +113,7 @@ export function LoopProgress({ turn }: { turn: Turn }) {
 /**
  * How the question was read, under it: its nouns as chips and its days, and Change, which puts the
  * question back in the box with them; a follow-up says what it carried from the last question.
+ * The days are a menu of other periods, each of which asks the question again at it (R12).
  */
 /** How the question was read, under it, with Ask's parts (loop-parts.ts). */
 export function LoopReadLine({
@@ -122,9 +130,11 @@ export function LoopReadLine({
 function ReadLine({
   answer,
   onRescope,
+  onReperiod,
 }: {
   answer: Answer
   onRescope?: (parts: QuestionPart[]) => void
+  onReperiod?: (period: ChosenPeriodInput) => void
 }) {
   const P = useParts()
   const loop = answer.loop!
@@ -143,9 +153,10 @@ function ReadLine({
         </span>
       ))}
       <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        <span className="inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground">
-          {subject.assumedToday ? 'Today · assumed' : subject.period}
-        </span>
+        <PeriodChip
+          days={subject.assumedToday ? 'Today · assumed' : subject.period}
+          onChoose={onReperiod}
+        />
         {subject.note && <span aria-hidden>·</span>}
       </span>
       {subject.note && <span>{subject.note}</span>}
@@ -168,6 +179,155 @@ function ReadLine({
         </button>
       )}
     </p>
+  )
+}
+
+/** The periods a question may be asked again at, in the menu's order. */
+const PERIODS: readonly { label: string; period: ChosenPeriodInput }[] = [
+  { label: 'Today', period: 'today' },
+  { label: 'Any date', period: 'any date' },
+  { label: 'Last month', period: 'last month' },
+  { label: 'Last quarter', period: 'last quarter' },
+  { label: 'Last year', period: 'last year' },
+]
+
+const periodRow =
+  'flex w-full cursor-default items-center rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-accent focus-visible:bg-accent pointer-coarse:py-2.5'
+
+/**
+ * The days the question was read at; with `onChoose`, a menu of other periods: each asks the
+ * question again at it, and Pick dates at the days picked.
+ */
+function PeriodChip({
+  days,
+  onChoose,
+}: {
+  days: string
+  onChoose?: ((period: ChosenPeriodInput) => void) | undefined
+}) {
+  const P = useParts()
+  const [open, setOpen] = React.useState(false)
+  const [picking, setPicking] = React.useState(false)
+  const heading = React.useId()
+  const pickRow = React.useRef<HTMLButtonElement>(null)
+  const wasPicking = React.useRef(false)
+  React.useEffect(() => {
+    if (wasPicking.current && !picking) pickRow.current?.focus()
+    wasPicking.current = picking
+  }, [picking])
+  const chip =
+    'inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground'
+  if (!onChoose) return <span className={chip}>{days}</span>
+  const choose = (period: ChosenPeriodInput) => {
+    setOpen(false)
+    onChoose(period)
+  }
+  return (
+    <P.Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (!o) setPicking(false)
+      }}
+    >
+      <P.PopoverTrigger
+        className={P.cn(
+          chip,
+          'gap-0.5 outline-none hover:bg-foreground/8 focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-foreground/8',
+        )}
+      >
+        {days}
+        <P.ChevronDownIcon aria-hidden className="size-3 text-muted-foreground" />
+      </P.PopoverTrigger>
+      <P.PopoverContent align="end" className={P.cn('gap-0 p-1', picking ? 'w-60' : 'w-44')}>
+        {picking ? (
+          <PeriodDays onPick={choose} onBack={() => setPicking(false)} />
+        ) : (
+          <div role="group" aria-labelledby={heading} className="flex flex-col">
+            <p id={heading} className="px-1.5 pt-1 pb-1.5 text-xs text-muted-foreground">
+              Ask it again at
+            </p>
+            {PERIODS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                className={periodRow}
+                onClick={() => choose(p.period)}
+              >
+                {p.label}
+              </button>
+            ))}
+            <div aria-hidden className="-mx-1 my-1 h-px bg-border" />
+            <button
+              ref={pickRow}
+              type="button"
+              className={periodRow}
+              onClick={() => setPicking(true)}
+            >
+              Pick dates
+            </button>
+          </div>
+        )}
+      </P.PopoverContent>
+    </P.Popover>
+  )
+}
+
+/**
+ * Pick dates: the first day and the last, in the browser's own date fields, which a phone opens
+ * as its own picker, and Ask at these dates. One day is the same day twice.
+ */
+function PeriodDays({
+  onPick,
+  onBack,
+}: {
+  onPick: (days: { from: string; to: string }) => void
+  onBack: () => void
+}) {
+  const P = useParts()
+  const [from, setFrom] = React.useState('')
+  const [to, setTo] = React.useState('')
+  const ready = !!from && !!to && from <= to
+  return (
+    <form
+      className="flex flex-col gap-2 pt-1.5"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (ready) onPick({ from, to })
+      }}
+    >
+      <label className="flex flex-col gap-1 px-1.5 text-xs text-muted-foreground">
+        First day
+        <P.Input
+          autoFocus
+          type="date"
+          value={from}
+          onChange={(e) => {
+            setFrom(e.target.value)
+            if (!to || e.target.value > to) setTo(e.target.value)
+          }}
+          className="text-foreground"
+        />
+      </label>
+      <label className="flex flex-col gap-1 px-1.5 text-xs text-muted-foreground">
+        Last day
+        <P.Input
+          type="date"
+          value={to}
+          min={from || undefined}
+          onChange={(e) => setTo(e.target.value)}
+          className="text-foreground"
+        />
+      </label>
+      <div className="flex items-center justify-between gap-2 border-t px-0.5 pt-1">
+        <P.Button type="button" variant="ghost" onClick={onBack}>
+          Back
+        </P.Button>
+        <P.Button type="submit" variant="secondary" disabled={!ready}>
+          Ask at these dates
+        </P.Button>
+      </div>
+    </form>
   )
 }
 

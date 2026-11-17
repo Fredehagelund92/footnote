@@ -87,7 +87,10 @@ project: `npx vitest run --project server tests/server/domain`.
   them against the titles and summaries of accepted events the person may read: "since" starts on
   the event's first day, "after" the day after, both to today, and "before" ends the day before.
   Of several matches the one about more of the subject's names wins, and a tie matches none. The
-  read line names the event ("from “Online sales to Norway stopped”, 4 Aug 2026").
+  read line names the event ("from “Online sales to Norway stopped”, 4 Aug 2026"). `chosenDays`
+  gives the days of a period a person chose on Ask's read line (`chosenPeriodNames`: today, any
+  date, last month, last quarter, last year, or the days picked), each named one read as its
+  words are.
 - `scope-search.ts`: the page of terms behind the "Applies to" picker (FR-107): before anything
   is typed, the person's recent terms, the busiest metrics and the dimensions with a count but no
   values; then metrics and, per dimension, "any value", a count and a

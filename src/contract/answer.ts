@@ -8,6 +8,8 @@
  */
 import * as z from 'zod/mini'
 import { answerStates, leftOutReasons } from '../domain/answer.ts'
+import { chosenPeriodNames } from '../domain/dates.ts'
+import { calendarDateSchema } from '../domain/validity.ts'
 import {
   CHAT_HELD_KEYS,
   CHAT_LINE,
@@ -507,6 +509,18 @@ export const chatTurnSchema = z.strictObject({
 export type ChatTurnInput = z.infer<typeof chatTurnSchema>
 
 /**
+ * A period a person chose for a question on the read line of Ask's loop (R12): a named one, any
+ * date, or the days they picked, first and last. It stands over the dates in the words.
+ */
+export const chosenPeriodSchema = z.union([
+  z.enum(chosenPeriodNames),
+  z
+    .strictObject({ from: calendarDateSchema, to: calendarDateSchema })
+    .check(z.refine((days) => days.from <= days.to, 'The days end before they start')),
+])
+export type ChosenPeriodInput = z.infer<typeof chosenPeriodSchema>
+
+/**
  * A question for Ask: its words, and the names a person picked beside them (the @ chips), read as
  * get_context reads an agent's, and the chat's last turns, oldest first. The words are read in
  * memory and never stored or logged (FR-602); sent in a POST body for that reason.
@@ -515,6 +529,7 @@ export const lookupInputSchema = z.strictObject({
   question: z.string().check(z.minLength(1), z.maxLength(2000)),
   ...tryItInputSchema.shape,
   turns: z.optional(z.array(chatTurnSchema).check(z.maxLength(CHAT_TURNS))),
+  period: z.optional(chosenPeriodSchema),
 })
 export type LookupInput = z.infer<typeof lookupInputSchema>
 /**

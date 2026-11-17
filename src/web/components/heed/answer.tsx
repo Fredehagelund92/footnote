@@ -1,4 +1,5 @@
 import * as React from 'react'
+import type { ChosenPeriodInput } from '@contract/answer'
 import {
   ArrowLeftRightIcon,
   BookmarkIcon,
@@ -170,10 +171,13 @@ function readDifferently(answer: Answer) {
 export function Question({
   answer,
   onRescope,
+  onReperiod,
   onEdit,
 }: {
   answer: Answer
   onRescope?: (parts: QuestionPart[]) => void
+  /** Asks the question again at a period chosen on the loop's read line. */
+  onReperiod?: (period: ChosenPeriodInput) => void
   onEdit?: (parts: QuestionPart[]) => void
 }) {
   const [copied, copy] = useCopied()
@@ -202,7 +206,12 @@ export function Question({
       </div>
       {answer.loop && (
         <React.Suspense fallback={null}>
-          <LoopReadLine parts={loopAnswerParts()} answer={answer} onRescope={onRescope} />
+          <LoopReadLine
+            parts={loopAnswerParts()}
+            answer={answer}
+            onRescope={onRescope}
+            onReperiod={onReperiod}
+          />
         </React.Suspense>
       )}
       {/* Copy, and Edit to put the question back in the box: under the bubble, so it keeps its width; always there on a touch screen. */}

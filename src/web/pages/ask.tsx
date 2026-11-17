@@ -41,6 +41,7 @@ import {
   useSession,
   useWrite,
 } from '@/api/queries'
+import type { ChosenPeriodInput } from '@contract/answer'
 import { chatTurnOf, type Answer, type AskInput, type QuestionPart } from '@/model/ask'
 import {
   firstRead,
@@ -112,6 +113,7 @@ const askAgainInput = (turns: readonly Turn[], i: number): AskInput => {
     question,
     parts,
     scope,
+    ...(answer.period ? { period: answer.period } : {}),
     ...(chat.length ? { turns: chat } : {}),
     ...(answer.state === 'failed' ? { reread: { dates: answer.dates } } : {}),
   }
@@ -304,7 +306,7 @@ export function AskChat({
     if (index === 0 && !scope?.length && (parts ?? []).every((p) => typeof p === 'string'))
       queryClient.setQueryData(askQuery({ question }).queryKey, answer)
   }
-  const add = (asked: string | AskQuestion) =>
+  const add = (asked: string | AskQuestion, period?: ChosenPeriodInput) =>
     one(async () => {
       const {
         text: q,
@@ -332,7 +334,17 @@ export function AskChat({
       // The question is in the chat at once; its answer follows as the look-up runs.
       setTurns((ts) => [
         ...ts,
-        askedTurn(id, q, repeated ? { again: repeated, scope: repeated.scope } : { parts, scope }),
+        askedTurn(
+          id,
+          q,
+          repeated
+            ? {
+                again: repeated,
+                scope: repeated.scope,
+                ...(again?.period ? { period: again.period } : {}),
+              }
+            : { parts, scope, ...(period ? { period } : {}) },
+        ),
       ])
       keepFocus()
       // Any answered turn can start the chat in the history, once; the session says whether it does.
@@ -341,7 +353,13 @@ export function AskChat({
       try {
         const { answer, outcome } = await answerTurn(
           id,
-          again ?? { question: q, parts, scope, ...(chat.length ? { turns: chat } : {}) },
+          again ?? {
+            question: q,
+            parts,
+            scope,
+            ...(chat.length ? { turns: chat } : {}),
+            ...(period ? { period } : {}),
+          },
           join,
         )
         // Not checked stays in the chat, with Ask again, and leaves the chat as it was.
@@ -359,16 +377,21 @@ export function AskChat({
 
   // "Change it" under a misread question: the question goes back in the box with what it was read as, as chips to keep or swap.
   const rescope = (parts: QuestionPart[]) => composer.current?.set(parts)
+  // A period chosen on the read line asks the same words again, read at that period.
+  const reperiod = (answer: Answer) => (period: ChosenPeriodInput) => {
+    const { question, parts, scope } = askedWords(answer)
+    void add({ text: question, parts: parts ?? [question], scope: scope ?? [] }, period)
+  }
 
   // Ask again asks the same question again; a check that failed reads it afresh, since the failure was the check's.
   const retry = (i: number) => () => void askAgain(i)
   const askAgain = (i: number) =>
     one(async () => {
       const before = turns[i]!
-      const { question, parts, scope, id, again } = before.answer
+      const { question, parts, scope, id, again, period } = before.answer
       follow.current = true
       setTurns((ts) =>
-        ts.map((t, j) => (j === i ? askedTurn(id, question, { parts, scope, again }) : t)),
+        ts.map((t, j) => (j === i ? askedTurn(id, question, { parts, scope, again, period }) : t)),
       )
       const words = askedWords(before.answer)
       /** The answer it had comes back. */
@@ -555,6 +578,7 @@ export function AskChat({
                     <Question
                       answer={t.answer}
                       onRescope={draft ? undefined : rescope}
+                      onReperiod={draft ? undefined : reperiod(t.answer)}
                       onEdit={draft ? undefined : (parts) => composer.current?.set(parts)}
                     />
                     <AnswerBody

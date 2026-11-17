@@ -8,7 +8,7 @@ import {
 import { notLookedUp, refusalOffers } from '@domain/say'
 import type { AnswerFooter, AnswerLimit, RecordsAnswer } from '@domain/records-answer'
 import { nameSimilarity, normalizeName, suggestTerms, type Term } from '@domain/vocabulary'
-import type { LoopTurn } from '@contract/answer'
+import type { ChosenPeriodInput, LoopTurn } from '@contract/answer'
 import type { MentionRef } from '@/lib/mentions'
 import { ANSWER_LINES } from '@/lib/help-content'
 import type { DomainId } from './items'
@@ -164,6 +164,8 @@ export type Answer = {
   closest?: string[]
   /** What the asker scoped it to with '@'. */
   scope?: MentionRef[]
+  /** The period the person chose for it on the read line (R12): asking again keeps it. */
+  period?: ChosenPeriodInput
   /** What the agent followed from the answer's items with get_related, one step. */
   links?: AnswerLinks
   /**
@@ -433,6 +435,8 @@ export type AskInput = {
   reread?: { dates?: string }
   /** The chat's last turns, oldest first, for a follow-up. */
   turns?: ChatTurn[]
+  /** The period the person chose on the read line, over the dates in the words (R12). */
+  period?: ChosenPeriodInput
 }
 
 /** What the owners did after a named report, the first of them. */

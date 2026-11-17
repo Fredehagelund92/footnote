@@ -20,7 +20,7 @@ import type {
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
-import { dateNote } from '../../../domain/dates.ts'
+import { dateNote, type ChosenPeriod } from '../../../domain/dates.ts'
 import { shiftDate } from '../../../domain/validity.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
@@ -374,7 +374,8 @@ function chatMessages(
                 type: 'tool-call' as const,
                 toolCallId: call(e),
                 toolName: e.read.tool,
-                input: e.read.input,
+                // The period the person chose is the service's, never the model's input (R12).
+                input: withoutChosen(e.read.input),
               })),
             },
             {
@@ -392,6 +393,8 @@ function chatMessages(
     ]
   })
 }
+
+const withoutChosen = ({ period: _, ...input }: Record<string, unknown>) => input
 
 /** A result as the model is given it: with its ref first, so its words can cite its values. */
 const withRef = (ref: string, result: unknown) =>
@@ -459,7 +462,7 @@ const tokensIn = (text: string) => Math.ceil(text.length / 4)
  */
 export async function* askLoop(
   deps: LoopDeps,
-  input: { question: string; turns?: readonly ChatTurnInput[] },
+  input: { question: string; turns?: readonly ChatTurnInput[]; period?: ChosenPeriod },
 ): AsyncGenerator<LookupEvent> {
   const turns = input.turns ?? []
   const limits = { steps: deps.steps, seconds: Math.round(deps.timeoutMs / 1000) }
@@ -513,7 +516,10 @@ export async function* askLoop(
       tool({
         description: askToolDefinitions[name].description,
         inputSchema: askToolDefinitions[name].input as z.ZodType<Record<string, unknown>>,
-        execute: (given: Record<string, unknown>, { toolCallId }: { toolCallId: string }) => {
+        execute: (asked: Record<string, unknown>, { toolCallId }: { toolCallId: string }) => {
+          // The period the person chose for the question is every get_context's of the turn.
+          const given =
+            name === 'get_context' && input.period ? { ...asked, period: input.period } : asked
           const read = (async () => {
             const result = await reads.one(name, given, {
               lastPeriod: lastPeriodOf(turns.length, turns, earlier),

@@ -990,7 +990,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     }
   }
 
-  const ask: HeedApi['ask'] = async ({ question = '', parts, scope, example, turns }, live) => {
+  const ask: HeedApi['ask'] = async (
+    { question = '', parts, scope, example, turns, period },
+    live,
+  ) => {
     let words = question
     let offered = offeredScopes.get(question.toLowerCase())
     if (example) {
@@ -1004,6 +1007,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     const extra = {
       ...(parts?.some((p) => typeof p !== 'string') ? { parts } : {}),
       ...(scope?.length ? { scope } : {}),
+      ...(period ? { period } : {}),
     }
     // What the chat is told as the look-up runs: what it found, the engine's answer, each sentence.
     const seen = (event: LookupEvent) => {
@@ -1025,7 +1029,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): HeedAp
     try {
       // A follow-up carries the chat's last turns; a question scoped with @ is read as scoped.
       const carry = turns?.length && !example && !scope?.length ? { turns } : {}
-      const looked = await lookUp({ question: words, ...fields, ...carry }, seen, live?.signal)
+      const looked = await lookUp(
+        { question: words, ...fields, ...carry, ...(period ? { period } : {}) },
+        seen,
+        live?.signal,
+      )
       if (looked.turn) {
         said.set(words.toLowerCase(), looked.turn.text.replace(/\[\d+\]/g, ''))
         return { ...loopAnswerOf(looked.turn, words, names), ...extra }

@@ -60,7 +60,7 @@ export type Turn = {
 export const askedTurn = (
   id: string,
   question: string,
-  extra: Pick<Answer, 'parts' | 'scope' | 'again'> = {},
+  extra: Pick<Answer, 'parts' | 'scope' | 'again' | 'period'> = {},
 ): Turn => ({
   answer: {
     id,
@@ -129,12 +129,13 @@ export function turnReducer(turn: Turn, action: TurnAction): Turn {
   if (turn.stage === 'done') return turn
   // The question as it was sent: its id in the chat, and the mentions it was asked with. Asked
   // again in words, the chat keeps what was typed and what it repeated.
-  const { id, parts, scope, again, question } = turn.answer
+  const { id, parts, scope, again, question, period } = turn.answer
   const keep = {
     id,
     ...(again ? { question, parts, again } : {}),
     ...(parts ? { parts } : {}),
     ...(scope ? { scope } : {}),
+    ...(period ? { period } : {}),
   }
   switch (action.type) {
     case 'plan':
