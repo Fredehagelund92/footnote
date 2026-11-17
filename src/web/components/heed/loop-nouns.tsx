@@ -559,9 +559,9 @@ export function ItemRow({
  * A cited item in one line: its number, its kind's icon and its title, cut to the line when long
  * (the number's card and the name say it whole). Its domain, status, day and the rest are on the
  * card. A press on the title opens it. An item that needs a look ends in why, in words that stand
- * out from the line's muted ones.
+ * out from the line's muted ones, then what can be done about it.
  */
-export function CompactItemRow({ item }: { item: LoopItem }) {
+export function CompactItemRow({ item, action }: { item: LoopItem; action?: React.ReactNode }) {
   const P = useParts()
   const ahead = P.useReadAhead()
   const Icon = P.kindIcons[kindOf(item.kind)]
@@ -587,6 +587,7 @@ export function CompactItemRow({ item }: { item: LoopItem }) {
           {why}
         </span>
       )}
+      {action}
     </li>
   )
 }
