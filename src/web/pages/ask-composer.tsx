@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { JSONContent } from '@tiptap/core'
+import { Extension, type JSONContent } from '@tiptap/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
@@ -97,7 +97,6 @@ export function AskComposer({
 }) {
   const send = React.useRef<() => void>(() => undefined)
   const escape = React.useRef<() => boolean>(() => false)
-  const hint = React.useRef(placeholder)
   const editor = useEditor({
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
@@ -120,7 +119,10 @@ export function AskComposer({
         strike: false,
         underline: false,
       }),
-      Placeholder.configure({ placeholder: () => hint.current }),
+      Extension.create({ name: 'hint', addStorage: () => ({ text: placeholder }) }),
+      Placeholder.configure({
+        placeholder: ({ editor: e }) => (e.storage as { hint: { text: string } }).hint.text,
+      }),
       mentionExtension({
         kinds: SCOPE_KINDS,
         empty: 'Mention a domain, a definition, a context item or a market.',
@@ -185,8 +187,10 @@ export function AskComposer({
   }, [submit])
   // A placeholder that changes with the width shows at once, without a new editor.
   React.useEffect(() => {
-    if (!editor || editor.isDestroyed || hint.current === placeholder) return
-    hint.current = placeholder
+    if (!editor || editor.isDestroyed) return
+    const storage = editor.storage as { hint: { text: string } }
+    if (storage.hint.text === placeholder) return
+    storage.hint.text = placeholder
     editor.view.dispatch(editor.state.tr)
   }, [editor, placeholder])
 
