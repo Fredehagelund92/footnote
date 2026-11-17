@@ -292,6 +292,8 @@ test("Asked this week: an owner's next step is a link after the topic, and the c
 }) => {
   await go(page, '/ask')
   const week = page.getByRole('region', { name: 'Asked this week' })
+  // The box takes focus as Ask opens; the row is reached from there.
+  await expect(page.getByRole('textbox', { name: 'Ask a question' })).toBeFocused()
   await week.getByRole('button', { name: /^Show \d+ more$/ }).click()
   const row = week
     .getByRole('listitem')
@@ -310,8 +312,7 @@ test("Asked this week: an owner's next step is a link after the topic, and the c
   ])
   expect(l!.x).toBeGreaterThan(b!.x + b!.width)
   expect(l!.x + l!.width).toBeLessThan(s!.x)
-  // The box takes focus as Ask opens; the row is reached from there.
-  await expect(page.getByRole('textbox', { name: 'Ask a question' })).toBeFocused()
+  // The row is reached from the button, not the box.
   await button.focus()
   await page.keyboard.press('Tab')
   await expect(link).toBeFocused()
