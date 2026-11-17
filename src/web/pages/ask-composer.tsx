@@ -137,12 +137,10 @@ export function AskComposer({
         addStorage: () => ({ text: placeholder }),
         addCommands() {
           return {
-            setHint:
-              (text) =>
-              () => {
-                this.storage.text = text
-                return true
-              },
+            setHint: (text) => () => {
+              this.storage.text = text
+              return true
+            },
           }
         },
       }),
