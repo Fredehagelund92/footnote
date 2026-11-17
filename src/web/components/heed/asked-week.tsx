@@ -199,7 +199,7 @@ function Row({
           aria-disabled={answering || undefined}
           aria-describedby={`${id}-state ${id}-count`}
           onClick={pick}
-          className="min-w-0 truncate text-left text-sm font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-3 focus-visible:after:ring-ring/50 focus-visible:after:ring-inset aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+          className="static min-w-0 truncate text-left text-sm font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-3 focus-visible:after:ring-ring/50 focus-visible:after:ring-inset aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
         >
           {r.title}
         </button>

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { JSONContent } from '@tiptap/core'
-import Placeholder, { type PlaceholderOptions } from '@tiptap/extension-placeholder'
+import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { ArrowUpIcon, AtSignIcon, SquareIcon } from '@/components/icons'
@@ -97,6 +97,7 @@ export function AskComposer({
 }) {
   const send = React.useRef<() => void>(() => undefined)
   const escape = React.useRef<() => boolean>(() => false)
+  const hint = React.useRef(placeholder)
   const editor = useEditor({
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
@@ -119,7 +120,7 @@ export function AskComposer({
         strike: false,
         underline: false,
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: () => hint.current }),
       mentionExtension({
         kinds: SCOPE_KINDS,
         empty: 'Mention a domain, a definition, a context item or a market.',
@@ -184,10 +185,8 @@ export function AskComposer({
   }, [submit])
   // A placeholder that changes with the width shows at once, without a new editor.
   React.useEffect(() => {
-    const hint = editor?.extensionManager?.extensions.find((e) => e.name === 'placeholder')
-    const options = hint?.options as PlaceholderOptions | undefined
-    if (!options || editor.isDestroyed || options.placeholder === placeholder) return
-    options.placeholder = placeholder
+    if (!editor || editor.isDestroyed || hint.current === placeholder) return
+    hint.current = placeholder
     editor.view.dispatch(editor.state.tr)
   }, [editor, placeholder])
 

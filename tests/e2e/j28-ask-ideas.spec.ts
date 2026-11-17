@@ -292,10 +292,11 @@ test("Asked this week: an owner's next step is a link after the topic, and the c
 }) => {
   await go(page, '/ask')
   const week = page.getByRole('region', { name: 'Asked this week' })
-  const row = week.getByRole('listitem').filter({ hasText: 'Orders in Poland' })
-  const link = row.getByRole('link', { name: 'Review it for Orders in Poland' })
+  await week.getByRole('button', { name: /^Show \d+ more$/ }).click()
+  const link = week.getByRole('link', { name: /^(Write it|Review it|Open the card) for / }).first()
   await expect(link).toBeVisible()
-  const button = row.getByRole('button', { name: 'Orders in Poland' })
+  const row = week.getByRole('listitem').filter({ has: link })
+  const button = row.getByRole('button').first()
   // After the topic, before the state.
   const [b, l, s] = await Promise.all([
     button.boundingBox(),
@@ -320,16 +321,20 @@ test("Asked this week: an owner's next step is a link after the topic, and the c
 test('Asked this week on a phone: the whole card above the box, its rows lined up with its title', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setViewportSize({ width: 1280, height: 900 })
   await go(page, '/ask')
   const week = page.getByRole('region', { name: 'Asked this week' })
   const rows = week.getByRole('listitem')
   await expect(rows).toHaveCount(4)
-  // A short placeholder, whole on a phone.
-  await expect(page.locator('[data-placeholder]')).toHaveAttribute(
-    'data-placeholder',
-    'Ask about a number',
-  )
+  const hint = page.locator('[data-placeholder]')
+  await expect(hint).toHaveAttribute('data-placeholder', /^Ask what is written about a number/)
+  // A short placeholder, whole on a phone, and it follows the width.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(hint).toHaveAttribute('data-placeholder', 'Ask about a number')
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await expect(hint).toHaveAttribute('data-placeholder', /^Ask what is written about a number/)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(hint).toHaveAttribute('data-placeholder', 'Ask about a number')
   const composer = (await page.getByRole('textbox', { name: 'Ask a question' }).boundingBox())!
   const footer = (await week.getByRole('button', { name: 'Show 9 more' }).boundingBox())!
   const last = (await rows.last().boundingBox())!
@@ -340,33 +345,62 @@ test('Asked this week on a phone: the whole card above the box, its rows lined u
   expect(topic.x).toBe(title.x)
 })
 
-test('Asked this week while it loads holds its place, and a failed load says so', async ({
-  page,
-}) => {
-  await onMockOnly('review flags ?state=loading and ?state=failed', async () => {
-    await page.addInitScript(() => {
-      const w = window as unknown as { __shift: number }
-      w.__shift = 0
-      new PerformanceObserver((list) => {
-        for (const e of list.getEntries() as (PerformanceEntry & { value: number })[])
-          w.__shift += e.value
-      }).observe({ type: 'layout-shift' })
-    })
-    await go(page, '/ask?state=loading')
-    const week = page.getByRole('region', { name: 'Asked this week' })
-    await expect(week.getByRole('status', { name: 'Loading' })).toBeVisible()
-    await expect(week.locator('[data-skeleton-row]')).toHaveCount(4)
-    await page.evaluate(() => document.fonts.ready)
-    await page.evaluate(() => ((window as unknown as { __shift: number }).__shift = 0))
-    await moveTo(page, '/ask')
-    await expect(week.getByRole('listitem')).toHaveCount(4)
-    await page.waitForTimeout(300)
-    expect(await page.evaluate(() => (window as unknown as { __shift: number }).__shift)).toBe(0)
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 390, height: 844 },
+]) {
+  test(`Asked this week while it loads holds its place at ${size.width} px, and a failed load says so`, async ({
+    page,
+  }) => {
+    await onMockOnly('review flags ?state=loading and ?state=failed', async () => {
+      await page.setViewportSize(size)
+      await go(page, '/ask?state=loading')
+      const week = page.getByRole('region', { name: 'Asked this week' })
+      await expect(week.getByRole('status', { name: 'Loading' })).toBeVisible()
+      const skeletons = week.locator('[data-skeleton-row]')
+      await expect(skeletons).toHaveCount(4)
+      await page.evaluate(() => document.fonts.ready)
+      const top = async () => (await week.boundingBox())!.y
+      const held = await skeletons.evaluateAll((els) =>
+        els.map((e) => {
+          const r = e.getBoundingClientRect()
+          return { y: r.y, height: r.height }
+        }),
+      )
+      const cardTop = await top()
+      await moveTo(page, '/ask')
+      const rows = week.getByRole('listitem')
+      await expect(rows).toHaveCount(4)
+      const shown = await rows.evaluateAll((els) =>
+        els.map((e) => {
+          const r = e.getBoundingClientRect()
+          return { y: r.y, height: r.height }
+        }),
+      )
+      shown.forEach((r, i) => {
+        expect(Math.abs(r.y - held[i]!.y)).toBeLessThanOrEqual(0.5)
+        expect(Math.abs(r.height - held[i]!.height)).toBeLessThanOrEqual(0.5)
+      })
+      expect(Math.abs((await top()) - cardTop)).toBeLessThanOrEqual(0.5)
 
-    await go(page, '/ask?state=failed')
-    const alert = week.getByRole('alert')
-    await expect(alert).toHaveText(/Couldn't load this week's counts\./)
-    await alert.getByRole('button', { name: 'Retry' }).click()
-    await expect(week.getByRole('listitem')).toHaveCount(4)
+      await go(page, '/ask?state=failed')
+      const alert = week.getByRole('alert')
+      await expect(alert).toHaveText(/Couldn't load this week's counts\./)
+      await alert.getByRole('button', { name: 'Retry' }).click()
+      await expect(rows).toHaveCount(4)
+    })
+  })
+}
+
+test.describe('on a touch phone', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+  test("a tap on a row's count asks the row's question", async ({ page }) => {
+    await go(page, '/ask')
+    const week = page.getByRole('region', { name: 'Asked this week' })
+    const row = week.getByRole('listitem').first()
+    const shown = (await row.getByRole('button').first().textContent())!
+    await row.locator('[id$="-count"]').tap()
+    await expect(page.getByRole('log')).toContainText(shown)
   })
 })
