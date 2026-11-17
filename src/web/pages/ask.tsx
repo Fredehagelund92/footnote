@@ -74,7 +74,7 @@ import type { AskQuestion, ComposerHandle } from '@/pages/ask-composer'
 import type { Fact } from '@/model/items'
 import { useDraft } from '@/lib/draft'
 import { useOpeningRead } from '@/lib/opening-read'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsMobile, useMedia } from '@/hooks/use-mobile'
 import { readWidth, saveWidth } from '@/lib/pane-width'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { composerSurface } from '@/lib/surfaces'
@@ -518,9 +518,13 @@ export function AskChat({
   }, [count])
 
   const width = compact ? 'max-w-none px-4' : 'max-w-176 px-4'
+  // Under 480 px the long placeholder is cut off: a phone gets a short one.
+  const narrow = useMedia('(max-width: 479px)')
   const placeholder = draft
     ? 'Ask another question against the draft'
-    : 'Ask what is written about a number, such as orders in Norway'
+    : narrow
+      ? 'Ask about a number'
+      : 'Ask what is written about a number, such as orders in Norway'
 
   return (
     <Answering value={answering}>
@@ -534,14 +538,13 @@ export function AskChat({
         >
           <div ref={content} className={cn('mx-auto flex min-h-full w-full flex-col', width)}>
             {turns.length === 0 ? (
-              <div className="flex flex-1 flex-col gap-5 pt-ask-greeting pb-10">
+              <div className="flex flex-1 flex-col gap-5 pt-8 pb-10 sm:pt-ask-greeting">
                 <div className="px-2 text-center">
                   <h2 className="text-2xl font-medium tracking-tight text-balance">
                     What do you want to know about your metrics?
                   </h2>
                   <p className="mt-2 text-sm text-balance text-muted-foreground">
-                    Answers use what your team wrote and an owner checked, as an AI agent (an AI
-                    tool such as Claude or Cursor) would. Each says how sure it is.
+                    Answers come from what your team wrote and an owner checked.
                   </p>
                 </div>
                 {/* What agents asked this week; a new workspace, with nothing asked yet, gets its starters instead. */}

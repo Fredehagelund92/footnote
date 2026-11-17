@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useDomains } from '@/lib/workspace'
-import { diffWords } from 'diff'
+import { diffWords } from 'diff/lib/diff/word.js'
 import { BotIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
