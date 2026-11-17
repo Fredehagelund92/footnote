@@ -158,10 +158,11 @@ Today is ${dayWords(today)} (${timeZone}). The person is ${asker.admin ? 'an adm
 /**
  * When to ask back, said where the model chooses the tool (S18 of the chat audit): a bare word or
  * a question that names no metric, unless the chat settles it; never on a follow-up the chat
- * settles, nor on a question that names one metric.
+ * settles, nor on a question that names one metric. And on a period with two readings that find
+ * different items (R7, D6), which code finds: a get_context read that returns choices.
  */
 export const ASK_BACK =
-  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those.'
+  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those.'
 
 /** The question back, the one tool that ends a turn: the model's own words and choices. */
 const askBackInput = z.strictObject({

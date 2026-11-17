@@ -6,6 +6,7 @@ import {
   crossCheckedDays,
   dateNote,
   monthWords,
+  otherReading,
   readDates,
   whatHeedReads,
 } from '../../../src/domain/dates.ts'
@@ -913,5 +914,51 @@ describe('carriedDays: a follow-up’s period read against the last question’s
 
   it('is said on the read line', () => {
     expect(dateNote('1-30 Sep 2025 (from your last question; UTC)')).toBe('from your last question')
+  })
+})
+
+describe('otherReading: the other period a person’s words may mean (R7)', () => {
+  const today = '2026-10-23'
+  const days = (start: string, to: string) => ({ start, end: shiftDate(to, 1) })
+  const other = (words: string, taken: { start: string; end: string }) =>
+    otherReading(words, taken, today)
+
+  it('reads a month or quarter without a year in the other year a person may mean', () => {
+    // Taken this year: the year before. Taken last year: this year's.
+    expect(other('August', days('2026-08-01', '2026-08-31'))).toEqual(
+      days('2025-08-01', '2025-08-31'),
+    )
+    expect(other('in November', days('2025-11-01', '2025-11-30'))).toEqual(
+      days('2026-11-01', '2026-11-30'),
+    )
+    expect(other('Q1', days('2026-01-01', '2026-03-31'))).toEqual(days('2025-01-01', '2025-03-31'))
+    expect(other('early August', days('2026-08-01', '2026-08-10'))).toEqual(
+      days('2025-08-01', '2025-08-10'),
+    )
+    // The year the model took from the chat counts: August 2025 is also August 2026.
+    expect(other('August', days('2025-08-01', '2025-08-31'))).toEqual(
+      days('2026-08-01', '2026-08-31'),
+    )
+    // In the subject's words too.
+    expect(other('discount cost in Norway in August', days('2026-08-01', '2026-08-31'))).toEqual(
+      days('2025-08-01', '2025-08-31'),
+    )
+  })
+
+  it('reads a day written with numbers month first where it was read day first', () => {
+    expect(other('12/10/2026', days('2026-10-12', '2026-10-12'))).toEqual(
+      days('2026-12-10', '2026-12-10'),
+    )
+    // Only one way round is a date, or both ways are the same day.
+    expect(other('25/10/2026', days('2026-10-25', '2026-10-25'))).toBeNull()
+    expect(other('10/10/2026', days('2026-10-10', '2026-10-10'))).toBeNull()
+  })
+
+  it('leaves words that name one period with one reading', () => {
+    expect(other('August 2026', days('2026-08-01', '2026-08-31'))).toBeNull()
+    expect(other('last quarter', days('2026-07-01', '2026-09-30'))).toBeNull()
+    expect(other('2026-08-01', days('2026-08-01', '2026-08-01'))).toBeNull()
+    expect(other('orders in Norway', days('2026-10-23', '2026-10-23'))).toBeNull()
+    expect(other('since the launch', days('2026-01-01', '2026-10-23'))).toBeNull()
   })
 })
