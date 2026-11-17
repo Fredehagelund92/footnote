@@ -1,5 +1,6 @@
 import { aboutBusinessBlock } from './about-business.ts'
 import { ANSWER_LINES } from './answer-state.ts'
+import { dayWords, fiscalYearDays, UTC_CALENDAR, type Calendar } from './dates.ts'
 import type { ItemKind } from './item.ts'
 import { concepts } from './words.ts'
 
@@ -188,9 +189,21 @@ export const plainWordsRule =
 export const namesRule =
   'Pass the metrics, markets and dates you query; member names from the data tool (view.member, such as payments.orders) work too, and an unknown name comes back with the closest. Without names, call find_context.'
 
-/** How dates are read. */
-export const datesRule =
-  "Dates in the question's words (Q3 2026, last quarter) are read and said back in say; words that can't be read as dates get need_more_detail. A question without dates is read at today (UTC) and say says so: say it too. Pass window for exact days."
+/**
+ * How dates are read, on the workspace's calendar (R8): the time zone today is counted in, and
+ * when its fiscal year starts, or that it has not said, so fiscal words ask for the days.
+ */
+export function datesRuleFor(calendar: Calendar = UTC_CALENDAR): string {
+  const start = calendar.fiscalYearStart
+  const fy26 = start && fiscalYearDays(2026, start)
+  const examples = fy26
+    ? `Q3 2026, last quarter; fiscal FY26: ${dayWords(fy26.from)} to ${dayWords(fy26.to)}`
+    : 'Q3 2026, last quarter'
+  const unread = start
+    ? 'unreadable dates'
+    : 'unreadable dates, and fiscal ones until the workspace sets its fiscal year,'
+  return `Dates in the question (${examples}) are read and said in say; ${unread} get need_more_detail. Without dates, today (${calendar.timeZone}) is read, as say says: say it too. Pass window for exact days.`
+}
 
 /** What the short reply leaves out, and where the rest is. */
 export const formatRule =
@@ -219,6 +232,7 @@ export function instructionsFor(
   product: string,
   dataTools: readonly string[],
   about: unknown = '',
+  calendar: Calendar = UTC_CALENDAR,
 ): string {
   const tool = dataTools.length
     ? `the data ${dataTools.length === 1 ? 'tool' : 'tools'} (${dataTools.join(', ')})`
@@ -231,7 +245,7 @@ export function instructionsFor(
     `It holds no data and runs no queries: ${tool} holds the number; this context says what to know before you trust or explain it.`,
     namesRule,
     `Read the status before you answer. ${statusRules.map(statusRuleWords).join(' ')}`,
-    datesRule,
+    datesRuleFor(calendar),
     formatRule,
     reportRule,
     suggestRule,

@@ -46,9 +46,12 @@ function SelectTrigger({
       {...props}
     >
       {children}
+      {/* The null child takes the place of the "▼" the primitive would write inside the drawn icon. */}
       <SelectPrimitive.Icon
         render={<ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />}
-      />
+      >
+        {null}
+      </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )
 }

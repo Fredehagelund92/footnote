@@ -8,6 +8,7 @@ import { calendarDateTypes, databaseFromPool, type Database } from '../../src/se
 import { identifier, localRoles } from '../../src/server/db/roles.ts'
 import { readNow } from '../../src/server/modules/connectors/read-now.ts'
 import { askToolsOf, requestServices } from '../../src/server/http/api.ts'
+import { readCalendar } from '../../src/server/modules/admin/index.ts'
 import { createBundleCache, type AskTools } from '../../src/server/modules/answer/index.ts'
 import { createModelPort } from '../../src/server/modules/models/index.ts'
 import { generateItems } from '../../db/seed/fixtures/items.ts'
@@ -159,7 +160,7 @@ export function askToolsAs(database: Database, clock: Clock) {
   const bundles = createBundleCache()
   const noHooks = { onCommit: () => {}, onRollback: () => {} }
   return <T>(person: string, work: (tools: AskTools) => Promise<T>) =>
-    database.transaction(person, (tx) =>
+    database.transaction(person, async (tx) =>
       work(
         askToolsOf(
           tx,
@@ -171,6 +172,8 @@ export function askToolsAs(database: Database, clock: Clock) {
             models: createModelPort({ mode: 'mock' }),
             hooks: noHooks,
           }),
+          // The workspace's calendar, as a turn of Ask reads it.
+          await readCalendar(tx),
         ),
       ),
     )

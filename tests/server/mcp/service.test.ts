@@ -5,6 +5,7 @@ import { createAnonymousQueue, type AnonymousRecord } from '../../../src/server/
 import type { EditionSource, ServingItem } from '../../../src/server/modules/editions/index.ts'
 import { toolSchemaDigest, type ServedToolName } from '../../../src/server/mcp/tools.ts'
 import { bundle, fakeReads, memoryStore, withRevenue } from './fixtures.ts'
+import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 
 function setup() {
   const data = bundle(),
@@ -23,6 +24,7 @@ function setup() {
         limits: {},
         rates: { person: 30, client: 120 },
         about: '',
+        calendar: UTC_CALENDAR,
       })
     },
   }

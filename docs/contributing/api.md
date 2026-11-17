@@ -1034,6 +1034,11 @@ Heed v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read and ch
   settings. An administrator names it as any other setting, `PUT /settings/workspace.name` (one
   line, at most 80 characters); a new install's is empty, and an answer's share card then says
   only when it was answered.
+- The workspace's calendar, which Ask and agents read dates on: `PUT /settings/calendar.fiscal_year_start`
+  (`{ "month": 4, "day": 1 }`, a day up to the 28th, or null, the default, which reads a fiscal
+  year as the calendar year) and `PUT /settings/calendar.time_zone` (an IANA name such as
+  `Europe/Oslo`, UTC by default; it moves only which day is today). The MCP instructions name
+  both.
 - `POST /areas` takes a domain from its own page with a name, its owners (`team.ownerIds`) and its
   text alone: the hue is the one the fewest domains have, the review time the default, and no
   chat channel or owner team. `PUT /areas/{id}/description` takes a `name` beside the summary and
