@@ -4,6 +4,7 @@ import type { AnonymousRecord } from '../../src/server/mcp/records.ts'
 import { loadLiveBundle, type ServingBundle } from '../../src/server/modules/editions/index.ts'
 import { regression } from '../../db/seed/fixtures/items.ts'
 import { apiDatabase, testDatabase } from './support.ts'
+import { UTC_CALENDAR } from '../../src/domain/dates.ts'
 
 /*
   What find_context finds in the demo library (the 1,500 fixture items, bulk seeded), for the
@@ -41,6 +42,7 @@ async function search(input: Record<string, unknown>): Promise<Found> {
           limits: {},
           rates: { person: 30, client: 120 },
           about: '',
+          calendar: UTC_CALENDAR,
         }),
     },
     {

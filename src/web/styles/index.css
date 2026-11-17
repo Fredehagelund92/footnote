@@ -89,6 +89,20 @@
   transition: none !important;
 }
 
+/* The header's actions sit against its right edge, so a text button's width, which is the text's and
+   so fractional, moves every icon left of it onto a half pixel and softens its lines. A button, a link
+   or a status word is widened to the next whole pixel (calc-size, in Chrome; elsewhere it stays as
+   it is), and its content starts at the left so the spare fraction falls on its right. An icon button
+   is a fixed size (a phone's finger-sized minimum width stays) and keeps its centre. A box with its own max-width truncates, so it is left alone. */
+[data-header-actions] :is(button, a):not(.size-7, .size-9, [class*='max-w-']),
+[data-header-actions] > span:not([class*='max-w-']) {
+  min-width: calc-size(fit-content, round(up, size, 1px));
+}
+
+[data-header-actions] :is(button, a):not(.size-7, .size-9) {
+  justify-content: flex-start;
+}
+
 /* Switching the theme eases the colours across; reduced motion switches at once. */
 @media (prefers-reduced-motion: no-preference) {
   .theme-switching,

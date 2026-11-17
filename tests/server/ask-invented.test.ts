@@ -8,6 +8,7 @@ import {
   type ToolReads,
 } from '../../src/server/modules/answer/index.ts'
 import { bundle } from './mcp/fixtures.ts'
+import { UTC_CALENDAR } from '../../src/domain/dates.ts'
 
 /*
   Ask's tools and what code writes of an answer, on a workspace whose dimensions are not the
@@ -117,6 +118,7 @@ const reads: ToolReads = {
   conflicts: unread,
   inbox: unread,
   asked: unread,
+  calendar: UTC_CALENDAR,
   today: '2026-10-23',
   now: '2026-10-23T12:00:00.000Z',
 }

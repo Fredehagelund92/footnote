@@ -25,6 +25,8 @@ function settingsOf(name: string, about: string, autoPublish: boolean, pins: Pin
   const values: [key: string, value: unknown, changed?: SettingChange][] = [
     ['workspace.name', name, { who: 'Jon Abara', when: '1 Oct', why: 'Name the workspace' }],
     ['business.about', about],
+    ['calendar.fiscal_year_start', null],
+    ['calendar.time_zone', 'UTC'],
     // Dimensions pinned on Overview: none as installed, until an admin pins one in the demo.
     pins.changed
       ? ['observability.pinned_dimensions', pins.keys, pins.changed]

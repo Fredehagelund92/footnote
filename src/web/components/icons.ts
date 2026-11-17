@@ -55,6 +55,7 @@ export {
   CodeXmlIcon,
   CoinsIcon,
   ContrastIcon,
+  CommandIcon,
   CopyIcon,
   CornerUpLeftIcon,
   DatabaseIcon,

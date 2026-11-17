@@ -13,6 +13,7 @@ import {
   recordsInput,
   type RecordsTable,
 } from '../../src/server/modules/answer/tool-records.ts'
+import { UTC_CALENDAR } from '../../src/domain/dates.ts'
 
 /*
   Ask's tools without a database (FR-718 to FR-720): the registry the loop will offer, what it
@@ -38,6 +39,7 @@ const noReads: ToolReads = {
   conflicts: unread,
   inbox: unread,
   asked: unread,
+  calendar: UTC_CALENDAR,
   today: '2026-10-23',
   now: '2026-10-23T12:00:00.000Z',
 }
