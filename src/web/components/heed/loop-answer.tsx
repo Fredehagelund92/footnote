@@ -134,24 +134,20 @@ function ReadLine({
   return (
     <p className="flex max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-right text-xs text-muted-foreground @lg:max-w-4/5">
       <span>{subject.carried ? 'Read with' : 'Read as'}</span>
-      {about.map((id, i) => (
+      {/* Each dot stays with what it follows, so a line that wraps never starts with one. */}
+      {about.map((id) => (
         <span key={id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
-          {i > 0 && <span aria-hidden>·</span>}
           <NounChip id={id} nouns={nouns} />
+          <span aria-hidden>·</span>
         </span>
       ))}
       <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        {about.length > 0 && <span aria-hidden>·</span>}
         <span className="inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground">
           {subject.assumedToday ? 'Today · assumed' : subject.period}
         </span>
+        {subject.note && <span aria-hidden>·</span>}
       </span>
-      {subject.note && (
-        <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden>·</span>
-          <span>{subject.note}</span>
-        </span>
-      )}
+      {subject.note && <span>{subject.note}</span>}
       {subject.carried && <span>carried from your last question</span>}
       {onRescope && (
         <button
