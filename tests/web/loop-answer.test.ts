@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { LoopTurn } from '@contract/answer'
 import { dimensionHue } from '@domain/ask-nouns'
+import { answerLines } from '@domain/words'
 import examples from '@/api/mock/data/loop-examples.json'
 import { usedTurn } from '@/api/mock/loop-used'
 
@@ -244,7 +245,7 @@ describe("Ask's loop answer, state by state", () => {
     )
     expect(pinned.map(text)).toEqual([
       expect.stringContaining('Due for a check'),
-      expect.stringContaining('May be out of date'),
+      expect.stringContaining(answerLines.stale.long),
       expect.stringContaining('Archived'),
     ])
   })

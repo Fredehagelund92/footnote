@@ -2,7 +2,6 @@ import * as React from 'react'
 import { dayMonthYear, dayMonthYearLong } from '@/lib/dates'
 import type { LoopItem, LoopRun, LoopTurn } from '@contract/answer'
 import { dimensionHue, nounKindOf } from '@domain/ask-nouns'
-import { answerLines } from '@domain/words'
 import type { Domain } from '@/model/people'
 import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/heed/answer'
@@ -355,14 +354,19 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
 
 /**
  * Why an item needs a look before its words are trusted, or null when it is fine: archived, may be
- * out of date (a read said so), or due for a check.
+ * out of date (a read said so), or due for a check. The words are the page's, from the one list.
  */
-export function needsLook(item: Pick<LoopItem, 'status' | 'outOfDate'>) {
-  if (item.status === 'archived') return 'Archived'
-  // The long form of the Outdated state, from the one list of its words.
-  if (item.outOfDate) return answerLines.stale.long
-  if (item.status === 'due') return 'Due for a check'
-  return null
+export function useNeedsLook() {
+  const { ANSWER_LINES } = useParts()
+  const stale = ANSWER_LINES.find((l) => l.state === 'stale')!.long
+  return (item: Pick<LoopItem, 'status' | 'outOfDate'>) =>
+    item.status === 'archived'
+      ? 'Archived'
+      : item.outOfDate
+        ? stale
+        : item.status === 'due'
+          ? 'Due for a check'
+          : null
 }
 
 /** A status with its dot, as the Context list draws it: live green, due for a check amber. */
@@ -561,7 +565,8 @@ export function CompactItemRow({ item }: { item: LoopItem }) {
   const P = useParts()
   const ahead = P.useReadAhead()
   const Icon = P.kindIcons[kindOf(item.kind)]
-  const why = needsLook(item)
+  const why = useNeedsLook()(item)
+  const muted = why === 'Archived'
   return (
     <li className="flex h-7 min-w-0 items-center gap-2 text-sm">
       {item.n && <CiteMark n={item.n} item={item} />}
@@ -576,12 +581,9 @@ export function CompactItemRow({ item }: { item: LoopItem }) {
       </button>
       {why && (
         <span
-          className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${why === 'Archived' ? 'text-muted-foreground' : 'text-caution'}`}
+          className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${muted ? 'text-muted-foreground' : 'text-caution'}`}
         >
-          <span
-            aria-hidden
-            className={`size-2 rounded-full ${why === 'Archived' ? 'bg-off' : 'bg-caution'}`}
-          />
+          <span aria-hidden className={`size-2 rounded-full ${muted ? 'bg-off' : 'bg-caution'}`} />
           {why}
         </span>
       )}

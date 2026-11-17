@@ -7,7 +7,7 @@ import {
   NounChip,
   Runs,
   dayText,
-  needsLook,
+  useNeedsLook,
   statusWords,
   PartsContext,
   useParts,
@@ -343,8 +343,8 @@ function Rows({
  * status with its count when they differ, in the words of its pinned row when it needs a look; the
  * days are the first and last they were checked.
  */
-function freshness(items: readonly LoopItem[]) {
-  const statuses = items.map((i) => needsLook(i) ?? statusWords(i).words)
+function freshness(items: readonly LoopItem[], needsLook: ReturnType<typeof useNeedsLook>) {
+  const statuses = items.map((i) => needsLook(i) ?? 'Live')
   const counts = [...new Set(statuses)].map((w) => ({
     w,
     n: statuses.filter((s) => s === w).length,
@@ -376,9 +376,11 @@ function freshness(items: readonly LoopItem[]) {
  */
 function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
   const P = useParts()
+  const needsLook = useNeedsLook()
   const summary = React.useId()
-  const look = items.filter((i) => needsLook(i))
-  const rest = items.filter((i) => !needsLook(i))
+  const look: LoopItem[] = []
+  const rest: LoopItem[] = []
+  for (const i of items) (needsLook(i) ? look : rest).push(i)
   const label = `Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`
   return (
     <P.Collapsible data-used className="flex max-w-reading flex-col gap-2">
@@ -399,7 +401,7 @@ function Used({ items, nouns }: { items: readonly LoopItem[]; nouns: Nouns }) {
         <span aria-hidden className={rest.length ? 'mr-1.5 ml-0.5' : 'mx-1.5'}>
           ·
         </span>
-        <span id={summary}>{freshness(items)}</span>
+        <span id={summary}>{freshness(items, needsLook)}</span>
       </p>
       {look.length > 0 && (
         <ul data-pinned className="flex flex-col gap-0.5">
