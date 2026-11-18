@@ -388,7 +388,7 @@ A thread under each suggestion in the review and inside each context item's page
 - **Loading.** Nothing shows before 150 ms. Then the page's own shape (a skeleton of rows, a sheet) is held at least 300 ms. Content fades in. A button shows a spinner in its icon slot after 150 ms. See [Motion](motion.md).
 - **Empty.** shadcn Empty with what it means and the next step. A new install shows a setup checklist. An absence is not an empty list: a question with nothing written down says Not found in the state line.
 - **Failed.** One calm line and Retry. A save that fails keeps the text ("Couldn't publish. Your text is kept.").
-- **Offline.** One line under the header. Drafts say "Saved on this device". Publish is held until the connection is back and its button says why.
+- **Offline.** One line under the header. Drafts say "Saved on this device". Publish is held until the connection is back and its button says why. A page whose data was never loaded does not stay a skeleton: it says "You're offline. It loads by itself when the connection is back.", with no Retry, and loads when the connection returns.
 
 ### 5.9 Switches: no tabs
 
