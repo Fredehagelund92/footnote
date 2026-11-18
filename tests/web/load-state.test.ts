@@ -97,6 +97,7 @@ describe('Loadable', () => {
     isError: false,
     isRefetchError: false,
     isFetching: false,
+    isPaused: false,
     refetch: () => undefined,
     ...s,
   })
@@ -173,6 +174,63 @@ describe('Loadable', () => {
     expect(refetch).toHaveBeenCalledOnce()
   })
 
+  describe('offline', () => {
+    const goOffline = (online: boolean) => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online)
+      act(() => {
+        window.dispatchEvent(new Event(online ? 'online' : 'offline'))
+      })
+    }
+    afterEach(() => vi.restoreAllMocks())
+
+    it('a first load waiting for the connection says so, with no skeleton and no Retry', () => {
+      vi.useFakeTimers()
+      goOffline(false)
+      const el = render(view(state({ isPending: true, isPaused: true })))
+      act(() => {
+        vi.advanceTimersByTime(5_000)
+      })
+      expect(el.querySelector('[data-testid=skeleton]')).toBeNull()
+      expect(el.querySelector('[aria-busy]')).toBeNull()
+      const alert = el.querySelector('[role=alert]')!
+      expect(alert.textContent).toContain("Couldn't load the definitions.")
+      expect(alert.textContent).toContain("You're offline.")
+      expect(alert.textContent).toContain('when the connection is back')
+      expect(alert.querySelector('button')).toBeNull()
+    })
+
+    it('back online, the read goes and the content comes in', () => {
+      vi.useFakeTimers()
+      goOffline(false)
+      const el = render(view(state({ isPending: true, isPaused: true })))
+      goOffline(true)
+      rerender(view(state({ isPending: true, isFetching: true })))
+      expect(el.querySelector('[role=alert]')).toBeNull()
+      rerender(view(state({})))
+      act(() => {
+        vi.advanceTimersByTime(400)
+      })
+      expect(el.querySelector('[data-testid=rows]')).not.toBeNull()
+    })
+
+    it('a retry that waits for a hidden tab, online, is still a load', () => {
+      vi.useFakeTimers()
+      goOffline(true)
+      const el = render(view(state({ isPending: true, isPaused: true })))
+      act(() => {
+        vi.advanceTimersByTime(160)
+      })
+      expect(el.querySelector('[data-testid=skeleton]')).not.toBeNull()
+      expect(el.querySelector('[role=alert]')).toBeNull()
+    })
+
+    it('a page already shown stays as it is while a refresh waits', () => {
+      const el = render(view(state({ isPaused: true })))
+      expect(el.querySelector('[data-testid=rows]')).not.toBeNull()
+      expect(el.querySelector('[role=alert]')).toBeNull()
+    })
+  })
+
   describe('a refresh that fails on a page already shown', () => {
     it('keeps the page, with what was typed in it, and says the refresh failed', () => {
       const el = render(view(state({})))
@@ -245,6 +303,11 @@ describe('Loadable', () => {
       expect(allLoaded(ok, first).isRefetchError).toBe(false)
       expect(allLoaded(ok, ok).isRefetchError).toBe(false)
       expect(allLoaded(ok, refresh).isError).toBe(true)
+    })
+
+    it('waits for the connection when a read with nothing to show does', () => {
+      expect(allLoaded(state({}), state({ isPending: true, isPaused: true })).isPaused).toBe(true)
+      expect(allLoaded(state({}), state({ isPaused: true })).isPaused).toBe(false)
     })
 
     it('Retry reads again only what failed', () => {

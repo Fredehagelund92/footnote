@@ -262,7 +262,8 @@ export function SiteHeader({
             orientation="vertical"
             className={cn(
               'h-4 data-vertical:self-center',
-              lean ? 'hidden' : way ? 'max-sm:hidden' : 'mr-2',
+              // On a phone the title needs the room more than the line (U10).
+              lean ? 'hidden' : way ? 'max-md:hidden' : 'mr-2 max-md:hidden',
             )}
           />
           {way && (
@@ -285,7 +286,8 @@ export function SiteHeader({
             </Tooltip>
           )}
           {typeof title === 'string' ? (
-            <h1 className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">
+            // A phone's title gives up its icon before a letter of its words: "Definitions", never "Defini…".
+            <h1 className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground [&>svg]:size-3.5 [&>svg]:shrink-0 max-md:[&>svg]:hidden">
               {icon}
               {/* A long title is cut with an ellipsis and shown in full on hover or focus. */}
               <TruncatedText text={title} className="min-w-0" />

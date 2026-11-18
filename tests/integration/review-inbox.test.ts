@@ -22,11 +22,12 @@ import { apiDatabase, testDatabase, transaction } from './support.ts'
 */
 
 const { client, url } = testDatabase()
+let today = '2026-10-08'
 const app = buildApp({
   database: apiDatabase(url),
   logger: createLogger({ level: 'silent' }),
   jobs: idleJobs(),
-  clock: systemClock('2026-10-08'),
+  clock: { ...systemClock('2026-10-08'), today: () => today },
   devPeople: Object.keys(people).map((name) => ({
     name,
     email: `${name}@example.test`,
@@ -188,6 +189,15 @@ async function live(extra: Draft = {}) {
   const p = await submitted(extra)
   await ok<Published>(publish(p.id, p.revision))
   return p.itemId!
+}
+/** An item published on an earlier day, so a check date before 8 October is still ahead when it is accepted. */
+async function liveOn(date: string, extra: Draft = {}) {
+  today = date
+  try {
+    return await live(extra)
+  } finally {
+    today = '2026-10-08'
+  }
 }
 const served = async (itemId: string) =>
   (
@@ -1044,7 +1054,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
       `insert into feedback (verdict,note,client_label,area_id) values ('unclear','Is this Germany only?','claude-code','finance') returning id::text`,
     )
     feedbackId = fb.rows[0]!.id
-    dueItem = await live({
+    dueItem = await liveOn('2026-01-15', {
       title: 'Due again',
       ...inMarket('austria'),
       validity: { start: '2026-01-01', end: null },
@@ -1193,7 +1203,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
   })
 
   it('makes a Due for a check card of each item Context counts as due, and of no example', async () => {
-    const example = await live({
+    const example = await liveOn('2026-01-15', {
       kind: 'example',
       title: 'Orders in Cyprus in January',
       ...inMarket('cyprus'),
@@ -1408,7 +1418,7 @@ describe('named reports from Ask (FR-622)', () => {
 
   beforeAll(async () => {
     item = await live({ title: 'Latvia orders count gift cards', ...inMarket('latvia') })
-    due = await live({
+    due = await liveOn('2026-01-15', {
       title: 'Lithuania orders lag a day',
       ...inMarket('lithuania'),
       validity: { start: '2026-01-01', end: null },

@@ -69,6 +69,8 @@ test('words typed while a save is on its way are saved after it, even when she l
 test('two saves never overlap, so the service never refuses the second', async ({ page }) => {
   await go(page, '/settings/general')
   await expect(about(page)).toBeVisible()
+  // Nothing is saved yet as the page opens, so it says nothing, never Saved (U9).
+  await expect(status(page)).toHaveText('')
   // A slow way up: each save reaches the service a moment late.
   const answers: number[] = []
   await page.route(ABOUT, async (route) => {

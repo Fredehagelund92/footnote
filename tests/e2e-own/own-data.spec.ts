@@ -30,6 +30,47 @@ test.afterAll(() => store.close())
 
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
 
+/**
+ * Words of the demo's invented shop (db/seed): its markets, its company and its own products and
+ * events. An install on its own data has none of them, so no screen of it may say one, in its
+ * text or in a box's example.
+ */
+const DEMO_WORDS = [
+  'Norway',
+  'Spain',
+  'Poland',
+  'Germany',
+  'Sweden',
+  'France',
+  'Italy',
+  'Netherlands',
+  'United Kingdom',
+  'Mexico',
+  'Canada',
+  'Larchwood',
+  'Footwear',
+  'Camping',
+  'customs',
+  'gift card',
+]
+
+/** The demo's words the page says now: its text, and each box's placeholder, label and title. */
+async function demoWords(page: Page) {
+  return page.evaluate((words) => {
+    const said = [
+      document.body.innerText,
+      ...[
+        ...document.querySelectorAll('[placeholder], [data-placeholder], [aria-label], [title]'),
+      ].flatMap((el) =>
+        ['placeholder', 'data-placeholder', 'aria-label', 'title'].map(
+          (a) => el.getAttribute(a) ?? '',
+        ),
+      ),
+    ].join('\n')
+    return words.filter((w) => new RegExp(`\\b${w}\\b`, 'i').test(said))
+  }, DEMO_WORDS)
+}
+
 /** A write to the service as the signed-in person, as the app makes it. */
 async function post(page: Page, path: string, data: object) {
   const { csrfToken } = (await (await page.request.get('/api/v1/auth/session')).json()) as {
@@ -88,6 +129,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
 
   // The checklist, in the order it can be done: a domain, then the names, then writing.
   await expect(page.getByText('0 of 6 done')).toBeVisible()
+  expect(await demoWords(page), 'the Inbox').toEqual([])
   await shot('10-setup')
   const steps = page.getByRole('main').getByRole('listitem')
   await expect(steps.nth(1)).toContainText('Add your first domain')
@@ -148,8 +190,21 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByRole('row', { name: /^Select Net revenue/ })).toBeVisible()
   await shot('13-definitions')
 
+  // Nothing written yet: Context and Ask say what to write and to ask without the demo's words.
+  await page.goto('/context')
+  await expect(page.getByText('No context yet')).toBeVisible()
+  expect(await demoWords(page), 'Context').toEqual([])
+  await page.goto('/ask')
+  await expect(page.getByRole('textbox', { name: 'Ask a question' })).toBeVisible()
+  expect(await demoWords(page), 'Ask').toEqual([])
+
   // A context item that applies to the synced metric, published in one step by its owner.
   await page.goto('/context/new')
+  await button(page, 'More').click()
+  await page.getByRole('menuitem', { name: 'Draft from text' }).click()
+  await expect(page.getByRole('dialog', { name: 'Draft from text' })).toBeVisible()
+  expect(await demoWords(page), 'the editor and Draft from text').toEqual([])
+  await page.keyboard.press('Escape')
   await page
     .getByRole('textbox', { name: 'Title' })
     .fill('Net revenue left out returns before March')

@@ -339,7 +339,8 @@ function proposalsService(
     if (!issue && draft.validity?.end === null && !draft.reviewDate)
       draft.reviewDate = shiftDate(clock.today(), 90)
     // FR-135: an issue with no end date is asked "Is this still going on?" a set number of days
-    // after it starts, unless the author gave a review date.
+    // after it starts, unless the author gave a review date. An issue written after it started
+    // counts from today, so it is not past its review date the day it is published.
     const start = draft.validity?.start
     if (
       issue &&
@@ -348,7 +349,10 @@ function proposalsService(
       start &&
       isCalendarDate(start)
     )
-      draft.reviewDate = shiftDate(start, await openIssueDays(tx))
+      draft.reviewDate = shiftDate(
+        start > clock.today() ? start : clock.today(),
+        await openIssueDays(tx),
+      )
     return draft
   }
   async function seedItem(id: string): Promise<Draft> {
