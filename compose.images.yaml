@@ -9,6 +9,6 @@
 
 services:
   heed:
-    image: ghcr.io/fredehagelund92/heed:0.1.0 # x-release-please-version
+    image: ghcr.io/fredehagelund92/heed:0.2.0 # x-release-please-version
   web:
-    image: ghcr.io/fredehagelund92/heed-web:0.1.0 # x-release-please-version
+    image: ghcr.io/fredehagelund92/heed-web:0.2.0 # x-release-please-version
