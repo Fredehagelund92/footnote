@@ -1018,7 +1018,8 @@ describe('review and release', () => {
 /*
   An issue (FR-135, requirements section 4.4): a temporary problem such as a partner's reporting
   being down. It has the same validity and matching as any item. With no end date it gets a short
-  default review from its start, and its re-check asks "Is this still going on?". These run last:
+  default review from its start, or from today when it started earlier, and its re-check asks "Is
+  this still going on?". These run last:
   the issues stay in the edition, and the questions above expect an empty Norway in August.
 */
 describe('issues', () => {
@@ -1036,9 +1037,18 @@ describe('issues', () => {
     return response.json<ProposalRecord>()
   }
 
-  it('gives an open issue a review date of its start plus the setting, and leaves the other kinds alone', async () => {
-    expect((await create(issue())).draft.reviewDate).toBe('2026-08-18')
-    expect((await create(issue({ reviewDate: null }))).draft.reviewDate).toBe('2026-08-18')
+  it('gives an open issue a review date of its start plus the setting, never in the past, and leaves the other kinds alone', async () => {
+    // Written on 2026-10-08 about an issue that started on 2026-08-04: the review counts from
+    // today, so it is not past its review date the day it is published.
+    expect((await create(issue())).draft.reviewDate).toBe('2026-10-22')
+    expect((await create(issue({ reviewDate: null }))).draft.reviewDate).toBe('2026-10-22')
+    expect(
+      (await create(issue({ validity: { start: '2026-10-08', end: null } }))).draft.reviewDate,
+    ).toBe('2026-10-22')
+    // An issue written before it starts counts from its start.
+    expect(
+      (await create(issue({ validity: { start: '2026-11-01', end: null } }))).draft.reviewDate,
+    ).toBe('2026-11-15')
     // A date the author gives is kept, and an issue that ends by itself needs none.
     expect((await create(issue({ reviewDate: '2026-12-01' }))).draft.reviewDate).toBe('2026-12-01')
     expect(
@@ -1059,7 +1069,7 @@ describe('issues', () => {
         { ...early.draft, validity: { start: '2026-09-01', end: null } },
       ),
     )
-    expect(saved.draft.reviewDate).toBe('2026-09-15')
+    expect(saved.draft.reviewDate).toBe('2026-10-22')
 
     // The period is an administrator's setting (FR-809).
     const changed = await call('PUT', '/settings/review.open_issue_days', 'admin', {
@@ -1069,7 +1079,7 @@ describe('issues', () => {
     })
     expect(changed.statusCode, changed.body).toBe(200)
     try {
-      expect((await create(issue())).draft.reviewDate).toBe('2026-08-11')
+      expect((await create(issue())).draft.reviewDate).toBe('2026-10-15')
     } finally {
       await call('PUT', '/settings/review.open_issue_days', 'admin', {
         version: 2,
@@ -1100,24 +1110,36 @@ describe('issues', () => {
   })
 
   it('serves an open issue as a live warning and asks again whether it is still going on', async () => {
+    // Published on 2026-10-08, a week after it started: not out of date on its first day.
     const open = await submitted(issue({ validity: { start: '2026-10-01', end: null } }))
-    expect(open.draft.reviewDate).toBe('2026-10-15')
+    expect(open.draft.reviewDate).toBe('2026-10-22')
     expect((await decide(open.id, 'accept')).statusCode).toBe(200)
     const window = { ...norway, window: { from: '2026-10-01', to: '2026-10-07' } }
     expect(await delivered(window)).toContain(open.itemId)
     expect(
       await delivered({ ...norway, window: { from: '2026-09-01', to: '2026-09-30' } }),
     ).not.toContain(open.itemId)
+    expect((await ask(window)).items.find((i) => i.id === open.itemId)).not.toHaveProperty(
+      'unverified_reason',
+    )
 
     expect(await page(open.itemId!)).toMatchObject({
       kind: 'issue',
-      reviewDate: '2026-10-15',
+      reviewDate: '2026-10-22',
       reviewQuestion: 'still_going_on',
     })
 
     // "Yes, still going on": the next review is the issue period from today, not 90 days.
-    expect((await recheck(open.itemId!)).done).toBe(true)
-    expect(await page(open.itemId!)).toMatchObject({
+    const given = await submitted(
+      issue({
+        title: 'Partner reporting for Norway is still down',
+        validity: { start: '2026-10-01', end: null },
+        reviewDate: '2026-10-15',
+      }),
+    )
+    expect((await decide(given.id, 'accept')).statusCode).toBe(200)
+    expect((await recheck(given.itemId!)).done).toBe(true)
+    expect(await page(given.itemId!)).toMatchObject({
       version: 2,
       reviewDate: '2026-10-22',
       reviewQuestion: 'still_going_on',
