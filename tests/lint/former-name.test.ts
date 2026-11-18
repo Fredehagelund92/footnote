@@ -4,24 +4,22 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /*
-  The product was called Heed before it was called Footnote, and nothing reads or says the former
+  The product had another name before it was called Footnote, and nothing reads or says the former
   name any more: no setting, cookie, header, file, code name, test or page (docs/product-name.md).
   This fails on the name in any file git tracks, or would track, and in any path, outside the
   historical records below, which are never rewritten. It is shown failing, then run on the
-  repository.
+  repository. The name is spelled by its letters' codes, so this file does not say it either.
 */
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
-const formerName = /heed/i
+const word = String.fromCharCode(104, 101, 101, 100)
+const Word = `${word[0]!.toUpperCase()}${word.slice(1)}`
+const formerName = new RegExp(word, 'i')
 
 /** The records that keep the former name, since they say what happened under it. */
 const historical: readonly { path: RegExp; why: string }[] = [
   { path: /^CHANGELOG\.md$/, why: 'written by release-please from the commits' },
   { path: /^db\/migrations\/\d{4}_[a-z0-9_]+\.sql$/, why: 'an applied migration never changes' },
-  {
-    path: /^tests\/lint\/former-name\.test\.ts$/,
-    why: 'this check, which names what it looks for',
-  },
 ]
 
 /** Where the former name appears in one file: its path, then each line that says it. */
@@ -52,26 +50,30 @@ function repositoryFiles(): { path: string; text: string }[] {
 
 describe("the product's former name", () => {
   it('fails in code, configuration, a test, a page or a path, in any case', () => {
-    expect(formerNames('src/server/config/env.ts', 'const x = process.env.HEED_AUTH')).toEqual([
-      'src/server/config/env.ts:1',
-    ])
-    expect(formerNames('docs/self-hosting.md', 'Intro\n\nUpgrade from Heed.\n')).toEqual([
+    expect(
+      formerNames('src/server/config/env.ts', `const x = process.env.${word.toUpperCase()}_AUTH`),
+    ).toEqual(['src/server/config/env.ts:1'])
+    expect(formerNames('docs/self-hosting.md', `Intro\n\nUpgrade from ${Word}.\n`)).toEqual([
       'docs/self-hosting.md:3',
     ])
-    expect(formerNames('src/web/public/heed-mark.svg', '<svg/>')).toEqual([
-      'src/web/public/heed-mark.svg: the path',
+    expect(formerNames(`src/web/public/${word}-mark.svg`, '<svg/>')).toEqual([
+      `src/web/public/${word}-mark.svg: the path`,
     ])
-    expect(formerNames('tests/web/x.test.ts', "setItem('heed-theme', 'dark')")).toEqual([
+    expect(formerNames('tests/web/x.test.ts', `setItem('${word}-theme', 'dark')`)).toEqual([
       'tests/web/x.test.ts:1',
+    ])
+    // This file too: it names the word only by its letters' codes.
+    expect(formerNames('tests/lint/former-name.test.ts', Word)).toEqual([
+      'tests/lint/former-name.test.ts:1',
     ])
   })
 
   it('passes the historical records and a file that does not say it', () => {
-    expect(formerNames('CHANGELOG.md', '* add the HeedApi seam')).toEqual([])
-    expect(formerNames('db/migrations/0058_footnote_names.sql', "-- 'heed.roles'")).toEqual([])
+    expect(formerNames('CHANGELOG.md', `* add the ${Word}Api seam`)).toEqual([])
+    expect(formerNames('db/migrations/0058_footnote_names.sql', `-- '${word}.roles'`)).toEqual([])
     expect(formerNames('docs/README.md', 'Footnote, take note.')).toEqual([])
     // Only the migrations themselves: a file beside them is checked.
-    expect(formerNames('db/migrations/latest.txt', 'heed')).toEqual(['db/migrations/latest.txt:1'])
+    expect(formerNames('db/migrations/latest.txt', word)).toEqual(['db/migrations/latest.txt:1'])
   })
 
   it('appears nowhere in the repository but those records', () => {
