@@ -341,7 +341,7 @@ function floorIn(runs: LoopRun[], number: string) {
 
 /** Words a count may end a sentence after: a verb or a word that leads into a number, or a colon. */
 const LEADS_TO_COUNT =
-  /(?:\b(?:is|are|was|were|be|been|of|to|from|by|at|than|about|around|over|under|nearly|almost|exactly|only|just|totals?|reach(?:ed|es)?|makes?|made|gives?|gave|equals?)|[:=])\s*$/i
+  /(?:\b(?:is|are|was|were|be|been|of|to|from|by|at|than|about|around|over|under|nearly|almost|exactly|only|just|totals?|reach(?:ed|es)?|makes?|made|gives?|gave|gives|equals?|has|have|had|having|finds?|found|with|without|shows?|showed|lists?|listed|counts?|counted|numbers?|holds?|gets|got|sees|saw|returned|returns|contains?|includes?)|[:=])\s*$/i
 
 /**
  * Whether a count the words end a sentence with, right after a noun ("… changed in that period

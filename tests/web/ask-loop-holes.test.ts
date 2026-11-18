@@ -223,6 +223,16 @@ describe('the six replies with a hole in a sentence (release judgement, A2)', ()
       expect(holesIn(turn.text)).toEqual([])
     })
 
+  it('keeps a count after a word that leads into it, though an earlier sentence has the same number', () => {
+    const made = [
+      records('r1', 3, 1292, 'context items you may read'),
+      records('r2', 3, 1292, 'context items you may read'),
+    ]
+    const text = turnOf('Sweden has [#r1.count] items. Norway has [#r2.count].', made, []).text
+    expect(text).toBe('Sweden has 3 items. Norway has 3.')
+    expect(holesIn(text)).toEqual([])
+  })
+
   it("leaves out a read's words its clause says already (the eval's F18)", () => {
     const made: MadeRead = {
       tool: 'agent_questions',
