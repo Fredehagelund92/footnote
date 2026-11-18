@@ -56,6 +56,8 @@ You should see the sign-in page: pick a demo person. The app opens on their Inbo
 `Cmd+K` (or `Ctrl+K`) opens the search, and `?` every shortcut. The theme is in the menu at the
 right end of every header.
 
+This is the design preview: Ask's answers are made in the browser, not by the service, and Ask says so.
+
 Before you push, run everything that CI runs, except the browser tests:
 
 ```sh

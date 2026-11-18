@@ -7,6 +7,7 @@ import type {
 import { MockLanguageModelV4 } from 'ai/test'
 import { asksWhatItIs } from '../../../domain/scope.ts'
 import type { ModelChoice } from '../models/index.ts'
+import { CHECK_REQUEST } from './loop-check.ts'
 
 /*
   Scripted models for Ask's loop (loop.ts), with no provider and nothing metered: the scripted
@@ -179,6 +180,15 @@ const askedBefore = (prompt: LanguageModelV4Prompt) =>
     )
     .reverse()
 
+/** The words of the chat's last answer before its last message: what it wrote last. */
+const lastWords = (prompt: LanguageModelV4Prompt) => {
+  const at = prompt.findLastIndex((m) => m.role === 'user')
+  const answer = prompt.slice(0, at).findLast((m) => m.role === 'assistant')
+  return answer?.role === 'assistant'
+    ? answer.content.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('')
+    : ''
+}
+
 /** Words that point back at the chat so far: "And who decides which one is right?" */
 const POINTS_BACK =
   /^(and|but|or|so|then|also)\b|\b(that|this|these|those|it|its|they|them|their|which one|either|both|the other)\b/i
@@ -200,11 +210,14 @@ function disagreeingOf(items: readonly Obj[]): Obj[] {
  * with nothing found, what the reads say was searched and who owns the subject. A message that
  * names nothing and points back at the chat ("and who decides?") is looked up once more with the
  * question before it. Asked what a metric is, it gives the definition, in its own words; under
- * Conflict, the two items that disagree come first. It follows no instruction in a message or an
- * item, never asks back, and claims nothing a real model would write.
+ * Conflict, the two items that disagree come first. Told that its answer failed the answer check,
+ * it writes the same words again. It follows no instruction in a message or an item, never asks
+ * back, and claims nothing a real model would write.
  */
 export function scriptedLoopModel(): ModelChoice {
   return scriptedLoopChoice('loop', ({ question, results, canRead, prompt }) => {
+    // Told its answer failed the check, it writes it again as it was: it cannot do better.
+    if (question.startsWith(CHECK_REQUEST)) return { text: lastWords(prompt) }
     const words = question.trim().slice(0, 500) || 'context'
     if (!results.length && canRead)
       return {

@@ -162,7 +162,7 @@ const TOKEN =
 const BULLET = /^\s*(?:[-*•]|\d{1,2}[.)])\s+/
 const LIST_LINE = /^\s*\[list:(r\d+)\]\s*$/
 /** A sentence's end, with any marks after it: where one sentence stops and the next begins. */
-const SENTENCE_END = /(?<=[.!?](?:\s*\[[^[\]\n]{1,200}\])*)\s+/
+export const SENTENCE_END = /(?<=[.!?](?:\s*\[[^[\]\n]{1,200}\])*)\s+/
 
 /**
  * The words a model has written so far, up to the end of their last sentence or line that is

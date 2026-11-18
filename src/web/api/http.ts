@@ -597,7 +597,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     install: 'normal',
     fresh: false,
     profileLabel,
-    modelConnected,
+    answeredBy: modelConnected ? 'model' : 'reader',
   })
 
   /** Everyone the comments may name, both ways: by id, and by name for a mention. */
@@ -1296,7 +1296,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
             install: 'normal',
             fresh: false,
             profileLabel: null,
-            modelConnected: true,
+            answeredBy: 'model',
           }
         }
         throw error
@@ -1382,7 +1382,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         invites: invited,
         about: about?.text ?? '',
         aboutTemplate: ABOUT_BUSINESS_STARTER,
-        setup: { done: Object.fromEntries(setup.steps.map((s) => [s.id, s.done])) },
+        setup: {
+          done: Object.fromEntries(setup.steps.map((s) => [s.id, s.done])),
+          serverSource: setup.serverSource,
+        },
       }
     },
     setAbout: async ({ text }) => {

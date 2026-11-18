@@ -90,13 +90,15 @@ Footnote is one npm package, not a workspace. The layout is in the
 
 ## Run it
 
-On the demo data (no database, nothing leaves your computer):
+The design preview, on the demo data (no database, nothing leaves your computer):
 
 ```sh
 npm run dev           # http://localhost:5173, the web app on its mock API
 ```
 
-Sign in as any demo person. The demo is an invented outdoor-gear retailer, Larchwood Outdoor.
+Sign in as any demo person. The demo is an invented outdoor-gear retailer, Larchwood Outdoor. Its Ask
+is a design preview: the answers are made in the browser, not by the service, and Ask says so. To try
+Footnote as people meet it, use `docker compose up` or the service below.
 
 On the real service, with a local PostgreSQL 18 and the demo loaded (`SEED_DEMO=on`; see
 [Run the web app on the service](docs/development.md#run-the-web-app-on-the-service) for the

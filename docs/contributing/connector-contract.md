@@ -197,8 +197,9 @@ failed read keeps every previous mark and status and changes no flag or link (CO
 A ref belongs to one connector for good: a member another source already reads stays with it,
 the read leaves it out with a `taken` warning and is partial. The read's
 cursor is stored on its snapshot (`connector_snapshots.cursor`). The job `connectors.sync` runs
-every five minutes and reads each source that is switched on and due: the server's and those
-administrators added, loaded from the database each time, each on its own schedule
+as the service starts and every five minutes after, and reads each source that is switched on and
+due: the server's and those administrators added, loaded from the database each time, each on its
+own schedule
 ([schedules](#schedules-built)); one that breaks the refresh itself does not keep the others from
 being read. Read again on a source's page reads that source now (`sources.read`), and running the
 job by hand (`POST /api/v1/operations/jobs/{job}/run`) reads every source now. A source whose last good read is older than
