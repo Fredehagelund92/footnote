@@ -386,6 +386,13 @@ jobs:
           docker rm -f footnote-web-check
       - name: Boot the service image in production mode, sign a person in and call the MCP server
         run: bash tests/image/production-boot.sh
+      - name: The old HEED_PORT and HEED_WEB_PORT still move the published ports
+        run: |
+          HEED_PORT=3001 HEED_WEB_PORT=8081 docker compose config --format json > compose.json
+          jq -e '.services.footnote.ports | map(.published) | index("3001") != null' compose.json
+          jq -e '.services.web.ports | map(.published) | index("8081") != null' compose.json
+          jq -e '.services.footnote.environment.MCP_RESOURCE_URL | endswith(":3001/mcp")' compose.json
+          rm compose.json
       - name: Start the demo with docker compose up, in development mode with the people picker
         run: |
           docker compose up --detach --wait --wait-timeout 300
