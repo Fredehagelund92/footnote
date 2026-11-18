@@ -1165,7 +1165,13 @@ export function createRouter({
     },
     setup: {
       state: authorized.setup.state.handler(({ context }) =>
-        context.cards.setup(sources?.list().map((source) => source.id)),
+        // The demo's invented definitions are no folder the person started the server on.
+        context.cards.setup(
+          sources
+            ?.list()
+            .filter((source) => source.type !== 'demo')
+            .map((source) => source.id),
+        ),
       ),
     },
     evals: {

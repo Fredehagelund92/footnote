@@ -11,6 +11,7 @@ import {
   ConnectorRegistry,
   connectorSyncJob,
   createCubeSource,
+  createDemoSource,
 } from '../../src/server/modules/connectors/index.ts'
 import { createJobRunner } from '../../src/server/modules/jobs/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
@@ -235,3 +236,20 @@ it('reports a source with no good read as failed, not as on its way', async () =
   )
   expect((await setup()).serverSource).toEqual({ id: 'cube', state: 'failed' })
 }, 60_000)
+
+it('does not take the demo for a model folder the server was started on', async () => {
+  const demoOnly = buildApp({
+    database,
+    logger,
+    jobs,
+    sources: new ConnectorRegistry([createDemoSource()]),
+    devPeople: [{ email: 'ops@example.test', name: 'Ops', roles: ['administrator'] }],
+  })
+  try {
+    const response = await demoOnly.inject({ method: 'GET', url: '/api/v1/setup', headers: auth })
+    expect(response.statusCode, response.body).toBe(200)
+    expect(response.json<{ serverSource: unknown }>().serverSource).toBeNull()
+  } finally {
+    await demoOnly.close()
+  }
+}, 30_000)
