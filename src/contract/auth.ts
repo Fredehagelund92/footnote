@@ -11,12 +11,14 @@ export const permissionsSchema = z.object({
 export const meSchema = z.extend(personSchema, { permissions: permissionsSchema })
 /**
  * The signed-in person's session, with the label naming this install (HEED_PROFILE_LABEL) for
- * the header, null when none is set.
+ * the header, null when none is set, and whether an AI model is connected: without one
+ * (MODELS=mock), Ask's answers list what is written, and Ask says so.
  */
 export const sessionSchema = z.object({
   person: meSchema,
   csrfToken: z.string(),
   profileLabel: z.nullable(z.string()),
+  modelConnected: z.boolean(),
 })
 /**
  * Someone the local sign-in offers (the dev identity connector), with the roles they hold now and

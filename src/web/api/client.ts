@@ -63,6 +63,8 @@ export type Session = {
   fresh: boolean
   /** The label naming this install (HEED_PROFILE_LABEL) for the header; null when none is set. */
   profileLabel: string | null
+  /** Whether an AI model is connected; without one, Ask's answers list what is written. */
+  modelConnected: boolean
 }
 
 export type Workspace = {

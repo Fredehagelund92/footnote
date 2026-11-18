@@ -588,11 +588,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     }
   }
 
-  const asSession = (name: string, profileLabel: string | null): Session => ({
+  const asSession = (
+    name: string,
+    profileLabel: string | null,
+    modelConnected: boolean,
+  ): Session => ({
     user: name,
     install: 'normal',
     fresh: false,
     profileLabel,
+    modelConnected,
   })
 
   /** Everyone the comments may name, both ways: by id, and by name for a mention. */
@@ -1275,15 +1280,24 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     // checklist until it is done (docs/product.md, FR-816).
     getSession: async () => {
       try {
-        const { me: who, profileLabel } = await session(true)
+        const { me: who, profileLabel, modelConnected } = await session(true)
         const setup = await read(() => client.setup.state())
-        return { ...asSession(who.name, profileLabel), install: setup.done ? 'normal' : 'new' }
+        return {
+          ...asSession(who.name, profileLabel, modelConnected),
+          install: setup.done ? 'normal' : 'new',
+        }
       } catch (error) {
         if (toApiError(error).kind === 'signed-out') {
           me = undefined
           shownFor = undefined
           movingTo = undefined
-          return { user: null, install: 'normal', fresh: false, profileLabel: null }
+          return {
+            user: null,
+            install: 'normal',
+            fresh: false,
+            profileLabel: null,
+            modelConnected: true,
+          }
         }
         throw error
       }
@@ -1314,7 +1328,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         admin: signed.person.permissions.roles.includes('administrator'),
       }
       forgetPerson()
-      return asSession(signed.person.name, signed.profileLabel)
+      return asSession(signed.person.name, signed.profileLabel, signed.modelConnected)
     },
     getSignInMethod: async () => {
       const method = await read(() => client.auth.methods())

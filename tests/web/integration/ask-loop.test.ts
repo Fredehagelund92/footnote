@@ -189,6 +189,52 @@ describe("Ask's loop", () => {
   })
 })
 
+describe("Ask's scripted reader, which answers the demo with no model (MODELS=mock)", () => {
+  it('gives the definition, first and alone, when asked what a metric is', async () => {
+    const api = await world.as(ML)
+    const a = await api.ask({ question: 'What is net revenue?' })
+    expect(a.text).toMatch(/^Net revenue means: \S/)
+    expect(a.loop?.defined?.names).toEqual(['Net revenue'])
+    expect(a.state).toBeNull()
+    expect(a.sources).toEqual([])
+  })
+
+  it('cites the two items that disagree first under Conflict, so the page shows them', async () => {
+    const api = await world.as(ML)
+    const a = await api.ask({ question: 'orders in Norway' })
+    expect(a.state).toBe('conflict')
+    expect(a.loop?.conflict).toHaveLength(2)
+    expect(a.sources?.slice(0, 2).toSorted()).toEqual(a.loop!.conflict.toSorted())
+  })
+
+  it('reads a follow-up that names nothing with the question before it', async () => {
+    const api = await world.as(ML)
+    const first = await api.ask({ question: 'orders in Norway' })
+    const next = await api.ask({
+      question: 'And who decides which one is right?',
+      turns: [turnOf(first)],
+    })
+    expect(next.reads?.map((r) => r.tool)).toEqual(['get_context', 'find_context', 'get_context'])
+    expect(next.reads?.[2]?.input).toEqual({
+      about: 'orders in Norway And who decides which one is right?',
+    })
+    expect(next.state).toBe('conflict')
+    expect(next.loop?.subject?.names).toEqual(['Orders', 'Norway'])
+    expect(next.loop?.conflict).toEqual(first.loop?.conflict)
+  })
+
+  it('reads a new question in the same chat on its own', async () => {
+    const api = await world.as(ML)
+    const first = await api.ask({ question: 'orders in Norway' })
+    const next = await api.ask({
+      question: 'What is the weather in Oslo today?',
+      turns: [turnOf(first)],
+    })
+    expect(next.reads?.map((r) => r.tool)).toEqual(['get_context', 'find_context'])
+    expect(next.state).toBe('missing')
+  })
+})
+
 /** The ids of the items a read returned, in its order, and how each matched a search. */
 const itemsOf = (value: unknown) =>
   ((value as { items?: { id: string; title: string; match?: string }[] }).items ?? []).map(
