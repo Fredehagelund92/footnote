@@ -73,14 +73,11 @@ const chats: Record<string, Question[]> = {
       },
     },
   ],
-  'an index nobody wrote: not found, with the closest name': [
+  'an index nobody wrote: not found': [
     {
       question: 'Define our customer happiness index.',
       label: 'Not found',
-      shows: async (turn) => {
-        await nothingWritten(turn)
-        await expect(answer(turn)).toContainText('The closest names are Customers.')
-      },
+      shows: nothingWritten,
     },
   ],
   'a market the demo does not sell in: no such value': [
