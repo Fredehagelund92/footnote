@@ -142,7 +142,9 @@ export function guardedGit(
           ? request.ref
           : error.problem === 'folder_missing'
             ? request.folder || '/'
-            : request.repository
+            : error.problem === 'git_missing'
+              ? 'git'
+              : request.repository
       throw new SourceError({
         code: error.problem,
         target,
