@@ -281,8 +281,8 @@ service runs it.
   (the burned cases of gates 2 and 3 keep the split `held-back.ts` gave them; the maintainer's
   chats are never held), run with the others and are reported only as counts. Nobody building an
   answerer reads which of them failed or tunes on them. Each answerer's mocked suite holds how
-  many pass (`heldPassingToday`), and no merge may lower it: CI's "Held-back count" step
-  (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
+  many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
+  lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
   The harness holds 28 held-back cases. The 40 in the hardening report is `HELD_BACK` in
   `held-back.ts`, the router's split of its own demo cases. On 18 November 2026 Ask's loop passes 9
   of the 28 and the router 19. 26 of the loop's 28 keep every promise; they fail on what they must
