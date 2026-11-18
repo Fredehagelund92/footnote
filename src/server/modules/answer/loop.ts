@@ -56,13 +56,23 @@ import {
   type NumberedRead,
   type WordsContext,
 } from './loop-body.ts'
+import {
+  answerCheck,
+  checkContext,
+  checkedStart,
+  checkRequest,
+  withUnchecked,
+  type CheckContext,
+  type CheckFinding,
+} from './loop-check.ts'
 
 /*
   Ask's loop (FR-718 to FR-720): one model, with the whole chat in view, reading with Ask's tools
   (tools.ts) as the person asking, and nothing else. It answers, or asks one question back. Code
   writes everything else from what the tools returned: which context items the words cite, the
-  answer state, the footer and what was read. The answer's words are not checked yet beyond the
-  citations (the answer check comes next); HEED_ASK_LOOP=off answers with the router instead.
+  answer state, the footer and what was read. Before its words are shown they pass the answer
+  check (loop-check.ts): what fails is written once more out of sight, and what still fails says
+  so in a fixed sentence. HEED_ASK_LOOP=off answers with the router instead.
 
   - The chat. The browser sends each earlier turn with what Ask said and what it read, by tool and
     input (FR-719.1). Each read is made again, as the person, now, before the model sees its
@@ -587,6 +597,76 @@ export async function* askLoop(
   const toolText = tokensIn(
     JSON.stringify(Object.values(askToolDefinitions).map((d) => d.description)),
   )
+  /** Whether the person's spending limits stop a step on these messages, before it is sent. */
+  const spendStop = async (now: readonly ModelMessage[]) => {
+    if (!deps.limits) return null
+    const next = costMicros(deps.model.prices, {
+      inputTokens: tokensIn(system) + tokensIn(JSON.stringify(now)) + toolText,
+      outputTokens: LOOP_MAX_TOKENS,
+      cacheReadTokens: 0,
+    })
+    return deps.database.transaction(deps.person, (tx) =>
+      spendLimitReached(tx, 'assistant', deps.limits!, next, deps.person),
+    )
+  }
+  // What the person wrote in this chat, and today: numbers the words may give (FR-720.3).
+  const said = [...turns.map((t) => t.question), input.question, deps.today]
+  let checked: { reads: number; ctx: CheckContext } | null = null
+  /** What the answer check holds the words to, made again only once more reads came back. */
+  const checking = () => {
+    if (checked?.reads !== made.length)
+      checked = {
+        reads: made.length,
+        ctx: checkContext(
+          [...made, ...earlier].map((m) => m.result),
+          said,
+          idsOf,
+        ),
+      }
+    return checked.ctx
+  }
+  /**
+   * The answer written once more, out of the person's sight, after it failed the check
+   * (FR-720.10): the same model on the same chat and reads, told which sentences failed and why,
+   * with no reads of its own. Null when it cannot be: at a limit, or when the model fails.
+   */
+  const rewritten = async (
+    findings: readonly CheckFinding[],
+    steps: readonly ModelMessage[],
+  ): Promise<string | null> => {
+    const now: ModelMessage[] = [
+      ...messages,
+      ...steps,
+      { role: 'user', content: checkRequest(findings) },
+    ]
+    try {
+      if (await spendStop(now)) return null
+      const again = streamText({
+        model: choice.model,
+        providerOptions: choice.options,
+        instructions: [
+          { role: 'system', content: system, providerOptions: choice.cacheBreakpoint },
+        ],
+        messages: now,
+        // The chat holds its reads, so the tools are named; none may be called.
+        tools,
+        toolChoice: 'none',
+        maxOutputTokens: LOOP_MAX_TOKENS,
+        maxRetries: 0,
+        abortSignal: abort,
+        onError: () => undefined,
+      })
+      let words = ''
+      for await (const part of again.fullStream) {
+        if (part.type === 'text-delta') words += part.text
+        else if (part.type === 'error') throw part.error
+      }
+      return words.trim() || null
+    } catch (error) {
+      if (!abort.aborted) deps.onError?.(error)
+      return null
+    }
+  }
   try {
     const result = streamText({
       model: choice.model,
@@ -597,17 +677,8 @@ export async function* askLoop(
       stopWhen: [isStepCount(deps.steps), hasToolCall('ask_back'), overviewShown],
       prepareStep: async ({ stepNumber, messages: now }) => {
         // The person's spending limits, before every step: a transaction of its own.
-        if (deps.limits) {
-          const next = costMicros(deps.model.prices, {
-            inputTokens: tokensIn(system) + tokensIn(JSON.stringify(now)) + toolText,
-            outputTokens: LOOP_MAX_TOKENS,
-            cacheReadTokens: 0,
-          })
-          const stop = await deps.database.transaction(deps.person, (tx) =>
-            spendLimitReached(tx, 'assistant', deps.limits!, next, deps.person),
-          )
-          if (stop) throw new SpendLimitStop(stop)
-        }
+        const stop = await spendStop(now)
+        if (stop) throw new SpendLimitStop(stop)
         // The last step reads nothing: it answers from what was read.
         return stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}
       },
@@ -629,7 +700,8 @@ export async function* askLoop(
         reading = false
       } else if (part.type === 'text-delta' && !reading) {
         draft += part.text
-        const done = finishedWords(draft)
+        // A sentence that fails the answer check, and every one after it, waits for the check.
+        const done = checkedStart(finishedWords(draft), checking())
         if (done.length > shown.length) {
           shown = done
           yield { type: 'words', turn: turnOf(done, made, earlier.map(readOf), input.question) }
@@ -674,7 +746,21 @@ export async function* askLoop(
     const asked = modelSteps
       .flatMap((s) => s.toolCalls)
       .findLast((c) => c.toolName === 'show_overview')
-    const text = (last?.text ?? '').trim()
+    const written = (last?.text ?? '').trim()
+    // The answer check (FR-720.10): what fails is written again once, out of sight.
+    const findings = written ? answerCheck(written, checking()) : []
+    let text = written
+    // What the check found, kept with the turn and never shown: each sentence that failed, and
+    // each that still failed once written again.
+    const found: LoopTurn['checks'] = findings.map((f) => ({ kind: 'answer', words: f.sentence }))
+    if (findings.length) {
+      yield { type: 'progress', working: 'Checking the answer against what was read…' }
+      const rewrite = await rewritten(findings, await result.responseMessages)
+      if (deps.signal?.aborted) return
+      const kept = rewrite ? answerCheck(rewrite, checking()) : findings
+      found.push(...kept.map((f) => ({ kind: 'unchecked', words: f.sentence })))
+      text = withUnchecked(rewrite ?? written, kept)
+    }
     const drawn = overviewFor(
       input.question,
       asked ? { ask: overviewInput.safeParse(asked.input).data ?? null } : null,
@@ -683,17 +769,15 @@ export async function* askLoop(
       text,
     )
     if (drawn) {
-      yield { type: 'turn', turn: drawn }
+      yield { type: 'turn', turn: { ...drawn, checks: [...drawn.checks, ...found] } }
       return
     }
     if (!text) {
       yield stopped(modelSteps.length >= deps.steps ? 'steps' : 'model')
       return
     }
-    yield {
-      type: 'turn',
-      turn: turnOf(text, made, again, input.question),
-    }
+    const turn = turnOf(text, made, again, input.question)
+    yield { type: 'turn', turn: { ...turn, checks: [...turn.checks, ...found] } }
   } catch (error) {
     // A Stop is the person's: nothing more is sent.
     if (deps.signal?.aborted) return

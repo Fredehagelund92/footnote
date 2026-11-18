@@ -280,7 +280,9 @@ service runs it.
 - **Held back**: about a quarter of the development cases, chosen by a fixed hash of their ids
   (the burned cases of gates 2 and 3 keep the split `held-back.ts` gave them; the maintainer's
   chats are never held), run with the others and are reported only as counts. Nobody building an
-  answerer reads which of them failed or tunes on them.
+  answerer reads which of them failed or tunes on them. Each answerer's mocked suite holds how
+  many pass (`heldPassingToday`), and no merge may lower it: CI's "Held-back count" step
+  (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                       |
@@ -358,8 +360,8 @@ SDK's shape.
 
 Ask answers with one model in a tool loop on these tools in place of its router, through the same
 endpoint (`ask.lookup`, `src/server/modules/answer/loop.ts`). It is on by default, and
-`HEED_ASK_LOOP=off` answers with the router. What it shows is not yet checked beyond its citations;
-the answer check of FR-720.10 comes next.
+`HEED_ASK_LOOP=off` answers with the router. Its words pass the code's part of the answer check
+of FR-720.10 before they are shown (below); the judges' part waits.
 
 - **One model, the whole chat.** The model of `models.assistant` gets a short prompt written once
   from the product's rules and promises, with no case or example in it, the chat so far, and the
@@ -406,6 +408,18 @@ the answer check of FR-720.10 comes next.
   in the tools, the prompt or the page knows a dimension, a domain or a person by name. Ask on the
   web keeps a chat's finished answers, the loop's or the engine's, in the browser with the chat, so
   opening it again shows them and asks nothing. A Not looked up answer is not kept.
+- **The answer check** (FR-720.10, `src/server/modules/answer/loop-check.ts`). Before a sentence
+  is shown, code holds it to the chat's reads: it fails when it gives a number in digits of its
+  own that no read returned and the person did not write, cites an item no read returned, or gives
+  a count of what agents asked that the reader sees only as a floor or not at all. The page shows
+  the words up to the first sentence that fails. An answer that fails is written once more by the
+  same model, out of sight, with the chat and its reads, told each sentence and why, with no reads
+  of its own, metered and held to the spending and time limits as a step is; a sentence that still fails is replaced by a fixed sentence ("This part of the
+  answer did not match what Ask read, so it is not shown."), once for sentences in a row, never
+  left out without a word. When the second writing cannot be made (a limit, a failing model), the
+  first one's failing sentences are replaced the same way. What failed is kept in `checks`. The
+  judges of FR-720.2, FR-720.6 and FR-720.7 do not read the answer yet: a judge may gate only
+  once it is measured on at least 60 answers labelled by hand, and `judge-set.ts` holds 46.
 - **The pool.** The request ends before the model's first step. Each read, spending check and meter
   line is a transaction of its own as the person, and a turn's reads take one connection at a
   time, so no turn holds a connection while its model works or while it waits for another.
@@ -415,23 +429,23 @@ the answer check of FR-720.10 comes next.
   the chat ("and who decides?") is looked up again with the question before it. Ask's page says
   that no AI model is connected. The search page of FR-718.6 is not built yet.
 
-| Promise                                          | Kept by                                                                                                                  | Checked by                                                                                                                                       |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| FR-718.3 earlier turns checked again             | Reads made again as the person; sentences citing what they no longer return left out                                     | `tests/web/integration/ask-loop.test.ts`: an item hidden between two turns, an edited reply, a result sent back; `tests/server/ask-loop.test.ts` |
-| FR-718.4 read only                               | The tools write nothing; the request writes only that Ask was used and, with a real model, its steps' spend ledger lines | `ask-loop.test.ts`: a chat leaves every table as it was                                                                                          |
-| FR-719.1 the whole chat                          | Every earlier turn, its words and its reads made again, in the model's messages                                          | The harness's follow-up cases                                                                                                                    |
-| FR-719.2 one question back                       | `ask_back` ends the turn, with no state                                                                                  | `tests/server/ask-loop.test.ts`; the harness's X cases                                                                                           |
-| FR-719.4 a question's words kept nowhere         | The loop logs a failure by its name only                                                                                 | `ask-loop.test.ts`: a marker in a chat is in no table; the harness's `stored`                                                                    |
-| FR-719.7 limits, said                            | `ask.max_steps`, `ask.time_limit_seconds`, the spending limits, fixed sentences                                          | `tests/server/ask-loop.test.ts` (steps, time, a failing model); `ask-loop-pool.test.ts` (spending)                                               |
-| FR-720.2 citations                               | Every mark held to the ids the chat's reads returned                                                                     | `tests/server/ask-loop.test.ts`; the harness's citation grader                                                                                   |
-| FR-720.4, FR-720.5, FR-720.9 state, footer, read | Written by code from the reads                                                                                           | `tests/server/ask-loop.test.ts`; the harness's state grader                                                                                      |
-| FR-720.2, FR-720.3 nouns, numbers and lists      | Every typed mention, reference and list held to the chat's reads; the words as blocks                                    | `tests/server/ask-loop-body.test.ts`, `tests/server/ask-invented.test.ts` (a workspace of teams and sprints)                                     |
-| The answer's shapes, overviews among them        | The evidence, the overview's groups and total, by code                                                                   | `tests/web/integration/ask-loop-shapes.test.ts` (the demo week); `tests/web/loop-answer.test.ts`; `tests/e2e/visual-ask-loop.spec.ts`            |
-| The pool                                         | No connection held across a model call; one at a time per turn                                                           | `ask-loop-pool.test.ts`: 4 and 8 live asks at once on a pool of 4, with a slow scripted model                                                    |
+| Promise                                          | Kept by                                                                                                                     | Checked by                                                                                                                                       |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-718.3 earlier turns checked again             | Reads made again as the person; sentences citing what they no longer return left out                                        | `tests/web/integration/ask-loop.test.ts`: an item hidden between two turns, an edited reply, a result sent back; `tests/server/ask-loop.test.ts` |
+| FR-718.4 read only                               | The tools write nothing; the request writes only that Ask was used and, with a real model, its steps' spend ledger lines    | `ask-loop.test.ts`: a chat leaves every table as it was                                                                                          |
+| FR-719.1 the whole chat                          | Every earlier turn, its words and its reads made again, in the model's messages                                             | The harness's follow-up cases                                                                                                                    |
+| FR-719.2 one question back                       | `ask_back` ends the turn, with no state                                                                                     | `tests/server/ask-loop.test.ts`; the harness's X cases                                                                                           |
+| FR-719.4 a question's words kept nowhere         | The loop logs a failure by its name only                                                                                    | `ask-loop.test.ts`: a marker in a chat is in no table; the harness's `stored`                                                                    |
+| FR-719.7 limits, said                            | `ask.max_steps`, `ask.time_limit_seconds`, the spending limits, fixed sentences                                             | `tests/server/ask-loop.test.ts` (steps, time, a failing model); `ask-loop-pool.test.ts` (spending)                                               |
+| FR-720.2 citations                               | Every mark held to the ids the chat's reads returned                                                                        | `tests/server/ask-loop.test.ts`; the harness's citation grader                                                                                   |
+| FR-720.10 checked before it is shown             | Code's check of numbers, citations and hidden counts; one writing again out of sight; a fixed sentence for what still fails | `tests/server/ask-loop-check.test.ts`: a scripted model that writes each kind of failure, one whose failing sentence holds the fact asked for    |
+| FR-720.4, FR-720.5, FR-720.9 state, footer, read | Written by code from the reads                                                                                              | `tests/server/ask-loop.test.ts`; the harness's state grader                                                                                      |
+| FR-720.2, FR-720.3 nouns, numbers and lists      | Every typed mention, reference and list held to the chat's reads; the words as blocks                                       | `tests/server/ask-loop-body.test.ts`, `tests/server/ask-invented.test.ts` (a workspace of teams and sprints)                                     |
+| The answer's shapes, overviews among them        | The evidence, the overview's groups and total, by code                                                                      | `tests/web/integration/ask-loop-shapes.test.ts` (the demo week); `tests/web/loop-answer.test.ts`; `tests/e2e/visual-ask-loop.spec.ts`            |
+| The pool                                         | No connection held across a model call; one at a time per turn                                                              | `ask-loop-pool.test.ts`: 4 and 8 live asks at once on a pool of 4, with a slow scripted model                                                    |
 
-Without the answer check, these are the model's own: every number from a read (FR-720.3, beyond
-the counts the tools compute), no advice (FR-720.6), no verdict (FR-720.7) and no unsupported
-sentence (the judge's part of FR-720.2). The harness measures each.
+Until the judges read the answer, these are the model's own: no advice (FR-720.6), no verdict
+(FR-720.7) and no unsupported sentence (the judge's part of FR-720.2). The harness measures each.
 
 ## Quality reads
 
