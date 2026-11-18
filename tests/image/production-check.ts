@@ -150,7 +150,7 @@ try {
   keepCookies(finished)
   check(
     finished.status === 302 &&
-      String(finished.headers.location).startsWith(publicOrigin) &&
+      new URL(String(finished.headers.location), publicOrigin).origin === publicOrigin &&
       !String(finished.headers.location).includes('error=') &&
       jar.has('footnote_session'),
     'Footnote signs the person in and sends them to the web app',

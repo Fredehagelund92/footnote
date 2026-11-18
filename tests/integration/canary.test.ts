@@ -1,6 +1,6 @@
 import { resolverStatusOf } from '../../src/domain/answer-state.ts'
 import { execFile } from 'node:child_process'
-import { createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
+import { createHash, generateKeyPairSync, randomBytes, randomInt, randomUUID } from 'node:crypto'
 import { promisify } from 'node:util'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { afterAll, beforeAll, expect, it } from 'vitest'
@@ -41,7 +41,7 @@ const person = {
   email: `canary.${marker}@example.test`,
   name: `Canary ${marker}`,
 }
-const address = `203.0.113.${1 + (randomBytes(1)[0]! % 250)}`
+const address = `203.0.113.${randomInt(1, 251)}`
 const userAgent = `CanaryAgent/${marker}`
 const appMarker = randomBytes(8).toString('hex')
 const connectedAgent = { name: `Canary app ${appMarker}`, version: `1.0.${appMarker}` }
