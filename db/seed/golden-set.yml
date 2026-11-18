@@ -858,7 +858,7 @@ cases:
     rubrics:
       - 'Says the recent days are expected to catch up and names until when the issue is expected'
     source: 'Library: the demo issue on Poland orders, 1 to 15 October 2026, asked inside it'
-    notes: "Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same."
+    notes: 'Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same.'
 
   - id: gs-date-discount-cost-netherlands-latest
     area: area_marketing
@@ -1001,7 +1001,7 @@ cases:
       - 'Says the early months are not reliable'
       - 'Says the latest day is not complete yet'
     source: 'Library: a reliability note and a lag note on the same metric and market'
-    notes: "Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same."
+    notes: 'Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same.'
 
   - id: gs-two-repeat-purchase-canada
     area: area_marketing
