@@ -28,6 +28,8 @@ export interface ScheduledJob {
   cron: string
   /** The watchdog alerts once the last success is older than this. */
   expectedEverySeconds: number
+  /** Runs once as the runner starts too, not only at its schedule's first turn. */
+  runAtStart?: true
   run(context: JobContext): Promise<JobSummary>
 }
 
