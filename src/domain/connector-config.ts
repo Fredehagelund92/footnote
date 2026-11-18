@@ -234,7 +234,7 @@ export function connectorConfigDomains(
 
 /** What a person is told when settings need a secret and the server has nowhere to keep one. */
 export const noSecretStorePlain =
-  "There's no secret store, so we can't keep a secret. Ask the person who hosts this app to set one up."
+  "This app has no safe place to keep keys yet, so it can't save this one. Ask the person who hosts this app to set one up."
 /** The exact setting, for whoever hosts the app: the plain line first, this one after it. */
 export const noSecretStoreHost = 'For the host: set FOOTNOTE_SECRETS_DIR.'
 export const noSecretStoreWords = `${noSecretStorePlain} ${noSecretStoreHost}`

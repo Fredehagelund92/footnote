@@ -237,8 +237,8 @@ function Quality({ first }: { first: SavedCheck }) {
         >
           <WifiOffIcon className="size-4 shrink-0 text-caution" aria-hidden />
           <span className="min-w-0 flex-1">
-            The check did not finish. It stopped after {status.checked} of {status.total} questions.
-            Nothing was changed, and agents still get what was published.
+            The answer tests did not finish. They stopped after {status.checked} of {status.total}{' '}
+            questions. Nothing was changed, and agents still get what was published.
           </span>
           <Button variant="outline" onClick={check}>
             Try again

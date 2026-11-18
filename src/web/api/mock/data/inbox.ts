@@ -151,7 +151,7 @@ export const cards: InboxCard[] = [
     title: 'Orders in Germany, 30 Oct to 1 Nov 2026',
     line: 'Agents found nothing written down for this, 6 times this week: 3 about 30 October and 3 about 1 November, counted together.',
     detail:
-      'Each month alone stayed under 5, so before, no card came. Nothing is drafted yet: write what agents should know about orders in Germany around the month edge.',
+      'Each month alone stayed under 5, so no card came until the two were counted together. Nothing is drafted yet: write what agents should know about orders in Germany across the two months.',
     primary: 'Write context',
     secondary: ['Not something we write down'],
     gap: {

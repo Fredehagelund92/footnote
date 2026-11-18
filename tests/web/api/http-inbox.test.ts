@@ -429,7 +429,7 @@ describe('the Inbox', () => {
           areaId: 'area_sales',
           raiseId: 'r1',
           rule: 'sync',
-          title: 'Cube did not sync',
+          title: 'Cube could not be read',
           subject: { connector: 'cube' },
         },
         {
@@ -450,13 +450,13 @@ describe('the Inbox', () => {
     expect(sync).toMatchObject({
       id: 'alert:r1',
       type: 'alert',
-      title: 'Cube did not sync',
+      title: 'Cube could not be read',
       line: 'Its last read failed, or it has not read for longer than it should.',
       primary: 'Open the integration',
       secondary: [],
       alert: {
         rule: 'sync',
-        name: 'A connected tool did not sync',
+        name: 'A connected tool could not be read',
         href: '/settings/integrations/cube',
       },
     })

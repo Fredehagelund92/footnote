@@ -343,7 +343,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
               ? whole
                 ? 'Every entry verified.'
                 : 'An entry was changed after the fact.'
-              : `${entries.toLocaleString('en')} entries verified.`,
+              : `${entries.toLocaleString('en-GB')} entries verified.`,
         }),
       failed('verify the log'),
     )

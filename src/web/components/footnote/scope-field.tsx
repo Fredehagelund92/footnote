@@ -27,7 +27,7 @@ const PAGE = 50
 const OVERSCAN = 6
 
 const count = (n: number, noun: string) =>
-  `${n.toLocaleString('en')} ${n === 1 ? noun : noun === 'match' ? 'matches' : `${noun}s`}`
+  `${n.toLocaleString('en-GB')} ${n === 1 ? noun : noun === 'match' ? 'matches' : `${noun}s`}`
 
 type Row =
   | { id: string; type: 'term'; term: ScopeTerm; label: string; hint?: string }

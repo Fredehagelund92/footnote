@@ -603,9 +603,9 @@ export function createInboxFeedService(
 
   /**
    * An Alert card for each raise of a rule with a card of its own (Conflict, More questions not
-   * found, Calls fail, Model spend, A connected tool did not sync) that reached the person: the
+   * found, Calls fail, Model spend, A connected tool could not be read) that reached the person: the
    * relay delivered it to their Inbox items, less those who muted it. It stays for a week after the
-   * raise. A connected tool that did not sync and has read well since needs nothing more: its card
+   * raise. A connected tool that could not be read and has read well since needs nothing more: its card
    * goes, as on a first start, when the alert job looked at the old reads a moment before the first
    * sync.
    */

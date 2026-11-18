@@ -1357,7 +1357,6 @@ export function describeFootnoteApi(
         for (const s of sources) {
           const tool = connectorById(s.connector)
           expect(tool, s.id).toBeDefined()
-          expect(tool!.soon, s.id).toBeFalsy()
           expect(['never', 'ok', 'partial', 'failed', 'refused'], s.id).toContain(s.state.last)
           // A paused tool has no read pending; any other waits for its time, the job or its turn.
           if (s.state.intent === 'active') {
@@ -1460,7 +1459,6 @@ export function describeFootnoteApi(
         expect(settings.secrets.map((s) => s.key)).toEqual(['serviceAccountKey'])
         expect(JSON.stringify(settings)).not.toMatch(/private_key|BEGIN PRIVATE KEY/)
         expect(await live.connectForm({ id: 'no-such-tool' })).toBeNull()
-        expect(await live.connectForm({ id: 'notion' })).toBeNull()
       },
     )
 

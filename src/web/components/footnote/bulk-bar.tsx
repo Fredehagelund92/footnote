@@ -71,14 +71,14 @@ export function BulkBar({
             className="flex h-11 max-w-full items-center gap-1 rounded-md bg-foreground pr-2 pl-4 text-sm text-background shadow-md max-md:h-auto max-md:min-h-14 max-md:w-full max-md:rounded-none max-md:px-2 max-md:shadow-none"
           >
             <span className="px-1 font-semibold whitespace-nowrap tabular-nums">
-              {shown.toLocaleString()} selected
+              {shown.toLocaleString('en-GB')} selected
             </span>
             {matching && matching.count > shown && (
               <BulkButton
                 onClick={matching.onSelect}
                 className="underline-offset-4 hover:underline max-md:hidden"
               >
-                Select all {matching.count.toLocaleString()} matching
+                Select all {matching.count.toLocaleString('en-GB')} matching
               </BulkButton>
             )}
             <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-background/30" />

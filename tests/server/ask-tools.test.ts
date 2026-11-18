@@ -183,18 +183,18 @@ describe('the records tool (FR-720.3)', () => {
   it('says what every count is out of, by the domain and the statuses asked', () => {
     expect(query({ show: 'count' })).toMatchObject({
       count: 4,
-      counted: '4 of 4 context items you may read',
+      counted: '4 of 4 context items you can see',
       byStatus: { live: 2, due: 1, archived: 1 },
     })
     expect(query({ show: 'count', status: ['live', 'due'], about: ['Norway'] })).toMatchObject({
       count: 2,
-      counted: '2 of 3 published context items you may read',
+      counted: '2 of 3 published context items you can see',
     })
     expect(query({ show: 'count', domain: 'sales', status: ['due'] })).toMatchObject({
-      counted: '1 of 1 context item due for a check in Sales you may read',
+      counted: '1 of 1 context item due for a check in Sales you can see',
     })
     expect(query({ show: 'count', status: ['live', 'archived'] })).toMatchObject({
-      counted: '3 of 3 live or archived context items you may read',
+      counted: '3 of 3 live or archived context items you can see',
     })
   })
 

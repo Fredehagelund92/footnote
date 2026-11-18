@@ -185,7 +185,7 @@ function Consent({ requestId, person }: { requestId: string; person: string }) {
 
 function Ended() {
   return (
-    <Notice title="This sign-in has ended">
+    <Notice title="This request is no longer open">
       It was answered already, it waited longer than ten minutes, or it was started in another
       browser. Go back to your agent and connect again.
     </Notice>

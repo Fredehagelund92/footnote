@@ -579,13 +579,15 @@ function buildItem(random: Random, flags: Random, usedIds: Set<string>): Context
   ])
 
   // A second pick can repeat the first metric. An item names a metric once (the tables refuse a
-  // repeat), so the repeat is dropped. Its change mark is still drawn, as before, so the random
-  // stream and every later field stay the same.
+  // repeat), so the repeat is dropped. A title that names its metric ("Orders lags by one day")
+  // applies to that metric only, so a correct delivery for another metric never reads as wrong:
+  // the second pick is dropped there too. Each dropped pick's change mark is still drawn, as
+  // before, so the random stream and every later field stay the same.
   const picked = [metric.id, ...(secondMetric ? [secondMetric.id] : [])]
-  const changeMarks = Object.fromEntries(
-    picked.map((id) => referenceTo(id, checkFlag, changeMark(random))),
-  )
-  const metrics = [...new Set(picked)]
+  const drawn = picked.map((id) => referenceTo(id, checkFlag, changeMark(random)))
+  const kept = title.includes(metric.name) ? 1 : picked.length
+  const changeMarks = Object.fromEntries(drawn.slice(0, kept))
+  const metrics = [...new Set(picked.slice(0, kept))]
   const references = Object.keys(changeMarks)
 
   const riskLevel: RiskLevel = random.chance(0.08) ? 'high' : kind === 'note' ? 'low' : 'normal'

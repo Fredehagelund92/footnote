@@ -32,12 +32,6 @@ import {
 } from '@/model/integrations'
 import { connectorById, connectors } from '@/model/catalogue'
 
-/** A connector the catalogue has a cell for, and can connect: one with a manifest, not Soon. */
-const inCatalog = (type: string) => {
-  const connector = connectorById(type)
-  return connector && !connector.soon ? connector : undefined
-}
-
 const twoDigits = (n: number) => String(n).padStart(2, '0')
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
@@ -98,7 +92,7 @@ const FAILURES: Record<string, string> = {
   timeout: 'it took too long',
   timed_out: 'it took too long',
   unreadable_file: 'it is too large, or not text',
-  fetch_failed: 'the host would not hand it over',
+  fetch_failed: 'the site that keeps it did not send it',
   git_missing: 'the server has no git program to read a repository with',
   private_address: 'its address is not one it may reach: use https, on a public host',
   redirect_refused: 'it redirects somewhere it may not follow',
@@ -151,7 +145,7 @@ function statusOf(state: SourceRow['state'], now: Date): Source['state'] {
 
 /** A source as the integrations' rows show it; null for a tool the app has no cell for. */
 export function sourceOf(row: SourceRow, now: Date): Source | null {
-  const connector = inCatalog(row.type)?.id
+  const connector = connectorById(row.type)?.id
   if (!connector) return null
   const last = row.lastRead
   const failed = last?.status === 'failed'
@@ -224,7 +218,7 @@ export function integrationsOf(
       return source ? [source] : []
     }),
     // What the service offers and the form can take, in the catalogue's order.
-    connectable: connectors.flatMap((c) => (offered.has(c.id) && !c.soon ? [c.id] : [])),
+    connectable: connectors.flatMap((c) => (offered.has(c.id) ? [c.id] : [])),
   }
 }
 
@@ -416,7 +410,7 @@ export function sourcePageOf(
             when: source.added.when,
             tone: 'ok' as const,
             what: 'Connected',
-            detail: `First read ${firstAt}. Nothing is published by a read.`,
+            detail: `First read ${firstAt}. Reading publishes nothing.`,
           },
         ]
       : []
@@ -462,7 +456,7 @@ export function connectFormOf(
   settings: SourceSettings | null,
   secretStore = true,
 ): ConnectForm | null {
-  const connector = inCatalog(manifest.id)?.id
+  const connector = connectorById(manifest.id)?.id
   if (!connector || !formTakes(manifest)) return null
   const fields = manifest.config.fields.flatMap((field): ConnectField[] => {
     if (!formKinds.includes(field.kind)) return []
@@ -530,7 +524,7 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
     title: 'Read by another source',
     detail: 'It stays with that source, and this one leaves it out.',
   },
-  too_many_records: { title: 'More than a read can hold', detail: 'The rest is left out.' },
+  too_many_records: { title: 'Too much to read at once', detail: 'The rest is left out.' },
   group_not_found: {
     title: 'A chosen view is not in the model',
     detail: 'Nothing is read for it. Leave it out, or add it to the model.',

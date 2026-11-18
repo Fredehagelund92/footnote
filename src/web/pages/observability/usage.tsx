@@ -101,7 +101,7 @@ function Usage() {
         <Kpi
           icon={<WrenchIcon />}
           label="Tool calls"
-          value={calls.toLocaleString('en')}
+          value={calls.toLocaleString('en-GB')}
           change={kpiChange(change, (c) =>
             change?.percent != null
               ? `${change.percent > 0 ? '+' : ''}${change.percent}%`
@@ -267,7 +267,7 @@ function Tools({ tools }: { tools: UsageData['tools'] }) {
       .replace(/, (with|after) .*$/, '')
   const cell = (v: number, warn?: boolean) =>
     v ? (
-      <span className={cn(warn && 'font-semibold text-caution')}>{v.toLocaleString('en')}</span>
+      <span className={cn(warn && 'font-semibold text-caution')}>{v.toLocaleString('en-GB')}</span>
     ) : (
       <span className="text-muted-foreground">-</span>
     )
@@ -305,7 +305,7 @@ function Tools({ tools }: { tools: UsageData['tools'] }) {
               </span>
             </td>
             <td className="px-4 pt-2.5 text-right align-top tabular-nums @2xl/main:pt-0 @2xl/main:align-middle">
-              {t.calls.toLocaleString('en')}
+              {t.calls.toLocaleString('en-GB')}
             </td>
             <td className="px-4 text-right tabular-nums @max-2xl/main:hidden">
               {cell(t.answered)}

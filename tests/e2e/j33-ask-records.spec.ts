@@ -33,9 +33,7 @@ test('a question about the records gets a records answer, never Not found', asyn
   ).toBeVisible()
   // The period it counted, in UTC: Footnote keeps no time zone of its own.
   await expect(log.getByText(/^Context created, last 24 hours \(.+ to .+, UTC\)$/)).toBeVisible()
-  await expect(
-    log.getByText('Agents did not read this answer. It says nothing about what they get.'),
-  ).toBeVisible()
+  await expect(log.getByText('This answer is only for you. Agents do not get it.')).toBeVisible()
   // No answer state: the records are not context, checked or not.
   await expect(log.getByText('Not found', { exact: true })).toHaveCount(0)
   await expect(log.getByRole('button', { name: 'Nothing was looked up' })).toHaveCount(0)

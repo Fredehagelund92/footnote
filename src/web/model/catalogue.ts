@@ -62,30 +62,16 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
   }
 }
 
-/**
- * Shown as Soon, and not connectable: tools the design draws in the catalogue, which have no
- * manifest yet. A design list only: when one gets a manifest, it leaves this list.
- */
-const soon: Connector[] = [
-  {
-    id: 'notion',
-    name: 'Notion',
-    kind: 'context',
-    logo: logos.notion!,
-    blurb: 'Pages in spaces you choose become suggestions for owners.',
-    soon: true,
-    access: [],
-  },
-]
-
 const kindOrder: Record<ConnectorKind, number> = { definitions: 0, context: 1 }
 
 /** The catalogue: definitions first, then context, each by name, as the design lays it out. */
-export const connectors: Connector[] = [...builtInManifests.map(connectorOf), ...soon].sort(
-  (a, b) =>
-    kindOrder[a.kind] - kindOrder[b.kind] ||
-    a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }),
-)
+export const connectors: Connector[] = builtInManifests
+  .map(connectorOf)
+  .sort(
+    (a, b) =>
+      kindOrder[a.kind] - kindOrder[b.kind] ||
+      a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }),
+  )
 
 export const connectorById = (id: string | undefined) => connectors.find((c) => c.id === id)
 
@@ -97,6 +83,6 @@ export const connectorByTool = (tool: string | undefined) => connectors.find((c)
  * definitions tool of the catalogue that can be connected, or Integrations when there is none.
  */
 export const definitionsConnectHref = () => {
-  const connector = connectors.find((c) => c.kind === 'definitions' && !c.soon)
+  const connector = connectors.find((c) => c.kind === 'definitions')
   return connector ? `/settings/integrations/${connector.id}/connect` : '/settings/integrations'
 }

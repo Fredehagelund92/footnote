@@ -91,7 +91,7 @@ we earn." Description:
 > online share) and orders (orders and returns).
 >
 > Context items here are mostly events and notes that move these numbers, such as a market's online
-> sales stopping, a payment provider outage or a change in how discounts are netted off.
+> sales stopping, a payment provider outage or a change in how discounts are taken off revenue.
 > Marketing spend and discount cost live in Marketing.
 
 **Marketing.** Summary: "Acquisition and discounts: spend, conversion, cost per acquisition and

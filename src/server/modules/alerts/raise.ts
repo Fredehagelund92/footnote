@@ -249,7 +249,7 @@ const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
   },
 
   /**
-   * A connected tool did not sync: its last read failed, once for each run of failed reads (from
+   * A connected tool could not be read: its last read failed, once for each run of failed reads (from
    * the first after its last good read), or it has not read for too long.
    */
   async sync({ tx }) {
@@ -288,7 +288,7 @@ const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
             {
               key: `${c.id}:${why}`,
               areas: c.areas,
-              title: `${c.name} did not sync`,
+              title: `${c.name} could not be read`,
               subject: { connector: c.id },
             },
           ]
