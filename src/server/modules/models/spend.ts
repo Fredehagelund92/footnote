@@ -25,7 +25,7 @@ export type SpendEntry = {
   estimated?: boolean
 }
 
-const labels: Record<SpendFeature, string> = { eval: 'Evaluation', assistant: 'Assistant' }
+const labels: Record<SpendFeature, string> = { eval: 'answer tests', assistant: 'Ask' }
 export const formatUsd = (micros: number) => `$${(micros / 1_000_000).toFixed(2)}`
 
 /** The current limits for one feature. Missing or invalid settings fall back to the defaults. */
@@ -84,19 +84,19 @@ export async function spendLimitReached(
   if (total + next > limits.monthlyCapMicros)
     return {
       kind: 'monthly',
-      message: `Model spending reached the monthly cap of ${formatUsd(limits.monthlyCapMicros)}; it resets on ${on}.`,
+      message: `AI cost reached this month's limit of ${formatUsd(limits.monthlyCapMicros)}; it resets on ${on}.`,
       resets: reset,
     }
   if (spent + next > limits.featureCapMicros)
     return {
       kind: 'feature',
-      message: `${labels[feature]} spending reached its monthly cap of ${formatUsd(limits.featureCapMicros)}; it resets on ${on}.`,
+      message: `The AI cost limit for ${labels[feature]} this month, ${formatUsd(limits.featureCapMicros)}, is reached; it resets on ${on}.`,
       resets: reset,
     }
   if (person && Number(row?.day ?? 0) + next > limits.dailyPersonMicros)
     return {
       kind: 'person_day',
-      message: `Your model spending reached the daily limit of ${formatUsd(limits.dailyPersonMicros)}; it resets within 24 hours.`,
+      message: `Your AI cost today reached the daily limit of ${formatUsd(limits.dailyPersonMicros)}; it resets within 24 hours.`,
       resets: null,
     }
   return null

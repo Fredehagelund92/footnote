@@ -49,7 +49,7 @@ that data. Its default reply is short:
 ```json
 {
   "status": "matched",
-  "say": "Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.",
+  "say": "Checked. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.",
   "asked": "Orders in Norway in August 2026",
   "context": [
     {
@@ -1162,7 +1162,7 @@ the change, in its own transactions.
 
 Alert rules raise cards in the Inbox; nothing sends an email (FR-621). There are eight, each one
 sentence, in `src/domain/alerts.ts`: Not found, A saved question needs a look, Conflict, More
-questions not found, Calls fail, Model spend, A connected tool did not sync, and A check is due. A
+questions not found, Calls fail, Model spend, A connected tool could not be read, and A check is due. A
 rule goes to the owners of the domain it is about, to the administrators, or to both. An
 administrator turns a rule on or off for everyone and picks its threshold from those its sentence
 offers; the Not found threshold is the gap detection's own setting, `gaps.no_item_threshold`, so
@@ -1190,7 +1190,7 @@ the contract is in `src/contract/alerts.ts`.
   never tells of a hidden count.
 - In the Inbox (`GET /inbox/feed`), a domain whose saved questions need a look has one card
   (`look:<domain>`, group `look`) that lists them. Each raise of the five rules with no other card
-  (Conflict, More questions not found, Calls fail, Model spend, A connected tool did not sync) is
+  (Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read) is
   an Alert card (`alert:<raise id>`, group `alert`, in the Alerts group after Saved questions) for
   whom it reached, for a week: its title, the rule, and where
   its one action goes. An Alert card, a Not found card, a Saved questions card and a card for an

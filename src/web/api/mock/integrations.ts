@@ -457,7 +457,7 @@ function keptPage(id: string, kept: Kept | undefined, connectedAt: string): Sour
             when: 'Today',
             tone: 'ok',
             what: 'Connected',
-            detail: 'First read at 07:00. Nothing is published by a read.',
+            detail: 'First read at 07:00. Reading publishes nothing.',
           },
     ],
     connection: connectionOf(settings, manifest),

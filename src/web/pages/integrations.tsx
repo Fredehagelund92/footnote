@@ -996,7 +996,7 @@ export function IntegrationsPage() {
         <Panel>
           <FrameSection
             title="Integrations"
-            description="The tools definitions and context are read from. They are only read, and a read never publishes: definitions arrive as a read-only copy, and documents become suggestions for their owners."
+            description="The tools definitions and context are read from. They are only read, and reading never publishes: definitions arrive as a read-only copy, and documents become suggestions for their owners."
           />
           <Loadable what="Integrations" skeleton={<RowsSkeleton rows={4} />} query={load}>
             {load.data && <IntegrationsBody view={load.data} />}
@@ -1773,7 +1773,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                       <span>
                         A new or changed document becomes{' '}
                         <span className="font-medium">one suggestion</span>. A changed document
-                        replaces its open suggestion. Nothing is published by a read.
+                        replaces its open suggestion. Reading publishes nothing.
                       </span>
                     </li>
                     <li className="flex gap-2.5">
@@ -2987,7 +2987,7 @@ function ChoiceSteps({
       toast(`${c.name} connected`, {
         description: isDefinitions
           ? 'First read now. Its names wait for you in the Inbox.'
-          : `First read ${done.firstRead ? `at ${done.firstRead}` : 'now'}. Documents become suggestions; nothing is published by a read.`,
+          : `First read ${done.firstRead ? `at ${done.firstRead}` : 'now'}. Documents become suggestions; reading publishes nothing.`,
       })
       if (setup) navigate('/inbox')
       else navigate(`/settings/integrations/${done.id}`)
@@ -3186,7 +3186,7 @@ function ChoiceSteps({
                       A changed or missing definition marks the context that relies on it{' '}
                       <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
-                    <>Nothing is published or changed by a read.</>,
+                    <>Reading publishes and changes nothing.</>,
                     <>{`If ${c.name} can't be reached, the last good read stays and nothing is reported.`}</>,
                   ]
                 : [
@@ -3194,9 +3194,7 @@ function ChoiceSteps({
                       A new or changed document becomes{' '}
                       <span className="font-medium">one suggestion</span> in its owners' Inbox.
                     </>,
-                    <>
-                      Nothing is published by a read. An owner publishes, or returns it with a note.
-                    </>,
+                    <>Reading publishes nothing. An owner publishes, or returns it with a note.</>,
                     <>If {c.name} can't be reached, what was read stays and nothing is created.</>,
                   ]
               ).map((t, i) => (

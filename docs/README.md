@@ -30,7 +30,7 @@ Older design pages that still apply:
 
 | Page                                               | What it says                                                      |
 | -------------------------------------------------- | ----------------------------------------------------------------- |
-| [Get started](help/get-started.md)                 | From an empty workspace to a first answer, in about ten minutes   |
+| [Get started](help/get-started.md)                 | The six steps to your first checked answer, in about ten minutes  |
 | [Write context](help/write-context.md)             | What a context item is and what to put in it                      |
 | [Connect an agent](help/connect-an-agent.md)       | One prompt for Claude, Cursor or another agent                    |
 | [Review a suggestion](help/review-a-suggestion.md) | The quick view, the review, and publishing or returning           |

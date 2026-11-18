@@ -378,7 +378,7 @@ describe('prompt injection (NFR-024)', () => {
 describe('the answer agent and the scripted mock', () => {
   const delivery = {
     status: 'matched',
-    say: 'Checked. 1 fact applies to Orders. Only that was checked.',
+    say: 'Checked. 1 fact applies to Orders. Nothing else was looked up.',
     context: [
       {
         id: 'itm_closure0001',

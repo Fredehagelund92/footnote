@@ -288,7 +288,7 @@ const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
             {
               key: `${c.id}:${why}`,
               areas: c.areas,
-              title: `${c.name} did not sync`,
+              title: `${c.name} could not be read`,
               subject: { connector: c.id },
             },
           ]

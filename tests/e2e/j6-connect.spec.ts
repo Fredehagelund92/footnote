@@ -98,7 +98,7 @@ test('an admin connects a repository in five steps, changes its folders, and dis
 
   // Schedule: what happens on each read, and why it is added.
   await step(page, 'Schedule')
-  await expect(page.getByText('Nothing is published by a read.', { exact: false })).toBeVisible()
+  await expect(page.getByText('Reading publishes nothing.', { exact: false })).toBeVisible()
   await expect(button(page, 'Connect Markdown in Git')).toBeDisabled()
   await page.getByLabel('Why are you adding this?').fill('Our handbook lives in Git')
   await button(page, 'Connect Markdown in Git').click()

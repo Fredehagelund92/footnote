@@ -197,8 +197,8 @@ describe('the code graders', () => {
   it('fail a sentence with a hole, and let a whole one stand', () => {
     for (const broken of [
       'Two written items cover changes for Orders in Sweden from to:',
-      'None of the 1,209 published context items you may read published items you may read mention it.',
-      'Yes, 3 of 1,292 context items you may read you may read changed.',
+      'None of the 1,209 published context items you can see published items you can see mention it.',
+      'Yes, 3 of 1,292 context items you can see you can see changed.',
       'It applies to Orders and.',
       'Both are in the of Sales.',
       'None of those calls found nothing ().',
@@ -208,7 +208,7 @@ describe('the code graders', () => {
       expect(holesIn(broken), broken).toHaveLength(1)
     for (const whole of [
       'Two written items cover changes for Orders in Sweden from 1 January 2026 to 17 November 2026:',
-      'None of the 1,209 published context items you may read mention it.',
+      'None of the 1,209 published context items you can see mention it.',
       'Both rules apply to Orders in United Kingdom, from 1 January 2026 on.',
       'One rule says United Kingdom orders count card and cash. The other rule says United Kingdom orders count store credit.',
       'Orders lag by a day [1]. It is due for a check (its check date passed).',

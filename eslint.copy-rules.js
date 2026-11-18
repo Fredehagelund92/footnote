@@ -147,9 +147,11 @@ const secondNames = [
   [/\bCheck again\b(?! by)/, null, 'Keep waiting'],
   [/\bCheck the chain\b/i, null, 'Verify the log'],
   [/\bheavy checks\b/i, null, 'answer tests'],
-  [/\ba read\b/i, null, 'an update'],
-  // Lower case only: the capitals are banned already, the lower case passes.
-  [/\b(gap|gaps)\b/, null, 'Not found'],
+  // Not "a read-only copy", which is the engineer word below.
+  [/\ba read\b(?!-)/i, null, 'an update'],
+  // Lower case only: the capitals are banned already, the lower case passes. Not a class such as
+  // gap-2 in a list kept in a constant.
+  [/\b(gap|gaps)\b(?!-)/, null, 'Not found'],
   [/\b(flag|flags|flagged)\b/, null, 'report'],
 ]
 /** Words for engineers, which belong on the pages for them. */

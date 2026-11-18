@@ -373,7 +373,7 @@ test('Quality: no saved questions yet, a failed check, and offline', async ({ pa
   await expect(page.getByText('No saved questions yet')).toBeVisible()
   await go(page, '/observability/quality?demo=week&quality=failed')
   await expect(page.getByRole('alert')).toContainText(
-    'The check did not finish. It stopped after 8 of 12 questions. Nothing was changed',
+    'The answer tests did not finish. They stopped after 8 of 12 questions. Nothing was changed',
   )
   await go(page, '/observability/quality?state=offline')
   await expect(page.getByRole('button', { name: 'Run now' })).toHaveAttribute(
@@ -553,8 +553,8 @@ test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, 
   const alert =
     mode === 'http'
       ? {
-          title: /did not sync$/,
-          rule: 'A connected tool did not sync',
+          title: /could not be read$/,
+          rule: 'A connected tool could not be read',
           open: 'Open the integration',
           to: /\/settings\/integrations\//,
         }

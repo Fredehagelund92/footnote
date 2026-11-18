@@ -151,7 +151,7 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
 
   // Answered, the link ends.
   await open(page, agent.consent)
-  await expect(page.getByRole('heading', { name: 'This sign-in has ended' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'This request is no longer open' })).toBeVisible()
 
   // An admin sees every person's agents in Settings, and revokes Ines's.
   await open(page, '/inbox')
@@ -253,7 +253,7 @@ test('a link with no sign-in in it, or one that ended, says to connect again', a
     page.getByRole('heading', { name: "This sign-in link isn't complete" }),
   ).toBeVisible()
   await go(page, `/connect/approve?request=${'x'.repeat(43)}`)
-  await expect(page.getByRole('heading', { name: 'This sign-in has ended' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'This request is no longer open' })).toBeVisible()
 })
 
 test("an agent's suggestion links to where it waits, in the person's Inbox", async ({ page }) => {

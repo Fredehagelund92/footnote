@@ -285,7 +285,7 @@ describe('the alert job', () => {
     expect(await reached(of('spend')[0]!.id)).toEqual(['admin'])
     expect(of('spend')[0]!.title).toBe('Model spend reached 80% of the monthly cap')
     expect(await reached(of('sync')[0]!.id)).toContain('admin')
-    expect(of('sync')[0]!.title).toBe('Demo did not sync')
+    expect(of('sync')[0]!.title).toBe('Demo could not be read')
     // The owner muted A check is due for finance: the reminder reached nobody.
     const due = of('due')[0]!
     expect(due.subject).toEqual({ card: `check:${dueItem}` })
@@ -492,7 +492,7 @@ describe('after a raise', () => {
   it('takes a source that did not sync out of the Inbox once it reads well again', async () => {
     const syncCards = async () =>
       (await ok<Feed>('admin', 'GET', '/inbox/feed?tab=needs')).cards.filter(
-        (c) => c.group === 'alert' && c.title === 'Demo did not sync',
+        (c) => c.group === 'alert' && c.title === 'Demo could not be read',
       )
     // Each raise of the source that did not sync, earlier in this file.
     expect(await syncCards()).toHaveLength(2)

@@ -27,7 +27,7 @@ for (const { name, viewport } of widths)
         const fold = turn.getByRole('button', { name: `Used ${n} ${n === 1 ? 'item' : 'items'}` })
         await expect(fold).toHaveAttribute('aria-expanded', 'false')
         const used = turn.locator('[data-used]')
-        await expect(used).toContainText(n === 1 ? 'Live, checked' : 'all Live, checked')
+        await expect(used).toContainText(n === 1 ? 'published, checked' : 'all published, checked')
         // One line, never taller than its fold.
         expect((await used.boundingBox())!.height).toBeLessThanOrEqual(24)
         // Closed, no row of it is drawn: each source is cited once, in the words.
@@ -65,8 +65,8 @@ for (const { name, viewport } of widths)
       const fold = turn.getByRole('button', { name: 'Used 6 items' })
       await expect(fold).toHaveAttribute('aria-expanded', 'false')
       const used = turn.locator('[data-used]')
-      // The line counts the live ones; each that needs a look says why on its own row.
-      await expect(used).toContainText('Used 6 items·4 Live, checked 30 Jul to 3 Nov 2026')
+      // The line counts the published ones; each that needs a look says why on its own row.
+      await expect(used).toContainText('Used 6 items·4 published, checked 30 Jul to 3 Nov 2026')
       const pinned = used.locator('[data-pinned] > li')
       await expect(pinned).toHaveCount(2)
       await expect(pinned.nth(0).getByRole('button', { name: /^Source 2: / })).toBeVisible()

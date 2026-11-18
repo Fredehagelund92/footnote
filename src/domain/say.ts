@@ -79,8 +79,8 @@ export const peopleVoice: Voice = {
 
 /** The absence rule every result that finds nothing gives the AI agent (FR-318). */
 export const notProof = 'That does not prove there is no caveat'
-/** How far a result went: only what the question asked was checked. */
-const onlyThat = 'Only that was checked.'
+/** How far a result went: only what the question asked was looked up. */
+const onlyThat = 'Nothing else was looked up.'
 /** What a result that read nothing tells the person (`need_more_detail`, `check_failed`). */
 export const notLookedUp = 'Nothing was looked up yet.'
 

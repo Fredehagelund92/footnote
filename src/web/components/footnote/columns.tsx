@@ -143,7 +143,7 @@ const freshLabel: Record<Trust, string> = {
   fresh: 'Checked recently',
   ageing: 'Checked over 30 days ago',
   due: 'Due for a check',
-  draft: 'Not checked yet',
+  draft: 'Not published yet',
   retired: 'Archived',
 }
 

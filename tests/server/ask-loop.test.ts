@@ -24,7 +24,7 @@ import { UNCHECKED } from '../../src/server/modules/answer/loop-check.ts'
   service is tests/web/integration/ask-loop.test.ts; the pool, ask-loop-pool.test.ts.
 */
 
-const outOf = { count: 21, of: 'published context items you may read' }
+const outOf = { count: 21, of: 'published context items you can see' }
 const searched = (words: string, found: number) => ({
   words,
   names: [],
@@ -82,8 +82,8 @@ const records = (ids: string[]): MadeRead => ({
   input: { about: ['Norway'] },
   result: {
     count: ids.length,
-    outOf: { count: 23, of: 'context items you may read' },
-    counted: `${ids.length} of 23 context items you may read`,
+    outOf: { count: 23, of: 'context items you can see' },
+    counted: `${ids.length} of 23 context items you can see`,
     items: ids.map((id) => item(id)),
     more: 0,
     ids,
@@ -275,7 +275,7 @@ describe('what code writes from the reads', () => {
     expect(listed.state).toBeNull()
     expect(listed.sources).toEqual(['itm_norway001', 'itm_norway002'])
     expect(turnOf('Nine items are about Norway.', made, []).state).toBeNull()
-    expect(listed.footer.denominator).toBe('Counted 2 of 23 context items you may read.')
+    expect(listed.footer.denominator).toBe('Counted 2 of 23 context items you can see.')
   })
 
   it('gives a turn that read nothing no state, and Not found after a search that found nothing', () => {
@@ -291,8 +291,8 @@ describe('what code writes from the reads', () => {
     ])
     const t = turnOf('Nothing.', made, [])
     expect(t.footer).toEqual({
-      denominator: '0 of 21 published context items you may read apply.',
-      notSeen: '2 more items were found and not listed.',
+      denominator: '0 of 21 published context items you can see apply.',
+      notSeen: '2 more items match and are not shown.',
       stale: null,
     })
   })
