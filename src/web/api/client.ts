@@ -63,8 +63,11 @@ export type Session = {
   fresh: boolean
   /** The label naming this install (HEED_PROFILE_LABEL) for the header; null when none is set. */
   profileLabel: string | null
-  /** Whether an AI model is connected; without one, Ask's answers list what is written. */
-  modelConnected: boolean
+  /**
+   * Who answers in Ask: an AI model; the service's scripted reader (MODELS=mock), whose answers
+   * list what is written; or the mock build's own reader, a design preview of Ask.
+   */
+  answeredBy: 'model' | 'reader' | 'preview'
 }
 
 export type Workspace = {

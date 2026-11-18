@@ -597,7 +597,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     install: 'normal',
     fresh: false,
     profileLabel,
-    modelConnected,
+    answeredBy: modelConnected ? 'model' : 'reader',
   })
 
   /** Everyone the comments may name, both ways: by id, and by name for a mention. */
@@ -1296,7 +1296,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
             install: 'normal',
             fresh: false,
             profileLabel: null,
-            modelConnected: true,
+            answeredBy: 'model',
           }
         }
         throw error
