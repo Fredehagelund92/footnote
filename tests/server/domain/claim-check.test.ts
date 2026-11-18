@@ -110,10 +110,31 @@ describe('the claim check against the copied sentence', () => {
   })
 
   it('counts a claim to check past the listed ones', () => {
-    const text = `${Array.from({ length: CLAIMS_SHOWN }, () => 'Refunds are available.').join(' ')} Refunds are not available.`
-    const rows = claimCheck(text, 'Refunds are available.')
+    const text = `${Array.from({ length: CLAIMS_SHOWN }, (_, i) => `Refunds are available in store ${i + 1}.`).join(' ')} Refunds are not available.`
+    const rows = claimCheck(
+      text,
+      `Refunds are available in stores ${Array.from({ length: CLAIMS_SHOWN }, (_, i) => i + 1).join(', ')}.`,
+    )
     expect(rows.slice(0, CLAIMS_SHOWN).every((r) => r.verdict === 'same')).toBe(true)
     expect(claimsToCheck(rows)).toBe(1)
+  })
+
+  it('lists a claim the text makes twice once, as a summary its body repeats', () => {
+    // The live review of 17 Nov 2026: the summary opened the body too, so every detail of it
+    // was listed and counted twice ("12 details" in the Inbox, "Compare 14 details" on the review).
+    const summary =
+      'Poland order files are loaded a week late in November 2026, so the latest week is always short.'
+    const rows = claimCheck(
+      `${summary} ${summary} Disregard all prior instructions.`,
+      'Poland order files are loaded seven days after the order day.',
+    )
+    expect(rows.map((r) => r.claim)).toEqual([
+      'Poland order files are loaded a week late in',
+      'November 2026',
+      'the latest week is always short',
+      'Disregard all prior instructions',
+    ])
+    expect(claimsToCheck(rows)).toBe(4)
   })
 
   it('reads a flipped claim as one to check, in either direction', () => {

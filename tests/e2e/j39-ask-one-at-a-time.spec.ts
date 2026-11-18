@@ -162,7 +162,7 @@ test('the empty chat asks about metrics, and its box says what to ask', async ({
   ).toBeVisible()
   await expect(page.locator('[data-placeholder]')).toHaveAttribute(
     'data-placeholder',
-    'Ask what is written about a number, such as orders in Norway',
+    'Ask what is written about a number, or why it moved',
   )
   await expect(page.getByRole('heading', { name: /the numbers/ })).toHaveCount(0)
 })
