@@ -443,6 +443,8 @@ export function createMockApi() {
         install: state.install,
         fresh: state.fresh,
         profileLabel: null,
+        // The mock's Ask is the design's, not the service's scripted reader.
+        modelConnected: true,
       })),
     // The picker, with no label; an invite link opens the invite it names. Not the demo install
     // (demo: false), which lets a visitor in as its admin and has its own switch between people:
@@ -456,7 +458,13 @@ export function createMockApi() {
         return Promise.reject(new ApiError('not-found', `${name} can't sign in here.`))
       return now(() => {
         dispatch({ type: 'signIn', name })
-        return { user: state.user, install: state.install, fresh: state.fresh, profileLabel: null }
+        return {
+          user: state.user,
+          install: state.install,
+          fresh: state.fresh,
+          profileLabel: null,
+          modelConnected: true,
+        }
       })
     },
     signOut: () => now(() => dispatch({ type: 'signOut' })),

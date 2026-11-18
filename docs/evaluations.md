@@ -410,7 +410,10 @@ the answer check of FR-720.10 comes next.
   line is a transaction of its own as the person, and a turn's reads take one connection at a
   time, so no turn holds a connection while its model works or while it waits for another.
 - **With no model** (`MODELS=mock`) the loop runs a scripted reader (`loop-mock.ts`), which looks
-  the message up once and says what applies. The search page of FR-718.6 is not built yet.
+  the message up once and says what applies: the two items that disagree first under Conflict, and
+  only the definition when asked what a metric is. A message that names nothing and points back at
+  the chat ("and who decides?") is looked up again with the question before it. Ask's page says
+  that no AI model is connected. The search page of FR-718.6 is not built yet.
 
 | Promise                                          | Kept by                                                                                                                  | Checked by                                                                                                                                       |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |

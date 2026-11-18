@@ -313,7 +313,7 @@ export function AskChat({
     if (up || from === null || !el || reducedMotion()) return
     motion.current?.dockFrom(el, from)
   }, [up])
-  const { fresh } = useSession()
+  const { fresh, modelConnected } = useSession()
   const examples = useAskExamples()
   // What agents asked this week; with nothing asked yet (a new workspace), its starters instead.
   const week = useQuery(askedWeekQuery()).data
@@ -593,7 +593,9 @@ export function AskChat({
                     What do you want to know about your metrics?
                   </h2>
                   <p className="mt-2 text-sm text-balance text-muted-foreground">
-                    Answers come from what your team wrote and an owner checked.
+                    {modelConnected
+                      ? 'Answers come from what your team wrote and an owner checked.'
+                      : 'No AI model is connected, so answers list what your team wrote and an owner checked.'}
                   </p>
                 </div>
                 {!up && start}
