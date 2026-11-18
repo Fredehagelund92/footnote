@@ -894,8 +894,8 @@ export function createInboxFeedService(
 
     /**
      * A new workspace's setup checklist (FR-816), read from what exists, with the server's own
-     * definitions source (of `serverSources`, its ids) and whether a read of it has ended: the
-     * first one not read yet, else the first.
+     * definitions source (of `serverSources`, its ids) and where its read stands (none ended, a
+     * good one, or only failed or discarded ones): the first one not read well yet, else the first.
      */
     async setup(serverSources: readonly string[] = []): Promise<Setup> {
       const [row] = await tx.query<Record<SetupStep, boolean>>(
@@ -909,20 +909,22 @@ export function createInboxFeedService(
                  or exists(select 1 from auth.oauth_grants)) as agent`,
       )
       const steps = setupSteps.map((id) => ({ id, done: Boolean(row?.[id]) }))
-      const read = new Set(
+      const reads = new Map(
         (
-          await tx.query<{ id: string }>(
-            `select distinct connector_id as id from connector_snapshots
-              where connector_id = any($1) and status <> 'failed'`,
+          await tx.query<{ id: string; good: boolean }>(
+            `select connector_id as id, bool_or(status in ('ok','partial')) as good
+               from connector_snapshots where connector_id = any($1) group by connector_id`,
             [serverSources],
           )
-        ).map((r) => r.id),
+        ).map((r) => [r.id, r.good] as const),
       )
-      const id = serverSources.find((source) => !read.has(source)) ?? serverSources[0]
+      const stateOf = (source: string) =>
+        reads.get(source) === undefined ? 'reading' : reads.get(source) ? 'read' : 'failed'
+      const id = serverSources.find((source) => stateOf(source) !== 'read') ?? serverSources[0]
       return {
         steps,
         done: steps.every((s) => s.done),
-        serverSource: id === undefined ? null : { id, read: read.has(id) },
+        serverSource: id === undefined ? null : { id, state: stateOf(id) },
       }
     },
 

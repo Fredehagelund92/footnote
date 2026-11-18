@@ -115,7 +115,7 @@ async function setup() {
 
 it("reads the server's model folder as it starts, and setup knows the read is on its way", async () => {
   // Before the runner starts, nothing has read the folder: step 3 waits for it.
-  expect((await setup()).serverSource).toEqual({ id: 'cube', read: false })
+  expect((await setup()).serverSource).toEqual({ id: 'cube', state: 'reading' })
   await jobs.start()
   // Nobody asks: the start's own run reads the folder, minutes before the five-minute schedule.
   for (let tries = 0; tries < 300; tries++) {
@@ -125,7 +125,7 @@ it("reads the server's model folder as it starts, and setup knows the read is on
     if (rows.length) {
       expect(rows).toEqual([{ status: 'ok' }])
       const after = await setup()
-      expect(after.serverSource).toEqual({ id: 'cube', read: true })
+      expect(after.serverSource).toEqual({ id: 'cube', state: 'read' })
       // Its names wait to be published: the step is not done by the read alone.
       expect(after.steps.find((step) => step.id === 'definitions')).toEqual({
         id: 'definitions',
@@ -226,4 +226,12 @@ it('shows a failed read beside the data that is still served', async () => {
     'ok',
   ])
   expect((cube!.views as unknown[]).length).toBeGreaterThan(0)
+}, 60_000)
+
+it('reports a source with no good read as failed, not as on its way', async () => {
+  expect((await setup()).serverSource).toEqual({ id: 'cube', state: 'read' })
+  await client.query(
+    `delete from connector_snapshots where connector_id = 'cube' and status <> 'failed'`,
+  )
+  expect((await setup()).serverSource).toEqual({ id: 'cube', state: 'failed' })
 }, 60_000)

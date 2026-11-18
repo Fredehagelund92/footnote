@@ -4,12 +4,12 @@ import { definitionsStep, setupSteps } from '@/lib/setup'
 // The checklist's definitions step (snag 5 of the release judge): an install the server started on
 // its own model folder waits for that folder's read, says so, and never offers to connect a tool.
 
-const folder = (read: boolean) => ({ id: 'cube', read })
+const folder = (state: 'reading' | 'read' | 'failed') => ({ id: 'cube', state })
 const own = setupSteps.find((s) => s.id === 'definitions')!
 
 describe('the definitions step', () => {
   it('says a read is on its way, and offers nothing, until the folder is read', () => {
-    expect(definitionsStep(folder(false), 0)).toEqual({
+    expect(definitionsStep(folder('reading'), 0)).toEqual({
       description:
         'Reading the definitions this server was started on. Their names show here when the read ends.',
       action: null,
@@ -18,15 +18,24 @@ describe('the definitions step', () => {
   })
 
   it('publishes the names the read left waiting', () => {
-    expect(definitionsStep(folder(true), 5)).toMatchObject({
+    expect(definitionsStep(folder('read'), 5)).toMatchObject({
       action: 'Publish 5 names',
       opens: 'names',
     })
-    expect(definitionsStep(folder(true), 1).action).toBe('Publish 1 name')
+    expect(definitionsStep(folder('read'), 1).action).toBe('Publish 1 name')
   })
 
   it("opens the folder's page, not the connect flow, after a read that left no names waiting", () => {
-    expect(definitionsStep(folder(true), 0)).toMatchObject({
+    expect(definitionsStep(folder('read'), 0)).toMatchObject({
+      action: 'Open the read',
+      opens: 'source',
+    })
+  })
+
+  it("says the read failed and opens the folder's page when no read of it was good", () => {
+    expect(definitionsStep(folder('failed'), 0)).toEqual({
+      description:
+        'The definitions this server was started on could not be read. Their page says why.',
       action: 'Open the read',
       opens: 'source',
     })
@@ -38,8 +47,8 @@ describe('the definitions step', () => {
       action: 'Connect',
       opens: 'connect',
     })
-    for (const read of [false, true])
+    for (const state of ['reading', 'read', 'failed'] as const)
       for (const waiting of [0, 3])
-        expect(definitionsStep(folder(read), waiting).opens).not.toBe('connect')
+        expect(definitionsStep(folder(state), waiting).opens).not.toBe('connect')
   })
 })

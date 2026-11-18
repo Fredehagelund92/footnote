@@ -77699,13 +77699,18 @@
                             "id": {
                               "type": "string"
                             },
-                            "read": {
-                              "type": "boolean"
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "reading",
+                                "read",
+                                "failed"
+                              ]
                             }
                           },
                           "required": [
                             "id",
-                            "read"
+                            "state"
                           ]
                         },
                         {

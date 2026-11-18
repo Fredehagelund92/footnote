@@ -52,10 +52,11 @@ export type DefinitionsOpens = 'names' | 'source' | 'connect'
  * The definitions step, for an install the server started on its own definitions, such as a model
  * folder: until a read of them has ended it says one is on its way and offers nothing, and it never
  * offers to connect another tool. Names waiting are published from here, whatever source read them.
- * A read that left none waiting opens its source's page, which says what the read found.
+ * A read that left none waiting, or ended without a good read, opens its source's page, which
+ * says what the read found.
  */
 export function definitionsStep(
-  serverSource: { id: string; read: boolean } | null,
+  serverSource: { id: string; state: 'reading' | 'read' | 'failed' } | null,
   waiting: number,
 ): { description: string; action: string | null; opens: DefinitionsOpens } {
   const step = setupSteps.find((s) => s.id === 'definitions')!
@@ -66,7 +67,14 @@ export function definitionsStep(
       opens: 'names',
     }
   if (!serverSource) return { description: step.description, action: step.action, opens: 'connect' }
-  if (!serverSource.read)
+  if (serverSource.state === 'failed')
+    return {
+      description:
+        'The definitions this server was started on could not be read. Their page says why.',
+      action: 'Open the read',
+      opens: 'source',
+    }
+  if (serverSource.state === 'reading')
     return {
       description:
         'Reading the definitions this server was started on. Their names show here when the read ends.',

@@ -1033,12 +1033,12 @@ function Setup() {
   // The server's own definitions are read by themselves too: the checklist asks until that read
   // has ended, then counts it ended only once the names read after it are in, so the step goes
   // from the read on its way straight to its names.
-  const reading = !!serverSource && !serverSource.read && !setupDone.definitions
+  const reading = serverSource?.state === 'reading' && !setupDone.definitions
   const workspaceRead = useQuery({ ...workspaceQuery(), refetchInterval: reading ? 3000 : false })
   const [sawReading, setSawReading] = React.useState(reading)
   if (reading && !sawReading) setSawReading(true)
   const { refetch: refetchNames } = namesRead
-  const ended = sawReading && serverSource?.read === true
+  const ended = sawReading && serverSource?.state === 'read'
   React.useEffect(() => {
     if (ended) void refetchNames()
   }, [ended, refetchNames])
@@ -1047,7 +1047,7 @@ function Setup() {
   const definitions = definitionsStep(
     setupDone.definitions || !serverSource
       ? null
-      : { ...serverSource, read: serverSource.read && !namesBehind },
+      : { ...serverSource, state: namesBehind ? 'reading' : serverSource.state },
     names?.length ?? 0,
   )
   const [reviewing, setReviewing] = React.useState(false)

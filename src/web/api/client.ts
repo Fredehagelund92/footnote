@@ -80,9 +80,12 @@ export type Workspace = {
   /**
    * Which steps of a new install's setup checklist are done, by step id (lib/setup.ts), and the
    * definitions the server's own configuration reads, such as a model folder: its source's id and
-   * whether a read of it has ended. Null when the server reads none.
+   * where its read stands. Null when the server reads none.
    */
-  setup: { done: Record<string, boolean>; serverSource: { id: string; read: boolean } | null }
+  setup: {
+    done: Record<string, boolean>
+    serverSource: { id: string; state: 'reading' | 'read' | 'failed' } | null
+  }
 }
 
 /** The vocabulary the definitions source names: its metrics, dimensions and the markets agents ask about. */
