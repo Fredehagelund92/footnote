@@ -185,7 +185,8 @@ ships, in production mode, behind the web image, against a stand-in OpenID Conne
 person signs in, makes an access key, and an agent calls the MCP server with it. CI's Docker job
 runs it, then starts the demo with `docker compose up` and runs
 `bash tests/image/compose-secrets.sh`, which saves a connector's secret and finds it again in a new
-container.
+container. Then `bash tests/image/git-markdown.sh` connects Markdown in Git to a public repository
+with the image's own `git`.
 
 ## Folder map
 
