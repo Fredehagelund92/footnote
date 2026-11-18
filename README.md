@@ -97,8 +97,8 @@ and the other program answers there instead.
 Another way in:
 
 - **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
-  pulls them instead of building. They are release 0.1.0 of 2 November 2026, which is behind this page: it
-  opens on a sign-in page that lists the demo people, with no **View as**. The next release replaces them.
+  pulls them instead of building. They are the latest release, named in `compose.images.yaml`, which can be
+  behind this page and may differ from it. A newer release replaces them.
 
 To choose how to run Footnote for your own team, see [Where to run Footnote](docs/where-to-run.md). To keep it running
 here, back it up, upgrade it or roll an upgrade back, see [Self-host Footnote on one computer](docs/self-hosting.md).
