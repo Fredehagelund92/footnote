@@ -23,6 +23,6 @@ export const spainDraft: Fact = withWhen({
 
 /**
  * What "Draft from text" makes of any pasted text in the demo: the Norway stop, every field marked
- * for the writer to check. In Heed the assistant drafts it, or a rule reader of dates and names.
+ * for the writer to check. In Footnote the assistant drafts it, or a rule reader of dates and names.
  */
 export const norwayDraft: Fact = { ...factById('itm_norway_stop')!, id: 'draft', status: 'Draft' }

@@ -68,7 +68,7 @@ export async function unlinkedMembers(tx: Queryable): Promise<AuditMembers> {
   }
 }
 
-/** A member of a definition source that a domain has and Heed's vocabulary does not yet. */
+/** A member of a definition source that a domain has and Footnote's vocabulary does not yet. */
 export type WaitingMember = {
   areaId: string
   kind: 'metric' | 'dimension'

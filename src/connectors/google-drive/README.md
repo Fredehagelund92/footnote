@@ -11,7 +11,7 @@ suggestion for that domain's owners. A read never publishes: an owner does (CON-
    needs no role in the project. Create a JSON key for it.
 2. In Google Drive, share each folder to read with the service account's address, as Viewer. It
    sees only what is shared with it, never the rest of anyone's Drive.
-3. In Heed, add Google Drive with the key. **Test connection** signs in, names the account to
+3. In Footnote, add Google Drive with the key. **Test connection** signs in, names the account to
    share with, and lists the shared folders and the folders directly in them. Choose the folders
    and map each to a domain.
 

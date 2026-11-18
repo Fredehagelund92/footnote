@@ -30,7 +30,7 @@ afterEach(async () => {
 })
 /** The keys volume as the image makes it: its top belongs to the service, and anyone may read it. */
 async function volume() {
-  const dir = await mkdtemp(join(tmpdir(), 'heed-keys-'))
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
   temporary.push(dir)
   await chmod(dir, 0o755)
   return dir

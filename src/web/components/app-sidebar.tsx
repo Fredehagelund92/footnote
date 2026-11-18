@@ -38,7 +38,7 @@ import { useMe } from '@/lib/workspace'
 import { PRODUCT } from '@/lib/brand'
 import { HelpMenu } from '@/components/help-menu'
 
-// The sidebar-07 block (collapsible to icons), with Heed's three places, Settings for admins,
+// The sidebar-07 block (collapsible to icons), with Footnote's three places, Settings for admins,
 // and the user menu in the footer. Dressed as Efferd's app shell: the page background with a
 // hairline, a 48px header row that lines up with the page header, quieter item labels, and a faint
 // light at the top in dark mode.

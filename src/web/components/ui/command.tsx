@@ -46,7 +46,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          // As the Heed app's search: 640 wide, in the upper part of the screen; full width with margins on a phone.
+          // As the Footnote app's search: 640 wide, in the upper part of the screen; full width with margins on a phone.
           // Opened from the keyboard, so it is there at once.
           'top-palette max-w-inset translate-y-0 gap-0 overflow-hidden rounded-frame! p-0 transition-none sm:top-24 sm:max-w-160',
           className,

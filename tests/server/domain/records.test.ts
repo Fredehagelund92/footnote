@@ -457,6 +457,7 @@ describe('the person boundary, with the workspace in hand', () => {
     'who looks after the worst domain?',
     'who owns the latest warning?',
     'What changed in May?',
+    'show me everything Footnote added',
   ])('does not take "%s" for a person', (question) => {
     expect(read(question)?.type).not.toBe('refused')
   })

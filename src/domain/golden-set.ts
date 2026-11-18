@@ -20,7 +20,7 @@ import { isCalendarDate } from './validity.ts'
  * The plan's twelve behaviour types, then the two the captain added (definitions and
  * conversations), then the agent contract's: an agent that hands over the member names it queried
  * in the data tool (`handoff`), a concise reply that keeps what the answer needs (`concise`), and
- * telling an absence from a scope Heed could not read (`absence`).
+ * telling an absence from a scope Footnote could not read (`absence`).
  */
 export const caseTypes = [
   'baseline',

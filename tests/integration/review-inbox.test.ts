@@ -15,7 +15,7 @@ import { foundation, people } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
-  The review path and the Inbox of Heed v1 over authenticated HTTP (golden plan P6a): the review
+  The review path and the Inbox of Footnote v1 over authenticated HTTP (golden plan P6a): the review
   sheet, its decisions and their undo (FR-224 to FR-227), the Inbox's cards and their decisions,
   the setup checklist (FR-816) and a Not found card's draft. Jon's role is played by `owner` (an
   owner of Finance), a member by `author`, an administrator by `admin`.

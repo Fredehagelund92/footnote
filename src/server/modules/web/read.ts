@@ -8,7 +8,7 @@ import { isPublicAddress, publicLookup } from '../oauth/index.ts'
 import { decodePage, pageText, charsetOf } from './page-text.ts'
 
 /*
-  Heed opens a web page a person linked, to draft context from it (the editor's draft from text).
+  Footnote opens a web page a person linked, to draft context from it (the editor's draft from text).
   It is the service reaching out to an address someone else chose, so it reaches only the public web:
   https only; a name resolved here with every answer public and the connection made to that
   answer, so a second lookup cannot point it inside the network (DNS rebinding); no credentials
@@ -44,7 +44,7 @@ export class PageReadError extends Error {
   }
 }
 
-/** A page as Heed read it: where it ended up, its title and its paragraphs. */
+/** A page as Footnote read it: where it ended up, its title and its paragraphs. */
 export type PageRead = {
   /** The address asked for. */
   url: string
@@ -77,7 +77,7 @@ const MAX_BYTES = 2 * 1024 * 1024
 const TIMEOUT_MS = 15_000
 const MAX_REDIRECTS = 5
 
-/** Said plainly to every site Heed reads, so its owner can tell what reads it. */
+/** Said plainly to every site Footnote reads, so its owner can tell what reads it. */
 const headers = {
   // eslint-disable-next-line brand/no-product-name -- the user agent sites see, a technical name (docs/rename-checklist.md)
   'user-agent': 'Mozilla/5.0 (compatible; Heed/1.0; reads a page a person linked)',
@@ -108,8 +108,8 @@ const loopbackLookup: LookupFunction = (hostname, options, callback) => {
 }
 
 /**
- * An address Heed may open, as a URL without its fragment, or the reason it may not. Plain http
- * is read as https: the same page, over the only protocol Heed uses.
+ * An address Footnote may open, as a URL without its fragment, or the reason it may not. Plain http
+ * is read as https: the same page, over the only protocol Footnote uses.
  */
 export function readableAddress(address: string, loopback = false): URL | ReadFailure {
   const url = URL.parse(address.trim())

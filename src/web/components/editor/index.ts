@@ -1,4 +1,4 @@
-// editorcn's toolbar editor (https://editorcn.vercel.app), trimmed for Heed: no bubble menu, no
+// editorcn's toolbar editor (https://editorcn.vercel.app), trimmed for Footnote: no bubble menu, no
 // code blocks (and so no highlight.js), no embeds. Markdown goes in and out through @tiptap/markdown.
 export { RichTextEditor } from './rte-text-editor'
 export { useRichTextEditorContext } from './rte-context'

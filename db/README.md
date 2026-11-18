@@ -1,4 +1,4 @@
-# Heed database baseline
+# Footnote database baseline
 
 PostgreSQL 18 is required. `npm run db:migrate` (`db/prepare.ts`) gets a database ready; it never
 starts PostgreSQL. With a superuser in `DATABASE_URL_BOOTSTRAP` it first creates
@@ -125,15 +125,15 @@ role may insert and read, never update or delete, and retention never touches it
 `cl_obs_changes(areas, from, to)` counts the changes published after review and runs as the owner,
 so the count is the same for any reader and for the job.
 
-`obs_caught_weekly` (migration 0033) keeps what Heed caught each completed week, without limit,
+`obs_caught_weekly` (migration 0033) keeps what Footnote caught each completed week, without limit,
 the same exception: per domain (or none), how many times a saved question's answer came out
 Changed or Needs a look where it was Same before, in a check run started by a publish, an archive,
 a restore, a sync or a check date passing (`line` `saved`, `kind` the trigger); and how many
 alerts each rule raised, with how many an owner or administrator acted on within 14 days by a
-decision Heed keeps (`line` `alert`, `kind` the rule, `acted`): a Not found gap's state changed or
+decision Footnote keeps (`line` `alert`, `kind` the rule, `acted`): a Not found gap's state changed or
 a draft started for it, a saved question's new answer kept or one removed, a due item checked,
 changed or archived by a decision not undone. The other rules raise nothing an owner decides in
-Heed, so their `acted` is 0 by constraint. An alert about one domain counts in it, one about none
+Footnote, so their `acted` is 0 by constraint. An alert about one domain counts in it, one about none
 or several with none. It holds no question, no item, no words and no person; check constraints
 refuse anything but the fixed lists, a Monday and a count over 0. `cl_obs_caught(from, to)` counts
 any days from the records, which retention never deletes, and runs as the owner, so the counts are
@@ -272,7 +272,7 @@ owner left out is kept, by member, in `names_left_out`.
 
 ## Seed data
 
-`npm run seed` (`db/seed/main.ts`) is the one command for data to develop, test and show Heed on.
+`npm run seed` (`db/seed/main.ts`) is the one command for data to develop, test and show Footnote on.
 It reads `.env.local`: a library goes into `DATABASE_URL_SEED`, an empty local
 `context_layer_dev` or `context_layer_test` database, as a superuser.
 

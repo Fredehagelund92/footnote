@@ -251,7 +251,7 @@ it('names the term a question uses, and answers as before it was written', async
     expect(answered(reply)).toEqual(answered(before[key]!))
     expect(reply.terms).toEqual([peakEntry(word, synonym)])
     expect(reply.next).toMatch(/never give a term as a checked source\.$/)
-    expect(text).toContain(`Open in Heed - Peak season: /definitions/Peak%20season - Written`)
+    expect(text).toContain(`Open in Footnote - Peak season: /definitions/Peak%20season - Written`)
     const full = (await tool('get_context', { question: questions[key], response_format: 'full' }))
       .reply
     expect(full.terms).toEqual([peakEntry(word, synonym)])

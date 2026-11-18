@@ -26,7 +26,7 @@ const requestSchema = z.object({
   host: z.object({ platform: z.string(), libc: z.optional(z.enum(['gnu', 'musl'])) }),
   input: z.object({
     files: z.array(z.object({ fileName: z.string(), content: z.string() })),
-    /** The model's name for a domain, to the Heed domain id it means (CON-206). */
+    /** The model's name for a domain, to the Footnote domain id it means (CON-206). */
     domainAliases: z.optional(z.record(z.string(), z.string())),
   }),
 })

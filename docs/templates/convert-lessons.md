@@ -1,9 +1,9 @@
-# Turn existing lessons into Heed items
+# Turn existing lessons into Footnote items
 
 A prompt for Claude Code that turns text you already have (a list of dated lessons, a rule such as
 "data before a set date is not comparable", the business caveats in a BI tool's or Cube's instruction
-file) into an item file Heed can import. Run it in your own session, in the folder where you may
-read that text. Heed never reads those files itself.
+file) into an item file Footnote can import. Run it in your own session, in the folder where you may
+read that text. Footnote never reads those files itself.
 
 ## Before you start
 
@@ -19,14 +19,14 @@ read that text. Heed never reads those files itself.
 Paste this into Claude Code, then point it at the text to convert.
 
 ```text
-Turn the lessons and caveats below into a Heed item file in YAML, in the format of
+Turn the lessons and caveats below into a Footnote item file in YAML, in the format of
 docs/templates/items.yaml (read its comments: they list every field).
 
 Rules:
 - One item per caveat or lesson, in plain words: what a person or an agent should know when they
   read the number. Write the summary yourself; do not paste the source text.
 - Leave out anything that tells a tool how to query, filter or choose data. That belongs in Cube or
-  your BI tool, not in Heed.
+  your BI tool, not in Footnote.
 - Never write partner or customer names, personal data, revenue or other figures, contract terms
   or secrets. If a lesson needs one to make sense, leave the lesson out and list it at the end.
 - Scope each item with the live term keys only (metric:..., dim:..., val:<dimension>/<value>). Prefer

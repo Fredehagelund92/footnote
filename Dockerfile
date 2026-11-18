@@ -1,4 +1,4 @@
-# Heed in containers (compose.yaml): the `service` image runs the service, and the `web` image
+# Footnote in containers (compose.yaml): the `service` image runs the service, and the `web` image
 # serves the web app with nginx, forwarding /api/v1 to the service. For local evaluation on one
 # computer (docs/self-hosting.md), not for production use.
 #

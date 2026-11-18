@@ -7,7 +7,7 @@ import type { Review } from '@/model/review'
 // from review-parts.tsx, which the Inbox's quick review loads up front, so they load on demand with
 // the review page.
 
-/** An agent's claims, each against the sentence it copied from the source. Heed didn't open the page. */
+/** An agent's claims, each against the sentence it copied from the source. Footnote didn't open the page. */
 export function ClaimCheck({
   claims,
   from,

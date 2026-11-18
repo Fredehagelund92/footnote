@@ -173,7 +173,7 @@ describe('what it refuses', () => {
   })
 })
 
-describe('the addresses Heed may open', () => {
+describe('the addresses Footnote may open', () => {
   const rule = (address: string, loopback = false) => {
     const result = readableAddress(address, loopback)
     return typeof result === 'string' ? result : result.href

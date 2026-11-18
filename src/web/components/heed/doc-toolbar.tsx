@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-// The toolbar of the one document editor Heed writes long text in, a flat strip under a hairline.
+// The toolbar of the one document editor Footnote writes long text in, a flat strip under a hairline.
 // The context editor, the term editor and About our business share it (and docExtensions).
 
 /* ---------- editorcn's toolbar, trimmed to what markdown carries ---------- */

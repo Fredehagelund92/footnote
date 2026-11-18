@@ -631,7 +631,7 @@ function proposalsService(
     async discard(
       id: string,
       revision: number,
-      /** Heed v1's Context list (FR-139): an owner of the draft's domain deletes it too. */
+      /** Footnote v1's Context list (FR-139): an owner of the draft's domain deletes it too. */
       { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
     ) {
       const p = await current(id, revision)

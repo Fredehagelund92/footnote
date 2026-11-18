@@ -2,7 +2,7 @@ import * as z from 'zod/mini'
 import { areaRoleSchema, globalRoleSchema } from './auth.ts'
 import { peopleRoleFilterSchema, peopleSignInFilterSchema } from './people-filters.ts'
 
-/** A person Heed knows: signed in at least once and still here, gone (deactivated), or erased. */
+/** A person Footnote knows: signed in at least once and still here, gone (deactivated), or erased. */
 export const personStatusSchema = z.enum(['active', 'left', 'erased'])
 
 export { peopleRoleFilterSchema, peopleSignInFilterSchema }

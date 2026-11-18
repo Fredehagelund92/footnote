@@ -51,7 +51,7 @@ export const TERMS: Definition[] = [
     by: 'Noor Haddad',
     updated: '2 Jul 2026',
   }),
-  // Synonyms: Heed's own words that mean a synced item, or another term.
+  // Synonyms: Footnote's own words that mean a synced item, or another term.
   term('GMV', { sameAs: 'Gross sales', domain: 'sales', by: 'Jon Abara', updated: '14 Oct 2026' }),
   term('Turnover', {
     sameAs: 'Net revenue',

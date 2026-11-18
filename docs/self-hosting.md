@@ -1,12 +1,12 @@
 ---
-title: Self-host Heed on one computer
+title: Self-host Footnote on one computer
 line: Run it with docker compose on one computer, back it up, restore it, upgrade it and roll an upgrade back.
 group: Run the service
 order: 2
 reviewed: 2026-11-18
 ---
 
-Run it with `docker compose` on one computer, back it up, restore it, upgrade it and roll an upgrade back. To run it anywhere else, see [Where to run Heed](where-to-run.md).
+Run it with `docker compose` on one computer, back it up, restore it, upgrade it and roll an upgrade back. To run it anywhere else, see [Where to run Footnote](where-to-run.md).
 
 > **For local evaluation, not for production use.** Anyone who reaches this setup can sign in as an admin, the database trusts every connection in its container network, and nothing is encrypted in transit. Keep both ports on this computer, as `compose.yaml` does, and put no company data in it that this computer may not hold.
 

@@ -21,7 +21,7 @@
   --default-transition-timing-function: var(--ease-out);
 }
 
-/* Heed's theme: shadcn neutral, with Heed blue as the one primary. Two changes for contrast:
+/* Footnote's theme: shadcn neutral, with Footnote blue as the one primary. Two changes for contrast:
    muted text at 4.5:1 on the muted surface, and input borders at 3:1 on the page. Text has two
    greys, ink and muted: shadcn's other text colours are the ink. */
 :root {

@@ -125,7 +125,7 @@ const midSentence = (name: string) =>
 const sentence = (text: string) => `${text[0]!.toUpperCase()}${text.slice(1)}`
 
 /**
- * What the dates the question's words name are, from how Heed read them ("1 Jan to 7 Oct 2026
+ * What the dates the question's words name are, from how Footnote read them ("1 Jan to 7 Oct 2026
  * (this year so far; UTC)"): "this year so far". The time zone stays in `dates_read`.
  */
 function readNote(readsAs: string | null | undefined): string | null {
@@ -500,7 +500,7 @@ export type ContextSay = {
   withheld: readonly string[]
   /** The sentence of `assumed_date`, when the question gave no dates. */
   assumed: string | null
-  /** How Heed read the dates in the question's words, when it read them there. */
+  /** How Footnote read the dates in the question's words, when it read them there. */
   readsAs?: string | null
   /** A person's question in Ask: a window from the earliest date is said "up to". */
   upTo?: boolean

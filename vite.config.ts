@@ -17,7 +17,7 @@ import {
 /*
   The web app in src/web, on the repository's router, icon module and class merge.
   `npm run dev` serves it and `npm run build` builds it to dist/web. Its
-  pages read their data through one typed API (src/web/api): the mock binding by default, the Heed
+  pages read their data through one typed API (src/web/api): the mock binding by default, the Footnote
   service with VITE_API_MODE=http.
 */
 
@@ -41,7 +41,7 @@ let warnedOfOldNames = false
  */
 export function renamedWebSettings(): Plugin {
   return {
-    name: 'heed-web:renamed-settings',
+    name: 'footnote-web:renamed-settings',
     config(_, { mode }) {
       const { environment, oldNames } = withRenamedSettings(loadEnv(mode, root, ''))
       const used = oldNames.filter((name) => webSettings.includes(renamedSettings[name]))
@@ -62,7 +62,7 @@ export function renamedWebSettings(): Plugin {
 export function productTitle(): Plugin {
   let name = productNameFrom(undefined)
   return {
-    name: 'heed-web:product-title',
+    name: 'footnote-web:product-title',
     configResolved(config) {
       name = productNameFrom((config.env as Record<string, string | undefined>).HEED_PRODUCT_NAME)
     },
@@ -83,7 +83,7 @@ const bootstrapPath = fileURLToPath(new URL('./src/web/theme-bootstrap.js', impo
  */
 export function themeBootstrap(): Plugin {
   return {
-    name: 'heed-web:theme-bootstrap',
+    name: 'footnote-web:theme-bootstrap',
     transformIndexHtml: {
       order: 'pre',
       handler: () => [
@@ -112,7 +112,7 @@ export function crawlerFiles(): Plugin {
   // Where the docs open in the app (src/web/lib/doc-links.ts).
   const base = '/docs'
   return {
-    name: 'heed-web:crawler-files',
+    name: 'footnote-web:crawler-files',
     apply: 'build',
     generateBundle() {
       const files = docFiles()
@@ -136,7 +136,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     tsconfigPaths: true,
     // The binding the app talks to (src/web/api/binding.ts): the mock, unless VITE_API_MODE=http
-    // asks for the Heed service, so neither build carries the other.
+    // asks for the Footnote service, so neither build carries the other.
     alias:
       loadEnv(mode, root, 'VITE_').VITE_API_MODE === 'http'
         ? [{ find: /^\.\/binding$/, replacement: `${webRoot}/api/binding-http.ts` }]
@@ -162,7 +162,7 @@ export default defineConfig(({ mode }) => ({
     productTitle(),
     crawlerFiles(),
   ],
-  // With VITE_API_MODE=http the app calls the Heed service at /api/v1 on its own origin; these
+  // With VITE_API_MODE=http the app calls the Footnote service at /api/v1 on its own origin; these
   // forward it there (`npm run dev:server`).
   server: { port: 5173, strictPort: true, proxy: apiProxy },
   preview: { port: 4173, strictPort: true, proxy: apiProxy },

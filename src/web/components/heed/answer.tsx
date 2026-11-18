@@ -329,7 +329,7 @@ function ScopeLine({ answer }: { answer: Answer }) {
   )
 }
 
-/* ---------- what Heed looked up ---------- */
+/* ---------- what Footnote looked up ---------- */
 
 /** An answer that says nothing of links follows none. */
 const NO_LINKS: AnswerLinks = { on: true, followed: [], notFollowed: [] }
@@ -831,7 +831,7 @@ function AnswerWords({
   )
 }
 
-/** When a question used a Heed synonym: "You asked about turnover - this is Net revenue", opening the definition. */
+/** When a question used a Footnote synonym: "You asked about turnover - this is Net revenue", opening the definition. */
 function AliasChip({ alias }: { alias: NonNullable<Answer['alias']> }) {
   return (
     <button

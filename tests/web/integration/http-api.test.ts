@@ -2,9 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../../src/server/app.ts'
 import { systemClock } from '../../../src/server/clock.ts'
 import { createLogger } from '../../../src/server/observability/logger.ts'
-import { heedApiMethods, type HeedApi } from '@/api/client'
+import { footnoteApiMethods, type FootnoteApi } from '@/api/client'
 import { createHttpApi, wiredMethods } from '@/api/http'
-import { describeHeedApi } from '../conformance/heed-api'
+import { describeFootnoteApi } from '../conformance/heed-api'
 import { idleJobs } from '../../server/idle-jobs.ts'
 import { apiDatabase, testDatabase } from '../../integration/support.ts'
 import { devPeople, OWNER, seedDemoWeek, TODAY } from '../http/demo-week.ts'
@@ -46,7 +46,7 @@ const app = buildApp({
   // The agents the demo week's people connected sign in with the service's own login server.
   login: await demoLoginServer('http://localhost:3000', 'http://localhost:5173'),
 })
-let api: HeedApi | undefined
+let api: FootnoteApi | undefined
 let base = ''
 let address = ''
 // A browser keeps the session cookie and sends its origin; this jar does both.
@@ -93,7 +93,7 @@ afterAll(async () => {
   await handbook?.close()
 })
 
-describeHeedApi('http binding on PostgreSQL', () => api!, {
+describeFootnoteApi('http binding on PostgreSQL', () => api!, {
   person: OWNER.name,
   wired: wiredMethods,
   colleague: colleague.name,
@@ -174,7 +174,9 @@ describe('the http binding', () => {
   })
 
   it('answers every method of the interface on the service: none says not available', () => {
-    const unwired = heedApiMethods.filter((m) => !(wiredMethods as readonly string[]).includes(m))
+    const unwired = footnoteApiMethods.filter(
+      (m) => !(wiredMethods as readonly string[]).includes(m),
+    )
     expect(unwired).toEqual([])
   })
 })

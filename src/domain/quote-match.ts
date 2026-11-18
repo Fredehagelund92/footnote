@@ -1,5 +1,5 @@
 /*
-  Whether a quoted sentence is on a page Heed read (the automatic quote match). A page and a
+  Whether a quoted sentence is on a page Footnote read (the automatic quote match). A page and a
   quote rarely carry the same bytes even when the words are the same: a no-break space where the
   quote has a space, curly quotes where it has straight ones, a soft hyphen, a line break, a word
   in capitals by the page's style. Both sides are reduced to the same plain form first, so a match

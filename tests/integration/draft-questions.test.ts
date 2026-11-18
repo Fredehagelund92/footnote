@@ -13,7 +13,7 @@ import { signInHarness } from './sign-in-harness.ts'
   suggest_context's second slice (FR-121) end to end on PostgreSQL: when the person's agent can
   show forms (MCP 2026-07-28, multi round-trip elicitation), the open questions are asked there
   before anything is saved, and the draft is saved once with the answers marked confirmed; the
-  person still submits it in Heed. An app that cannot show forms, whatever its family, gets the
+  person still submits it in Footnote. An app that cannot show forms, whatever its family, gets the
   draft link and the question list, as before. A request state that was changed, belongs to
   another person or call, was used already or came back too late saves nothing.
 */
@@ -191,7 +191,7 @@ describe('the open questions, asked in the agent of a person who can answer them
     expect(saved[0]).toMatchObject({ id: out.draft_id, state: 'submitted' })
     expect(saved[0]!.answers_round).toMatch(/^[0-9a-f-]{36}$/)
 
-    // The person opens it in Heed and sees what they confirmed.
+    // The person opens it in Footnote and sees what they confirmed.
     const author = browser()
     await author.signIn('author')
     const draft = (await (await author.api(`/proposals/${out.draft_id}`)).json()) as {
@@ -213,7 +213,7 @@ describe('the open questions, asked in the agent of a person who can answer them
     expect(review.provenance.fields).toMatchObject({ kind: 'confirmed', evidence: 'confirmed' })
   })
 
-  it('saves the draft as before when the person declines, to finish it in Heed', async () => {
+  it('saves the draft as before when the person declines, to finish it in Footnote', async () => {
     const { out } = await draftWith(await personToken(), {
       era: 'modern',
       elicitation: {},

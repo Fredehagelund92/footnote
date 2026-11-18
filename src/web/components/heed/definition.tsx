@@ -466,7 +466,7 @@ export function SynonymTags({
 /**
  * What a definition is, read-only, the same in the peek and on its page: for a synced item the
  * synced note, its meaning and the names Cube gives it; for a term its meaning or what it is the
- * same as; then "Also called in Heed" and the context about it.
+ * same as; then "Also called in Footnote" and the context about it.
  */
 /** The context about a definition: the first five, then more on request, so the page grows instead of a box scrolling. */
 function ContextAbout({ subject, about }: { subject: Definition; about: Fact[] }) {

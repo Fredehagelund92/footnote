@@ -80,7 +80,7 @@ export const gapDetailSchema = z.extend(gapSchema, {
   notes: z.nullable(z.array(gapNoteSchema)),
   /**
    * The live edition when the gap was covered (FR-610): the one that carries the context published
-   * for it. Null while it is not covered, and for a gap covered before Heed recorded the edition:
+   * for it. Null while it is not covered, and for a gap covered before Footnote recorded the edition:
    * unknown stays unknown.
    */
   resolvedEdition: z.nullable(z.string()),

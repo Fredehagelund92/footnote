@@ -198,7 +198,7 @@ describe('the hosts the MCP server answers', () => {
 })
 
 describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
-  it("names Heed's one version, from package.json, in the server info", async () => {
+  it("names Footnote's one version, from package.json, in the server info", async () => {
     const { version } = JSON.parse(
       await readFile(new URL('../../../package.json', import.meta.url), 'utf8'),
     ) as { version: string }
@@ -513,7 +513,7 @@ it('records the family of the app that called, never its name, and how a read ca
     expect(stored).not.toContain(raw)
 })
 
-describe.each(['legacy', 'auto'] as const)('item pages in Heed (FR-347), %s', (mode) => {
+describe.each(['legacy', 'auto'] as const)('item pages in Footnote (FR-347), %s', (mode) => {
   it('links each delivered item on the web app address, and declares the link', async () => {
     const s = await server(undefined, { web: 'http://localhost:5173' }),
       client = await s.connect(mode)
@@ -533,7 +533,7 @@ describe.each(['legacy', 'auto'] as const)('item pages in Heed (FR-347), %s', (m
       { type: 'text', text: JSON.stringify(reply.structuredContent) },
       {
         type: 'text',
-        text: 'Open in Heed - Norway closure: http://localhost:5173/context/itm_norway01 - Checked 4 Aug 2026 by the owner of Finance.',
+        text: 'Open in Footnote - Norway closure: http://localhost:5173/context/itm_norway01 - Checked 4 Aug 2026 by the owner of Finance.',
       },
     ])
     // The full reply says how it was reviewed, in the words it always had.
@@ -542,13 +542,13 @@ describe.each(['legacy', 'auto'] as const)('item pages in Heed (FR-347), %s', (m
       arguments: { ...call.params.arguments, response_format: 'full' },
     })
     expect((full.content as { text: string }[])[1]!.text).toBe(
-      'Open in Heed - Norway closure: http://localhost:5173/context/itm_norway01 - Published 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.',
+      'Open in Footnote - Norway closure: http://localhost:5173/context/itm_norway01 - Published 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.',
     )
   })
 })
 
 describe.each(['legacy', 'auto'] as const)('the server instructions (FR-343), %s', (mode) => {
-  it('say what Heed is, the order of calls, how to read no match and what notes never hold', async () => {
+  it('say what Footnote is, the order of calls, how to read no match and what notes never hold', async () => {
     const s = await server(),
       client = await s.connect(mode)
     const instructions = client.getInstructions() ?? ''
@@ -766,7 +766,7 @@ describe.each(['legacy', 'auto'] as const)('a result read alone (FR-344), %s', (
   it('teaches a weaker model that calls with the wrong names, values or shapes', async () => {
     const s = await server(),
       client = await s.connect(mode)
-    // A market Heed does not know: what it could not read, the choices, and that it proves nothing.
+    // A market Footnote does not know: what it could not read, the choices, and that it proves nothing.
     const unknown = await client.callTool({
       name: 'get_context',
       arguments: {
@@ -793,14 +793,14 @@ describe.each(['legacy', 'auto'] as const)('a result read alone (FR-344), %s', (
       const wrong = await client.callTool({ name: 'get_context', arguments: args })
       expect(wrong.isError).toBe(true)
       for (const field of fields) expect(text(wrong)).toContain(field)
-      // Heed's own words, not the SDK's: the fields it takes and one call that works.
+      // Footnote's own words, not the SDK's: the fields it takes and one call that works.
       expect(text(wrong)).toMatch(
         /^Nothing was looked up yet\. The request was missing something or had a value that doesn't fit\. get_context could not read its arguments: .+\. Nothing was checked or saved, so this says nothing about what is written down\. It takes question \(required\), metrics, .+\. Call it again with arguments like \{"question":/,
       )
       expect(text(wrong)).not.toContain('Input validation error')
       expect(wrong.structuredContent).toMatchObject({ status: 'invalid_input' })
     }
-    // A model's mistake is counted apart from Heed's failures, and its words are not kept.
+    // A model's mistake is counted apart from Footnote's failures, and its words are not kept.
     await s.gateway.flush()
     const requests = s.records.flatMap((r) => (r.kind === 'request' ? [r.value] : []))
     expect(requests.filter((r) => r.status === 'invalid_input')).toHaveLength(3)

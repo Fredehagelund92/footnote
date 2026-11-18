@@ -2,7 +2,7 @@ import { card, cardIn, expect, go, mode, onMockOnly, test } from './go.ts'
 import type { Locator, Page } from '@playwright/test'
 
 // J40: the Inbox pane opens on the consequence. A suggestion says what agents answer today and
-// what they will answer after the decision, in Heed's own answer states, with the evidence folded
+// what they will answer after the decision, in Footnote's own answer states, with the evidence folded
 // below; its one button is named for the decision, with Enter beside it and the words that say
 // what follows. A card with no answers to compare (a check date, an alert, a report) keeps the
 // folded layout: its point, its folds and its decision.

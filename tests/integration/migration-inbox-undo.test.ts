@@ -17,7 +17,7 @@ const { client } = testDatabase({ unmigrated: true })
 */
 
 async function atVersion5() {
-  const before = await mkdtemp(join(tmpdir(), 'heed-migration-0005-'))
+  const before = await mkdtemp(join(tmpdir(), 'footnote-migration-0005-'))
   for (const name of [
     '0001_baseline.sql',
     '0002_edition_digest_byte_order.sql',

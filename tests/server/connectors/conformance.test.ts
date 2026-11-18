@@ -113,7 +113,7 @@ beforeAll(async () => {
     'metrics/metrics.json': JSON.stringify(withoutRevenue(metrics)),
   })
   await host.repository('example-wrong', { 'metrics/metrics.json': '{ "metrics": [] }' })
-  serverFolder = await mkdtemp(join(tmpdir(), 'heed-kit-folder-'))
+  serverFolder = await mkdtemp(join(tmpdir(), 'footnote-kit-folder-'))
   await writeFile(join(serverFolder, 'metrics.json'), JSON.stringify(metrics))
   await writeFile(join(serverFolder, 'semantic_manifest.json'), JSON.stringify(legacyManifest))
   const semantic = (file: unknown, space?: number) => ({

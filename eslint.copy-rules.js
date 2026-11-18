@@ -21,7 +21,7 @@ import {
 
 const wordsOf = (sentence) => sentence.split(/\s+/).filter(Boolean).length
 
-/** Calls `visit(node, text, whole)` for each string a person reads, as heed/plain-words reads them. */
+/** Calls `visit(node, text, whole)` for each string a person reads, as footnote/plain-words reads them. */
 function eachReadText(context, visit) {
   const check = (node, text, whole, isJsx) => {
     if (typeof text !== 'string' || !text.trim()) return

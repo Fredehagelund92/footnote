@@ -1,6 +1,6 @@
 import { flushSync } from 'react-dom'
 
-// One list in Heed changes its order the same way everywhere: Overview's topics, Context's items
+// One list in Footnote changes its order the same way everywhere: Overview's topics, Context's items
 // and the definitions. A pointer change of what is shown (a tab, a filter, a sort, a grouping)
 // moves the rows on the screen to their new places in one view transition, those that arrive fade
 // in and those that go fade out, while the rest of the page changes at once under them

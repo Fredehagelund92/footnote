@@ -30,7 +30,7 @@ it('refuses missing and later failed checks', async () => {
   }
 })
 // FR-206 (16 October 2026): an administrator and an owner of the area accept their own proposal at
-// every risk. FR-513 (Heed v1): one accept and levels 1 to 3 publish it, whatever its risk.
+// every risk. FR-513 (Footnote v1): one accept and levels 1 to 3 publish it, whatever its risk.
 it.each(['low', 'normal', 'high'] as const)(
   "takes an owner's and an administrator's own accept at %s risk, with no approver",
   async (risk) => {

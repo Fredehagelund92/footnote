@@ -192,12 +192,12 @@ export const replyItemSchema = z.object({
   applies_note: z.optional(z.string()),
   /** Delivered items this one conflicts with. */
   conflicts_with: z.optional(z.array(z.string())),
-  /** Its page in Heed (FR-347): on the web app's address, or a path on it without one. */
+  /** Its page in Footnote (FR-347): on the web app's address, or a path on it without one. */
   url: z.optional(z.string()),
 })
 /**
  * What a metric means, for a definition question (FR-338): the source's own words (at most 500
- * characters), where they come from, and what Heed adds. The same as find_context gives.
+ * characters), where they come from, and what Footnote adds. The same as find_context gives.
  */
 export const replyDefinitionSchema = z.object({
   term: z.string(),
@@ -221,7 +221,7 @@ export const replyDefinitionSchema = z.object({
       state: z.enum(['current', 'changed', 'missing']),
     }),
   ),
-  /** Heed's notes and guides about it, when the source gives no words. */
+  /** Footnote's notes and guides about it, when the source gives no words. */
   library: z.optional(
     z.array(z.object({ id: z.string(), kind: z.string(), title: z.string(), summary: z.string() })),
   ),
@@ -259,7 +259,7 @@ export const previewReplySchema = z.object({
     ),
   ),
   /**
-   * The day Heed read a question at because it gave no dates: today in the workspace's time zone,
+   * The day Footnote read a question at because it gave no dates: today in the workspace's time zone,
    * with a sentence for the person. Present whenever the reply used it.
    */
   assumed_date: z.optional(

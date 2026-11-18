@@ -1,8 +1,8 @@
 /**
- * The one boundary between the web app (src/web) and its data: `HeedApi`. Two bindings
+ * The one boundary between the web app (src/web) and its data: `FootnoteApi`. Two bindings
  * implement it. The mock binding (mock/) answers from the demo world's fixtures and runs its rules
  * in memory, with the scenarios a review needs (a page that loads slowly or fails, being offline, a
- * fresh install). The http binding (http.ts) talks to the Heed service through the API contract
+ * fresh install). The http binding (http.ts) talks to the Footnote service through the API contract
  * (src/contract). `index.ts` picks one; no page knows which.
  *
  * Reads are per screen where a screen joins many sources (a `*Page` read is the one its loading
@@ -137,7 +137,7 @@ export type ObsValueList = {
 }
 
 /**
- * What a write that can be taken back offers: its token for `HeedApi.undo`, until `until`, the
+ * What a write that can be taken back offers: its token for `FootnoteApi.undo`, until `until`, the
  * service's end of the window (an ISO time; null when it is taken at any time). The screens offer
  * Undo for exactly that long (lib/undo.ts).
  */
@@ -319,14 +319,14 @@ export type InviteNote = { email: string; admin: boolean; domains: string[] }
 
 /**
  * What inviting did: a link for each address invited (sent to them by whoever invites, while
- * Heed sends no email), and each address left out, with why.
+ * Footnote sends no email), and each address left out, with why.
  */
 export type Invited = {
   links: { email: string; link: string }[]
   skipped: { email: string; why: 'member' | 'pending' | 'removed' }[]
 }
 
-export interface HeedApi {
+export interface FootnoteApi {
   // Session and workspace
   getSession: () => Promise<Session>
   /** How people sign in here. Needs no session. */
@@ -809,8 +809,8 @@ export interface HeedApi {
   keepNewAnswer: (input: { id: string }) => Promise<Undoable>
 }
 
-/** Every method of `HeedApi`, once. The compiler checks the list is complete. */
-export const heedApiMethods = [
+/** Every method of `FootnoteApi`, once. The compiler checks the list is complete. */
+export const footnoteApiMethods = [
   'getSession',
   'getSignInMethod',
   'readInvite',
@@ -951,16 +951,16 @@ export const heedApiMethods = [
   'saveQuestion',
   'removeSavedQuestion',
   'keepNewAnswer',
-] as const satisfies readonly (keyof HeedApi)[]
+] as const satisfies readonly (keyof FootnoteApi)[]
 
-type Missing = Exclude<keyof HeedApi, (typeof heedApiMethods)[number]>
-/** Fails to compile while a method of HeedApi is not in the list above. */
+type Missing = Exclude<keyof FootnoteApi, (typeof footnoteApiMethods)[number]>
+/** Fails to compile while a method of FootnoteApi is not in the list above. */
 const complete: [Missing] extends [never] ? true : Missing = true
 void complete
 
-export type HeedApiMethod = (typeof heedApiMethods)[number]
+export type FootnoteApiMethod = (typeof footnoteApiMethods)[number]
 
-/** The reads: every other method of `HeedApi` is a write. */
+/** The reads: every other method of `FootnoteApi` is a write. */
 export const readMethods = [
   'getSession',
   'listSignInPeople',
@@ -1018,7 +1018,7 @@ export const readMethods = [
   'obsDimensions',
   'obsValues',
   'replayTopic',
-] as const satisfies readonly HeedApiMethod[]
+] as const satisfies readonly FootnoteApiMethod[]
 
 /**
  * The reads a screen's loading state shows (Loadable, or the skeleton of Overview's filter and its
@@ -1042,7 +1042,7 @@ export const pageReads = [
   'integrationsPage',
   'integrationPage',
   'connectForm',
-] as const satisfies readonly HeedApiMethod[]
+] as const satisfies readonly FootnoteApiMethod[]
 
 export type PageRead = (typeof pageReads)[number]
 

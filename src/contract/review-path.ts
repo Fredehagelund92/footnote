@@ -1,5 +1,5 @@
 /**
- * The review of Heed v1 on the API (docs/product.md, section 4; design contract, section 5.3): one
+ * The review of Footnote v1 on the API (docs/product.md, section 4; design contract, section 5.3): one
  * read for the review page (`review.sheet`), and its decisions. The sheet holds the suggestion's
  * difference by kind (src/domain/doc-diff.ts), its claims against the copied sentence
  * (claim-check.ts), a clash with live context, what agents say before and after (the answer

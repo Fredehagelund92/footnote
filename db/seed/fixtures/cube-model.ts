@@ -1,5 +1,5 @@
 /**
- * The demo Cube model (db/seed/cube) as the Cube connector reads it: the definition facts Heed
+ * The demo Cube model (db/seed/cube) as the Cube connector reads it: the definition facts Footnote
  * stores (CON-207, never a calculation), and how the demo vocabulary points at them. The bulk
  * seed stores exactly these, so the demo has real definition reads, and the mock binding answers
  * the catalogue from them. tests/server/connectors/demo-model.test.ts compiles the model and
@@ -442,7 +442,7 @@ export const demoWarnings = [
 ] as const
 
 /**
- * Definitions Cube changed after the first read: the mark Heed read then. Items accepted before
+ * Definitions Cube changed after the first read: the mark Footnote read then. Items accepted before
  * the change and not checked since carry the old mark, so they need a check (CON-209).
  */
 export const changedDefinitions: Record<string, { previousMark: string; changedAt: string }> = {

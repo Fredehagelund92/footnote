@@ -71,7 +71,7 @@ describe('the L1 checks of one reply', () => {
   }
   it('passes a reply that gives what the case expects', () => {
     const reply = {
-      say: 'Heed has 1 item for Net revenue, Norway, 1-7 Oct 2026.',
+      say: 'Footnote has 1 item for Net revenue, Norway, 1-7 Oct 2026.',
       status: 'matched',
       context: [item],
       check_report: { cut: false },

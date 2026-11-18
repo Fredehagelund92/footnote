@@ -9,7 +9,7 @@ export function Bad({ open }: { open: boolean }) {
       <span className="scale-0 animate-[wiggle_1s] motion-reduce:transition-none" />
       <span className="animate-in fade-in-0 motion-reduce:animate-none" />
       <span className="not-a-real-class font-light" />
-      <p style={{ padding: 13 }}>Heed keeps a fact checked.</p>
+      <p style={{ padding: 13 }}>Footnote keeps a fact checked.</p>
       <CheckIcon />
     </div>
   )

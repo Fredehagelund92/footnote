@@ -4,7 +4,7 @@ What each MCP tool and each API operation does, with the requirement ids and the
 
 How agents connect over MCP and what they get, and the HTTP API for definition sources, proposals, review and release, and the inbox. The API is described once in `src/contract` and published as [OpenAPI](../api/openapi.json).
 
-## Connect Claude Code to Heed
+## Connect Claude Code to Footnote
 
 On `docker compose up`, Claude Code signs in through the web app's consent page, with no token:
 `claude mcp add --transport http heed http://localhost:3000/mcp`, then `/mcp` and Authenticate in
@@ -18,7 +18,7 @@ claude mcp add --transport http heed http://localhost:3000/mcp \
 
 ### The six tools (the agent contract)
 
-Since the agent contract (Heed v1, [the product page](../product.md#10-what-agents-get)) the server
+Since the agent contract (Footnote v1, [the product page](../product.md#10-what-agents-get)) the server
 offers six tools, described in one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`):
 `get_context`, `find_context`, `read_context`, `report`, `suggest_context` and `get_related`.
 `improve_question`, `domain_overview`, `what_changed` and `search_help` left the list, and left
@@ -30,7 +30,7 @@ The earlier ids answered for one release and went in 0.2.0: `get_facts` (now `ge
 `suggest_context`). A call by one of them is refused as an unknown tool. Inside the service
 `get_facts` is still the name of the reply a draft's preview and the evals read; no agent can call it.
 
-Heed's server instructions (FR-343) tell the agent what Heed holds and what the data tool holds,
+Footnote's server instructions (FR-343) tell the agent what Footnote holds and what the data tool holds,
 to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
 result's `say`, which starts with the answer line, and to follow its `next`, the step for the agent
 (every read result has them, FR-344, so they reach a client that drops the instructions), how to
@@ -92,7 +92,7 @@ person defined, `terms` names it, up to five, each meaning once: `word` as the q
 `name` and `kind` (`term`, `metric` or `dimension`) of what it names, `synonym: true` when the
 word is another name for it, a term's `meaning` as written, its `domain`, `written` (the role that
 wrote it, the owner of its domain or an admin, never the person, and the day) and `url`, its page
-in Definitions, with a line `Open in Heed - <name>: <url> - Written ...` in the text. `next` then
+in Definitions, with a line `Open in Footnote - <name>: <url> - Written ...` in the text. `next` then
 says to read the words by them and never to give a term as a checked source. A term changes
 neither the items that apply nor the answer state: a question that only names a term ("What does
 peak season mean?") is still `need_more_detail`. Agents get the live terms whatever the edition, as
@@ -123,12 +123,12 @@ With `response_format: "full"` (FR-342) the reply keeps the same fields and adds
 carried: each item's version, body, validity, claim level, every source, owner, review stamp and
 links (FR-326, FR-331), `scope_used`, `dates_read` and `assumed_date`, the domains the question is
 about with what their owners wrote (FR-813), `options`, `check_report` and `instructions`. Every
-item carries `url`, its page in Heed, and the result's text has a line per item,
-`Open in Heed - <title>: <url>`, with who checked it, so the reader of an answer can check a cited
+item carries `url`, its page in Footnote, and the result's text has a line per item,
+`Open in Footnote - <title>: <url>`, with who checked it, so the reader of an answer can check a cited
 item in one click (FR-347). The address is the first of `HEED_WEB_ORIGINS`; the eval runner and the previews run
 without one and give the path (`/context/itm_...`). A link holds only the item's id: the page
 applies the audience rules to whoever opens it. Metric and dimension names may be the member names
-the agent just queried in Cube (`orders.returns`, or `cube:orders.returns`): Heed resolves them
+the agent just queried in Cube (`orders.returns`, or `cube:orders.returns`): Footnote resolves them
 through the term's definition, and a member no term points at comes back with "Did you mean" and
 the closest names (CON-517). A metric group (Revenue) stands for its metrics: `say` names them, and
 on a reply about more than one metric each item names the ones it is about in `about`, so an agent
@@ -138,7 +138,7 @@ they are built from the served edition only.
 **`find_context`** (FR-338) finds what is written down
 about a few words: names and other names (Net sales), domains, member names and words in an item's
 title, summary or text. It falls back to the items that apply to the scope the words name, gives
-each named metric's or dimension's definition with where it comes from and what Heed adds, and says
+each named metric's or dimension's definition with where it comes from and what Footnote adds, and says
 why when nothing is found. It takes a `domain` (a name or an id), a `kind` (`event`, `warning`,
 `rule`, `guide`), a `window` and a `limit`, and lists titles and summaries under `context`, never a
 body. An unknown domain comes back with the closest match and every valid choice (FR-341); a
@@ -182,7 +182,7 @@ service token names no person and is refused with a 403 that says so, and is nev
 tool. The agent passes the words (`text`, at most 2,000 characters, never a transcript) and
 optional hints: `title`, `summary`, `kind`, `scope` (names, as in its `get_context` call), `window`
 (inclusive dates), `evidence` (links and one sentence each), `not_to_conclude` (if the person said),
-`area` (only when the person chose one) and `item_id` to suggest a change. Heed calls no model here.
+`area` (only when the person chose one) and `item_id` to suggest a change. Footnote calls no model here.
 `src/domain/agent-draft.ts` derives what it can exactly: names to vocabulary keys (never a key the
 agent made up), the domain when every scoped metric belongs to one domain (the vocabulary's domain,
 otherwise the Cube domain), dates the words name, and the kind by the shape of the words. It never
@@ -398,7 +398,7 @@ archive and a rollback also take an `Idempotency-Key`.
   absent, the reply fits, and no active test question of the domain turns from pass to fail. Both
   look at the item as delivered once nothing stops it.
 - No answer test gates a proposal (FR-513): levels 4 and 5 (`answer_impact`, `answer_full`) are
-  history, kept on the versions whose runs recorded them before Heed v1. A failed level 1 to 3
+  history, kept on the versions whose runs recorded them before Footnote v1. A failed level 1 to 3
   blocks acceptance, with no override (FR-514).
 - `POST /items/{id}/retire-proposals` (API only, with no screen in the web app) lets anyone
   suggest archiving an item, with a reason; one can be open per item. Its owners review it like
@@ -421,7 +421,7 @@ archive and a rollback also take an `Idempotency-Key`.
 
 ## The review path and the Inbox
 
-Heed v1's one review screen and its Inbox (docs/product.md, sections 4 and 5) read and decide
+Footnote v1's one review screen and its Inbox (docs/product.md, sections 4 and 5) read and decide
 through these operations, typed in `src/contract/review-path.ts` and `src/contract/inbox.ts`.
 Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A decision
 that can be taken back answers with `undo: { token, until }`: the token for `POST /decisions/undo`,
@@ -568,7 +568,7 @@ edition holds is built from them. Writes need the session cookie, `Origin`, `x-h
 
 ## Context
 
-Heed v1's Context list, a context item's page, the editor and Settings, Advanced (docs/product.md,
+Footnote v1's Context list, a context item's page, the editor and Settings, Advanced (docs/product.md,
 section 3) read and change items through these operations, typed in `src/contract/context.ts`.
 Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A change that
 can be taken back answers with `undo: { token, until }`, as a decision does.
@@ -810,7 +810,7 @@ and `next` as before.
   as) and `rows` (the keys of the terms an analysis listed). They hold no answer text and no
   data value and are never stored; the service keeps the newest that fit 4,000 characters. For a
   question the rules cannot read (`need_more_detail`), a value alone that finds nothing, a question
-  about what changed that names nothing Heed keeps, or a follow-up of the chat, the model of
+  about what changed that names nothing Footnote keeps, or a follow-up of the chat, the model of
   `models.assistant` (with `MODELS=live`; the scripted planner with `MODELS=mock`) chooses Ask's
   reads in one call of at most 3 seconds, under the spending limits and metered as the assistant's.
   A checked plan sends a `plan` event first, with what the working line says, then the reads' steps
@@ -977,7 +977,7 @@ over its months) found nothing at least the minimum times.
   by default), so the `observability.rollup` job keeps, each night before retention, every
   completed week (Monday to Sunday, UTC) in `obs_weekly`: the agent calls of each domain in each
   answer state, and nothing else (FR-612, [db/README.md](../../db/README.md#gaps-counts-and-privacy)).
-  `GET /observability/summary` is their reader. The same job keeps what Heed caught in `obs_caught_weekly`: for
+  `GET /observability/summary` is their reader. The same job keeps what Footnote caught in `obs_caught_weekly`: for
   each week and domain, how many times a saved question's answer changed after a change, by the
   change (a publish, an archive, a restore, a sync, a check date passing), and the alerts each rule
   raised with how many an owner or administrator acted on within 14 days. Counts only, no words and
@@ -994,10 +994,10 @@ over its months) found nothing at least the minimum times.
   waits for each in the Inbox), the changes published after review, with who approved each, and
   what was caught besides the answers with a warning (`caught`): `saved.total` and
   `saved.triggers`, the times a saved question's answer came out Changed or Needs a look where it
-  was Same before, in a check Heed ran on its own after a change; and `alerts.raised` and
+  was Same before, in a check Footnote ran on its own after a change; and `alerts.raised` and
   `alerts.acted`, the alerts that asked an owner for a decision (Not found, a saved question needs
   a look, a check is due) and those an owner or administrator acted on within 14 days, by a
-  decision Heed keeps. Each is its own line on the page, never added to another and never called
+  decision Footnote keeps. Each is its own line on the page, never added to another and never called
   prevented. A whole week is read from `obs_caught_weekly`, any other day from the records through
   `cl_obs_caught`, which runs as the owner. An alert about several domains counts only for every
   domain together.
@@ -1038,7 +1038,7 @@ over its months) found nothing at least the minimum times.
 
 ## Settings, domains and agents
 
-Heed v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read and change below is in
+Footnote v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read and change below is in
 `src/contract/index.ts`; the app's http binding words them for the screens
 (`src/web/api/http-settings.ts`).
 

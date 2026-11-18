@@ -118,7 +118,7 @@ export const settingSchemas = {
   ),
   // About our business (domain/about-business.ts): what the company does and the words models
   // misread, as background the assistant and connected agents get, never as evidence. Kept as
-  // plain text in Heed's form of it; empty gives them none.
+  // plain text in Footnote's form of it; empty gives them none.
   'business.about': z.string().check(
     z.overwrite(normalizeAboutBusiness),
     z.refine(
@@ -263,7 +263,7 @@ export const auditEntrySchema = z.object({
   batchId: z.nullable(z.string()),
   /** Why, as the person gave it for a role change; null when they gave none. */
   reason: z.nullable(z.string()),
-  /** Where a role change came from: `named` is a person naming another in Heed. */
+  /** Where a role change came from: `named` is a person naming another in Footnote. */
   source: z.nullable(z.enum(['named'])),
 })
 export type AuditEntry = z.infer<typeof auditEntrySchema>

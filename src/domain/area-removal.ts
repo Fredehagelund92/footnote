@@ -1,6 +1,6 @@
 /*
   Deleting a domain (the specification's area; FR-814), in one step. The administrator reads what
-  goes with it and types `permanently delete`; Heed then handles everything under the domain in
+  goes with it and types `permanently delete`; Footnote then handles everything under the domain in
   one transaction, and nothing has to be moved first:
 
   - its accepted items move to the Bin, with the reason "Domain deleted", in one new edition, so

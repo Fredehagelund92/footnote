@@ -213,7 +213,7 @@ export function createWorkspaceSources({
 
   /**
    * What is wrong with the secrets given: one the source has no slot for, one the settings do not
-   * use, and an address kept as a secret that Heed may not fetch. Never the value.
+   * use, and an address kept as a secret that Footnote may not fetch. Never the value.
    */
   const secretProblems = (
     connector: RegisteredConnector,
@@ -311,8 +311,8 @@ export function createWorkspaceSources({
 
   /**
    * The scopes and the schedule, checked: a content source covers at least one scope, each once
-   * and each in a Heed domain (CON-601, CON-602); a definitions source reads the groups chosen,
-   * each once and each in a Heed domain or in none, or every group when none is chosen. A
+   * and each in a Footnote domain (CON-601, CON-602); a definitions source reads the groups chosen,
+   * each once and each in a Footnote domain or in none, or every group when none is chosen. A
    * schedule is at or above its connector's minimum and reads the source before it goes out of
    * date (CON-115).
    */

@@ -3,9 +3,9 @@ import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import { linkContext } from './lib/links.ts'
 import { repoRoot, sidebar, sitePages } from './lib/pages.ts'
-import { remarkHeedDocs } from './lib/remark-heed-docs.ts'
+import { remarkFootnoteDocs } from './lib/remark-heed-docs.ts'
 import { basePath, readSettings } from './lib/settings.ts'
-import { heedTokens } from './lib/tokens.ts'
+import { footnoteTokens } from './lib/tokens.ts'
 
 /*
   The public docs site (README.md): docs/help and the operator pages, read where they are, in the
@@ -27,10 +27,10 @@ export default defineConfig({
   markdown: {
     // Astro's default processor runs no remark plugins.
     processor: unified({
-      remarkPlugins: [[remarkHeedDocs, linkContext(pages, base, settings.ref)]],
+      remarkPlugins: [[remarkFootnoteDocs, linkContext(pages, base, settings.ref)]],
     }),
   },
-  vite: { plugins: [heedTokens()], server: { fs: { allow: [repoRoot] } } },
+  vite: { plugins: [footnoteTokens()], server: { fs: { allow: [repoRoot] } } },
   integrations: [
     starlight({
       title: settings.product,

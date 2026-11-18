@@ -64,13 +64,13 @@ describe('the demo model', () => {
   const folders: string[] = []
   afterAll(() => Promise.all(folders.map((folder) => rm(folder, { recursive: true }))))
   const copy = async () => {
-    const folder = await mkdtemp(join(tmpdir(), 'heed-model-'))
+    const folder = await mkdtemp(join(tmpdir(), 'footnote-model-'))
     folders.push(folder)
     await cp(demoModelDir, folder, { recursive: true })
     return folder
   }
 
-  it('is the folder that comes with Heed, or an exact copy of it', async () => {
+  it('is the folder that comes with Footnote, or an exact copy of it', async () => {
     expect(await isDemoModel(demoModelDir)).toBe(true)
     expect(await isDemoModel(await copy())).toBe(true)
   })
@@ -82,16 +82,16 @@ describe('the demo model', () => {
     await writeFile(join(added, 'more.yml'), 'cubes: []\n')
     expect(await isDemoModel(changed)).toBe(false)
     expect(await isDemoModel(added)).toBe(false)
-    expect(await isDemoModel(join(tmpdir(), 'heed-no-such-model'))).toBe(false)
+    expect(await isDemoModel(join(tmpdir(), 'footnote-no-such-model'))).toBe(false)
     expect(await isDemoModel(undefined)).toBe(false)
   })
 })
 
 describe('the model folder', () => {
   it('is refused when it is missing or empty, as a folder Docker does not share arrives', async () => {
-    const empty = await mkdtemp(join(tmpdir(), 'heed-empty-model-'))
+    const empty = await mkdtemp(join(tmpdir(), 'footnote-empty-model-'))
     try {
-      for (const folder of [empty, join(tmpdir(), 'heed-no-such-model')])
+      for (const folder of [empty, join(tmpdir(), 'footnote-no-such-model')])
         await expect(checkModelFolder(folder)).rejects.toThrow(
           new PrepareError(
             `CUBE_MODEL_DIR: the folder ${folder} is missing or holds no files, so there is no Cube model to read. When it is a folder on this computer shared into a container, check that Docker may read it: on a Mac, Docker Desktop shares only the folders under Settings, Resources, File sharing, and Colima shares your home folder unless told otherwise. To run the demo, leave CUBE_MODEL_DIR unset.`,

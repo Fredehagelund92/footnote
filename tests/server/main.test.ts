@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { mintDevToken } from '../../src/server/mcp/auth.ts'
-import { heedVersion } from '../../src/server/version.ts'
+import { footnoteVersion } from '../../src/server/version.ts'
 
 /** Runs the real entry point with Node, as `npm run dev:server` does. Needs no database. */
 
@@ -46,7 +46,11 @@ describe('the service entry point', { timeout: 30_000 }, () => {
     const url = await server.listening
     const response = await fetch(`${url}/health`)
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ status: 'ok', service: 'heed', version: heedVersion })
+    expect(await response.json()).toEqual({
+      status: 'ok',
+      service: 'heed',
+      version: footnoteVersion,
+    })
 
     server.child.kill('SIGTERM')
     expect(await server.exited).toBe(0)
@@ -63,7 +67,7 @@ describe('the service entry point', { timeout: 30_000 }, () => {
   })
 
   it('starts in production with company sign-in, and serves MCP on its own address', async () => {
-    const keys = await mkdtemp(join(tmpdir(), 'heed-production-'))
+    const keys = await mkdtemp(join(tmpdir(), 'footnote-production-'))
     let server: ReturnType<typeof start> | undefined
     try {
       // Production makes no key of its own: the operator creates the signing key (owner-only).

@@ -30,7 +30,7 @@ const { client, url } = testDatabase()
 const database = apiDatabase(url)
 const logger = createLogger({ level: 'silent' })
 const clock = systemClock('2026-10-08')
-const configDir = await mkdtemp(join(tmpdir(), 'heed-view-list-'))
+const configDir = await mkdtemp(join(tmpdir(), 'footnote-view-list-'))
 const viewsFile = join(configDir, 'views.json')
 const registry = new ConnectorRegistry([
   createCubeSource({

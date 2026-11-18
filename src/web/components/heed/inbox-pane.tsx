@@ -32,7 +32,7 @@ import { ANSWER_SIDES, type Answers, type PaneState } from '@/model/inbox-pane'
 
 // The Inbox pane's own parts, shared with the review's quick view in the dock: a head that says
 // what the card is (its state as a chip, the domain, a 24 px title, the point in one sentence, then
-// where it came from); what agents answer today and after the decision, in Heed's own answer
+// where it came from); what agents answer today and after the decision, in Footnote's own answer
 // states; folds for the evidence; and a foot with the one decision, named for what it does, and the
 // words that say what follows. Secondary decisions sit beside the primary as labelled buttons.
 
@@ -51,7 +51,7 @@ export const cardIcon = {
   returned: CornerUpLeftIcon,
 } satisfies Record<PaneState['icon'], unknown>
 
-/** The card's state as Heed's one chip: its icon and its word, tinted only when it needs care. */
+/** The card's state as Footnote's one chip: its icon and its word, tinted only when it needs care. */
 export function StateChip({ state }: { state: PaneState }) {
   const Icon = cardIcon[state.icon]
   return (
@@ -184,7 +184,7 @@ const afterRule: Record<AnswerState, string> = {
   failed: 'border-t-muted-foreground',
 }
 
-/** One side of the answers: its label, Heed's answer line, and the words agents give. */
+/** One side of the answers: its label, Footnote's answer line, and the words agents give. */
 function AnswerSide({
   label,
   answer,

@@ -1,5 +1,5 @@
 /*
-  Heed's design for Starlight: its tokens (lib/tokens.ts) under Starlight's names, and the parts of
+  Footnote's design for Starlight: its tokens (lib/tokens.ts) under Starlight's names, and the parts of
   the app's docs pages (src/web/pages/docs.tsx) Starlight draws its own way. Values come from the
   tokens; this file holds only the mapping.
 */

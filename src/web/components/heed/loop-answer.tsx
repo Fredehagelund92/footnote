@@ -1264,7 +1264,7 @@ const copyOf = (answer: Answer) => answer.text.replace(/\[\d+\]/g, '')
 
 /**
  * The state on one line with its fixed sentence; the Definition label for an answer that uses no
- * item and is about a definition; or From Heed's records for a records answer.
+ * item and is about a definition; or From Footnote's records for a records answer.
  */
 function StateRow({ loop, words }: { loop: LoopTurn; words: React.RefObject<HTMLElement | null> }) {
   const P = useParts()

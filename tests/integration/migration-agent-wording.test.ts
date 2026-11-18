@@ -18,7 +18,7 @@ const oldIds = ['get_context', 'search_context', 'find_context'] as const
 const newIds = ['get_facts', 'search_facts', 'find_facts'] as const
 
 it('renames the policy label, the tool ids and what is stored under them, and nothing else', async () => {
-  const before = await mkdtemp(join(tmpdir(), 'heed-migration-0002-'))
+  const before = await mkdtemp(join(tmpdir(), 'footnote-migration-0002-'))
   try {
     for (const name of ['0001_baseline.sql', '0002_edition_digest_byte_order.sql'])
       await copyFile(new URL(name, migrationDirectory), join(before, name))

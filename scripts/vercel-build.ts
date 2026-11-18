@@ -7,14 +7,14 @@ import { readDevPeople } from '../src/server/modules/auth/index.ts'
 import { inlineScriptHashes } from './web-csp.ts'
 
 /*
-  Builds Heed for Vercel (vercel.json, docs/vercel.md): `npm run build:vercel`.
+  Builds Footnote for Vercel (vercel.json, docs/vercel.md): `npm run build:vercel`.
 
   1. The web app in http mode into dist/web, which Vercel serves as static files.
   2. Checks that vercel.json lets exactly the built page's inline scripts run.
   3. The service bundled into one file, dist/vercel/heed.mjs, which the function api/heed.js
      exports. Bundled, the function holds a few MB rather than every package in node_modules,
      which is over Vercel's limit. Cube's native compiler and pg's native driver stay out: the
-     function never loads them. Heed's version and the picker's people, which the service reads
+     function never loads them. Footnote's version and the picker's people, which the service reads
      from files beside its code, are written into the bundle (src/server/bundled.ts).
 */
 
@@ -65,7 +65,7 @@ export async function bundleService(
     external: ['@cubejs-backend/native', 'pg-native'],
     // Packages written as CommonJS call require, which an ES module does not have.
     banner: {
-      js: "import { createRequire as heedCreateRequire } from 'node:module'; const require = heedCreateRequire(import.meta.url);",
+      js: "import { createRequire as footnoteCreateRequire } from 'node:module'; const require = footnoteCreateRequire(import.meta.url);",
     },
     define: { HEED_BUNDLE: JSON.stringify(JSON.stringify({ version, people })) },
     legalComments: 'none',

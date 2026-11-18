@@ -162,7 +162,7 @@ export type KeyState = {
   tools: readonly AgentToolName[]
 }
 
-/** Only the tools Heed knows: a name the database might hold for a tool since retired is dropped. */
+/** Only the tools Footnote knows: a name the database might hold for a tool since retired is dropped. */
 const known = (tools: readonly string[]): AgentToolName[] =>
   agentToolNames.filter((tool) => tools.includes(tool))
 

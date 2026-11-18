@@ -28,9 +28,9 @@ export type Principal = {
    */
   connection?: string
   /**
-   * The agent Heed knows the token as (FR-420): an app a person connected, or an access key, with
+   * The agent Footnote knows the token as (FR-420): an app a person connected, or an access key, with
    * the tools an admin left on for it now. The gateway offers and runs only those, and only where
-   * `scopes` allow them too. Absent for a token Heed keeps no agent for: a dev token, or one from
+   * `scopes` allow them too. Absent for a token Footnote keeps no agent for: a dev token, or one from
    * another login server.
    */
   agent?: { kind: AgentKind; id: string; tools: readonly AgentToolName[] }
@@ -155,8 +155,8 @@ export function createPersonVerifier(options: {
 }
 
 /**
- * Whether a connection is open, and which agent it signs in as with its tools on (null when Heed
- * keeps no agent for it). Null itself when Heed keeps no such connection.
+ * Whether a connection is open, and which agent it signs in as with its tools on (null when Footnote
+ * keeps no agent for it). Null itself when Footnote keeps no such connection.
  */
 export type AgentCheck = (connection: string) => Promise<{
   state: 'open' | 'revoked' | 'expired'

@@ -40,7 +40,7 @@ export function loadDocs(files = docFiles()): Docs {
 
 export function helpDocs(): Plugin {
   return {
-    name: 'heed:help-docs',
+    name: 'footnote:help-docs',
     resolveId: (source) =>
       source === id ? resolved : source === titlesId ? titlesResolved : undefined,
     load(module) {

@@ -40,7 +40,7 @@ import {
 import { missing } from '../../../contract/refusals.ts'
 
 /*
-  The Inbox of Heed v1 (docs/product.md, section 5): the cards of the domains a person owns (every
+  The Inbox of Footnote v1 (docs/product.md, section 5): the cards of the domains a person owns (every
   domain for an administrator), made from today's records and grouped by need. Not found: open
   gaps of those domains. Reported: anonymous feedback that said an answer was wrong or unclear,
   until an owner says it is not a problem (decided 26 October 2026), and named reports from Ask,
@@ -844,7 +844,7 @@ export function createInboxFeedService(
         input.reason ??
         (input.action === 'still_true' ? 'Checked: still true.' : 'Archived from the Inbox.')
       if (input.action === 'still_true') {
-        // Heed v1's check (FR-139): an owner of its domain or an admin, as Mark as checked.
+        // Footnote v1's check (FR-139): an owner of its domain or an admin, as Mark as checked.
         const result = await deps.review.recheck(key.id, reason, { v1: true })
         const [decision] = await tx.query<{ id: string }>(
           `select id::text from decisions where proposal_id=$1 and decided_by=cl_person() and outcome='accept'

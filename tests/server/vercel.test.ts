@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type pg from 'pg'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { heedVersion } from '../../src/server/version.ts'
+import { footnoteVersion } from '../../src/server/version.ts'
 import { createVercelHandler, POOL_MAX, type VercelRuntime } from '../../src/server/vercel.ts'
 
 /**
@@ -41,7 +41,11 @@ describe('the Vercel function', () => {
     const { base, pools } = await serve({ DATABASE_URL: unreachable })
     const response = await fetch(`${base}/health`)
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ status: 'ok', service: 'heed', version: heedVersion })
+    expect(await response.json()).toEqual({
+      status: 'ok',
+      service: 'heed',
+      version: footnoteVersion,
+    })
     await fetch(`${base}/health`)
     expect(pools).toHaveLength(1)
     expect(pools[0]!.options.max).toBe(POOL_MAX)

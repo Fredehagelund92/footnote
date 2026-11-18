@@ -3,7 +3,7 @@ import {
   fullDayWords,
   readDates,
   UTC_CALENDAR,
-  whatHeedReads,
+  whatFootnoteReads,
   type Calendar,
   type DateSpan,
 } from './dates.ts'
@@ -22,7 +22,7 @@ import {
   type Term,
   type WordMeaning,
 } from './vocabulary.ts'
-import { DEFAULT_PRODUCT_NAME } from './brand.ts'
+import { DEFAULT_PRODUCT_NAME, FORMER_PRODUCT_NAME } from './brand.ts'
 import { everydayWords, isEverydayWord, saysHow } from './everyday-words.ts'
 
 /**
@@ -45,9 +45,9 @@ export type ScopeInput = {
   calendar?: Calendar
 }
 /**
- * A part of the scope Heed could not read. `message`, for a name it does not know, says so and
+ * A part of the scope Footnote could not read. `message`, for a name it does not know, says so and
  * names the closest it does, so the caller can recover without guessing (FR-341). A word with
- * more than one meaning says how a person writes it (`word`) and each meaning (`meanings`): Heed
+ * more than one meaning says how a person writes it (`word`) and each meaning (`meanings`): Footnote
  * never chooses one.
  */
 export type ScopeIssue = {
@@ -59,12 +59,12 @@ export type ScopeIssue = {
   meanings?: WordMeaning[]
 }
 /**
- * The day Heed read a question at because it gave no dates: today in the workspace's time zone,
+ * The day Footnote read a question at because it gave no dates: today in the workspace's time zone,
  * UTC until it sets one (NFR-048). A reply that used it says so (`assumedDate`), never silently.
  */
 export type AssumedDate = { date: string; time_zone: string; reason: 'no date given' }
 /**
- * The dates Heed read in the words of a question: the words as written, and how it read them for
+ * The dates Footnote read in the words of a question: the words as written, and how it read them for
  * a person ("1 Jan to 7 Oct 2026 (this year so far; UTC)"). A reply that used them says so.
  */
 export type DatesRead = { words: string; reads_as: string }
@@ -103,7 +103,7 @@ const nonValueWords = new Set(
   ),
 )
 /**
- * The dimensions a value word Heed does not know could be a value of: those with values that the
+ * The dimensions a value word Footnote does not know could be a value of: those with values that the
  * metrics can be split by, or every dimension with values when no metric says.
  */
 function valueDimensions(terms: readonly Term[], metrics: readonly string[]): Term[] {
@@ -130,7 +130,7 @@ function oneTypoApart(a: string, b: string): boolean {
 /** The words after which a value goes: "orders in Jordan", "orders from the Nordics". */
 const valuePlaces = new Set(['in', 'for', 'from', 'to', 'at', 'across'])
 
-/** A word Heed does not know where a value goes, and what is beside it. */
+/** A word Footnote does not know where a value goes, and what is beside it. */
 type UnknownValue = DateSpan & {
   /** The dimension whose name is right after it ("the jordan market"), else null. */
   dimension: string | null
@@ -139,13 +139,13 @@ type UnknownValue = DateSpan & {
 }
 
 /**
- * The words of a question that sit where a value goes and name nothing Heed knows (L4): after in,
+ * The words of a question that sit where a value goes and name nothing Footnote knows (L4): after in,
  * for, from, to, at or across, with or without "the" ("orders from jordan", "orders in the
  * nordics"); right before a metric ("jordan orders"); or right before a dimension's name ("the
- * jordan market"), which then says which dimension. Each is a value Heed does not have, said and
+ * jordan market"), which then says which dimension. Each is a value Footnote does not have, said and
  * never dropped: one word, or a run of words in Title case ("New York"). None is an everyday word
  * ("orders in total", "revenue in gbp"), a number, a word in capitals ("GBP", "YTD"), a plural
- * right after the place word ("orders in stores"), another form of a name Heed knows ("markets"),
+ * right after the place word ("orders in stores"), another form of a name Footnote knows ("markets"),
  * nor the name of the product or of a tool a definition comes from ("cube"). A short code written
  * in lowercase ("orders in uk") is said with the value it would be. Before a metric, only a word
  * that starts what is asked counts ("jordan orders", not "who owns orders"); after "to" that
@@ -183,6 +183,7 @@ function unknownValuesByPlace(
   const known = found.names
   const tools = new Set([
     normalizeName(DEFAULT_PRODUCT_NAME),
+    normalizeName(FORMER_PRODUCT_NAME),
     ...terms.flatMap((t) => t.definitionRefs.map((ref) => normalizeName(ref.split(':')[0]!))),
   ])
   const nameAt = (i: number) => named.find((n) => n.start === words[i]?.start)
@@ -270,7 +271,7 @@ function unknownValuesByPlace(
 }
 
 /**
- * What a reply says when Heed read a question at today because it gave no dates: the day, its
+ * What a reply says when Footnote read a question at today because it gave no dates: the day, its
  * time zone and why, as data, with a sentence for the person (`note`); for the check report,
  * which items a day gives and how to ask about another period (`statement`); and the instruction
  * to say it.
@@ -487,7 +488,7 @@ function readWords(
     dates = {
       status: 'unreadable',
       spans: [],
-      message: `The dates in the question cannot be read. ${whatHeedReads(today)}`,
+      message: `The dates in the question cannot be read. ${whatFootnoteReads(today)}`,
     }
   }
   const dated = dates.status === 'none' ? [] : dates.spans
@@ -512,7 +513,7 @@ const kindWords: Record<Term['kind'], string> = {
   dimension_value: 'value',
 }
 /**
- * A name Heed does not know, in words, with the closest names it does: "No metric in Heed has
+ * A name Footnote does not know, in words, with the closest names it does: "No metric in Footnote has
  * the member traffic.sessions as its definition. Did you mean Sessions (metric:sessions)?"
  */
 export function unknownName(
@@ -536,7 +537,7 @@ export function unknownName(
 }
 
 /**
- * A value word Heed does not know, in words, with the dimensions it could be a value of and the
+ * A value word Footnote does not know, in words, with the dimensions it could be a value of and the
  * closest values: "There is no value of Market named 'Jordan'."
  */
 export function unknownValue(
@@ -557,7 +558,7 @@ export function unknownValue(
 /**
  * Structured fields take precedence. Text extraction uses whole, longest vocabulary phrases, and
  * the dates in the words are read by `readDates`, which says how it read them (`dates`). Dates the
- * words give are never replaced: words Heed cannot read as dates ask for them, and say what Heed
+ * words give are never replaced: words Footnote cannot read as dates ask for them, and say what Footnote
  * reads. A question that gives no dates is read at today, and the result says so (`assumed`).
  */
 export function extractScope(
@@ -649,7 +650,7 @@ export function extractScope(
   const dimensions = valueDimensions(terms, metrics)
   const valuesOf = (dimension: Term) =>
     terms.filter((term) => term.kind === 'dimension_value' && term.parentKey === dimension.key)
-  // A value word Heed does not know, where a value goes, is said, never dropped: Ask's rule only
+  // A value word Footnote does not know, where a value goes, is said, never dropped: Ask's rule only
   // (`loose`), on a question that names something to look up; agents read as before.
   if (
     structured.loose &&
@@ -749,7 +750,7 @@ export function readQuestion(
   terms: Term[]
   window: DateWindow | null
   dates: DatesRead | null
-  /** With `loose`: words that name dates Heed could not place, so every date was read. */
+  /** With `loose`: words that name dates Footnote could not place, so every date was read. */
   unplaced?: string[]
   issues: ScopeIssue[]
   spans: Span[]

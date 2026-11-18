@@ -9,7 +9,7 @@ import { loadStory } from './story.ts'
 import { goldenExtras, goldenLibrary } from './golden-fixtures.ts'
 
 /*
-  `npm run seed`: data to develop, test and show Heed on, in a local database (db/README.md).
+  `npm run seed`: data to develop, test and show Footnote on, in a local database (db/README.md).
   A new database gets the demo on its own when SEED_DEMO=on (db/prepare.ts); this is the same
   data, and the variants the tests need.
 
@@ -36,7 +36,7 @@ function librarySeedUrl(env: NodeJS.ProcessEnv): string {
   const url = env.DATABASE_URL_SEED
   if (!url)
     throw new UsageError(
-      'Set DATABASE_URL_SEED to an empty local Heed database as a superuser, such as postgres://localhost:5432/context_layer_dev',
+      'Set DATABASE_URL_SEED to an empty local Footnote database as a superuser, such as postgres://localhost:5432/context_layer_dev',
     )
   const parsed = new URL(url)
   if (

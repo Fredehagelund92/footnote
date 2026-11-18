@@ -1,14 +1,14 @@
 # Working with coding agents
 
-This page is for people who use a coding agent (Claude Code, Codex, Cursor or another) to change Heed, and for the agents themselves. The rules are the same as for any contributor. The checks run on the change, not on who or what typed it.
+This page is for people who use a coding agent (Claude Code, Codex, Cursor or another) to change Footnote, and for the agents themselves. The rules are the same as for any contributor. The checks run on the change, not on who or what typed it.
 
 ## Read these first
 
 In this order, and only as far as the task needs:
 
-1. [README](../README.md): what Heed is and how to run it.
+1. [README](../README.md): what Footnote is and how to run it.
 2. [CONTRIBUTING](../CONTRIBUTING.md): the commands, the class rules, the module boundaries, the budget and how reviews work.
-3. [Develop Heed](development.md): the folder map and every command.
+3. [Develop Footnote](development.md): the folder map and every command.
 4. For a screen: [Product](product.md), the [design contract](design/design-contract.md), [copy](design/copy.md) and [components](design/components.md). The web app leads; the mockup it was built from is a reference in git history, under the tag `mockup-archive`.
 5. For the service: [db/README.md](../db/README.md), [Run and operate the service](operations.md), [the API reference](reference.md) and [the internals](contributing/internals.md).
 

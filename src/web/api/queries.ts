@@ -8,7 +8,7 @@ import {
   type QueryKey,
 } from '@tanstack/react-query'
 import type { SourceRead } from '@domain/source-state'
-import { api, mockControls, type HeedApi, type HeedApiMethod } from '@/api'
+import { api, mockControls, type FootnoteApi, type FootnoteApiMethod } from '@/api'
 import {
   isPageRead,
   type readMethods,
@@ -486,9 +486,9 @@ export const useAgentConnections = () =>
 
 /* ---------- writes ---------- */
 
-type Method<K extends HeedApiMethod> = HeedApi[K]
+type Method<K extends FootnoteApiMethod> = FootnoteApi[K]
 type Read = (typeof readMethods)[number]
-export type WriteOperation = Exclude<HeedApiMethod, Read>
+export type WriteOperation = Exclude<FootnoteApiMethod, Read>
 export type WriteInput<K extends WriteOperation> = Parameters<Method<K>>[0]
 export type WriteResult<K extends WriteOperation> = Awaited<ReturnType<Method<K>>>
 

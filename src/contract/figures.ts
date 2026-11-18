@@ -108,7 +108,7 @@ export const noFigureReasons = [
   'no_value',
   /** The integration could not be read just now. */
   'failed',
-  /** The metric's view is not one of those Heed reads from the integration. */
+  /** The metric's view is not one of those Footnote reads from the integration. */
   'not_read',
 ] as const
 export type NoFigureReason = (typeof noFigureReasons)[number]

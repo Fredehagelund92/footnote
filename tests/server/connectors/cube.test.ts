@@ -21,7 +21,7 @@ afterEach(async () => {
   await Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true })))
 })
 async function model(transform: (text: string) => string = (text) => text) {
-  const dir = await mkdtemp(join(tmpdir(), 'heed-cube-'))
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-cube-'))
   temporary.push(dir)
   await writeFile(join(dir, 'model.yml'), transform(await readFile(fixture, 'utf8')))
   return dir
@@ -90,7 +90,7 @@ describe('offline Cube source', () => {
       new Set(['model.yml']),
     )
     // The same model one folder down: every member names the new path, and no mark changes.
-    const dir = await mkdtemp(join(tmpdir(), 'heed-cube-'))
+    const dir = await mkdtemp(join(tmpdir(), 'footnote-cube-'))
     temporary.push(dir)
     await mkdir(join(dir, 'views'))
     await writeFile(join(dir, 'views', 'model.yml'), await readFile(fixture, 'utf8'))
@@ -117,7 +117,7 @@ describe('offline Cube source', () => {
     )
     const overrides = join(dir, 'overrides.json')
     // Keep configuration outside the model: every unsupported model file must warn.
-    const configDir = await mkdtemp(join(tmpdir(), 'heed-domains-'))
+    const configDir = await mkdtemp(join(tmpdir(), 'footnote-domains-'))
     temporary.push(configDir)
     const configFile = join(configDir, 'domains.json')
     await writeFile(
@@ -166,7 +166,7 @@ describe('offline Cube source', () => {
 
   it('reads an empty line of the domain names as one still to fill', async () => {
     const dir = await model((text) => text.replace('    meta:\n      domain: finance\n', ''))
-    const configDir = await mkdtemp(join(tmpdir(), 'heed-domains-'))
+    const configDir = await mkdtemp(join(tmpdir(), 'footnote-domains-'))
     temporary.push(configDir)
     const configFile = join(configDir, 'domains.json')
     await writeFile(configFile, JSON.stringify({ sales: '' }))
@@ -260,7 +260,7 @@ describe('offline Cube source', () => {
 
   it('reads renamed members from configuration and warns about renames it cannot use', async () => {
     const dir = await model((text) => text.replace('- name: growth', '- name: expansion'))
-    const configDir = await mkdtemp(join(tmpdir(), 'heed-renames-'))
+    const configDir = await mkdtemp(join(tmpdir(), 'footnote-renames-'))
     temporary.push(configDir)
     const renamesFile = join(configDir, 'renames.json')
     await writeFile(
@@ -283,7 +283,7 @@ describe('offline Cube source', () => {
 
   it('reads only the views its file lists, a cube two of them include through each', async () => {
     const dir = await model()
-    const configDir = await mkdtemp(join(tmpdir(), 'heed-views-'))
+    const configDir = await mkdtemp(join(tmpdir(), 'footnote-views-'))
     temporary.push(configDir)
     const viewsFile = join(configDir, 'views.json')
     const listing = async (views: unknown) => {
@@ -376,7 +376,7 @@ describe('offline Cube source', () => {
     expect(await failure(read('/does/not/exist'))).toEqual([
       { code: 'no_model_files', target: 'model' },
     ])
-    const empty = await mkdtemp(join(tmpdir(), 'heed-cube-'))
+    const empty = await mkdtemp(join(tmpdir(), 'footnote-cube-'))
     temporary.push(empty)
     await writeFile(join(empty, 'notes.txt'), 'no model here')
     expect(await failure(read(empty))).toEqual([
@@ -419,7 +419,7 @@ describe('offline Cube source', () => {
 // meta.domain taken out, read in place as a whole folder.
 it('reads a whole model folder in place and names each view that has no domain yet', async () => {
   const demoFolder = fileURLToPath(new URL('../../../db/seed/cube', import.meta.url))
-  const dir = await mkdtemp(join(tmpdir(), 'heed-cube-folder-'))
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-cube-folder-'))
   temporary.push(dir)
   const files = (await readdir(demoFolder)).filter((name) => name.endsWith('.yml')).sort()
   for (const name of files) {

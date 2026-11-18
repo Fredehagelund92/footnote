@@ -18,7 +18,7 @@ const eslint = new ESLint({
   cwd: root,
   overrideConfig: { languageOptions: { parserOptions: { projectService: false } } },
   ruleFilter: ({ ruleId }) =>
-    /^(better-tailwindcss|motion|heed|brand|react-hooks)\/|^no-restricted-(imports|syntax)$/.test(
+    /^(better-tailwindcss|motion|footnote|brand|react-hooks)\/|^no-restricted-(imports|syntax)$/.test(
       ruleId,
     ),
 })

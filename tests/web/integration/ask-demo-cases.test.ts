@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import type { HeedApi } from '@/api/client'
+import type { FootnoteApi } from '@/api/client'
 import { chatTurnOf, type Answer } from '@/model/ask'
 import { parsePlan } from '../../../src/domain/ask-plan.ts'
 import type { DroppedSentence } from '../../../src/domain/answer-words.ts'
@@ -88,7 +88,7 @@ function problems(c: DemoCase, a: Answer, text: string) {
   }
 }
 
-async function ask(api: HeedApi, c: DemoCase) {
+async function ask(api: FootnoteApi, c: DemoCase) {
   const turn = c.setup ? chatTurnOf(await api.ask({ question: c.setup })) : undefined
   return api.ask({ question: c.question, ...(turn ? { turns: [turn] } : {}) })
 }

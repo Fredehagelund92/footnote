@@ -23,7 +23,7 @@ const { root, version } = readSettings(process.env)
 <script>
   // The list is read when a page opens, so an old version's pages know of newer ones without being
   // built again. With no versions.json (a copy served on its own) nothing shows.
-  class HeedVersion extends HTMLElement {
+  class FootnoteVersion extends HTMLElement {
     async connectedCallback() {
       const { root = '', current = '' } = this.dataset
       const response = await fetch(`${root}/versions.json`).catch(() => undefined)
@@ -48,5 +48,5 @@ const { root, version } = readSettings(process.env)
       })
     }
   }
-  customElements.define('heed-version', HeedVersion)
+  customElements.define('heed-version', FootnoteVersion)
 </script>

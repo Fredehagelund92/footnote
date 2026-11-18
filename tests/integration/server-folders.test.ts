@@ -46,7 +46,7 @@ const stored = async () =>
 
 beforeAll(async () => {
   await foundation(client)
-  folder = await mkdtemp(join(tmpdir(), 'heed-server-folder-'))
+  folder = await mkdtemp(join(tmpdir(), 'footnote-server-folder-'))
   domains = join(folder, 'domains.json')
   await writeFile(domains, JSON.stringify({ customers: 'finance' }))
   await writeFile(manifestFile(), JSON.stringify(legacyManifest))

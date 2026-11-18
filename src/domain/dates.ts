@@ -8,7 +8,7 @@ import { normalizeName } from './vocabulary.ts'
   to today ("the last 30 days", "this past week"). A named period is the whole period ("in 2026"
   is 1 Jan to 31 Dec 2026), a "this" period runs to today, a "last" one is the last complete one,
   and a day, month or quarter without a year is the latest one that has started. Words that name a
-  period Heed cannot read are never replaced: the reader names them and says what it reads. It is
+  period Footnote cannot read are never replaced: the reader names them and says what it reads. It is
   a pure function of the text and today, a calendar day in one time zone: the workspace's
   (`calendar.time_zone`), else UTC (NFR-048), which `readsAs` names. Fiscal words ("Q3 FY26",
   "last fiscal year") are read on the workspace's fiscal calendar (`calendar.fiscal_year_start`),
@@ -193,7 +193,7 @@ export type DatesRead =
   /** No words in the text name dates. */
   | { status: 'none' }
   /**
-   * One period. `readsAs` says how Heed read it, for a person: the days, what they are and the
+   * One period. `readsAs` says how Footnote read it, for a person: the days, what they are and the
    * time zone, "1 Jan to 7 Oct 2026 (this year so far; UTC)".
    */
   | {
@@ -201,10 +201,10 @@ export type DatesRead =
       window: DateWindow
       readsAs: string
       spans: DateSpan[]
-      /** With `loose`: words that name dates Heed could not place. */
+      /** With `loose`: words that name dates Footnote could not place. */
       unplaced?: string[]
     }
-  /** Words that name dates Heed cannot read, or more than one period, and what it reads. */
+  /** Words that name dates Footnote cannot read, or more than one period, and what it reads. */
   | { status: 'unreadable'; spans: DateSpan[]; message: string }
 
 type Unit = 'day' | 'month' | 'quarter' | 'year'
@@ -458,12 +458,12 @@ const wholeOf = sticky(
   '(?:the )?(?:(?:whole|entire|full|all)(?: of)?|month of|year of|year) (?:the )?',
 )
 const soFar = sticky(' (?:so far|to date)\\b')
-/** The words before a period that make it part of one Heed does not read: "end of", "early". */
+/** The words before a period that make it part of one Footnote does not read: "end of", "early". */
 const qualified =
   /(?:\b(?:early|mid|late|earlier|later|h[12])[- ]?|\b(?:before|after|until|till|by|around|ending|starting|prior to|earlier than|later than|beyond|spring|summer|autumn|winter|christmas|easter) |\b(?:(?:first|second|third|fourth|last|final|1st|2nd) )?(?:end|start|beginning|middle|rest|remainder|half|part|week|weeks|day|days|weekend|close|turn|most|course) of (?:the )?)$/
 
 /**
- * Words that name a period Heed does not read, after the periods it read are taken out: a period
+ * Words that name a period Footnote does not read, after the periods it read are taken out: a period
  * by an event or a season ("since the launch", "this summer"), a count it cannot place ("the past
  * few days", "two weeks ago"), part of a period ("first half"), and dates that do not exist
  * ("2026-02-30"). A word that only says "about now" ("recently", "so far", "right now") names no
@@ -689,7 +689,7 @@ function partOf(period: Period, part: string): Period {
   return { from: start, to: end > to ? to : end }
 }
 
-/** The year a fiscal year is named by, from its digits: "26" is 2026; null for one Heed cannot place. */
+/** The year a fiscal year is named by, from its digits: "26" is 2026; null for one Footnote cannot place. */
 const fiscalYear = (digits: string) => {
   const year = digits.length === 2 ? 2000 + Number(digits) : Number(digits)
   return year < 1900 || year > 9000 ? null : year
@@ -1050,7 +1050,7 @@ function loosePeriods(free: string, today: string, fiscal: FiscalYearStart | nul
   return claims
 }
 
-/** A date with slashes or dots as Heed's people write it, the day first: "12/10/2026". */
+/** A date with slashes or dots as Footnote's people write it, the day first: "12/10/2026". */
 function numericPeriod(words: string): Named | null {
   const parts = words.split(/[/.-]/).map(Number) as [number, number, number]
   const [a, b, c] =
@@ -1129,7 +1129,7 @@ export function readDates(
     }
     i = end - 1
   }
-  // Words that name dates Heed did not read.
+  // Words that name dates Footnote did not read.
   const rest = [...free]
     .map((char, i) => (claims.some((c) => c.start <= i && i < c.end) ? '\u0000' : char))
     .join('')
@@ -1177,7 +1177,7 @@ export function readDates(
     return {
       status: 'unreadable',
       spans,
-      message: `${list(unreadable.map(words))} cannot be read as dates. ${whatHeedReads(today)}`,
+      message: `${list(unreadable.map(words))} cannot be read as dates. ${whatFootnoteReads(today)}`,
     }
   if (distinct.size > 1)
     return {
@@ -1416,10 +1416,10 @@ export function otherReading(
 }
 
 /**
- * What a person reads beside the days of a `readsAs`: only where Heed guessed, "year not given",
+ * What a person reads beside the days of a `readsAs`: only where Footnote guessed, "year not given",
  * "fiscal year read as the calendar year", "Q3 FY26, fiscal year from 1 April", "day first", "could not place 'since the launch'",
  * "not taken: 'fy26'" or the event the days start at, "from “Online sales to Norway stopped”, 4 Aug 2026"; not the words that name the period or its time zone, which the days
- * already say. Null when the words left Heed nothing to guess.
+ * already say. Null when the words left Footnote nothing to guess.
  */
 export function dateNote(readsAs: string): string | null {
   const open = readsAs.indexOf(' (')
@@ -1446,7 +1446,7 @@ export function dateNote(readsAs: string): string | null {
  * What the reader reads, with examples counted from today, so an agent or a person can ask again:
  * "The dates that can be read: a day (7 Oct 2026), a range (1-30 Sep 2026), ...".
  */
-export function whatHeedReads(today: string): string {
+export function whatFootnoteReads(today: string): string {
   const { lastMonth, lastQuarter } = periods(today)
   const range = windowWords({ start: lastMonth.from, end: shiftDate(lastMonth.to, 1) })
   const month = `${capital(monthNames[monthOf(lastMonth.from) - 1]!)} ${yearOf(lastMonth.from)}`

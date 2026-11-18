@@ -54,7 +54,7 @@ it('does not let the verifier cache extend a token lifetime', async () => {
   await expect(verifier.verify(token)).rejects.toThrow()
 })
 it('creates a private reusable local key and refuses production', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'heed-token-')),
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-token-')),
     file = join(dir, 'dev.pem')
   try {
     const key = await devKey(file, 'test')

@@ -314,7 +314,7 @@ describe('every question the tool may ask has a definition the protocol can show
       validity: 'confirmed',
       evidence: 'confirmed',
     })
-    // Every question was answered, so none is left for Heed's own form.
+    // Every question was answered, so none is left for Footnote's own form.
     expect(confirmed.questions.map((q) => q.id)).toEqual([])
   })
 })

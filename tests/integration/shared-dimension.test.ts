@@ -160,7 +160,7 @@ async function countryLink(item: string, metric: string) {
 const items = { sales: '', traffic: '', mention: '' }
 
 beforeAll(async () => {
-  modelDir = await mkdtemp(join(tmpdir(), 'heed-shared-dimension-'))
+  modelDir = await mkdtemp(join(tmpdir(), 'footnote-shared-dimension-'))
   await writeFile(join(modelDir, 'model.yml'), model())
   cube = new ConnectorService(database, new ConnectorRegistry([createCubeSource({ modelDir })]))
   await foundation(client)

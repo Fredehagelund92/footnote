@@ -51,7 +51,7 @@ export async function applyGrants(client: pg.Client, roles = localRoles) {
 }
 
 /**
- * Creates the database, owned by the owner role, when it is missing, and lets only Heed's roles
+ * Creates the database, owned by the owner role, when it is missing, and lets only Footnote's roles
  * connect to it. Run as a superuser, after `createLocalRoles`. Returns whether it created it.
  */
 export async function createLocalDatabase(client: pg.Client, name: string): Promise<boolean> {

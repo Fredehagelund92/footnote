@@ -133,7 +133,7 @@ function standingLine({ standing, voidBecause }: Invite) {
 }
 
 /**
- * What inviting did, as a toast: the link to send each person (Heed sends no email yet), and who
+ * What inviting did, as a toast: the link to send each person (Footnote sends no email yet), and who
  * was left out because they are here or invited already.
  */
 function toastInvited({ links, skipped }: Invited) {

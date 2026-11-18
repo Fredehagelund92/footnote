@@ -1,6 +1,6 @@
-import { heedApiMethods, readMethods } from '../client'
+import { footnoteApiMethods, readMethods } from '../client'
 import { clockTime } from '@/lib/dates'
-import type { HeedApi, HeedApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
+import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
 import { asksNothing, nothingAskedSaid } from '@domain/ask-again'
 import { asksUndefinedWords, limitOf, readsBeyond } from '@domain/ask-plan'
@@ -94,7 +94,7 @@ import { maySettle } from '@domain/conflicts'
 import { TODAY } from '@/model/history'
 
 /**
- * The mock binding: `HeedApi` over the demo world, in memory. Every answer is a copy, as if it came
+ * The mock binding: `FootnoteApi` over the demo world, in memory. Every answer is a copy, as if it came
  * over the wire, so a cache that holds it never shares an object the mock changes later. A reload
  * starts the demo again.
  *
@@ -370,7 +370,7 @@ export function createMockApi() {
       if (a) return a
     }
     // A question about the context's own records is answered from them, as on the service; one
-    // about what changed that names nothing Heed keeps is the business's first, and a word of
+    // about what changed that names nothing Footnote keeps is the business's first, and a word of
     // judgement is the planner's first, with an honest exit when no plan reads it.
     if (recognised?.type === 'records' && recognised.loose) {
       const a = planned(!recognised.judgement)
@@ -427,7 +427,7 @@ export function createMockApi() {
     return { admin: !!person?.admin, owns: person?.owns ?? [] }
   }
   const copy = <T>(value: T): T => (value === undefined ? value : structuredClone(value))
-  const read = <T>(method: HeedApiMethod, key: string, run: () => T) =>
+  const read = <T>(method: FootnoteApiMethod, key: string, run: () => T) =>
     scenario.read(method, key, () => copy(run()))
   // A rule the mock keeps (only its author edits a comment) refuses as the service does: the
   // promise rejects, never throws before it is returned.
@@ -435,7 +435,7 @@ export function createMockApi() {
   const origin = () => globalThis.location?.origin ?? 'http://localhost'
   const now = <T>(run: () => T) => new Promise<T>((resolve) => resolve(copy(run())))
 
-  const api: HeedApi = {
+  const api: FootnoteApi = {
     // Session and workspace
     getSession: () =>
       now(() => ({
@@ -1250,7 +1250,7 @@ export function createMockApi() {
   // Every write is sent as the scenario plays a send: refused offline, failing its first try under
   // a fault flag. These take as long as a send does; every other write answers at once unless a
   // flag plays sends. ?decide=fail names the card it fails on.
-  const timedSends: HeedApiMethod[] = [
+  const timedSends: FootnoteApiMethod[] = [
     'settleConflict',
     'suggestArchiving',
     'saveItem',
@@ -1265,14 +1265,17 @@ export function createMockApi() {
     'closeReview',
     'returnReview',
   ]
-  for (const method of heedApiMethods) {
+  for (const method of footnoteApiMethods) {
     if ((readMethods as readonly string[]).includes(method)) continue
     const write = api[method] as (...args: unknown[]) => Promise<unknown>
     api[method] = ((...args: unknown[]) =>
       scenario.send(method, () => write(...args), {
         quick: !timedSends.includes(method),
         ...(method === 'decideCard'
-          ? { key: (args[0] as Parameters<HeedApi['decideCard']>[0]).card, flag: 'decide' as const }
+          ? {
+              key: (args[0] as Parameters<FootnoteApi['decideCard']>[0]).card,
+              flag: 'decide' as const,
+            }
           : {}),
       })) as never
   }

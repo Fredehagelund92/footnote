@@ -2,7 +2,7 @@
 
 The definitions connector for a dbt project's semantic layer
 ([how a connector is built](../../../docs/connectors/authoring.md)). It reads one file dbt writes,
-`semantic_manifest.json`, from wherever your pipeline puts it, and gives Heed each metric and
+`semantic_manifest.json`, from wherever your pipeline puts it, and gives Footnote each metric and
 dimension under `dbt:`. It takes the definitions only. It never runs dbt or reads the project's
 YAML, and never reaches dbt Cloud, a warehouse or data. It keeps no calculation and no value, and
 has no figures. A read only flags the items that rely on a definition that changed or left: it
@@ -11,7 +11,7 @@ never changes an item and never publishes (I-2).
 ## Setting it up
 
 `dbt parse` writes `target/semantic_manifest.json`. It needs an adapter installed, but reaches no
-warehouse. Most projects ignore `target/`, so your pipeline puts the file somewhere Heed can read
+warehouse. Most projects ignore `target/`, so your pipeline puts the file somewhere Footnote can read
 it. Step 2 of connecting asks where, and each place shows its own recipe:
 
 | Place          | What you give                                          | Best for                                                                                  |
@@ -19,7 +19,7 @@ it. Step 2 of connecting asks where, and each place shows its own recipe:
 | Address        | An https link, kept as a secret                        | A public file, a signed link, an internal artifact server                                 |
 | Object storage | The object's address and a read-only key               | A pipeline that uploads to S3, an S3-compatible store, Google Cloud Storage or Azure Blob |
 | Git repository | A repository, a branch and a read-only token           | A project that commits the file                                                           |
-| Server folder  | Nothing here: whoever runs the server names the folder | A pipeline that drops the file on the machine that runs Heed                              |
+| Server folder  | Nothing here: whoever runs the server names the folder | A pipeline that drops the file on the machine that runs Footnote                          |
 
 **An address.** Upload the file and make a link to it. A link is read as it is, with no key added,
 so it holds whatever it needs. A signed link is as good as a key: it goes in the secret store
@@ -50,7 +50,7 @@ that object and nothing else.
 All but Azure sign each request with Signature Version 4 (`object-storage.ts`): the key stays in the
 secret store and the signature goes to that address alone. Google Cloud Storage takes the same
 signature from an HMAC key at its S3-compatible address. Azure Blob has no such API: a shared access
-signature is the read-only credential it offers, as an account key can do everything. Heed can see
+signature is the read-only credential it offers, as an account key can do everything. Footnote can see
 what a shared access signature may do, and cannot see what an S3 key may do, so least access there
 is yours to set.
 
@@ -102,7 +102,7 @@ config:
     synonyms: ['purchases', 'order count']
 ```
 
-**A folder on the server.** When your CI drops the file on the machine that runs Heed, skip the
+**A folder on the server.** When your CI drops the file on the machine that runs Footnote, skip the
 commit: whoever runs the server names the folder, and the connector reads `semantic_manifest.json`
 in it (`ctx.folder`). It is then one of the server's own sources, with no settings, token or Git.
 The server's domain map (`HEED_DOMAIN_OVERRIDES`) gives a semantic model with no domain its domain.
@@ -135,7 +135,7 @@ HEED_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'
 
 1. Takes the one file. From an address or an object store, one GET through `ctx.fetch`
    ([security](../../../docs/contributing/connector-security.md#http-interface-3)), with the ETag and date of
-   the last read: when the store says the file has not changed, nothing is read and Heed keeps what
+   the last read: when the store says the file has not changed, nothing is read and Footnote keeps what
    it knows. From Git, the one commit the ref names, read only, through `ctx.git`
    ([security](../../../docs/contributing/connector-security.md#git)). Or the server's folder (`ctx.folder`).
 2. Maps it, in plain code with no worker:
@@ -174,16 +174,16 @@ later cannot take them.
 
 **Warnings.**
 
-| Warning                                  | What it means, and what to do                                                                                                                |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `missing_domain`                         | A semantic model, or a `_shared` metric, names no domain. Map it, or set `meta.domain`.                                                      |
-| `invalid_domain`                         | A `meta.domain` is not a domain id, so it gives no domain. Add it to Domain names.                                                           |
-| `dbt-metricflow.description_cut`         | A description is over 500 characters. Only the first 500 are kept.                                                                           |
-| `dbt-metricflow.unknown_type`            | A type this version does not know. The definition is kept with no type, never a guessed one.                                                 |
-| `dbt-metricflow.same_name`               | A metric and a dimension of a semantic model share a name. Only the metric is kept. Rename one.                                              |
-| `dbt-metricflow.unresolved_metric`       | A metric is built on something the file does not hold. It is left out and the read is in part, so what Heed knew stays. Commit a whole file. |
-| `dbt-metricflow.not_a_semantic_manifest` | The read fails: the file is not this one, often `manifest.json`. Point File at the right one.                                                |
-| `dbt-metricflow.not_read_only`           | The read fails: a shared access signature may do more than read. Make one with `sp=r`.                                                       |
+| Warning                                  | What it means, and what to do                                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `missing_domain`                         | A semantic model, or a `_shared` metric, names no domain. Map it, or set `meta.domain`.                                                          |
+| `invalid_domain`                         | A `meta.domain` is not a domain id, so it gives no domain. Add it to Domain names.                                                               |
+| `dbt-metricflow.description_cut`         | A description is over 500 characters. Only the first 500 are kept.                                                                               |
+| `dbt-metricflow.unknown_type`            | A type this version does not know. The definition is kept with no type, never a guessed one.                                                     |
+| `dbt-metricflow.same_name`               | A metric and a dimension of a semantic model share a name. Only the metric is kept. Rename one.                                                  |
+| `dbt-metricflow.unresolved_metric`       | A metric is built on something the file does not hold. It is left out and the read is in part, so what Footnote knew stays. Commit a whole file. |
+| `dbt-metricflow.not_a_semantic_manifest` | The read fails: the file is not this one, often `manifest.json`. Point File at the right one.                                                    |
+| `dbt-metricflow.not_read_only`           | The read fails: a shared access signature may do more than read. Make one with `sp=r`.                                                           |
 
 A file over the cap, compressed or not UTF-8 fails with `unreadable_file`, and one that is not there
 with `not_found`. A refused key or an expired link is `unauthorized`; S3 also says this for a file

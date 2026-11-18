@@ -1,6 +1,6 @@
 import type { AnswerState } from './answer.ts'
 import { isAbout, notSeen, recordsFooter } from './answer-footer.ts'
-import { DEFAULT_PRODUCT_NAME } from './brand.ts'
+import { DEFAULT_PRODUCT_NAME, FORMER_PRODUCT_NAME } from './brand.ts'
 import {
   auditAnswer,
   auditedTerms,
@@ -49,7 +49,7 @@ import { normalizeName, type Term } from './vocabulary.ts'
 
   Pure, so the service and the mock binding read a question and answer it alike: the caller gives
   the records the person may see (only what the Context list shows them), the names the engine's
-  reader found in the words, and the moment it is now. Times are UTC: Heed keeps no time zone of
+  reader found in the words, and the moment it is now. Times are UTC: Footnote keeps no time zone of
   its own, so every period says it.
 */
 
@@ -156,7 +156,7 @@ export type RecordsRecognition =
       type: 'records'
       ask: RecordsAsk
       /**
-       * A question about what changed that names nothing Heed keeps ("what changed last month?"):
+       * A question about what changed that names nothing Footnote keeps ("what changed last month?"):
        * a person means the business, so Ask's planner reads it first (FR-719); with no planner it
        * is the context's changes, as before.
        */
@@ -216,7 +216,7 @@ const overlaps = (a: { start: number; end: number }, b: { start: number; end: nu
   a.start < b.end && b.start < a.end
 
 /**
- * Nouns that make a question about the records: what Heed keeps, never what the business does.
+ * Nouns that make a question about the records: what Footnote keeps, never what the business does.
  * Plainer words for an entry and the kinds' names (an item, a rule, an event) are everyday words
  * too ("the new rule in Spain", "items sold in Norway"), so they count only in a question that
  * names no metric and no market.
@@ -226,8 +226,7 @@ const PLAIN_NOUN =
   /\b(items?|entries|entry|records?|facts?|guides?|rules?|warnings?|events?|notes?)\b/
 
 /** Who may be the subject of "what did X write" without it being one person's work. */
-const NOT_A_PERSON =
-  'agents?|its|anyone|anybody|someone|somebody|nobody|noone|people|everyone|everybody|we|the|owners|administrators|admins|heed|been|it|this|that|there|they|you|no|any|some|all|none|nothing|anything|something|everything|our|their|these|those|a|an|not|most|many|few|was|were|is|are|has|have|had|got|just|recently|lately|already|ever|still|yet|context|items?|entries|entry|records?|facts?|notes?|guides?|rules?|warnings?|events?|metrics?|dimensions?|definitions?|domains?|sources?|values?|kpis?|things?|questions?|topics?'
+const NOT_A_PERSON = `agents?|its|anyone|anybody|someone|somebody|nobody|noone|people|everyone|everybody|we|the|owners|administrators|admins|${DEFAULT_PRODUCT_NAME.toLowerCase()}|${FORMER_PRODUCT_NAME.toLowerCase()}|been|it|this|that|there|they|you|no|any|some|all|none|nothing|anything|something|everything|our|their|these|those|a|an|not|most|many|few|was|were|is|are|has|have|had|got|just|recently|lately|already|ever|still|yet|context|items?|entries|entry|records?|facts?|notes?|guides?|rules?|warnings?|events?|metrics?|dimensions?|definitions?|domains?|sources?|values?|kpis?|things?|questions?|topics?`
 const PERSON_VERBS =
   'write|wrote|written|add|added|change|changed|edit|edited|check|checked|create|created|publish|published|archive|archived|suggest|suggested|review|reviewed|do|done|work on|worked on'
 const PERSON_PAST =
@@ -572,7 +571,7 @@ function kindIn(t: string): RecordsKind | 'definition' | null {
  *
  * A domain is found by its name. The names of metrics and markets the engine's reader found are
  * taken out of the words first, so "What is new customers?" is not "what is new". A question that
- * names a metric or a market is a records question only when it also names what Heed keeps (a
+ * names a metric or a market is a records question only when it also names what Footnote keeps (a
  * context item, a domain, an owner) or asks who owns it: "What changed in returns in the United
  * Kingdom this week?" stays a question about the business.
  */

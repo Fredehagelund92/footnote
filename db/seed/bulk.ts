@@ -77,7 +77,7 @@ const formerRoles: { areaId: string; personId: string; role: 'owner' | 'approver
 /**
  * The check levels each risk required before migration 0005, when every seeded version was
  * accepted. The seeded history keeps them, and an approver's accept for high risk, as a database
- * that ran before Heed v1 does; today every level beyond the first three is history only.
+ * that ran before Footnote v1 does; today every level beyond the first three is history only.
  */
 const requiredLevels = {
   low: ['format', 'matching', 'delivery'],
@@ -325,7 +325,9 @@ export async function bulkSeed(
       'select 1 from items union all select 1 from people union all select 1 from editions limit 1',
     )
     if (existing.rowCount)
-      throw new Error('Bulk seed requires an empty Heed database; it never replaces existing data')
+      throw new Error(
+        'Bulk seed requires an empty Footnote database; it never replaces existing data',
+      )
     for (const table of guards)
       await client.query(`alter table ${identifier(table)} disable trigger user`)
     await insert(

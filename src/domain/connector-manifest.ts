@@ -84,7 +84,7 @@ export const manifestFieldSchema = z.strictObject({
           value: words(200),
           label: words(80),
           description: z.optional(words(300)),
-          /** What to do outside Heed for this choice: a line, and the commands to run. */
+          /** What to do outside Footnote for this choice: a line, and the commands to run. */
           recipe: z.optional(z.strictObject({ lead: words(300), code: words(2_000) })),
           /**
            * Whoever runs the server sets this choice up, not this form (`HEED_SERVER_FOLDERS`): it

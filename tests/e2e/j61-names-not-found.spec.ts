@@ -19,13 +19,13 @@ test('the sidebar is navigation and marks the page you are on', async ({ page })
 test('the conflict page has a title and a heading', async ({ page }) => {
   await go(page, PAIR)
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Conflict')
-  await expect(page).toHaveTitle(/^Conflict.* - Heed$/)
+  await expect(page).toHaveTitle(/^Conflict.* - Footnote$/)
 })
 
 test('sign-in has a heading', async ({ page }) => {
   await go(page, '/inbox')
   await signOut(page)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to Heed')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to Footnote')
 })
 
 const missing = [

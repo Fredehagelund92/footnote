@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { bundleService, cspProblem } from '../../scripts/vercel-build.ts'
-import { heedVersion } from '../../src/server/version.ts'
+import { footnoteVersion } from '../../src/server/version.ts'
 
-/** Heed on Vercel (vercel.json, scripts/vercel-build.ts, docs/vercel.md), without deploying it. */
+/** Footnote on Vercel (vercel.json, scripts/vercel-build.ts, docs/vercel.md), without deploying it. */
 
 const read = (path: string) => readFile(new URL(`../../${path}`, import.meta.url), 'utf8')
 const sha = (text: string) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`
@@ -71,7 +71,7 @@ describe('vercel.json', () => {
 
 describe('the bundled service', () => {
   it('starts in a folder of its own, without node_modules, package.json or the people file', async () => {
-    const folder = await mkdtemp(join(tmpdir(), 'heed-vercel-'))
+    const folder = await mkdtemp(join(tmpdir(), 'footnote-vercel-'))
     try {
       const bytes = await bundleService(join(folder, 'heed.mjs'))
       // A function may hold 250 MB; the bundle holds the service alone.
@@ -110,7 +110,7 @@ describe('the bundled service', () => {
         expect(await response.json()).toEqual({
           status: 'ok',
           service: 'heed',
-          version: heedVersion,
+          version: footnoteVersion,
         })
       } finally {
         child.kill()

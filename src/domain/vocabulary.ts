@@ -186,7 +186,7 @@ export function namesOf(term: Term): string[] {
 
 /**
  * The whole phrases of `names` in a normalised text, longest first, each place used once: the one
- * way Heed finds names in words. A place in `occupied` is already taken and is never read again.
+ * way Footnote finds names in words. A place in `occupied` is already taken and is never read again.
  */
 export function phrasesIn(text: string, names: Iterable<string>, occupied = new Set<number>()) {
   const found: { name: string; start: number; end: number }[] = []
@@ -288,7 +288,7 @@ const memberWords = (member: string) =>
   memberOf(normalizeName(member)).split('.').at(-1)!.replaceAll('_', ' ')
 
 /**
- * Typo matches are suggestions, never silently selected scope. A source member name Heed does
+ * Typo matches are suggestions, never silently selected scope. A source member name Footnote does
  * not know (`traffic.sessions`) is compared by its own name ("sessions") with the names and with
  * the members' own names the terms point at, never by its view, which many members share. It
  * needs a closer match than a typo: a member's name is a whole other name, and letters it shares

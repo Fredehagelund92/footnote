@@ -15,7 +15,7 @@ import type { FormatFinding } from '../domain/draft.ts'
 import { type EditionExport, verifyEditionExport } from '../domain/edition-export.ts'
 import { offlineFindings, readItemFile } from '../domain/item-file.ts'
 import { itemJsonSchema } from '../domain/item-version.ts'
-import { createClient, type HeedClient } from './client.ts'
+import { createClient, type FootnoteClient } from './client.ts'
 import { operatorInvite } from './invite.ts'
 
 export type Io = {
@@ -257,7 +257,7 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
 const serviceUrl = (values: Values, io: Io) =>
   values.url ?? io.env.HEED_URL ?? 'http://127.0.0.1:3000'
 
-async function connect(values: Values, io: Io): Promise<HeedClient> {
+async function connect(values: Values, io: Io): Promise<FootnoteClient> {
   const url = serviceUrl(values, io)
   if (!URL.canParse(url)) throw new UsageError(`Not a URL: ${url}`)
   const email = values.as ?? io.env.HEED_EMAIL
@@ -273,7 +273,7 @@ async function connect(values: Values, io: Io): Promise<HeedClient> {
   return connection.client
 }
 
-async function liveLabel(client: HeedClient): Promise<string> {
+async function liveLabel(client: FootnoteClient): Promise<string> {
   for (let offset = 0; ; offset += 100) {
     const page = await client.editions.list({ limit: 100, offset })
     const live = page.find((edition) => edition.live)
@@ -283,7 +283,7 @@ async function liveLabel(client: HeedClient): Promise<string> {
 }
 
 async function draft(
-  client: HeedClient,
+  client: FootnoteClient,
   path: string,
   values: Values,
   print: (lines: string[], json: unknown) => void,
@@ -315,7 +315,7 @@ async function draft(
 }
 
 async function importFile(
-  client: HeedClient,
+  client: FootnoteClient,
   path: string,
   values: Values,
   print: (lines: string[], json: unknown) => void,
@@ -356,7 +356,7 @@ async function importFile(
 }
 
 async function importTests(
-  client: HeedClient,
+  client: FootnoteClient,
   path: string,
   values: Values,
   print: (lines: string[], json: unknown) => void,
@@ -386,7 +386,7 @@ async function importTests(
 }
 
 async function audit(
-  client: HeedClient,
+  client: FootnoteClient,
   values: Values,
   write: (text: string) => Promise<void>,
   rest: string[],

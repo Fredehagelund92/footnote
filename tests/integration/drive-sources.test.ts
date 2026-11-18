@@ -43,7 +43,7 @@ const logger = createLogger({
   }),
 })
 const clock = systemClock('2026-10-08')
-const secretsDir = await mkdtemp(join(tmpdir(), 'heed-drive-secrets-'))
+const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-drive-secrets-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
 const registry = new ConnectorRegistry([], { secrets: store })
 const app = buildApp({

@@ -9,7 +9,7 @@
   their own words (item, area, retire, edition, scope, proposal), and `internal` maps each of them
   to the name on screen.
 
-  The web app in src/web follows this glossary, checked by the lint rule heed/plain-words
+  The web app in src/web follows this glossary, checked by the lint rule footnote/plain-words
   (eslint.plain-words.js) with no baseline. What people read outside the web app (src/domain, the
   contract, the connectors' forms, the demo's fixtures and the message of every error the service
   answers with) is held to it too, as a ratchet: `npm run lint:words` counts the old words in

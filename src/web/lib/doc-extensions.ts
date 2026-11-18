@@ -8,8 +8,8 @@ import { mentionExtension } from '@/lib/mention-extension'
 import { LINK_KINDS } from '@/lib/mentions'
 import { noteEmoji } from '@/lib/emoji-note'
 
-// The one document editor Heed writes long text in is editorcn's toolbar editor with markdown in
-// and out. These are the extensions every Heed document uses: headings 2 and 3, links, lists and
+// The one document editor Footnote writes long text in is editorcn's toolbar editor with markdown in
+// and out. These are the extensions every Footnote document uses: headings 2 and 3, links, lists and
 // quotes, no code blocks, and '@' links to context items, definitions and domains (navigation only:
 // agents read a mention as its words). No emoji list here: agents read this text, so an emoji
 // pasted in gets a quiet note instead, and stays if the writer means it.

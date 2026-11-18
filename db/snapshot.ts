@@ -27,14 +27,14 @@ import {
 
     npm run db:snapshot -- take --file heed-demo.dump [--model <provider>:<model>]
       With a superuser in DATABASE_URL_BOOTSTRAP: a new scratch database on that server with
-      Heed's roles, the migrations and the demo (db/prepare.ts), the outbox relayed so the demo's
+      Footnote's roles, the migrations and the demo (db/prepare.ts), the outbox relayed so the demo's
       inbox items are in it, and with --model every model role set to that provider and model.
       Then pg_dump writes the file and the scratch database is dropped.
 
     npm run db:snapshot -- restore --file heed-demo.dump
       As the owner in DATABASE_URL_MIGRATE (on Neon, the direct address, not the pooled one):
       the file into that database, which must hold nothing yet, then the grants. Refuses when
-      Heed's runtime roles are missing, or when one is a superuser or bypasses row security.
+      Footnote's runtime roles are missing, or when one is a superuser or bypasses row security.
 
     npm run db:snapshot -- reset --file heed-demo.dump
       The same, into a database that holds the demo already: everything the owner owns there is
@@ -178,11 +178,11 @@ async function rolesProblem(
     return `Create the roles ${missing.join(', ')} first, each with its own password and no other privilege (docs/vercel.md)`
   const privileged = rows.filter((row) => row.privileged).map((row) => row.name)
   if (privileged.length)
-    return `The roles ${privileged.join(', ')} may bypass row security, create roles or databases, or belong to another role; Heed's runtime roles must not (db/README.md, docs/vercel.md)`
+    return `The roles ${privileged.join(', ')} may bypass row security, create roles or databases, or belong to another role; Footnote's runtime roles must not (db/README.md, docs/vercel.md)`
   return undefined
 }
 
-/** What the database holds: nothing of Heed's, the demo, or something else. */
+/** What the database holds: nothing of Footnote's, the demo, or something else. */
 async function contents(client: pg.Client): Promise<'empty' | 'demo' | 'other'> {
   // Anything outside the system schemas counts: a schema, or in public a relation, function or
   // type. What an extension made does not, as a hosted database may have extensions installed.

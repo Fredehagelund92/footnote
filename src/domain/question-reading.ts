@@ -3,9 +3,9 @@ import { shiftDate } from './validity.ts'
 import type { Term } from './vocabulary.ts'
 
 /*
-  A question read for a person, as the composer's "Heed reads" line and Home's Try it show it:
-  the terms its words name, with their names, the dates and how Heed read them, the words that
-  name more than one term, and words that name dates Heed cannot read. It is the reader
+  A question read for a person, as the composer's "Footnote reads" line and Home's Try it show it:
+  the terms its words name, with their names, the dates and how Footnote read them, the words that
+  name more than one term, and words that name dates Footnote cannot read. It is the reader
   get_context uses (`readQuestion`), so what the line shows is what a call reads. Pure, so the
   service and the mock read a question the same way.
 */
@@ -26,14 +26,14 @@ export type QuestionReading = {
   from: string | null
   to: string | null
   /**
-   * The dates as written, how Heed read them ("1 Jan to 31 Dec 2026 (the whole year, ...; UTC)"),
+   * The dates as written, how Footnote read them ("1 Jan to 31 Dec 2026 (the whole year, ...; UTC)"),
    * and what the period is in words without the time zone ("the whole year, including the days
    * after today").
    */
   dates: { words: string; reads_as: string; note: string | null } | null
-  /** Words that name more than one term, or a name Heed does not know, and the terms they could be. */
+  /** Words that name more than one term, or a name Footnote does not know, and the terms they could be. */
   ambiguous: { words: string; options: ReadTerm[] }[]
-  /** Words that name dates Heed cannot read, and what it reads instead. */
+  /** Words that name dates Footnote cannot read, and what it reads instead. */
   dates_problem: { words: string; message: string } | null
   /** The day a question without dates is read at. */
   today: string

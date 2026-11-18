@@ -187,7 +187,7 @@ describe('the held-out seal', () => {
 })
 
 describe('the guard on a git history', () => {
-  const root = mkdtempSync(join(tmpdir(), 'heed-seal-guard-'))
+  const root = mkdtempSync(join(tmpdir(), 'footnote-seal-guard-'))
   const script = fileURLToPath(new URL('../../scripts/check-held-out-seal.ts', import.meta.url))
   afterAll(() => rmSync(root, { recursive: true, force: true }))
   const git = (...args: string[]) => {

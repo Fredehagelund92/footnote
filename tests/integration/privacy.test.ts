@@ -70,7 +70,7 @@ const columns = {
   // Summary's monthly snapshots, kept without limit (FR-612): a month, a domain, the day taken and
   // the page's counts as shown, already disclosed. Never a topic, a question or who asked.
   obs_snapshots: ['id', 'period', 'starts', 'area_id', 'taken_on', 'summary'],
-  // What Heed caught each week, kept without limit (FR-612): a week, a domain, a line and a
+  // What Footnote caught each week, kept without limit (FR-612): a week, a domain, a line and a
   // trigger or alert rule from fixed lists, and counts. Never a question, an item or who acted.
   obs_caught_weekly: ['week', 'area_id', 'line', 'kind', 'count', 'acted'],
   // A person's report (FR-606 case 5) keeps digests of its retry key and request, never who sent it.

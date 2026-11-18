@@ -4,7 +4,7 @@ import type { SavedResult } from './saved-questions'
 
 // A suggestion's review as the app reads it (src/web/api): the change split into blocks by kind,
 // what agents say before and after, and what to watch for. Pure types and the rules that follow
-// from a review's fields; in Heed the blocks come from diffing the parsed document (words,
+// from a review's fields; in Footnote the blocks come from diffing the parsed document (words,
 // formatting, links and order told apart deterministically, no model).
 
 /** A run of text in a change: unchanged, added, removed, or the same words formatted differently. */
@@ -166,7 +166,7 @@ export type Review = {
   stale?: true
   /** Drafted for a Not found card: how many questions it answers, and what it was drafted from. Nobody wrote it. */
   drafted?: { questions: number; scope: string; from: string }
-  /** A suggestion a sync created from a document: where it came from, and the quote Heed kept. */
+  /** A suggestion a sync created from a document: where it came from, and the quote Footnote kept. */
   synced?: {
     tool: string
     /** The connector's id, which its logo is drawn by. */

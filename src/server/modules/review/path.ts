@@ -54,7 +54,7 @@ import type { ReviewService, UnderPolicy } from './service.ts'
 import { missing } from '../../../contract/refusals.ts'
 
 /*
-  The review of Heed v1 (FR-224 to FR-227): the sheet a review page reads, and its decisions.
+  The review of Footnote v1 (FR-224 to FR-227): the sheet a review page reads, and its decisions.
   The difference, the claim check and the Ready line are the domain's (doc-diff.ts,
   claim-check.ts, readiness.ts); what agents say before and after is the answer engine's, on the
   live edition and with the suggestion in it. Deciding goes through the review service's own

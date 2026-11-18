@@ -11,7 +11,7 @@ import {
 import { matchForm } from '../../../src/domain/quote-match.ts'
 
 /*
-  Evidence from a web page Heed read (read_source): the automatic quote match, which only ever
+  Evidence from a web page Footnote read (read_source): the automatic quote match, which only ever
   warns, and the mark of an external source on a draft's provenance, which lasts while the person
   keeps the entry as the assistant wrote it. Portuguese and Spanish words raise the same flags as
   English ones: a regulation from Portugal or Spain is quoted in its own words.

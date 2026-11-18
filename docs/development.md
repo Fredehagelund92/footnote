@@ -1,4 +1,4 @@
-# Develop Heed
+# Develop Footnote
 
 How the repository is laid out, how to run the front end, the commands, what CI runs, the rules and the versions. To run the whole product, see the [Quick start](../README.md#quick-start); to run and configure the service, see [Run and operate the service](operations.md).
 
@@ -9,7 +9,7 @@ The repository holds two parts. The **web app** in `src/web` began as the approv
 and lint. Its screens are listed with their addresses in [docs/product.md](product.md), section 5:
 the Inbox and the review, Ask, Context, Definitions, Observability, Settings, Help and the docs, the
 sign-in page and an agent's consent page. Its pages read their data through one typed interface,
-`HeedApi` (`src/web/api/client.ts`), with TanStack Query: the mock binding answers from the
+`FootnoteApi` (`src/web/api/client.ts`), with TanStack Query: the mock binding answers from the
 demo world, with its review flags (`?state=loading`, `?state=failed`, `?state=offline`,
 `?slow=1`, `?demo=` and the rest), and the http binding talks to the service. `npm run dev` runs it
 on the mock; `npm run dev:http` takes the http binding, which answers the wired methods
@@ -73,9 +73,9 @@ To run the whole product instead, with its database and your own Cube model, see
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App         | Vite 8 single page app, React 19, TypeScript strict mode                                                                                                                               |
 | Routes      | TanStack Router, file based (`src/web/routes`), with zod search params ([docs/product.md](product.md), section 5); old addresses redirect                                              |
-| Data        | TanStack Query on one API boundary, `HeedApi`, with two bindings: the mock over the demo world, and the Heed service through a client typed from the API contract                      |
+| Data        | TanStack Query on one API boundary, `FootnoteApi`, with two bindings: the mock over the demo world, and the Footnote service through a client typed from the API contract              |
 | Shell       | Sidebar (Inbox, Ask, Context, Definitions; Help, Observability and Settings at its foot) that folds to a rail, a header with the breadcrumb and the theme menu, one right dock, search |
-| Components  | shadcn/ui on Base UI (style `base-nova`), Heed's own parts in `components/heed`, a Tiptap editor, sonner toasts                                                                        |
+| Components  | shadcn/ui on Base UI (style `base-nova`), Footnote's own parts in `components/heed`, a Tiptap editor, sonner toasts                                                                    |
 | Styling     | Tailwind 4 with the tokens in one file, `src/web/styles/tokens.css`. Nunito Sans is self-hosted. Lucide icons come from one module                                                     |
 | Guard rails | ESLint and Stylelint rules for the class rules, raw values, icons and plain words, with tests that prove they fail loudly                                                              |
 | Quality     | Vitest; Playwright with the golden job specs on the mock build and in http mode, axe on every place, and a smoke journey on the demo install; GitHub Actions CI                        |
@@ -195,7 +195,7 @@ src/
   domain/         the item model (zod/mini), pure and shared with the server
   contract/       the API contract (oRPC, zod/mini): every operation once, used by the service and the app
   cli/            `heed`, the command-line tool: the contract client, never the service's code
-  server/         the Heed service: service.ts (composition root, used by main.ts and the Vercel function), app.ts, config, db, http, observability
+  server/         the Footnote service: service.ts (composition root, used by main.ts and the Vercel function), app.ts, config, db, http, observability
     modules/        one folder per feature, reached only through its index.ts
       jobs/           scheduled jobs, heartbeats, the watchdog and the operations endpoints
       evals/          golden questions, answer tests through the MCP wire, judges, scorecards
@@ -205,12 +205,12 @@ src/
       library, areas, vocabulary, auth (dev and OpenID Connect sign-in, sessions and roles), oauth,
       access-keys, agents and the rest, one folder each
   web/            the web app: its shell and pages on a typed API
-    api/            HeedApi (client.ts) and its method list, the query factories and what each write
+    api/            FootnoteApi (client.ts) and its method list, the query factories and what each write
                     makes stale (queries.ts), the http binding (http.ts) and the mock binding (mock/)
       mock/           the demo world: its fixtures (data/), its state, and its review flags (scenario.ts)
     routes/         one file per address (TanStack Router, file based); *.lazy.tsx for every
                     page but the Inbox and Ask
-    components/     the shell, shadcn primitives (ui/), Heed's parts (heed/, obs/), the editor
+    components/     the shell, shadcn primitives (ui/), Footnote's parts (heed/, obs/), the editor
       icons.ts        the only module that imports the icon library
     model/          the types screens read, their words and the rules that follow from them
     lib/            hooks over the API, the router's helpers (router.ts), search param schemas (search.ts), the brand
@@ -221,7 +221,7 @@ tests/
   server/         Vitest, the service without a database, and the pure domain
   integration/    Vitest, the service against PostgreSQL 18
   lint/           tests that lint deliberately wrong code and CSS, and break the module boundaries
-  web/            Vitest, the web app (src/web); its HeedApi suite (conformance/), its http run (integration/)
+  web/            Vitest, the web app (src/web); its FootnoteApi suite (conformance/), its http run (integration/)
   e2e/            Playwright: the golden job specs and axe, on the mock build and in http mode (http/)
   e2e-seed/       Playwright: the web app on the demo install, as docker compose up gives it
   image/          the built service image in production mode, behind the web image (production-boot.sh)
@@ -233,7 +233,7 @@ apps/docs/        the public docs site, built from the pages in docs/ that are r
 
 ### Why this layout
 
-Heed is one deployable and one npm package, not a workspace monorepo, with the web app
+Footnote is one deployable and one npm package, not a workspace monorepo, with the web app
 under `src/web`. `src/domain` holds the item model, because it
 belongs to both sides. The service lives in `src/server`, next to `src/web`, with its own
 `tsconfig.server.json`; its features become modules in `src/server/modules/<name>`. The root
@@ -245,7 +245,7 @@ belongs to both sides. The service lives in `src/server`, next to `src/web`, wit
 | Command                                   | What it does                                                                                                                                                                                                    |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run dev`                             | The web app at http://localhost:5173, on its mock binding.                                                                                                                                                      |
-| `npm run dev:http`                        | The web app in http mode: it reads the Heed service through `/api/v1` instead of the mock.                                                                                                                      |
+| `npm run dev:http`                        | The web app in http mode: it reads the Footnote service through `/api/v1` instead of the mock.                                                                                                                  |
 | `npm run dev:server`                      | The service at http://127.0.0.1:3000, restarted on change. Loads `.env.local` if it exists.                                                                                                                     |
 | `npm run api:generate`                    | Rewrites `docs/api/openapi.json` and `src/web/api/contract.json` from `src/contract`                                                                                                                            |
 | `npm run heed -- <command>`               | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                         |
@@ -285,7 +285,7 @@ every job passed or was skipped on purpose, and fails on a failure, a cancel, or
 have run and did not. It is the one check the rule on `main` requires. A new push to a pull
 request cancels the run it replaces; runs on `main` and at night always finish.
 
-Three more workflows make releases ([Releasing Heed](releasing.md)): `release-please.yml` keeps the
+Three more workflows make releases ([Releasing Footnote](releasing.md)): `release-please.yml` keeps the
 release pull request current after every push to `main`, `release.yml`
 builds and publishes a release when a maintainer pushes a version tag, and `docs-site.yml` builds
 the public docs site, for a release and for every push to `main` that changes it.
@@ -360,8 +360,8 @@ side, then run the command again.
 | `CHANGELOG.md`, and the version in `package.json`    | release-please, in the release pull request       | the version: `tests/server/version.test.ts` |
 
 The API's version, sent in the `x-heed-api` header, is the digest of the OpenAPI document. It is
-worked out when the service starts, so no file holds it. The document names Heed's version, so
-the digest changes with each release too ([Releasing Heed](releasing.md)).
+worked out when the service starts, so no file holds it. The document names Footnote's version, so
+the digest changes with each release too ([Releasing Footnote](releasing.md)).
 
 To add a migration, run `npm run db:new-migration -- <snake_case_name>`. It writes the next
 numbered file in `db/migrations` and names it in `db/migrations/latest.txt`. Numbers run from 0001

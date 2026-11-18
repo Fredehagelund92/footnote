@@ -1,4 +1,4 @@
-import type { HeedApi } from './client'
+import type { FootnoteApi } from './client'
 import type { MockControls } from './mock'
 import { binding } from './binding'
 
@@ -9,11 +9,11 @@ export type { MockControls } from './mock'
 
 /**
  * The API the app talks to, once `startApi` has bound this build's binding. `VITE_API_MODE=http`
- * talks to the Heed service at `/api/v1` on the page's own origin (the dev server proxies it).
+ * talks to the Footnote service at `/api/v1` on the page's own origin (the dev server proxies it).
  * Anything else uses the mock binding, as the golden journeys, the unit tests and the static demo
  * do, so they stay deterministic.
  */
-export let api: HeedApi = new Proxy({} as HeedApi, {
+export let api: FootnoteApi = new Proxy({} as FootnoteApi, {
   get: (_, method) => {
     throw new Error(`The API was used before startApi (${String(method)}).`)
   },
@@ -23,7 +23,7 @@ export let api: HeedApi = new Proxy({} as HeedApi, {
 export let mockControls: MockControls | null = null
 
 /** Uses this binding from now on: startApi's choice, or a test's own. */
-export function bindApi(binding: HeedApi, controls: MockControls | null = null) {
+export function bindApi(binding: FootnoteApi, controls: MockControls | null = null) {
   api = binding
   mockControls = controls
 }

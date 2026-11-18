@@ -69,7 +69,7 @@ With none set, the site is served at the root of its own host.
 
 ## Versions and publishing
 
-`.github/workflows/docs-site.yml` builds one folder per minor release, `/v0.1/`, at its tag, and `/next/` from `main`. `versions.json` at the root lists the folders, and the switcher in the header reads it when a page opens, so an old version's pages know of newer ones without being built again. See [Releasing Heed](../../docs/releasing.md#the-docs-site) for how it is published.
+`.github/workflows/docs-site.yml` builds one folder per minor release, `/v0.1/`, at its tag, and `/next/` from `main`. `versions.json` at the root lists the folders, and the switcher in the header reads it when a page opens, so an old version's pages know of newer ones without being built again. See [Releasing Footnote](../../docs/releasing.md#the-docs-site) for how it is published.
 
 ## A team without internet access
 

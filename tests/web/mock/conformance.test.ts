@@ -1,18 +1,18 @@
 import { beforeEach, vi } from 'vitest'
-import { heedApiMethods, type HeedApi } from '@/api/client'
+import { footnoteApiMethods, type FootnoteApi } from '@/api/client'
 import { createMockApi } from '@/api/mock'
-import { describeHeedApi } from '../conformance/heed-api'
+import { describeFootnoteApi } from '../conformance/heed-api'
 
 // The mock binding answers every method. The same suite runs against the http binding in
 // tests/web/integration/http-api.test.ts.
-let api: HeedApi
+let api: FootnoteApi
 beforeEach(() => {
   api = createMockApi().api
 })
 
-describeHeedApi('mock binding', () => api, {
+describeFootnoteApi('mock binding', () => api, {
   person: 'Jon Abara',
-  wired: heedApiMethods,
+  wired: footnoteApiMethods,
   colleague: 'Tomas Eriksen',
   repository: { address: 'https://git.example/larchwood/handbook', token: null },
   bystander: 'Ines Duarte',

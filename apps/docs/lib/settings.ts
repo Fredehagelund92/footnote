@@ -4,6 +4,8 @@
   dev` and a team without internet access serve it.
 */
 
+import { DEFAULT_PRODUCT_NAME } from '../../../src/domain/brand.ts'
+
 export type Settings = {
   /** The host, `https://fredehagelund92.github.io`. Empty: no canonical addresses and no sitemap. */
   site: string
@@ -27,7 +29,7 @@ export function readSettings(env: Record<string, string | undefined>): Settings 
     root: withoutTrailingSlash(env.DOCS_ROOT ?? ''),
     version,
     ref: env.DOCS_REF || 'main',
-    product: env.HEED_PRODUCT_NAME || 'Heed',
+    product: env.HEED_PRODUCT_NAME || DEFAULT_PRODUCT_NAME,
   }
 }
 

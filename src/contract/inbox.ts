@@ -1,5 +1,5 @@
 /**
- * The Inbox of Heed v1 on the API (docs/product.md, section 5): one read that joins what needs the
+ * The Inbox of Footnote v1 on the API (docs/product.md, section 5): one read that joins what needs the
  * person, grouped by need (`inbox.feed`), which cards they opened
  * (`cards.markRead`), the one decision a card offers (`cards.decide`), and the setup checklist of a
  * new workspace (`setup.state`). Every count from agents is a count only, and a count under the

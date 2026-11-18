@@ -70,7 +70,7 @@ export type RouteBundle = PlannedBundle & { areas: readonly { id: string; name: 
 /**
  * The chat as the browser sent it, kept to what the planner may read and what the edition holds:
  * the newest turns within the caps, their sources an agent would still be given, their scopes'
- * keys the vocabulary has, and a domain Heed has. Never stored.
+ * keys the vocabulary has, and a domain Footnote has. Never stored.
  */
 export function chatOf(
   bundle: RouteBundle,
@@ -87,7 +87,7 @@ export function chatOf(
         .map(([dimension, values]) => [dimension, values.filter((key) => keys.has(key))]),
     ),
   })
-  // Heed's own names, so a turn from the browser can only say what the edition holds.
+  // Footnote's own names, so a turn from the browser can only say what the edition holds.
   const meanings = new Map(
     bundle.terms.flatMap((term) => [
       [term.key, term.name] as const,

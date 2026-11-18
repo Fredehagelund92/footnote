@@ -1,6 +1,6 @@
 /**
  * The members of a definition source that are not vocabulary terms yet, each as the term it would
- * be (FR-125, FR-136, FR-141). Heed reads every public member of the source, but scope, the
+ * be (FR-125, FR-136, FR-141). Footnote reads every public member of the source, but scope, the
  * catalogue and `get_context` only know terms, so a member reaches people once a term names it and
  * an owner or administrator accepts it (src/domain/source-names.ts).
  *

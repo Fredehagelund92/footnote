@@ -79,7 +79,7 @@ export const goldenSetChecks: Record<string, (set: GoldenSet) => void> = {
     expect(definitions.some((c) => c.definition?.term === null)).toBe(true)
     expect(definitions.some((c) => c.definition?.described === false)).toBe(true)
     expect(definitions.some((c) => c.answer.names_definition_source)).toBe(true)
-    // A metric with a Cube definition and no Heed item for the scope, and one with both.
+    // A metric with a Cube definition and no Footnote item for the scope, and one with both.
     expect(definitions.some((c) => c.delivery.status === 'no_match' && c.definition?.ref)).toBe(
       true,
     )
@@ -140,7 +140,7 @@ export const goldenSetChecks: Record<string, (set: GoldenSet) => void> = {
   'checks the agent contract: member names, concise replies and reading an absence': (set) => {
     const of = (type: CaseType) => set.cases.filter((c) => c.type === type)
     // An agent hands over what it queried in the data tool, as the data tool names it (CON-517):
-    // one that Heed knows, and one it does not, which must come back with "did you mean".
+    // one that Footnote knows, and one it does not, which must come back with "did you mean".
     const handoff = of('handoff')
     expect(handoff.every((c) => c.scope?.metrics?.every((m) => /^[a-z_]+\.[a-z_]+$/.test(m)))).toBe(
       true,

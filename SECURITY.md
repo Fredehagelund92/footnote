@@ -1,6 +1,6 @@
 # Security
 
-Heed holds what an organisation knows about its numbers, and it decides which AI agents and people
+Footnote holds what an organisation knows about its numbers, and it decides which AI agents and people
 may read each fact. If you find a way around that, please tell us privately first.
 
 ## Report a vulnerability
@@ -41,8 +41,8 @@ and "Out of scope") and `docs/contributing/connector-security.md`.
 
 ## Supported versions
 
-Heed's releases are on [GitHub Releases](https://github.com/Fredehagelund92/heed/releases), and
-each one names its version (`docs/releasing.md`). Before 1.0, a release is for trying Heed on one
+Footnote's releases are on [GitHub Releases](https://github.com/Fredehagelund92/heed/releases), and
+each one names its version (`docs/releasing.md`). Before 1.0, a release is for trying Footnote on one
 computer, not for production use.
 
 - **The newest release**, now 0.1.0 <!-- x-release-please-version -->: we fix security problems in a

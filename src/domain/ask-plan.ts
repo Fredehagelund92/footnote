@@ -48,7 +48,7 @@ import { normalizeName, type Term } from './vocabulary.ts'
   the browser sends them with the question, and the service never stores them.
 */
 
-/** The kinds of context a search reads, as people name them, and as Heed keeps them. */
+/** The kinds of context a search reads, as people name them, and as Footnote keeps them. */
 const kindNames = { event: 'event', warning: 'issue', rule: 'note', guide: 'guide' } as const
 type KindName = keyof typeof kindNames
 
@@ -1252,7 +1252,7 @@ const narrowedByNames: readonly RecordsAsk['intent'][] = [
 
 /**
  * The question Ask asks back, as the model wrote it, once checked: one short question in prose,
- * with no number, no link, no list and no name Heed does not hold, so it says nothing that is not
+ * with no number, no link, no list and no name Footnote does not hold, so it says nothing that is not
  * so. Null when it fails.
  */
 export function checkedQuestionBack(raw: string, ctx: Pick<PlanContext, 'terms' | 'areas'>) {
@@ -1266,7 +1266,7 @@ export function checkedQuestionBack(raw: string, ctx: Pick<PlanContext, 'terms' 
       .flatMap((name) => normalizeName(name).split(/[^\p{L}\p{N}]+/u))
       .filter(Boolean),
   )
-  // Every name in it, a word with a capital past the first, is one Heed holds.
+  // Every name in it, a word with a capital past the first, is one Footnote holds.
   const words = text.match(/[\p{L}][\p{L}'-]*/gu) ?? []
   const named = words.slice(1).filter((w) => /^\p{Lu}/u.test(w) && w !== 'I')
   if (named.some((w) => !known.has(normalizeName(w)))) return null
@@ -1276,7 +1276,7 @@ export function checkedQuestionBack(raw: string, ctx: Pick<PlanContext, 'terms' 
 /**
  * The question as it reads on its own, as the model restated it, once checked: one short question
  * in prose, in words a person can trust beside the answer, with only the numbers and names the
- * chat said or Heed holds. It only says how the question was read: one that fails is left out,
+ * chat said or Footnote holds. It only says how the question was read: one that fails is left out,
  * and the plan stands.
  */
 function checkedStandalone(raw: string | null | undefined, ctx: PlanContext) {
@@ -1347,7 +1347,7 @@ function checkedLeft(raw: string | null | undefined, ctx: PlanContext) {
   return asked ? `${plain}?` : `${plain}.`
 }
 
-/** The words the chat's questions say and the names Heed holds. */
+/** The words the chat's questions say and the names Footnote holds. */
 function heldWords(ctx: PlanContext) {
   const said = normalizeName(chatQuestions(ctx).join(' '))
   return new Set(
@@ -1689,7 +1689,7 @@ export function limitOf(question: string): PlanLimit | null {
  * Whether Ask's planner reads a question, and why (FR-719). The rules come first, and their
  * answer stands when they read the question: the planner reads only a question the rules could
  * not read (`need_more_detail`), one that names a market or another value alone and finds
- * nothing for it, a question about what changed that names nothing Heed keeps (the rules would
+ * nothing for it, a question about what changed that names nothing Footnote keeps (the rules would
  * count the context's own changes), a question that is not plainly a read (`plain`), so a limit or
  * a cannot sentence can apply, and a follow-up, whatever the rules read. A question scoped with @
  * is the person's own reading and is never planned.

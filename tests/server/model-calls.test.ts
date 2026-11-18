@@ -459,7 +459,7 @@ describe('calls cut short before the provider answered (round 6)', () => {
         estimated: s.values[17],
       }))
   // About 7,650 tokens of prompt, as the cut-short answer step sent.
-  const prompt = 'The question, the instructions and what Heed delivered. '.repeat(546)
+  const prompt = 'The question, the instructions and what this delivered. '.repeat(546)
 
   it('records an aborted call at its estimate, marked as one, and bills the run and the ledger', async () => {
     hanging()

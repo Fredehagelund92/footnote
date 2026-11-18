@@ -18,7 +18,7 @@ const { client } = testDatabase({ unmigrated: true })
 */
 
 it('adds the terms, their versions and their changes, and leaves the vocabulary as it was', async () => {
-  const before = await mkdtemp(join(tmpdir(), 'heed-migration-0008-'))
+  const before = await mkdtemp(join(tmpdir(), 'footnote-migration-0008-'))
   try {
     const earlier = (await readdir(new URL('.', migrationDirectory)))
       .filter((name) => /^000[1-8]_.*\.sql$/.test(name))

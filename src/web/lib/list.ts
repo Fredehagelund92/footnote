@@ -59,7 +59,7 @@ export function useRowKeys({
 /** The search words, as typed. */
 export const words = (query: string) => query.toLowerCase().split(/\s+/).filter(Boolean)
 
-/** As in the Heed app: every word must match the start of a word in the text. */
+/** As in the Footnote app: every word must match the start of a word in the text. */
 export function matches(query: string, text: string) {
   const ws = words(query)
   if (!ws.length) return true

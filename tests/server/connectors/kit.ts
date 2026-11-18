@@ -535,7 +535,7 @@ export function describeConnector(
         })
         it("reaches no host but the data endpoint's", async () => {
           const tool = fixture.figures!()
-          // An endpoint on a private address outside what Heed may fetch is refused before a request.
+          // An endpoint on a private address outside what Footnote may fetch is refused before a request.
           const asked = tool.requests().length
           const refused = await figureOutcome(() =>
             connector().figure!(

@@ -3,7 +3,7 @@ import { normalizeName } from './vocabulary.ts'
 /*
   A domain by the words people use for it. People write "Stores and Suppliers" for a domain stored
   as "Stores & Suppliers", or type its name with a letter swapped, and the name itself may hold a
-  typo ("Stores & Suplliers", as an administrator typed it). Heed reads such words as the domain
+  typo ("Stores & Suplliers", as an administrator typed it). Footnote reads such words as the domain
   they mean, and says once how it read them, so the person never has to guess the stored
   spelling and never hears that they were misunderstood.
 
@@ -148,7 +148,7 @@ export function domainsInText<T extends NamedArea>(
 
 /**
  * The words of a stored name that look misspelt beside what the person wrote: each a letter or
- * two from the person's word, where the person's word is one Heed knows from elsewhere (the
+ * two from the person's word, where the person's word is one Footnote knows from elsewhere (the
  * domain's id, the vocabulary, the other domains) and the stored one is not. Without such a
  * word, neither spelling is assumed wrong.
  */
@@ -223,7 +223,7 @@ export function storedNameNote(
     : null
 }
 
-/** The words Heed knows from its own names, for `misspeltWords`. */
+/** The words Footnote knows from its own names, for `misspeltWords`. */
 export function knownWords(names: Iterable<string>): Set<string> {
   const words = new Set<string>()
   for (const name of names) for (const word of looseWords(name)) words.add(word)
@@ -231,7 +231,7 @@ export function knownWords(names: Iterable<string>): Set<string> {
 }
 
 /**
- * How Heed read a person's words for a domain, said once, or null when they are its name. It
+ * How Footnote read a person's words for a domain, said once, or null when they are its name. It
  * states which domain was meant and, when the stored name looks misspelt, says so as an
  * observation and where it is changed, blaming nobody.
  */
@@ -239,7 +239,7 @@ export function domainReadAs(
   area: NamedArea,
   wrote: string,
   kind: DomainMatchKind,
-  /** Words Heed knows from elsewhere: the domain's id, the vocabulary and the other domains. */
+  /** Words Footnote knows from elsewhere: the domain's id, the vocabulary and the other domains. */
   known: ReadonlySet<string>,
 ): {
   wrote: string
