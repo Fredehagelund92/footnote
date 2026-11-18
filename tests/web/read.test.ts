@@ -1,9 +1,15 @@
-import { QueryClient, QueryObserver, type QueryObserverResult } from '@tanstack/react-query'
+import {
+  onlineManager,
+  QueryClient,
+  QueryObserver,
+  type QueryObserverResult,
+} from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { readOf } from '@/lib/read'
 
 // readOf over each state a real TanStack read goes through (#198): pending, failed, failed while
-// it is tried again, ready, a refresh that fails on what was read, and an answer with nothing in it.
+// it is tried again, ready, a refresh that fails on what was read, an answer with nothing in it, and
+// a first read waiting offline.
 
 type Topic = { id: string; rows: number[] } | null
 
@@ -27,7 +33,7 @@ function readOfAnswers(answers: (() => Topic)[]) {
         resolve(next)
       })
     })
-  return { observer, settled }
+  return { client, observer, settled }
 }
 
 const fail = () => {
@@ -64,6 +70,29 @@ describe('readOf', () => {
     const after = await settled()
     expect(after.isError).toBe(true)
     expect(readOf(after)).toEqual({ state: 'ready', data: topic() })
+  })
+
+  it('is failed while the first read waits offline, and ready once the connection is back', async () => {
+    onlineManager.setOnline(false)
+    try {
+      const { client, observer } = readOfAnswers([topic])
+      // Mounted, as the app's provider mounts it, the client sends paused reads when back online.
+      client.mount()
+      expect(observer.getCurrentResult().isPaused).toBe(true)
+      expect(readOf(observer.getCurrentResult()).state).toBe('failed')
+      const answered = new Promise<QueryObserverResult<Topic>>((resolve) => {
+        const off = observer.subscribe((next) => {
+          if (next.isFetching || next.isPaused) return
+          off()
+          resolve(next)
+        })
+      })
+      onlineManager.setOnline(true)
+      expect(readOf(await answered)).toEqual({ state: 'ready', data: topic() })
+      client.unmount()
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 
   it('is missing when the read answers that nothing is there', async () => {
