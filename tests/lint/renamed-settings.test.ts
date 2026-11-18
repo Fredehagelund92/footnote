@@ -14,10 +14,11 @@ import { renamedSettings } from '../../src/domain/renamed-settings.ts'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 
-/** The files that may name an old setting: the table, the tests of the fallback and the rename's plan. */
+/** The files that may name an old setting: the table, the tests of the fallback (the unit tests and the boot test) and the rename's plan. */
 const allowedFiles = new Set([
   'src/domain/renamed-settings.ts',
   'tests/server/renamed-settings.test.ts',
+  'tests/integration/old-settings-boot.test.ts',
   'tests/lint/renamed-settings.test.ts',
   'docs/rename-checklist.md',
   'CHANGELOG.md',
@@ -37,6 +38,7 @@ const upgradeNotes = [
  */
 const readBeside: Record<string, readonly string[]> = {
   'compose.yaml': ['HEED_PORT', 'HEED_WEB_PORT'],
+  '.github/workflows/ci.yml': ['HEED_PORT', 'HEED_WEB_PORT'],
   'docker/16-api-url.envsh': ['HEED_API_URL'],
   'db/seed/held-out.ts': ['HEED_HELDOUT_KEY', 'HEED_HELDOUT_KEY_FILE'],
   'scripts/check-held-out-seal.ts': ['HEED_HELDOUT_KEY'],
