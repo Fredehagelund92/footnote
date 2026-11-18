@@ -142,7 +142,8 @@ import {
 // and no tabs; connecting is five steps on a full page. A sync never publishes.
 
 // Numbers in the browser's own way of writing them (docs/design/copy.md): 1,136 in English.
-const plural = (n: number, one: string) => `${n.toLocaleString()} ${one}${n === 1 ? '' : 's'}`
+const plural = (n: number, one: string) =>
+  `${n.toLocaleString('en-GB')} ${one}${n === 1 ? '' : 's'}`
 
 const crumbs = (...rest: { label: string; href?: string }[]) => (
   <SettingsCrumbs
@@ -2704,7 +2705,7 @@ function ScopeChooser({
             disabled={!matching.length || ticked === matching.length}
             onClick={() => pick.select([...new Set([...pick.ids, ...shownIds])])}
           >
-            {all ? 'Choose all' : `Choose ${matching.length.toLocaleString()} shown`}
+            {all ? 'Choose all' : `Choose ${matching.length.toLocaleString('en-GB')} shown`}
           </Button>
           <Button
             variant="ghost"
@@ -2714,13 +2715,13 @@ function ScopeChooser({
               pick.select(pick.ids.filter((id) => !shownIds.includes(id)))
             }}
           >
-            {all ? 'Clear' : `Leave out ${matching.length.toLocaleString()} shown`}
+            {all ? 'Clear' : `Leave out ${matching.length.toLocaleString('en-GB')} shown`}
           </Button>
         </div>
       </div>
       <p aria-live="polite" className="text-sm text-muted-foreground tabular-nums">
-        {`${pick.count.toLocaleString()} of ${plural(rows.length, noun)} chosen`}
-        {!all && `, ${matching.length.toLocaleString()} shown`}
+        {`${pick.count.toLocaleString('en-GB')} of ${plural(rows.length, noun)} chosen`}
+        {!all && `, ${matching.length.toLocaleString('en-GB')} shown`}
       </p>
       {matching.length ? (
         <ul

@@ -18,7 +18,7 @@ import { compareToBaseline, countWords, type WordCounts } from './plain-words-ba
   copy-checks.baseline.json: by rule. The glossary of the web app on the text
     that the narrow reading takes for code (plain-words-wide) and on what people read outside the
     web app (plain-words-v2), and the rules of eslint.copy-rules.js: whole sentences, sentence
-    length, one word for one thing, errors that say three things, no fixed locale, no demo in
+    length, one word for one thing, errors that say three things, English locale, no demo in
     shared code. A sentence over 20 words is a note and never fails.
 
   npm run lint:words                     check the counts
@@ -37,7 +37,7 @@ const copyRules = [
   'copy/sentence-length',
   'copy/one-word-one-thing',
   'copy/errors-say-three-things',
-  'copy/no-fixed-locale',
+  'copy/english-locale',
   'copy/no-demo-in-shared-code',
 ]
 /** What a rule reports that is a note and not a count that can fail. */

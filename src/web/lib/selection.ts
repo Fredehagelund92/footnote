@@ -64,4 +64,5 @@ export function all(order: string[]): Selection {
 }
 
 /** What a screen reader hears when the count changes. */
-export const countLine = (n: number) => (n ? `${n.toLocaleString()} selected` : 'Selection cleared')
+export const countLine = (n: number) =>
+  n ? `${n.toLocaleString('en-GB')} selected` : 'Selection cleared'
