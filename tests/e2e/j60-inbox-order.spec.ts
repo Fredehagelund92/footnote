@@ -7,13 +7,15 @@ import type { Page } from '@playwright/test'
 
 const headers = (page: Page) => page.locator('li > button[aria-expanded]')
 const header = (page: Page, name: string) =>
-  page.getByRole('button', { name: new RegExp(`^${name} \\d+$`) })
+  page.getByRole('button', { name: new RegExp(`^${name} \\d+( in (all|your) domains)?$`) })
 
 test('suggestions come before the chores', async ({ page }) => {
   await go(page, '/inbox')
   // The service answers after first paint, so wait for the groups before reading their order.
   await expect(header(page, 'Suggestions')).toBeVisible()
-  const names = (await headers(page).allInnerTexts()).map((t) => t.replace(/\s*\d+$/, ''))
+  const names = (await headers(page).allInnerTexts()).map((t) =>
+    t.replace(/\s*\d+(\s+in (all|your) domains)?$/, ''),
+  )
   const at = (n: string) => names.indexOf(n)
   expect(at('Suggestions')).toBeGreaterThanOrEqual(0)
   expect(at('Suggestions')).toBeLessThan(at('Nothing written yet'))

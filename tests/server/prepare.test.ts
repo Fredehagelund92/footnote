@@ -55,8 +55,8 @@ describe('the settings', () => {
 
 describe('addresses', () => {
   it('read the database and point the superuser at it', () => {
-    expect(databaseName('postgres://context_layer_owner@db:5432/heed')).toBe('heed')
-    expect(onDatabase(bootstrap, 'heed')).toBe('postgres://postgres@db:5432/heed')
+    expect(databaseName('postgres://context_layer_owner@db:5432/footnote')).toBe('footnote')
+    expect(onDatabase(bootstrap, 'footnote')).toBe('postgres://postgres@db:5432/footnote')
   })
 })
 

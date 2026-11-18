@@ -18,7 +18,7 @@ export const appFamilies = [
   'windsurf',
   'gemini_cli',
   'goose',
-  'heed',
+  'footnote',
   'other',
   'unknown',
 ] as const
@@ -35,15 +35,15 @@ export const appFamilyNames: Record<AppFamily, string> = {
   windsurf: 'Windsurf',
   gemini_cli: 'Gemini CLI',
   goose: 'goose',
-  heed: 'Built-in test runs',
+  footnote: 'Built-in test runs',
   other: 'Another agent',
   unknown: 'Agent not named',
 }
 
 /** The first rule that matches a client's name, lower case, decides its family. */
 const rules: readonly [AppFamily, RegExp][] = [
-  // The eval runner, heed-eval-runner.
-  ['heed', /^heed[-_ ]/],
+  // The eval runner, footnote-eval-runner.
+  ['footnote', /^footnote[-_ ]/],
   ['claude_code', /^claude[-_ ]?code\b/],
   ['claude_ai', /^(anthropic\/)?claude([-_ .]?(ai|desktop))?$/],
   ['chatgpt', /^(openai-mcp|chatgpt)\b/],

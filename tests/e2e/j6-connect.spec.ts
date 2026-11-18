@@ -62,6 +62,18 @@ async function mapToSales(page: Page) {
   }
 }
 
+test('Available offers only what can be connected, and nothing says Soon', async ({ page }) => {
+  await go(page, '/settings/integrations')
+  const available = page.locator('#available')
+  await expect(available.getByRole('heading', { name: 'Markdown in Git' })).toBeVisible()
+  // Every cell but Request an integration is a tool with its Connect link.
+  const tools = (await available.getByRole('heading').count()) - 1
+  expect(tools).toBeGreaterThan(0)
+  await expect(available.getByRole('link', { name: 'Connect' })).toHaveCount(tools)
+  await expect(available.getByRole('heading', { name: 'Notion' })).toHaveCount(0)
+  await expect(page.getByText(/\bsoon\b/i)).toHaveCount(0)
+})
+
 test('an admin connects a repository in five steps, changes its folders, and disconnects it', async ({
   page,
 }) => {
@@ -274,7 +286,7 @@ test('object storage asks for each service what that service needs', async ({ pa
 test('a server folder explains itself, and nothing can be sent from here', async ({ page }) => {
   await atDbtConnect(page)
   await page.getByRole('radio', { name: /^Server folder/ }).click()
-  await expect(page.getByText('HEED_SERVER_FOLDERS', { exact: false })).toBeVisible()
+  await expect(page.getByText('FOOTNOTE_SERVER_FOLDERS', { exact: false })).toBeVisible()
   await expect(button(page, 'Test connection')).toBeHidden()
   await expect(button(page, 'Continue')).toBeDisabled()
   await expect(page.getByLabel('File address')).toBeHidden()

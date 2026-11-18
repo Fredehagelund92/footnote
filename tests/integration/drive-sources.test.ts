@@ -144,14 +144,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
   drive = await driveHost()
@@ -207,7 +207,7 @@ describe('adding Google Drive (CON-601, CON-602)', () => {
       ['folders', 'ok'],
       ['documents', 'ok'],
     ])
-    expect(check.steps[0]!.detail).toContain('heed-reader@drive-fake.example.test')
+    expect(check.steps[0]!.detail).toContain('footnote-reader@drive-fake.example.test')
     expect(check.scopes).toMatchObject([
       { id: ids.finance, title: 'Finance', suggestedDomain: 'finance' },
       { id: ids.sales, title: 'Sales' },

@@ -67,7 +67,7 @@ export interface McpDependencies {
   drafts?: DraftTool
   /**
    * The HMAC key (at least 32 bytes) that seals `suggest_context`'s question rounds, shared by
-   * every instance (HEED_MCP_STATE_KEY_FILE). Without it the questions are never asked in the
+   * every instance (FOOTNOTE_MCP_STATE_KEY_FILE). Without it the questions are never asked in the
    * person's agent: the result lists them with the link instead.
    */
   stateKey?: Uint8Array
@@ -77,7 +77,7 @@ export interface McpDependencies {
    */
   reads?: ServingReads
   /**
-   * The web app's address (the first of HEED_WEB_ORIGINS, as for the draft link), for each delivered
+   * The web app's address (the first of FOOTNOTE_WEB_ORIGINS, as for the draft link), for each delivered
    * item's page in Footnote (FR-347). Without it the pages are paths on the web app.
    */
   web?: string | null
@@ -112,6 +112,12 @@ function resultStatusOf(result: { structuredContent?: Record<string, unknown> })
   const status = typeof said === 'string' ? resolverStatusOf(said) : said
   return (resultStatuses as readonly unknown[]).includes(status) ? (status as ResultStatus) : null
 }
+
+/**
+ * The messages that are not tool calls (starting a session, listing the tools, a ping) that one
+ * caller may send a minute (H22): enough for twenty sessions, apart from the call limits.
+ */
+const SESSION_MESSAGES_PER_MINUTE = 120
 
 /** The key of the one form `suggest_context` asks in a round. */
 const QUESTIONS = 'draft_questions'
@@ -311,11 +317,18 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     if (name && !allowed.includes(name))
       return deny(403, 'Tool is not enabled for this client', 'forbidden')
     const perMinute = (value: number) => Math.max(1, Math.min(value, 10000))
+    // A person a login server signed in counts by who they are, across their apps and refreshed
+    // tokens; a dev token, which names no person, counts as one.
+    const caller = principal.subject
+      ? `person:${createHash('sha256').update(principal.subject).digest('hex')}`
+      : `token:${createHash('sha256').update(token).digest('hex')}`
+    // Only a tool call spends the call limits. Starting a session and listing the tools has a
+    // budget of its own, so an agent that opens a session for each of its helpers still gets the
+    // tools in every one of them after its calls are spent (H22).
+    const isCall = body?.method === 'tools/call'
     // A client's own rate wins over the default; each person has a smaller budget of their own, so
-    // one person cannot spend everyone's share of the client label (FR-408). A person a login
-    // server signed in counts by who they are, across their apps and refreshed tokens; a dev
-    // token, which names no person, counts as one. The eval runner's token is no person: a run
-    // counts against the eval client only.
+    // one person cannot spend everyone's share of the client label (FR-408). The eval runner's
+    // token is no person: a run counts against the eval client only.
     const clientLimit = perMinute(policy.client.rate_per_minute ?? policy.rates.client)
     const personLimit = principal.caller === 'agent' ? perMinute(policy.rates.person) : undefined
     // A tool's own limit applies per client; feedback tools are tighter even without one (FR-408).
@@ -323,25 +336,25 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       name === null
         ? undefined
         : (policy.limits[name] ?? (tools[name].scope === 'feedback' ? 10 : undefined))
-    const retry = limit([
-      { key: `client:${client}`, limit: clientLimit },
-      ...(personLimit === undefined
-        ? []
-        : [
-            {
-              key: principal.subject
-                ? `person:${createHash('sha256').update(principal.subject).digest('hex')}`
-                : `token:${createHash('sha256').update(token).digest('hex')}`,
-              limit: personLimit,
-            },
-          ]),
-      ...(toolLimit === undefined
-        ? []
-        : [{ key: `tool:${client}:${name}`, limit: Math.min(toolLimit, clientLimit) }]),
-    ])
+    const retry = limit(
+      isCall
+        ? [
+            { key: `client:${client}`, limit: clientLimit },
+            ...(personLimit === undefined ? [] : [{ key: caller, limit: personLimit }]),
+            ...(toolLimit === undefined
+              ? []
+              : [{ key: `tool:${client}:${name}`, limit: Math.min(toolLimit, clientLimit) }]),
+          ]
+        : [{ key: `session:${caller}`, limit: SESSION_MESSAGES_PER_MINUTE }],
+    )
     if (retry) {
       reply.header('Retry-After', retry)
-      return deny(429, 'Request limit reached; retry after the indicated seconds', 'rate_limited')
+      // In words, since an agent shows the person, or reads itself, only the answer's text.
+      return deny(
+        429,
+        `Too many calls to ${productName} this minute. Wait ${retry} seconds, then try again.`,
+        'rate_limited',
+      )
     }
     const maxBytes = Math.max(1000, Math.min(policy.client.max_response_bytes ?? 100000, 100000))
     // A question round of suggest_context is sealed for this tool, this person
@@ -394,9 +407,10 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     const handler = createMcpHandler(
       () => {
         const server = new McpServer(
-          // The id stays `heed`, since AI agents register the server by it; the title follows
-          // the product's name (docs/rename-checklist.md).
-          { name: 'heed', title: productName, version: footnoteVersion },
+          // The id is fixed, not the product's name, since AI agents may register the server by it;
+          // the title follows the name. It was `heed` until the rename to Footnote. An agent keeps
+          // its own name for the server, so one added as `heed` still works (docs/rename-checklist.md).
+          { name: 'footnote', title: productName, version: footnoteVersion },
           {
             instructions,
             cacheHints: {
@@ -497,7 +511,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       })
       reply.header('Cache-Control', 'no-store')
       // eslint-disable-next-line brand/no-product-name -- an HTTP header name, a technical name (docs/rename-checklist.md)
-      reply.header('X-Heed-Tool-Digest', toolSchemaDigest)
+      reply.header('X-Footnote-Tool-Digest', toolSchemaDigest)
       if (!name) status = response.ok ? 'ok' : 'error'
       // The SDK's legacy stateless transport uses SSE. Forward its stream without buffering subscriptions.
       if (response.body) {

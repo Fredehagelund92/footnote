@@ -5,10 +5,9 @@ import { parse } from 'yaml'
 /*
   The README's Quick start says what a stranger gets. `docker compose up` builds the images from
   this checkout, so it is what the page describes. The published images (compose.images.yaml) are
-  a release, which can be far behind the page, so the README names that release and its date as
-  CHANGELOG.md has them. The release is checked against CHANGELOG.md, not the version in
-  .release-please-manifest.json: release-please's own pull request moves the version before its
-  images are published, and the README must stay true until they are.
+  a release, which can be far behind the page. The README names no version of it: release-please
+  writes the version into compose.images.yaml, and a version written by hand here would be wrong
+  from the next release, or in the release pull request before its images are published.
 */
 
 const read = (file: string) => readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8')
@@ -24,41 +23,15 @@ function section(title: string) {
 /** Lines run together, so a sentence the formatter wrapped reads as one. */
 const joined = (text: string) => text.replace(/\s+/g, ' ')
 
-const months = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-/** Each release in CHANGELOG.md, with its date in the README's words: 2 November 2026. */
-const releases = new Map(
-  [
-    ...read('CHANGELOG.md').matchAll(
-      /^## \[?(\d+\.\d+\.\d+)\]?(?:\([^)]*\))? \((\d{4})-(\d{2})-(\d{2})\)$/gm,
-    ),
-  ].map(([, version, year, month, day]) => [
-    version!,
-    `${Number(day)} ${months[Number(month) - 1]} ${year}`,
-  ]),
-)
-
 type Service = { build?: { context?: string }; image?: string }
 const compose = parse(read('compose.yaml')) as { services: Record<string, Service> }
 
 const quickStart = section('Quick start')
-const published = /release (\d+\.\d+\.\d+) of (\d{1,2} [A-Z][a-z]+ \d{4})/.exec(joined(quickStart))
+const images = parse(read('compose.images.yaml')) as { services: Record<string, Service> }
 
 describe("the README's Quick start", () => {
   it('builds both images from this checkout, as plain docker compose up does', () => {
-    for (const name of ['heed', 'web']) {
+    for (const name of ['footnote', 'web']) {
       expect(compose.services[name]?.build?.context, `compose.yaml builds ${name} here`).toBe('.')
       expect(
         compose.services[name]?.image,
@@ -67,9 +40,14 @@ describe("the README's Quick start", () => {
     }
   })
 
-  it('says which release the published images are, with its date', () => {
-    expect(published, 'the Quick start says "release <version> of <day month year>"').not.toBeNull()
-    const [, version, date] = published!
-    expect(releases.get(version!), `CHANGELOG.md's date of release ${version}`).toBe(date)
+  it('names no version of the published images, which compose.images.yaml pins to a release', () => {
+    expect(joined(quickStart), 'the Quick start names no release by hand').not.toMatch(
+      /release \d+\.\d+\.\d+/,
+    )
+    for (const [name, repo] of Object.entries({ footnote: 'footnote', web: 'footnote-web' })) {
+      expect(images.services[name]?.image, `compose.images.yaml pins ${name} to a version`).toMatch(
+        new RegExp(`^ghcr\\.io/fredehagelund92/${repo}:\\d+\\.\\d+\\.\\d+$`),
+      )
+    }
   })
 })

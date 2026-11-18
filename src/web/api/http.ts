@@ -16,7 +16,7 @@
  * (P11b, http-integrations.ts), an agent's consent page (connections.request and decide), and a
  * suggestion to archive taken back in the comments, with the owner's Close (P9c). Every method of
  * the interface is wired; one added later answers `not-available` until its pull request wires it.
- * The conformance suite (tests/web/conformance/heed-api.ts) runs the wired ones. Changes carry the session's token in `X-Heed-CSRF`, as the service requires, and
+ * The conformance suite (tests/web/conformance/footnote-api.ts) runs the wired ones. Changes carry the session's token in `X-Footnote-CSRF`, as the service requires, and
  * a retry key, kept until the service answers; the session cookie is HttpOnly, so the token is
  * read from `auth.session`.
  */
@@ -553,7 +553,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const key = pendingKeys.get(id) ?? randomKey()
     pendingKeys.set(id, key)
     const send = (token: string) =>
-      call({ context: { headers: { 'x-heed-csrf': token, 'idempotency-key': key } } })
+      call({ context: { headers: { 'x-footnote-csrf': token, 'idempotency-key': key } } })
     try {
       let result: T
       try {
@@ -579,7 +579,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
    */
   async function readPosted<T>(call: (options: { context: CallContext }) => Promise<T>) {
     const send = (token: string) =>
-      read(() => call({ context: { headers: { 'x-heed-csrf': token }, posted: true } }))
+      read(() => call({ context: { headers: { 'x-footnote-csrf': token }, posted: true } }))
     try {
       return await send(csrfToken ?? (await session()).csrfToken)
     } catch (error) {
@@ -588,11 +588,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     }
   }
 
-  const asSession = (name: string, profileLabel: string | null): Session => ({
+  const asSession = (
+    name: string,
+    profileLabel: string | null,
+    modelConnected: boolean,
+  ): Session => ({
     user: name,
     install: 'normal',
     fresh: false,
     profileLabel,
+    answeredBy: modelConnected ? 'model' : 'reader',
   })
 
   /** Everyone the comments may name, both ways: by id, and by name for a mention. */
@@ -1275,15 +1280,24 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     // checklist until it is done (docs/product.md, FR-816).
     getSession: async () => {
       try {
-        const { me: who, profileLabel } = await session(true)
+        const { me: who, profileLabel, modelConnected } = await session(true)
         const setup = await read(() => client.setup.state())
-        return { ...asSession(who.name, profileLabel), install: setup.done ? 'normal' : 'new' }
+        return {
+          ...asSession(who.name, profileLabel, modelConnected),
+          install: setup.done ? 'normal' : 'new',
+        }
       } catch (error) {
         if (toApiError(error).kind === 'signed-out') {
           me = undefined
           shownFor = undefined
           movingTo = undefined
-          return { user: null, install: 'normal', fresh: false, profileLabel: null }
+          return {
+            user: null,
+            install: 'normal',
+            fresh: false,
+            profileLabel: null,
+            answeredBy: 'model',
+          }
         }
         throw error
       }
@@ -1303,7 +1317,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const email = offered.find((p) => p.name === name)?.email
       if (!email) throw new ApiError('not-found', `${name} can't sign in here.`)
       const signed = await read(() =>
-        client.auth.signIn({ email }, { context: { headers: { 'x-heed-csrf': 'dev-sign-in' } } }),
+        client.auth.signIn(
+          { email },
+          { context: { headers: { 'x-footnote-csrf': 'dev-sign-in' } } },
+        ),
       )
       csrfToken = signed.csrfToken
       shownFor = signed.person.id
@@ -1314,7 +1331,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         admin: signed.person.permissions.roles.includes('administrator'),
       }
       forgetPerson()
-      return asSession(signed.person.name, signed.profileLabel)
+      return asSession(signed.person.name, signed.profileLabel, signed.modelConnected)
     },
     getSignInMethod: async () => {
       const method = await read(() => client.auth.methods())
@@ -1368,7 +1385,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         invites: invited,
         about: about?.text ?? '',
         aboutTemplate: ABOUT_BUSINESS_STARTER,
-        setup: { done: Object.fromEntries(setup.steps.map((s) => [s.id, s.done])) },
+        setup: {
+          done: Object.fromEntries(setup.steps.map((s) => [s.id, s.done])),
+          serverSource: setup.serverSource,
+        },
       }
     },
     setAbout: async ({ text }) => {
@@ -1687,7 +1707,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     signOut: async () => {
       const token = csrfToken ?? (await session()).csrfToken
       await read(() =>
-        client.auth.signOut(undefined, { context: { headers: { 'x-heed-csrf': token } } }),
+        client.auth.signOut(undefined, { context: { headers: { 'x-footnote-csrf': token } } }),
       )
       csrfToken = undefined
       me = undefined

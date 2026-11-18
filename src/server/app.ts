@@ -61,7 +61,7 @@ export interface AppDependencies {
   clock?: Clock
   devPeople?: readonly DevPerson[]
   /**
-   * How people sign in (HEED_AUTH): the composition root builds it. Defaults to the dev picker over
+   * How people sign in (FOOTNOTE_AUTH): the composition root builds it. Defaults to the dev picker over
    * `devPeople`.
    */
   signIn?: SignIn
@@ -71,7 +71,7 @@ export interface AppDependencies {
   nodeEnv?: string
   /** The process's counters. Defaults to a new set. */
   metrics?: Metrics
-  /** `HEED_METRICS_TOKEN`: the bearer token `/metrics` asks for. Without one it is off. */
+  /** `FOOTNOTE_METRICS_TOKEN`: the bearer token `/metrics` asks for. Without one it is off. */
   metricsToken?: string
   /** The built-in login server for a person's own AI client (FR-403). Without one it is off. */
   login?: LoginServer
@@ -79,20 +79,20 @@ export interface AppDependencies {
   readPage?: PageReader
   /**
    * The proxies whose X-Forwarded-For and X-Forwarded-Proto the service believes
-   * (HEED_TRUSTED_PROXIES): a caller's address, which limits count by, is then the one they
+   * (FOOTNOTE_TRUSTED_PROXIES): a caller's address, which limits count by, is then the one they
    * forward. `vercel` alone believes the one hop in front. Defaults to none: the connection's peer.
    */
   trustedProxies?: readonly string[]
   /** What a run of Ask's cases hears or replaces. Never set by the service. */
   askTrace?: AskTrace
-  /** HEED_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). The service sets it from the config (on by default); a bare app answers with its router. */
+  /** FOOTNOTE_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). The service sets it from the config (on by default); a bare app answers with its router. */
   askLoop?: boolean
-  /** HEED_PROFILE_LABEL: the name the header and the sign-in page show. None by default. */
+  /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show. None by default. */
   profileLabel?: string | undefined
 }
 
 /**
- * Fastify's trustProxy for HEED_TRUSTED_PROXIES. Behind Vercel the edge is the only hop and its
+ * Fastify's trustProxy for FOOTNOTE_TRUSTED_PROXIES. Behind Vercel the edge is the only hop and its
  * address is not known, so the hop itself is believed: the caller's address is the last one in
  * X-Forwarded-For, the one the edge wrote, even if a caller sent a list of its own.
  */

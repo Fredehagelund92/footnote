@@ -19,7 +19,7 @@ open an issue: [SECURITY.md](SECURITY.md) says how to tell us privately.
    had to guess, counts as a bug.
 4. **Fix the docs.** Every page is Markdown in `docs`. If a page is wrong, send the fix. A small fix
    needs no issue.
-5. **Weigh in on an open design.** [Data status for agents](https://github.com/Fredehagelund92/heed/issues/159)
+5. **Weigh in on an open design.** [Data status for agents](https://github.com/Fredehagelund92/footnote/issues/159)
    would let an agent know when the data behind a metric is late or failing. It is not built yet, and
    your input is welcome there.
 
@@ -90,13 +90,15 @@ Footnote is one npm package, not a workspace. The layout is in the
 
 ## Run it
 
-On the demo data (no database, nothing leaves your computer):
+The design preview, on the demo data (no database, nothing leaves your computer):
 
 ```sh
 npm run dev           # http://localhost:5173, the web app on its mock API
 ```
 
-Sign in as any demo person. The demo is an invented outdoor-gear retailer, Larchwood Outdoor.
+Sign in as any demo person. The demo is an invented outdoor-gear retailer, Larchwood Outdoor. Its Ask
+is a design preview: the answers are made in the browser, not by the service, and Ask says so. To try
+Footnote as people meet it, use `docker compose up` or the service below.
 
 On the real service, with a local PostgreSQL 18 and the demo loaded (`SEED_DEMO=on`; see
 [Run the web app on the service](docs/development.md#run-the-web-app-on-the-service) for the
@@ -233,7 +235,7 @@ Its behaviour is checked against the golden journeys in `tests/e2e`.
 - `src/web/styles/tokens.css` is the only file that defines colour, radius, shadow, motion and the
   layout metrics (design contract v2, section 2). A component depends on a name, never on a
   value.
-- Shared parts (`components/ui`, the shadcn primitives, and `components/heed`) own control size,
+- Shared parts (`components/ui`, the shadcn primitives, and `components/footnote`) own control size,
   type and radius.
 - A page (`pages`, `routes`) lays things out with them. It does not restyle them.
 
@@ -275,7 +277,7 @@ component. In hand-written CSS, colour, spacing, radius, type size and shadow mu
 
 ## Before you create a component
 
-1. `npx shadcn search @shadcn` and look in `src/web/components/ui` and `src/web/components/heed`
+1. `npx shadcn search @shadcn` and look in `src/web/components/ui` and `src/web/components/footnote`
    ([components](docs/design/components.md) lists them). Name the components you reuse in the
    pull request description.
 2. Compose before you invent. A new part needs a reason that composition cannot meet.
@@ -301,7 +303,7 @@ A change goes through `useApiWrite` or `useWrite` in `api/queries.ts`: it refres
 made stale (the `invalidations` map), and the http binding keeps the retry key when an answer is
 lost, so a retry is applied once. A 401 from either opens sign-in. Both bindings refuse with an
 `ApiError` (`api/errors.ts`). A behaviour the mock and the service share belongs in the conformance
-suite (`tests/web/conformance/heed-api.ts`), which runs against both.
+suite (`tests/web/conformance/footnote-api.ts`), which runs against both.
 
 ## Module boundaries
 

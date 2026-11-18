@@ -1,5 +1,5 @@
 /**
- * Item files: what `heed import` and the import API read (FR-120). A file is a list of items, or
+ * Item files: what `footnote import` and the import API read (FR-120). A file is a list of items, or
  * an object with an `items` list, so an edition export (src/domain/edition-export.ts) reads back
  * as an import. Each entry is a draft in the item format, with an optional `id` that makes it a
  * change to that accepted item. Mentions are `@[words](target)` tokens in `summaryMarkup` and

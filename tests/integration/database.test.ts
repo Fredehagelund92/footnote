@@ -33,7 +33,7 @@ describe('PostgreSQL', () => {
       expect(response.statusCode).toBe(200)
       expect(response.json()).toEqual({
         status: 'ok',
-        service: 'heed',
+        service: 'footnote',
         version: footnoteVersion,
         checks: { database: 'ok' },
       })

@@ -19,13 +19,13 @@ describe('loadConfig', () => {
       databaseUrl,
       databaseServeUrl: 'postgres://context_layer_serve@localhost:5432/context_layer_dev',
       mcpResourceUrl: 'http://localhost:3000/mcp',
-      mcpDevKeyFile: '.heed-dev-key.pem',
-      mcpStateKeyFile: '.heed-mcp-state.key',
+      mcpDevKeyFile: '.footnote-dev-key.pem',
+      mcpStateKeyFile: '.footnote-mcp-state.key',
       loginServer: {
         kind: 'builtin',
         issuer: 'http://localhost:3000',
         consentUrl: 'http://localhost:5173/connect/approve',
-        signingKeyFile: '.heed-oauth-key.pem',
+        signingKeyFile: '.footnote-oauth-key.pem',
         previousKeyFiles: [],
         dynamicRegistration: true,
         refreshIdleHours: 168,
@@ -61,9 +61,9 @@ describe('loadConfig', () => {
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_OAUTH_DYNAMIC_REGISTRATION: 'off',
-        HEED_OAUTH_REFRESH_IDLE_HOURS: '24',
-        HEED_OAUTH_CONNECTION_DAYS: '7',
+        FOOTNOTE_OAUTH_DYNAMIC_REGISTRATION: 'off',
+        FOOTNOTE_OAUTH_REFRESH_IDLE_HOURS: '24',
+        FOOTNOTE_OAUTH_CONNECTION_DAYS: '7',
       }).loginServer,
     ).toMatchObject({ dynamicRegistration: false, refreshIdleHours: 24, connectionDays: 7 })
   })
@@ -72,9 +72,9 @@ describe('loadConfig', () => {
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_OAUTH_DYNAMIC_REGISTRATION: '',
-        HEED_OAUTH_REFRESH_IDLE_HOURS: '',
-        HEED_OAUTH_CONNECTION_DAYS: '',
+        FOOTNOTE_OAUTH_DYNAMIC_REGISTRATION: '',
+        FOOTNOTE_OAUTH_REFRESH_IDLE_HOURS: '',
+        FOOTNOTE_OAUTH_CONNECTION_DAYS: '',
       }).loginServer,
     ).toMatchObject({ dynamicRegistration: true, refreshIdleHours: 168, connectionDays: 30 })
   })
@@ -85,18 +85,18 @@ describe('loadConfig', () => {
       HOST: '0.0.0.0',
       PORT: '4100',
       LOG_LEVEL: 'warn',
-      DATABASE_URL: 'postgresql://heed:secret@db.internal:6543/context_layer_test',
-      HEED_AUTH: 'dev',
+      DATABASE_URL: 'postgresql://footnote:secret@db.internal:6543/context_layer_test',
+      FOOTNOTE_AUTH: 'dev',
       MODELS: 'live',
       ANTHROPIC_API_KEY: 'sk-test',
       VERCEL_AI_GATEWAY_API_KEY: 'gw-test',
       VERCEL_AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
       CUBE_MODEL_DIR: '/models/cube',
-      HEED_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
-      HEED_DOMAIN_OVERRIDES: '/models/domains.json',
+      FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
+      FOOTNOTE_DOMAIN_OVERRIDES: '/models/domains.json',
       CUBE_COMPILE_TIMEOUT_SECONDS: '300',
       CUBE_COMPILE_MEMORY_MB: '2048',
-      HEED_METRICS_TOKEN: 'm'.repeat(32),
+      FOOTNOTE_METRICS_TOKEN: 'm'.repeat(32),
     })
     expect(config.cubeCompile).toEqual({ timeoutMs: 300_000, memoryMb: 2048 })
     expect(config.serverFolders).toEqual({ 'dbt-metricflow': '/models/dbt' })
@@ -120,9 +120,9 @@ describe('loadConfig', () => {
   it('takes a metrics token only when it is long enough to guess at', () => {
     expect(loadConfig({ DATABASE_URL: databaseUrl }).metricsToken).toBeUndefined()
     for (const token of ['short', `${'m'.repeat(31)} x`])
-      expect(() => loadConfig({ DATABASE_URL: databaseUrl, HEED_METRICS_TOKEN: token })).toThrow(
-        /HEED_METRICS_TOKEN/,
-      )
+      expect(() =>
+        loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_METRICS_TOKEN: token }),
+      ).toThrow(/FOOTNOTE_METRICS_TOKEN/)
   })
 
   it('treats empty values as unset, as .env files write them', () => {
@@ -150,30 +150,30 @@ describe('loadConfig', () => {
       ['demo', 'Demo'],
     ])
       expect(() =>
-        loadConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production', HEED_AUTH: auth }),
+        loadConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production', FOOTNOTE_AUTH: auth }),
       ).toThrow(
-        `HEED_AUTH: ${word} sign-in is refused when NODE_ENV=production; use HEED_AUTH=oidc`,
+        `FOOTNOTE_AUTH: ${word} sign-in is refused when NODE_ENV=production; use FOOTNOTE_AUTH=oidc`,
       )
     expect(() => loadConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production' })).toThrow(
-      /HEED_OIDC_ISSUER: Required when HEED_AUTH=oidc[\s\S]*HEED_OIDC_CLIENT_ID: Required when HEED_AUTH=oidc/,
+      /FOOTNOTE_OIDC_ISSUER: Required when FOOTNOTE_AUTH=oidc[\s\S]*FOOTNOTE_OIDC_CLIENT_ID: Required when FOOTNOTE_AUTH=oidc/,
     )
     // Someone who started the image to look around is told how to get the demo's picker.
     expect(() => loadConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production' })).toThrow(
       productionSignInHint,
     )
     expect(() =>
-      loadConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production', HEED_AUTH: 'oidc' }),
+      loadConfig({ DATABASE_URL: databaseUrl, NODE_ENV: 'production', FOOTNOTE_AUTH: 'oidc' }),
     ).not.toThrow(productionSignInHint)
     const production = loadConfig({
       DATABASE_URL: databaseUrl,
       NODE_ENV: 'production',
-      HEED_OIDC_ISSUER: 'https://login.example.com/realms/acme',
-      HEED_OIDC_CLIENT_ID: 'heed',
+      FOOTNOTE_OIDC_ISSUER: 'https://login.example.com/realms/acme',
+      FOOTNOTE_OIDC_CLIENT_ID: 'footnote',
     })
     expect(production.auth).toBe('oidc')
     expect(production.oidc).toEqual({
       issuer: 'https://login.example.com/realms/acme',
-      clientId: 'heed',
+      clientId: 'footnote',
       clientSecretFile: null,
       redirectUrl: 'http://localhost:3000/api/v1/auth/oidc/callback',
       scopes: 'openid email profile',
@@ -188,48 +188,52 @@ describe('loadConfig', () => {
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_AUTH: 'oidc',
-        HEED_OIDC_ISSUER: 'https://idp.example.com',
-        HEED_OIDC_CLIENT_ID: 'heed',
-        HEED_OIDC_CLIENT_SECRET_FILE: '/run/secrets/oidc',
-        HEED_OIDC_REDIRECT_URL: 'https://heed.example.com/api/v1/auth/oidc/callback',
-        HEED_OIDC_SCOPES: 'openid  email profile groups',
-        HEED_OIDC_ADMIN_GROUPS: 'heed-admins, platform',
-        HEED_OIDC_MEMBER_GROUPS: 'everyone',
-        HEED_OIDC_NAME: 'Okta',
-        HEED_SESSION_IDLE_HOURS: '8',
-        HEED_SESSION_MAX_DAYS: '30',
+        FOOTNOTE_AUTH: 'oidc',
+        FOOTNOTE_OIDC_ISSUER: 'https://idp.example.com',
+        FOOTNOTE_OIDC_CLIENT_ID: 'footnote',
+        FOOTNOTE_OIDC_CLIENT_SECRET_FILE: '/run/secrets/oidc',
+        FOOTNOTE_OIDC_REDIRECT_URL: 'https://footnote.example.com/api/v1/auth/oidc/callback',
+        FOOTNOTE_OIDC_SCOPES: 'openid  email profile groups',
+        FOOTNOTE_OIDC_ADMIN_GROUPS: 'footnote-admins, platform',
+        FOOTNOTE_OIDC_MEMBER_GROUPS: 'everyone',
+        FOOTNOTE_OIDC_NAME: 'Okta',
+        FOOTNOTE_SESSION_IDLE_HOURS: '8',
+        FOOTNOTE_SESSION_MAX_DAYS: '30',
       }),
     ).toMatchObject({
       auth: 'oidc',
       oidc: {
         clientSecretFile: '/run/secrets/oidc',
         scopes: 'openid email profile groups',
-        adminGroups: ['heed-admins', 'platform'],
+        adminGroups: ['footnote-admins', 'platform'],
         memberGroups: ['everyone'],
         name: 'Okta',
       },
       sessions: { idleHours: 8, maxDays: 30 },
     })
-    const oidc = { DATABASE_URL: databaseUrl, HEED_AUTH: 'oidc', HEED_OIDC_CLIENT_ID: 'heed' }
-    expect(() => loadConfig({ ...oidc, HEED_OIDC_ISSUER: 'http://idp.example.com' })).toThrow(
-      /HEED_OIDC_ISSUER: Expected https/,
+    const oidc = {
+      DATABASE_URL: databaseUrl,
+      FOOTNOTE_AUTH: 'oidc',
+      FOOTNOTE_OIDC_CLIENT_ID: 'footnote',
+    }
+    expect(() => loadConfig({ ...oidc, FOOTNOTE_OIDC_ISSUER: 'http://idp.example.com' })).toThrow(
+      /FOOTNOTE_OIDC_ISSUER: Expected https/,
     )
     expect(() =>
       loadConfig({
         ...oidc,
-        HEED_OIDC_ISSUER: 'https://idp.example.com',
-        HEED_OIDC_SCOPES: 'email',
+        FOOTNOTE_OIDC_ISSUER: 'https://idp.example.com',
+        FOOTNOTE_OIDC_SCOPES: 'email',
       }),
-    ).toThrow(/HEED_OIDC_SCOPES: Expected openid/)
+    ).toThrow(/FOOTNOTE_OIDC_SCOPES: Expected openid/)
     expect(() =>
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_SESSION_IDLE_HOURS: '48',
-        HEED_SESSION_MAX_DAYS: '1',
+        FOOTNOTE_SESSION_IDLE_HOURS: '48',
+        FOOTNOTE_SESSION_MAX_DAYS: '1',
       }),
-    ).toThrow(/HEED_SESSION_IDLE_HOURS/)
-    expect(loadConfig({ DATABASE_URL: databaseUrl, HEED_AUTH: 'demo' })).toMatchObject({
+    ).toThrow(/FOOTNOTE_SESSION_IDLE_HOURS/)
+    expect(loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_AUTH: 'demo' })).toMatchObject({
       auth: 'demo',
       oidc: null,
     })
@@ -239,16 +243,16 @@ describe('loadConfig', () => {
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_DEV_PEOPLE_FILE: 'people.yml',
-        HEED_FIXED_TODAY: '2026-10-07',
+        FOOTNOTE_DEV_PEOPLE_FILE: 'people.yml',
+        FOOTNOTE_FIXED_TODAY: '2026-10-07',
       }),
     ).toMatchObject({ devPeopleFile: 'people.yml', fixedToday: '2026-10-07' })
     const load = () =>
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_FIXED_TODAY: '2026-02-30',
+        FOOTNOTE_FIXED_TODAY: '2026-02-30',
       })
-    expect(load).toThrow(/HEED_FIXED_TODAY:/)
+    expect(load).toThrow(/FOOTNOTE_FIXED_TODAY:/)
   })
 
   it('validates exact web origins and ignores the removed fixed-person stub setting', () => {
@@ -261,22 +265,22 @@ describe('loadConfig', () => {
       'https://person@example.test',
       'ftp://example.test',
     ]) {
-      expect(() => loadConfig({ DATABASE_URL: databaseUrl, HEED_WEB_ORIGINS: origin })).toThrow(
-        /HEED_WEB_ORIGINS/,
+      expect(() => loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_WEB_ORIGINS: origin })).toThrow(
+        /FOOTNOTE_WEB_ORIGINS/,
       )
     }
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_WEB_ORIGINS: 'https://heed.example.test',
-        MCP_RESOURCE_URL: 'https://heed.example.test/mcp',
+        FOOTNOTE_WEB_ORIGINS: 'https://footnote.example.test',
+        MCP_RESOURCE_URL: 'https://footnote.example.test/mcp',
       }).webOrigins,
-    ).toEqual(['https://heed.example.test'])
+    ).toEqual(['https://footnote.example.test'])
   })
 
   it('believes forwarded addresses only from the proxies it names', () => {
     const load = (value: string) =>
-      loadConfig({ DATABASE_URL: databaseUrl, HEED_TRUSTED_PROXIES: value }).trustedProxies
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_TRUSTED_PROXIES: value }).trustedProxies
     expect(load('')).toEqual([])
     expect(load('uniquelocal')).toEqual(['uniquelocal'])
     expect(load(' 127.0.0.1, 10.0.0.0/8 ,fd00::/8,loopback,linklocal ')).toEqual([
@@ -300,13 +304,14 @@ describe('loadConfig', () => {
       'loopback, vercel',
     ])
       expect(() => load(value), value).toThrow(
-        'HEED_TRUSTED_PROXIES: Expected vercel alone, or addresses or ranges such as 10.0.0.0/8, or loopback, linklocal or uniquelocal',
+        'FOOTNOTE_TRUSTED_PROXIES: Expected vercel alone, or addresses or ranges such as 10.0.0.0/8, or loopback, linklocal or uniquelocal',
       )
   })
 
   it('believes the one hop in front behind Vercel', () => {
     expect(
-      loadConfig({ DATABASE_URL: databaseUrl, HEED_TRUSTED_PROXIES: ' vercel ' }).trustedProxies,
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_TRUSTED_PROXIES: ' vercel ' })
+        .trustedProxies,
     ).toEqual(['vercel'])
   })
 
@@ -315,28 +320,30 @@ describe('loadConfig', () => {
       loadConfig({
         DATABASE_URL: databaseUrl,
         NODE_ENV: 'production',
-        HEED_FIXED_TODAY: '2026-10-07',
+        FOOTNOTE_FIXED_TODAY: '2026-10-07',
       }),
-    ).toThrow(/HEED_FIXED_TODAY: A fixed date is refused when NODE_ENV=production/)
+    ).toThrow(/FOOTNOTE_FIXED_TODAY: A fixed date is refused when NODE_ENV=production/)
   })
 
   it('lets the tests read web pages on this machine, never in production', () => {
     expect(
-      loadConfig({ DATABASE_URL: databaseUrl, HEED_WEB_READ_LOOPBACK: 'on' }).webReadLoopback,
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_WEB_READ_LOOPBACK: 'on' }).webReadLoopback,
     ).toBe(true)
     expect(() =>
       loadConfig({
         DATABASE_URL: databaseUrl,
         NODE_ENV: 'production',
-        HEED_WEB_READ_LOOPBACK: 'on',
+        FOOTNOTE_WEB_READ_LOOPBACK: 'on',
       }),
     ).toThrow(
-      /HEED_WEB_READ_LOOPBACK: Reading pages on this machine is refused when NODE_ENV=production/,
+      /FOOTNOTE_WEB_READ_LOOPBACK: Reading pages on this machine is refused when NODE_ENV=production/,
     )
   })
 
   it('accepts only the sign-in modes the local build has', () => {
-    expect(() => loadConfig({ DATABASE_URL: databaseUrl, HEED_AUTH: 'oidc' })).toThrow(/HEED_AUTH/)
+    expect(() => loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_AUTH: 'oidc' })).toThrow(
+      /FOOTNOTE_AUTH/,
+    )
   })
 
   it("scripts every model unless MODELS=live, and takes only the registry's variables", () => {
@@ -346,30 +353,31 @@ describe('loadConfig', () => {
     expect(loadConfig({ DATABASE_URL: databaseUrl, MODELS: 'live' }).models).toBe('live')
   })
 
-  it('answers Ask with its loop unless HEED_ASK_LOOP=off, and takes only on or off', () => {
+  it('answers Ask with its loop unless FOOTNOTE_ASK_LOOP=off, and takes only on or off', () => {
     expect(loadConfig({ DATABASE_URL: databaseUrl }).askLoop).toBe(true)
-    expect(loadConfig({ DATABASE_URL: databaseUrl, HEED_ASK_LOOP: 'off' }).askLoop).toBe(false)
-    expect(() => loadConfig({ DATABASE_URL: databaseUrl, HEED_ASK_LOOP: 'yes' })).toThrow(
-      /HEED_ASK_LOOP/,
+    expect(loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_ASK_LOOP: 'off' }).askLoop).toBe(false)
+    expect(() => loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_ASK_LOOP: 'yes' })).toThrow(
+      /FOOTNOTE_ASK_LOOP/,
     )
   })
 
-  it('shows no profile label unless HEED_PROFILE_LABEL names one, of one short line', () => {
+  it('shows no profile label unless FOOTNOTE_PROFILE_LABEL names one, of one short line', () => {
     expect(loadConfig({ DATABASE_URL: databaseUrl }).profileLabel).toBeUndefined()
-    expect(loadConfig({ DATABASE_URL: databaseUrl, HEED_PROFILE_LABEL: '' }).profileLabel).toBe(
+    expect(loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_PROFILE_LABEL: '' }).profileLabel).toBe(
       undefined,
     )
     expect(
-      loadConfig({ DATABASE_URL: databaseUrl, HEED_PROFILE_LABEL: '  Local trial  ' }).profileLabel,
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_PROFILE_LABEL: '  Local trial  ' })
+        .profileLabel,
     ).toBe('Local trial')
     expect(() =>
-      loadConfig({ DATABASE_URL: databaseUrl, HEED_PROFILE_LABEL: 'x'.repeat(41) }),
-    ).toThrow(/HEED_PROFILE_LABEL: Keep the label to 40 characters/)
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_PROFILE_LABEL: 'x'.repeat(41) }),
+    ).toThrow(/FOOTNOTE_PROFILE_LABEL: Keep the label to 40 characters/)
     expect(() =>
-      loadConfig({ DATABASE_URL: databaseUrl, HEED_PROFILE_LABEL: 'Two\nlines' }),
-    ).toThrow(/HEED_PROFILE_LABEL: Expected one line/)
-    expect(() => loadConfig({ DATABASE_URL: databaseUrl, HEED_PROFILE_LABEL: '   ' })).toThrow(
-      /HEED_PROFILE_LABEL/,
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_PROFILE_LABEL: 'Two\nlines' }),
+    ).toThrow(/FOOTNOTE_PROFILE_LABEL: Expected one line/)
+    expect(() => loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_PROFILE_LABEL: '   ' })).toThrow(
+      /FOOTNOTE_PROFILE_LABEL/,
     )
   })
 
@@ -399,7 +407,7 @@ describe('dynamicRegistrationEnabled', () => {
 
 describe('describeDatabase', () => {
   it('drops the credentials', () => {
-    expect(describeDatabase('postgres://heed:secret@db.internal:6543/context_layer_test')).toBe(
+    expect(describeDatabase('postgres://footnote:secret@db.internal:6543/context_layer_test')).toBe(
       'db.internal:6543/context_layer_test',
     )
     expect(describeDatabase('postgres://localhost/context_layer_dev')).toBe(
@@ -411,34 +419,34 @@ describe('describeDatabase', () => {
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        MCP_RESOURCE_URL: 'https://heed.example.test/mcp',
-        HEED_WEB_ORIGINS: 'http://localhost:5173,https://heed.example.test',
-        HEED_OAUTH_SIGNING_KEY_FILE: '/run/secrets/oauth.pem',
-        HEED_OAUTH_PREVIOUS_KEY_FILES: '/run/secrets/old-1.pem, /run/secrets/old-2.pub.pem',
-        HEED_OAUTH_DYNAMIC_REGISTRATION: 'on',
-        HEED_OAUTH_REFRESH_IDLE_HOURS: '168',
-        HEED_OAUTH_CONNECTION_DAYS: '30',
+        MCP_RESOURCE_URL: 'https://footnote.example.test/mcp',
+        FOOTNOTE_WEB_ORIGINS: 'http://localhost:5173,https://footnote.example.test',
+        FOOTNOTE_OAUTH_SIGNING_KEY_FILE: '/run/secrets/oauth.pem',
+        FOOTNOTE_OAUTH_PREVIOUS_KEY_FILES: '/run/secrets/old-1.pem, /run/secrets/old-2.pub.pem',
+        FOOTNOTE_OAUTH_DYNAMIC_REGISTRATION: 'on',
+        FOOTNOTE_OAUTH_REFRESH_IDLE_HOURS: '168',
+        FOOTNOTE_OAUTH_CONNECTION_DAYS: '30',
       }).loginServer,
     ).toEqual({
       kind: 'builtin',
-      issuer: 'https://heed.example.test',
+      issuer: 'https://footnote.example.test',
       // The first web origin on the issuer's host: the sign-in cookie belongs to that host.
-      consentUrl: 'https://heed.example.test/connect/approve',
+      consentUrl: 'https://footnote.example.test/connect/approve',
       signingKeyFile: '/run/secrets/oauth.pem',
       previousKeyFiles: ['/run/secrets/old-1.pem', '/run/secrets/old-2.pub.pem'],
       dynamicRegistration: true,
       refreshIdleHours: 168,
       connectionDays: 30,
     })
-    expect(loadConfig({ DATABASE_URL: databaseUrl, HEED_LOGIN_SERVER: 'off' }).loginServer).toEqual(
-      {
-        kind: 'off',
-      },
-    )
+    expect(
+      loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_LOGIN_SERVER: 'off' }).loginServer,
+    ).toEqual({
+      kind: 'off',
+    })
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
-        HEED_LOGIN_SERVER: 'external',
+        FOOTNOTE_LOGIN_SERVER: 'external',
         MCP_AUTH_ISSUER: 'https://login.example.test',
         MCP_AUTH_JWKS_URL: 'https://login.example.test/jwks',
       }).loginServer,
@@ -452,30 +460,34 @@ describe('describeDatabase', () => {
   it('refuses login server settings that would weaken a rule', () => {
     const load = (env: Record<string, string>) => () =>
       loadConfig({ DATABASE_URL: databaseUrl, ...env })
-    expect(load({ HEED_LOGIN_SERVER: 'external' })).toThrow(/MCP_AUTH_ISSUER: Required/)
-    expect(load({ HEED_LOGIN_SERVER: 'external' })).toThrow(/MCP_AUTH_JWKS_URL: Required/)
+    expect(load({ FOOTNOTE_LOGIN_SERVER: 'external' })).toThrow(/MCP_AUTH_ISSUER: Required/)
+    expect(load({ FOOTNOTE_LOGIN_SERVER: 'external' })).toThrow(/MCP_AUTH_JWKS_URL: Required/)
     expect(
       load({
-        HEED_LOGIN_SERVER: 'external',
+        FOOTNOTE_LOGIN_SERVER: 'external',
         MCP_AUTH_ISSUER: 'http://login.example.test',
         MCP_AUTH_JWKS_URL: 'https://login.example.test/jwks?x=1',
       }),
     ).toThrow(
       /MCP_AUTH_ISSUER: Expected https[\s\S]*MCP_AUTH_JWKS_URL: Expected an address without a query/,
     )
-    expect(load({ HEED_OAUTH_CONSENT_URL: 'http://localhost:9999/connect/approve' })).toThrow(
-      /HEED_OAUTH_CONSENT_URL: Expected an address on one of HEED_WEB_ORIGINS/,
+    expect(load({ FOOTNOTE_OAUTH_CONSENT_URL: 'http://localhost:9999/connect/approve' })).toThrow(
+      /FOOTNOTE_OAUTH_CONSENT_URL: Expected an address on one of FOOTNOTE_WEB_ORIGINS/,
     )
-    expect(load({ HEED_WEB_ORIGINS: 'http://127.0.0.1:5173' })).toThrow(
-      /HEED_OAUTH_CONSENT_URL: Expected a web origin on the issuer's host/,
+    expect(load({ FOOTNOTE_WEB_ORIGINS: 'http://127.0.0.1:5173' })).toThrow(
+      /FOOTNOTE_OAUTH_CONSENT_URL: Expected a web origin on the issuer's host/,
     )
-    expect(load({ HEED_OAUTH_ISSUER: 'http://localhost:4000' })).toThrow(
-      /HEED_OAUTH_ISSUER: Expected the origin of MCP_RESOURCE_URL/,
+    expect(load({ FOOTNOTE_OAUTH_ISSUER: 'http://localhost:4000' })).toThrow(
+      /FOOTNOTE_OAUTH_ISSUER: Expected the origin of MCP_RESOURCE_URL/,
     )
-    expect(load({ HEED_OAUTH_DYNAMIC_REGISTRATION: 'yes' })).toThrow(
-      /HEED_OAUTH_DYNAMIC_REGISTRATION/,
+    expect(load({ FOOTNOTE_OAUTH_DYNAMIC_REGISTRATION: 'yes' })).toThrow(
+      /FOOTNOTE_OAUTH_DYNAMIC_REGISTRATION/,
     )
-    expect(load({ HEED_OAUTH_REFRESH_IDLE_HOURS: '0' })).toThrow(/HEED_OAUTH_REFRESH_IDLE_HOURS/)
-    expect(load({ HEED_OAUTH_CONNECTION_DAYS: '400' })).toThrow(/HEED_OAUTH_CONNECTION_DAYS/)
+    expect(load({ FOOTNOTE_OAUTH_REFRESH_IDLE_HOURS: '0' })).toThrow(
+      /FOOTNOTE_OAUTH_REFRESH_IDLE_HOURS/,
+    )
+    expect(load({ FOOTNOTE_OAUTH_CONNECTION_DAYS: '400' })).toThrow(
+      /FOOTNOTE_OAUTH_CONNECTION_DAYS/,
+    )
   })
 })

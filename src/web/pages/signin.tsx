@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { usePageTitle } from '@/lib/page-title'
 import { ChevronRightIcon } from '@/components/icons'
-import { PersonAvatar } from '@/components/heed/bits'
-import { Logo } from '@/components/heed/logo'
-import { ProfileLabel } from '@/components/heed/profile-label'
+import { PersonAvatar } from '@/components/footnote/bits'
+import { Logo } from '@/components/footnote/logo'
+import { ProfileLabel } from '@/components/footnote/profile-label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import {
@@ -86,7 +86,7 @@ function SignInMark({ method }: { method: SignInMethod }) {
 }
 
 /**
- * Says the demo is invented, under the sign-in card. Only on the demo (HEED_AUTH=demo, or the demo
+ * Says the demo is invented, under the sign-in card. Only on the demo (FOOTNOTE_AUTH=demo, or the demo
  * loaded): an install with its own data, a private profile on the dev picker say, never says so.
  */
 function DemoNote({ method }: { method: SignInMethod }) {

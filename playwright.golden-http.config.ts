@@ -98,6 +98,6 @@ export default defineConfig({
     url: `http://localhost:${webPort}`,
     reuseExistingServer: !ci,
     timeout: 180_000,
-    env: { VITE_API_MODE: 'http', HEED_API_URL: `http://127.0.0.1:${apiPort}` },
+    env: { VITE_API_MODE: 'http', FOOTNOTE_API_URL: `http://127.0.0.1:${apiPort}` },
   },
 })

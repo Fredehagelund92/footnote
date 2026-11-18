@@ -56,7 +56,7 @@ describe('motion tokens', () => {
       ),
     ).toEqual([])
     expect(
-      hits(/requestAnimationFrame/, (_, file) => file !== 'components/heed/count-up.tsx'),
+      hits(/requestAnimationFrame/, (_, file) => file !== 'components/footnote/count-up.tsx'),
     ).toEqual([])
   })
   it('runs its own keyframes only for the countdown and the read fill', () => {

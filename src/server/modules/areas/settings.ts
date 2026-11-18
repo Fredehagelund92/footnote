@@ -112,7 +112,7 @@ export async function createArea(
   if (input.reason !== undefined) plainReason(input.reason)
   plainAbout(input)
   // One creation at a time, so two at once cannot both find the id or the name free.
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.areas',0))")
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.areas',0))")
   // Before the first history entry, as a role change takes it: areas, then roles, then the log.
   await lockRoles(tx)
   // A deleted domain that history keeps holds its id and name (FR-814).
@@ -194,7 +194,7 @@ export async function describeArea(
       message: "Only the domain's owners and admins can describe it.",
     })
   plainAbout(input)
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.areas',0))")
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.areas',0))")
   const before = await current(tx, input.id, input.revision)
   // Its owners rename it from its page too (FR-815), under the same rule as an admin's rename.
   if (input.name !== undefined && (await nameTaken(tx, input.name, input.id)))

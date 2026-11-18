@@ -23,7 +23,7 @@ import { gitHost, type GitHost } from './git-server.ts'
   failure says why with a code, and the token goes nowhere but the Authorization header.
 */
 
-const TOKEN = 'heed-test-token-5f2c9a71'
+const TOKEN = 'footnote-test-token-5f2c9a71'
 /**
  * Each test runs real git processes against a real host, several reads apiece. On a busy machine
  * (other checkouts testing beside this one) three reads have taken longer than 30 seconds, and a
@@ -220,7 +220,7 @@ describe('a Cube model in a Git repository', () => {
   )
 
   it('says the server has no git program, and Markdown in Git says it in words', async () => {
-    const empty = await mkdtemp(join(tmpdir(), 'heed-no-git-'))
+    const empty = await mkdtemp(join(tmpdir(), 'footnote-no-git-'))
     const path = process.env.PATH
     process.env.PATH = empty
     try {

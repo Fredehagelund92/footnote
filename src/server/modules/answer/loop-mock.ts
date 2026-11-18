@@ -5,7 +5,9 @@ import type {
   LanguageModelV4Usage,
 } from '@ai-sdk/provider'
 import { MockLanguageModelV4 } from 'ai/test'
+import { asksWhatItIs } from '../../../domain/scope.ts'
 import type { ModelChoice } from '../models/index.ts'
+import { CHECK_REQUEST } from './loop-check.ts'
 
 /*
   Scripted models for Ask's loop (loop.ts), with no provider and nothing metered: the scripted
@@ -164,15 +166,58 @@ const firstSentence = (text: string) => text.split(/(?<=[.!?])\s/)[0]!.replace(/
 const list = (names: readonly string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
+/** What the chat asked before its last message, newest first. */
+const askedBefore = (prompt: LanguageModelV4Prompt) =>
+  prompt
+    .slice(
+      0,
+      prompt.findLastIndex((m) => m.role === 'user'),
+    )
+    .flatMap((m) =>
+      m.role === 'user'
+        ? [m.content.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n')]
+        : [],
+    )
+    .reverse()
+
+/** The words of the chat's last answer before its last message: what it wrote last. */
+const lastWords = (prompt: LanguageModelV4Prompt) => {
+  const at = prompt.findLastIndex((m) => m.role === 'user')
+  const answer = prompt.slice(0, at).findLast((m) => m.role === 'assistant')
+  return answer?.role === 'assistant'
+    ? answer.content.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('')
+    : ''
+}
+
+/** Words that point back at the chat so far: "And who decides which one is right?" */
+const POINTS_BACK =
+  /^(and|but|or|so|then|also)\b|\b(that|this|these|those|it|its|they|them|their|which one|either|both|the other)\b/i
+
+/** Two items that disagree, of those read: the first with what it disagrees with. */
+function disagreeingOf(items: readonly Obj[]): Obj[] {
+  for (const item of items) {
+    const other = (Array.isArray(item.disagreesWith) ? item.disagreesWith : [])
+      .map((id) => items.find((i) => i.id === id))
+      .find((i) => !!i)
+    if (other) return [item, other]
+  }
+  return []
+}
+
 /**
  * The scripted reader (MODELS=mock): it looks the person's message up once, with get_context and
  * find_context, then writes what applies, each item's title and first sentence with its id, or
- * with nothing found, what the reads say was searched and who owns the subject. It follows no
- * instruction in a message or an item, never asks back, and claims nothing a real model would
- * write.
+ * with nothing found, what the reads say was searched and who owns the subject. A message that
+ * names nothing and points back at the chat ("and who decides?") is looked up once more with the
+ * question before it. Asked what a metric is, it gives the definition, in its own words; under
+ * Conflict, the two items that disagree come first. Told that its answer failed the answer check,
+ * it writes the same words again. It follows no instruction in a message or an item, never asks
+ * back, and claims nothing a real model would write.
  */
 export function scriptedLoopModel(): ModelChoice {
-  return scriptedLoopChoice('loop', ({ question, results, canRead }) => {
+  return scriptedLoopChoice('loop', ({ question, results, canRead, prompt }) => {
+    // Told its answer failed the check, it writes it again as it was: it cannot do better.
+    if (question.startsWith(CHECK_REQUEST)) return { text: lastWords(prompt) }
     const words = question.trim().slice(0, 500) || 'context'
     if (!results.length && canRead)
       return {
@@ -181,17 +226,47 @@ export function scriptedLoopModel(): ModelChoice {
           { toolName: 'find_context', input: { words } },
         ],
       }
-    const got = results.find((r) => r.toolName === 'get_context')?.value
+    const gets = results.filter((r) => r.toolName === 'get_context')
+    const before = askedBefore(prompt)[0]
+    const first = gets[0]?.value
+    if (
+      canRead &&
+      gets.length === 1 &&
+      before &&
+      isObj(first) &&
+      first.read === null &&
+      POINTS_BACK.test(words)
+    )
+      return {
+        calls: [
+          { toolName: 'get_context', input: { about: `${before.trim().slice(0, 500)} ${words}` } },
+        ],
+      }
+    const got = gets.at(-1)?.value
     const found = results.find((r) => r.toolName === 'find_context')?.value
     const get = isObj(got) ? got : {}
     const find = isObj(found) ? found : {}
-    const items = objs(get.items).length
+    const read = isObj(get.read) ? get.read : {}
+    // The subject's names as typed mentions of what the read named, as the page draws them.
+    const about = Array.isArray(read.about) ? read.about.map(String) : []
+    const definitions = objs(find.definitions).filter(
+      (d) => about.includes(String(d.id)) && typeof d.words === 'string' && d.words,
+    )
+    const asksWhat = asksWhatItIs(question, {
+      values: about.some((id) => id.startsWith('value:')),
+      dates: read.assumedToday === false,
+    })
+    if (asksWhat && definitions.length)
+      return {
+        text: definitions.map((d) => `[@${String(d.id)}] means: ${String(d.words)}`).join('\n\n'),
+      }
+    const applies = objs(get.items).length
       ? objs(get.items)
       : objs(find.items).filter((i) => i.match === 'all')
+    const pair = disagreeingOf(applies)
+    const items = [...pair, ...applies.filter((i) => !pair.includes(i))]
     if (items.length) {
-      // The subject's names as typed mentions of what the read named, as the page draws them.
-      const about = isObj(get.read) && Array.isArray(get.read.about) ? get.read.about : []
-      const names = about.map((id) => `[@${String(id)}]`)
+      const names = about.map((id) => `[@${id}]`)
       return {
         text: [
           names.length ? `What is written for ${list(names)}.` : 'What is written.',

@@ -76,7 +76,8 @@ jobs:
   migrations:
     # Before any database starts: a change whose new migration takes a number its base already has
     # (another pull request merged one first), or shares one, fails here within seconds. The held-out
-    # seal rides along, so the run holds one runner less. Both need only git and node: no install.
+    # seal and the held-back count ride along, so the run holds one runner less. All need only git
+    # and node: no install.
     name: Migration numbers and held-out seal
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -105,6 +106,18 @@ jobs:
             cp scripts/check-held-out-seal.ts "$RUNNER_TEMP/check-held-out-seal.ts"
           fi
           node "$RUNNER_TEMP/check-held-out-seal.ts" HEAD^1 HEAD
+      - name: No merge lowers the held-back count of Ask's evaluation harness
+        # Each answerer's suite holds how many held-back cases pass, and its build holds the run to
+        # it; a change may keep the number or raise it, never lower it (scripts/check-held-count.ts).
+        # The base branch's copy of the guard judges the change, as for the seal.
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        run: |
+          if git cat-file -e HEAD^1:scripts/check-held-count.ts 2>/dev/null; then
+            git show HEAD^1:scripts/check-held-count.ts > "$RUNNER_TEMP/check-held-count.ts"
+          else
+            cp scripts/check-held-count.ts "$RUNNER_TEMP/check-held-count.ts"
+          fi
+          node "$RUNNER_TEMP/check-held-count.ts" HEAD^1 HEAD
 
   # The checks run as two jobs side by side, so the slower half sets the wait, not their sum.
   check:
@@ -258,10 +271,10 @@ jobs:
     # takes the role each step needs: the owner migrates, the application role serves.
     env:
       DATABASE_URL_BOOTSTRAP: postgres://postgres:postgres@localhost:5432/postgres
-      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_owner
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_api
-      E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_api
-      E2E_DATABASE_SERVE_URL: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_serve
+      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_owner
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_api
+      E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_api
+      E2E_DATABASE_SERVE_URL: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_serve
       SEED_DEMO: 'on'
       CUBE_MODEL_DIR: db/seed/cube
     steps:
@@ -311,10 +324,10 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL_BOOTSTRAP: postgres://postgres:postgres@localhost:5432/postgres
-      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_owner
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_api
-      E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_api
-      E2E_DATABASE_SERVE_URL: postgres://postgres:postgres@localhost:5432/heed?options=-c%20role%3Dcontext_layer_serve
+      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_owner
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_api
+      E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_api
+      E2E_DATABASE_SERVE_URL: postgres://postgres:postgres@localhost:5432/footnote?options=-c%20role%3Dcontext_layer_serve
       SEED_DEMO: 'off'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -357,31 +370,38 @@ jobs:
         run: docker compose build
       - name: The web image is healthy, not root, and serves gzip, its headers and real 404s
         run: |
-          # No service behind it: "heed" only has to resolve for nginx to start.
-          docker run -d --name heed-web-check --add-host heed:127.0.0.1 -p 127.0.0.1:8080:8080 heed-web
+          # No service behind it: "footnote" only has to resolve for nginx to start.
+          docker run -d --name footnote-web-check --add-host footnote:127.0.0.1 -p 127.0.0.1:8080:8080 footnote-web
           for _ in $(seq 60); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' heed-web-check)
+            status=$(docker inspect -f '{{.State.Health.Status}}' footnote-web-check)
             [ "$status" = healthy ] && break
             sleep 1
           done
           echo "health: $status"
           [ "$status" = healthy ]
-          user=$(docker exec heed-web-check id -u)
+          user=$(docker exec footnote-web-check id -u)
           echo "user id: $user"
           [ "$user" != 0 ]
           node scripts/check-web-image.ts http://127.0.0.1:8080
-          docker rm -f heed-web-check
+          docker rm -f footnote-web-check
       - name: Boot the service image in production mode, sign a person in and call the MCP server
         run: bash tests/image/production-boot.sh
+      - name: The old HEED_PORT and HEED_WEB_PORT still move the published ports
+        run: |
+          HEED_PORT=3001 HEED_WEB_PORT=8081 docker compose config --format json > compose.json
+          jq -e '.services.footnote.ports | map(.published) | index("3001") != null' compose.json
+          jq -e '.services.web.ports | map(.published) | index("8081") != null' compose.json
+          jq -e '.services.footnote.environment.MCP_RESOURCE_URL | endswith(":3001/mcp")' compose.json
+          rm compose.json
       - name: Start the demo with docker compose up, in development mode with the people picker
         run: |
           docker compose up --detach --wait --wait-timeout 300
           curl --fail --silent --show-error http://127.0.0.1:8080/ > /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/api/v1/auth/people | jq -e 'length > 0' > /dev/null
-          docker compose logs heed | grep -q '"nodeEnv":"development"'
-          docker compose logs heed | grep -q 'Sign-in is the people picker'
+          docker compose logs footnote | grep -q '"nodeEnv":"development"'
+          docker compose logs footnote | grep -q 'Sign-in is the people picker'
           # The demo from the image's own model, with no folder shared from the host.
-          docker compose logs heed | grep -q 'Loaded the demo'
+          docker compose logs footnote | grep -q 'Loaded the demo'
       - name: A connector's secret is kept across a new container, in both compose forms
         run: bash tests/image/compose-secrets.sh
       - name: Markdown in Git reads a public repository, with the image's own git

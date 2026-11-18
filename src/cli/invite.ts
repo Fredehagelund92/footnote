@@ -3,7 +3,7 @@ import pg from 'pg'
 import { INVITE_DAYS, inviteLinkOf } from '../contract/members.ts'
 
 /**
- * `heed invite <email> [--admin] [--domain <id>]...`: the operator's invite, made in the database
+ * `footnote invite <email> [--admin] [--domain <id>]...`: the operator's invite, made in the database
  * with the owner's credential (DATABASE_URL_MIGRATE), not through the service. It is how the first
  * admin of a new install that signs in with OIDC gets in (FR-416, FR-417): nobody can sign in to
  * invite them yet. It has no sender, and is accepted with an admin's authority at the person's
@@ -25,7 +25,7 @@ export async function operatorInvite(input: {
   await client.connect()
   try {
     await client.query('begin')
-    await client.query("select pg_advisory_xact_lock(hashtextextended('heed.roles', 0))")
+    await client.query("select pg_advisory_xact_lock(hashtextextended('footnote.roles', 0))")
     const email = input.email.trim().toLowerCase()
     const member = await client.query(
       'select 1 from people where email=$1 and deactivated_at is null and erased_at is null',

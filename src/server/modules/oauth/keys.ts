@@ -1,6 +1,7 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from 'node:crypto'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { calculateJwkThumbprint, createLocalJWKSet, exportJWK, type JWK } from 'jose'
+import { moveFormerKeyFile } from '../../config/former-key-files.ts'
 
 /**
  * The login server's signing keys (docs/ai-sign-in.md, "Rotate the signing key"). One Ed25519 key
@@ -29,13 +30,14 @@ async function readPrivateKey(file: string): Promise<KeyObject> {
 
 /** Creates the key outside production when it does not exist yet, with owner-only permissions. */
 async function activeKey(file: string, nodeEnv: string): Promise<KeyObject> {
+  await moveFormerKeyFile(file)
   try {
     return await readPrivateKey(file)
   } catch (error) {
     if (!missing(error)) throw error
     if (nodeEnv === 'production')
       throw new Error(
-        `HEED_OAUTH_SIGNING_KEY_FILE (${file}) does not exist. Create it with: openssl genpkey -algorithm ed25519 -out ${file} && chmod 600 ${file} (in the service image: node src/server/create-keys.ts)`,
+        `FOOTNOTE_OAUTH_SIGNING_KEY_FILE (${file}) does not exist. Create it with: openssl genpkey -algorithm ed25519 -out ${file} && chmod 600 ${file} (in the service image: node src/server/create-keys.ts)`,
         { cause: error },
       )
     const { privateKey } = generateKeyPairSync('ed25519')

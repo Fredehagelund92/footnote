@@ -56,12 +56,21 @@ const backingOff: ScheduledJob = {
   run: () => Promise.resolve({ checked: 0, backingOff: true }),
 }
 
+let atStart = 0
+const startsAtOnce: ScheduledJob = {
+  name: 'test.at-start',
+  cron: '0 0 1 1 *',
+  expectedEverySeconds: 3600,
+  runAtStart: true,
+  run: () => Promise.resolve({ run: ++atStart }),
+}
+
 const database = createDatabase(apiUrl, logger)
 const runner: JobRunner = createJobRunner({
   connectionString: apiUrl,
   database,
   logger,
-  jobs: [...maintenanceJobs, failing, blocking, backingOff],
+  jobs: [...maintenanceJobs, failing, blocking, backingOff, startsAtOnce],
   pollingIntervalSeconds: 0.5,
   retryDelaySeconds: 1,
 })
@@ -78,14 +87,14 @@ beforeAll(async () => {
   const login = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'jobs-admin@example.test' },
   })
   expect(login.statusCode).toBe(200)
   authHeaders = {
     cookie: login.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
     origin: 'http://localhost',
-    'x-heed-csrf': login.json<{ csrfToken: string }>().csrfToken,
+    'x-footnote-csrf': login.json<{ csrfToken: string }>().csrfToken,
   }
 }, 30_000)
 afterAll(async () => {
@@ -154,6 +163,16 @@ describe('the job runner', () => {
     expect(queues.rows).toHaveLength(names.length)
     for (const queue of queues.rows)
       expect(queue).toMatchObject({ policy: 'exclusive', retry_limit: 3 })
+  })
+
+  it('runs a job that asks to once as it starts, without waiting for its schedule', async () => {
+    // Its schedule's first turn is next New Year; the run comes from the start alone.
+    for (let tries = 0; atStart === 0 && tries < 100; tries++) await sleep(100)
+    expect(atStart).toBe(1)
+    const { rows } = await client.query<{ state: string }>(
+      `select state from pgboss.job where name = 'test.at-start'`,
+    )
+    expect(rows).toEqual([{ state: expect.stringMatching(/^(active|completed)$/) as string }])
   })
 
   it('recreates missing partitions, and a second run changes nothing', async () => {

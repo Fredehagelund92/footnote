@@ -1,0 +1,4 @@
+# Where the web image sends /api/v1 (Dockerfile, `web`), before nginx fills it into its template:
+# FOOTNOTE_API_URL, else HEED_API_URL, its name until the product was renamed Footnote, read for
+# one release (docs/operations.md, "Upgrade from Heed 0.1"), else the compose file's service.
+export FOOTNOTE_API_URL="${FOOTNOTE_API_URL:-${HEED_API_URL:-http://footnote:3000}}"

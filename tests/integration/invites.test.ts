@@ -23,7 +23,7 @@ import { apiDatabase, tableContents, testDatabase, transaction } from './support
 const { client, url } = testDatabase()
 const database = apiDatabase(url)
 const logs: string[] = []
-const web = 'https://heed.example'
+const web = 'https://footnote.example'
 const app = buildApp({
   database,
   logger: createLogger({
@@ -42,18 +42,18 @@ const app = buildApp({
   origins: [web],
   jobs: idleJobs(),
 })
-type Auth = { cookie: string; 'x-heed-csrf': string; origin: string }
+type Auth = { cookie: string; 'x-footnote-csrf': string; origin: string }
 async function login(name: string): Promise<Auth> {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin: web, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin: web, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: `${name}@example.test` },
   })
   expect(response.statusCode, response.body).toBe(200)
   return {
     cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-    'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+    'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     origin: web,
   }
 }
@@ -76,7 +76,7 @@ const invite = async (auth: Auth, payload: object) => {
   return response.json<InvitesCreated>().results
 }
 const tokenOf = (link: string) => {
-  const match = /^https:\/\/heed\.example\/#\/signin\?invite=([A-Za-z0-9_-]{43})$/.exec(link)
+  const match = /^https:\/\/footnote\.example\/#\/signin\?invite=([A-Za-z0-9_-]{43})$/.exec(link)
   expect(match, link).not.toBeNull()
   return match![1]!
 }

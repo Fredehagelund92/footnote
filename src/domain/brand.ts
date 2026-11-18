@@ -2,7 +2,7 @@
  * The product's name, decided in one place (docs/rename-checklist.md). People and agents see it
  * only where it earns its place: a sentence that names the product, never a label such as Back
  * or Add context. The web app (src/web/lib/brand.ts) and the service (src/server/brand.ts) read
- * one setting, `HEED_PRODUCT_NAME`, once at start, so the assistant's instructions stay
+ * one setting, `FOOTNOTE_PRODUCT_NAME`, once at start, so the assistant's instructions stay
  * byte-stable; this module holds the default and the rules, and does no I/O.
  *
  * Technical names that carry the current name (the CLI command, the MCP server id, package names,
@@ -11,12 +11,12 @@
  */
 
 /** The public repository: Edit on GitHub, links to its documents and the demo model's files. */
-export const REPOSITORY_URL = 'https://github.com/Fredehagelund92/heed'
+export const REPOSITORY_URL = 'https://github.com/Fredehagelund92/footnote'
 
 /** Where to ask for a connector: the issue template for one (.github/ISSUE_TEMPLATE/connector.yml). */
 export const CONNECTOR_REQUEST_URL = `${REPOSITORY_URL}/issues/new?template=connector.yml`
 
-/** The name when `HEED_PRODUCT_NAME` is not set. */
+/** The name when `FOOTNOTE_PRODUCT_NAME` is not set. */
 export const DEFAULT_PRODUCT_NAME = 'Footnote'
 
 /**

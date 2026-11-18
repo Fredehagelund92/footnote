@@ -20,10 +20,11 @@
   ],
   "packages": {
     ".": {
-      "package-name": "heed",
+      "package-name": "footnote",
       "extra-files": [
         { "type": "json", "path": "docs/api/openapi.json", "jsonpath": "$.info.version" },
-        { "type": "generic", "path": "SECURITY.md" }
+        { "type": "generic", "path": "SECURITY.md" },
+        { "type": "generic", "path": "compose.images.yaml" }
       ]
     }
   }

@@ -163,7 +163,7 @@ export function createWorkspaceSources({
   secrets: SecretStore
   /** The connectors, and the sources the server's own configuration selects (their ids). */
   registry: Pick<ConnectorRegistry, 'connectors' | 'list'>
-  /** The server's figure settings (`HEED_FIGURE_OVERRIDES`), by source. */
+  /** The server's figure settings (`FOOTNOTE_FIGURE_OVERRIDES`), by source. */
   figureOverrides?: FigureOverrides
 }) {
   /** Figures in Ask, on the sources whose connector reads them (figures.ts). */
@@ -501,7 +501,7 @@ export function createWorkspaceSources({
       const plan = await checkPlan(tx, connector!, input.scopes ?? [], input.schedule ?? null)
       const allGroups = input.allGroups ?? !plan.scopes.length
       const definitions = connector!.manifest.kind === 'definitions'
-      await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.sources.add', 0))")
+      await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.sources.add', 0))")
       const existing = await tx.query<{ id: string }>('select id from connectors')
       const id = sourceIdFrom(
         input.name.trim(),

@@ -84,7 +84,7 @@ function app(options: { rows?: object[]; signedIn?: boolean } = {}) {
     devPeople: [],
   })
   instance.addHook('onRequest', (request, _reply, done) => {
-    if (options.signedIn !== false) request.headers.cookie = 'heed_session=' + 'a'.repeat(64)
+    if (options.signedIn !== false) request.headers.cookie = 'footnote_session=' + 'a'.repeat(64)
     done()
   })
   close = () => instance.close()
@@ -246,7 +246,7 @@ describe('the API over HTTP', () => {
     const { instance } = app({ signedIn: false })
     for (const url of ['/api/v1/me', '/api/v1/auth/people']) {
       const response = await instance.inject({ method: 'GET', url })
-      expect(response.headers['x-heed-api'], url).toBe(await apiVersion())
+      expect(response.headers['x-footnote-api'], url).toBe(await apiVersion())
     }
   })
 

@@ -47,7 +47,7 @@ The docs site publishes these, and their words follow the [reader check](../apps
 | [Run and operate the service](operations.md)            | Run it, check it, run it in production, its jobs, limits and metrics   |
 | [Service settings](configuration.md)                    | Every setting the service reads when it starts                         |
 | [Set up company sign-in](company-sign-in.md)            | OpenID Connect, and who may sign in                                    |
-| [Administer the service](administration.md)             | Settings, the history log, import, export and the `heed` command       |
+| [Administer the service](administration.md)             | Settings, the history log, import, export and the `footnote` command   |
 | [Security, scanning and the restore drill](security.md) | What is scanned and how to prove a backup restores                     |
 | [Run the demo on Vercel and Neon](vercel.md)            | For the demo only: the service as a function, and the data on Neon     |
 

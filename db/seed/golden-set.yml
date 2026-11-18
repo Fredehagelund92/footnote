@@ -1267,7 +1267,7 @@ cases:
     source: 'Vocabulary: a Cube member whose definition changed at the newest read (cube-model.ts changedDefinitions)'
     notes: 'Known gap: the change of a Cube definition is shown to owners (needs a check) but no agent reply says it. Version 3: get_facts keeps the link that names the Cube source when it cuts, and gives a definition question the definition first.'
 
-  - id: gs-definition-roas-what-heed-adds
+  - id: gs-definition-roas-what-footnote-adds
     area: area_paid_media
     type: definition
     behaviour: answer

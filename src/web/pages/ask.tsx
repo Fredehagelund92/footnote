@@ -17,7 +17,7 @@ import { ASK_ANCHOR, ASK_ROOM_GAP_PX } from '@/lib/ask-motion'
 import { toApiError } from '@/api/errors'
 import { cn } from '@/lib/utils'
 import { DockFrame } from '@/components/dock'
-import { AnswerBody, DraftBanner, Question } from '@/components/heed/answer'
+import { AnswerBody, DraftBanner, Question } from '@/components/footnote/answer'
 import { ResizableAside } from '@/components/resizable-aside'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -81,9 +81,9 @@ import { readWidth, saveWidth } from '@/lib/pane-width'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { composerSurface } from '@/lib/surfaces'
 import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threads'
-import { TruncatedText } from '@/components/heed/truncated'
-import { AskedThisWeek, StateLegend } from '@/components/heed/asked-week'
-import { Answering, Suggestions } from '@/components/heed/suggestions'
+import { TruncatedText } from '@/components/footnote/truncated'
+import { AskedThisWeek, StateLegend } from '@/components/footnote/asked-week'
+import { Answering, Suggestions } from '@/components/footnote/suggestions'
 import { arriveRef, leaveThen, useLeaving } from '@/lib/presence'
 import { asksAgain } from '@domain/ask-again'
 import { fitChat } from '@domain/ask-chat'
@@ -132,6 +132,13 @@ const FOLLOW_SLACK = 24
 
 /** How wide, in pixels, a pane holds the box under the question until the first question. */
 const LIFT_MIN = 640
+
+/** What the empty Ask says of who answers: one line in the Ask column. */
+const answeredBySaid: Record<ReturnType<typeof useSession>['answeredBy'], string> = {
+  model: 'Answers come from what your team wrote and an owner checked.',
+  reader: 'No AI model is connected, so answers list what your team wrote and an owner checked.',
+  preview: 'A design preview: answers are made in this browser, with no service and no AI model.',
+}
 
 const AskComposer = React.lazy(() =>
   import('@/pages/ask-composer').then((m) => ({ default: m.AskComposer })),
@@ -313,7 +320,7 @@ export function AskChat({
     if (up || from === null || !el || reducedMotion()) return
     motion.current?.dockFrom(el, from)
   }, [up])
-  const { fresh } = useSession()
+  const { fresh, answeredBy } = useSession()
   const examples = useAskExamples()
   // What agents asked this week; with nothing asked yet (a new workspace), its starters instead.
   const week = useQuery(askedWeekQuery()).data
@@ -593,7 +600,7 @@ export function AskChat({
                     What do you want to know about your metrics?
                   </h2>
                   <p className="mt-2 text-sm text-balance text-muted-foreground">
-                    Answers come from what your team wrote and an owner checked.
+                    {answeredBySaid[answeredBy]}
                   </p>
                 </div>
                 {!up && start}

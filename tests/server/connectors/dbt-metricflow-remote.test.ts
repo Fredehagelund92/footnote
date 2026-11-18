@@ -307,12 +307,12 @@ describe('the rules of ctx.fetch', () => {
     expect(await failure(connector.source(address(plain)).read({ cursor: null }))).toMatchObject({
       code: 'private_address',
     })
-    vi.stubEnv('HEED_EGRESS_PRIVATE_HOSTS', '127.0.0.1')
+    vi.stubEnv('FOOTNOTE_EGRESS_PRIVATE_HOSTS', '127.0.0.1')
     // Allowed by name, it is still https only.
     expect(await codeOf(fetcher(plain)(plain))).toBe('private_address')
     const https = plain.replace('http:', 'https:')
     expect(await codeOf(fetcher(https)(https))).toBe('unreachable')
-    vi.stubEnv('HEED_EGRESS_PRIVATE_HOSTS', '')
+    vi.stubEnv('FOOTNOTE_EGRESS_PRIVATE_HOSTS', '')
     expect(await codeOf(fetcher(https)(https))).toBe('private_address')
   })
 
@@ -324,7 +324,7 @@ describe('the rules of ctx.fetch', () => {
       objectAddress: 'https://10.0.0.5/bucket/file.json',
     }
     expect(connector.parse(config)).toMatchObject({ problems: [{ field: 'objectAddress' }] })
-    vi.stubEnv('HEED_EGRESS_PRIVATE_HOSTS', '10.0.0.5')
+    vi.stubEnv('FOOTNOTE_EGRESS_PRIVATE_HOSTS', '10.0.0.5')
     expect(connector.parse(config)).toEqual({ config })
   })
 })

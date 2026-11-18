@@ -37,7 +37,7 @@ async function post(page: Page, path: string, data: object) {
   }
   const answer = await page.request.post(`/api/v1${path}`, {
     headers: {
-      'x-heed-csrf': csrfToken,
+      'x-footnote-csrf': csrfToken,
       'idempotency-key': randomUUID(),
       origin: new URL(page.url()).origin,
     },

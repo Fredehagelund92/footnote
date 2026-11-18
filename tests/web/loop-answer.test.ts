@@ -52,9 +52,9 @@ vi.mock('@/lib/router', async (original) => ({
   useRoute: () => ({ path: '/ask', query: new URLSearchParams() }),
 }))
 
-const { LoopAnswerBody } = await import('@/components/heed/loop-answer')
-const { loopParts } = await import('@/components/heed/loop-parts')
-const { AnswerActions, ReportLine, SomethingWrong } = await import('@/components/heed/answer')
+const { LoopAnswerBody } = await import('@/components/footnote/loop-answer')
+const { loopParts } = await import('@/components/footnote/loop-parts')
+const { AnswerActions, ReportLine, SomethingWrong } = await import('@/components/footnote/answer')
 // The figure reads the data through the app's query cache: here, where it goes is enough.
 const AnswerFigure = ({ answer }: { answer: { metric: string } }) =>
   React.createElement('p', { 'data-figure': answer.metric })

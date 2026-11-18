@@ -274,7 +274,7 @@ export interface FigureQuery {
 }
 
 /**
- * The server's figure settings for one measure (`HEED_FIGURE_OVERRIDES`), set by whoever runs
+ * The server's figure settings for one measure (`FOOTNOTE_FIGURE_OVERRIDES`), set by whoever runs
  * the service for a model that does not say: the date its days apply to, by name; whether it
  * adds up over days (`false` for a snapshot such as a balance or stock on hand); and how its
  * value is written.

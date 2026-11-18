@@ -21,9 +21,9 @@ describe('vercel.json', () => {
   it('sends the API and health to the function, and every other page to the web app', async () => {
     const config = JSON.parse(await read('vercel.json')) as VercelJson
     expect(config.rewrites).toEqual([
-      { source: '/api/v1/(.*)', destination: '/api/heed' },
-      { source: '/health', destination: '/api/heed' },
-      { source: '/health/(.*)', destination: '/api/heed' },
+      { source: '/api/v1/(.*)', destination: '/api/footnote' },
+      { source: '/health', destination: '/api/footnote' },
+      { source: '/health/(.*)', destination: '/api/footnote' },
       { source: '/((?!api/).*)', destination: '/index.html' },
     ])
   })
@@ -73,14 +73,14 @@ describe('the bundled service', () => {
   it('starts in a folder of its own, without node_modules, package.json or the people file', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'footnote-vercel-'))
     try {
-      const bytes = await bundleService(join(folder, 'heed.mjs'))
+      const bytes = await bundleService(join(folder, 'footnote.mjs'))
       // A function may hold 250 MB; the bundle holds the service alone.
       expect(bytes).toBeLessThan(20 * 1024 * 1024)
       await writeFile(
         join(folder, 'serve.mjs'),
         [
           "import { createServer } from 'node:http'",
-          "const { default: handler } = await import('./heed.mjs')",
+          "const { default: handler } = await import('./footnote.mjs')",
           'const server = createServer((request, response) => void handler(request, response))',
           "server.listen(0, '127.0.0.1', () => console.log(`at ${server.address().port}`))",
         ].join('\n'),
@@ -109,7 +109,7 @@ describe('the bundled service', () => {
         expect(response.status).toBe(200)
         expect(await response.json()).toEqual({
           status: 'ok',
-          service: 'heed',
+          service: 'footnote',
           version: footnoteVersion,
         })
       } finally {

@@ -61,8 +61,13 @@ export type Session = {
   install: 'new' | 'normal'
   /** The mock's new install (`?demo=setup`): no demo context or cards, only what this visit adds. */
   fresh: boolean
-  /** The label naming this install (HEED_PROFILE_LABEL) for the header; null when none is set. */
+  /** The label naming this install (FOOTNOTE_PROFILE_LABEL) for the header; null when none is set. */
   profileLabel: string | null
+  /**
+   * Who answers in Ask: an AI model; the service's scripted reader (MODELS=mock), whose answers
+   * list what is written; or the mock build's own reader, a design preview of Ask.
+   */
+  answeredBy: 'model' | 'reader' | 'preview'
 }
 
 export type Workspace = {
@@ -77,8 +82,15 @@ export type Workspace = {
   about: string
   /** What Start from the guide fills in: a worked example of that text. */
   aboutTemplate: string
-  /** Which steps of a new install's setup checklist are done, by step id (lib/setup.ts). */
-  setup: { done: Record<string, boolean> }
+  /**
+   * Which steps of a new install's setup checklist are done, by step id (lib/setup.ts), and the
+   * definitions the server's own configuration reads, such as a model folder: its source's id and
+   * where its read stands. Null when the server reads none.
+   */
+  setup: {
+    done: Record<string, boolean>
+    serverSource: { id: string; state: 'reading' | 'read' | 'failed' } | null
+  }
 }
 
 /** The vocabulary the definitions source names: its metrics, dimensions and the markets agents ask about. */
@@ -190,10 +202,12 @@ export type Inbox = {
   reviewed: Record<string, boolean>
   /**
    * This week's questions from agents, as counts: no question text, no names. A count under the
-   * minimum is null, and so is what most questions that found nothing were about.
+   * minimum is null, and so is what most questions that found nothing were about. The same count
+   * as Ask's Asked this week: `askedAtLeast` is what its rows show together.
    */
   week: {
     asked: number | null
+    askedAtLeast: number
     found: number | null
     nothing: number | null
     mostAbout: string | null
@@ -308,7 +322,7 @@ export type BulkChange = {
  * How this workspace signs people in: the person picker (a demo, or development), or the company's
  * OpenID Connect provider, by its name, with the address that starts a sign-in. With it, what the
  * sign-in page says of the install: whether it is the invented demo, and the label naming it
- * (HEED_PROFILE_LABEL), null when none is set.
+ * (FOOTNOTE_PROFILE_LABEL), null when none is set.
  */
 export type SignInMethod = { demo: boolean; profileLabel: string | null } & (
   { kind: 'picker' } | { kind: 'oidc'; name: string; start: string }

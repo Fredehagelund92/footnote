@@ -165,9 +165,14 @@ export const feedInputSchema = z.object({
   tab: z.optional(z.enum(['needs', 'all'])),
 })
 export const feedSchema = z.object({
-  /** This week's questions from agents, counts only: no words, no names. */
+  /**
+   * This week's questions from agents, counts only: no words, no names. The same count as Ask's
+   * Asked this week, over the same last 7 full days and as this person may have it.
+   */
   week: z.object({
     asked: shownCount,
+    /** What Asked this week's rows show together: "143+" when `asked` is null. */
+    askedAtLeast: z.number(),
     found: shownCount,
     nothing: shownCount,
     /** What most questions that found nothing were about, in words; null when under the minimum. */
@@ -253,4 +258,13 @@ export type NamesDecision = z.infer<typeof decideNamesResultSchema>
 export const setupSchema = z.object({
   steps: z.array(z.object({ id: z.enum(setupSteps), done: z.boolean() })),
   done: z.boolean(),
+  /**
+   * The definitions the server's own configuration reads, such as a model folder: the source's id
+   * and where its read stands: still on its way, read, or ended without a good read. Null when the
+   * server reads none, and the definitions step offers to connect a tool.
+   */
+  serverSource: z.nullable(
+    z.object({ id: z.string(), state: z.enum(['reading', 'read', 'failed']) }),
+  ),
 })
+export type Setup = z.infer<typeof setupSchema>

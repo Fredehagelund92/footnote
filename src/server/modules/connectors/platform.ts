@@ -90,7 +90,7 @@ export interface StoredSource {
   allGroups?: boolean
   /**
    * The folder on the server that whoever runs it named for the source (`CUBE_MODEL_DIR`,
-   * `HEED_SERVER_FOLDERS`), which a connector that declares `capabilities.serverFolder` reads as
+   * `FOOTNOTE_SERVER_FOLDERS`), which a connector that declares `capabilities.serverFolder` reads as
    * `ctx.folder`; only for a source the server's configuration selects.
    */
   folder?: string

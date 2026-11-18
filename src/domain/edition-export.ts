@@ -9,7 +9,7 @@ import { type ItemVersion, itemVersionDigests } from './item-version.ts'
 import type { AreaState } from './item.ts'
 import { termDigestContent, type Term } from './vocabulary.ts'
 
-export const EDITION_EXPORT_FORMAT = 'heed.edition/1'
+export const EDITION_EXPORT_FORMAT = 'footnote.edition/1'
 
 /** One item version as served, flat so that the file reads back as an import. */
 export type ExportedItem = ItemVersion & { id: string; version: number; digest: string }

@@ -85,7 +85,7 @@ async function signIn(name: string): Promise<Session> {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: `${name}@example.test` },
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -134,7 +134,7 @@ function send(op: Operation, headers: Record<string, string>) {
 function credentials(role: Role, op?: Operation): Record<string, string> {
   const session = sessions.get(role)
   const csrf = session && op?.name !== 'auth.signIn' ? session.csrf : 'dev-sign-in'
-  return { ...(session ? { cookie: session.cookie } : {}), 'x-heed-csrf': csrf, origin }
+  return { ...(session ? { cookie: session.cookie } : {}), 'x-footnote-csrf': csrf, origin }
 }
 
 /** The session table changes with every sign-in and request; everything else must not. */
@@ -284,14 +284,14 @@ describe('CSRF and origin', () => {
       (headers) => ({ ...headers, origin: 'http://localhost:5174' }),
     ],
     ['a cross-site fetch', (headers) => ({ ...headers, 'sec-fetch-site': 'cross-site' })],
-    ['no CSRF token', ({ 'x-heed-csrf': _c, ...rest }) => rest],
+    ['no CSRF token', ({ 'x-footnote-csrf': _c, ...rest }) => rest],
     [
       'the sign-in token instead of the session one',
-      (headers) => ({ ...headers, 'x-heed-csrf': 'dev-sign-in' }),
+      (headers) => ({ ...headers, 'x-footnote-csrf': 'dev-sign-in' }),
     ],
     [
       "another person's CSRF token",
-      (headers) => ({ ...headers, 'x-heed-csrf': sessions.get('contributor')!.csrf }),
+      (headers) => ({ ...headers, 'x-footnote-csrf': sessions.get('contributor')!.csrf }),
     ],
   ]
 
@@ -332,7 +332,7 @@ describe('CSRF and origin', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin, 'x-heed-csrf': 'dev-sign-in', 'x-forwarded-proto': 'https' },
+      headers: { origin, 'x-footnote-csrf': 'dev-sign-in', 'x-forwarded-proto': 'https' },
       payload: { email: 'author@example.test' },
     })
     const cookie = String(response.headers['set-cookie'])

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { ArrowDownIcon, ArrowUpIcon, InfoIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { Changed } from '@/components/heed/changed'
+import { Changed } from '@/components/footnote/changed'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { Change } from '@domain/observability'

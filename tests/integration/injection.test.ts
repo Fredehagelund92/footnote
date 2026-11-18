@@ -96,14 +96,14 @@ beforeAll(async () => {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'admin@example.test' },
   })
   expect(response.statusCode, response.body).toBe(200)
   const cookie = response.cookies[0]!
   headers = {
     cookie: `${cookie.name}=${cookie.value}`,
-    'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+    'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     origin,
   }
   document = JSON.parse(

@@ -38,6 +38,10 @@ describe('a suggestion row in sentences', () => {
     expect(gapRowWords({ times: 9, told: 1 })).toBe(
       'Agents asked about this 9 times this week. They found nothing. Someone in Ask told you too.',
     )
+    // A count under the minimum is hidden, never none: the card was raised by what agents asked.
+    expect(gapRowWords({ times: null, told: 0 })).toBe(
+      'Agents asked about this fewer than 5 times this week. They found nothing.',
+    )
     expect(gapRowWords({ times: 9, told: 0, acrossMonths: 'x' })).toBe(
       'Agents asked about this 9 times this week. They found nothing. Counted across two months.',
     )

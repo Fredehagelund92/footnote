@@ -3,6 +3,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
+import { withRenamedSettings } from '../src/domain/renamed-settings.ts'
 import { readDevPeople } from '../src/server/modules/auth/index.ts'
 import { inlineScriptHashes } from './web-csp.ts'
 
@@ -11,7 +12,7 @@ import { inlineScriptHashes } from './web-csp.ts'
 
   1. The web app in http mode into dist/web, which Vercel serves as static files.
   2. Checks that vercel.json lets exactly the built page's inline scripts run.
-  3. The service bundled into one file, dist/vercel/heed.mjs, which the function api/heed.js
+  3. The service bundled into one file, dist/vercel/footnote.mjs, which the function api/footnote.js
      exports. Bundled, the function holds a few MB rather than every package in node_modules,
      which is over Vercel's limit. Cube's native compiler and pg's native driver stay out: the
      function never loads them. Footnote's version and the picker's people, which the service reads
@@ -19,7 +20,7 @@ import { inlineScriptHashes } from './web-csp.ts'
 */
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-export const bundleFile = 'dist/vercel/heed.mjs'
+export const bundleFile = 'dist/vercel/footnote.mjs'
 
 /** What is wrong with vercel.json's Content-Security-Policy for the built page, if anything. */
 export function cspProblem(vercelJson: string, html: string): string | undefined {
@@ -48,7 +49,8 @@ function run(command: string, args: string[], env: Record<string, string>) {
 /** The service in one file, `outfile` (absolute, or under the repository), and its size in bytes. */
 export async function bundleService(
   outfile: string,
-  peopleFile = process.env.HEED_DEV_PEOPLE_FILE || 'db/seed/people.local.yml',
+  peopleFile = withRenamedSettings(process.env).environment.FOOTNOTE_DEV_PEOPLE_FILE ||
+    'db/seed/people.local.yml',
 ): Promise<number> {
   const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
     version: string
@@ -67,7 +69,7 @@ export async function bundleService(
     banner: {
       js: "import { createRequire as footnoteCreateRequire } from 'node:module'; const require = footnoteCreateRequire(import.meta.url);",
     },
-    define: { HEED_BUNDLE: JSON.stringify(JSON.stringify({ version, people })) },
+    define: { FOOTNOTE_BUNDLE: JSON.stringify(JSON.stringify({ version, people })) },
     legalComments: 'none',
     logLevel: 'warning',
   })

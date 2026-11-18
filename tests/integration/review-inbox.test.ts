@@ -34,7 +34,7 @@ const app = buildApp({
   })),
 })
 
-type Headers = { cookie: string; origin: string; 'x-heed-csrf': string }
+type Headers = { cookie: string; origin: string; 'x-footnote-csrf': string }
 const headers: Record<string, Headers> = {}
 type Who = keyof typeof people
 const call = (
@@ -89,14 +89,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
 })
@@ -1190,6 +1190,32 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     expect(await served(dueItem)).toBeNull()
     await ok(call('POST', '/decisions/undo', 'owner', { token: archived.undo.token }))
     expect(await served(dueItem)).toBe(1)
+  })
+
+  it('makes a Due for a check card of each item Context counts as due, and of no example', async () => {
+    const example = await live({
+      kind: 'example',
+      title: 'Orders in Cyprus in January',
+      ...inMarket('cyprus'),
+      validity: { start: '2026-01-01', end: null },
+      reviewDate: '2026-02-01',
+    })
+    const { items } = await ok<{
+      items: { id: string; kind: string; areaId: string; status: string; trust: string }[]
+    }>(call('GET', '/library', 'owner'))
+    // Context's list leaves the example kind out, and counts what is due of the rest.
+    const due = items.filter(
+      (i) =>
+        i.kind !== 'example' &&
+        i.areaId === 'finance' &&
+        i.status !== 'retired' &&
+        i.trust === 'needs_check',
+    )
+    expect(items.find((i) => i.id === example)).toMatchObject({ trust: 'needs_check' })
+    const f = await feed()
+    const checks = f.cards.flatMap((c) => (c.group === 'check' ? [c.itemId] : []))
+    expect(checks.sort()).toEqual(due.map((i) => i.id).sort())
+    expect(f.groups.find((g) => g.group === 'check')?.count).toBe(due.length)
   })
 
   it('lets an admin who owns no domain check a due item as still true, as Mark as checked does', async () => {

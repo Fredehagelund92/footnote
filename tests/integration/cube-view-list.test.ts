@@ -89,13 +89,13 @@ beforeAll(async () => {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'admin@example.test' },
   })
   expect(response.statusCode, response.body).toBe(200)
   headers.origin = 'http://localhost'
   headers.cookie = response.cookies.map((c) => `${c.name}=${c.value}`).join('; ')
-  headers['x-heed-csrf'] = response.json<{ csrfToken: string }>().csrfToken
+  headers['x-footnote-csrf'] = response.json<{ csrfToken: string }>().csrfToken
 }, 120_000)
 afterAll(async () => {
   await app.close()

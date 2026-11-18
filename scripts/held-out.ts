@@ -13,7 +13,7 @@ import {
   heldOutProblems,
   HeldOutError,
   identityFrom,
-  keyVariables,
+  everyKeyVariable,
   noSealedCases,
   parseHeldOut,
   readHeldOutKey,
@@ -28,7 +28,7 @@ import {
   coding agent: nothing here prints the key, and only `edit` shows the cases, in the holder's own
   editor.
 
-    keygen [--out <file>]     makes a new key and saves it (default ~/.heed/held-out.key); it says
+    keygen [--out <file>]     makes a new key and saves it (default ~/.footnote/held-out.key); it says
                               where, and never prints the key
     edit                      opens the cases in your editor ($VISUAL or $EDITOR) from a private
                               temporary file, checks them, seals them again and removes the file
@@ -39,8 +39,8 @@ import {
                               in memory, and prints counts by type only: no case, answer or
                               transcript is shown or kept (the run records its calls and cost)
 
-  `edit`, `rotate`, `count` and `eval` take the current key from HEED_HELDOUT_KEY_FILE (or
-  HEED_HELDOUT_KEY), set for that command only. `--file` names another sealed file (for tests).
+  `edit`, `rotate`, `count` and `eval` take the current key from FOOTNOTE_HELDOUT_KEY_FILE (or
+  FOOTNOTE_HELDOUT_KEY), set for that command only. `--file` names another sealed file (for tests).
   `eval` reads the database and the model keys as `npm run eval` does (.env.local, then the
   environment), but never the held-out key from .env.local: that comes from the command only. It
   uses the scripted mock model unless `--real`, which needs a cost ceiling at or above the
@@ -52,7 +52,7 @@ const usage =
   'Usage: npm run held-out -- keygen [--out <file>] | edit | rotate --new-key <file> | count | eval --area <id> [--real --max-cost-usd <dollars>] [--pass-rule majority|all]  [--file <sealed file>]'
 
 /** Where keygen saves a key unless told otherwise: outside every repository. */
-export const defaultKeyFile = () => join(homedir(), '.heed', 'held-out.key')
+export const defaultKeyFile = () => join(homedir(), '.footnote', 'held-out.key')
 
 const emptySet = `# The held-out cases: agent cases under cases, each with split: held_out. The format is the
 # golden set's (src/domain/golden-set.ts).
@@ -132,7 +132,7 @@ export async function editSealed(options: {
     for (;;) {
       // The editor and whatever it starts never get the key.
       const env = { ...process.env }
-      for (const name of keyVariables) delete env[name]
+      for (const name of everyKeyVariable) delete env[name]
       const opened = spawnSync(`${options.editor} "${buffer}"`, {
         shell: true,
         stdio: 'inherit',
@@ -181,7 +181,7 @@ async function currentKey(): Promise<string> {
   const identity = await readHeldOutKey()
   if (!identity)
     throw new HeldOutError(
-      'Give the current key for this command only: HEED_HELDOUT_KEY_FILE=<key file> npm run held-out -- ...',
+      'Give the current key for this command only: FOOTNOTE_HELDOUT_KEY_FILE=<key file> npm run held-out -- ...',
     )
   return identity
 }
@@ -195,7 +195,7 @@ const usd = (micros: number) => `$${(micros / 1_000_000).toFixed(2)}`
  */
 function evalEnvironment(real: boolean): Record<string, string | undefined> {
   const local = existsSync('.env.local') ? parseEnv(readFileSync('.env.local', 'utf8')) : {}
-  for (const name of keyVariables) Reflect.deleteProperty(local, name)
+  for (const name of everyKeyVariable) Reflect.deleteProperty(local, name)
   return { ...local, ...process.env, MODELS: real ? 'live' : 'mock' }
 }
 
@@ -333,7 +333,7 @@ async function main(): Promise<number> {
       const saved = await keygen(values.out ?? defaultKeyFile())
       console.log(
         `Saved a new held-out key to ${saved} (readable by you only). The key was not printed.\n` +
-          `Give it to one command at a time: HEED_HELDOUT_KEY_FILE=${saved} npm run held-out -- count\n` +
+          `Give it to one command at a time: FOOTNOTE_HELDOUT_KEY_FILE=${saved} npm run held-out -- count\n` +
           "Never put it in a shell profile, a .env file, CI or a coding agent's environment.",
       )
       return 0
@@ -363,7 +363,7 @@ async function main(): Promise<number> {
       await rotateSealed({ identity: await currentKey(), newIdentity, file })
       console.log(
         `Sealed ${shown} with the key in ${values['new-key']}: the old key no longer opens it.\n` +
-          `Use HEED_HELDOUT_KEY_FILE=${values['new-key']} from now on. ${commit}\n` +
+          `Use FOOTNOTE_HELDOUT_KEY_FILE=${values['new-key']} from now on. ${commit}\n` +
           'Delete the old key once that pull request is merged.',
       )
       return 0

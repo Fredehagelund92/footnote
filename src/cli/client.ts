@@ -14,7 +14,7 @@ export type FootnoteClient = ContractRouterClient<Contract>
 export type Connection = {
   /** The service, for example http://127.0.0.1:3000. */
   url: string
-  /** The origin the service accepts for changes (HEED_WEB_ORIGINS). */
+  /** The origin the service accepts for changes (FOOTNOTE_WEB_ORIGINS). */
   origin: string
   fetch?: typeof globalThis.fetch
 }
@@ -29,7 +29,7 @@ export function createClient(connection: Connection) {
       if (session.cookie) headers.set('cookie', session.cookie)
       if (request.method !== 'GET') {
         headers.set('origin', connection.origin)
-        headers.set('x-heed-csrf', session.csrf)
+        headers.set('x-footnote-csrf', session.csrf)
         headers.set('idempotency-key', randomUUID())
       }
       const response = await send(new Request(request, { headers }), init)

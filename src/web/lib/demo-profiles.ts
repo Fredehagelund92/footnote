@@ -46,7 +46,7 @@ export function profilesIn(workspace: {
 /** Who the demo opens as, so a visitor lands in the app with nothing to pick first. */
 export const demoLanding = demoProfiles[0]!
 
-const SIGNED_OUT = 'heed.demo.signed-out'
+const SIGNED_OUT = 'footnote.demo.signed-out'
 
 /**
  * Whether this browser tab signed out on purpose. A demo that opens as the admin on its own leaves

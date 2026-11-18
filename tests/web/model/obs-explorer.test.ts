@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { CountUp } from '@/components/heed/count-up'
+import { CountUp } from '@/components/footnote/count-up'
 import { BUILT_IN, narrowed } from '@/lib/obs-views'
 import { obsHref, obsSectionOf } from '@/lib/obs'
 import { observability, type ObsData, type Topic } from '@/model/observability'

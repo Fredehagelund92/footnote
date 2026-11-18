@@ -10,6 +10,7 @@ import {
   aboutBusinessBlock,
 } from '../../../src/domain/about-business.ts'
 import { PRODUCT_NAME_MAX } from '../../../src/domain/brand.ts'
+import { productName } from '../../../src/server/brand.ts'
 import {
   instructionRules as rulesFor,
   instructionsFor,
@@ -172,28 +173,29 @@ describe('the hosts the MCP server answers', () => {
     })
 
   it("answers its own address's host and this computer, and refuses another host or origin", async () => {
-    const s = await server(undefined, { resource: 'https://heed.example.test/mcp' })
+    const s = await server(undefined, { resource: 'https://footnote.example.test/mcp' })
     for (const host of [
-      'heed.example.test',
-      'heed.example.test:3000',
+      'footnote.example.test',
+      'footnote.example.test:3000',
       'localhost:3000',
       '127.0.0.1',
     ])
       expect((await ask(s, { host })).statusCode, host).toBe(200)
     expect(
-      (await ask(s, { host: 'heed.example.test', origin: 'https://heed.example.test' })).statusCode,
+      (await ask(s, { host: 'footnote.example.test', origin: 'https://footnote.example.test' }))
+        .statusCode,
     ).toBe(200)
-    for (const host of ['rebound.example', 'heed.example.test.evil.example'])
+    for (const host of ['rebound.example', 'footnote.example.test.evil.example'])
       expect((await ask(s, { host })).json(), host).toEqual({ error: 'Invalid host' })
     expect(
-      (await ask(s, { host: 'heed.example.test', origin: 'https://evil.example' })).json(),
+      (await ask(s, { host: 'footnote.example.test', origin: 'https://evil.example' })).json(),
     ).toEqual({ error: 'Invalid origin' })
   })
 
   it('answers only this computer while its address is on this computer', async () => {
     const s = await server()
     expect((await ask(s, { host: 'localhost:3000' })).statusCode).toBe(200)
-    expect((await ask(s, { host: 'heed.example.test' })).statusCode).toBe(403)
+    expect((await ask(s, { host: 'footnote.example.test' })).statusCode).toBe(403)
   })
 })
 
@@ -203,7 +205,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
       await readFile(new URL('../../../package.json', import.meta.url), 'utf8'),
     ) as { version: string }
     const client = await (await server()).connect(mode)
-    expect(client.getServerVersion()).toMatchObject({ name: 'heed', version })
+    expect(client.getServerVersion()).toMatchObject({ name: 'footnote', version })
   })
 
   it('discovers, delivers the short reply with sources, reads an item and takes a report', async () => {
@@ -245,6 +247,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     expect(Object.keys(short).sort()).toEqual([
       'asked',
       'context',
+      'defined',
       'edition',
       'period_read',
       'reply_id',
@@ -365,7 +368,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     })
   })
   it('no longer offers the tools that left the list (FR-307, FR-339, FR-340, FR-348)', async () => {
-    const s = await server(undefined, { web: 'https://heed.example' }),
+    const s = await server(undefined, { web: 'https://footnote.example' }),
       client = await s.connect(mode)
     const names = (await client.listTools()).tools.map((t) => t.name)
     for (const gone of ['improve_question', 'domain_overview', 'what_changed', 'search_help']) {
@@ -429,6 +432,10 @@ it('is stateless, rejects nonlocal origins, and reports rate limits with a retry
         .status,
     ).toBe(405)
   s.policy.client.rate_per_minute = 1
+  // The tool list above spent no call, so the first call goes through and the second is refused.
+  const allowed = await s.post(call)
+  expect(allowed.status).toBe(200)
+  await allowed.text()
   const limited = await s.post(call)
   expect(limited.status).toBe(429)
   expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0)
@@ -1010,6 +1017,57 @@ it('counts its limits in minutes of the wall clock, while it answers as of its o
   await s.gateway.flush()
   const hours = s.records.filter((r) => r.kind === 'request').map((r) => r.value.hour)
   expect(new Set(hours)).toEqual(new Set(['2026-10-07T12:00:00.000Z']))
+})
+
+it.each(['legacy', 'auto'] as const)(
+  'lets five %s sessions in a minute list the tools, and says how long to wait (H22)',
+  async (mode) => {
+    // An agent that fans out opens a session for each helper. Setting one up and listing the tools
+    // is not a call: under the default 30 calls a person a minute, every session still gets the
+    // tools, and only calls spend the budget.
+    const s = await server()
+    s.policy.client.rate_per_minute = null
+    s.policy.rates = { person: 30, client: 120 }
+    for (let n = 0; n < 5; n++) {
+      const client = await s.connect(mode)
+      expect((await client.listTools()).tools.map((tool) => tool.name)).toContain('get_context')
+      for (let c = 0; c < 6; c++) {
+        const result = await client.callTool(call.params)
+        expect(result.isError).toBeFalsy()
+      }
+    }
+    // The person's 30 calls are spent. A sixth session still lists the tools ...
+    const sixth = await s.connect(mode)
+    expect((await sixth.listTools()).tools.map((tool) => tool.name)).toContain('get_context')
+    // ... and a refused call says, in words an agent reads, how long to wait.
+    const refused = await s.post(call)
+    expect(refused.status).toBe(429)
+    const retry = refused.headers.get('retry-after')
+    expect(Number(retry)).toBeGreaterThan(0)
+    expect(((await refused.json()) as { error: string }).error).toBe(
+      `Too many calls to ${productName} this minute. Wait ${retry} seconds, then try again.`,
+    )
+    await expect(sixth.callTool(call.params)).rejects.toThrow(/Wait \d+ seconds, then try again/)
+  },
+)
+
+it('gives the messages that are not calls a budget of their own, 120 a minute (H22)', async () => {
+  const s = await server()
+  s.policy.client.rate_per_minute = 1
+  const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+  for (let n = 0; n < 120; n++) {
+    const response = await s.post(list)
+    expect(response.status).toBe(200)
+    await response.text()
+  }
+  const refused = await s.post(list)
+  expect(refused.status).toBe(429)
+  expect(Number(refused.headers.get('retry-after'))).toBeGreaterThan(0)
+  await refused.text()
+  // The client's one call a minute is still there.
+  const answered = await s.post(call)
+  expect(answered.status).toBe(200)
+  await answered.text()
 })
 
 it("uses a client's own rate over the default client rate", async () => {

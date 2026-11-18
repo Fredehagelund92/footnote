@@ -24229,7 +24229,7 @@
                   "type": "object",
                   "properties": {
                     "format": {
-                      "const": "heed.edition/1"
+                      "const": "footnote.edition/1"
                     },
                     "edition": {
                       "type": "object",
@@ -28841,7 +28841,7 @@
     "/auth/methods": {
       "get": {
         "operationId": "auth.methods",
-        "summary": "How people sign in here (FR-416): the company's OpenID Connect provider, with its name and the address that starts a sign-in, or the picker in development and demos; and whether this install is the demo, and the label naming it (HEED_PROFILE_LABEL)",
+        "summary": "How people sign in here (FR-416): the company's OpenID Connect provider, with its name and the address that starts a sign-in, or the picker in development and demos; and whether this install is the demo, and the label naming it (FOOTNOTE_PROFILE_LABEL)",
         "tags": [
           "session"
         ],
@@ -29594,12 +29594,16 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "person",
                     "csrfToken",
-                    "profileLabel"
+                    "profileLabel",
+                    "modelConnected"
                   ]
                 }
               }
@@ -30203,12 +30207,16 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "person",
                     "csrfToken",
-                    "profileLabel"
+                    "profileLabel",
+                    "modelConnected"
                   ]
                 }
               }
@@ -58413,7 +58421,7 @@
                             "type": "string",
                             "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z.-]+)?$"
                           },
-                          "heed": {
+                          "footnote": {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 40
@@ -59026,7 +59034,7 @@
                         "required": [
                           "id",
                           "version",
-                          "heed",
+                          "footnote",
                           "kind",
                           "tool",
                           "title",
@@ -66626,6 +66634,9 @@
                             }
                           ]
                         },
+                        "askedAtLeast": {
+                          "type": "number"
+                        },
                         "found": {
                           "anyOf": [
                             {
@@ -66659,6 +66670,7 @@
                       },
                       "required": [
                         "asked",
+                        "askedAtLeast",
                         "found",
                         "nothing",
                         "mostAbout"
@@ -77690,11 +77702,39 @@
                     },
                     "done": {
                       "type": "boolean"
+                    },
+                    "serverSource": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "enum": [
+                                "reading",
+                                "read",
+                                "failed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "steps",
-                    "done"
+                    "done",
+                    "serverSource"
                   ]
                 }
               }
@@ -100572,7 +100612,7 @@
                 "windsurf",
                 "gemini_cli",
                 "goose",
-                "heed",
+                "footnote",
                 "other",
                 "unknown"
               ],
@@ -101830,7 +101870,7 @@
                               "windsurf",
                               "gemini_cli",
                               "goose",
-                              "heed",
+                              "footnote",
                               "other",
                               "unknown"
                             ],
@@ -102162,7 +102202,7 @@
                 "windsurf",
                 "gemini_cli",
                 "goose",
-                "heed",
+                "footnote",
                 "other",
                 "unknown"
               ],
@@ -102602,7 +102642,7 @@
                 "windsurf",
                 "gemini_cli",
                 "goose",
-                "heed",
+                "footnote",
                 "other",
                 "unknown"
               ],
@@ -105903,7 +105943,7 @@
                               "windsurf",
                               "gemini_cli",
                               "goose",
-                              "heed",
+                              "footnote",
                               "other",
                               "unknown"
                             ],

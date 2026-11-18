@@ -1,8 +1,8 @@
-/** Entry point of `heed` (`npm run heed -- <command>`); src/cli/commands.ts has the commands. */
+/** Entry point of `footnote` (`npm run footnote -- <command>`); src/cli/commands.ts has the commands. */
 import { renamedSettingsWarning, withRenamedSettings } from '../domain/renamed-settings.ts'
 import { run } from './commands.ts'
 
-// A setting under its old CL_ name still counts, with one warning (src/domain/renamed-settings.ts).
+// A setting under its old HEED_ name still counts, with one warning (src/domain/renamed-settings.ts).
 const { environment, oldNames } = withRenamedSettings(process.env)
 if (oldNames.length) process.stderr.write(`${renamedSettingsWarning(oldNames)}\n`)
 

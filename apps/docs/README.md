@@ -57,13 +57,13 @@ Each build has its own `llms.txt` and `llms-full.txt` (`lib/llms.ts`), written b
 
 All are read when the site is built:
 
-| Setting             | What it does                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| `DOCS_SITE`         | The host, for canonical addresses, the sitemap and whole addresses in `llms.txt`           |
-| `DOCS_ROOT`         | The path above the versions, `/heed`. Empty at the root of a host                          |
-| `DOCS_VERSION`      | The folder of this build: `vMAJOR.MINOR`, or `next`, which search engines are told to skip |
-| `DOCS_REF`          | The Git reference repository links open at, `main` by default                              |
-| `HEED_PRODUCT_NAME` | The product name in titles. A renamed build shows it in place of the logo                  |
+| Setting                 | What it does                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `DOCS_SITE`             | The host, for canonical addresses, the sitemap and whole addresses in `llms.txt`           |
+| `DOCS_ROOT`             | The path above the versions, `/footnote`. Empty at the root of a host                      |
+| `DOCS_VERSION`          | The folder of this build: `vMAJOR.MINOR`, or `next`, which search engines are told to skip |
+| `DOCS_REF`              | The Git reference repository links open at, `main` by default                              |
+| `FOOTNOTE_PRODUCT_NAME` | The product name in titles. A renamed build shows it in place of the logo                  |
 
 With none set, the site is served at the root of its own host.
 
@@ -75,5 +75,5 @@ With none set, the site is served at the root of its own host.
 
 Either way, nothing in the browser needs a service.
 
-1. **Download once.** Each GitHub Release has `heed-docs-<version>.tar.gz`, built to be served at the root of a host. Carry it in with the images, unpack it, and serve the folder with any static server.
+1. **Download once.** Each GitHub Release has `footnote-docs-<version>.tar.gz`, built to be served at the root of a host. Carry it in with the images, unpack it, and serve the folder with any static server.
 2. **Build it yourself.** At the release tag, run `npm --prefix apps/docs ci`, then `npm run site:build`, and copy `apps/docs/dist` to a static server. The build needs no network. The install needs an npm mirror that holds the platform packages of `pagefind` and `sharp`.

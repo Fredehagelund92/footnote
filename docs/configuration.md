@@ -31,14 +31,14 @@ The service reads its settings from the environment, once, when it starts. If on
 
 ## Sign-in and addresses
 
-| Setting                | Default                                          | What it does                                                                          |
-| ---------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `HEED_AUTH`            | `oidc` in production, `dev` elsewhere            | How people sign in: see [Set up company sign-in](company-sign-in.md)                  |
-| `HEED_DEV_PEOPLE_FILE` | The demo's people                                | Who the `dev` and `demo` pickers offer                                                |
-| `HEED_WEB_ORIGINS`     | `http://localhost:5173`, `http://localhost:4173` | The web app's origins, comma-separated. The first is the address links go to          |
-| `HEED_TRUSTED_PROXIES` | None                                             | The proxies it believes: see [The proxy in front](where-to-run.md#the-proxy-in-front) |
-| `MCP_RESOURCE_URL`     | `http://localhost:3000/mcp`                      | The MCP address                                                                       |
-| `MCP_DEV_KEY_FILE`     | `.heed-dev-key.pem`                              | The key for dev tokens. Production refuses dev tokens                                 |
+| Setting                    | Default                                          | What it does                                                                          |
+| -------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `FOOTNOTE_AUTH`            | `oidc` in production, `dev` elsewhere            | How people sign in: see [Set up company sign-in](company-sign-in.md)                  |
+| `FOOTNOTE_DEV_PEOPLE_FILE` | The demo's people                                | Who the `dev` and `demo` pickers offer                                                |
+| `FOOTNOTE_WEB_ORIGINS`     | `http://localhost:5173`, `http://localhost:4173` | The web app's origins, comma-separated. The first is the address links go to          |
+| `FOOTNOTE_TRUSTED_PROXIES` | None                                             | The proxies it believes: see [The proxy in front](where-to-run.md#the-proxy-in-front) |
+| `MCP_RESOURCE_URL`         | `http://localhost:3000/mcp`                      | The MCP address                                                                       |
+| `MCP_DEV_KEY_FILE`         | `.footnote-dev-key.pem`                          | The key for dev tokens. Production refuses dev tokens                                 |
 
 The login server's own settings are on [Sign in your own agent](ai-sign-in.md#the-login-server-settings).
 
@@ -49,47 +49,47 @@ The login server's own settings are on [Sign in your own agent](ai-sign-in.md#th
 | `MODELS`                    | `mock`  | `mock` is scripted and sends nothing. `live` uses real models |
 | `ANTHROPIC_API_KEY`         | None    | The key for the `anthropic` provider                          |
 | `VERCEL_AI_GATEWAY_API_KEY` | None    | The key for the `vercel-gateway` provider                     |
-| `HEED_ASK_LOOP`             | `on`    | `off` answers Ask with its fixed rules and planner instead    |
+| `FOOTNOTE_ASK_LOOP`         | `on`    | `off` answers Ask with its fixed rules and planner instead    |
 
 With `live`, each role's provider and model come from the `models.*` settings, and the service refuses to start when a provider, a model or a key is missing, or the provider does not list the model.
 
-Ask answers with one model that reads with Footnote's own read tools, as the person asking ([Ask's loop](evaluations.md#asks-loop)). `HEED_ASK_LOOP=off` answers with its fixed rules and planner instead. What the loop shows is not checked yet beyond its citations. With `MODELS=mock` it runs a scripted reader.
+Ask answers with one model that reads with Footnote's own read tools, as the person asking ([Ask's loop](evaluations.md#asks-loop)). `FOOTNOTE_ASK_LOOP=off` answers with its fixed rules and planner instead. What the loop shows is not checked yet beyond its citations. With `MODELS=mock` it runs a scripted reader.
 
 > **Before you go live.** Questions and answers then leave your company to the named provider and the model's vendor. Real company data needs company approval of them first.
 
 ## Connectors
 
-| Setting                        | Default | What it does                                                                                                                                                   |
-| ------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CUBE_MODEL_DIR`               | None    | A folder of Cube model files. Unset, the service reads two invented definitions, or in the image outside production, the demo model                            |
-| `HEED_DOMAIN_OVERRIDES`        | None    | A JSON file: view to domain, for what the model leaves unnamed                                                                                                 |
-| `CUBE_RENAMES_FILE`            | None    | A JSON file of renamed members, old id to new id                                                                                                               |
-| `CUBE_VIEWS_FILE`              | None    | A JSON list of the Cube views to read, such as `["orders", "revenue"]`. Unset, every view; empty, none ([views](connectors/cube.md#choose-the-views-it-reads)) |
-| `HEED_FIGURE_OVERRIDES`        | None    | A JSON file of [figure settings](connectors/cube.md#figure-settings-on-the-server), for what the model leaves unsaid                                           |
-| `CUBE_COMPILE_TIMEOUT_SECONDS` | `120`   | How long Cube's compiler may take                                                                                                                              |
-| `CUBE_COMPILE_MEMORY_MB`       | `1024`  | The memory Cube's compiler may use                                                                                                                             |
-| `HEED_SERVER_FOLDERS`          | None    | A JSON object of connector ids to folders on the server                                                                                                        |
-| `HEED_EGRESS_PRIVATE_HOSTS`    | None    | Hosts on a private network connectors may reach over https, comma-separated                                                                                    |
-| `HEED_SECRETS_DIR`             | None    | The folder that keeps the tokens of sources added in Integrations                                                                                              |
+| Setting                         | Default | What it does                                                                                                                                                   |
+| ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CUBE_MODEL_DIR`                | None    | A folder of Cube model files. Unset, the service reads two invented definitions, or in the image outside production, the demo model                            |
+| `FOOTNOTE_DOMAIN_OVERRIDES`     | None    | A JSON file: view to domain, for what the model leaves unnamed                                                                                                 |
+| `CUBE_RENAMES_FILE`             | None    | A JSON file of renamed members, old id to new id                                                                                                               |
+| `CUBE_VIEWS_FILE`               | None    | A JSON list of the Cube views to read, such as `["orders", "revenue"]`. Unset, every view; empty, none ([views](connectors/cube.md#choose-the-views-it-reads)) |
+| `FOOTNOTE_FIGURE_OVERRIDES`     | None    | A JSON file of [figure settings](connectors/cube.md#figure-settings-on-the-server), for what the model leaves unsaid                                           |
+| `CUBE_COMPILE_TIMEOUT_SECONDS`  | `120`   | How long Cube's compiler may take                                                                                                                              |
+| `CUBE_COMPILE_MEMORY_MB`        | `1024`  | The memory Cube's compiler may use                                                                                                                             |
+| `FOOTNOTE_SERVER_FOLDERS`       | None    | A JSON object of connector ids to folders on the server                                                                                                        |
+| `FOOTNOTE_EGRESS_PRIVATE_HOSTS` | None    | Hosts on a private network connectors may reach over https, comma-separated                                                                                    |
+| `FOOTNOTE_SECRETS_DIR`          | None    | The folder that keeps the tokens of sources added in Integrations                                                                                              |
 
-`HEED_SERVER_FOLDERS` looks like `{"dbt-metricflow":"/srv/dbt/target"}`. Each folder is read by that connector as one of the server's own sources, and the demo definitions stop. In Docker, share the folder into the container and name its path there.
+`FOOTNOTE_SERVER_FOLDERS` looks like `{"dbt-metricflow":"/srv/dbt/target"}`. Each folder is read by that connector as one of the server's own sources, and the demo definitions stop. In Docker, share the folder into the container and name its path there.
 
 A connector that cannot read a folder stops the service at start. A folder that is not there shows as a failed read in Settings, Integrations.
 
 > **Moving off a server folder.** Moving a project from a server folder to a source of the same definitions is not supported yet. A server source taken out of the configuration keeps its definitions, so a source added later cannot take them.
 
-`HEED_EGRESS_PRIVATE_HOSTS` applies to files and APIs read over https, not to Git or figures. An admin in the app cannot add a host: see [Connector security](connectors/security.md#what-a-connector-may-reach).
+`FOOTNOTE_EGRESS_PRIVATE_HOSTS` applies to files and APIs read over https, not to Git or figures. An admin in the app cannot add a host: see [Connector security](connectors/security.md#what-a-connector-may-reach).
 
-`HEED_SECRETS_DIR` must be outside the repository, and only the server's user may open it (mode 0700). `compose.yaml` sets it to a folder in the `heed_keys` volume. Unset, no secret is kept, and a source that needs one cannot be added: connecting says so at its first step.
+`FOOTNOTE_SECRETS_DIR` must be outside the repository, and only the server's user may open it (mode 0700). `compose.yaml` sets it to a folder in the `footnote_keys` volume. Unset, no secret is kept, and a source that needs one cannot be added: connecting says so at its first step.
 
 ## The product
 
-| Setting              | Default    | What it does                                                                                                                                               |
-| -------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HEED_PRODUCT_NAME`  | `Footnote` | The name the app and the help pages say                                                                                                                    |
-| `HEED_PROFILE_LABEL` | None       | A name for this install, at most 40 characters, in the header and on the sign-in page: see [Private profiles](security.md#private-profiles)                |
-| `HEED_SUPPORT_EMAIL` | None       | Where Contact support and Report a problem write to. Unset, they open the project's GitHub issues. Read when the app and the docs are built                |
-| `HEED_METRICS_TOKEN` | None       | Turns on [`/metrics`](operations.md#metrics). At least 32 characters                                                                                       |
-| `HEED_FIXED_TODAY`   | None       | Pins the service's day for demos and tests. A day in the past is kept whole: Ask's records read it as ending at the end of that day. Refused in production |
+| Setting                  | Default    | What it does                                                                                                                                               |
+| ------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOOTNOTE_PRODUCT_NAME`  | `Footnote` | The name the app and the help pages say                                                                                                                    |
+| `FOOTNOTE_PROFILE_LABEL` | None       | A name for this install, at most 40 characters, in the header and on the sign-in page: see [Private profiles](security.md#private-profiles)                |
+| `FOOTNOTE_SUPPORT_EMAIL` | None       | Where Contact support and Report a problem write to. Unset, they open the project's GitHub issues. Read when the app and the docs are built                |
+| `FOOTNOTE_METRICS_TOKEN` | None       | Turns on [`/metrics`](operations.md#metrics). At least 32 characters                                                                                       |
+| `FOOTNOTE_FIXED_TODAY`   | None       | Pins the service's day for demos and tests. A day in the past is kept whole: Ask's records read it as ending at the end of that day. Refused in production |
 
-Report a problem opens a mail in the person's own mail app, or an issue on GitHub when `HEED_SUPPORT_EMAIL` is unset, and sends nothing through the service. An issue leaves out the install's address.
+Report a problem opens a mail in the person's own mail app, or an issue on GitHub when `FOOTNOTE_SUPPORT_EMAIL` is unset, and sends nothing through the service. An issue leaves out the install's address.

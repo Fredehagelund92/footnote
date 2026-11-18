@@ -42,7 +42,7 @@ const sessions = new Map(
     person,
   ]),
 )
-const cookie = (person: keyof typeof tokens) => `heed_session=${tokens[person]}`
+const cookie = (person: keyof typeof tokens) => `footnote_session=${tokens[person]}`
 
 /** Answers the limiter's two reads: the setting, and the person of a session. */
 function fakeDatabase(state: { limits: unknown; down?: boolean }): Database {
@@ -144,7 +144,7 @@ describe('the web API request limit', () => {
     ])
     expect(await statuses(2, '/api/v1/auth/people')).toEqual([200, 200])
     // A session that does not exist counts against the address.
-    const unknown = { cookie: `heed_session=${'c'.repeat(64)}` }
+    const unknown = { cookie: `footnote_session=${'c'.repeat(64)}` }
     expect(await statuses(1, '/api/v1/auth/people', unknown)).toEqual([429])
   })
 

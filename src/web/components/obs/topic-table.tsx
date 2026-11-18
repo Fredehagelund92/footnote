@@ -5,8 +5,8 @@ import { ArrowUpRightIcon, ChevronRightIcon, CircleHelpIcon, InfoIcon } from '@/
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { GroupRow, SortTh, Th } from '@/components/heed/list'
-import { DomainDot } from '@/components/heed/tag-chip'
+import { GroupRow, SortTh, Th } from '@/components/footnote/list'
+import { DomainDot } from '@/components/footnote/tag-chip'
 import { MixBar, Sparkline, Swatch } from '@/components/obs/charts'
 import {
   groupCount,

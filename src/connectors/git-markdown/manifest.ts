@@ -8,7 +8,7 @@ import { defineManifest } from '../../domain/define-manifest.ts'
 export const manifest = defineManifest({
   id: 'git-markdown',
   version: '1.0.0',
-  heed: '^3.0',
+  footnote: '^3.0',
   kind: 'content',
   tool: 'Markdown in Git',
   title: 'Markdown in Git',

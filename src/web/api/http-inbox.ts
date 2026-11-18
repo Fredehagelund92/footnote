@@ -202,7 +202,6 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
       }
     }
     case 'gap': {
-      const times = card.times ?? 0
       return {
         ...base,
         type: 'gap',
@@ -215,7 +214,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         secondary: ['Not something we write down'],
         gap: {
           scope: [card.title],
-          times,
+          times: card.times,
           told: card.told,
           belongs: `context about ${card.title}`,
           // The draft is reviewed under this card's id; the review reads what it says.

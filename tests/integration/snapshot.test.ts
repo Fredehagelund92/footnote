@@ -121,9 +121,9 @@ describe('what the database holds before a restore', () => {
     const suffix = randomBytes(4).toString('hex')
     const roles = {
       owner: localRoles.owner,
-      api: `heed_snap_api_${suffix}`,
-      serve: `heed_snap_serve_${suffix}`,
-      readonly: `heed_snap_ro_${suffix}`,
+      api: `footnote_snap_api_${suffix}`,
+      serve: `footnote_snap_serve_${suffix}`,
+      readonly: `footnote_snap_ro_${suffix}`,
     }
     const adminUrl = new URL(inject('databaseTemplate'))
     adminUrl.pathname = '/postgres'

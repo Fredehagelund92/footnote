@@ -47,12 +47,12 @@ A domain name applies before a domain is checked. With the line `paid_media → 
 
 Whoever runs the service sets these, and Integrations shows them read only:
 
-| Setting                 | What it does                                                                                                      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `CUBE_MODEL_DIR`        | The folder to read. Unset, the service reads two invented definitions                                             |
-| `HEED_DOMAIN_OVERRIDES` | A JSON file outside the model folder: view to domain, for views the model names no domain for                     |
-| `CUBE_RENAMES_FILE`     | A JSON file of renamed members, old id to new id                                                                  |
-| `CUBE_VIEWS_FILE`       | A JSON file of the views to read. Unset, every view is read. See [the views it reads](#choose-the-views-it-reads) |
+| Setting                     | What it does                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `CUBE_MODEL_DIR`            | The folder to read. Unset, the service reads two invented definitions                                             |
+| `FOOTNOTE_DOMAIN_OVERRIDES` | A JSON file outside the model folder: view to domain, for views the model names no domain for                     |
+| `CUBE_RENAMES_FILE`         | A JSON file of renamed members, old id to new id                                                                  |
+| `CUBE_VIEWS_FILE`           | A JSON file of the views to read. Unset, every view is read. See [the views it reads](#choose-the-views-it-reads) |
 
 To read a folder now, without changing it:
 
@@ -205,7 +205,7 @@ Named formats such as `currency_0` and `percent_1` count as `currency` and `perc
 
 ### Figure settings on the server
 
-For a model you cannot change, whoever runs the service sets `HEED_FIGURE_OVERRIDES` to a JSON file. It is by integration id, then by view or measure. A measure's own setting wins over its view's, and the model wins over both:
+For a model you cannot change, whoever runs the service sets `FOOTNOTE_FIGURE_OVERRIDES` to a JSON file. It is by integration id, then by view or measure. A measure's own setting wins over its view's, and the model wins over both:
 
 ```json
 {

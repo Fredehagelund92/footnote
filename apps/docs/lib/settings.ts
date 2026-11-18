@@ -5,11 +5,12 @@
 */
 
 import { DEFAULT_PRODUCT_NAME } from '../../../src/domain/brand.ts'
+import { withRenamedSettings } from '../../../src/domain/renamed-settings.ts'
 
 export type Settings = {
   /** The host, `https://fredehagelund92.github.io`. Empty: no canonical addresses and no sitemap. */
   site: string
-  /** The path every version sits under, `/heed`. Empty at the root of a host. */
+  /** The path every version sits under, `/footnote`. Empty at the root of a host. */
   root: string
   /** The folder of this build, `v0.1` or `next`. Empty when the build is alone at the root. */
   version: string
@@ -29,10 +30,10 @@ export function readSettings(env: Record<string, string | undefined>): Settings 
     root: withoutTrailingSlash(env.DOCS_ROOT ?? ''),
     version,
     ref: env.DOCS_REF || 'main',
-    product: env.HEED_PRODUCT_NAME || DEFAULT_PRODUCT_NAME,
+    product: withRenamedSettings(env).environment.FOOTNOTE_PRODUCT_NAME || DEFAULT_PRODUCT_NAME,
   }
 }
 
-/** The path of this build without a trailing slash: `/heed/v0.1`, or `` at a host's root. */
+/** The path of this build without a trailing slash: `/footnote/v0.1`, or `` at a host's root. */
 export const basePath = ({ root, version }: Pick<Settings, 'root' | 'version'>) =>
   version ? `${root}/${version}` : root

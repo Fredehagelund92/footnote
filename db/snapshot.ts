@@ -25,18 +25,18 @@ import {
   seed needs a superuser, so it runs on one you have, such as a local PostgreSQL 18; the file then
   restores as the database's owner alone.
 
-    npm run db:snapshot -- take --file heed-demo.dump [--model <provider>:<model>]
+    npm run db:snapshot -- take --file footnote-demo.dump [--model <provider>:<model>]
       With a superuser in DATABASE_URL_BOOTSTRAP: a new scratch database on that server with
       Footnote's roles, the migrations and the demo (db/prepare.ts), the outbox relayed so the demo's
       inbox items are in it, and with --model every model role set to that provider and model.
       Then pg_dump writes the file and the scratch database is dropped.
 
-    npm run db:snapshot -- restore --file heed-demo.dump
+    npm run db:snapshot -- restore --file footnote-demo.dump
       As the owner in DATABASE_URL_MIGRATE (on Neon, the direct address, not the pooled one):
       the file into that database, which must hold nothing yet, then the grants. Refuses when
       Footnote's runtime roles are missing, or when one is a superuser or bypasses row security.
 
-    npm run db:snapshot -- reset --file heed-demo.dump
+    npm run db:snapshot -- reset --file footnote-demo.dump
       The same, into a database that holds the demo already: everything the owner owns there is
       dropped first. Refused for a database that holds anything but the demo.
 */
@@ -123,7 +123,7 @@ export async function takeSnapshot(options: {
   file: string
   model?: { provider: string; model: string }
 }): Promise<{ bytes: number }> {
-  const scratch = `heed_snapshot_${randomBytes(4).toString('hex')}`
+  const scratch = `footnote_snapshot_${randomBytes(4).toString('hex')}`
   const scratchUrl = onDatabase(options.bootstrapUrl, scratch)
   const admin = new pg.Client({ connectionString: options.bootstrapUrl })
   await admin.connect()

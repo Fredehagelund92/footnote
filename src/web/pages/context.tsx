@@ -1,7 +1,7 @@
 import { useReadAhead } from '@/lib/read-ahead'
 import * as React from 'react'
-import { ConflictBadge } from '@/components/heed/conflict-badge'
-import { TextSwitch } from '@/components/heed/switches'
+import { ConflictBadge } from '@/components/footnote/conflict-badge'
+import { TextSwitch } from '@/components/footnote/switches'
 import {
   ArrowLeftRightIcon,
   EyeIcon,
@@ -12,7 +12,7 @@ import {
   PlusIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { lookOf } from '@/model/integrations'
 import {
   AddRow,
@@ -32,7 +32,7 @@ import {
   StatusDot,
   Th,
   thClass,
-} from '@/components/heed/list'
+} from '@/components/footnote/list'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -67,7 +67,7 @@ import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
 import { inForce, parseWhen, timeShort, trustOf } from '@/lib/timeframe'
-import { FreshDot, KindIcon, StatusIcon, TimeGlyph } from '@/components/heed/columns'
+import { FreshDot, KindIcon, StatusIcon, TimeGlyph } from '@/components/footnote/columns'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { byPointer, moveRows, type Press } from '@/lib/list-motion'
 import { changeQuery, href, navigate } from '@/lib/router'
@@ -76,17 +76,17 @@ import { conflictsQuery, contextPageQuery, useVocabulary } from '@/api/queries'
 import { conflictsByItem } from '@/model/conflicts'
 import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
-import { TruncatedText } from '@/components/heed/truncated'
+import { TruncatedText } from '@/components/footnote/truncated'
 import { plainText } from '@/lib/mentions'
-import { allLoaded, LoadError, RefreshError, useLoadPhase } from '@/components/heed/load-state'
-import { TableBodySkeleton } from '@/components/heed/list-skeleton'
-import { WindowRows, type WindowRowsHandle } from '@/components/heed/window-rows'
+import { allLoaded, LoadError, RefreshError, useLoadPhase } from '@/components/footnote/load-state'
+import { TableBodySkeleton } from '@/components/footnote/list-skeleton'
+import { WindowRows, type WindowRowsHandle } from '@/components/footnote/window-rows'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
 import { useLeavingRows } from '@/lib/presence'
-import { WhereChip } from '@/components/heed/tag-chip'
+import { WhereChip } from '@/components/footnote/tag-chip'
 import { useRoute } from '@/lib/router'
 import { useSelection } from '@/hooks/use-selection'
-import { ContextBulk } from '@/components/heed/context-bulk'
+import { ContextBulk } from '@/components/footnote/context-bulk'
 
 // Context: what agents should know, as a compact list like the Footnote app's. One quiet bar (All or
 // Conflicts, Filter, Sort, Group, the archived note, search, count), the filters that are on as

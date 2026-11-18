@@ -1,5 +1,5 @@
 {
-  "name": "heed",
+  "name": "footnote",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -152,7 +152,7 @@
     "eval:ask-harness": "node --env-file-if-exists=.env.local scripts/ask-eval.ts",
     "eval:drafts": "node scripts/draft-eval.ts",
     "held-out": "node scripts/held-out.ts",
-    "heed": "node --env-file-if-exists=.env.local src/cli/main.ts",
+    "footnote": "node --env-file-if-exists=.env.local src/cli/main.ts",
     "api:generate": "node scripts/generate-api.ts",
     "cn:generate": "node scripts/generate-cn-tables.ts"
   },

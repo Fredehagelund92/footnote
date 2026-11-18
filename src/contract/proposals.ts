@@ -225,7 +225,7 @@ export const replyDefinitionSchema = z.object({
   library: z.optional(
     z.array(z.object({ id: z.string(), kind: z.string(), title: z.string(), summary: z.string() })),
   ),
-  heed_adds: z.string(),
+  footnote_adds: z.string(),
 })
 export const replyCheckReportSchema = z.object({
   status: z.enum(replyStatuses),

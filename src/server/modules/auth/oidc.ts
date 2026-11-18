@@ -8,6 +8,7 @@ import {
   type JWTPayload,
 } from 'jose'
 import type { Database, Queryable } from '../../db/database.ts'
+import { cookieValue } from './cookie-token.ts'
 import type { SignIn } from './dev-sign-in.ts'
 import {
   currentSession,
@@ -89,7 +90,7 @@ export interface OidcSignIn extends SignIn {
   >
 }
 
-export const OIDC_BROWSER_COOKIE = 'heed_oidc_browser'
+export const OIDC_BROWSER_COOKIE = 'footnote_oidc_browser'
 const REQUEST_MINUTES = 10
 const FETCH_MS = 5000
 const ALGORITHMS = [
@@ -113,13 +114,13 @@ const random = () => randomBytes(32).toString('base64url')
  */
 export async function readClientSecret(file: string): Promise<string> {
   const info = await stat(file)
-  if (!info.isFile()) throw new Error(`HEED_OIDC_CLIENT_SECRET_FILE: ${file} is not a file`)
+  if (!info.isFile()) throw new Error(`FOOTNOTE_OIDC_CLIENT_SECRET_FILE: ${file} is not a file`)
   if ((info.mode & 0o077) !== 0)
     throw new Error(
-      `HEED_OIDC_CLIENT_SECRET_FILE: ${file} may be read by others; make it readable by its owner only (chmod 600)`,
+      `FOOTNOTE_OIDC_CLIENT_SECRET_FILE: ${file} may be read by others; make it readable by its owner only (chmod 600)`,
     )
   const secret = (await readFile(file, 'utf8')).trim()
-  if (!secret) throw new Error(`HEED_OIDC_CLIENT_SECRET_FILE: ${file} is empty`)
+  if (!secret) throw new Error(`FOOTNOTE_OIDC_CLIENT_SECRET_FILE: ${file} is empty`)
   return secret
 }
 
@@ -490,14 +491,7 @@ function equal(a: string, b: string) {
 }
 
 function browserValue(cookie: string | undefined): string | undefined {
-  const values =
-    cookie
-      ?.split(';')
-      .map((v) => v.trim())
-      .filter((v) => v.startsWith(`${OIDC_BROWSER_COOKIE}=`)) ?? []
-  if (values.length !== 1) return undefined
-  const value = values[0]!.slice(OIDC_BROWSER_COOKIE.length + 1)
-  return /^[a-f0-9]{64}$/.test(value) ? value : undefined
+  return cookieValue(cookie, OIDC_BROWSER_COOKIE)
 }
 
 /** Clears the sign-in's browser cookie. */

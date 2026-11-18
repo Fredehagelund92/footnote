@@ -56,6 +56,8 @@ You should see the sign-in page: pick a demo person. The app opens on their Inbo
 `Cmd+K` (or `Ctrl+K`) opens the search, and `?` every shortcut. The theme is in the menu at the
 right end of every header.
 
+This is the design preview: Ask's answers are made in the browser, not by the service, and Ask says so.
+
 Before you push, run everything that CI runs, except the browser tests:
 
 ```sh
@@ -75,7 +77,7 @@ To run the whole product instead, with its database and your own Cube model, see
 | Routes      | TanStack Router, file based (`src/web/routes`), with zod search params ([docs/product.md](product.md), section 5); old addresses redirect                                              |
 | Data        | TanStack Query on one API boundary, `FootnoteApi`, with two bindings: the mock over the demo world, and the Footnote service through a client typed from the API contract              |
 | Shell       | Sidebar (Inbox, Ask, Context, Definitions; Help, Observability and Settings at its foot) that folds to a rail, a header with the breadcrumb and the theme menu, one right dock, search |
-| Components  | shadcn/ui on Base UI (style `base-nova`), Footnote's own parts in `components/heed`, a Tiptap editor, sonner toasts                                                                    |
+| Components  | shadcn/ui on Base UI (style `base-nova`), Footnote's own parts in `components/footnote`, a Tiptap editor, sonner toasts                                                                |
 | Styling     | Tailwind 4 with the tokens in one file, `src/web/styles/tokens.css`. Nunito Sans is self-hosted. Lucide icons come from one module                                                     |
 | Guard rails | ESLint and Stylelint rules for the class rules, raw values, icons and plain words, with tests that prove they fail loudly                                                              |
 | Quality     | Vitest; Playwright with the golden job specs on the mock build and in http mode, axe on every place, and a smoke journey on the demo install; GitHub Actions CI                        |
@@ -105,24 +107,24 @@ opens it again. The dev session API does the same from a script:
 ```js
 await fetch('/api/v1/auth/sign-in', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'X-Heed-CSRF': 'dev-sign-in' },
+  headers: { 'Content-Type': 'application/json', 'X-Footnote-CSRF': 'dev-sign-in' },
   body: JSON.stringify({ email: 'per_maria@example.test' }),
 })
 location.reload()
 ```
 
 `GET /api/v1/auth/people` lists the file's choices, with the roles each holds and their domains. `GET /api/v1/auth/session` returns the
-signed-in person, current permissions and a CSRF token. Send that token as `X-Heed-CSRF` on
+signed-in person, current permissions and a CSRF token. Send that token as `X-Footnote-CSRF` on
 subsequent POST requests, including `/auth/sign-out`. Sign-in uses the literal `dev-sign-in`
-header instead; all mutations also require an exact Origin in `HEED_WEB_ORIGINS`. The default
+header instead; all mutations also require an exact Origin in `FOOTNOTE_WEB_ORIGINS`. The default
 allows the Vite dev and preview origins. Override it for other ports. No CORS access is granted.
 
-Sessions end after 12 hours unused or 7 days after sign-in (`HEED_SESSION_IDLE_HOURS` and
-`HEED_SESSION_MAX_DAYS`), rotate at sign-in and are invalidated by sign-out, person deactivation
+Sessions end after 12 hours unused or 7 days after sign-in (`FOOTNOTE_SESSION_IDLE_HOURS` and
+`FOOTNOTE_SESSION_MAX_DAYS`), rotate at sign-in and are invalidated by sign-out, person deactivation
 or erasure. Cookies are HttpOnly and SameSite=Strict, with Secure on HTTPS. Only token hashes
 are stored, in the separate `auth` schema; roles are read afresh on every request. This dev
-sign-in has no groups; company sign-in with OpenID Connect (`HEED_OIDC_*`, with
-`HEED_OIDC_ADMIN_GROUPS` and `HEED_OIDC_MEMBER_GROUPS`) is set up as
+sign-in has no groups; company sign-in with OpenID Connect (`FOOTNOTE_OIDC_*`, with
+`FOOTNOTE_OIDC_ADMIN_GROUPS` and `FOOTNOTE_OIDC_MEMBER_GROUPS`) is set up as
 [Set up company sign-in](company-sign-in.md) says.
 
 Administrators use `POST /roles/grant`, `POST /roles/revoke`, `POST /assignments/grant` and
@@ -142,15 +144,15 @@ sets a domain's owners). Administrators list and change people under `/members` 
 `/invites` (list, create, `/{id}/resend`, `/{id}/revoke`): an invite carries a role and owned domains,
 returns a link on the web app's address, is stored only as a token hash, expires after 7 days and is
 single use. An invite is accepted at the person's first OIDC sign-in, by the address the provider
-has verified (`HEED_AUTH=oidc`, docs/company-sign-in.md); `npm run heed -- invite <email> --admin` invites
+has verified (`FOOTNOTE_AUTH=oidc`, docs/company-sign-in.md); `npm run footnote -- invite <email> --admin` invites
 the first admin of a new install.
 
 Context then shows the demo's items, read from PostgreSQL. The dev and preview servers forward
-`/api/v1` to `HEED_API_URL` (default `http://127.0.0.1:3000`). Ask's chats stay in the person's
+`/api/v1` to `FOOTNOTE_API_URL` (default `http://127.0.0.1:3000`). Ask's chats stay in the person's
 browser with either binding: the service records who writes and decides, never what a person
 reads.
 
-Both bindings pass one conformance suite (`tests/web/conformance/heed-api.ts`): the mock in
+Both bindings pass one conformance suite (`tests/web/conformance/footnote-api.ts`): the mock in
 `npm test`, the http binding against PostgreSQL in `npm run test:integration`, for the methods it
 wires (`wiredMethods` in `src/web/api/http.ts`), on the demo week
 (`tests/web/http/demo-week.ts`): Larchwood Outdoor's context items, the terms and synonyms its
@@ -194,7 +196,7 @@ with the image's own `git`.
 src/
   domain/         the item model (zod/mini), pure and shared with the server
   contract/       the API contract (oRPC, zod/mini): every operation once, used by the service and the app
-  cli/            `heed`, the command-line tool: the contract client, never the service's code
+  cli/            `footnote`, the command-line tool: the contract client, never the service's code
   server/         the Footnote service: service.ts (composition root, used by main.ts and the Vercel function), app.ts, config, db, http, observability
     modules/        one folder per feature, reached only through its index.ts
       jobs/           scheduled jobs, heartbeats, the watchdog and the operations endpoints
@@ -210,7 +212,7 @@ src/
       mock/           the demo world: its fixtures (data/), its state, and its review flags (scenario.ts)
     routes/         one file per address (TanStack Router, file based); *.lazy.tsx for every
                     page but the Inbox and Ask
-    components/     the shell, shadcn primitives (ui/), Footnote's parts (heed/, obs/), the editor
+    components/     the shell, shadcn primitives (ui/), Footnote's parts (footnote/, obs/), the editor
       icons.ts        the only module that imports the icon library
     model/          the types screens read, their words and the rules that follow from them
     lib/            hooks over the API, the router's helpers (router.ts), search param schemas (search.ts), the brand
@@ -248,7 +250,7 @@ belongs to both sides. The service lives in `src/server`, next to `src/web`, wit
 | `npm run dev:http`                        | The web app in http mode: it reads the Footnote service through `/api/v1` instead of the mock.                                                                                                                  |
 | `npm run dev:server`                      | The service at http://127.0.0.1:3000, restarted on change. Loads `.env.local` if it exists.                                                                                                                     |
 | `npm run api:generate`                    | Rewrites `docs/api/openapi.json` and `src/web/api/contract.json` from `src/contract`                                                                                                                            |
-| `npm run heed -- <command>`               | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                         |
+| `npm run footnote -- <command>`           | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                         |
 | `npm run db:new-migration -- <name>`      | Adds the next numbered migration in `db/migrations`, empty, and names it in `db/migrations/latest.txt`; `npm run db:renumber` moves your branch's migrations after `main`'s after a rebase                      |
 | `npm run db:migrate`                      | Gets the database ready: roles and database when missing, migrations, grants, and the demo with `SEED_DEMO=on` (see [Run the service locally](operations.md#run-the-service-locally))                           |
 | `npm run seed`                            | Loads the demo into an empty local database by hand; `-- --items-only` and `--library golden` are the variants the tests use (see [db/README.md](../db/README.md))                                              |
@@ -289,6 +291,13 @@ Three more workflows make releases ([Releasing Footnote](releasing.md)): `releas
 release pull request current after every push to `main`, `release.yml`
 builds and publishes a release when a maintainer pushes a version tag, and `docs-site.yml` builds
 the public docs site, for a release and for every push to `main` that changes it.
+
+`demo-images.yml` builds `main`'s images every night at 04:41 UTC, starts the demo from them with
+`docker compose up`, and runs the demo journey and the eight demo questions
+(`tests/e2e-seed/demo.spec.ts` and `demo-questions.spec.ts`) in a browser against it. `release.yml`
+runs the same on the images it published. To run them against a demo you started yourself, set
+`PW_SEED_BASE_URL=http://localhost:8080` for `npm run test:e2e:seed`: nothing is built or started
+then.
 
 ### Validation tiers
 
@@ -359,7 +368,7 @@ side, then run the command again.
 | `db/migrations/latest.txt`                           | `npm run db:new-migration`, `npm run db:renumber` | `tests/server/migration-files.test.ts`      |
 | `CHANGELOG.md`, and the version in `package.json`    | release-please, in the release pull request       | the version: `tests/server/version.test.ts` |
 
-The API's version, sent in the `x-heed-api` header, is the digest of the OpenAPI document. It is
+The API's version, sent in the `x-footnote-api` header, is the digest of the OpenAPI document. It is
 worked out when the service starts, so no file holds it. The document names Footnote's version, so
 the digest changes with each release too ([Releasing Footnote](releasing.md)).
 
@@ -400,7 +409,7 @@ CI time is spent per pull request, so fewer, well formed pull requests merge fas
 ## How to add a component
 
 1. Look before you build. Run `npx shadcn search @shadcn` for the part you need, and check
-   `src/web/components/ui` and `src/web/components/heed` ([components](design/components.md))
+   `src/web/components/ui` and `src/web/components/footnote` ([components](design/components.md))
    for a part that already does it.
 2. Add it with the CLI: `npx shadcn add <name>`. The CLI writes into `src/web/components/ui`.
 3. Run `npm run lint -- --fix`. Every violation the class rules report is a real mismatch:
@@ -410,7 +419,7 @@ CI time is spent per pull request, so fewer, well formed pull requests merge fas
    wrote `from "lucide-react"`, change it.
 5. Run `npm run check`, and `npm run test:e2e` for the golden job specs and axe.
 
-A part you write for this product (not from shadcn) lives in `src/web/components/heed`, composes
+A part you write for this product (not from shadcn) lives in `src/web/components/footnote`, composes
 shadcn parts, owns its layout only, and takes colour, radius and motion from tokens. Shared
 variants own control height, type and radius; feature code never overrides them.
 
@@ -454,7 +463,7 @@ package is there.
 | Stylelint                  | With `stylelint-declaration-strict-value` for hand written CSS.                                                          |
 | cn                         | The class merge helper the shadcn CLI now emits. It is pre 1.0; `@/lib/utils` re-exports it, so swapping it is one line. |
 | react-day-picker           | The calendar of the date fields.                                                                                         |
-| diff (jsdiff)              | The word diff the review and history draw (`components/heed/bits.tsx`).                                                  |
+| diff (jsdiff)              | The word diff the review and history draw (`components/footnote/bits.tsx`).                                              |
 
 ## Known limits
 

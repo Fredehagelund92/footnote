@@ -37,6 +37,10 @@ export const INBOX_GROUPS = [
 
 export type InboxGroup = (typeof INBOX_GROUPS)[number]['id']
 
+/** Whose domains the Due for a check count covers: every domain for an admin, the owned ones otherwise. */
+export const dueScope = (me: { admin: boolean }) =>
+  me.admin ? 'in all domains' : 'in your domains'
+
 /** A run of checks longer than this starts folded: upkeep must not bury what people wait on. */
 export const CHECKS_FOLDED_ABOVE = 10
 

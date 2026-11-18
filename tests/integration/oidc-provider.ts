@@ -36,7 +36,7 @@ export async function startOidcProvider(
     port?: number
   } = {},
 ) {
-  const clientId = 'heed-test'
+  const clientId = 'footnote-test'
   const clientSecret = options.clientSecret === undefined ? 'test-secret' : options.clientSecret
   const { privateKey, publicKey } = await generateKeyPair('RS256')
   const foreign = await generateKeyPair('RS256')

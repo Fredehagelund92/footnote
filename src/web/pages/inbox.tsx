@@ -17,10 +17,10 @@ import {
 } from '@/components/icons'
 import { toast } from 'sonner'
 import { cn, midSentence } from '@/lib/utils'
-import { FieldDiff } from '@/components/heed/bits'
-import { Mark } from '@/components/heed/mark'
+import { FieldDiff } from '@/components/footnote/bits'
+import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { pairOfKey } from '@/model/conflicts'
 import { integrationHref, lookOf } from '@/model/integrations'
 import { askedWords, careLine, changeWords, gapRowWords, type Review } from '@/model/review'
@@ -33,8 +33,8 @@ import {
   PaneFoot,
   PaneHead,
   PrimaryAction,
-} from '@/components/heed/inbox-pane'
-import { Panel } from '@/components/heed/panel'
+} from '@/components/footnote/inbox-pane'
+import { Panel } from '@/components/footnote/panel'
 import { follows, paneState, primaryLabel } from '@/model/inbox-pane'
 import { TOUCH } from '@/lib/touch'
 import { SiteHeader } from '@/components/site-header'
@@ -59,7 +59,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Kbd } from '@/components/ui/kbd'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
-import { TextSwitch } from '@/components/heed/switches'
+import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { scopeText } from '@/model/ask'
 import type { InboxCard, Waiting } from '@/model/inbox'
@@ -81,16 +81,18 @@ import {
   useSession,
   useWorkspace,
   useWrite,
+  workspaceQuery,
 } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
-import { setupSteps } from '@/lib/setup'
-import { ConflictPairCompact } from '@/components/heed/conflict-pair'
+import { definitionsStep, setupSteps } from '@/lib/setup'
+import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
 import type { Outcome } from '@/model/inbox'
 import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments'
 import {
   groupOf,
+  dueScope,
   INBOX_GROUPS,
   startsFolded,
   type InboxGroup,
@@ -100,11 +102,11 @@ import {
   useInboxRows,
   type InboxRow,
 } from '@/lib/inbox-rows'
-import { suggestionIcon } from '@/components/heed/change-icons'
+import { suggestionIcon } from '@/components/footnote/change-icons'
 import type { Subject } from '@/model/comments'
-import { TruncatedText } from '@/components/heed/truncated'
-import { ListSkeleton, Loadable } from '@/components/heed/load-state'
-import { BulkBar, BulkButton } from '@/components/heed/bulk-bar'
+import { TruncatedText } from '@/components/footnote/truncated'
+import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
+import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
 import { useOnline } from '@/lib/send'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
@@ -269,6 +271,7 @@ function InboxList({
   list: React.RefObject<HTMLUListElement | null>
 }) {
   const { opened } = useInbox()
+  const me = useMe()
   const reviews = useReviews()
   const leaving = useLeavingRows()
   // Rows added after the list first shows open in; the first ones are simply there.
@@ -331,7 +334,10 @@ function InboxList({
                   className="flex h-8 w-full items-end gap-1.5 px-4 pb-1.5 text-left text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
                 >
                   {INBOX_GROUPS.find((g) => g.id === group)!.label}
-                  <span className="font-normal tabular-nums">{inGroup}</span>
+                  <span className="font-normal tabular-nums">
+                    {inGroup}
+                    {group === 'check' && ` ${dueScope(me)}`}
+                  </span>
                   <ChevronDownIcon
                     aria-hidden
                     className={cn('size-3.5', folded.has(group) && '-rotate-90')}
@@ -741,7 +747,7 @@ function CardDetail({
                   <p>
                     {card.gap.times === 0
                       ? `Agents asked about ${card.gap.scope.join(', ')} before this week, not since.`
-                      : `Agents asked about ${card.gap.scope.join(', ')}, ${card.gap.times} times this week.`}
+                      : `Agents asked about ${card.gap.scope.join(', ')}, ${card.gap.times ?? 'fewer than 5'} times this week.`}
                   </p>
                   <p>
                     <span className="font-medium">Where the fix probably belongs:</span>{' '}
@@ -847,9 +853,9 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
   )
 }
 
-const NamesReview = React.lazy(() => import('@/components/heed/names-review'))
+const NamesReview = React.lazy(() => import('@/components/footnote/names-review'))
 const NamesDialog = React.lazy(() =>
-  import('@/components/heed/names-review').then((m) => ({ default: m.NamesDialog })),
+  import('@/components/footnote/names-review').then((m) => ({ default: m.NamesDialog })),
 )
 
 const CommentBox = React.lazy(() =>
@@ -1015,7 +1021,7 @@ function whereContextGoes(me: Person, domains: Domain[]) {
 
 function Setup() {
   const {
-    setup: { done: setupDone },
+    setup: { done: setupDone, serverSource },
     domains: domainList,
   } = useWorkspace()
   const me = useMe()
@@ -1023,11 +1029,32 @@ function Setup() {
   // A read ends a moment after a tool is connected: its names show here by themselves. Any left
   // for a look stay on their step, as the Inbox's cards wait for the checklist to end.
   const canPublish = me.admin || me.owns.length > 0
-  const names = useQuery({
+  const namesRead = useQuery({
     ...namesQuery(),
     enabled: canPublish,
     refetchInterval: setupDone.definitions || !canPublish ? false : 3000,
-  }).data?.names.filter((name) => name.state !== 'left_out')
+  })
+  const names = namesRead.data?.names.filter((name) => name.state !== 'left_out')
+  // The server's own definitions are read by themselves too: the checklist asks until that read
+  // has ended, then counts it ended only once the names read after it are in, so the step goes
+  // from the read on its way straight to its names.
+  const reading = serverSource?.state === 'reading' && !setupDone.definitions
+  const workspaceRead = useQuery({ ...workspaceQuery(), refetchInterval: reading ? 3000 : false })
+  const [sawReading, setSawReading] = React.useState(reading)
+  if (reading && !sawReading) setSawReading(true)
+  const { refetch: refetchNames } = namesRead
+  const ended = sawReading && serverSource?.state === 'read'
+  React.useEffect(() => {
+    if (ended) void refetchNames()
+  }, [ended, refetchNames])
+  const namesBehind = ended && canPublish && namesRead.dataUpdatedAt < workspaceRead.dataUpdatedAt
+  // A step done says what it is, whatever read its names.
+  const definitions = definitionsStep(
+    setupDone.definitions || !serverSource
+      ? null
+      : { ...serverSource, state: namesBehind ? 'reading' : serverSource.state },
+    names?.length ?? 0,
+  )
   const [reviewing, setReviewing] = React.useState(false)
   const first = setupSteps.find((s) => !setupDone[s.id])
   // A question about the first item, from what it applies to or, if that is empty, its own words.
@@ -1045,7 +1072,9 @@ function Setup() {
     : 'What should I know about our numbers?'
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
   const go = (id: string) => {
-    if (id === 'definitions' && names?.length) setReviewing(true)
+    if (id === 'definitions' && definitions.opens === 'names') setReviewing(true)
+    else if (id === 'definitions' && definitions.opens === 'source' && serverSource)
+      navigate(`/settings/integrations/${serverSource.id}`)
     // The catalogue loads with the first page that needs it, never with the Inbox.
     else if (id === 'definitions')
       void import('@/model/catalogue').then(({ definitionsConnectHref }) =>
@@ -1095,6 +1124,8 @@ function Setup() {
                 <ol className="flex flex-col divide-y divide-border">
                   {setupSteps.map((step, i) => {
                     const isDone = setupDone[step.id]
+                    const own = step.id === 'definitions'
+                    const action = own ? definitions.action : step.action
                     return (
                       <li
                         key={step.id}
@@ -1115,19 +1146,20 @@ function Setup() {
                           >
                             {step.title}
                           </span>
-                          <span className="block text-xs text-muted-foreground">
-                            {step.description}
+                          <span
+                            className="block text-xs text-muted-foreground"
+                            aria-live={own ? 'polite' : undefined}
+                          >
+                            {own ? definitions.description : step.description}
                           </span>
                         </span>
                         {isDone && <span className="sr-only">Done</span>}
-                        {(!isDone || (step.id === 'definitions' && !!names?.length)) && (
+                        {action !== null && (!isDone || (own && definitions.opens === 'names')) && (
                           <Button
                             variant={first?.id === step.id ? 'default' : 'outline'}
                             onClick={() => go(step.id)}
                           >
-                            {step.id === 'definitions' && names?.length
-                              ? `Publish ${names.length === 1 ? '1 name' : `${names.length} names`}`
-                              : step.action}
+                            {action}
                           </Button>
                         )}
                       </li>
@@ -1156,7 +1188,13 @@ function Setup() {
 function WeekLine() {
   const { week } = useInbox()
   if (week.asked === 0) return <>Agents asked nothing this week.</>
-  if (week.asked === null) return <>This week agents asked fewer than 5 times.</>
+  // As Ask's Asked this week says it: a floor when the total would give a small count away.
+  if (week.asked === null)
+    return week.askedAtLeast >= 5 ? (
+      <>This week agents asked {week.askedAtLeast}+ times.</>
+    ) : (
+      <>This week agents asked fewer than 5 times.</>
+    )
   if (week.found === null || week.nothing === null)
     return <>This week agents asked {week.asked} times.</>
   const most = week.mostAbout ? `, most about ${week.mostAbout}` : ''

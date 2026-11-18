@@ -59,14 +59,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
 })
@@ -269,7 +269,7 @@ describe('areas from settings', () => {
     await other.connect()
     try {
       await other.query('begin')
-      await other.query("select pg_advisory_xact_lock(hashtextextended('heed.roles', 0))")
+      await other.query("select pg_advisory_xact_lock(hashtextextended('footnote.roles', 0))")
       const created = call('POST', '/areas', 'admin', {
         ...payments,
         id: 'lock_order',

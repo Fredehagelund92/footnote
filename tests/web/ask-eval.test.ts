@@ -9,6 +9,7 @@ import {
   badCitations,
   gradeTurn,
   hiddenShown,
+  holesIn,
   numbersIn,
   stateProblems,
   ungroundedNumbers,
@@ -191,6 +192,33 @@ describe('the code graders', () => {
     expect(stateProblems(reply('x', { state: 'stale', sources: ['itm_a'] }), ctx)).toHaveLength(1)
     expect(stateProblems(reply('x', { state: 'stale', sources: ['itm_b'] }), ctx)).toEqual([])
     expect(stateProblems(reply('x', { state: 'grounded' }), ctx)).toHaveLength(1)
+  })
+
+  it('fail a sentence with a hole, and let a whole one stand', () => {
+    for (const broken of [
+      'Two written items cover changes for Orders in Sweden from to:',
+      'None of the 1,209 published context items you may read published items you may read mention it.',
+      'Yes, 3 of 1,292 context items you may read you may read changed.',
+      'It applies to Orders and.',
+      'Both are in the of Sales.',
+      'None of those calls found nothing ().',
+      'It says [#r1.count] items apply.',
+      'Orders in [@value:market/norway] lag by a day.',
+    ])
+      expect(holesIn(broken), broken).toHaveLength(1)
+    for (const whole of [
+      'Two written items cover changes for Orders in Sweden from 1 January 2026 to 17 November 2026:',
+      'None of the 1,209 published context items you may read mention it.',
+      'Both rules apply to Orders in United Kingdom, from 1 January 2026 on.',
+      'One rule says United Kingdom orders count card and cash. The other rule says United Kingdom orders count store credit.',
+      'Orders lag by a day [1]. It is due for a check (its check date passed).',
+      'Net revenue in Spain includes VAT. [1] Net revenue in Spain excludes VAT. [2]',
+      'The sources are [1], which says it is included, and [2], which says it is left out.',
+      'The three due are [1], [2] and [3].',
+      'Seven items were last checked in October.[4] [5] [6] [7] [8] [9] [10]',
+      'Payment provider switched in France and Payment provider switched in France',
+    ])
+      expect(holesIn(whole), whole).toEqual([])
   })
 
   it('read what a case must say against the reply and the titles it cites', () => {

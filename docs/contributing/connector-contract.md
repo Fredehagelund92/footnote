@@ -197,8 +197,9 @@ failed read keeps every previous mark and status and changes no flag or link (CO
 A ref belongs to one connector for good: a member another source already reads stays with it,
 the read leaves it out with a `taken` warning and is partial. The read's
 cursor is stored on its snapshot (`connector_snapshots.cursor`). The job `connectors.sync` runs
-every five minutes and reads each source that is switched on and due: the server's and those
-administrators added, loaded from the database each time, each on its own schedule
+as the service starts and every five minutes after, and reads each source that is switched on and
+due: the server's and those administrators added, loaded from the database each time, each on its
+own schedule
 ([schedules](#schedules-built)); one that breaks the refresh itself does not keep the others from
 being read. Read again on a source's page reads that source now (`sources.read`), and running the
 job by hand (`POST /api/v1/operations/jobs/{job}/run`) reads every source now. A source whose last good read is older than
@@ -355,7 +356,7 @@ describe a connector without running its code (CON-112).
 export default defineManifest({
   id: 'git-markdown', // stable; a third party namespaces it: 'acme.lookml'
   version: '1.0.0', // the connector's own semver, stored on every read
-  heed: '^3.0', // the interface range it implements (CON-109)
+  footnote: '^3.0', // the interface range it implements (CON-109)
   kind: 'content', // 'definitions' | 'content'
   tool: 'Git', // every screen word that names the tool (CON-101)
   title: 'Markdown in a Git repository',
@@ -545,7 +546,7 @@ the manifest (`src/web/model/catalogue.ts`). A logo is optional (`logos` in
 
 Built-in connectors are on by default; the operator may narrow them. The server's own sources
 become a configuration file the operator writes (one entry per source: id, connector, name,
-settings, scopes, domains), and today's `CUBE_MODEL_DIR`, `HEED_DOMAIN_OVERRIDES` and
+settings, scopes, domains), and today's `CUBE_MODEL_DIR`, `FOOTNOTE_DOMAIN_OVERRIDES` and
 `CUBE_RENAMES_FILE` keep working by producing the same entry.
 
 ### Conformance kit
@@ -687,13 +688,13 @@ Where the build differs from the decided text above:
   it counts), whatever the tool; it was never stored, so no migration moved it.
 - **Cube** is one connector, `cube`, for a model in a Git repository an administrator adds and
   for the server's own model folder (`CUBE_MODEL_DIR`), which its runtime reads as `ctx.folder`;
-  the core applies the server's domain names (`HEED_DOMAIN_OVERRIDES`) and renames
+  the core applies the server's domain names (`FOOTNOTE_DOMAIN_OVERRIDES`) and renames
   (`CUBE_RENAMES_FILE`) to that folder's reads (`server-source.ts`), and `npm run
 connectors:sync` reads each of the server's own sources. Its settings, its refs and the sources
   administrators added on interface 2 are as they were. Its warnings are the core's codes it
   always had (`unsupported_file`, `compile_error` and the rest), since stored reads name them.
 - **A folder on the server**, for any other definitions connector that declares
-  `capabilities.serverFolder` (CON-119): `HEED_SERVER_FOLDERS` maps connector ids to folders, each
+  `capabilities.serverFolder` (CON-119): `FOOTNOTE_SERVER_FOLDERS` maps connector ids to folders, each
   read as `ctx.folder` by a source of the server's own, with the server's domain names. The core
   hands no folder to a connector that does not declare it, and a name it cannot honour stops the
   server. With a folder named and no `CUBE_MODEL_DIR`, the demo is not read.
@@ -710,14 +711,14 @@ whose compiler runs in its worker (T1), its model fetched through `ctx.git` or r
 `ctx.folder`, and the adapter is gone. What remains of it:
 
 - The server's own sources from a configuration file the operator writes, with `CUBE_MODEL_DIR`,
-  `HEED_DOMAIN_OVERRIDES` and `CUBE_RENAMES_FILE` producing the same entry.
+  `FOOTNOTE_DOMAIN_OVERRIDES` and `CUBE_RENAMES_FILE` producing the same entry.
 - The connector's version and mark version stored on every read (a migration), shown on the
   source's page, and the first read after a mark version change stored without flags (CON-116).
 - A request rate in the manifest for `ctx.fetch`; `ctx.log` into the server's log, codes and
   targets only.
 - The rest of the conformance kit (cursors and deletions, egress and limits) and a README per
   connector with its tables from the manifest; the operator's list of connectors to allow
-  (`HEED_CONNECTORS`).
+  (`FOOTNOTE_CONNECTORS`).
 
 Slice 4, Google Drive through a service account, is built: its key in the secret store, signed
 into a read-only token at a sign-in host the manifest declares, documents exported as Markdown
@@ -873,7 +874,7 @@ operations view. `tests/integration/sources.test.ts` adds, tests, changes and re
 through the API against a Git host on the machine, and checks that only administrators reach it
 and that its token is in no answer, row, history entry, retry record or log line, and adds,
 tests and reads a static list end to end through the definitions pipeline; the web app's
-conformance suite (`tests/web/conformance/heed-api.ts`) holds the mock binding to the same rules.
+conformance suite (`tests/web/conformance/footnote-api.ts`) holds the mock binding to the same rules.
 The Cube connector's own tests are in [its page](cube-connector.md#validation), and
 `tests/integration/cube-sources.test.ts` takes a Cube model in Git through the API, its own
 schedule and its backoff, and proves a read never publishes, decides or suggests anything.

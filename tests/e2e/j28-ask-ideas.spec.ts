@@ -280,8 +280,13 @@ test('Asked this week: one line per topic, the state in its own column, the coun
   await first.getByText(STATE).hover()
   await expect(page.locator('[data-slot=tooltip-content]')).toHaveText(sentence)
 
-  // The subline is one line in the Ask column, the caption one line in the card.
-  const subline = page.getByText('Answers come from what your team wrote and an owner checked.')
+  // The subline is one line in the Ask column, the caption one line in the card. The service here
+  // has no AI model, and says so; the mock build's Ask says it is a design preview.
+  const subline = page.getByText(
+    mode === 'http'
+      ? 'No AI model is connected, so answers list what your team wrote and an owner checked.'
+      : 'A design preview: answers are made in this browser, with no service and no AI model.',
+  )
   expect(await subline.evaluate((p) => p.getBoundingClientRect().height)).toBe(20)
   const caption = week.getByText(/times · counts only, never the words$/)
   expect(await caption.evaluate((p) => p.getBoundingClientRect().height)).toBe(16)

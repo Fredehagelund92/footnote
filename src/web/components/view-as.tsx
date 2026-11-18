@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { ChevronsUpDownIcon } from '@/components/icons'
-import { PersonAvatar } from '@/components/heed/bits'
+import { PersonAvatar } from '@/components/footnote/bits'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

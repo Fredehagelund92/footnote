@@ -20,8 +20,9 @@ import { minute, type JobSummary, type ScheduledJob } from './scheduled-job.ts'
  * Every scheduled job gets its own queue. `exclusive` keeps at most one job queued or running per
  * queue, so a manual run, a retry and the next scheduled run never overlap. A failed run retries
  * with growing waits and then raises an alert (NFR-047). A schedule that came due while the
- * service was down runs once when it is back. The watchdog runs every five minutes and alerts on
- * every overdue job and out-of-date connector (NFR-072, NFR-073).
+ * service was down runs once when it is back, and a job that asks to runs once at start. The
+ * watchdog runs every five minutes and alerts on every overdue job and out-of-date connector
+ * (NFR-072, NFR-073).
  *
  * Alerts are error log lines with an `alert` field (`job_failed`, `job_overdue`,
  * `connector_stale`); the hosting stage turns them into alarms.
@@ -134,7 +135,7 @@ export function createJobRunner(options: JobRunnerOptions): JobRunner {
   async function startOnce(): Promise<void> {
     const instance = new PgBoss({
       connectionString: options.connectionString,
-      application_name: 'heed-jobs',
+      application_name: 'footnote-jobs',
       max: 4,
       connectionTimeoutMillis: 2_000,
       schema: 'pgboss',
@@ -168,6 +169,8 @@ export function createJobRunner(options: JobRunnerOptions): JobRunner {
     // A job that is no longer defined must not keep filling a queue nobody works.
     for (const schedule of await instance.getSchedules())
       if (!names.has(schedule.name)) await instance.unschedule(schedule.name, schedule.key)
+    // Queued after every queue is worked, so a run already queued or running is not doubled.
+    for (const job of all) if (job.runAtStart) await instance.send(job.name, {})
   }
 
   async function startLoop(): Promise<void> {

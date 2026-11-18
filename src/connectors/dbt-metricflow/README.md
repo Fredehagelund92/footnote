@@ -23,12 +23,12 @@ it. Step 2 of connecting asks where, and each place shows its own recipe:
 
 **An address.** Upload the file and make a link to it. A link is read as it is, with no key added,
 so it holds whatever it needs. A signed link is as good as a key: it goes in the secret store
-(`docker compose up` sets one up; elsewhere, `HEED_SECRETS_DIR` does), is
+(`docker compose up` sets one up; elsewhere, `FOOTNOTE_SECRETS_DIR` does), is
 shown only as set, and a failure names its host and never its path or signature. Links signed by S3
 or Google Cloud Storage last 7 days at most, so a source that lasts needs Object storage, or a link
 that does not expire. Test connection says when a link stops working, and warns in its last 14
 days. An artifact server on a private network has to be allowed by name by whoever runs the
-server (`HEED_EGRESS_PRIVATE_HOSTS`, [Service settings](../../../docs/configuration.md#connectors)).
+server (`FOOTNOTE_EGRESS_PRIVATE_HOSTS`, [Service settings](../../../docs/configuration.md#connectors)).
 
 **Object storage.** Upload the file, then give the object's https address and a key that can read
 that object and nothing else.
@@ -105,11 +105,11 @@ config:
 **A folder on the server.** When your CI drops the file on the machine that runs Footnote, skip the
 commit: whoever runs the server names the folder, and the connector reads `semantic_manifest.json`
 in it (`ctx.folder`). It is then one of the server's own sources, with no settings, token or Git.
-The server's domain map (`HEED_DOMAIN_OVERRIDES`) gives a semantic model with no domain its domain.
+The server's domain map (`FOOTNOTE_DOMAIN_OVERRIDES`) gives a semantic model with no domain its domain.
 [Service settings](../../../docs/configuration.md#connectors) has the rest.
 
 ```sh
-HEED_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'
+FOOTNOTE_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'
 ```
 
 ## Settings

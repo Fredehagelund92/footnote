@@ -52,6 +52,7 @@ export {
 } from './plan.ts'
 export { demoCases, type DemoCase } from './burned-cases.ts'
 export {
+  askedCounts,
   askedFor,
   askedThisWeek,
   createBundleCache,

@@ -79,7 +79,7 @@ const suggestion = (patch: Partial<Extract<Card, { group: 'suggestion' }>> = {})
   ...patch,
 })
 const feed = (cards: Card[], patch: Partial<Feed> = {}): Feed => ({
-  week: { asked: 142, found: 117, nothing: 25, mostAbout: 'Orders in Spain' },
+  week: { asked: 142, askedAtLeast: 142, found: 117, nothing: 25, mostAbout: 'Orders in Spain' },
   groups: [],
   cards,
   waiting: [],
@@ -224,7 +224,7 @@ describe('the Inbox', () => {
     const [blank] = inboxOf(feed([{ ...gap, draft: null }]), 'Jon Abara', domains, now).cards
     expect(blank).toMatchObject({ id: 'gap:g1', primary: 'Write context' })
     // Someone pressed Tell the owner in Ask: the card says so, and what agents found when they asked.
-    const line = (times: number, told: number) =>
+    const line = (times: number | null, told: number) =>
       inboxOf(feed([{ ...gap, draft: null, times, told }]), 'Jon Abara', domains, now).cards[0]!
         .line
     expect(line(0, 1)).toBe(
@@ -233,6 +233,14 @@ describe('the Inbox', () => {
     expect(line(0, 2)).toBe(
       'People asked Ask about this, found nothing written down and told you, 2 times this week.',
     )
+    // A count under the minimum stays hidden on the card: fewer than 5, never none.
+    expect(line(null, 0)).toBe(
+      'Agents found nothing written down for this, fewer than 5 times this week.',
+    )
+    const [hidden] = inboxOf(feed([{ ...gap, times: null }]), 'Jon Abara', domains, now).cards
+    expect(hidden!.gap).toMatchObject({ times: null })
+    // A resolved card carries no count: it never says fewer than 5.
+    expect(line(0, 0)).not.toMatch(/fewer than 5/)
     expect(line(9, 1)).toBe(
       'Agents found nothing written down for this, 9 times this week. Someone asked Ask about this, found nothing written down and told you.',
     )
@@ -516,7 +524,7 @@ describe('the Inbox', () => {
   })
 
   it('passes the week’s counts on, hidden ones as they are', () => {
-    const week = { asked: null, found: null, nothing: null, mostAbout: null }
+    const week = { asked: null, askedAtLeast: 143, found: null, nothing: null, mostAbout: null }
     expect(inboxOf(feed([], { week }), 'Jon Abara', domains, now).week).toEqual(week)
   })
 })

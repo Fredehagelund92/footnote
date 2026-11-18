@@ -1,7 +1,7 @@
 import { blockWords } from '@domain/source-diff'
 import type { Word } from '@/lib/line-diff'
 
-// Which words of two texts differ clearly enough to mark (components/heed/differing-words.tsx
+// Which words of two texts differ clearly enough to mark (components/footnote/differing-words.tsx
 // draws them with the Differs mark).
 
 /** A block is marked in at most this many places; past it, the marks stop meaning anything. */

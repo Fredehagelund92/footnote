@@ -14,7 +14,7 @@ export const manifest = defineManifest({
   // The connector's own semantic version. Move it when the connector changes.
   version: '1.0.0',
   // The connector interface range it is written to (CON-109).
-  heed: '^3.2',
+  footnote: '^3.2',
   // `definitions` (which metrics and dimensions exist) or `content` (documents to draft from).
   kind: 'definitions',
   // The tool, as people say it. Every word on screen that names the tool comes from here.
@@ -118,7 +118,7 @@ export const manifest = defineManifest({
     // `never` when each group's is its own (CON-201).
     mergeDimensions: 'never',
     // True when `read` works from `ctx.folder` with no settings: whoever runs the server can then
-    // name a folder for it (HEED_SERVER_FOLDERS). Leave it out, and the core never hands one.
+    // name a folder for it (FOOTNOTE_SERVER_FOLDERS). Leave it out, and the core never hands one.
     serverFolder: true,
   },
   schedule: { default: 'PT1H', minimum: 'PT15M' },

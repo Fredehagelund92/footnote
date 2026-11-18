@@ -35,7 +35,7 @@ describe('the OIDC client secret file', () => {
 })
 
 describe('where a sign-in goes back to', () => {
-  const web = 'https://heed.example'
+  const web = 'https://footnote.example'
   it.each([
     ['/#/inbox', '/#/inbox'],
     ['/settings/people?tab=invited', '/settings/people?tab=invited'],

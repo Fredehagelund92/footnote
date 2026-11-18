@@ -106,7 +106,7 @@ export function createDatabase(
 ): Database {
   const pool = new pg.Pool({
     connectionString: databaseUrl,
-    application_name: 'heed',
+    application_name: 'footnote',
     connectionTimeoutMillis: 2_000,
     types: calendarDateTypes,
     ...(options.max === undefined ? {} : { max: options.max }),

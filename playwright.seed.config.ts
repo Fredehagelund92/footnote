@@ -9,6 +9,9 @@ import { defineConfig } from '@playwright/test'
   E2E_DATABASE_SERVE_URL the MCP gateway's serving connection when a `role=` option picks the
   roles. Its ports are its own (3120 and 4177 unless PW_SEED_API_PORT and PW_SEED_WEB_PORT say
   otherwise).
+
+  PW_SEED_BASE_URL runs the same journeys against an install that is already running, such as the
+  images `docker compose up` started (http://localhost:8080): nothing is built or started then.
 */
 
 const ci = Boolean(process.env.CI)
@@ -16,7 +19,7 @@ const webPort = Number(process.env.PW_SEED_WEB_PORT ?? 4177)
 const apiPort = Number(process.env.PW_SEED_API_PORT ?? 3120)
 const apiUrl = `http://127.0.0.1:${apiPort}`
 
-export default defineConfig({
+const config = defineConfig({
   testDir: 'tests/e2e-seed',
   outputDir: 'test-results/e2e-seed',
   fullyParallel: false,
@@ -51,11 +54,11 @@ export default defineConfig({
         ...(process.env.E2E_DATABASE_SERVE_URL
           ? { DATABASE_URL_SERVE: process.env.E2E_DATABASE_SERVE_URL }
           : {}),
-        HEED_WEB_ORIGINS: `http://localhost:${webPort}`,
+        FOOTNOTE_WEB_ORIGINS: `http://localhost:${webPort}`,
         MCP_RESOURCE_URL: `http://localhost:${apiPort}/mcp`,
         // As compose.yaml runs it: the demo Cube model, and the demo people's sign-in.
         CUBE_MODEL_DIR: 'db/seed/cube',
-        HEED_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
+        FOOTNOTE_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
       },
     },
     {
@@ -65,7 +68,15 @@ export default defineConfig({
       url: `http://localhost:${webPort}`,
       reuseExistingServer: !ci,
       timeout: 180_000,
-      env: { VITE_API_MODE: 'http', HEED_API_URL: apiUrl },
+      env: { VITE_API_MODE: 'http', FOOTNOTE_API_URL: apiUrl },
     },
   ],
 })
+
+const running = process.env.PW_SEED_BASE_URL
+if (running) {
+  config.use = { ...config.use, baseURL: running }
+  config.webServer = []
+}
+
+export default config

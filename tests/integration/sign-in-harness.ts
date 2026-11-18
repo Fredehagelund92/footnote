@@ -183,7 +183,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
           method: 'POST',
           headers: {
             origin: web,
-            'x-heed-csrf': 'dev-sign-in',
+            'x-footnote-csrf': 'dev-sign-in',
             'content-type': 'application/json',
           },
           body: JSON.stringify({ email: `${name}@example.test` }),
@@ -196,7 +196,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
           method: body ? 'POST' : 'GET',
           headers: {
             origin: web,
-            'x-heed-csrf': csrf,
+            'x-footnote-csrf': csrf,
             ...(body ? { 'content-type': 'application/json' } : {}),
             ...headers,
           },
@@ -321,7 +321,11 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
     )
     return wire
   }
-  const mcpStatus = async (accessToken: string) =>
+  /** The status of one MCP message, a tool list unless another message is given. */
+  const mcpStatus = async (
+    accessToken: string,
+    message: unknown = { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  ) =>
     (
       await fetch(resource, {
         method: 'POST',
@@ -330,7 +334,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
           'content-type': 'application/json',
           accept: 'application/json, text/event-stream',
         },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+        body: JSON.stringify(message),
       })
     ).status
 

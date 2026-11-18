@@ -253,7 +253,7 @@ export async function switchAutoPublish(
     throw new ORPCError('FORBIDDEN', {
       message: notAllowed('change what agents may do', 'an admin'),
     })
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.setting:' || $1,0))", [
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.setting:' || $1,0))", [
     SETTING,
   ])
   const [current] = await tx.query<{ version: number; value: unknown }>(

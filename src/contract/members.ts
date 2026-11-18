@@ -87,7 +87,7 @@ export const inviteSchema = z.object({
   email: z.string(),
   role: memberRoleSchema,
   areaIds: z.array(z.string()),
-  /** Who sent it, or null for one the operator made with `heed invite`: that one has no sender. */
+  /** Who sent it, or null for one the operator made with `footnote invite`: that one has no sender. */
   invitedBy: z.nullable(z.string()),
   sentAt: z.string(),
   expiresAt: z.string(),

@@ -1,5 +1,5 @@
 import { Page } from '@/components/site-header'
-import { NotFound } from '@/components/heed/not-found'
+import { NotFound } from '@/components/footnote/not-found'
 import { useRoute } from '@/lib/router'
 
 /** An address the app does not know: it says so, under the address that was asked for. */

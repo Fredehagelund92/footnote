@@ -1,8 +1,7 @@
-import { ArrowUpRightIcon, BellIcon, PlusIcon, UsersIcon } from '@/components/icons'
+import { ArrowUpRightIcon, BellIcon, UsersIcon } from '@/components/icons'
 import { useAlerts, useWrite } from '@/api/queries'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Select,
@@ -13,11 +12,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Frame, FrameSection } from '@/components/heed/frame'
-import { Loadable } from '@/components/heed/load-state'
+import { Frame, FrameSection } from '@/components/footnote/frame'
+import { Loadable } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
-import { DomainDot } from '@/components/heed/tag-chip'
-import { ComingSoon } from '@/components/heed/bits'
+import { DomainDot } from '@/components/footnote/tag-chip'
 import { lastOf, rulesFor, thresholdOf, type AlertSettings, type Rule } from '@/model/alerts'
 import type { DomainId } from '@/model/items'
 import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
@@ -27,9 +25,6 @@ import { ObsPage } from '@/pages/observability'
 // Alerts: what raises a card in the Inbox, as rules of one sentence each, and what was raised
 // lately. The Inbox is the only place an alert goes. An admin turns a rule off for everyone and
 // changes its threshold in the sentence; an owner mutes a rule for their own domains.
-
-const ADD_REASON =
-  'The eight rules are fixed for now. Your own rules, and email and chat, come later.'
 
 export function AlertsPage() {
   const load = useObsPageQuery('alerts')
@@ -60,25 +55,7 @@ function Alerts() {
   const head = 'text-xs font-medium text-muted-foreground'
   return (
     <Frame>
-      <FrameSection
-        title="Alerts"
-        description={
-          <>
-            {OBS_PURPOSE.alerts}
-            {/* The reason is text anyone can read, on a phone too, not a hover tooltip. */}
-            <span id="add-rule-reason" className="mt-1 block">
-              {ADD_REASON}
-            </span>
-          </>
-        }
-        action={
-          <Button variant="outline" aria-disabled aria-describedby="add-rule-reason">
-            <PlusIcon data-icon="inline-start" />
-            Add a rule
-            <ComingSoon />
-          </Button>
-        }
-      />
+      <FrameSection title="Alerts" description={OBS_PURPOSE.alerts} />
       <section aria-labelledby="alert-rules" className="border-t">
         <h3 id="alert-rules" className="sr-only">
           Rules

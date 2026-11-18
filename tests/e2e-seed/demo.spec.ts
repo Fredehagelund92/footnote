@@ -113,6 +113,56 @@ test('a new install of the demo: sign in, and every main screen draws on its dat
   expect(failed).toEqual([])
 })
 
+test("the demo's Ask says no AI model answers, and its scripted reader reads sensibly", async ({
+  page,
+}) => {
+  // Three answers, each given the time a busy runner needs.
+  test.setTimeout(180_000)
+  // A first visit signs in as the demo's administrator, then Ask.
+  await page.goto('/')
+  await expect(page).toHaveURL(/\/inbox$/)
+  await page.goto('/ask')
+  await drawn(page, 'Ask')
+  await expect(
+    page.getByText(
+      'No AI model is connected, so answers list what your team wrote and an owner checked.',
+    ),
+  ).toBeVisible()
+  const box = page.getByRole('textbox', { name: 'Ask a question' })
+  const turn = (n: number) => page.locator(`[data-turn="${n}"]`)
+  const ask = async (question: string, n: number) => {
+    await box.click()
+    await box.pressSequentially(question)
+    await box.press('Enter')
+    // The scripted reader answers in seconds, but a busy runner can take far longer.
+    await expect(turn(n).getByText('What Ask read')).toBeVisible({ timeout: 60_000 })
+  }
+
+  // Asked what a metric is, the answer is its definition, first and alone.
+  await ask('What is net revenue?', 0)
+  await expect(turn(0).getByText('Definition', { exact: true })).toBeVisible()
+  await expect(turn(0).locator('[data-answer-words]')).toHaveText(
+    /^Net revenue, metric\s*means: Gross sales after returns, discounts, VAT and payment fees/,
+  )
+  await expect(turn(0).getByText('Partial', { exact: true })).toHaveCount(0)
+
+  // Under Conflict, the two United Kingdom rules that disagree are on the screen.
+  await page.getByRole('button', { name: 'New chat' }).first().click()
+  await ask('Do United Kingdom orders include store credit or not?', 0)
+  const pair = (n: number) => turn(n).getByText('These two disagree').locator('xpath=..')
+  for (const title of [
+    'United Kingdom orders are card and cash payments only',
+    'United Kingdom orders count store credit',
+  ])
+    await expect(pair(0).getByRole('button', { name: new RegExp(title) })).toBeVisible()
+
+  // A follow-up is read with the question before it: the same two, and who decides.
+  await ask('And who decides which one is right?', 1)
+  await expect(turn(1).getByText('Conflict', { exact: true })).toBeVisible()
+  await expect(pair(1).getByText(/^Which one holds is for the owners of/)).toBeVisible()
+  await expect(turn(1).getByText(/so nothing was looked up/)).toHaveCount(0)
+})
+
 test('the demo switches to a reader who has real context to read', async ({ page }) => {
   await page.goto('/')
   await expect(sidebarUser(page)).toContainText('Ravi Kapoor')

@@ -113,7 +113,7 @@ async function signIn(name: string): Promise<Session$> {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: `${name}@example.test` },
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -129,7 +129,7 @@ function send(who: Reader, method: string, path: string, payload?: object) {
   return app.inject({
     method: method as 'GET',
     url: path,
-    headers: { cookie: session.cookie, 'x-heed-csrf': session.csrf, origin },
+    headers: { cookie: session.cookie, 'x-footnote-csrf': session.csrf, origin },
     ...(payload ? { payload } : {}),
   })
 }
@@ -505,21 +505,21 @@ describe('the audience rule on every read path', () => {
   })
 
   it('writes nothing of the hidden item from the command line', async () => {
-    const heed = async (args: string[], who: string) => {
+    const footnote = async (args: string[], who: string) => {
       const out: string[] = []
       const err: string[] = []
       const code = await run(args, {
         stdout: (text) => out.push(text),
         stderr: (text) => err.push(text),
-        env: { HEED_URL: base, HEED_EMAIL: `${who}@example.test`, HEED_ORIGIN: origin },
+        env: { FOOTNOTE_URL: base, FOOTNOTE_EMAIL: `${who}@example.test`, FOOTNOTE_ORIGIN: origin },
       })
       return { code, text: out.join('') + err.join('') }
     }
-    const exported = await heed(['export', liveLabel, '--json'], 'owner')
+    const exported = await footnote(['export', liveLabel, '--json'], 'owner')
     expect(exported.code, exported.text).toBe(0)
     expect(leaks(scanned('editions.export', exported.text))).toEqual([])
     for (const who of ['auditor', 'admin']) {
-      const audit = await heed(['audit', '--format', 'jsonl'], who)
+      const audit = await footnote(['audit', '--format', 'jsonl'], who)
       expect(audit.code, audit.text).toBe(0)
       expect(leaks(audit.text), who).toEqual([])
     }

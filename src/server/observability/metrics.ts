@@ -108,23 +108,23 @@ export function createMetrics(): Metrics {
   const loop = monitorEventLoopDelay({ resolution: 20 })
   loop.enable()
   const requests = counter(
-    'heed_http_requests_total',
+    'footnote_http_requests_total',
     'HTTP requests answered, by method, route or API operation, and status.',
   )
   const durations = histogram(
-    'heed_http_request_duration_seconds',
+    'footnote_http_request_duration_seconds',
     'Time to answer an HTTP request, by method and route or API operation.',
   )
   const mcp = counter(
-    'heed_mcp_requests_total',
+    'footnote_mcp_requests_total',
     'MCP requests, by tool (protocol for anything that is not a tool call), status and agent family.',
   )
   const mcpDurations = histogram(
-    'heed_mcp_request_duration_seconds',
+    'footnote_mcp_request_duration_seconds',
     'Time to answer an MCP request, by tool.',
   )
   const dropped = counter(
-    'heed_mcp_records_dropped_total',
+    'footnote_mcp_records_dropped_total',
     'Anonymous MCP records dropped because the write queue was full or the database failed.',
   )
   dropped.inc({}, 0)
@@ -144,25 +144,25 @@ export function createMetrics(): Metrics {
       const memory = process.memoryUsage()
       const process_: Sample[] = [
         {
-          name: 'heed_process_uptime_seconds',
+          name: 'footnote_process_uptime_seconds',
           help: 'Seconds since the service started.',
           type: 'gauge',
           values: [{ value: (Date.now() - started) / 1000 }],
         },
         {
-          name: 'heed_process_resident_memory_bytes',
+          name: 'footnote_process_resident_memory_bytes',
           help: 'Resident memory of the service process.',
           type: 'gauge',
           values: [{ value: memory.rss }],
         },
         {
-          name: 'heed_nodejs_heap_used_bytes',
+          name: 'footnote_nodejs_heap_used_bytes',
           help: 'JavaScript heap in use.',
           type: 'gauge',
           values: [{ value: memory.heapUsed }],
         },
         {
-          name: 'heed_nodejs_eventloop_delay_p99_seconds',
+          name: 'footnote_nodejs_eventloop_delay_p99_seconds',
           help: 'The 99th percentile event loop delay since the previous scrape.',
           type: 'gauge',
           values: [{ value: loop.percentile(99) / 1e9 }],

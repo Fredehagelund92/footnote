@@ -24,7 +24,7 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
-import { ContextText } from '@/components/heed/mention-chip'
+import { ContextText } from '@/components/footnote/mention-chip'
 import { hostOf } from '@/lib/host'
 import { useSideChoice } from '@/lib/side-panel'
 import { useSend } from '@/lib/send'
@@ -56,17 +56,17 @@ import {
   StaticField,
   WhenField,
   type Option,
-} from '@/components/heed/field-controls'
-import { DomainDot, TagChip } from '@/components/heed/tag-chip'
-import { ScopeField } from '@/components/heed/scope-field'
+} from '@/components/footnote/field-controls'
+import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
+import { ScopeField } from '@/components/footnote/scope-field'
 import { termsOfNames } from '@/lib/scope'
-import { kindIcons } from '@/components/heed/kind-icons'
+import { kindIcons } from '@/components/footnote/kind-icons'
 import { plainText } from '@/lib/mentions'
-import { PersonAvatar } from '@/components/heed/bits'
-import { DocFooter, Paper } from '@/components/heed/doc'
+import { PersonAvatar } from '@/components/footnote/bits'
+import { DocFooter, Paper } from '@/components/footnote/doc'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Page, SiteHeader } from '@/components/site-header'
-import { LoadError, NoSuchItem } from '@/components/heed/load-state'
+import { LoadError, NoSuchItem } from '@/components/footnote/load-state'
 import { readOf } from '@/lib/read'
 import { Loading } from '@/App'
 import { Button } from '@/components/ui/button'
@@ -89,9 +89,9 @@ import { homeDomain, ownersOf, type Domain, type Domains } from '@/model/people'
 import { toApiError, type Clash } from '@/api/errors'
 import { closeDock, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
-import { HeaderMore, SaveStatus } from '@/components/heed/editor-header'
-import { Panel, PanelGroup } from '@/components/heed/panel'
-import { ChoiceMenu, ViewToggle } from '@/components/heed/switches'
+import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
+import { Panel, PanelGroup } from '@/components/footnote/panel'
+import { ChoiceMenu, ViewToggle } from '@/components/footnote/switches'
 import {
   Dialog,
   DialogClose,
@@ -113,7 +113,7 @@ import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '
 import { useWide } from '@/hooks/use-wide'
 import { Kbd } from '@/components/ui/kbd'
 import { usePrimaryKey } from '@/hooks/use-primary-key'
-import { DocumentEditorShell } from '@/components/heed/document-shell'
+import { DocumentEditorShell } from '@/components/footnote/document-shell'
 
 // The context editor as a document, the way editorcn's Simple Document Editor template shows one: a
 // muted canvas, editorcn's floating toolbar, the title as a large heading, the text as the document,

@@ -1,13 +1,13 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { DisagreesSection } from '@/components/heed/disagrees'
+import { DisagreesSection } from '@/components/footnote/disagrees'
 import { mentionId } from '@/lib/mentions'
 import { CircleCheckIcon, ClockIcon, EllipsisIcon, MessageSquareIcon } from '@/components/icons'
 import { toast } from 'sonner'
-import { Canvas, Paper, SideSection } from '@/components/heed/doc'
-import { ItemDocument } from '@/components/heed/item-document'
+import { Canvas, Paper, SideSection } from '@/components/footnote/doc'
+import { ItemDocument } from '@/components/footnote/item-document'
 import { ResizableAside } from '@/components/resizable-aside'
-import { Panel, PanelRail } from '@/components/heed/panel'
+import { Panel, PanelRail } from '@/components/footnote/panel'
 import { useSideChoice } from '@/lib/side-panel'
 import { Page } from '@/components/site-header'
 import {
@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Related } from '@/components/heed/related'
+import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
 import { openDock } from '@/lib/dock'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -39,10 +39,10 @@ import { useCommentActions } from '@/lib/comments'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import type { LogEntry } from '@/model/items'
 import { useWide } from '@/hooks/use-wide'
-import { VersionHistory } from '@/components/heed/version-history'
+import { VersionHistory } from '@/components/footnote/version-history'
 import { today } from '@/lib/today'
-import { DeleteDialog } from '@/components/heed/delete-dialog'
-import { Loadable, NoSuchItem, PageSkeleton, SideSkeleton } from '@/components/heed/load-state'
+import { DeleteDialog } from '@/components/footnote/delete-dialog'
+import { Loadable, NoSuchItem, PageSkeleton, SideSkeleton } from '@/components/footnote/load-state'
 
 // The comments load on their own: their composer is Tiptap, which stays out of the first load.
 const CommentBox = React.lazy(() =>

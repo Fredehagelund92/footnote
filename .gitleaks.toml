@@ -6,12 +6,13 @@ useDefault = true
 
 # A file from a private profile: real company data kept outside every checkout, each file marked.
 # The bracket keeps this file from carrying the marker itself; the security workflow proves the rule
-# on a file it writes with the marker and one without.
+# on files it writes with the marker and one without. A profile made before the rename to Footnote
+# carries the marker under the former name, HEED-, which the rule still finds.
 [[rules]]
-id = "heed-private-profile"
+id = "footnote-private-profile"
 description = "A file from a private profile, which never belongs in this repository"
-regex = '''HEED-PRIVATE-PROFIL[E]'''
-keywords = ["heed-private-profil"]
+regex = '''(?:FOOTNOTE|HEED)-PRIVATE-PROFIL[E]'''
+keywords = ["footnote-private-profil", "heed-private-profil"]
 
 [[rules.allowlists]]
 description = "The page that explains the marker names it"

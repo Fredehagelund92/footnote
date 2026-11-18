@@ -125,7 +125,7 @@ import {
   setOwners,
   changeGrant,
   cookieAge,
-  sessionCookie,
+  sessionCookies,
   createPeopleService,
   type SignIn,
 } from '../modules/auth/index.ts'
@@ -177,7 +177,7 @@ export interface ApiServices {
   workspaceSources?: WorkspaceSources
   /** Opens a web page a link in a draft points at; the public web only by default. */
   readPage?: PageReader
-  /** HEED_PROFILE_LABEL: the name the header and the sign-in page show; none by default. */
+  /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; none by default. */
   profileLabel?: string | null
 }
 type RequestContext = { request: FastifyRequest; reply: FastifyReply }
@@ -304,6 +304,8 @@ export function createRouter({
   const limitGapReports = createLimiter(() => clock.now())
   // The editions the answer engine reads, kept a short while: one for every person.
   const answerBundles = createBundleCache()
+  // Whether Ask answers with an AI model, or with the scripted reader (MODELS=mock), for the page.
+  const modelConnected = models.mode === 'live'
   const os = implement(contract).$context<RequestContext>()
   const authorized = os.use(async ({ context, next, path }) => {
     // Work outside the database that must follow the transaction's outcome, such as a secret
@@ -622,25 +624,32 @@ export function createRouter({
           })
         context.reply.header(
           'set-cookie',
-          sessionCookie(
+          sessionCookies(
+            context.request.headers.cookie,
             login.token,
             context.request.protocol === 'https',
             cookieAge(signIn.lifetime),
           ),
         )
-        return { ...login.session, profileLabel }
+        return { ...login.session, profileLabel, modelConnected }
       }),
       signOut: authorized.auth.signOut.handler(async ({ context }) => {
         await signIn.signOut(context.tx, context.request.headers.cookie)
         context.reply.header(
           'set-cookie',
-          sessionCookie('', context.request.protocol === 'https', 0),
+          sessionCookies(
+            context.request.headers.cookie,
+            '',
+            context.request.protocol === 'https',
+            0,
+          ),
         )
         return { signedOut: true }
       }),
       session: authorized.auth.session.handler(({ context }) => ({
         ...context.session!,
         profileLabel,
+        modelConnected,
       })),
     },
     connections: {
@@ -1164,7 +1173,15 @@ export function createRouter({
       ),
     },
     setup: {
-      state: authorized.setup.state.handler(({ context }) => context.cards.setup()),
+      state: authorized.setup.state.handler(({ context }) =>
+        // The demo's invented definitions are no folder the person started the server on.
+        context.cards.setup(
+          sources
+            ?.list()
+            .filter((source) => source.type !== 'demo')
+            .map((source) => source.id),
+        ),
+      ),
     },
     evals: {
       questions: {
@@ -1550,7 +1567,7 @@ export function openApiDocument() {
 }
 
 /** The header on every API answer that names the contract the service speaks (`apiVersion`). */
-export const API_VERSION_HEADER = 'x-heed-api'
+export const API_VERSION_HEADER = 'x-footnote-api'
 
 let version: Promise<string> | undefined
 /**

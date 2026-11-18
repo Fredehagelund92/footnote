@@ -64,7 +64,7 @@ The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. A
 | Setup checklist on a new install                        | `/inbox`, shown while setup is unfinished               |
 | Connect an agent as a dialog, search, shortcuts, report | `/inbox?open=connect`, `palette`, `shortcuts`, `report` |
 
-The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note) and Due for a check. Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match. One quiet sentence under the heading says what agents asked this week, in counts only.
+The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note) and Due for a check. Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match; its header names whose domains it counts, and the sidebar badge says it counts the checks due with the cards waiting. One quiet sentence under the heading says what agents asked this week, in counts only, the same count as Asked this week in Ask.
 
 A Not found card shows a gap: a topic agents keep asking about with nothing written down for it. A gap is Open, Covered or Set aside. It is Open while agents keep asking. Publishing context written from its card, or a suggestion written for it, covers it, and the card leaves the Inbox. Not something we write down sets it aside. Undo of either opens it again. When agents ask about a covered topic again and still find nothing, a new gap opens.
 
@@ -226,7 +226,7 @@ One rule everywhere: **from agents, Footnote keeps only what a question was abou
 3. **Words are kept only when a person sends them on purpose, and then with their name.** That means a suggestion, a named report, a saved question and a comment.
 4. **Ask chats are the person's own.** They stay in the person's browser and are seen only by them. Ask says so, and its empty state says what is kept.
 5. **Agents never read comments, reports or saved questions.** An agent's answer is built from published context only.
-6. **Report a problem** opens a mail with the page's address when `HEED_SUPPORT_EMAIL` is set; unset, it opens a GitHub issue with the page's path only. A person's name goes with neither, and never an agent's words.
+6. **Report a problem** opens a mail with the page's address when `FOOTNOTE_SUPPORT_EMAIL` is set; unset, it opens a GitHub issue with the page's path only. A person's name goes with neither, and never an agent's words.
 7. **Figures are read when asked and kept nowhere.** No person's identity is passed to the data source.
 8. **No tracking.** Footnote sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
 9. **No promise of anonymity.** Copy says what is kept, not that nobody can see.
@@ -244,7 +244,7 @@ Six tools. Each is described in one list in the code (`AGENT_TOOLS`), which Sett
 | `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
 | `get_related`     | Follow a link between items, definitions and domains, one step at a time. It has its own switch.                                                   |
 
-The default reply holds the answer state, one sentence to relay (`say`), what was asked, the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a separate, read-only tool, `get_related`, at most 50 nodes, in a fixed order. It never changes what an answer includes.
+The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a separate, read-only tool, `get_related`, at most 50 nodes, in a fixed order. It never changes what an answer includes.
 
 ## 11. Roles
 
@@ -270,7 +270,7 @@ Integrations connect Footnote to where metrics are defined and where documents l
 | Cube            | Definitions, figures | Metrics and dimensions are a read-only copy. A figure is read on request when figures are on. |
 | Google Drive    | Context              | Through a service account an admin shares folders with. Documents become suggestions.         |
 | Markdown in Git | Context              | Documents become suggestions.                                                                 |
-| dbt, Notion     | Context, definitions | Shown as Soon.                                                                                |
+| dbt             | Definitions          | Metrics and dimensions are a read-only copy, read from its semantic manifest.                 |
 
 **A sync never publishes.** Definitions are a read-only copy that flags the context relying on them. Documents become suggestions in the owners' Inbox, one per document, grouped under the read that made them. Figures are not an integration of their own: a definitions tool that can read them has a second, labelled connection for them, with its own data endpoint and token, because the metric's definition decides which integration answers, and a tool no definition comes from could answer nothing. **Try a figure** reads one figure with the saved settings before anyone asks. Every figures connection names a data contact. "Show figures in Ask" is off by default.
 

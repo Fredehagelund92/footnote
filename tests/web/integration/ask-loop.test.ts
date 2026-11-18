@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { chatTurnOf, type Answer } from '@/model/ask'
+import { UNCHECKED } from '../../../src/server/modules/answer/loop-check.ts'
 import {
   scriptedLoopChoice,
   scriptedLoopModel,
@@ -86,16 +87,19 @@ describe("Ask's loop", () => {
     await audience(['finance_team'])
     try {
       let seen = ''
-      // A model that cites the item it saw last turn, by its id, whatever it is given now.
+      // A model that cites the item it saw last turn, by its id, whatever it is given now. Only
+      // the first prompt: the rewrite after the answer check quotes the failing sentence.
       decide = ({ prompt }) => {
-        seen = JSON.stringify(prompt)
+        seen ||= JSON.stringify(prompt)
         return { text: `As before [${AUDIENCE_ITEM}].` }
       }
       const again = await api.ask({ question: 'are you sure?', turns: [turnOf(first)] })
       expect(seen).not.toContain(AUDIENCE_ITEM)
       expect(seen).not.toContain(title)
       expect(again.sources).not.toContain(AUDIENCE_ITEM)
+      // Nowhere in the turn, the check's own record of what failed included.
       expect(JSON.stringify(again)).not.toContain(AUDIENCE_ITEM)
+      expect(again.text).toBe(UNCHECKED)
       expect(JSON.stringify(again)).not.toContain(title)
     } finally {
       decide = null
@@ -117,7 +121,7 @@ describe("Ask's loop", () => {
     const api = await world.as(ML)
     let seen = ''
     decide = ({ prompt }) => {
-      seen = JSON.stringify(prompt)
+      seen ||= JSON.stringify(prompt)
       return { text: 'As before [itm_giftcardonly].' }
     }
     try {
@@ -137,7 +141,8 @@ describe("Ask's loop", () => {
       expect(seen).toContain('Here is what is written.')
       expect(seen).not.toContain('card and cash only')
       expect(a.sources).toEqual([])
-      expect(a.text).toBe('As before.')
+      // The cited item is no read of this chat: the sentence fails twice and is replaced.
+      expect(a.text).toBe(UNCHECKED)
     } finally {
       decide = null
     }
@@ -186,6 +191,52 @@ describe("Ask's loop", () => {
     const after = await tableContents(world.client)
     expect(after).toEqual(before)
     expect(after.join('\n')).not.toContain(marker)
+  })
+})
+
+describe("Ask's scripted reader, which answers the demo with no model (MODELS=mock)", () => {
+  it('gives the definition, first and alone, when asked what a metric is', async () => {
+    const api = await world.as(ML)
+    const a = await api.ask({ question: 'What is net revenue?' })
+    expect(a.text).toMatch(/^Net revenue means: \S/)
+    expect(a.loop?.defined?.names).toEqual(['Net revenue'])
+    expect(a.state).toBeNull()
+    expect(a.sources).toEqual([])
+  })
+
+  it('cites the two items that disagree first under Conflict, so the page shows them', async () => {
+    const api = await world.as(ML)
+    const a = await api.ask({ question: 'orders in Norway' })
+    expect(a.state).toBe('conflict')
+    expect(a.loop?.conflict).toHaveLength(2)
+    expect(a.sources?.slice(0, 2).toSorted()).toEqual(a.loop!.conflict.toSorted())
+  })
+
+  it('reads a follow-up that names nothing with the question before it', async () => {
+    const api = await world.as(ML)
+    const first = await api.ask({ question: 'orders in Norway' })
+    const next = await api.ask({
+      question: 'And who decides which one is right?',
+      turns: [turnOf(first)],
+    })
+    expect(next.reads?.map((r) => r.tool)).toEqual(['get_context', 'find_context', 'get_context'])
+    expect(next.reads?.[2]?.input).toEqual({
+      about: 'orders in Norway And who decides which one is right?',
+    })
+    expect(next.state).toBe('conflict')
+    expect(next.loop?.subject?.names).toEqual(['Orders', 'Norway'])
+    expect(next.loop?.conflict).toEqual(first.loop?.conflict)
+  })
+
+  it('reads a new question in the same chat on its own', async () => {
+    const api = await world.as(ML)
+    const first = await api.ask({ question: 'orders in Norway' })
+    const next = await api.ask({
+      question: 'What is the weather in Oslo today?',
+      turns: [turnOf(first)],
+    })
+    expect(next.reads?.map((r) => r.tool)).toEqual(['get_context', 'find_context'])
+    expect(next.state).toBe('missing')
   })
 })
 

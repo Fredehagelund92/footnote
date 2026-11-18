@@ -8,7 +8,7 @@ import { changelogSection, parseImage, releaseNotes } from '../../scripts/releas
   wrote into CHANGELOG.md for the tagged version, in the shape it writes them.
 */
 
-const compare = 'https://github.com/Fredehagelund92/heed/compare'
+const compare = 'https://github.com/Fredehagelund92/footnote/compare'
 const changelog = `# Changelog
 
 ## [0.2.0](${compare}/v0.1.0...v0.2.0) (2026-11-14)
@@ -16,12 +16,12 @@ const changelog = `# Changelog
 
 ### Features
 
-* **web:** sort every list both ways ([#120](https://github.com/Fredehagelund92/heed/issues/120)) ([1234567](https://github.com/Fredehagelund92/heed/commit/1234567))
+* **web:** sort every list both ways ([#120](https://github.com/Fredehagelund92/footnote/issues/120)) ([1234567](https://github.com/Fredehagelund92/footnote/commit/1234567))
 
 
 ### Fixes
 
-* **ask:** say a question was not looked up ([#121](https://github.com/Fredehagelund92/heed/issues/121)) ([89abcde](https://github.com/Fredehagelund92/heed/commit/89abcde))
+* **ask:** say a question was not looked up ([#121](https://github.com/Fredehagelund92/footnote/issues/121)) ([89abcde](https://github.com/Fredehagelund92/footnote/commit/89abcde))
 
 ## [0.1.10](${compare}/v0.1.9...v0.1.10) (2026-11-10)
 
@@ -40,8 +40,8 @@ const changelog = `# Changelog
 
 const digest = (character: string) => `sha256:${character.repeat(64)}`
 const images = [
-  { role: 'service', name: 'ghcr.io/fredehagelund92/heed', digest: digest('a') },
-  { role: 'web', name: 'ghcr.io/fredehagelund92/heed-web', digest: digest('b') },
+  { role: 'service', name: 'ghcr.io/fredehagelund92/footnote', digest: digest('a') },
+  { role: 'web', name: 'ghcr.io/fredehagelund92/footnote-web', digest: digest('b') },
 ] as const
 
 describe('the CHANGELOG.md section of a version', () => {
@@ -50,11 +50,11 @@ describe('the CHANGELOG.md section of a version', () => {
       [
         '### Features',
         '',
-        '* **web:** sort every list both ways ([#120](https://github.com/Fredehagelund92/heed/issues/120)) ([1234567](https://github.com/Fredehagelund92/heed/commit/1234567))',
+        '* **web:** sort every list both ways ([#120](https://github.com/Fredehagelund92/footnote/issues/120)) ([1234567](https://github.com/Fredehagelund92/footnote/commit/1234567))',
         '',
         '### Fixes',
         '',
-        '* **ask:** say a question was not looked up ([#121](https://github.com/Fredehagelund92/heed/issues/121)) ([89abcde](https://github.com/Fredehagelund92/heed/commit/89abcde))',
+        '* **ask:** say a question was not looked up ([#121](https://github.com/Fredehagelund92/footnote/issues/121)) ([89abcde](https://github.com/Fredehagelund92/footnote/commit/89abcde))',
       ].join('\n'),
     )
   })
@@ -73,7 +73,7 @@ describe('the CHANGELOG.md section of a version', () => {
 describe('the release notes', () => {
   const notes = releaseNotes({
     version: '0.2.0',
-    repository: 'Fredehagelund92/heed',
+    repository: 'Fredehagelund92/footnote',
     changelog,
     images,
   })
@@ -81,7 +81,7 @@ describe('the release notes', () => {
   it('say what a 0.x release is for, then list the changes and the images', () => {
     expect(notes).toBe(
       [
-        'Footnote 0.2 is for trying Footnote on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/Fredehagelund92/heed/blob/v0.2.0/README.md#quick-start) at this tag.',
+        'Footnote 0.2 is for trying Footnote on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/Fredehagelund92/footnote/blob/v0.2.0/README.md#quick-start) at this tag.',
         '',
         changelogSection(changelog, '0.2.0'),
         '',
@@ -91,13 +91,13 @@ describe('the release notes', () => {
         '',
         '| Image | Pull | Digest |',
         '| --- | --- | --- |',
-        `| The service | \`ghcr.io/fredehagelund92/heed:0.2.0\` | \`${digest('a')}\` |`,
-        `| The web app | \`ghcr.io/fredehagelund92/heed-web:0.2.0\` | \`${digest('b')}\` |`,
+        `| The service | \`ghcr.io/fredehagelund92/footnote:0.2.0\` | \`${digest('a')}\` |`,
+        `| The web app | \`ghcr.io/fredehagelund92/footnote-web:0.2.0\` | \`${digest('b')}\` |`,
         '',
         'Check that an image was built by this repository, from this tag:',
         '',
         '```sh',
-        'gh attestation verify oci://ghcr.io/fredehagelund92/heed:0.2.0 --repo Fredehagelund92/heed',
+        'gh attestation verify oci://ghcr.io/fredehagelund92/footnote:0.2.0 --repo Fredehagelund92/footnote',
         '```',
         '',
       ].join('\n'),
@@ -107,7 +107,7 @@ describe('the release notes', () => {
   it('leave the 0.x line out from 1.0 on', () => {
     const one = releaseNotes({
       version: '1.0.0',
-      repository: 'Fredehagelund92/heed',
+      repository: 'Fredehagelund92/footnote',
       changelog: '# Changelog\n\n## [1.0.0](x) (2027-01-01)\n\n### Features\n\n* stable\n',
       images,
     })
@@ -123,17 +123,17 @@ describe('the release notes', () => {
 
 describe('an image argument', () => {
   it('is a role, a name and a sha256 digest', () => {
-    expect(parseImage(`web=ghcr.io/o/heed-web@${digest('c')}`)).toEqual({
+    expect(parseImage(`web=ghcr.io/o/footnote-web@${digest('c')}`)).toEqual({
       role: 'web',
-      name: 'ghcr.io/o/heed-web',
+      name: 'ghcr.io/o/footnote-web',
       digest: digest('c'),
     })
   })
 
   it.each([
-    `cube=ghcr.io/o/heed@${digest('c')}`,
-    'service=ghcr.io/o/heed:0.1.0',
-    'service=ghcr.io/o/heed@sha256:short',
+    `cube=ghcr.io/o/footnote@${digest('c')}`,
+    'service=ghcr.io/o/footnote:0.1.0',
+    'service=ghcr.io/o/footnote@sha256:short',
   ])('refuses %s', (argument) => {
     expect(() => parseImage(argument)).toThrow('Not an image')
   })

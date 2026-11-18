@@ -87,7 +87,7 @@ export function releaseNotes({
   ].join('\n')
 }
 
-/** `service=ghcr.io/owner/heed@sha256:...` as an image. */
+/** `service=ghcr.io/owner/footnote@sha256:...` as an image. */
 export function parseImage(argument: string): ReleaseImage {
   const match = /^(service|web)=([^@\s]+)@(sha256:[0-9a-f]{64})$/.exec(argument)
   const [, role, name, digest] = match ?? []
