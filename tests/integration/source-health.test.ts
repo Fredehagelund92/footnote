@@ -245,11 +245,8 @@ it('does not take the demo for a model folder the server was started on', async 
     sources: new ConnectorRegistry([createDemoSource()]),
     devPeople: [{ email: 'ops@example.test', name: 'Ops', roles: ['administrator'] }],
   })
-  try {
-    const response = await demoOnly.inject({ method: 'GET', url: '/api/v1/setup', headers: auth })
-    expect(response.statusCode, response.body).toBe(200)
-    expect(response.json<{ serverSource: unknown }>().serverSource).toBeNull()
-  } finally {
-    await demoOnly.close()
-  }
+  // Not closed: closing would end the database and runner this file's other app still uses.
+  const response = await demoOnly.inject({ method: 'GET', url: '/api/v1/setup', headers: auth })
+  expect(response.statusCode, response.body).toBe(200)
+  expect(response.json<{ serverSource: unknown }>().serverSource).toBeNull()
 }, 30_000)
