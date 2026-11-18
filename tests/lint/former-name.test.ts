@@ -16,15 +16,39 @@ const word = String.fromCharCode(104, 101, 101, 100)
 const Word = `${word[0]!.toUpperCase()}${word.slice(1)}`
 const formerName = new RegExp(word, 'i')
 
+/**
+ * The migrations, applied before the rename, that say the former name. An applied migration is
+ * never edited (db/README.md): the runner refuses a database whose applied file changed, so
+ * taking the name out of these would mean making every existing database again. A new migration
+ * is checked like any other file.
+ */
+const appliedMigrations = [
+  '0001_baseline',
+  '0004_agent_contract',
+  '0005_review_path',
+  '0010_about_starts_empty',
+  '0012_people_and_invites',
+  '0014_oidc_sign_in',
+  '0015_observability',
+  '0033_obs_caught',
+  '0043_ask_loop_limits',
+  '0051_gap_states',
+  '0053_invite_standing',
+  '0058_footnote_names',
+]
+
 /** The records that keep the former name, since they say what happened under it. */
-const historical: readonly { path: RegExp; why: string }[] = [
-  { path: /^CHANGELOG\.md$/, why: 'written by release-please from the commits' },
-  { path: /^db\/migrations\/\d{4}_[a-z0-9_]+\.sql$/, why: 'an applied migration never changes' },
+const historical: readonly { path: string; why: string }[] = [
+  { path: 'CHANGELOG.md', why: 'written by release-please from the commits' },
+  ...appliedMigrations.map((name) => ({
+    path: `db/migrations/${name}.sql`,
+    why: 'an applied migration is never edited',
+  })),
 ]
 
 /** Where the former name appears in one file: its path, then each line that says it. */
 function formerNames(path: string, text: string): string[] {
-  if (historical.some((record) => record.path.test(path))) return []
+  if (historical.some((record) => record.path === path)) return []
   const found = formerName.test(path) ? [`${path}: the path`] : []
   text.split('\n').forEach((line, i) => {
     if (formerName.test(line)) found.push(`${path}:${i + 1}`)
@@ -72,7 +96,10 @@ describe("the product's former name", () => {
     expect(formerNames('CHANGELOG.md', `* add the ${Word}Api seam`)).toEqual([])
     expect(formerNames('db/migrations/0058_footnote_names.sql', `-- '${word}.roles'`)).toEqual([])
     expect(formerNames('docs/README.md', 'Footnote, take note.')).toEqual([])
-    // Only the migrations themselves: a file beside them is checked.
+    // Only those migrations: a new one, or a file beside them, is checked.
+    expect(formerNames('db/migrations/0059_next.sql', `-- ${Word}`)).toEqual([
+      'db/migrations/0059_next.sql:1',
+    ])
     expect(formerNames('db/migrations/latest.txt', word)).toEqual(['db/migrations/latest.txt:1'])
   })
 
