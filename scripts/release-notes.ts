@@ -26,7 +26,9 @@ const roles: Record<ReleaseImage['role'], string> = {
  */
 export function changelogSection(changelog: string, version: string): string | undefined {
   const lines = changelog.split('\n')
-  const heading = new RegExp(`^## \\[?${version.replaceAll('.', '\\.')}\\]?(?:[ (]|$)`)
+  // The version as plain text: every character the pattern language reads is escaped.
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const heading = new RegExp(`^## \\[?${escaped}\\]?(?:[ (]|$)`)
   const start = lines.findIndex((line) => heading.test(line))
   if (start < 0) return undefined
   const end = lines.findIndex((line, index) => index > start && line.startsWith('## '))

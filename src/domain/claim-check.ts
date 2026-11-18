@@ -180,7 +180,7 @@ function windowOf(sentence: string, stems: readonly string[]): string | null {
 
 const numberValue = (raw: string) => {
   const word = numberWords[raw.toLowerCase()]
-  return word === undefined ? raw.replace(/[\s,]/g, '').replace('%', ' %').trim() : String(word)
+  return word === undefined ? raw.replace(/[\s,]/g, '').replaceAll('%', ' %').trim() : String(word)
 }
 
 /**

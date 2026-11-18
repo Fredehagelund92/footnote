@@ -22,7 +22,7 @@ describe('the docs site', () => {
     expect(slugs).toEqual([undefined, ...DOC_PAGES.map((p) => p.slug), 'changelog'])
     for (const slug of slugs) {
       const html = render(slug)
-      expect(html, slug).toContain(`>${headOf(slug).title.replace("'", '&#x27;')}</h1>`)
+      expect(html, slug).toContain(`>${headOf(slug).title.replaceAll("'", '&#x27;')}</h1>`)
     }
     expect(render('connect-an-agent')).toContain('claude mcp add --transport http')
     expect(render('answer-lines')).toContain('Nothing is written about this yet.')

@@ -23,6 +23,13 @@ describe('the web image security headers', () => {
     ])
   })
 
+  it('end a script at an end tag with space before its >', () => {
+    expect(inlineScriptHashes('<script>first()</script >\n<script>second()</script\n>')).toEqual([
+      sha('first()'),
+      sha('second()'),
+    ])
+  })
+
   it('let only those inline scripts run', () => {
     const headers = securityHeaders(template, page)
     const csp = /Content-Security-Policy "([^"]+)"/.exec(headers)![1]!
