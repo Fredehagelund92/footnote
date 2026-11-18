@@ -51,7 +51,7 @@ async function signIn(name: string) {
   return { cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '), origin }
 }
 
-/** One topic with `calls` agent calls this hour, none delivering an item, and a reported gap. */
+/** One topic with `calls` agent calls yesterday at noon UTC (the last full day), none delivering an item, and a reported gap. */
 async function asked(metric: string, calls: number, edition: string) {
   const { rows } = await client.query<{ id: string }>(
     `insert into topics (key,area_id,metric_keys,value_keys,month)
@@ -62,7 +62,7 @@ async function asked(metric: string, calls: number, edition: string) {
   for (let i = 0; i < calls; i++)
     await client.query(
       `insert into deliveries (delivered_hour,client_label,caller,edition_seq,overlay_seq,tool_schema_digest,topic_id,scope,status,delivered)
-       values (date_trunc('hour', now(), 'UTC'),'claude-code','agent',$1,0,'digest',$2,'{}','no_match','[]')`,
+       values (date_trunc('day', now(), 'UTC') - interval '12 hours','claude-code','agent',$1,0,'digest',$2,'{}','no_match','[]')`,
       [edition, topic],
     )
   const gap = await client.query<{ id: string }>(
