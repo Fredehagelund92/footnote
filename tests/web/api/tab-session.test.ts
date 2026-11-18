@@ -174,7 +174,7 @@ describe('a change after another tab signed this browser in as someone else', ()
     const api = createHttpApi({
       baseUrl: 'https://footnote.example/api/v1',
       fetch,
-      shelf: { get: (key) => (keys.push(key), null), set: () => {} },
+      shelf: { get: (key) => (keys.push(key), null), set: () => {}, remove: () => {} },
     })
     const queryClient = createQueryClient()
     const session = { queryKey: ['getSession'], queryFn: () => api.getSession(), staleTime: 0 }

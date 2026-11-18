@@ -1706,9 +1706,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     },
     signOut: async () => {
       const token = csrfToken ?? (await session()).csrfToken
+      const person = me?.id
       await read(() =>
         client.auth.signOut(undefined, { context: { headers: { 'x-footnote-csrf': token } } }),
       )
+      // Ask chats live in this browser: they leave with the session, unseen by the next person here.
+      if (person) chats.forget(person)
+      said.clear()
       csrfToken = undefined
       me = undefined
       shownFor = undefined
