@@ -23,12 +23,13 @@ import { apiDatabase, servingPool, testDatabase, transaction } from './support.t
 */
 
 const { client, url } = testDatabase()
+let today = '2026-10-08'
 const database = apiDatabase(url)
 const app = buildApp({
   database,
   logger: createLogger({ level: 'silent' }),
   jobs: idleJobs(),
-  clock: systemClock('2026-10-08'),
+  clock: { ...systemClock('2026-10-08'), today: () => today },
   devPeople: Object.keys(people).map((name) => ({
     name,
     email: `${name}@example.test`,
@@ -1144,5 +1145,35 @@ describe('issues', () => {
       reviewDate: '2026-10-22',
       reviewQuestion: 'still_going_on',
     })
+  })
+
+  it('counts the first check date from the day a waiting suggestion is published', async () => {
+    try {
+      // Written on 1 Nov, published on 20 Nov: the default of 15 Nov would be past on day one.
+      today = '2026-11-01'
+      const open = await submitted(
+        issue({
+          title: 'Partner reporting for Norway stalled',
+          validity: { start: '2026-11-01', end: null },
+        }),
+      )
+      expect(open.draft.reviewDate).toBe('2026-11-15')
+      const note = await submitted(
+        draft({ title: 'Norway weekly numbers are restated late', reviewDate: '2026-11-10' }),
+      )
+      expect(note.draft.reviewDate).toBe('2026-11-10')
+      const future = await submitted(
+        draft({ title: 'Norway fiscal weeks start on Monday', reviewDate: '2026-12-01' }),
+      )
+
+      today = '2026-11-20'
+      for (const p of [open, note, future])
+        expect((await decide(p.id, 'accept')).statusCode).toBe(200)
+      expect(await page(open.itemId!)).toMatchObject({ reviewDate: '2026-12-04' })
+      expect(await page(note.itemId!)).toMatchObject({ reviewDate: '2027-02-18' })
+      expect(await page(future.itemId!)).toMatchObject({ reviewDate: '2026-12-01' })
+    } finally {
+      today = '2026-10-08'
+    }
   })
 })

@@ -1,6 +1,8 @@
 import { ORPCError } from '@orpc/client'
 import type * as z from 'zod/mini'
 import type { decideSchema, Edition, Gate, ReviewProposal } from '../../../contract/review.ts'
+import type { ItemVersion } from '../../../domain/item-version.ts'
+import { itemVersionDigests } from '../../../domain/item-version.ts'
 import { canonicalJson } from '../../../domain/canonical.ts'
 import { addWorkingDays } from '../../../domain/review.ts'
 import { reviewQuestion } from '../../../domain/item.ts'
@@ -268,12 +270,37 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     return publishAccepted(p, version, data)
   }
 
+  /** The days to the next check: the shorter issue period for an open issue still going on. */
+  async function reviewDays(version: ItemVersion) {
+    if (reviewQuestion(version) === 'still_going_on') return openIssueDays(tx)
+    const [setting] = await tx.query<{ days: number }>(
+      "select (value #>> '{}')::int as days from settings_current where key='review.default_days'",
+    )
+    return setting?.days ?? 90
+  }
+
+  /** A version that waited for review is published with a check date that is not already past. */
+  async function startReview(version: StoredVersion) {
+    const { reviewDate } = version.version
+    if (reviewDate === null || reviewDate >= clock.today()) return
+    const next = {
+      ...version.version,
+      reviewDate: shiftDate(clock.today(), await reviewDays(version.version)),
+    }
+    const digests = await itemVersionDigests(next)
+    await tx.query(
+      "update item_versions set review_date=$2, content_digest=decode($3,'hex') where id=$1",
+      [version.id, next.reviewDate, digests.content],
+    )
+  }
+
   async function publishAccepted(
     p: LoadedProposal,
     version: StoredVersion,
     data: Record<string, unknown>,
   ) {
     const recheck = p.action === 'recheck'
+    if (!recheck) await startReview(version)
     const replaced = []
     for (const target of version.version.replaces)
       if (await liveVersionId(tx, target)) replaced.push(target)
@@ -601,14 +628,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
            or exists(select 1 from v_mention_status where version_id=$2 and status='source_changed') as on`,
         [itemId, live.id],
       )
-      const [setting] = await tx.query<{ days: number }>(
-        "select (value #>> '{}')::int as days from settings_current where key='review.default_days'",
-      )
-      // An open issue that is still going on is asked again after the shorter issue period (FR-135).
-      const days =
-        reviewQuestion(live.version) === 'still_going_on'
-          ? await openIssueDays(tx)
-          : (setting?.days ?? 90)
+      const days = await reviewDays(live.version)
       // A check moves the next one on: an open-ended item always has one, and an item with an end
       // date keeps one only when it was given one.
       const version = {
