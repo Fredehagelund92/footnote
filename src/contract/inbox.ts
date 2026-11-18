@@ -165,9 +165,14 @@ export const feedInputSchema = z.object({
   tab: z.optional(z.enum(['needs', 'all'])),
 })
 export const feedSchema = z.object({
-  /** This week's questions from agents, counts only: no words, no names. */
+  /**
+   * This week's questions from agents, counts only: no words, no names. The same count as Ask's
+   * Asked this week, over the same last 7 full days and as this person may have it.
+   */
   week: z.object({
     asked: shownCount,
+    /** What Asked this week's rows show together: "143+" when `asked` is null. */
+    askedAtLeast: z.number(),
     found: shownCount,
     nothing: shownCount,
     /** What most questions that found nothing were about, in words; null when under the minimum. */

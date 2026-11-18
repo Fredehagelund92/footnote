@@ -81,18 +81,24 @@ export function askedWords(times: number) {
  * A Not found row's line: what agents found this week, and whether someone told the owners from
  * Ask (Tell the owner), who are the only ones the row reaches.
  */
-export function gapRowWords(gap: { times: number; told?: number; acrossMonths?: string }) {
+export function gapRowWords(gap: { times: number | null; told?: number; acrossMonths?: string }) {
   const told = gap.told ?? 0
   const people =
     told === 1
       ? 'Someone in Ask found nothing and told you.'
       : `People in Ask found nothing and told you, ${told} times this week.`
+  const toldToo = told
+    ? ` ${told === 1 ? 'Someone in Ask told you too.' : `People in Ask told you too, ${told} times.`}`
+    : ''
+  // A count under the minimum is hidden, never none: what agents asked raised the card.
   const agents =
-    gap.times === 0
-      ? told
-        ? people
-        : 'Agents found nothing, and did not ask this week.'
-      : `${askedWords(gap.times)} They found nothing.${told ? ` ${told === 1 ? 'Someone in Ask told you too.' : `People in Ask told you too, ${told} times.`}` : ''}`
+    gap.times === null
+      ? `Agents found nothing, fewer than 5 times this week.${toldToo}`
+      : gap.times === 0
+        ? told
+          ? people
+          : 'Agents found nothing, and did not ask this week.'
+        : `${askedWords(gap.times)} They found nothing.${toldToo}`
   return `${agents}${gap.acrossMonths ? ' Counted across two months.' : ''}`
 }
 

@@ -66634,6 +66634,9 @@
                             }
                           ]
                         },
+                        "askedAtLeast": {
+                          "type": "number"
+                        },
                         "found": {
                           "anyOf": [
                             {
@@ -66667,6 +66670,7 @@
                       },
                       "required": [
                         "asked",
+                        "askedAtLeast",
                         "found",
                         "nothing",
                         "mostAbout"

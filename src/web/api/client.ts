@@ -202,10 +202,12 @@ export type Inbox = {
   reviewed: Record<string, boolean>
   /**
    * This week's questions from agents, as counts: no question text, no names. A count under the
-   * minimum is null, and so is what most questions that found nothing were about.
+   * minimum is null, and so is what most questions that found nothing were about. The same count
+   * as Ask's Asked this week: `askedAtLeast` is what its rows show together.
    */
   week: {
     asked: number | null
+    askedAtLeast: number
     found: number | null
     nothing: number | null
     mostAbout: string | null

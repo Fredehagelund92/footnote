@@ -742,7 +742,7 @@ function CardDetail({
                   <p>
                     {card.gap.times === 0
                       ? `Agents asked about ${card.gap.scope.join(', ')} before this week, not since.`
-                      : `Agents asked about ${card.gap.scope.join(', ')}, ${card.gap.times} times this week.`}
+                      : `Agents asked about ${card.gap.scope.join(', ')}, ${card.gap.times ?? 'fewer than 5'} times this week.`}
                   </p>
                   <p>
                     <span className="font-medium">Where the fix probably belongs:</span>{' '}
@@ -1183,7 +1183,13 @@ function Setup() {
 function WeekLine() {
   const { week } = useInbox()
   if (week.asked === 0) return <>Agents asked nothing this week.</>
-  if (week.asked === null) return <>This week agents asked fewer than 5 times.</>
+  // As Ask's Asked this week says it: a floor when the total would give a small count away.
+  if (week.asked === null)
+    return week.askedAtLeast >= 5 ? (
+      <>This week agents asked {week.askedAtLeast}+ times.</>
+    ) : (
+      <>This week agents asked fewer than 5 times.</>
+    )
   if (week.found === null || week.nothing === null)
     return <>This week agents asked {week.asked} times.</>
   const most = week.mostAbout ? `, most about ${week.mostAbout}` : ''

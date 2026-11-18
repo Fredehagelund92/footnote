@@ -255,9 +255,9 @@ export function AgentAnswers({ answers, asked }: { answers: Answers; asked?: Rea
 
 /**
  * What agents asked about, for a Not found card: the scope and how often, never their words, which
- * are not kept. No count shows when there is none.
+ * are not kept. No count shows when there is none, and a count under the minimum is a floor.
  */
-export function AskedAbout({ scope, times }: { scope: string[]; times: number }) {
+export function AskedAbout({ scope, times }: { scope: string[]; times: number | null }) {
   return (
     <>
       <span className="text-xs font-semibold text-muted-foreground">Agents asked about</span>
@@ -266,9 +266,10 @@ export function AskedAbout({ scope, times }: { scope: string[]; times: number })
           <TagChip key={s}>{s}</TagChip>
         ))}
       </span>
-      {times > 0 && (
+      {times !== 0 && (
         <span className="text-xs text-muted-foreground tabular-nums @pane-split:ml-auto">
-          {times} {times === 1 ? 'time' : 'times'} this week
+          {times === null ? 'fewer than 5 times' : times === 1 ? '1 time' : `${times} times`} this
+          week
         </span>
       )}
     </>

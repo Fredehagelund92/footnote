@@ -82,7 +82,8 @@ export type InboxCard = {
    */
   gap?: {
     scope: string[]
-    times: number
+    /** How often agents found nothing for it this week; null is fewer than 5, never none (FR-614). */
+    times: number | null
     /** How often people in Ask told the owners this week that it is missing (Tell the owner). */
     told?: number
     belongs: string

@@ -13,6 +13,7 @@ import {
 import { topicScope, topicWords } from '../../../domain/answer.ts'
 import { monthWords } from '../../../domain/dates.ts'
 import { visibleCount } from '../../../domain/gaps.ts'
+import { compareIds } from '../../../domain/resolver.ts'
 import {
   actionGroup,
   byNeed,
@@ -26,7 +27,7 @@ import {
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { lastingUndo, undoOffer } from '../../db/undo.ts'
-import type { BundleCache } from '../answer/index.ts'
+import { askedCounts, type BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
 import { syncedOf } from '../connectors/index.ts'
 import type { ServingBundle } from '../editions/index.ts'
@@ -353,8 +354,11 @@ export function createInboxFeedService(
   async function checks(bundle: ServingBundle | null, areas: readonly string[]): Promise<Card[]> {
     if (!bundle) return []
     const today = clock.today()
+    // The items Context lists and counts as due, so one domain's number is the same on every
+    // screen: an example is not one the app shows.
     const due = bundle.items.filter(
       (item) =>
+        item.kind !== 'example' &&
         areas.includes(item.areaId) &&
         (item.checkFlag !== null || (item.reviewDate !== null && item.reviewDate < today)),
     )
@@ -665,43 +669,37 @@ export function createInboxFeedService(
     )
   }
 
-  /** This week's questions from agents, as counts (FR-614), and what most that found nothing were about. */
-  async function week(bundle: ServingBundle | null, min: number): Promise<Feed['week']> {
-    const topics = await tx.query<{
-      calls: number
-      nothing: number
-      area: string | null
-      metrics: string[]
-      values: string[]
-      dimensions: string[]
-      month: string | null
-    }>(
-      `select w.calls, w.no_item_calls as nothing, t.area_id as area, t.metric_keys as metrics,
-              t.value_keys as values, t.dimension_keys as dimensions, t.month::text as month
-         from v_topic_weeks w join topics t on t.id=w.topic_id
-        where w.week=date_trunc('week', $1::date)::date`,
-      [clock.today()],
-    )
-    const asked = topics.reduce((n, t) => n + t.calls, 0)
-    const nothing = topics.reduce((n, t) => n + t.nothing, 0)
+  /**
+   * This week's questions from agents, as counts (FR-614), and what most that found nothing were
+   * about: Ask's Asked this week, its last 7 full days and its counts as this person may have them.
+   */
+  async function week(bundle: ServingBundle | null): Promise<Feed['week']> {
+    const { subjects, minimum, asked, askedAtLeast } = await askedCounts(tx, clock)
+    // What found nothing is a sum only of the counts Asked this week's rows show: when any topic's
+    // is hidden, a total would give it away.
+    const shown = asked !== null && subjects.every((s) => s.count !== null && s.nothing !== null)
+    const nothing = shown ? subjects.reduce((n, s) => n + s.nothing!, 0) : 0
     // Found and nothing add up to asked: when one is hidden, the other would give it away.
-    const found = visibleCount(asked - nothing, min)
-    const none = visibleCount(nothing, min)
+    const found = shown ? visibleCount(asked - nothing, minimum) : null
+    const none = shown ? visibleCount(nothing, minimum) : null
     const both = found !== null && none !== null
-    const top = [...topics].sort((a, b) => b.nothing - a.nothing)[0]
+    const top = subjects
+      .filter((s) => s.nothing !== null && s.nothing >= minimum)
+      .sort((a, b) => b.nothing! - a.nothing! || compareIds(a.key, b.key))[0]
     return {
-      asked: visibleCount(asked, min),
+      asked,
+      askedAtLeast,
       found: both ? found : null,
       nothing: both ? none : null,
       mostAbout:
-        top && bundle && top.month && top.nothing >= min
+        top && bundle
           ? topicWords(
               bundle,
               topicScope({
                 metrics: top.metrics,
                 values: top.values,
                 dimensions: top.dimensions,
-                month: top.month,
+                month: `${top.months[0] ?? clock.today().slice(0, 7)}-01`,
               }),
             )
           : null,
@@ -765,7 +763,7 @@ export function createInboxFeedService(
       const drafts = new Set(sorted.flatMap((c) => (c.group === 'gap' && c.draft ? [c.draft] : [])))
       const counted = sorted.filter((c) => !(c.group === 'suggestion' && drafts.has(c.proposalId)))
       return {
-        week: await week(bundle, min),
+        week: await week(bundle),
         groups: groupCounts(counted, waits.length),
         cards: sorted,
         waiting: waits,
