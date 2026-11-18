@@ -17,7 +17,9 @@ const words: Record<
   Pick<Connector, 'lead' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'>
 > = {
   cube: {
-    lead: "Reads your Cube definition files from Git. Read-only, and it keeps no calculation. It has two connections: definitions from Git, and figures, when switched on, from Cube's data API at the time of the answer.",
+    // From a Git repository an admin names, or a folder whoever runs the server names: the page
+    // says which, so the lead says neither.
+    lead: "Reads your Cube definition files. Read-only, and it keeps no calculation. It has two connections: definitions from the files, and figures, when switched on, from Cube's data API at the time of the answer.",
     domainField: 'meta.domain',
     endpointExample: 'https://cube.example.com/cubejs-api/v1/load',
     serverSetting: 'CUBE_MODEL_DIR',

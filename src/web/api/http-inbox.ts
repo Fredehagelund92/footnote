@@ -829,6 +829,8 @@ export function reviewOf(
               source: row.source ?? 'not in the sentence',
               same: row.verdict,
             })),
+            // The Ready line counts every claim, the listed ones and any past them: so does the Inbox.
+            toCheck: sheet.readiness.claimsToCheck,
           },
         }
       : {}),

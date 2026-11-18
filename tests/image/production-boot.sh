@@ -14,6 +14,8 @@
 #      caller makes up is dropped (tests/image/limit-probe.ts). The service trusts every private
 #      address (FOOTNOTE_TRUSTED_PROXIES=uniquelocal, as compose.yaml does), so a made-up address that
 #      nginx passed on would win and fail the probe.
+#   4. Neither nginx's log nor the service's keeps a query string: no search words, no invite
+#      token, no caller's address. Nor does nginx's when the service is down.
 #
 # Everything it makes is named footnote-boot-<pid> and removed at the end. FOOTNOTE_SERVICE_IMAGE and
 # FOOTNOTE_WEB_IMAGE name other images; FOOTNOTE_BOOT_SUBNET (three octets) moves its private network.
@@ -34,13 +36,13 @@ public_origin=https://footnote.example.test
 passed=false
 cleanup() {
   if [ "$passed" != true ]; then
-    for name in refuse service web; do
+    for name in refuse service web down; do
       echo "::group::$name log"
       docker logs "$run-$name" 2>&1 | tail -n 200 || true
       echo "::endgroup::"
     done
   fi
-  docker rm -f "$run-refuse" "$run-service" "$run-web" "$run-db" > /dev/null 2>&1 || true
+  docker rm -f "$run-refuse" "$run-service" "$run-web" "$run-down" "$run-db" > /dev/null 2>&1 || true
   docker volume rm "$run-keys" > /dev/null 2>&1 || true
   docker network rm "$run" > /dev/null 2>&1 || true
 }
@@ -127,6 +129,33 @@ second=$(probe "$subnet.22" 1 "$subnet.21")
 [ "$second" = '{"calls":1,"limited":0,"last":200}' ] ||
   fail "a second caller behind the same proxy has a limit of its own (got $second)"
 echo 'ok - behind nginx each caller before sign-in has a request limit of its own'
+
+# 4. A search, an invite lookup and the sign-in page through nginx, each with a marker word in its
+# query string, then a search through a second nginx whose service is not there.
+marker=footnote-boot-marker-$$
+caller=$subnet.23
+visit() { # each address, at once
+  docker run --rm --network "$run" --ip "$caller" "$service_image" \
+    node -e 'Promise.all(process.argv.slice(1).map((url) => fetch(url)))' "$@" > /dev/null
+}
+visit "$web_url/api/v1/search?q=$marker" "$web_url/api/v1/invites/lookup?token=$marker" \
+  "$web_url/signin?invite=$marker"
+# Nothing listens on the database's port 9, so nginx is refused at once.
+docker run -d --name "$run-down" --network "$run" --ip "$subnet.11" \
+  -e "FOOTNOTE_API_URL=http://$run-db:9" "$web_image" > /dev/null
+for _ in $(seq 30); do
+  if docker logs "$run-down" 2>&1 | grep -q 'start worker process'; then break; fi
+  sleep 1
+done
+visit "http://$subnet.11:$web_port/api/v1/search?q=$marker"
+grep -q '"GET /api/v1/search" 502 ' <<< "$(docker logs "$run-down" 2>&1)" ||
+  fail "nginx logs that the service could not be reached"$'\n'"$(docker logs "$run-down" 2>&1)"
+for name in web down service; do
+  log=$(docker logs "$run-$name" 2>&1)
+  if grep -q "$marker" <<< "$log"; then fail "the $name log keeps no query string"$'\n'"$log"; fi
+  if grep -qF "$caller" <<< "$log"; then fail "the $name log keeps no caller's address"$'\n'"$log"; fi
+done
+echo "ok - neither log keeps a query string or a caller's address"
 
 passed=true
 echo 'The service image boots in production mode.'

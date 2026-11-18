@@ -1,22 +1,32 @@
 import * as React from 'react'
+import { flushSync } from 'react-dom'
 
 /**
  * Whether a container is wide enough for a side panel beside the page (64rem by default), measured
- * before paint and kept current as it resizes. Pages render their side panel once, where it fits,
+ * before paint and kept current as it resizes. The measure is flushed as it is made, not left to
+ * React to schedule: an update made while a page is committing (or from an observer callback) can
+ * be rendered after the first frame is painted, and the panel then arrives a frame late and moves
+ * the page. Pages render their side panel once, where it fits,
  * instead of twice with one copy hidden: no duplicate ids, no double key listeners.
  */
 export function useWide<T extends HTMLElement>(min = 1024) {
-  const [el, setEl] = React.useState<T | null>(null)
   const [wide, setWide] = React.useState(false)
-  React.useLayoutEffect(() => {
-    if (!el) return
-    const measure = () => setWide(el.getBoundingClientRect().width >= min)
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [el, min])
-  return [setEl, wide] as const
+  const watching = React.useRef<ResizeObserver | null>(null)
+  // A callback ref the caller may call with the element and with null, as a ref is.
+  const ref = React.useCallback(
+    (el: T | null) => {
+      watching.current?.disconnect()
+      watching.current = null
+      if (!el) return
+      const measure = () => flushSync(() => setWide(el.getBoundingClientRect().width >= min))
+      // Right after this commit, before any paint; flushSync cannot run inside the commit itself.
+      queueMicrotask(measure)
+      watching.current = new ResizeObserver(measure)
+      watching.current.observe(el)
+    },
+    [min],
+  )
+  return [ref, wide] as const
 }
 
 /**

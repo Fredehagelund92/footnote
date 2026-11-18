@@ -466,6 +466,8 @@ function Editor({
   const trying = useDock()?.kind === 'try'
   const owner = me.owns.includes(form.domain) || me.admin
   const isSuggest = mode === 'suggest' || !owner
+  // A new item, or a draft nobody has published: it has no status until it is published.
+  const unpublished = mode === 'new' || original?.status === 'Draft'
   const ownerName = form.owners[0] ?? domains[form.domain]?.owners[0] ?? ''
   const ids = React.useId()
   const KindIcon = kindIcons[form.kind]
@@ -508,7 +510,6 @@ function Editor({
   const unanswered = clashes.find((c) => !overlap[c.itemId])
   // A source is a link: said at the field as soon as it is not, not when the service refuses it.
   const linkProblem = sourceProblem(form.source)
-  const reaches = whereNames.length ? (whereNames.includes('Norway') ? 12 : 9) : 0
   // Counted as agents read it: a mention is its words.
   const text = plainText(form.body)
   const words = countWords(`${form.title} ${text}`)
@@ -713,7 +714,7 @@ function Editor({
             value={pasted}
             onChange={(e) => setPasted(e.target.value)}
             className="min-h-28"
-            placeholder="Online sales to Norway stopped on 4 August 2026 after a new customs rule, so orders there fell. https://customs.example/norway/notices/2026-08-04"
+            placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
           />
         </Field>
         <DialogFooter>
@@ -811,11 +812,6 @@ function Editor({
             {form.causes ? '' : " The source doesn't say this caused a change."}
           </p>
         </div>
-        {reaches > 0 && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {reaches} questions agents asked this week would get it.
-          </p>
-        )}
       </PanelGroup>
     </>
   )
@@ -1145,26 +1141,31 @@ function Editor({
               />
             </PropertyRow>
             <PropertyRow id={fieldId('status')} label="Status" icon={<CircleDotIcon />}>
-              <SelectField
-                labelId={fieldId('status')}
-                label="Status"
-                value={form.status}
-                options={STATUS_OPTIONS}
-                onChange={(v) => set('status', v)}
-                disabled={isSuggest}
-                display={
-                  // Live is the default and says nothing; a status that needs attention is a chip.
-                  form.status === 'Live' ? (
-                    <span>Live</span>
-                  ) : form.status === 'Due for a check' ? (
-                    <TagChip tone="warn" icon={<TriangleAlertIcon aria-hidden />}>
-                      Due for a check
-                    </TagChip>
-                  ) : (
-                    <TagChip icon={<ArchiveIcon aria-hidden />}>Archived</TagChip>
-                  )
-                }
-              />
+              {unpublished ? (
+                // Agents get nothing of it until it is published: it is not Live yet (U9).
+                <StaticField>Not published yet</StaticField>
+              ) : (
+                <SelectField
+                  labelId={fieldId('status')}
+                  label="Status"
+                  value={form.status}
+                  options={STATUS_OPTIONS}
+                  onChange={(v) => set('status', v)}
+                  disabled={isSuggest}
+                  display={
+                    // Live is the default and says nothing; a status that needs attention is a chip.
+                    form.status === 'Live' ? (
+                      <span>Live</span>
+                    ) : form.status === 'Due for a check' ? (
+                      <TagChip tone="warn" icon={<TriangleAlertIcon aria-hidden />}>
+                        Due for a check
+                      </TagChip>
+                    ) : (
+                      <TagChip icon={<ArchiveIcon aria-hidden />}>Archived</TagChip>
+                    )
+                  }
+                />
+              )}
             </PropertyRow>
             <PropertyRow id={fieldId('owner')} label="Owner" icon={<UserIcon />}>
               <PeopleField

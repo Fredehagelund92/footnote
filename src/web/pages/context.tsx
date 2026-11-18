@@ -456,8 +456,8 @@ export function ContextPage() {
                 </EmptyMedia>
                 <EmptyTitle>No context yet</EmptyTitle>
                 <EmptyDescription>
-                  A context item is one thing your team wrote down about a number, such as “Online
-                  sales to Norway stopped on 4 August”. Until there is some, agents hear “Nothing is
+                  A context item is one thing your team wrote down about a number, such as “Returns
+                  are counted on the refund day”. Until there is some, agents hear “Nothing is
                   written down for this.” That is the honest answer, not an error.
                 </EmptyDescription>
               </EmptyHeader>

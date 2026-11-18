@@ -66,7 +66,8 @@ test('the status says Saved only when it is, and leaving with unsaved words asks
   page,
 }) => {
   await go(page, '/context/itm_norway_stop/edit')
-  await expect(status(page)).toHaveText('Saved')
+  // As it opened, nothing was saved: it says nothing, never Saved (U9).
+  await expect(status(page)).toHaveText('')
 
   await text(page, ' A sentence that nobody has saved.')
   await expect(status(page)).toHaveText('Not saved yet')
@@ -130,6 +131,9 @@ test('leaving and losing the words is a choice, and Save leaves without asking',
 test('a new page that holds nothing has no status to give', async ({ page }) => {
   await go(page, '/context/new')
   await expect(status(page)).toHaveCount(0)
+  // Agents get nothing of a new item until it is published, so it is not Live yet (U9).
+  const statusRow = page.locator('div', { has: page.locator('dt', { hasText: /^Status$/ }) }).last()
+  await expect(statusRow.locator('dd')).toHaveText('Not published yet')
   await title(page, 'Orders are counted when they ship')
   await expect(status(page)).toHaveText('Not saved yet')
 })
@@ -140,7 +144,7 @@ test('offline, the status says nothing is kept, not that it is saved on this dev
   await onMockOnly('offline flag (?state=offline)', async () => {
     await go(page, '/context/itm_norway_stop/edit?state=offline')
     await expect(page.getByText("You're offline.")).toBeVisible()
-    await expect(status(page)).toHaveText('Saved')
+    await expect(status(page)).toHaveText('')
     await text(page, ' Written offline.')
     await expect(status(page)).toHaveText('Offline, not saved yet')
     await expect(page.getByText('Saved on this device')).toHaveCount(0)
@@ -201,7 +205,7 @@ test("the service's reason is marked at the field it is about, not in a sentence
     )
     await expect(banner).not.toContainText('Fix the problems shown')
     await expect(page.getByText(/This looks like a private detail/)).toBeVisible()
-    await expect(page.getByText('Not published')).toBeVisible()
+    await expect(page.getByText('Not published', { exact: true })).toBeVisible()
     await expect(status(page)).toHaveText('Not saved')
     // The title is not cut off by the banner coming into view.
     await expect(page.getByRole('textbox', { name: 'Title' })).toBeInViewport()

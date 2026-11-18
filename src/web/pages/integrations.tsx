@@ -1706,7 +1706,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
               title={c.figures ? 'Definitions connection' : 'Connection'}
               description={
                 c.figures
-                  ? `The first of ${c.name}'s two connections: its definition${c.git ? ' files, read from Git' : 's, read'} ${source.every}, never ${c.name}'s data. Figures have their own connection below.`
+                  ? `The first of ${c.name}'s two connections: its definition${own ? ' files, read from a folder on the server' : c.git ? ' files, read from Git' : 's, read'} ${source.every}, never ${c.name}'s data. Figures have their own connection below.`
                   : undefined
               }
             >
