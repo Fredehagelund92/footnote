@@ -72,7 +72,7 @@ describe("Ask's loop", () => {
     expect(a.markets).toEqual(['Poland'])
     expect(a.sources).toEqual([])
     expect(a.related?.length).toBeGreaterThan(0)
-    expect(a.text).toContain('Out of 21 published context items you can see.')
+    expect(a.text).toContain('Nothing written covers Orders and Poland.')
   })
 
   it("reads an earlier turn's reads again: an item hidden since is neither given, named nor cited", async () => {

@@ -17,8 +17,8 @@ type Question = {
 
 const answer = (turn: Locator) => turn.locator('[data-answer-words]')
 const pair = (turn: Locator) => turn.getByText('These two disagree').locator('xpath=..')
-const nothingLookedUp = (turn: Locator) =>
-  expect(answer(turn)).toContainText('nothing was looked up')
+const nothingWritten = (turn: Locator) =>
+  expect(answer(turn)).toContainText('Nothing written covers this.')
 
 const chats: Record<string, Question[]> = {
   'Norway, the README question: the customs rule first': [
@@ -50,7 +50,7 @@ const chats: Record<string, Question[]> = {
     },
   ],
   'the weather: nothing is looked up': [
-    { question: 'What is the weather in Oslo today?', label: 'Not found', shows: nothingLookedUp },
+    { question: 'What is the weather in Oslo today?', label: 'Not found', shows: nothingWritten },
   ],
   'store credit, and who decides: the two that disagree, then their owners': [
     {
@@ -78,7 +78,7 @@ const chats: Record<string, Question[]> = {
       question: 'Define our customer happiness index.',
       label: 'Not found',
       shows: async (turn) => {
-        await nothingLookedUp(turn)
+        await nothingWritten(turn)
         await expect(answer(turn)).toContainText('The closest names are Customers.')
       },
     },
@@ -87,7 +87,7 @@ const chats: Record<string, Question[]> = {
     {
       question: 'What is the churn rate in Japan?',
       label: 'Not found',
-      shows: (turn) => expect(answer(turn)).toContainText(/no value of .* named 'Japan'/),
+      shows: (turn) => expect(answer(turn)).toContainText('Nothing written covers this.'),
     },
   ],
 }
