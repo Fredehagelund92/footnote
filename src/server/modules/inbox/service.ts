@@ -912,7 +912,8 @@ export function createInboxFeedService(
       const read = new Set(
         (
           await tx.query<{ id: string }>(
-            'select distinct connector_id as id from connector_snapshots where connector_id = any($1)',
+            `select distinct connector_id as id from connector_snapshots
+              where connector_id = any($1) and status <> 'failed'`,
             [serverSources],
           )
         ).map((r) => r.id),
