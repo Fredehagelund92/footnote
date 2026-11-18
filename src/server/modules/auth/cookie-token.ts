@@ -14,7 +14,7 @@ export const formerCookieName = (name: string) => name.replace(/^footnote_/, 'he
  * has none under the new one. Undefined when there is none, more than one, or it is not 64 hex
  * characters, as every token this service sets is.
  */
-export function cookieToken(header: string | undefined, name: string): string | undefined {
+export function cookieValue(header: string | undefined, name: string): string | undefined {
   const pairs = header?.split(';').map((v) => v.trim()) ?? []
   for (const candidate of [name, formerCookieName(name)]) {
     const values = pairs.filter((v) => v.startsWith(`${candidate}=`))

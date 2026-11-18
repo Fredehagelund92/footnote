@@ -5,7 +5,7 @@ import { createLimiter } from '../../http/rate-limit.ts'
 import type { LoginServerConfig } from '../../config/env.ts'
 import { createPersonVerifier, personScopes, signedInClient } from '../../mcp/auth.ts'
 import { toolsFor } from '../../../domain/agents.ts'
-import { cookieToken, initialsOf, principalFor } from '../auth/index.ts'
+import { cookieValue, initialsOf, principalFor } from '../auth/index.ts'
 import {
   fetchMetadataDocument,
   isMetadataDocumentId,
@@ -247,7 +247,7 @@ type RevokeReason =
 
 /** The browser's sign-in cookie, when it holds exactly one well-formed value. */
 export function browserToken(cookie: string | undefined): string | undefined {
-  return cookieToken(cookie, browserCookie)
+  return cookieValue(cookie, browserCookie)
 }
 
 const scopeList = (value: string | undefined): PersonScope[] | null => {

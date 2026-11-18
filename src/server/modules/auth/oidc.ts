@@ -8,7 +8,7 @@ import {
   type JWTPayload,
 } from 'jose'
 import type { Database, Queryable } from '../../db/database.ts'
-import { cookieToken } from './cookie-token.ts'
+import { cookieValue } from './cookie-token.ts'
 import type { SignIn } from './dev-sign-in.ts'
 import {
   currentSession,
@@ -491,7 +491,7 @@ function equal(a: string, b: string) {
 }
 
 function browserValue(cookie: string | undefined): string | undefined {
-  return cookieToken(cookie, OIDC_BROWSER_COOKIE)
+  return cookieValue(cookie, OIDC_BROWSER_COOKIE)
 }
 
 /** Clears the sign-in's browser cookie. */

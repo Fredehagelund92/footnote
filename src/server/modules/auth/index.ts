@@ -1,5 +1,5 @@
 export { createDevSignIn, readDevPeople, type SignIn, type DevPerson } from './dev-sign-in.ts'
-export { cookieToken } from './cookie-token.ts'
+export { cookieValue } from './cookie-token.ts'
 export {
   cookieAge,
   principalFor,

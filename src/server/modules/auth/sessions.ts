@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { Principal } from '../../../contract/auth.ts'
 import type { Queryable } from '../../db/database.ts'
-import { cookieToken, formerCookieName } from './cookie-token.ts'
+import { cookieValue, formerCookieName } from './cookie-token.ts'
 import { toPerson } from './people.ts'
 
 /*
@@ -28,7 +28,7 @@ export interface Session {
 
 export const SESSION_COOKIE = 'footnote_session'
 export function sessionToken(cookie: string | undefined): string | undefined {
-  return cookieToken(cookie, SESSION_COOKIE)
+  return cookieValue(cookie, SESSION_COOKIE)
 }
 const hash = (token: string) => createHash('sha256').update(token).digest('hex')
 

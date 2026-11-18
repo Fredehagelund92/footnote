@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { moveFormerKeyFile } from '../../src/server/config/former-key-files.ts'
 import { loadStateKey } from '../../src/server/mcp/state-key.ts'
-import { cookieToken } from '../../src/server/modules/auth/cookie-token.ts'
+import { cookieValue } from '../../src/server/modules/auth/cookie-token.ts'
 import { sessionCookies, sessionToken } from '../../src/server/modules/auth/sessions.ts'
 import { browserToken } from '../../src/server/modules/oauth/service.ts'
 
@@ -19,19 +19,19 @@ const other = 'b'.repeat(64)
 
 describe('the cookies under their former names', () => {
   it('reads the new name, else the former one, never a bad or doubled value', () => {
-    expect(cookieToken(`footnote_session=${token}`, 'footnote_session')).toBe(token)
-    expect(cookieToken(`theme=dark; heed_session=${token}`, 'footnote_session')).toBe(token)
+    expect(cookieValue(`footnote_session=${token}`, 'footnote_session')).toBe(token)
+    expect(cookieValue(`theme=dark; heed_session=${token}`, 'footnote_session')).toBe(token)
     expect(
-      cookieToken(`heed_session=${other}; footnote_session=${token}`, 'footnote_session'),
+      cookieValue(`heed_session=${other}; footnote_session=${token}`, 'footnote_session'),
     ).toBe(token)
     // A bad value under the new name is not made good by an old one.
-    expect(cookieToken(`footnote_session=x; heed_session=${token}`, 'footnote_session')).toBe(
+    expect(cookieValue(`footnote_session=x; heed_session=${token}`, 'footnote_session')).toBe(
       undefined,
     )
-    expect(cookieToken(`heed_session=${token}; heed_session=${other}`, 'footnote_session')).toBe(
+    expect(cookieValue(`heed_session=${token}; heed_session=${other}`, 'footnote_session')).toBe(
       undefined,
     )
-    expect(cookieToken(undefined, 'footnote_session')).toBe(undefined)
+    expect(cookieValue(undefined, 'footnote_session')).toBe(undefined)
   })
 
   it("reads a browser's sign-in of before the upgrade, for people and for agents", () => {
