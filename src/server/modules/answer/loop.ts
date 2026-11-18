@@ -750,15 +750,16 @@ export async function* askLoop(
     // The answer check (FR-720.10): what fails is written again once, out of sight.
     const findings = written ? answerCheck(written, checking()) : []
     let text = written
-    // What the check found, kept with the turn and never shown: each sentence that failed, and
-    // each that still failed once written again.
-    const found: LoopTurn['checks'] = findings.map((f) => ({ kind: 'answer', words: f.sentence }))
+    // What the check found, kept with the turn and never shown: the kind of each failure, and of
+    // each that still failed once written again. Never the sentence: it may name what the
+    // person may not read.
+    const found: LoopTurn['checks'] = findings.map((f) => ({ kind: 'answer', words: f.kind }))
     if (findings.length) {
       yield { type: 'progress', working: 'Checking the answer against what was read…' }
       const rewrite = await rewritten(findings, await result.responseMessages)
       if (deps.signal?.aborted) return
       const kept = rewrite ? answerCheck(rewrite, checking()) : findings
-      found.push(...kept.map((f) => ({ kind: 'unchecked', words: f.sentence })))
+      found.push(...kept.map((f) => ({ kind: 'unchecked', words: f.kind })))
       text = withUnchecked(rewrite ?? written, kept)
     }
     const drawn = overviewFor(

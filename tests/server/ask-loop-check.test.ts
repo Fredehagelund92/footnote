@@ -288,7 +288,7 @@ describe("the answer check in Ask's loop", () => {
       sources: ['itm_germany01'],
       state: 'grounded',
     })
-    expect(turn!.checks).toContainEqual({ kind: 'answer', words: 'It lags by 47 hours.' })
+    expect(turn!.checks).toContainEqual({ kind: 'answer', words: 'number' })
     expect(turn!.checks.some((c) => c.kind === 'unchecked')).toBe(false)
   })
 
@@ -300,7 +300,7 @@ describe("the answer check in Ask's loop", () => {
     const { turn } = await turnWith(decide)
     expect(seen).toHaveLength(3)
     expect(turn!.text).toBe(`Germany lags.[1] ${UNCHECKED} Nothing else is written.`)
-    expect(turn!.checks).toContainEqual({ kind: 'unchecked', words: 'It lags by 46 hours.' })
+    expect(turn!.checks).toContainEqual({ kind: 'unchecked', words: 'number' })
   })
 
   it.each([

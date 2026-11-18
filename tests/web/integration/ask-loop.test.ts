@@ -97,8 +97,8 @@ describe("Ask's loop", () => {
       expect(seen).not.toContain(AUDIENCE_ITEM)
       expect(seen).not.toContain(title)
       expect(again.sources).not.toContain(AUDIENCE_ITEM)
-      // The shown words: the check keeps the failed sentence with the turn, never shows it.
-      expect(again.text).not.toContain(AUDIENCE_ITEM)
+      // Nowhere in the turn, the check's own record of what failed included.
+      expect(JSON.stringify(again)).not.toContain(AUDIENCE_ITEM)
       expect(again.text).toBe(UNCHECKED)
       expect(JSON.stringify(again)).not.toContain(title)
     } finally {
