@@ -1221,7 +1221,10 @@ export function createMockApi() {
       settings.answerRequest(id, allow, me())
         ? now(() => ({ redirectTo: '/inbox' }))
         : Promise.reject(
-            new ApiError('not-found', 'This sign-in has ended. Connect from your agent again.'),
+            new ApiError(
+              'not-found',
+              'This request is no longer open. Connect from your agent again.',
+            ),
           ),
 
     // Saved questions

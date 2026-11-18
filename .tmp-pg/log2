@@ -1,0 +1,380 @@
+2026-11-18 20:19:50.177 CET [12421] LOG:  starting PostgreSQL 18.4 (Homebrew) on aarch64-apple-darwin25.4.0, compiled by Apple clang version 21.0.0 (clang-2100.0.123.102), 64-bit
+2026-11-18 20:19:50.178 CET [12421] LOG:  listening on IPv6 address "::1", port 5544
+2026-11-18 20:19:50.178 CET [12421] LOG:  listening on IPv4 address "127.0.0.1", port 5544
+2026-11-18 20:19:50.208 CET [12421] LOG:  listening on Unix socket "/tmp/pgs/.s.PGSQL.5544"
+2026-11-18 20:19:50.752 CET [13491] LOG:  database system was shut down at 2026-11-18 20:19:33 CET
+2026-11-18 20:19:51.460 CET [12421] LOG:  database system is ready to accept connections
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_picksplit"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey4_in"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey4_out"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey8_in"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey8_out"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey16_in"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey16_out"
+2026-11-18 20:21:48.527 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey32_in"
+2026-11-18 20:21:48.528 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey32_out"
+2026-11-18 20:21:48.528 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey_var_in"
+2026-11-18 20:21:48.528 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey_var_out"
+2026-11-18 20:21:48.528 CET [5336] WARNING:  no privileges could be revoked for "cash_dist"
+2026-11-18 20:21:48.528 CET [5336] WARNING:  no privileges could be revoked for "date_dist"
+2026-11-18 20:21:48.528 CET [5336] WARNING:  no privileges could be revoked for "float4_dist"
+2026-11-18 20:21:48.530 CET [5336] WARNING:  no privileges could be revoked for "float8_dist"
+2026-11-18 20:21:48.530 CET [5336] WARNING:  no privileges could be revoked for "int2_dist"
+2026-11-18 20:21:48.530 CET [5336] WARNING:  no privileges could be revoked for "int4_dist"
+2026-11-18 20:21:48.530 CET [5336] WARNING:  no privileges could be revoked for "int8_dist"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "interval_dist"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "oid_dist"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "time_dist"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "ts_dist"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "tstz_dist"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_consistent"
+2026-11-18 20:21:48.531 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_distance"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_fetch"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_compress"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_decompress"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_var_decompress"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_var_fetch"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_penalty"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_picksplit"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_union"
+2026-11-18 20:21:48.532 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_same"
+2026-11-18 20:21:48.533 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_consistent"
+2026-11-18 20:21:48.533 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_distance"
+2026-11-18 20:21:48.533 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_compress"
+2026-11-18 20:21:48.533 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_fetch"
+2026-11-18 20:21:48.533 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_penalty"
+2026-11-18 20:21:48.533 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_picksplit"
+2026-11-18 20:21:48.534 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_union"
+2026-11-18 20:21:48.534 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_same"
+2026-11-18 20:21:48.534 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_consistent"
+2026-11-18 20:21:48.534 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_distance"
+2026-11-18 20:21:48.535 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_compress"
+2026-11-18 20:21:48.535 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_fetch"
+2026-11-18 20:21:48.535 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_penalty"
+2026-11-18 20:21:48.535 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_picksplit"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_union"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_same"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_consistent"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_distance"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_compress"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_fetch"
+2026-11-18 20:21:48.536 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_penalty"
+2026-11-18 20:21:48.565 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_picksplit"
+2026-11-18 20:21:48.570 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_union"
+2026-11-18 20:21:48.570 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_same"
+2026-11-18 20:21:48.637 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_consistent"
+2026-11-18 20:21:48.637 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_distance"
+2026-11-18 20:21:48.637 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_compress"
+2026-11-18 20:21:48.637 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_fetch"
+2026-11-18 20:21:48.637 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_penalty"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_union"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_same"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_consistent"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_distance"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_compress"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_fetch"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_penalty"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_picksplit"
+2026-11-18 20:21:48.638 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_union"
+2026-11-18 20:21:48.639 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_same"
+2026-11-18 20:21:48.639 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_consistent"
+2026-11-18 20:21:48.639 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_distance"
+2026-11-18 20:21:48.639 CET [5336] WARNING:  no privileges could be revoked for "gbt_tstz_consistent"
+2026-11-18 20:21:48.639 CET [5336] WARNING:  no privileges could be revoked for "gbt_tstz_distance"
+2026-11-18 20:21:48.639 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_compress"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_tstz_compress"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_fetch"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_penalty"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_picksplit"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_union"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_same"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_consistent"
+2026-11-18 20:21:48.640 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_distance"
+2026-11-18 20:21:48.641 CET [5336] WARNING:  no privileges could be revoked for "gbt_timetz_consistent"
+2026-11-18 20:21:48.641 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_compress"
+2026-11-18 20:21:48.641 CET [5336] WARNING:  no privileges could be revoked for "gbt_timetz_compress"
+2026-11-18 20:21:48.642 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_fetch"
+2026-11-18 20:21:48.642 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_penalty"
+2026-11-18 20:21:48.642 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_picksplit"
+2026-11-18 20:21:48.642 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_union"
+2026-11-18 20:21:48.642 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_same"
+2026-11-18 20:21:48.642 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_consistent"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_distance"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_compress"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_fetch"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_penalty"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_picksplit"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_union"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_same"
+2026-11-18 20:21:48.643 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_consistent"
+2026-11-18 20:21:48.644 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_distance"
+2026-11-18 20:21:48.655 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_compress"
+2026-11-18 20:21:48.655 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_decompress"
+2026-11-18 20:21:48.655 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_fetch"
+2026-11-18 20:21:48.662 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_penalty"
+2026-11-18 20:21:48.662 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_picksplit"
+2026-11-18 20:21:48.662 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_union"
+2026-11-18 20:21:48.662 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_same"
+2026-11-18 20:21:48.728 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_consistent"
+2026-11-18 20:21:48.728 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_distance"
+2026-11-18 20:21:48.728 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_compress"
+2026-11-18 20:21:48.728 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_fetch"
+2026-11-18 20:21:48.729 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_penalty"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_picksplit"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_union"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_same"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_consistent"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_compress"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_fetch"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_penalty"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_picksplit"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_union"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad_same"
+2026-11-18 20:21:48.730 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_consistent"
+2026-11-18 20:21:48.731 CET [5336] WARNING:  no privileges could be revoked for "gbt_bpchar_consistent"
+2026-11-18 20:21:48.731 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_compress"
+2026-11-18 20:21:48.731 CET [5336] WARNING:  no privileges could be revoked for "gbt_bpchar_compress"
+2026-11-18 20:21:48.731 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_penalty"
+2026-11-18 20:21:48.731 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_picksplit"
+2026-11-18 20:21:48.731 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_union"
+2026-11-18 20:21:48.892 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_same"
+2026-11-18 20:21:49.203 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_consistent"
+2026-11-18 20:21:49.203 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_compress"
+2026-11-18 20:21:49.203 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_penalty"
+2026-11-18 20:21:49.203 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_picksplit"
+2026-11-18 20:21:49.203 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_union"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_same"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_consistent"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_compress"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_penalty"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_picksplit"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_union"
+2026-11-18 20:21:49.204 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_same"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_consistent"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_compress"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_penalty"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_picksplit"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_union"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_same"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_consistent"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_compress"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_penalty"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_picksplit"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_union"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_same"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_consistent"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_fetch"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_compress"
+2026-11-18 20:21:49.205 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_penalty"
+2026-11-18 20:21:49.206 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_picksplit"
+2026-11-18 20:21:49.206 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_union"
+2026-11-18 20:21:49.206 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_same"
+2026-11-18 20:21:49.206 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_consistent"
+2026-11-18 20:21:49.206 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_compress"
+2026-11-18 20:21:49.206 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_fetch"
+2026-11-18 20:21:49.345 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_penalty"
+2026-11-18 20:21:49.345 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_picksplit"
+2026-11-18 20:21:49.345 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_union"
+2026-11-18 20:21:49.345 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_same"
+2026-11-18 20:21:49.346 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_consistent"
+2026-11-18 20:21:49.346 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_compress"
+2026-11-18 20:21:49.346 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_fetch"
+2026-11-18 20:21:49.346 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_penalty"
+2026-11-18 20:21:49.346 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_picksplit"
+2026-11-18 20:21:49.348 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_union"
+2026-11-18 20:21:49.356 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_same"
+2026-11-18 20:21:49.356 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey2_in"
+2026-11-18 20:21:49.357 CET [5336] WARNING:  no privileges could be revoked for "gbtreekey2_out"
+2026-11-18 20:21:49.358 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_consistent"
+2026-11-18 20:21:49.358 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_compress"
+2026-11-18 20:21:49.358 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_fetch"
+2026-11-18 20:21:49.359 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_penalty"
+2026-11-18 20:21:49.359 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_picksplit"
+2026-11-18 20:21:49.359 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_union"
+2026-11-18 20:21:49.359 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_same"
+2026-11-18 20:21:49.360 CET [5336] WARNING:  no privileges could be revoked for "gbt_bit_sortsupport"
+2026-11-18 20:21:49.361 CET [5336] WARNING:  no privileges could be revoked for "gbt_varbit_sortsupport"
+2026-11-18 20:21:49.361 CET [5336] WARNING:  no privileges could be revoked for "gbt_bool_sortsupport"
+2026-11-18 20:21:49.361 CET [5336] WARNING:  no privileges could be revoked for "gbt_bytea_sortsupport"
+2026-11-18 20:21:49.362 CET [5336] WARNING:  no privileges could be revoked for "gbt_cash_sortsupport"
+2026-11-18 20:21:49.362 CET [5336] WARNING:  no privileges could be revoked for "gbt_date_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_enum_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_float4_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_float8_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_inet_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_int2_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_int4_sortsupport"
+2026-11-18 20:21:49.363 CET [5336] WARNING:  no privileges could be revoked for "gbt_int8_sortsupport"
+2026-11-18 20:21:49.364 CET [5336] WARNING:  no privileges could be revoked for "gbt_intv_sortsupport"
+2026-11-18 20:21:49.364 CET [5336] WARNING:  no privileges could be revoked for "gbt_macaddr_sortsupport"
+2026-11-18 20:21:49.365 CET [5336] WARNING:  no privileges could be revoked for "gbt_macad8_sortsupport"
+2026-11-18 20:21:49.365 CET [5336] WARNING:  no privileges could be revoked for "gbt_numeric_sortsupport"
+2026-11-18 20:21:49.365 CET [5336] WARNING:  no privileges could be revoked for "gbt_oid_sortsupport"
+2026-11-18 20:21:49.365 CET [5336] WARNING:  no privileges could be revoked for "gbt_text_sortsupport"
+2026-11-18 20:21:49.365 CET [5336] WARNING:  no privileges could be revoked for "gbt_bpchar_sortsupport"
+2026-11-18 20:21:49.380 CET [5336] WARNING:  no privileges could be revoked for "gbt_time_sortsupport"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "gbt_ts_sortsupport"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "gbt_uuid_sortsupport"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "gist_translate_cmptype_btree"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "set_limit"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "show_limit"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "show_trgm"
+2026-11-18 20:21:49.381 CET [5336] WARNING:  no privileges could be revoked for "similarity"
+2026-11-18 20:21:49.382 CET [5336] WARNING:  no privileges could be revoked for "similarity_op"
+2026-11-18 20:21:49.382 CET [5336] WARNING:  no privileges could be revoked for "word_similarity"
+2026-11-18 20:21:49.382 CET [5336] WARNING:  no privileges could be revoked for "word_similarity_op"
+2026-11-18 20:21:49.382 CET [5336] WARNING:  no privileges could be revoked for "word_similarity_commutator_op"
+2026-11-18 20:21:49.382 CET [5336] WARNING:  no privileges could be revoked for "similarity_dist"
+2026-11-18 20:21:49.383 CET [5336] WARNING:  no privileges could be revoked for "word_similarity_dist_op"
+2026-11-18 20:21:49.383 CET [5336] WARNING:  no privileges could be revoked for "word_similarity_dist_commutator_op"
+2026-11-18 20:21:49.383 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_in"
+2026-11-18 20:21:49.383 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_out"
+2026-11-18 20:21:49.383 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_consistent"
+2026-11-18 20:21:49.384 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_distance"
+2026-11-18 20:21:49.384 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_compress"
+2026-11-18 20:21:49.384 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_decompress"
+2026-11-18 20:21:49.384 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_penalty"
+2026-11-18 20:21:49.384 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_picksplit"
+2026-11-18 20:21:49.384 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_union"
+2026-11-18 20:21:49.386 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_same"
+2026-11-18 20:21:49.386 CET [5336] WARNING:  no privileges could be revoked for "gin_extract_value_trgm"
+2026-11-18 20:21:49.386 CET [5336] WARNING:  no privileges could be revoked for "gin_extract_query_trgm"
+2026-11-18 20:21:49.387 CET [5336] WARNING:  no privileges could be revoked for "gin_trgm_consistent"
+2026-11-18 20:21:49.387 CET [5336] WARNING:  no privileges could be revoked for "gin_trgm_triconsistent"
+2026-11-18 20:21:49.392 CET [5336] WARNING:  no privileges could be revoked for "strict_word_similarity"
+2026-11-18 20:21:49.392 CET [5336] WARNING:  no privileges could be revoked for "strict_word_similarity_op"
+2026-11-18 20:21:49.392 CET [5336] WARNING:  no privileges could be revoked for "strict_word_similarity_commutator_op"
+2026-11-18 20:21:49.392 CET [5336] WARNING:  no privileges could be revoked for "strict_word_similarity_dist_op"
+2026-11-18 20:21:49.395 CET [5336] WARNING:  no privileges could be revoked for "strict_word_similarity_dist_commutator_op"
+2026-11-18 20:21:49.395 CET [5336] WARNING:  no privileges could be revoked for "gtrgm_options"
+2026-11-18 20:22:39.194 CET [34865] ERROR:  new row for relation "gaps" violates check constraint "gaps_created_hour"
+2026-11-18 20:22:39.194 CET [34865] DETAIL:  Failing row contains (d74a7138-a6e4-4fa1-ad56-0c60d09988fb, gap_6326ff2885, a10e280b-575b-4fea-8c9b-58f38dae0225, missing, open, 2, 2, 2026-11-18, 2026-11-18, 2026-11-18 20:22:40.193882+01, 2026-11-18 20:00:00+01, null).
+2026-11-18 20:22:39.194 CET [34865] STATEMENT:  update gaps set created_at = now() + interval '1 second' where id=$1
+2026-11-18 20:22:39.209 CET [34865] ERROR:  gap f8402a46-8273-4ba6-9bb6-14487077ff7e cannot move from wont_fix to resolved
+2026-11-18 20:22:39.209 CET [34865] CONTEXT:  PL/pgSQL function gaps_guard_status() line 5 at RAISE
+2026-11-18 20:22:39.209 CET [34865] STATEMENT:  update gaps set status=$2 where id=$1
+2026-11-18 20:22:39.213 CET [34865] ERROR:  gap 8509879a-3785-45d6-89a9-09fc123c2866 cannot move from resolved to wont_fix
+2026-11-18 20:22:39.213 CET [34865] CONTEXT:  PL/pgSQL function gaps_guard_status() line 5 at RAISE
+2026-11-18 20:22:39.213 CET [34865] STATEMENT:  update gaps set status=$2 where id=$1
+2026-11-18 20:22:39.215 CET [34865] ERROR:  new row for relation "gaps" violates check constraint "gaps_resolved_edition"
+2026-11-18 20:22:39.215 CET [34865] DETAIL:  Failing row contains (d9885cf4-9143-413b-bd3a-0596af021df5, gap_5a22b4f0dc, 6a635dd1-62f7-41ee-8096-6f31efed4ca8, missing, open, 2, 2, 2026-11-18, 2026-11-18, 2026-11-18 20:00:00+01, 2026-11-18 20:00:00+01, 1).
+2026-11-18 20:22:39.215 CET [34865] STATEMENT:  update gaps set resolved_edition_seq=$2 where id=$1
+2026-11-18 20:22:40.880 CET [35196] ERROR:  duplicate key value violates unique constraint "gaps_one_open_per_topic_type"
+2026-11-18 20:22:40.880 CET [35196] DETAIL:  Key (topic_id, type)=(94d66897-e303-46e0-bd1e-6132e5cd1bd6, missing) already exists.
+2026-11-18 20:22:40.880 CET [35196] STATEMENT:  update gaps g set status = $3::gap_status, status_since = date_trunc('hour', now(), 'UTC'),
+	                resolved_edition_seq = case when $3::gap_status = 'resolved' then (select seq from live_edition) end
+	          where g.id = $1 and g.status = $2::gap_status
+	         returning (select label from editions where seq = g.resolved_edition_seq) as edition
+2026-11-18 20:22:41.138 CET [35354] ERROR:  Only the alert job raises alerts
+2026-11-18 20:22:41.138 CET [35354] CONTEXT:  PL/pgSQL function cl_alert_raise(text,text,text[],text,jsonb) line 5 at RAISE
+2026-11-18 20:22:41.138 CET [35354] STATEMENT:  select cl_alert_raise('spend', 'x', '{}', 'x', '{"page":"usage"}')
+2026-11-18 20:22:41.407 CET [34865] ERROR:  permission denied for table topics
+2026-11-18 20:22:41.407 CET [34865] STATEMENT:  select * from topics
+2026-11-18 20:22:41.408 CET [34865] ERROR:  permission denied for table topic_week_counts
+2026-11-18 20:22:41.408 CET [34865] STATEMENT:  select * from topic_week_counts
+2026-11-18 20:22:41.409 CET [34865] ERROR:  permission denied for table gaps
+2026-11-18 20:22:41.409 CET [34865] STATEMENT:  select * from gaps
+2026-11-18 20:22:41.409 CET [34865] ERROR:  permission denied for table gap_weekly_counts
+2026-11-18 20:22:41.409 CET [34865] STATEMENT:  select * from gap_weekly_counts
+2026-11-18 20:22:41.410 CET [34865] ERROR:  permission denied for table gap_notes
+2026-11-18 20:22:41.410 CET [34865] STATEMENT:  select * from gap_notes
+2026-11-18 20:22:41.413 CET [34865] ERROR:  permission denied for table deliveries
+2026-11-18 20:22:41.413 CET [34865] STATEMENT:  select * from deliveries
+2026-11-18 20:22:41.413 CET [34865] ERROR:  permission denied for table feedback
+2026-11-18 20:22:41.413 CET [34865] STATEMENT:  select * from feedback
+2026-11-18 20:22:41.449 CET [13428] LOG:  checkpoint starting: immediate force wait
+2026-11-18 20:22:48.582 CET [13428] LOG:  checkpoint complete: wrote 7732 buffers (47.2%), wrote 2 SLRU buffers; 0 WAL file(s) added, 0 removed, 4 recycled; write=5.005 s, sync=2.098 s, total=7.133 s; sync files=3153, longest=0.246 s, average=0.001 s; distance=62051 kB, estimate=62051 kB; lsn=0/989A098, redo lsn=0/97E73E0
+2026-11-18 20:22:48.621 CET [13428] LOG:  checkpoint starting: immediate force wait
+2026-11-18 20:22:49.172 CET [13428] LOG:  checkpoint complete: wrote 196 buffers (1.2%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.461 s, sync=0.052 s, total=0.552 s; sync files=161, longest=0.006 s, average=0.001 s; distance=715 kB, estimate=55918 kB; lsn=0/989ADE0, redo lsn=0/989A110
+2026-11-18 20:22:52.489 CET [13428] LOG:  checkpoint starting: immediate force wait
+2026-11-18 20:22:52.603 CET [13428] LOG:  checkpoint complete: wrote 54 buffers (0.3%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.049 s, total=0.114 s; sync files=32, longest=0.014 s, average=0.002 s; distance=270 kB, estimate=50353 kB; lsn=0/98E2DE8, redo lsn=0/98DDB30
+2026-11-18 20:23:13.839 CET [35001] ERROR:  evaluation run 01a1f01c-fc2e-7628-9d64-a0758dd299b5 cannot move from awaiting_approval to running
+2026-11-18 20:23:13.839 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.839 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.841 CET [35001] ERROR:  evaluation run 01a1f01c-fc30-7b48-81f8-01871b041ab9 cannot move from awaiting_approval to finished
+2026-11-18 20:23:13.841 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.841 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.844 CET [35001] ERROR:  evaluation run 01a1f01c-fc34-7560-9bc2-d507dd6ac66a cannot move from awaiting_approval to incomplete
+2026-11-18 20:23:13.844 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.844 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.845 CET [35001] ERROR:  evaluation run 01a1f01c-fc35-75ec-aeec-d7a0468f862c cannot move from queued to awaiting_approval
+2026-11-18 20:23:13.845 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.845 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.850 CET [35001] ERROR:  evaluation run 01a1f01c-fc3a-75de-8be6-e3b4f9c505e3 cannot move from queued to incomplete
+2026-11-18 20:23:13.850 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.850 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.851 CET [35001] ERROR:  evaluation run 01a1f01c-fc3b-74f1-8803-266b5f74227e cannot move from running to awaiting_approval
+2026-11-18 20:23:13.851 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.851 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.852 CET [35001] ERROR:  evaluation run 01a1f01c-fc3c-74c6-86a0-a0655a1f6456 cannot move from running to queued
+2026-11-18 20:23:13.852 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.852 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.857 CET [35001] ERROR:  evaluation run 01a1f01c-fc41-739f-b315-65521d6ef63d cannot move from finished to awaiting_approval
+2026-11-18 20:23:13.857 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.857 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.858 CET [35001] ERROR:  evaluation run 01a1f01c-fc42-72f6-b402-1227a9d83864 cannot move from finished to queued
+2026-11-18 20:23:13.858 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.858 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.859 CET [35001] ERROR:  evaluation run 01a1f01c-fc43-7049-b915-f748dbaa8678 cannot move from finished to running
+2026-11-18 20:23:13.859 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.859 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.860 CET [35001] ERROR:  evaluation run 01a1f01c-fc43-7ee4-bfc9-13c4729087ff cannot move from finished to failed
+2026-11-18 20:23:13.860 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.860 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.861 CET [35001] ERROR:  evaluation run 01a1f01c-fc44-7b0d-8ff7-a39e1020d5fc cannot move from finished to cancelled
+2026-11-18 20:23:13.861 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.861 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.862 CET [35001] ERROR:  evaluation run 01a1f01c-fc45-78c1-8e42-0805e6de9d29 cannot move from finished to incomplete
+2026-11-18 20:23:13.862 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.862 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.863 CET [35001] ERROR:  evaluation run 01a1f01c-fc46-7a68-bdff-ba3fd727925b cannot move from failed to awaiting_approval
+2026-11-18 20:23:13.863 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.863 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.863 CET [35001] ERROR:  evaluation run 01a1f01c-fc47-7801-a732-e3b09b797ba8 cannot move from failed to queued
+2026-11-18 20:23:13.863 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.863 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.864 CET [35001] ERROR:  evaluation run 01a1f01c-fc48-7473-a223-309bb3973447 cannot move from failed to running
+2026-11-18 20:23:13.864 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.864 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.865 CET [35001] ERROR:  evaluation run 01a1f01c-fc49-72a4-ab49-604ed89d6052 cannot move from failed to finished
+2026-11-18 20:23:13.865 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.865 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.866 CET [35001] ERROR:  evaluation run 01a1f01c-fc4a-705c-9b7a-0462f32cd107 cannot move from failed to cancelled
+2026-11-18 20:23:13.866 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.866 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.867 CET [35001] ERROR:  evaluation run 01a1f01c-fc4a-7d53-b7f9-7ada27583323 cannot move from failed to incomplete
+2026-11-18 20:23:13.867 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.867 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.868 CET [35001] ERROR:  evaluation run 01a1f01c-fc4b-7b86-aefb-bcac8525a8f5 cannot move from cancelled to awaiting_approval
+2026-11-18 20:23:13.868 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.868 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.869 CET [35001] ERROR:  evaluation run 01a1f01c-fc4c-7c8c-98b7-ec425c777b32 cannot move from cancelled to queued
+2026-11-18 20:23:13.869 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.869 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.870 CET [35001] ERROR:  evaluation run 01a1f01c-fc4d-7a87-a03c-9b74141a4836 cannot move from cancelled to running
+2026-11-18 20:23:13.870 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.870 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.870 CET [35001] ERROR:  evaluation run 01a1f01c-fc4e-784c-a6fa-674c233c0e92 cannot move from cancelled to finished
+2026-11-18 20:23:13.870 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.870 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.871 CET [35001] ERROR:  evaluation run 01a1f01c-fc4f-73ab-95c1-8b3d763afd97 cannot move from cancelled to failed
+2026-11-18 20:23:13.871 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.871 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.872 CET [35001] ERROR:  evaluation run 01a1f01c-fc50-70ea-a591-176d8144bf71 cannot move from cancelled to incomplete
+2026-11-18 20:23:13.872 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.872 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.873 CET [35001] ERROR:  evaluation run 01a1f01c-fc50-7d37-b22f-88c6467d4a5e cannot move from incomplete to awaiting_approval
+2026-11-18 20:23:13.873 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.873 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.874 CET [35001] ERROR:  evaluation run 01a1f01c-fc52-7655-a1b2-bdfd1d8bbddf cannot move from incomplete to running
+2026-11-18 20:23:13.874 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.874 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:13.875 CET [35001] ERROR:  evaluation run 01a1f01c-fc53-7338-a4cc-0919141f92be cannot move from incomplete to finished
+2026-11-18 20:23:13.875 CET [35001] CONTEXT:  PL/pgSQL function eval_runs_guard_state() line 5 at RAISE
+2026-11-18 20:23:13.875 CET [35001] STATEMENT:  update eval_runs set state=$2 where id=$1
+2026-11-18 20:23:20.020 CET [13428] LOG:  checkpoint starting: immediate force wait
+2026-11-18 20:23:20.120 CET [13428] LOG:  checkpoint complete: wrote 105 buffers (0.6%), wrote 10 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.052 s, sync=0.034 s, total=0.101 s; sync files=18, longest=0.005 s, average=0.002 s; distance=2832 kB, estimate=45601 kB; lsn=0/9BA1DB0, redo lsn=0/9BA1D58
+2026-11-18 20:23:20.335 CET [13428] LOG:  checkpoint starting: immediate force wait
+2026-11-18 20:23:20.340 CET [13428] LOG:  checkpoint complete: wrote 32 buffers (0.2%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.001 s, total=0.006 s; sync files=9, longest=0.001 s, average=0.001 s; distance=199 kB, estimate=41061 kB; lsn=0/9BE9568, redo lsn=0/9BD3AF8
+2026-11-18 20:28:20.340 CET [13428] LOG:  checkpoint starting: time
+2026-11-18 20:28:23.631 CET [13428] LOG:  checkpoint complete: wrote 32 buffers (0.2%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=3.287 s, sync=0.001 s, total=3.292 s; sync files=13, longest=0.001 s, average=0.001 s; distance=273 kB, estimate=36982 kB; lsn=0/9C181B0, redo lsn=0/9C18158

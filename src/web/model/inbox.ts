@@ -36,7 +36,7 @@ export function namesWords({
       ? `${total === 1 ? '1 new metric or dimension' : `${total} new metrics and dimensions`} from ${tools.join(', ')}`
       : 'Names left out',
     line: !total
-      ? 'Left out of the names a read made.'
+      ? 'Every new name was left out.'
       : flagged
         ? `${ready} ready to publish, ${flagged} to look at first.`
         : ready === 1

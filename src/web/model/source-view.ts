@@ -31,7 +31,7 @@ export type SourceView = {
 }
 
 const count = (n: number, one: string, many: string) =>
-  `${n.toLocaleString()} ${n === 1 ? one : many}`
+  `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 /** "Today" stays "07:00"; another day is the day. */
 const dayOrTime = (at: When) => (at.day === 'Today' ? at.time : at.day)

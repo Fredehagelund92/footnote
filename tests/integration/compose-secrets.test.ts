@@ -154,7 +154,7 @@ describe('a server with no secret store', () => {
     const response = await call('POST', '/sources/test', addressRoute())
     expect(response.statusCode, response.body).toBe(422)
     expect(response.json<{ message: string }>().message).toBe(
-      "There's no secret store, so we can't keep a secret. Ask the person who hosts this app to set one up. For the host: set FOOTNOTE_SECRETS_DIR.",
+      "This app has no safe place to keep keys yet, so it can't save this one. Ask the person who hosts this app to set one up. For the host: set FOOTNOTE_SECRETS_DIR.",
     )
     expect(objects.requests.length).toBe(reads)
   })

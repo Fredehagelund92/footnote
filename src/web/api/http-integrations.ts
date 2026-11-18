@@ -92,7 +92,7 @@ const FAILURES: Record<string, string> = {
   timeout: 'it took too long',
   timed_out: 'it took too long',
   unreadable_file: 'it is too large, or not text',
-  fetch_failed: 'the host would not hand it over',
+  fetch_failed: 'the site that keeps it did not send it',
   git_missing: 'the server has no git program to read a repository with',
   private_address: 'its address is not one it may reach: use https, on a public host',
   redirect_refused: 'it redirects somewhere it may not follow',
@@ -410,7 +410,7 @@ export function sourcePageOf(
             when: source.added.when,
             tone: 'ok' as const,
             what: 'Connected',
-            detail: `First read ${firstAt}. Nothing is published by a read.`,
+            detail: `First read ${firstAt}. Reading publishes nothing.`,
           },
         ]
       : []
@@ -524,7 +524,7 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
     title: 'Read by another source',
     detail: 'It stays with that source, and this one leaves it out.',
   },
-  too_many_records: { title: 'More than a read can hold', detail: 'The rest is left out.' },
+  too_many_records: { title: 'Too much to read at once', detail: 'The rest is left out.' },
   group_not_found: {
     title: 'A chosen view is not in the model',
     detail: 'Nothing is read for it. Leave it out, or add it to the model.',

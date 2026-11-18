@@ -54,7 +54,7 @@ export const areas: Area[] = [
     summary: 'Orders, revenue and the basket: what customers buy and send back, and what we earn.',
     description: `Sales covers the money side of the business: **gross sales**, **net revenue** and **units sold**, the basket figures behind them (units per order, average order value, gross margin, online share) and orders (orders and returns).
 
-Context items here are mostly events and notes that move these numbers, such as a market's online sales stopping, a payment provider outage or a change in how discounts are netted off. Marketing spend and discount cost live in Marketing.`,
+Context items here are mostly events and notes that move these numbers, such as a market's online sales stopping, a payment provider outage or a change in how discounts are taken off revenue. Marketing spend and discount cost live in Marketing.`,
     ownerIds: ['per_jon', 'per_sofia'],
     label: 'teal',
     revision: 1,

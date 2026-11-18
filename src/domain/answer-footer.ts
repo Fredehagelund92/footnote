@@ -140,7 +140,7 @@ export function recordsFooter(
     notSeen:
       found.footer?.notSeen ??
       (LISTED.includes(ask.intent)
-        ? 'Not seen: drafts and suggestions, which are not context yet.'
+        ? 'Drafts and suggestions are left out until they are published.'
         : null),
     stale: staleLine(due),
   }

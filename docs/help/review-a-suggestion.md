@@ -21,7 +21,7 @@ What changes and the sender's note are folded below. Open them when you want the
 The button at the foot opens the full screen and says what you decide there:
 
 - Review
-- Decide how they relate, for a suggestion that clashes with live context
+- Compare with what's published, for a suggestion about the same thing as published context
 - Check the draft, for a draft of what agents could not answer
 
 The words beside it say what follows. The other buttons say what they do, such as Edit or Archive.

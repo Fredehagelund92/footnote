@@ -33,7 +33,7 @@ export function paneState(card: Pick<InboxCard, 'type'>, review?: Review): PaneS
 
 /** What the quick view's one button is called: the decision it opens, never only a step. */
 export function reviewAction(r: Review) {
-  if (r.clash) return 'Decide how they relate'
+  if (r.clash) return "Compare with what's published"
   if (r.drafted) return 'Check the first version'
   return 'Review'
 }
@@ -54,7 +54,7 @@ export function reviewFollows(r: Review): string {
     return r.mode === 'retire'
       ? 'The item changed since: close it, with a reason'
       : 'The item changed since: return it to its sender'
-  if (r.clash) return 'Overlaps are answered Unrelated unless you change them'
+  if (r.clash) return 'Unless you choose, nothing published changes'
   if (claims)
     return claims === 1
       ? 'Compare the detail with the source, then publish'

@@ -427,7 +427,9 @@ describe('cost control', () => {
       const d = await detail(run.id)
       // A cap is no failure of the run: it stops incomplete, and resuming it makes what is missing.
       expect(d.run).toMatchObject({ state: 'incomplete' })
-      expect(d.run.failure).toMatch(/Evaluation spending reached its monthly cap of \$0\.00/)
+      expect(d.run.failure).toMatch(
+        /The AI cost limit for answer tests this month, \$0\.00, is reached/,
+      )
       expect((d as unknown as { stopped: { reason: string } }).stopped).toMatchObject({
         reason: 'cap',
       })
