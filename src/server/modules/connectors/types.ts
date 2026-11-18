@@ -13,7 +13,7 @@ export const INTERFACE_VERSION = 2
 /** The interfaces a source this build reads may be written to (CON-109). */
 export type SourceInterfaceVersion = 2 | 3
 
-/** The most other names Heed keeps for one member: as many as a term may have (FR-107). */
+/** The most other names Footnote keeps for one member: as many as a term may have (FR-107). */
 export const DEFINITION_SYNONYMS_MAX = 20
 
 export const definitionSchema = z.object({

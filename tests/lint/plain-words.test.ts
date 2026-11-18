@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import plainWords from '../../eslint.plain-words.js'
 
 /**
- * heed/plain-words (eslint.plain-words.js) holds the words people read to glossary v2
+ * footnote/plain-words (eslint.plain-words.js) holds the words people read to glossary v2
  * (docs/design/copy.md). It is only worth having if it is precise: it reports every banned word
  * in text, and nothing in code.
  */
@@ -26,8 +26,8 @@ function said(code: string, file = 'src/web/pages/example.tsx', errorsOnly = fal
             parser: tseslint.parser,
             parserOptions: { ecmaFeatures: { jsx: true } },
           },
-          plugins: { heed: plainWords },
-          rules: { 'heed/plain-words': ['warn', { errorsOnly }] },
+          plugins: { footnote: plainWords },
+          rules: { 'footnote/plain-words': ['warn', { errorsOnly }] },
         },
       ],
       { filename: join(root, file) },
@@ -38,7 +38,7 @@ function said(code: string, file = 'src/web/pages/example.tsx', errorsOnly = fal
 const write = (found: string, instead: string) =>
   `Instead of "${found}", write: ${instead}. See docs/design/copy.md.`
 
-describe('heed/plain-words reports the old words in text people read', () => {
+describe('footnote/plain-words reports the old words in text people read', () => {
   it('names the renames: fact, administrator, proposal and accept', () => {
     expect(said(`export const a = <p>Add a fact</p>`)).toEqual([write('a fact', 'a context item')])
     expect(said(`export const b = 'Ask an administrator.'`)).toEqual([
@@ -78,7 +78,7 @@ describe('heed/plain-words reports the old words in text people read', () => {
   })
 })
 
-describe('heed/plain-words leaves code alone', () => {
+describe('footnote/plain-words leaves code alone', () => {
   it.each([
     ['an import', `import { fact } from './fact card'; export * from 'the proposal'`],
     ['a key', `export const a = { fact: 1, 'a fact': 2, ['the proposal']: 3 }`],

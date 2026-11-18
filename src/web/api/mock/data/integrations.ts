@@ -66,7 +66,7 @@ export const demoSemanticModels: ConnectScope[] = [
   { id: '_shared', title: '_shared', detail: '2 metrics', metrics: 2, dimensions: 0 },
 ]
 
-/** The folders shared with Heed's service account, each mapped to exactly one domain. */
+/** The folders shared with Footnote's service account, each mapped to exactly one domain. */
 const driveFolders: DriveFolder[] = [
   { folder: 'Data team', path: 'Definitions', domain: 'sales', documents: 6 },
   { folder: 'Marketing', path: 'Campaigns', domain: 'marketing', documents: 5 },

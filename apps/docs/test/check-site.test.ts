@@ -17,7 +17,7 @@ const body = (html: string) =>
   `<html><body><div class="sl-markdown-content">${html}</div></body></html>`
 
 beforeEach(() => {
-  dist = mkdtempSync(join(tmpdir(), 'heed-docs-check-'))
+  dist = mkdtempSync(join(tmpdir(), 'footnote-docs-check-'))
   write('privacy/index.html', body('<h2 id="kept">Kept</h2>'))
   write('llms.txt', '- [Privacy](/v0.1/privacy/): what is kept')
   write('llms-full.txt', 'Privacy')
@@ -55,7 +55,7 @@ describe('the built site', () => {
   })
 
   it('fails on a <title> tag in the body of a page', () => {
-    write('index.html', body('<p>Open in Heed -</p><title>: <url></title>'))
+    write('index.html', body('<p>Open in Footnote -</p><title>: <url></title>'))
     expect(checkSite(dist, '/v0.1', pages)[0]).toContain('<title> tag')
   })
 

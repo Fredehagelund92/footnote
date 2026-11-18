@@ -12,7 +12,7 @@ import { buildApp } from '../../src/server/app.ts'
 import { createDatabase } from '../../src/server/db/database.ts'
 import { createJobRunner } from '../../src/server/modules/jobs/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
-import { heedVersion } from '../../src/server/version.ts'
+import { footnoteVersion } from '../../src/server/version.ts'
 
 const { client, url: databaseUrl } = testDatabase()
 
@@ -34,7 +34,7 @@ describe('PostgreSQL', () => {
       expect(response.json()).toEqual({
         status: 'ok',
         service: 'heed',
-        version: heedVersion,
+        version: footnoteVersion,
         checks: { database: 'ok' },
       })
     } finally {

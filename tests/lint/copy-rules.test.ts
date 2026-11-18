@@ -7,7 +7,7 @@ import copyRules from '../../eslint.copy-rules.js'
 import plainWords from '../../eslint.plain-words.js'
 
 /**
- * The ratchets on copy (eslint.copy-rules.js, and the wide and v2 forms of heed/plain-words,
+ * The ratchets on copy (eslint.copy-rules.js, and the wide and v2 forms of footnote/plain-words,
  * counted by scripts/check-plain-words.ts). Each must report the break it names, in text people
  * read, and nothing in code.
  */
@@ -43,7 +43,7 @@ function said(
 }
 const copy = (rule: string, code: string, file?: string) => said(copyRules, rule, code, file)
 
-describe('heed/plain-words-wide reads what the narrow reading takes for code', () => {
+describe('footnote/plain-words-wide reads what the narrow reading takes for code', () => {
   const wide = (code: string) => said(plainWords, 'plain-words-wide', code)
   const narrow = (code: string) => said(plainWords, 'plain-words', code)
 
@@ -71,7 +71,7 @@ describe('heed/plain-words-wide reads what the narrow reading takes for code', (
   })
 })
 
-describe('heed/plain-words-v2 holds what people read outside the web app to glossary v2', () => {
+describe('footnote/plain-words-v2 holds what people read outside the web app to glossary v2', () => {
   const v2 = (code: string, file: string, errorsOnly = false) =>
     said(plainWords, 'plain-words-v2', code, file, [{ errorsOnly }])
 

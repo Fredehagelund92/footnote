@@ -6,19 +6,19 @@ When a reader page changes, change the matching page here in the same pull reque
 
 ## Where things went
 
-| Reader page                                                                                    | Its internals                                      | Requirements                                                                          |
-| ---------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [MCP and API reference](../reference.md) and [its pages](../reference/)                        | [The MCP tools and the HTTP API in detail](api.md) | FR-121, FR-138, FR-326, FR-331, FR-332, FR-338, FR-341 to FR-350, CON-517             |
-| [Sign in your own agent](../ai-sign-in.md) and [Set up company sign-in](../company-sign-in.md) | [Agent and company sign-in](sign-in.md)            | FR-401 to FR-406, FR-408, FR-410 to FR-414, FR-416 to FR-418, FR-420, FR-421, NFR-022 |
-| [Connectors](../connectors.md)                                                                 | [The contract](connector-contract.md)              | CON-101 to CON-119, CON-201 to CON-214, CON-601 to CON-612                            |
-| [The Cube connector](../connectors/cube.md)                                                    | [The Cube connector: internals](cube-connector.md) | CON-501 to CON-517, FR-716                                                            |
-| [Connector security](../connectors/security.md)                                                | [Security and egress](connector-security.md)       | CON-102, CON-105 to CON-107, CON-113, CON-114, CON-612                                |
-| [Build a connector](../connectors/authoring.md)                                                | [Below](#build-a-connector)                        | CON-102, CON-106, CON-108, CON-113, CON-117, CON-201                                  |
-| [Run and operate the service](../operations.md), [Service settings](../configuration.md)       | [Below](#run-and-operate-the-service)              | FR-408, FR-410, FR-614, NFR-047                                                       |
-| [Administer the service](../administration.md)                                                 | [Below](#administer-the-service)                   | FR-120, FR-124, FR-407, FR-408, FR-801, FR-806 to FR-810, FR-813, NFR-045, NFR-093    |
-| [Self-host Heed on one computer](../self-hosting.md), [Where to run Heed](../where-to-run.md)  | [Below](#self-hosting)                             | NFR-044, NFR-045                                                                      |
-| [Security, scanning and the restore drill](../security.md)                                     | [Below](#scanning-and-the-restore-drill)           | NFR-044, NFR-045                                                                      |
-| [Run the demo on Vercel and Neon](../vercel.md)                                                | [Below](#the-demo-on-vercel)                       |                                                                                       |
+| Reader page                                                                                           | Its internals                                      | Requirements                                                                          |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [MCP and API reference](../reference.md) and [its pages](../reference/)                               | [The MCP tools and the HTTP API in detail](api.md) | FR-121, FR-138, FR-326, FR-331, FR-332, FR-338, FR-341 to FR-350, CON-517             |
+| [Sign in your own agent](../ai-sign-in.md) and [Set up company sign-in](../company-sign-in.md)        | [Agent and company sign-in](sign-in.md)            | FR-401 to FR-406, FR-408, FR-410 to FR-414, FR-416 to FR-418, FR-420, FR-421, NFR-022 |
+| [Connectors](../connectors.md)                                                                        | [The contract](connector-contract.md)              | CON-101 to CON-119, CON-201 to CON-214, CON-601 to CON-612                            |
+| [The Cube connector](../connectors/cube.md)                                                           | [The Cube connector: internals](cube-connector.md) | CON-501 to CON-517, FR-716                                                            |
+| [Connector security](../connectors/security.md)                                                       | [Security and egress](connector-security.md)       | CON-102, CON-105 to CON-107, CON-113, CON-114, CON-612                                |
+| [Build a connector](../connectors/authoring.md)                                                       | [Below](#build-a-connector)                        | CON-102, CON-106, CON-108, CON-113, CON-117, CON-201                                  |
+| [Run and operate the service](../operations.md), [Service settings](../configuration.md)              | [Below](#run-and-operate-the-service)              | FR-408, FR-410, FR-614, NFR-047                                                       |
+| [Administer the service](../administration.md)                                                        | [Below](#administer-the-service)                   | FR-120, FR-124, FR-407, FR-408, FR-801, FR-806 to FR-810, FR-813, NFR-045, NFR-093    |
+| [Self-host Footnote on one computer](../self-hosting.md), [Where to run Footnote](../where-to-run.md) | [Below](#self-hosting)                             | NFR-044, NFR-045                                                                      |
+| [Security, scanning and the restore drill](../security.md)                                            | [Below](#scanning-and-the-restore-drill)           | NFR-044, NFR-045                                                                      |
+| [Run the demo on Vercel and Neon](../vercel.md)                                                       | [Below](#the-demo-on-vercel)                       |                                                                                       |
 
 ## Build a connector
 
@@ -60,7 +60,7 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 
 ## Settings named CL_ before 0.1.0
 
-Before Heed 0.1.0 each setting that now starts with `HEED_` started with `CL_` instead, and the rest of its name is the same. Heed 0.1 still reads an old name when the new one is unset (or empty). The release after 0.1 reads the new names only. `src/domain/renamed-settings.ts` pairs each with its new name, and [the reader page](../operations.md#settings-that-started-with-cl_) says what to do.
+Before Footnote 0.1.0 each setting that now starts with `HEED_` started with `CL_` instead, and the rest of its name is the same. Footnote 0.1 still reads an old name when the new one is unset (or empty). The release after 0.1 reads the new names only. `src/domain/renamed-settings.ts` pairs each with its new name, and [the reader page](../operations.md#settings-that-started-with-cl_) says what to do.
 
 The old names: `CL_AUTH`, `CL_DEV_PEOPLE_FILE`, `CL_DOMAIN_OVERRIDES`, `CL_FIXED_TODAY`, `CL_LOGIN_SERVER`, `CL_MCP_STATE_KEY_FILE`, `CL_METRICS_TOKEN`, `CL_OAUTH_CONNECTION_DAYS`, `CL_OAUTH_CONSENT_URL`, `CL_OAUTH_DYNAMIC_REGISTRATION`, `CL_OAUTH_ISSUER`, `CL_OAUTH_PREVIOUS_KEY_FILES`, `CL_OAUTH_REFRESH_IDLE_HOURS`, `CL_OAUTH_SIGNING_KEY_FILE`, `CL_OIDC_ADMIN_GROUPS`, `CL_OIDC_CLIENT_ID`, `CL_OIDC_CLIENT_SECRET_FILE`, `CL_OIDC_GROUPS_CLAIM`, `CL_OIDC_ISSUER`, `CL_OIDC_MEMBER_GROUPS`, `CL_OIDC_NAME`, `CL_OIDC_REDIRECT_URL`, `CL_OIDC_SCOPES`, `CL_PRODUCT_NAME`, `CL_SECRETS_DIR`, `CL_SESSION_IDLE_HOURS`, `CL_SESSION_MAX_DAYS`, `CL_SUPPORT_EMAIL`, `CL_TRUSTED_PROXIES`, `CL_WEB_ORIGINS`, `CL_WEB_READ_LOOPBACK`.
 

@@ -10,7 +10,7 @@ import { useLinger } from '@/lib/presence'
 import { useReportBulkBar } from '@/lib/bulk-bar-presence'
 
 // The one bar for rows picked in a list (Context, Definitions, the Inbox): the count, Clear, and the
-// list's actions, on the ink surface the Heed app uses. It takes a band of its own under the list,
+// list's actions, on the ink surface the Footnote app uses. It takes a band of its own under the list,
 // never over it, so no row is ever half hidden behind it; on a phone it is the bar along the bottom. A line above it says what a change left alone
 // ("2 skipped: owned by Marketing", with the reasons a hover away), what failed with Retry, or that
 // changes are off while offline. Destructive actions are never the primary button here: they only

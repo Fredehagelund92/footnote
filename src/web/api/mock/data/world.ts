@@ -2,7 +2,7 @@ import { withWhen, type DomainId, type Fact, type Metric, type StoredFact } from
 import type { Invite, Person } from '@/model/people'
 import { DEMO_CONTEXT, demoTool } from './integrations'
 
-// Larchwood Outdoor, Heed's demo world (docs/design/demo-world.md in the Heed repository).
+// Larchwood Outdoor, Footnote's demo world (docs/design/demo-world.md in the Footnote repository).
 // Real countries; invented people, events and .example addresses. Fact text has no causal words
 // and no percent sign, and follows the demo world's banned-word list.
 

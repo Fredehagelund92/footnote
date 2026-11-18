@@ -1,5 +1,5 @@
 /**
- * The `HeedApi` conformance suite: the same cases run against the mock binding
+ * The `FootnoteApi` conformance suite: the same cases run against the mock binding
  * (tests/web/mock/conformance.test.ts) and against the http binding talking to the real service and
  * PostgreSQL (tests/web/integration/http-api.test.ts). A case names the methods it needs, so it runs
  * against a binding once that binding answers them; the http binding grows its list as the pull
@@ -11,9 +11,9 @@ import { agentToolNames } from '@domain/agents'
 import { toolsOn } from '@/lib/connect'
 import { ApiError } from '@/api/errors'
 import {
-  heedApiMethods,
-  type HeedApi,
-  type HeedApiMethod,
+  footnoteApiMethods,
+  type FootnoteApi,
+  type FootnoteApiMethod,
   type Related,
   type Undoable,
 } from '@/api/client'
@@ -30,7 +30,7 @@ import { connectorById } from '@/model/catalogue'
 /** Two names for the same word: case aside. */
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
-export type HeedApiConformance = {
+export type FootnoteApiConformance = {
   /** Someone the binding's sign-in offers, by name. */
   person: string
   /**
@@ -38,7 +38,7 @@ export type HeedApiConformance = {
    * the Inbox's methods gives the person, an owner, at least a suggestion, two plain changes, a
    * suggestion to archive something, a Reported card and a card due for a check in their Inbox.
    */
-  wired: readonly HeedApiMethod[]
+  wired: readonly FootnoteApiMethod[]
   /** Someone else the sign-in offers, by name: the comments' second voice. */
   colleague: string
   /**
@@ -58,17 +58,25 @@ export type HeedApiConformance = {
   afterUndoWindow: (run: () => Promise<void>) => Promise<void>
 }
 
-export function describeHeedApi(
+export function describeFootnoteApi(
   name: string,
-  getApi: () => HeedApi,
-  { person, wired, colleague, repository, sender, bystander, afterUndoWindow }: HeedApiConformance,
+  getApi: () => FootnoteApi,
+  {
+    person,
+    wired,
+    colleague,
+    repository,
+    sender,
+    bystander,
+    afterUndoWindow,
+  }: FootnoteApiConformance,
 ) {
   const api = () => getApi()
-  const lacks = (...methods: HeedApiMethod[]) => methods.some((m) => !wired.includes(m))
+  const lacks = (...methods: FootnoteApiMethod[]) => methods.some((m) => !wired.includes(m))
 
-  describe(`HeedApi conformance: ${name}`, () => {
+  describe(`FootnoteApi conformance: ${name}`, () => {
     it('has every method of the interface', () => {
-      for (const method of heedApiMethods) expect(typeof api()[method], method).toBe('function')
+      for (const method of footnoteApiMethods) expect(typeof api()[method], method).toBe('function')
     })
 
     it.skipIf(lacks('listSignInPeople'))('offers the person to sign in as', async () => {
@@ -541,7 +549,7 @@ export function describeHeedApi(
      * A new item the person may publish: in a domain they own, from a live item's words, on days
      * of its own (`month`, in 2031) so it overlaps nothing that agents get.
      */
-    const newItem = async (live: HeedApi, title: string, month: string) => {
+    const newItem = async (live: FootnoteApi, title: string, month: string) => {
       const { domains } = await live.getWorkspace()
       const mine = new Set(domains.filter((d) => d.owners.includes(person)).map((d) => d.id))
       const { items } = await live.getLibrary()
@@ -571,7 +579,10 @@ export function describeHeedApi(
 
     // Saves as an owner does: the service names the live items it waits to hear about, and the
     // owner answers each (unrelated), so a save does not hang on what the list above missed.
-    const saveAnswered = async (live: HeedApi, input: Parameters<HeedApi['saveItem']>[0]) => {
+    const saveAnswered = async (
+      live: FootnoteApi,
+      input: Parameters<FootnoteApi['saveItem']>[0],
+    ) => {
       try {
         return await live.saveItem(input)
       } catch (error) {
@@ -1861,7 +1872,7 @@ export function describeHeedApi(
       'getLibrary',
       'getComments',
       'postComment',
-    ] as const satisfies readonly HeedApiMethod[]
+    ] as const satisfies readonly FootnoteApiMethod[]
     /** A paragraph of words, and a mention of someone when given. */
     const said = (words: string, mention?: string) => ({
       type: 'doc',
@@ -2853,7 +2864,7 @@ export function describeHeedApi(
         expect((await live.getAlerts()).settings.off).toContain('spend')
         await live.setAlertRule({ id: 'spend', on: true })
         expect((await live.getAlerts()).settings.off).not.toContain('spend')
-        const threshold = (a: Awaited<ReturnType<HeedApi['getAlerts']>>) => {
+        const threshold = (a: Awaited<ReturnType<FootnoteApi['getAlerts']>>) => {
           const r = a.rules.find((x) => x.id === 'disagree')!
           return a.settings.thresholds.disagree ?? r.threshold!.value
         }

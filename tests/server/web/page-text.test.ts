@@ -7,7 +7,7 @@ import {
 } from '../../../src/server/modules/web/index.ts'
 
 /*
-  A page's words as Heed reads them for a draft: decoded in the page's own character set (an old
+  A page's words as Footnote reads them for a draft: decoded in the page's own character set (an old
   official page serves Windows-1252 and says so nowhere), its markup and scripts dropped, one
   paragraph per block.
 */

@@ -33,7 +33,7 @@ const { client, url } = testDatabase()
 const database = apiDatabase(url)
 const logger = createLogger({ level: 'silent' })
 const clock = systemClock('2026-10-08')
-const secretsDir = await mkdtemp(join(tmpdir(), 'heed-overview-secrets-'))
+const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-overview-secrets-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
 const registry = new ConnectorRegistry([], { secrets: store })
 // What the job runner answers when asked to run now; a runner that is down by default.

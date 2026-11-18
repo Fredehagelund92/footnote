@@ -27,9 +27,9 @@ You need to be signed in. Anyone in the workspace can connect their own agent. I
 ```text title="The prompt, exactly as the app shows it"
 Connect this agent to our team's checked context, so it checks it before it answers about company numbers.
 
-1. Add a remote MCP server at https://heed.example.com/mcp, over HTTP, in your own way of doing that. In Claude Code, run:
+1. Add a remote MCP server at https://footnote.example.com/mcp, over HTTP, in your own way of doing that. In Claude Code, run:
 
-claude mcp add --transport http heed https://heed.example.com/mcp
+claude mcp add --transport http footnote https://footnote.example.com/mcp
 
 2. Add this line to the instructions file this project uses: CLAUDE.md if it exists, otherwise AGENTS.md, which you can create:
 

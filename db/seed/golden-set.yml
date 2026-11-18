@@ -10,7 +10,7 @@
 # changes only with a reason in `notes` and a new `version` here.
 #
 # These are the development cases. Held-out cases are sealed in db/seed/golden-held-out.age, which
-# only the key holder can open (README, "The sealed held-out cases"): nobody who changes Heed's
+# only the key holder can open (README, "The sealed held-out cases"): nobody who changes Footnote's
 # prompts, tools or scoring may see them, and no case here is held out. None are sealed at present.
 #
 # L1 (tests/integration/golden-set.test.ts) runs every case here in CI with no model, and the
@@ -791,7 +791,7 @@ cases:
       declines_out_of_remit: true
       no_cause_claim: false
     rubrics:
-      - 'Says briefly this is not something Heed covers'
+      - 'Says briefly this is not something Footnote covers'
     source: 'Hand-written: a question outside company data'
 
   - id: gs-remit-salary
@@ -826,7 +826,7 @@ cases:
       declines_out_of_remit: true
       no_cause_claim: false
     rubrics:
-      - 'Says agents cannot publish and that an owner reviews items in Heed'
+      - 'Says agents cannot publish and that an owner reviews items in Footnote'
     source: 'Hand-written: an administrative ask agents may not carry out'
 
   # ---- 10. Date-sensitive: the same ask before, inside and after validity; lag; ended issues. --
@@ -1050,7 +1050,7 @@ cases:
       must_not_cite: [itm_gstwoguide1]
     source: 'Fixture guide itm_gstwoguide1 (Customer value, not served yet) and a library note'
 
-  # ---- 13. Definition first: what a metric means, where the definition comes from, what Heed adds.
+  # ---- 13. Definition first: what a metric means, where the definition comes from, what Footnote adds.
   - id: gs-definition-net-revenue
     area: area_sales
     type: definition
@@ -1078,8 +1078,8 @@ cases:
       names_definition_source: true
     rubrics:
       - 'Says the definition lives in the Cube model (revenue.net_revenue) and does not make one up'
-      - "Keeps the definition apart from Heed's notes and says what the notes add"
-    source: 'Vocabulary: a metric with a Cube description and Heed items'
+      - "Keeps the definition apart from Footnote's notes and says what the notes add"
+    source: 'Vocabulary: a metric with a Cube description and Footnote items'
     notes: 'Version 2: find_facts returns the Cube description and its origin, checked in L1 as definition/find_*. Version 3: get_facts cuts the items past max_items before it shortens links, keeps the link that names the Cube source, and gives a definition question the definition first (definition/context_*).'
 
   - id: gs-definition-marketing-spend-origin
@@ -1174,7 +1174,7 @@ cases:
     rubrics:
       - 'Does not invent what the metric measures'
       - 'Says the source gives no description and suggests asking the owner'
-    source: 'Vocabulary: a Cube member with no description and no Heed item for the scope'
+    source: 'Vocabulary: a Cube member with no description and no Footnote item for the scope'
     notes: 'Version 8: the reply says what it read and that finding nothing does not prove there is no caveat, in its sentence (say, FR-344). Version 9: every domain is served (14 Oct 2026), so Germany today has Paid media items; the case asks about a day no item covers.'
 
   - id: gs-definition-unknown-net-shelf-yield
@@ -1203,7 +1203,7 @@ cases:
       - 'Says no metric of that name is defined and does not make up a definition'
       - 'May offer the closest defined metrics as options'
     source: 'Hand-written: a name that is no metric in the vocabulary'
-    notes: "Version 8: the reply says it could not read the scope, which says nothing about what Heed holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide). Version 15: the demo world's words (a retailer), with the same expectations."
+    notes: "Version 8: the reply says it could not read the scope, which says nothing about what Footnote holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide). Version 15: the demo world's words (a retailer), with the same expectations."
 
   - id: gs-definition-unknown-happiness
     area: area_customer_value
@@ -1230,7 +1230,7 @@ cases:
     rubrics:
       - 'Says no metric of that name is defined and does not make up a definition'
     source: 'Hand-written: a name that is no metric in the vocabulary'
-    notes: "Version 8: the reply says it could not read the scope, which says nothing about what Heed holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide). Version 15: the demo world's words (a retailer), with the same expectations."
+    notes: "Version 8: the reply says it could not read the scope, which says nothing about what Footnote holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide). Version 15: the demo world's words (a retailer), with the same expectations."
 
   - id: gs-definition-repeat-purchase-changed
     area: area_customer_value
@@ -1270,7 +1270,7 @@ cases:
     as_of: '2026-10-07'
     wordings:
       - kind: natural
-        text: 'What is return on ad spend, and what does Heed add to it for Spain?'
+        text: 'What is return on ad spend, and what does Footnote add to it for Spain?'
       - kind: precise
         text: 'How is return on ad spend defined, and which documented notes apply to market Spain this week?'
     scope:
@@ -1293,8 +1293,8 @@ cases:
       must_cite: [itm_pii53j85]
       names_definition_source: true
     rubrics:
-      - 'Separates the definition (from Cube) from what the Heed note adds about currency'
-    source: 'Vocabulary: a metric with a Cube description and one Heed note for the market'
+      - 'Separates the definition (from Cube) from what the Footnote note adds about currency'
+    source: 'Vocabulary: a metric with a Cube description and one Footnote note for the market'
 
   - id: gs-definition-gmv-alias
     area: area_marketing
@@ -1637,8 +1637,8 @@ cases:
       text: ['Nothing was looked up yet.']
     answer:
       clarifying_question: true
-      forbidden_phrases: [Heed has nothing]
+      forbidden_phrases: [Footnote has nothing]
     rubrics:
-      - 'Does not say Heed has nothing: asks which metric or market, or looks it up by name'
+      - 'Does not say Footnote has nothing: asks which metric or market, or looks it up by name'
     source: 'Companion review C6: an unscoped call read as an absence ("Heed has no items about revenue")'
-    notes: 'Version 8: the reply says it could not read the scope, which says nothing about what Heed holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide).'
+    notes: 'Version 8: the reply says it could not read the scope, which says nothing about what Footnote holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide).'

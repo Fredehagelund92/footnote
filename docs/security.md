@@ -20,7 +20,7 @@ The scans run on every pull request, on `main` and every night, whatever changed
 
 ## Private profiles
 
-A private profile is how you try Heed on your own company's data on your own computer: a folder with the install's settings, its keys and anything you bring in, beside a clean Heed checkout. Keep the folder outside every git checkout, Heed's and any other, so no `git add` can reach it.
+A private profile is how you try Footnote on your own company's data on your own computer: a folder with the install's settings, its keys and anything you bring in, beside a clean Footnote checkout. Keep the folder outside every git checkout, Footnote's and any other, so no `git add` can reach it.
 
 Start every file in it with a line that holds the marker:
 
@@ -43,7 +43,7 @@ The drill proves a backup restores, without touching your database:
 npm run db:restore-drill
 ```
 
-It needs `pg_dump` and `pg_restore` from PostgreSQL 18 on `PATH`. In containers, run it inside the service: see [Self-host Heed on one computer](self-hosting.md#prove-the-backup-restores-the-restore-drill).
+It needs `pg_dump` and `pg_restore` from PostgreSQL 18 on `PATH`. In containers, run it inside the service: see [Self-host Footnote on one computer](self-hosting.md#prove-the-backup-restores-the-restore-drill).
 
 1. It backs up the database with `pg_dump`.
 2. It restores that into a new scratch database, in one transaction.

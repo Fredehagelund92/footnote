@@ -4,7 +4,7 @@ import { startOidcProvider } from '../integration/oidc-provider.ts'
 /*
   The production boot check's browser and agent (tests/image/production-boot.sh). It runs in the
   service container's network, so the stand-in OpenID Connect provider it starts listens on the
-  same 127.0.0.1 as the service, as a provider on this computer would. Heed's public address is
+  same 127.0.0.1 as the service, as a provider on this computer would. Footnote's public address is
   PUBLIC_ORIGIN, as if a TLS proxy served it: this script plays that proxy, sending /mcp, the
   login server and its discovery to the service and everything else to the web image's nginx,
   with the public host. Then, as a person: sign in with the provider, as an administrator by
@@ -143,7 +143,7 @@ try {
   const callback = String(signedIn.headers.location)
   check(
     signedIn.status === 302 && callback.startsWith(`${publicOrigin}/api/v1/auth/oidc/callback?`),
-    'the provider sends the browser back to Heed with a code',
+    'the provider sends the browser back to Footnote with a code',
     signedIn,
   )
   const finished = await send(callback, { headers: { cookie: cookie() } })
@@ -153,7 +153,7 @@ try {
       String(finished.headers.location).startsWith(publicOrigin) &&
       !String(finished.headers.location).includes('error=') &&
       jar.has('heed_session'),
-    'Heed signs the person in and sends them to the web app',
+    'Footnote signs the person in and sends them to the web app',
     finished,
   )
   const session = await send(`${publicOrigin}/api/v1/auth/session`, {

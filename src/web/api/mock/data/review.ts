@@ -8,7 +8,7 @@ import { domains, facts } from './world'
 
 // What the full-screen review shows for each waiting suggestion: a one-sentence summary, the
 // change split into blocks by kind, what agents will say before and after, and what to watch for.
-// Mock content; in Heed the blocks come from diffing the parsed document (words, formatting,
+// Mock content; in Footnote the blocks come from diffing the parsed document (words, formatting,
 // links and order told apart deterministically, no model).
 
 const ines = { from: 'Ines Duarte', via: 'a chat', on: '22 Oct 2026' }

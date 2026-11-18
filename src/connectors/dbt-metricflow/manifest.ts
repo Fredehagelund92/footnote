@@ -8,7 +8,7 @@ const inGit = { field: 'location', equals: 'git' }
  * dbt MetricFlow definitions (CON-701 to CON-708): the `semantic_manifest.json` a dbt project
  * writes, read from an https address, from an object in S3, an S3-compatible store, Google Cloud
  * Storage or Azure Blob, from a Git repository an admin names, or from the folder whoever runs the
- * server names (`HEED_SERVER_FOLDERS`). Its metrics and dimensions become the definitions Heed
+ * server names (`HEED_SERVER_FOLDERS`). Its metrics and dimensions become the definitions Footnote
  * checks context against. A read takes that one file: never dbt itself, dbt Cloud, a warehouse or
  * data, and it keeps no calculation and no value.
  */

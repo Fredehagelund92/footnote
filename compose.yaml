@@ -1,4 +1,4 @@
-# Heed on this computer: PostgreSQL 18, the service and the web app (README, "Quick start").
+# Footnote on this computer: PostgreSQL 18, the service and the web app (README, "Quick start").
 #
 #   docker compose up       then open http://localhost:8080
 #
@@ -42,7 +42,7 @@ services:
       # request limits count each caller on its own. Believed only from this network's private
       # addresses, where that nginx is.
       HEED_DEFAULT_TRUSTED_PROXIES: uniquelocal
-      # The superuser makes Heed's roles and database and loads the demo; each part of the service
+      # The superuser makes Footnote's roles and database and loads the demo; each part of the service
       # then connects as its own role (db/README.md).
       DATABASE_URL_BOOTSTRAP: postgres://postgres@db:5432/postgres
       DATABASE_URL_MIGRATE: postgres://context_layer_owner@db:5432/heed

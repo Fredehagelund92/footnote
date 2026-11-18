@@ -5,7 +5,7 @@
 #
 # (`--drafts` with `--apply` keeps them as drafts.) `heed` talks to http://127.0.0.1:3000; name
 # another service with --url. An import never publishes anything: each item becomes a suggestion
-# that the domain's owner publishes in Heed. The web app's editor and an agent's suggest_context
+# that the domain's owner publishes in Footnote. The web app's editor and an agent's suggest_context
 # make the same suggestions. A law or a regulation has a template of its own:
 # docs/templates/regulatory-event.yaml. To turn lessons or instructions you already have into this
 # format, see convert-lessons.md.
@@ -43,7 +43,7 @@
 #                  from it, in one or two plain sentences. Start with "It doesn't tell you ...",
 #                  "Don't use this for ..." or "Check with ...". Left out: cause not proven.
 #
-# Left out, Heed fills in: the domain (from the scope's metrics, when they name one), the owner (the domain's
+# Left out, Footnote fills in: the domain (from the scope's metrics, when they name one), the owner (the domain's
 # owner), the kind, the risk (low for a note), the claim level and a review date in 90 days.
 # A change to an accepted item names its id (`id: itm_...`) and only the fields that change.
 

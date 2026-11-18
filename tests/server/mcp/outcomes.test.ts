@@ -336,7 +336,7 @@ describe('find_context (FR-338)', () => {
       scope_used: { window: { start: '2026-08-01', end: '2026-09-01' } },
       dates_read: { reads_as: '1-31 Aug 2026 (year not given, so 2026; UTC)' },
     })
-    // Words Heed cannot read as dates are never read as today.
+    // Words Footnote cannot read as dates are never read as today.
     const launch = await s.call('find_context', { query: 'orders Norway since the launch' })
     expect(launch.out).toMatchObject({ status: 'no_match' })
     expect(launch.out).not.toHaveProperty('found_by', 'scope')
@@ -494,7 +494,7 @@ describe('terms of a domain agents do not get (FR-333)', () => {
 })
 
 describe('get_facts for a definition question (FR-338)', () => {
-  it('gives the definition first: the source words, where they come from and what Heed adds', async () => {
+  it('gives the definition first: the source words, where they come from and what Footnote adds', async () => {
     const { out } = await setup().call('get_facts', { question: definitionQuestion })
     expect(out).toMatchObject({
       status: 'matched',

@@ -565,7 +565,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       itemId: string,
       reason: string,
       /**
-       * Heed v1's Mark as checked (FR-139): an admin checks too, and a check is recorded even when
+       * Footnote v1's Mark as checked (FR-139): an admin checks too, and a check is recorded even when
        * nothing else moved, since who checked it, and when, is what people read.
        */
       { v1 = false }: { v1?: boolean } = {},

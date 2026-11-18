@@ -157,7 +157,7 @@ export function summaryNumbers(data: SummaryFacts) {
 /** A line of "What we caught": a sentence over a count, or a thing not measured yet. */
 export type CaughtLine = { key: string; title: string; text: string; measured: boolean }
 
-/** A change after which Heed checks the saved questions again, as a line says it. */
+/** A change after which Footnote checks the saved questions again, as a line says it. */
 const TRIGGER_WORDS: Record<CaughtTrigger, string> = {
   publish: 'a publish',
   archive: 'an archive',

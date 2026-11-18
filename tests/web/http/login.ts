@@ -18,7 +18,7 @@ let keys: ReturnType<typeof loadKeyRing> | undefined
 
 /** The login server at `issuer` (the service's address), with its consent page on `web`. */
 export async function demoLoginServer(issuer: string, web: string): Promise<LoginServer> {
-  keys ??= mkdtemp(join(tmpdir(), 'heed-demo-oauth-')).then((dir) =>
+  keys ??= mkdtemp(join(tmpdir(), 'footnote-demo-oauth-')).then((dir) =>
     loadKeyRing({ file: join(dir, 'oauth.pem'), previousFiles: [], nodeEnv: 'test' }),
   )
   return createLoginServer({

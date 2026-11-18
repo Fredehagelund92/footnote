@@ -1,6 +1,6 @@
 {
-  "heed/plain-words-wide": {},
-  "heed/plain-words-v2": {
+  "footnote/plain-words-wide": {},
+  "footnote/plain-words-v2": {
     "db/seed/fixtures/items.ts": {
       "accept": 1,
       "cube": 1
@@ -102,9 +102,6 @@
     },
     "src/web/api/mock/data/review.ts": {
       "over25": 5
-    },
-    "src/web/components/heed/logo.tsx": {
-      "over25": 1
     },
     "src/web/lib/in-agent.ts": {
       "over25": 1

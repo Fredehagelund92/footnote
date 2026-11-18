@@ -17,7 +17,13 @@ export const REPOSITORY_URL = 'https://github.com/Fredehagelund92/heed'
 export const CONNECTOR_REQUEST_URL = `${REPOSITORY_URL}/issues/new?template=connector.yml`
 
 /** The name when `HEED_PRODUCT_NAME` is not set. */
-export const DEFAULT_PRODUCT_NAME = 'Heed'
+export const DEFAULT_PRODUCT_NAME = 'Footnote'
+
+/**
+ * The name the product had until 18 November 2026. People may still say it, so a question that
+ * names it reads it as the product, not as a value or a person; no sentence says it (lint).
+ */
+export const FORMER_PRODUCT_NAME = 'Heed'
 
 /** The longest name the setting takes: it sits in a title, a heading and a button. */
 export const PRODUCT_NAME_MAX = 32

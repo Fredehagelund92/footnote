@@ -6,7 +6,7 @@ It replaces the earlier voice guide for the web app and for the service's own se
 
 ## The voice
 
-Five rules sit on top of the rules below. They say how Heed sounds. The 16 rules in section 2 say how a sentence is built, and these five decide the cases those leave open.
+Five rules sit on top of the rules below. They say how Footnote sounds. The 16 rules in section 2 say how a sentence is built, and these five decide the cases those leave open.
 
 1. **Say it as you would to a colleague at the next desk.** Use the everyday word. If a product word is needed, explain it once, in the same line, with an example from the business. The exact technical term comes second and smaller.
 2. **One word for one thing, and one thing for one word.** Take the word from the glossary. Never a second word for variety. Never the same word for a second thing.
@@ -51,9 +51,9 @@ People in finance, marketing, operations and management. Many read English as a 
 
 ## 1. Neutral wording
 
-Heed is open source and any company can run it. The words do not belong to one company.
+Footnote is open source and any company can run it. The words do not belong to one company.
 
-1. **The product name lives in one constant.** `PRODUCT` in the web app (`lib/brand.ts`); `productName` in the service. A sentence never contains it. Copy says "it", "agents", "your workspace" or "the checked context". Wrong: "Heed checks it before agents read it." Right: "It is checked before agents read it."
+1. **The product name lives in one constant.** `PRODUCT` in the web app (`lib/brand.ts`); `productName` in the service. A sentence never contains it. Copy says "it", "agents", "your workspace" or "the checked context". Wrong: "Footnote checks it before agents read it." Right: "It is checked before agents read it."
 2. **Where the name does appear:** the logo's label, sign-in and the page title. Technical names that follow it (the address, the MCP server's name, the command line, the Drive service account) are built from the constant.
 3. **Inside a command or an address the name may appear.** A sentence around it may not.
 4. **A connected tool is named only on its own integration.** Cube is named on the Cube integration page, not in generic copy. Generic copy says "where metrics are defined" or "your definitions source". Agents (Claude Code, Cursor and others) are named in the connect steps, as data, and never inside the review's own sentences.
@@ -117,7 +117,7 @@ A question about what a metric is or means, answered by its definition and nothi
 
 An answer from the records (what was created, what is due, who owns a domain) has no state either. Its chip says **Records**, in the neutral tint with a table icon, and the line under it says "From the app's own list of what was written and changed. Not from your sales data." The answer is one sentence from a template ("Nothing was created in the last 24 hours."), and it ends "Agents did not read this answer. It says nothing about what they get." A question about one person's work gets "Ask does not answer questions about one person's work."
 
-An analysis of the records is a records answer: the Records chip, the same line under it, and one sentence from a template. Its rows come in up to four sections, each headed by what it counts with its denominator: "No context written: 13 of 22 metrics". A ranking says its rule in words: "Look first at Orders in Spain: agents found nothing there most often." Its last lines say what the read cannot see and that agents did not read it: "Not seen: a definition your source does not hold, or a word people use that Heed cannot read." A count never stands alone, and never a quality word such as "good" or "healthy" without the count behind it.
+An analysis of the records is a records answer: the Records chip, the same line under it, and one sentence from a template. Its rows come in up to four sections, each headed by what it counts with its denominator: "No context written: 13 of 22 metrics". A ranking says its rule in words: "Look first at Orders in Spain: agents found nothing there most often." Its last lines say what the read cannot see and that agents did not read it: "Not seen: a definition your source does not hold, or a word people use that Footnote cannot read." A count never stands alone, and never a quality word such as "good" or "healthy" without the count behind it.
 
 Every answer ends in the same footer, written by code, each line only when it has something to say: what a count is out of ("Out of 21 live context items."), what the read could not see ("Not seen: drafts and suggestions, which are not context yet."), and what in it may be out of date ("Returns changed definition on 28 April 2026: its check date has passed."), whatever the answer's state. What agents asked says its days too: "This week here is 16 to 22 Oct 2026, as Observability counts it."
 
@@ -130,7 +130,7 @@ When Ask cannot answer the question asked, it says so in a fixed sentence (FR-72
 | `limit:advice`   | What to do is not written down. Here is what is.                                                                                                                                        |
 | `limit:forecast` | What happens next is not written down. Here is what is.                                                                                                                                 |
 | `limit:outside`  | Ask knows only what is written here, not what others do. Here is what is.                                                                                                               |
-| `limit:numbers`  | Heed keeps no numbers, so Ask cannot work this out. Here is what is written.                                                                                                            |
+| `limit:numbers`  | Footnote keeps no numbers, so Ask cannot work this out. Here is what is written.                                                                                                        |
 | `limit:partly`   | Ask could read only part of this question. Here is what is written about what it names.                                                                                                 |
 | `limit:general`  | Nothing is written about Poland in particular. Here is what is written in general.                                                                                                      |
 | `cannot:numbers` | Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first. |
@@ -213,7 +213,7 @@ Eight rules, each one sentence: Not found, A saved question needs a look, Confli
 
 ## 4. Banned words and what to write
 
-Checked by the copy test and by lint (`heed/plain-words`, the glossary in `words.ts`). The list starts at zero for the web app.
+Checked by the copy test and by lint (`footnote/plain-words`, the glossary in `words.ts`). The list starts at zero for the web app.
 
 | Do not write                                                                                                                                     | Write                                                                       |
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
@@ -240,8 +240,8 @@ The code keeps its own words (item, area, retire, edition, scope, proposal). Onl
 
 ## 5. The checks
 
-- **Copy test.** `tests/web/lib/copy.test.ts` reads every string a person can read (string literals, template text and JSX text, through the TypeScript syntax tree) and fails on a hand-written product name, a definitions tool named outside its integration, the banned words, any answer label that is not one of the six, any kind label that is not one of the four, a hint over fourteen words, a state sentence over eight, and a contraction in an answer label, its sentence or its long form. The same test checks the connect steps and the live line in every state: the name only inside commands and the address, never an em dash. The same rules are also lint rules on `src/web` (`heed/plain-words` with glossary v2 and `brand/no-product-name`, `tests/lint/web-words.test.ts`) and as checks of the vocabularies in `words.ts` (`tests/server/domain/words.test.ts`). The checks of the connect steps read the app's own data, so they come with it.
-- **Plain-words lint.** `heed/plain-words` with the glossary reports old words. `brand/no-product-name` reports a hand-written name. A baseline ratchet (`copy-checks.baseline.json`) holds the old words outside the web app: the service's sentences, the contract's errors, the connectors' forms, the demo's fixtures and the command line's help. The web app has none.
+- **Copy test.** `tests/web/lib/copy.test.ts` reads every string a person can read (string literals, template text and JSX text, through the TypeScript syntax tree) and fails on a hand-written product name, a definitions tool named outside its integration, the banned words, any answer label that is not one of the six, any kind label that is not one of the four, a hint over fourteen words, a state sentence over eight, and a contraction in an answer label, its sentence or its long form. The same test checks the connect steps and the live line in every state: the name only inside commands and the address, never an em dash. The same rules are also lint rules on `src/web` (`footnote/plain-words` with glossary v2 and `brand/no-product-name`, `tests/lint/web-words.test.ts`) and as checks of the vocabularies in `words.ts` (`tests/server/domain/words.test.ts`). The checks of the connect steps read the app's own data, so they come with it.
+- **Plain-words lint.** `footnote/plain-words` with the glossary reports old words. `brand/no-product-name` reports a hand-written name. A baseline ratchet (`copy-checks.baseline.json`) holds the old words outside the web app: the service's sentences, the contract's errors, the connectors' forms, the demo's fixtures and the command line's help. The web app has none.
 - **Copy ratchets.** `npm run lint:words` also holds what people read outside the web app (`src/domain`, the contract, the connectors' forms, the demo's fixtures and the message of every service error) to glossary v2, reads the text the lint skips (a `switch` body, a toast's action, a one-word "Publishing…"), and runs six rules for the voice (`eslint.copy-rules.js`): `whole-sentences` (no label lower-cased into a sentence, no "a" before a value, no plural made with "s", no word cut in two), `sentence-length` (over 25 words fails, over 20 is a note), `one-word-one-thing` (Retry, sync, thread, "Needs checking", clash, "a read", lower-case gap and flag, and engineer words off their pages), `errors-say-three-things` (an error with a message, an error toast with a next step), `no-fixed-locale` and `no-demo-in-shared-code`. Each counts against `copy-checks.baseline.json`: a rise fails, a fall is a note, and `npm run lint:words -- --update` lowers it. New text starts clean.
 - **Reading report.** `npm run copy:report` gives, for the files a branch changes, the reading level (LIX), the sentences over 20 words and the glossary terms new to a file. CI writes it to the job summary of a pull request. It is a note and never a gate.
 - **Review.** A reviewer reads the strings of a pull request aloud. If it needs a second reading, it is rewritten.

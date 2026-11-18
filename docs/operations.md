@@ -6,7 +6,7 @@ order: 3
 reviewed: 2026-11-05
 ---
 
-Start the service, check it is healthy, and run it in production. To compare the ways to run it, see [Where to run Heed](where-to-run.md). In containers on one computer, see [Self-host Heed on one computer](self-hosting.md).
+Start the service, check it is healthy, and run it in production. To compare the ways to run it, see [Where to run Footnote](where-to-run.md). In containers on one computer, see [Self-host Footnote on one computer](self-hosting.md).
 
 ## Run the service locally
 

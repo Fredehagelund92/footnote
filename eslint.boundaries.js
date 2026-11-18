@@ -6,7 +6,7 @@ import boundaries from 'eslint-plugin-boundaries'
   - domain    pure and shared; imports nothing else from the repository
   - contract  the typed API; imports domain only
   - web       the web app in src/web; imports domain and contract, never the service
-  - server    the service (Heed); imports domain, contract and the modules' index files
+  - server    the service (Footnote); imports domain, contract and the modules' index files
   - modules   src/server/modules/<name>; other code reaches a module only through its index.ts
   - cli       imports contract and domain only
   - connectors  src/connectors, the built-in connectors: import domain only. Their manifests are

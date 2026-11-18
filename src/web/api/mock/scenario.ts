@@ -1,5 +1,5 @@
 import { ApiError } from '../errors'
-import { isPageRead, type HeedApiMethod } from '../client'
+import { isPageRead, type FootnoteApiMethod } from '../client'
 import { storageKey } from '@/lib/brand'
 import type { ObsState } from '@/model/observability'
 
@@ -130,7 +130,7 @@ export function createScenario() {
     },
 
     /** A read as the scenario plays it: a page's own load may wait or fail; any other read answers. */
-    async read<T>(method: HeedApiMethod, key: string, run: () => T): Promise<T> {
+    async read<T>(method: FootnoteApiMethod, key: string, run: () => T): Promise<T> {
       if (isPageRead(method)) {
         const id = `${method}:${key}`
         if (fault === 'loading') await new Promise<void>((resume) => waiting.push(resume))
@@ -160,7 +160,7 @@ export function createScenario() {
      * send takes no time unless a flag plays sends.
      */
     async send<T>(
-      method: HeedApiMethod,
+      method: FootnoteApiMethod,
       run: () => T,
       options: { key?: string; flag?: 'decide' | 'bulk'; quick?: boolean } = {},
     ): Promise<T> {

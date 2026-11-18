@@ -6,7 +6,7 @@ order: 8
 reviewed: 2026-11-05
 ---
 
-Run the demo as a Vercel project with its database on Neon. To run it for your own team, see [Where to run Heed](where-to-run.md) instead.
+Run the demo as a Vercel project with its database on Neon. To run it for your own team, see [Where to run Footnote](where-to-run.md) instead.
 
 > **Keep it behind a login.** This is a hosted trial, not a public demo. Anyone who can open the deployment can pick any person, an admin included, and change settings. Keep it behind [Vercel Authentication](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication), so only your team gets in.
 

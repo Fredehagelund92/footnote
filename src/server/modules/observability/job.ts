@@ -5,7 +5,7 @@ import { createObservabilityService } from './service.ts'
 /**
  * The weekly counts Observability keeps without limit (FR-612, FR-620): each night, before
  * retention, every completed week (Monday to Sunday, UTC) is counted from the deliveries into
- * `obs_weekly`, by domain and answer state, and nothing else. Then what Heed caught goes into
+ * `obs_weekly`, by domain and answer state, and nothing else. Then what Footnote caught goes into
  * `obs_caught_weekly`: the saved questions whose answer changed after a change, by the change, and
  * the alerts raised and acted on, by rule; the last four weeks are counted again, as an alert may
  * be acted on up to 14 days after it was raised. Both functions run as the owner and are safe to

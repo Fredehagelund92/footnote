@@ -150,7 +150,7 @@ async function save(p: ProposalRecord, d: Draft) {
     return { statusCode: error.status, body: error.message, json: <T = unknown>() => answer as T }
   }
 }
-/** The live item as its page in Heed reads it. */
+/** The live item as its page in Footnote reads it. */
 const livePage = (id: string) =>
   app.inject({ url: `/api/v1/items/${id}/page`, headers: headers.author })
 

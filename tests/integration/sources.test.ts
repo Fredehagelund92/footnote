@@ -46,7 +46,7 @@ const logger = createLogger({
     },
   }),
 })
-const secretsDir = await mkdtemp(join(tmpdir(), 'heed-sources-secrets-'))
+const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-sources-secrets-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
 // The server's own source reads the fixture model, so a Git source of the same model collides.
 const registry = new ConnectorRegistry(
@@ -289,7 +289,7 @@ describe('sources an administrator adds', () => {
       )
     ).rows
     expect(snapshot).toEqual({ source_version: commit, cursor: commit })
-    // The model's `finance` is the Heed domain the source's domain names give it.
+    // The model's `finance` is the Footnote domain the source's domain names give it.
     const domains = await client.query<{ ref: string; area_hint: string | null }>(
       "select ref, area_hint from definitions where connector_id='analytics-in-git' order by ref",
     )

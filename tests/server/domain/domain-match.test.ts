@@ -15,7 +15,7 @@ import { terms } from './fixtures.ts'
 /*
   A domain created as "Stores & Suplliers", with a typo in its stored name, and asked for as
   "Stores & Suppliers", then "stores and suppliers". A domain is read by the words people use for
-  it, and Heed says once how it read them, noting a stored name that looks misspelt.
+  it, and Footnote says once how it read them, noting a stored name that looks misspelt.
 */
 
 const areas = [
@@ -138,7 +138,7 @@ describe('saying how a domain was read', () => {
     expect(note!.note).not.toMatch(/you|your|typo by/i)
   })
 
-  it('assumes neither spelling wrong when Heed knows neither word from elsewhere', () => {
+  it('assumes neither spelling wrong when Footnote knows neither word from elsewhere', () => {
     expect(
       misspeltWords('Stores & Suplliers', 'Stores & Suppliers', knownWords(['finance'])),
     ).toEqual([])

@@ -19,7 +19,7 @@ afterEach(async () => {
   await Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true })))
 })
 async function folder() {
-  const dir = await mkdtemp(join(tmpdir(), 'heed-secrets-'))
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-secrets-'))
   temporary.push(dir)
   return dir
 }

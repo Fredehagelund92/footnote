@@ -1,8 +1,8 @@
-# Heed front end: design contract v2
+# Footnote front end: design contract v2
 
 |             |                                                                                                                                                                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status      | v2, written from the approved Heed v1 mockup. It replaces Draft 1 (2026-10-07)                                                                                                                                                                                 |
+| Status      | v2, written from the approved Footnote v1 mockup. It replaces Draft 1 (2026-10-07)                                                                                                                                                                             |
 | Date        | 2026-10-25                                                                                                                                                                                                                                                     |
 | Applies to  | The React front end: Vite single-page app, shadcn on Base UI, Tailwind 4, Tiptap                                                                                                                                                                               |
 | Written for | Engineers and coding agents that build screens, and the people who review them                                                                                                                                                                                 |
@@ -11,7 +11,7 @@
 
 ## 0. One page summary
 
-**The look.** A quiet neutral app on shadcn's neutral theme. One accent, Heed blue, for the main button, focus, the selected place, ticked controls and links. Flat cells divided by hairlines. The sidebar sits on the page background. Colour carries meaning only, and always with an icon or a word.
+**The look.** A quiet neutral app on shadcn's neutral theme. One accent, Footnote blue, for the main button, focus, the selected place, ticked controls and links. Flat cells divided by hairlines. The sidebar sits on the page background. Colour carries meaning only, and always with an icon or a word.
 
 **The three radius rules.**
 
@@ -41,7 +41,7 @@
 
 ## 1. Authority and how to change this page
 
-**The web app leads, and the mockup is a reference.** The mockup is the Heed v1 mockup, in git history, under the tag `mockup-archive`. The app's Playwright job specs in `tests/e2e` and its unit tests are the golden checks (section 9). If this page differs from the app, this page is wrong and gets a fix in the same change. [The product page](../product.md) records the reference and lists the specs.
+**The web app leads, and the mockup is a reference.** The mockup is the Footnote v1 mockup, in git history, under the tag `mockup-archive`. The app's Playwright job specs in `tests/e2e` and its unit tests are the golden checks (section 9). If this page differs from the app, this page is wrong and gets a fix in the same change. [The product page](../product.md) records the reference and lists the specs.
 
 **The order of authority.** The app, then this contract and the product page, then the requirements specification. The requirements carry a status per id (kept, changed, withdrawn, new) so a reader knows which still stand.
 
@@ -59,7 +59,7 @@ All values live in one file, `src/web/styles/tokens.css`. A component depends on
 
 The theme is shadcn's neutral theme with these changes only:
 
-- the primary, the ring and the sidebar primary are Heed blue: `#2c5dbd` in light, `#7aa2f0` in dark;
+- the primary, the ring and the sidebar primary are Footnote blue: `#2c5dbd` in light, `#7aa2f0` in dark;
 - muted text is `#666666` in light and `#a3a3a3` in dark, so it keeps 4.5:1 on the muted surface;
 - input borders are `#8f8f8f` in light and `#6b6b6b` in dark, so fields, checkboxes and radios keep 3:1 on the page.
 
@@ -167,7 +167,7 @@ The chart tokens are the same in light and dark. One value differs from the mock
 **Colour rules.**
 
 - Colour is never the only sign. Every mark has an icon, a shape or a word as well (section 5 of [Accessibility](accessibility.md)).
-- The logo, the chrome's surfaces, counts and badges never take the accent. Nor does a state: a Checked answer is green in its chip, its bars and their legend, a card not opened yet has a dot in the ink, and a domain's dot and a metric chip keep 35 degrees of hue away from Heed blue (`lib/tones.ts`). A done step and a settled value are marked with a green check, never a blue one.
+- The logo, the chrome's surfaces, counts and badges never take the accent. Nor does a state: a Checked answer is green in its chip, its bars and their legend, a card not opened yet has a dot in the ink, and a domain's dot and a metric chip keep 35 degrees of hue away from Footnote blue (`lib/tones.ts`). A done step and a settled value are marked with a green check, never a blue one.
 - Kinds have no hue. A kind shows as a neutral icon.
 - Charts: green for checked context, amber for what to look at, greys for the rest, a hatch for Not found, so every state also differs by shape.
 - Marked text uses one component (`components/heed/mark.tsx`) and four roles. The colour rides on the ink, the weight and an underline, never on a fill:
@@ -240,7 +240,7 @@ Motion tokens are in [Motion](motion.md). **Focus** is one ring everywhere, shad
 
 ### 2.7 Icons and avatars
 
-Icons come from Lucide at its default stroke (2), through one module. No Heed marks for kinds or states, and no second icon set. The kinds are Event (lightning), Warning (triangle), Rule (ruler) and Guide (route). The definition types are sigma (metric), split (dimension), whole-word (term) and equals (synonym).
+Icons come from Lucide at its default stroke (2), through one module. No Footnote marks for kinds or states, and no second icon set. The kinds are Event (lightning), Warning (triangle), Rule (ruler) and Guide (route). The definition types are sigma (metric), split (dimension), whole-word (term) and equals (synonym).
 
 Avatars are a soft pastel tint picked from the person's name (dark initials, 6.4:1 or better, the same in dark mode). Sizes are 16, 20, 28 and 32 px (28 in lists). Initials are 12 px, at 28 and 32 px; a 16 or 20 px avatar has no room for them and shows its tint, with the name in its title. The Ask chat has no avatars: a question is its bubble on the right, and an answer starts with its state. The hash input in the real app stays the person's id.
 
@@ -303,7 +303,7 @@ One density. Rows are 36 px, the table header band is 36 px and sticky. There is
 
 ## 4. Components
 
-[Components](components.md) lists the shadcn primitives in use, the parts built for Heed and the mockup file each one comes from. Rules:
+[Components](components.md) lists the shadcn primitives in use, the parts built for Footnote and the mockup file each one comes from. Rules:
 
 - Reuse before you build. Name what you reused in the pull request. A new part goes into the inventory first.
 - shadcn parts stay as shadcn ships them. They live in `components/ui` and the shared lint skips them.
@@ -471,7 +471,7 @@ Light, dark and system, from a small menu at the right end of every header. `the
 
 1. **Tiptap in the first load.** The editor loads on demand (the comment box, the Ask composer and the document editors). Whether the Ask composer's editor can load later still, and what the first-load budget becomes if it does, is decided when the bundle is measured.
 2. **Virtual lists.** The mockup renders whole lists. The app virtualises past 200 rows against the pane scroller. This changes no pixels, and the rows and the keyboard cursor must behave the same.
-3. **Chip hues as tokens.** Settled: the chip tint and its ink are `bg-chip` and `text-chip-foreground`, drawn from the chip's own `--chip-h`. The hues of metric (110), dimension, market, term and warn are `--chip-h-*` tokens, and none is within 35 degrees of Heed blue; a domain's hue is its data. The token test checks every hue from 0 to 359 at 4.5:1 in both themes, so any domain hue is safe.
+3. **Chip hues as tokens.** Settled: the chip tint and its ink are `bg-chip` and `text-chip-foreground`, drawn from the chip's own `--chip-h`. The hues of metric (110), dimension, market, term and warn are `--chip-h-*` tokens, and none is within 35 degrees of Footnote blue; a domain's hue is its data. The token test checks every hue from 0 to 359 at 4.5:1 in both themes, so any domain hue is safe.
 4. **Right-to-left and other languages.** Out of scope for v1. Every vocabulary lives in one place per list so a later translation is possible.
 
 ## 11. Rules of Draft 1 that v2 withdraws
@@ -501,7 +501,7 @@ Light, dark and system, from a small menu at the right end of every header. `the
 | 21  | Motion 100, 150, 200 ms; ease-out (0.22, 1, 0.36, 1) and in-out; skeleton may loop                                                | The mockup's tokens and three tiers; nothing loops while nothing loads                                  |
 | 22  | Focus: 2 px outline with an offset, never a fill                                                                                  | Border in the ring colour and a 3 px ring at 50 percent                                                 |
 | 23  | Two shadows, raised and overlay                                                                                                   | Mostly flat; shadcn's shadows where a layer floats                                                      |
-| 24  | Icons at stroke 1.5 (1.75 under 14 px), with Heed marks for kinds and states                                                      | Lucide at stroke 2, no Heed marks                                                                       |
+| 24  | Icons at stroke 1.5 (1.75 under 14 px), with Heed marks for kinds and states                                                      | Lucide at stroke 2, no Footnote marks                                                                   |
 | 25  | Avatars: eight pastel pairs from the id; sizes 20, 28, 32, 36, 40                                                                 | A pastel tint from the name; sizes 16, 20, 28, 32; no avatars in the Ask chat                           |
 | 26  | An empty library has no start block                                                                                               | A setup checklist on a new install                                                                      |
 | 27  | Templates: list, document, overview, first-run, workbench                                                                         | The five layouts of section 3.8; the workbench is withdrawn                                             |

@@ -62,7 +62,7 @@ describe('the migration numbers of a change', () => {
 })
 
 describe('the check on a real git history', () => {
-  const root = mkdtempSync(join(tmpdir(), 'heed-migration-numbers-'))
+  const root = mkdtempSync(join(tmpdir(), 'footnote-migration-numbers-'))
   const script = fileURLToPath(new URL('../../scripts/check-migration-numbers.ts', import.meta.url))
   afterAll(() => rmSync(root, { recursive: true, force: true }))
   const git = (...args: string[]) => {

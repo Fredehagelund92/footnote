@@ -6,7 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { closeDock } from '@/lib/dock'
 import { Panel } from '@/components/heed/panel'
 
-// The dock: Heed's right panel. A region beside the page, not a dialog. 480 wide for Ask, a context
+// The dock: Footnote's right panel. A region beside the page, not a dialog. 480 wide for Ask, a context
 // peek, Try it and an agent's view; 720 for a review. On a phone it fills the screen.
 
 export function DockFrame({

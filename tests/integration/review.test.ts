@@ -250,7 +250,7 @@ async function recheck(item: string, who: Who = 'owner') {
   ).rows
   return { done: response.json<{ done: string[] }>().done.includes(item), edition: live!.reason }
 }
-/** The live item as its page in Heed reads it. */
+/** The live item as its page in Footnote reads it. */
 const page = async (item: string, who: Who = 'author') => {
   const response = await call('GET', `/items/${item}/page`, who)
   expect(response.statusCode, response.body).toBe(200)

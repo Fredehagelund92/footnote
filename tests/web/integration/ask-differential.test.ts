@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { people } from '@/api/mock/data/world'
-import type { HeedApi } from '@/api/client'
+import type { FootnoteApi } from '@/api/client'
 import type { RecordsFound } from '../../../src/domain/records-answer.ts'
 import { devPeople } from '../http/demo-week.ts'
 import { askWorld } from './ask-world.ts'
@@ -16,7 +16,7 @@ import { disclosure, type Cell } from './ask-disclosure.ts'
 
 const world = askWorld()
 
-const records = async (api: HeedApi, question: string): Promise<RecordsFound> => {
+const records = async (api: FootnoteApi, question: string): Promise<RecordsFound> => {
   const { records: found } = await api.ask({ question })
   if (!found || found.refused) throw new Error(`"${question}" was not answered from the records`)
   return found

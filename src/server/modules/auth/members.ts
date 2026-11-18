@@ -13,7 +13,7 @@ import { changeGrants, lockRoles } from './roles.ts'
 import { notAllowed } from '../../../contract/refusals.ts'
 
 /*
-  The people of a workspace as Heed v1 has them (docs/product.md, section 11): Admin or Member,
+  The people of a workspace as Footnote v1 has them (docs/product.md, section 11): Admin or Member,
   and the domains each owns. An administrator grant is Admin; everyone else is a Member. Making
   someone either ends an auditor grant they hold, as v1 has no auditor role; the approver role is
   a domain's and stays until risk levels go.

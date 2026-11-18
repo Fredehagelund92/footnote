@@ -282,7 +282,7 @@ const heldWordSchema = z.strictObject({
 /**
  * What the turn that asks which meaning of a word keeps of its question: the word, its meanings,
  * the rest of the reading as keys, the days it named (null when it named none) and any other word
- * still to ask about. Heed's own question comes from these, so the service checks them against
+ * still to ask about. Footnote's own question comes from these, so the service checks them against
  * the edition. Never stored.
  */
 export const heldReadingSchema = z.strictObject({

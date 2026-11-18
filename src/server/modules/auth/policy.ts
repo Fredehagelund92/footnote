@@ -51,7 +51,7 @@ export const policies = {
   'agentPolicies.state': 'admin',
   'agentPolicies.switch': 'admin',
   'me.get': 'read',
-  // People as Heed v1 has them: anyone signed in reads them and the open invites; the service and
+  // People as Footnote v1 has them: anyone signed in reads them and the open invites; the service and
   // row security let an owner invite a member to their own domains, and set its owners.
   'members.list': 'read',
   // What someone checked lately, of the items the reader may read.
@@ -111,7 +111,7 @@ export const policies = {
   'items.changes': 'read',
   'items.deleted': 'admin',
   'drafts.fromText': 'propose',
-  // The Inbox of Heed v1: the service narrows every card to the domains the person owns.
+  // The Inbox of Footnote v1: the service narrows every card to the domains the person owns.
   'inbox.feed': 'read',
   'inbox.names': 'read',
   'inbox.decideNames': 'propose',

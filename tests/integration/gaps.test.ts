@@ -437,7 +437,7 @@ describe("a gap's three states (FR-609, #201)", () => {
     await expect(
       client.query('update gaps set resolved_edition_seq=$2 where id=$1', [id, edition]),
     ).rejects.toMatchObject({ code: '23514' })
-    // A gap covered before Heed recorded the edition keeps none: unknown stays unknown.
+    // A gap covered before Footnote recorded the edition keeps none: unknown stays unknown.
     await setStatus(id, 'resolved')
     expect(
       (await client.query('select resolved_edition_seq from gaps where id=$1', [id])).rows,

@@ -8,10 +8,10 @@ import { loadDemo, type DemoCounts } from './seed/demo.ts'
 import { loadStory, norwayStop, type StoryCounts } from './seed/story.ts'
 
 /*
-  Gets Heed's database ready for the service: `npm run db:migrate`, and the container's start
+  Gets Footnote's database ready for the service: `npm run db:migrate`, and the container's start
   before the service (compose.yaml).
 
-  1. With DATABASE_URL_BOOTSTRAP, a superuser, it creates Heed's roles and the database
+  1. With DATABASE_URL_BOOTSTRAP, a superuser, it creates Footnote's roles and the database
      DATABASE_URL_MIGRATE names when they are missing. Without it, both must exist (db/README.md).
   2. As the owner, DATABASE_URL_MIGRATE, it applies the migrations not applied yet, then the grants.
   3. With SEED_DEMO=on it loads the demo into a database that holds nothing yet: the demo library

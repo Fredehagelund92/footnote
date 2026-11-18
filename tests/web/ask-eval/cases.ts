@@ -280,7 +280,7 @@ const followUps: EvalCase[] = [
     class: 'F',
     as: ML,
     source: 'harness',
-    what: 'A figure Heed does not keep, then what is written instead.',
+    what: 'A figure Footnote does not keep, then what is written instead.',
     turns: [
       { ask: 'is churn rate going up?' },
       { ask: 'ok, what is written about it then?', expect: { says: [CHURN_WORDS] } },

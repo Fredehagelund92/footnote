@@ -12,7 +12,7 @@ import { afterAll, describe, expect, it } from 'vitest'
   ceiling of 443 KB. Random bytes barely compress, so each file's size is about its gzip size.
 */
 
-const root = mkdtempSync(join(tmpdir(), 'heed-bundle-size-'))
+const root = mkdtempSync(join(tmpdir(), 'footnote-bundle-size-'))
 const script = fileURLToPath(new URL('../../scripts/check-bundle-size.mjs', import.meta.url))
 afterAll(() => rmSync(root, { recursive: true, force: true }))
 

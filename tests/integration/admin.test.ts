@@ -222,7 +222,7 @@ describe('settings and limits', () => {
     const [current] = (await ok<Setting[]>('GET', '/settings', 'admin')).filter(
       (s) => s.key === 'business.about',
     )
-    // A fresh Heed starts with no text (0009): versions nobody changed by hand, the last empty.
+    // A fresh Footnote starts with no text (0009): versions nobody changed by hand, the last empty.
     // The starter text is the guide's worked example, which a person may start from.
     expect(current).toMatchObject({ version: 2, value: '', changedBy: null, editable: true })
     expect((await serving.policy('claude-code')).about).toBe('')
@@ -293,7 +293,7 @@ describe('tool switch and client policies', () => {
       )
     ).rows
     // The six tools of the agent contract, every one on: suggest_context and get_related too
-    // (FR-121, FR-332 as changed for Heed v1).
+    // (FR-121, FR-332 as changed for Footnote v1).
     expect(tools.map((t) => t.tool)).toEqual([
       'find_context',
       'get_context',

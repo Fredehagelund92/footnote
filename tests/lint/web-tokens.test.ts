@@ -151,7 +151,7 @@ describe('src/web/styles/tokens.css holds every token of the design contract', (
       expect(theme[`--color-${name}`], name).toBeDefined()
   })
 
-  it('keeps Heed blue as the one primary, and the contrast changes to shadcn neutral', () => {
+  it('keeps Footnote blue as the one primary, and the contrast changes to shadcn neutral', () => {
     expect([light['--primary'], light['--ring'], light['--sidebar-primary']]).toEqual([
       '#2c5dbd',
       '#2c5dbd',

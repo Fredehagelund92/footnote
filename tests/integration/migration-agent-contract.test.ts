@@ -25,7 +25,7 @@ const six = [
 ]
 
 async function atVersion3() {
-  const before = await mkdtemp(join(tmpdir(), 'heed-migration-0003-'))
+  const before = await mkdtemp(join(tmpdir(), 'footnote-migration-0003-'))
   for (const name of [
     '0001_baseline.sql',
     '0002_edition_digest_byte_order.sql',
@@ -80,7 +80,7 @@ it('moves the switches, the policies, the limits and the request log to the six 
       'select tool, enabled from tool_config order by tool',
     )
     // A merged tool is on where either tool it replaces was on, and suggest_context is on for
-    // Heed v1; get_related too, but an admin switched it off on purpose, so it stays off.
+    // Footnote v1; get_related too, but an admin switched it off on purpose, so it stays off.
     expect(tools.rows).toEqual(six.map((tool) => ({ tool, enabled: tool !== 'get_related' })))
 
     const policies = await client.query<{ label: string; tools: string[] | null }>(

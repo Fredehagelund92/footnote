@@ -1,5 +1,5 @@
 /**
- * The settings that were named `CL_*` before Heed 0.1.0 and are `HEED_*` since, the rest of each
+ * The settings that were named `CL_*` before Footnote 0.1.0 and are `HEED_*` since, the rest of each
  * name unchanged. For one release an old name still works when its new name is unset, and the
  * process that reads it says so once; the release after that reads the new names only
  * (docs/contributing/internals.md, "Settings named CL_ before 0.1.0"). This table is the only code

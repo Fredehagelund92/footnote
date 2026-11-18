@@ -1,12 +1,12 @@
 # The demo world: an outdoor-gear retailer
 
-This page describes Heed's demo world: an invented outdoor-gear retailer, **Larchwood Outdoor**.
+This page describes Footnote's demo world: an invented outdoor-gear retailer, **Larchwood Outdoor**.
 The demo data, the Cube demo model, the golden set and the test questions all tell this one
 world. New demo text keeps to it (section 14).
 
 The words follow the copy guide (`docs/design/copy.md`) and the glossary (`src/domain/words.ts`).
 
-The Heed v1 mockup tells the same world in its own fixtures: 22 context items, 18 Inbox cards, 12 reviews, 12 saved questions, 10 topics, 8 alert rules, 22 metrics, 5 dimensions, 13 terms and 14 people. They become the mock data of the new web app ([the product page](../product.md), section 14). The people, the domains and the Norway story match this page. Where the two lists differ in count, the mockup's fixtures are the demo data of the new web app, and the seed described here stays the service's until the two are brought together.
+The Footnote v1 mockup tells the same world in its own fixtures: 22 context items, 18 Inbox cards, 12 reviews, 12 saved questions, 10 topics, 8 alert rules, 22 metrics, 5 dimensions, 13 terms and 14 people. They become the mock data of the new web app ([the product page](../product.md), section 14). The people, the domains and the Norway story match this page. Where the two lists differ in count, the mockup's fixtures are the demo data of the new web app, and the seed described here stays the service's until the two are brought together.
 
 ## 1. The rules the demo text keeps
 
@@ -28,7 +28,7 @@ The Heed v1 mockup tells the same world in its own fixtures: 22 context items, 1
    "deliveries stopped": the show's step 6 stops sharing a context item, and the two would read
    as one thing. The words "item", "term" and "member" were banned too. The glossary v2 of
    [Copy](copy.md) lifts that ban, because "context item", "term" and "Member" are product
-   words in Heed v1. `src/domain/words.ts` holds glossary v2, which the service's own sentences follow too. Metric names such as "Units per order"
+   words in Footnote v1. `src/domain/words.ts` holds glossary v2, which the service's own sentences follow too. Metric names such as "Units per order"
    and "On-time shipping rate" keep their names, since the tests name them.
 5. **The draft rules must read the kind.** The kind of a drafted fact comes from its first
    sentence (`kindByRule`, `src/domain/agent-draft.ts`). An event needs a date ("on 4 August
@@ -183,7 +183,7 @@ Britain and UK), the Netherlands (`netherlands`), Italy (`italy`), Canada (`cana
 States (`united_states`, USA and United States of America), Sweden (`sweden`) and Mexico
 (`mexico`). A market is a whole country, never a state, region, province or city. Prose puts
 "the" before the United Kingdom, the Netherlands and the United States ("orders in the
-Netherlands"); a label or a scope does not ("Market Netherlands"), and neither does the text Heed
+Netherlands"); a label or a scope does not ("Market Netherlands"), and neither does the text Footnote
 builds from a name ("Which facts apply to Orders in Netherlands"). What happens in a market (a
 stop, a VAT rate, a regulator's pause) is invented, as everything else in the demo is.
 

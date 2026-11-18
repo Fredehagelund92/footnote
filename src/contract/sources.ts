@@ -176,7 +176,7 @@ export const testSourceSchema = z.strictObject({
 
 /**
  * What a test found: the connector's check, step by step in its own words (reach, sign in,
- * sample), whether Heed can read the source, the
+ * sample), whether Footnote can read the source, the
  * version it read and what it would hold, with the warnings of the read (codes and targets
  * only). A failed test says why in its warnings.
  */

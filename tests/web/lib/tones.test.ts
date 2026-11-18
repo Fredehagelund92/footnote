@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { chipTone, domainHue, toneHue } from '@/lib/tones'
 
-// Blue is for acting and for what is selected (design contract 2.1): no domain's dot is Heed blue,
+// Blue is for acting and for what is selected (design contract 2.1): no domain's dot is Footnote blue,
 // whose hue is 262 in oklch in both themes.
 const apart = (h: number) => Math.min(Math.abs(h - 262), 360 - Math.abs(h - 262))
 

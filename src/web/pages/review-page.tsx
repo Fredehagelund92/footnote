@@ -693,7 +693,7 @@ function TheChange({
   )
 }
 
-/** Where a synced suggestion came from: the document, the quote Heed kept, and what the source does not set. */
+/** Where a synced suggestion came from: the document, the quote Footnote kept, and what the source does not set. */
 function SyncedFrom({ r }: { r: Review }) {
   const s = r.synced!
   return (
@@ -925,7 +925,7 @@ function ClashPair({
   )
 }
 
-/** Try it: Heed's answer from the context, with the draft or as published. */
+/** Try it: Footnote's answer from the context, with the draft or as published. */
 function TryItPanel({ r, now }: { r: Review; now?: string }) {
   const { cards } = useInbox()
   const [version, setVersion] = React.useState<'draft' | 'published'>('draft')

@@ -81,7 +81,7 @@ describe('the release notes', () => {
   it('say what a 0.x release is for, then list the changes and the images', () => {
     expect(notes).toBe(
       [
-        'Heed 0.2 is for trying Heed on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/Fredehagelund92/heed/blob/v0.2.0/README.md#quick-start) at this tag.',
+        'Footnote 0.2 is for trying Footnote on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/Fredehagelund92/heed/blob/v0.2.0/README.md#quick-start) at this tag.',
         '',
         changelogSection(changelog, '0.2.0'),
         '',

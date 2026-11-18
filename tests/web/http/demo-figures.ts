@@ -9,7 +9,7 @@ import { seedDemoWarehouse } from '../../server/connectors/demo-warehouse.ts'
   Figures in Ask in the demo week, as the mock has them (data/integrations.ts): Cube's data
   endpoint set, Ravi Kapoor its data contact, and Show figures in Ask off until an admin switches
   it on. Only Cube is a stand-in: a Cube on this machine (tests/server/connectors/cube-server.ts)
-  over the demo warehouse, in a PostgreSQL database of its own beside Heed's, with a token invented
+  over the demo warehouse, in a PostgreSQL database of its own beside Footnote's, with a token invented
   when it starts. The service keeps the token in a secret store of its own that holds that one
   token, as the server's store would.
 */

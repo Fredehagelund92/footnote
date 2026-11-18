@@ -35,7 +35,7 @@ it('migrates a new database once, and leaves the demo out beside another model o
   await client.query('reset role')
   expect(await isEmpty(client)).toBe(true)
 
-  const model = await mkdtemp(join(tmpdir(), 'heed-model-'))
+  const model = await mkdtemp(join(tmpdir(), 'footnote-model-'))
   try {
     await cp(demoModelDir, model, { recursive: true })
     await writeFile(join(model, 'orders.yml'), '# my own model\n', { flag: 'a' })

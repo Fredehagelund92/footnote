@@ -191,7 +191,7 @@ describe('a person connects their own AI client', () => {
       ).status,
     ).toBe(400)
 
-    // A third sign-in, listed for the person and disconnected from Heed.
+    // A third sign-in, listed for the person and disconnected from Footnote.
     const third2 = await signInFlow(clientId)
     const kept = await exchange(clientId, third2.code!, third2.verifier)
     const listedApps = (await (await third2.person.api('/connections')).json()) as {

@@ -1,4 +1,4 @@
-import type { HeedApi } from '@/api/client'
+import type { FootnoteApi } from '@/api/client'
 import type { AnswerState } from '@/model/ask'
 
 /*
@@ -9,7 +9,7 @@ import type { AnswerState } from '@/model/ask'
 */
 
 /** Who asks: their name, and the app's own binding signed in as them. */
-export type Reader = { name: string; api: HeedApi }
+export type Reader = { name: string; api: FootnoteApi }
 
 /** One reply, as the person reads it, with what the answerer read to write it. */
 export type Reply = {

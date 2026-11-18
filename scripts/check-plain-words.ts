@@ -9,7 +9,7 @@ import { compareToBaseline, countWords, type WordCounts } from './plain-words-ba
 /*
   The checks on the words people read (docs/design/copy.md, "The voice"), run in CI after the
   lint: `npm run lint:words`. The web app in src/web is held to glossary v2 with no baseline: any
-  word heed/plain-words reports there fails. The rest are ratchets. They count, for each file,
+  word footnote/plain-words reports there fails. The rest are ratchets. They count, for each file,
   what a rule reports in the code, and compare the counts with a baseline, word by word. A count
   that rises fails, and so does a file that is new with a hit, so no change adds to the drift. A
   fall is only a note: a baseline is lowered with --update whenever it suits, and no change has to
@@ -31,8 +31,8 @@ const copyBaselineFile = join(root, 'copy-checks.baseline.json')
 
 /** The rules counted in copy-checks.baseline.json, by the name they are reported under. */
 const copyRules = [
-  'heed/plain-words-wide',
-  'heed/plain-words-v2',
+  'footnote/plain-words-wide',
+  'footnote/plain-words-v2',
   'copy/whole-sentences',
   'copy/sentence-length',
   'copy/one-word-one-thing',
@@ -52,11 +52,11 @@ type Finding = {
 }
 type CopyCounts = Record<string, WordCounts>
 
-/** What heed/plain-words and the ratchets report in the code. Only that rule runs, so no type information is read. */
+/** What footnote/plain-words and the ratchets report in the code. Only that rule runs, so no type information is read. */
 async function codeFindings(): Promise<Finding[]> {
   const eslint = new ESLint({
     cwd: root,
-    ruleFilter: ({ ruleId }) => ruleId === 'heed/plain-words' || copyRules.includes(ruleId),
+    ruleFilter: ({ ruleId }) => ruleId === 'footnote/plain-words' || copyRules.includes(ruleId),
     overrideConfig: [
       { languageOptions: { parserOptions: { projectService: false } } },
       ...copyRatchetConfigs,
@@ -76,7 +76,7 @@ async function codeFindings(): Promise<Finding[]> {
     result.messages
       .filter(
         (message) =>
-          message.ruleId === 'heed/plain-words' || copyRules.includes(message.ruleId ?? ''),
+          message.ruleId === 'footnote/plain-words' || copyRules.includes(message.ruleId ?? ''),
       )
       .map((message) => ({
         rule: message.ruleId ?? '',
@@ -100,13 +100,13 @@ const print = (findings: readonly Finding[]) => {
 
 const args = process.argv.slice(2)
 const all = await codeFindings()
-const findings = all.filter(({ rule }) => rule === 'heed/plain-words')
+const findings = all.filter(({ rule }) => rule === 'footnote/plain-words')
 const counts = countWords(findings)
 const total = findings.length
 
 /** The findings of the copy rules, less the notes, counted by rule. */
 const copyFindings = all.filter(
-  ({ rule, found }) => rule !== 'heed/plain-words' && !noteOnly.has(found),
+  ({ rule, found }) => rule !== 'footnote/plain-words' && !noteOnly.has(found),
 )
 const notes20 = all.filter(({ found }) => noteOnly.has(found))
 const copyCounts = (): CopyCounts =>

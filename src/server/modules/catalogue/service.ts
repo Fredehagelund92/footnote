@@ -24,7 +24,7 @@ const withoutRemoved = <T extends { removed: boolean }>({ removed: _removed, ...
 /**
  * The catalogue read model (FR-136): the live vocabulary's metrics and dimensions, joined to what
  * the definition source last read (the `definitions` the connectors store) and to what the
- * library holds about each term. Read only. Heed stores no calculation (CON-207), so nothing
+ * library holds about each term. Read only. Footnote stores no calculation (CON-207), so nothing
  * here can return one.
  *
  * It reads as the library does: items for everyone only, while groups are parked (FR-128). A

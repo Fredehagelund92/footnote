@@ -100,7 +100,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
   let app: ReturnType<typeof buildApp>
 
   beforeAll(async () => {
-    keyDir = await mkdtemp(join(tmpdir(), 'heed-oauth-'))
+    keyDir = await mkdtemp(join(tmpdir(), 'footnote-oauth-'))
     keys = await loadKeyRing({
       file: join(keyDir, 'oauth.pem'),
       previousFiles: [],

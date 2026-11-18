@@ -30,7 +30,7 @@ import {
   dayWords,
   readPeriodWords,
   UTC_CALENDAR,
-  whatHeedReads,
+  whatFootnoteReads,
   windowWords,
   type Calendar,
 } from '../../domain/dates.ts'
@@ -112,18 +112,18 @@ export type ToolResult = {
   isError?: boolean
 }
 /**
- * FR-347: the page of an item in Heed, for the person who reads an answer to check a cited item in
+ * FR-347: the page of an item in Footnote, for the person who reads an answer to check a cited item in
  * one click: on the web app's address, or a path on it without one. Only the id, which the result
  * shows already: the page applies the audience rules to whoever opens it.
  */
 export const itemUrl = (web: string | null, id: string) =>
   `${web ?? ''}/context/${encodeURIComponent(id)}`
-/** The page of a definition in Heed, by its name (docs/product.md, section 5): where a person reads a term. */
+/** The page of a definition in Footnote, by its name (docs/product.md, section 5): where a person reads a term. */
 export const definitionUrl = (web: string | null, name: string) =>
   `${web ?? ''}/definitions/${encodeURIComponent(name)}`
 /**
  * One line per delivered item, per section of a help page and per term, after the JSON: where a
- * person opens it in Heed (FR-347, FR-348).
+ * person opens it in Footnote (FR-347, FR-348).
  */
 function openLines(output: Record<string, unknown>): string[] {
   const context = output.context
@@ -272,7 +272,7 @@ export function scopeOf(
       field: 'dates',
       input: words,
       options: [],
-      message: `'${words}' cannot be read as dates. ${whatHeedReads(today)}`,
+      message: `'${words}' cannot be read as dates. ${whatFootnoteReads(today)}`,
     }
     const others = scope.status === 'need_more_detail' ? scope.issues : []
     return { scope: { status: 'need_more_detail', issues: [...others, issue] }, period: null }
@@ -627,7 +627,7 @@ export function createToolService(
 
   /**
    * find_context's reply: what it found, with each item as the agent contract gives it (titles
-   * and summaries, never a body) under context, with its page in Heed.
+   * and summaries, never a body) under context, with its page in Footnote.
    */
   function contextFound(
     body: ReturnType<typeof findContext>,
@@ -800,7 +800,7 @@ export function createToolService(
         const { scope, period } = scopeOf(scoped, bundle, today, calendar)
         const assumed =
           scope.status === 'resolved' && scope.assumed ? assumedDate(scope.assumed) : null
-        // How Heed read the dates in the question's words, said with the scope (FR-304).
+        // How Footnote read the dates in the question's words, said with the scope (FR-304).
         // The person's period words, read loosely, say how the same way (R11).
         const read =
           (scope.status === 'resolved' && scope.dates) ||
@@ -867,7 +867,7 @@ export function createToolService(
           }
         })
         // A definition question gets the definitions first: the source's words, where they come
-        // from and what Heed adds, as find_context gives them (FR-338). A cut never takes them.
+        // from and what Footnote adds, as find_context gives them (FR-338). A cut never takes them.
         const defined =
           resolution.scope && asksDefinition(scoped.question)
             ? [...asked]

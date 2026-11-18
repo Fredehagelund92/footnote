@@ -29,7 +29,7 @@ export type AgentDraftRequest = {
   marks: Partial<Record<MarkedField, FieldMark>>
   /** The assistant's own source words per field, kept on the draft's history (FR-707). */
   sources?: Record<string, string>
-  /** Evidence the assistant took from web pages Heed read, with the automatic quote match. */
+  /** Evidence the assistant took from web pages Footnote read, with the automatic quote match. */
   external?: readonly ExternalSource[]
   /** The person was unsure of the dates, or gave none: the draft's dates are flagged. */
   datesUncertain?: boolean

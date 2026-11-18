@@ -5,7 +5,7 @@ import { tools, toolInputSchema, type ToolName } from './tools.ts'
 /*
   A tool call whose arguments do not fit the tool's input schema (FR-345).
   The SDK would answer with its own validation text, which names a field but not what to send, and
-  the request log would count the call as Heed's error. Instead the tool's schema lets the call
+  the request log would count the call as Footnote's error. Instead the tool's schema lets the call
   through marked, and the tool answers with an error a model can correct from: what was wrong with
   each field, the fields the tool takes, and one valid call. The request log counts it as
   `invalid_input`, apart from `error`. Nothing here repeats what the model sent: a field is named,

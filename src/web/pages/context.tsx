@@ -88,7 +88,7 @@ import { useRoute } from '@/lib/router'
 import { useSelection } from '@/hooks/use-selection'
 import { ContextBulk } from '@/components/heed/context-bulk'
 
-// Context: what agents should know, as a compact list like the Heed app's. One quiet bar (All or
+// Context: what agents should know, as a compact list like the Footnote app's. One quiet bar (All or
 // Conflicts, Filter, Sort, Group, the archived note, search, count), the filters that are on as
 // sentences under it, a thin header, and rows of one line at one density, in the list columns'
 // design B: the kind as an icon before the title, the scope in its own column at wide widths, the
@@ -101,7 +101,7 @@ const KINDS = Object.keys(kindLabel) as Kind[]
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 
-/** The sorts, each with its direction in words, as the Heed app says them. */
+/** The sorts, each with its direction in words, as the Footnote app says them. */
 const SORTS = {
   checked: {
     label: 'Last checked',
@@ -248,7 +248,7 @@ export function ContextPage() {
   const rowKeys = useRowKeys({
     rows: { order, reveal: (id, then) => drawn.current?.reveal(id, then) },
     onMove: (id) => peeked && openDock('context', id),
-    // Escape closes the peek first, then clears the selection, as in the Heed app.
+    // Escape closes the peek first, then clears the selection, as in the Footnote app.
     onEscape: () => {
       if (peeked) closeDock()
       else if (sel.count) sel.clear()

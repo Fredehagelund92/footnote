@@ -32,7 +32,7 @@ import { apiDatabase, testDatabase } from './support.ts'
 const { client, url } = testDatabase()
 const logger = createLogger({ level: 'silent' })
 const clock = systemClock('2026-10-08')
-const keys = await mkdtemp(join(tmpdir(), 'heed-compose-keys-'))
+const keys = await mkdtemp(join(tmpdir(), 'footnote-compose-keys-'))
 await chmod(keys, 0o755)
 const secretsDir = join(keys, 'secrets')
 

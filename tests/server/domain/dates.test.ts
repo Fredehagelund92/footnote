@@ -9,7 +9,7 @@ import {
   monthWords,
   otherReading,
   readDates,
-  whatHeedReads,
+  whatFootnoteReads,
 } from '../../../src/domain/dates.ts'
 import { anyDate, shiftDate } from '../../../src/domain/validity.ts'
 import { normalizeName } from '../../../src/domain/vocabulary.ts'
@@ -284,7 +284,7 @@ describe('the periods a question names', () => {
   })
 })
 
-describe('dates Heed cannot read', () => {
+describe('dates Footnote cannot read', () => {
   const golden = '2026-10-07'
   const reads =
     'The dates that can be read: a day (7 Oct 2026), a range of days (1-30 Sep 2026), a month (September 2026), a quarter (Q3 2026), a year (2026), this, last or next week, month, quarter or year, year to date, and the last 30 days. Ask with one of these, or pass window with from and to.'
@@ -329,7 +329,7 @@ describe('dates Heed cannot read', () => {
   })
 
   it('counts its examples from today', () => {
-    expect(whatHeedReads('2027-01-03')).toBe(
+    expect(whatFootnoteReads('2027-01-03')).toBe(
       'The dates that can be read: a day (3 Jan 2027), a range of days (1-31 Dec 2026), a month (December 2026), a quarter (Q4 2026), a year (2027), this, last or next week, month, quarter or year, year to date, and the last 30 days. Ask with one of these, or pass window with from and to.',
     )
   })
@@ -635,7 +635,7 @@ describe('loose dates, as Ask reads them', () => {
   })
 })
 
-// Period slice R1: the read line says how the dates were read, beside the days, only where Heed
+// Period slice R1: the read line says how the dates were read, beside the days, only where Footnote
 // guessed; the days and the time zone it never repeats.
 describe('the note a person reads beside the days', () => {
   const today = '2026-10-23'

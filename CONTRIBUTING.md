@@ -8,7 +8,7 @@ open an issue: [SECURITY.md](SECURITY.md) says how to tell us privately.
 
 ## Ways to help
 
-1. **Add a connector.** This is the most useful change you can send. A connector teaches Heed to
+1. **Add a connector.** This is the most useful change you can send. A connector teaches Footnote to
    read a tool your team uses, and it stays inside one folder. [Build a connector](docs/connectors/authoring.md)
    is written so a coding agent can follow it from top to bottom: see
    [Write a connector with a coding agent](#write-a-connector-with-a-coding-agent).
@@ -32,7 +32,7 @@ the guide. Open an issue with the **A connector** template first, so nobody buil
 twice, then give your agent this:
 
 ```text
-Add a definitions connector for <the tool> to Heed.
+Add a definitions connector for <the tool> to Footnote.
 Read docs/connectors/authoring.md and follow it from top to bottom.
 Copy src/connectors/_template. Keep the tool's name inside the new folder.
 Use invented fixtures only, and make no live calls in tests.
@@ -71,22 +71,22 @@ npm ci                                # exact, locked versions
 npx playwright install chromium       # once, for the browser tests
 ```
 
-Heed is one npm package, not a workspace. The layout is in the
+Footnote is one npm package, not a workspace. The layout is in the
 [folder map](docs/development.md#folder-map); the short version:
 
-| Folder              | What is in it                                                                    |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `src/web`           | The web app (React). Pages in `pages`, routes in `routes`, data in `api`         |
-| `src/server`        | The Heed service (Fastify, PostgreSQL 18), one folder per feature in `modules`   |
-| `src/domain`        | The item model and the words, pure code shared by both sides                     |
-| `src/contract`      | The API, defined once and used by the service and the app                        |
-| `tests/web`         | Unit tests for the web app, and the `HeedApi` suite that both bindings must pass |
-| `tests/server`      | Unit tests for the service and the domain, without a database                    |
-| `tests/integration` | The service against a real PostgreSQL 18                                         |
-| `tests/e2e`         | Browser tests: the golden journeys and axe, on the mock build and in http mode   |
-| `db`                | Migrations, grants and the demo data (`db/seed`)                                 |
-| `docs`              | Everything written about Heed; `docs/help` is also the app's own Docs            |
-| `apps/docs`         | The public docs site, built from the Markdown in `docs`                          |
+| Folder              | What is in it                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `src/web`           | The web app (React). Pages in `pages`, routes in `routes`, data in `api`             |
+| `src/server`        | The Footnote service (Fastify, PostgreSQL 18), one folder per feature in `modules`   |
+| `src/domain`        | The item model and the words, pure code shared by both sides                         |
+| `src/contract`      | The API, defined once and used by the service and the app                            |
+| `tests/web`         | Unit tests for the web app, and the `FootnoteApi` suite that both bindings must pass |
+| `tests/server`      | Unit tests for the service and the domain, without a database                        |
+| `tests/integration` | The service against a real PostgreSQL 18                                             |
+| `tests/e2e`         | Browser tests: the golden journeys and axe, on the mock build and in http mode       |
+| `db`                | Migrations, grants and the demo data (`db/seed`)                                     |
+| `docs`              | Everything written about Footnote; `docs/help` is also the app's own Docs            |
+| `apps/docs`         | The public docs site, built from the Markdown in `docs`                              |
 
 ## Run it
 
@@ -122,7 +122,7 @@ Or run all of it in containers with `docker compose up` (http://localhost:8080).
 | `npm run test:e2e`         | The golden journeys and axe on the mock build                                      |
 | `npm run api:generate`     | Rewrites the generated API files after you change `src/contract`                   |
 
-[Develop Heed](docs/development.md#commands) lists every command, and [Tests](docs/testing.md)
+[Develop Footnote](docs/development.md#commands) lists every command, and [Tests](docs/testing.md)
 says what each suite covers.
 
 ## Run the golden journeys
@@ -139,7 +139,7 @@ npm run test:e2e:seed                 # the web app on what docker compose up gi
 
 The http run needs a local PostgreSQL 18 and a superuser connection in `GOLDEN_DATABASE_URL`
 (default: `TEST_DATABASE_URL`, then the local server); the seed run reads `E2E_DATABASE_URL`. Both
-are explained in [Develop Heed](docs/development.md#run-the-web-app-on-the-service). A new screen
+are explained in [Develop Footnote](docs/development.md#run-the-web-app-on-the-service). A new screen
 or state gets its own journey, and axe runs on every place at 390 and 1440 wide, in light and
 dark.
 
@@ -187,7 +187,7 @@ same build, so go by the numbers CI prints.
   and tested, do the words follow the glossary, do the screens follow the design contract.
 - Push fixes as new commits while a review is open. The history on `main` is one commit per pull
   request, titled like `feat(web): ...`, `fix(server): ...` or `docs: ...`. The title is also the
-  line in `CHANGELOG.md` and the release notes ([Releasing Heed](docs/releasing.md)).
+  line in `CHANGELOG.md` and the release notes ([Releasing Footnote](docs/releasing.md)).
 - Rebase on `main` when it moves, and regenerate generated files rather than merging them by hand.
 
 ## Using a coding agent
@@ -219,7 +219,7 @@ request and explain why; do not work around it.
 
 ## Which rules apply
 
-The web app (`src/web`) leads; the approved Heed v1 mockup it was built from is a reference in
+The web app (`src/web`) leads; the approved Footnote v1 mockup it was built from is a reference in
 git history, under the tag `mockup-archive`. The app's rules are in
 [the design contract v2](docs/design/design-contract.md), with [motion](docs/design/motion.md),
 [copy](docs/design/copy.md), [accessibility](docs/design/accessibility.md) and
@@ -292,9 +292,9 @@ component. In hand-written CSS, colour, spacing, radius, type size and shadow mu
 
 ## Data
 
-The app talks to `src/web/api`: one interface, `HeedApi` (`client.ts`), with a mock binding over
-the demo world (`api/mock`) and an http binding to the Heed service (`http.ts`). Add a method to
-`HeedApi` and `heedApiMethods`, implement it in both bindings, and read it through a query option
+The app talks to `src/web/api`: one interface, `FootnoteApi` (`client.ts`), with a mock binding over
+the demo world (`api/mock`) and an http binding to the Footnote service (`http.ts`). Add a method to
+`FootnoteApi` and `footnoteApiMethods`, implement it in both bindings, and read it through a query option
 in `api/queries.ts`. Do not call `fetch` from a component.
 
 A change goes through `useApiWrite` or `useWrite` in `api/queries.ts`: it refreshes what the change
@@ -305,7 +305,7 @@ suite (`tests/web/conformance/heed-api.ts`), which runs against both.
 
 ## Module boundaries
 
-The repository holds the web app and the service (Heed) side by side. `eslint.boundaries.js`
+The repository holds the web app and the service (Footnote) side by side. `eslint.boundaries.js`
 keeps the parts apart, and `tests/lint/boundaries.test.ts` proves each rule still fails.
 
 | Part                        | May import                                                                               |
@@ -333,7 +333,7 @@ attribute of a proposal is decided once, in `src/domain/proposal-attributes.ts`:
 - its limits and whether it is required, which the item version schema, the draft schema, the
   form's checks and the tool's input schema all read (never copy a number);
 - the editor's fields that edit it, or why the editor has none;
-- how `suggest_context` treats it: `derived` (Heed works it out exactly), `defaulted` (the
+- how `suggest_context` treats it: `derived` (Footnote works it out exactly), `defaulted` (the
   documented default, which only people change), `prefilled` (the agent suggests, the person
   confirms) or `never_inferred` (people decide it), with the marks its drafts may carry, the tool
   inputs that may suggest it and the questions that may ask the person for it;

@@ -1,5 +1,5 @@
 import { domains } from '@/api/mock/data/world'
-import type { HeedApi } from '@/api/client'
+import type { FootnoteApi } from '@/api/client'
 import { ALL_VALUES, type ObsData } from '@/model/observability'
 
 /*
@@ -25,7 +25,7 @@ const stricter = (a: Cell, b: Cell): Cell => {
 
 export const ADMIN = 'Ravi Kapoor'
 
-export function disclosure(as: (name: string) => Promise<HeedApi>) {
+export function disclosure(as: (name: string) => Promise<FootnoteApi>) {
   /** A person's own page, by what Ask names each subject, or null for someone who has no page. */
   const pageOf = async (name: string) => {
     const api = await as(name)

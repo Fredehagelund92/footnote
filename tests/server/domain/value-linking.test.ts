@@ -12,7 +12,7 @@ import { PLAN_NOW, PLAN_TODAY, planBundle } from '../../../src/server/modules/an
 /*
   Golden questions for value linking, slice V1: how the scope reader reads value words, by fixed
   rules and with no model. Each is a question and the reading it must give: a value read, a word
-  with several meanings asked about, or a word where a value goes that Heed has no value for ("no
+  with several meanings asked about, or a word where a value goes that Footnote has no value for ("no
   such value": the answer is Not found, and nothing about another value applies). The lines marked
   "was:" are the probe of the value-linking study (10 Nov 2026) that read wrong before V1: they are
   the regression tests. Invented names; the last part runs PR 180's checks on the Larchwood names.
@@ -461,7 +461,7 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
   }
 
   it.each([
-    // An independent check of PR 185 (2026-11-10) found these read as a value Heed does not have.
+    // An independent check of PR 185 (2026-11-10) found these read as a value Footnote does not have.
     // Before a metric: an order's state, or a verb after a question word.
     'cancelled orders',
     'pending orders',
@@ -493,7 +493,7 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
     'are orders going to recover in Spain?',
     'are orders going to bounce back in Spain?',
     'is support quicker at clearing the sales inbox?',
-  ])('reads "%s" with no value Heed does not have', (question) => {
+  ])('reads "%s" with no value Footnote does not have', (question) => {
     expect(asked(question).filter((said) => /no value/.test(said))).toEqual([])
   })
 
@@ -513,7 +513,7 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
     'orders to ahmed',
     'orders from fred',
     'orders in alfred',
-  ])('still says "%s" names a value Heed does not have', (question) => {
+  ])('still says "%s" names a value Footnote does not have', (question) => {
     expect(asked(question).filter((said) => /no value/.test(said))).toHaveLength(1)
   })
 
@@ -524,6 +524,7 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
     'orders in absolute numbers',
     'orders in plain words',
     'discount cost in campaigns',
+    'orders in footnote',
     'orders in heed',
     'orders in stores',
     'orders in black friday week',

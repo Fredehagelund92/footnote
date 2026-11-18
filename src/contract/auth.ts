@@ -39,7 +39,7 @@ export const assignmentInputSchema = z.extend(roleInputSchema, {
   areaId: z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/)),
   role: areaRoleSchema,
 })
-/** One change of a batch: give or remove a role across Heed, or a role in one area. */
+/** One change of a batch: give or remove a role across Footnote, or a role in one area. */
 const op = z.enum(['grant', 'revoke'])
 export const grantChangeSchema = z.union([
   z.strictObject({ op, personId: z.uuid(), role: globalRoleSchema }),

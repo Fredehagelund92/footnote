@@ -36,7 +36,7 @@ describe('the demo Cube model', () => {
         baseName: null,
       })),
     )
-    // Heed keeps no calculation and no table (CON-207).
+    // Footnote keeps no calculation and no table (CON-207).
     expect(JSON.stringify(snapshot)).not.toMatch(/SUM\(|NULLIF|demo\.|_eur\b/)
   }, 30_000)
 

@@ -22,7 +22,7 @@ async function upTo(
   client: pg.Client,
   before: (client: pg.Client) => Promise<void> = async () => {},
 ) {
-  const dir = await mkdtemp(join(tmpdir(), 'heed-migration-0009-'))
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-migration-0009-'))
   const names = (await readdir(migrationDirectory)).filter((n) => /^000[1-9]_.*\.sql$/.test(n))
   for (const name of names) await copyFile(new URL(name, migrationDirectory), join(dir, name))
   expect(await migrate(client, pathToFileURL(`${dir}/`))).toBe(9)

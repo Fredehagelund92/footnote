@@ -88,9 +88,9 @@ export function tokensCss(source: string): string {
 const id = 'virtual:heed-tokens.css'
 
 /** Serves the tokens as a stylesheet of their own, in `npm run dev` and in the build. */
-export function heedTokens(): Plugin {
+export function footnoteTokens(): Plugin {
   return {
-    name: 'heed-tokens',
+    name: 'footnote-tokens',
     resolveId: (source) => (source === id ? `\0${id}` : undefined),
     load(source) {
       if (source !== `\0${id}`) return undefined

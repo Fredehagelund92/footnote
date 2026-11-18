@@ -170,7 +170,7 @@ export async function lockRoles(tx: Queryable) {
  * size. Removals come first, so a batch that removes an
  * area's owner and gives the role to someone else replaces them at the same instant, with no
  * moment the area has none. An administrator removing their own administrator role comes last:
- * row security refuses every later change once they no longer hold it. Heed keeps an active
+ * row security refuses every later change once they no longer hold it. Footnote keeps an active
  * administrator after the whole batch, so a batch may hand the role from one person to another.
  *
  * `batchId` is null for a single change through `roles.*` and `assignments.*`; `grants.apply`

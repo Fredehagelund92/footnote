@@ -7,7 +7,7 @@ Rules:
 - **Reuse before you build.** Look here first, then in shadcn's registry. Name what you reused in the pull request.
 - **A new part goes into this list first**, in the same pull request that adds it.
 - **shadcn parts stay as shadcn ships them** (`components/ui`). Only these changes are made to them: the theme's tokens, the radius rules (frames use `--radius-frame`), the field fill that matches the 3:1 border, and the loading state of the button.
-- **Heed's own parts** are in `components/heed`, `components/obs` and the root of `components`. They are small, and each does one job.
+- **Footnote's own parts** are in `components/heed`, `components/obs` and the root of `components`. They are small, and each does one job.
 - The editor (`components/editor`) and the static renderer are third-party code in a trimmed form. They are not held to the copy rules.
 - **Icons** come from Lucide through one module in the app.
 
@@ -77,7 +77,7 @@ Unused primitives in the mockup (about seven) are not imported.
 | Report a problem   | `components/report-dialog.tsx`                                                                                                                                                | One box; the page address travels with it                                                                                                                                               |
 | Error boundary     | `components/error-boundary.tsx`                                                                                                                                               | A broken screen shows what happened and a way back                                                                                                                                      |
 | Theme              | `lib/theme.tsx`, `lib/theme-context.ts`                                                                                                                                       | Light, dark, system; the easing across                                                                                                                                                  |
-| Brand              | `lib/brand.ts`, `components/heed/logo.tsx`                                                                                                                                    | The one product-name constant; the two-blade logo, in the text's ink, never the accent                                                                                                  |
+| Brand              | `lib/brand.ts`, `components/heed/logo.tsx`                                                                                                                                    | The one product-name constant; the logo (a placeholder until the final mark), in the text's ink, never the accent                                                                       |
 | Frame              | `components/heed/frame.tsx`                                                                                                                                                   | The square hairline frame: sections, tables, key-value bands, cells                                                                                                                     |
 | Document shell     | `components/heed/document-shell.tsx`                                                                                                                                          | Header, 40 px toolbar row, tinted canvas with the 56rem sheet, side panel, footer bar                                                                                                   |
 | Truncated title    | `components/heed/truncated.tsx`                                                                                                                                               | A title cut with an ellipsis that shows in full when it is cut                                                                                                                          |
@@ -87,7 +87,7 @@ Unused primitives in the mockup (about seven) are not imported.
 | Not found          | `components/heed/not-found.tsx`                                                                                                                                               | The one design for somewhere that is not there (address, item, definition, domain, documentation page): what is missing and a link to where to go instead                               |
 | Presence           | `lib/presence.ts`                                                                                                                                                             | Rows that leave and arrive                                                                                                                                                              |
 
-## 3. Heed parts by role
+## 3. Footnote parts by role
 
 ### Chips, marks and identity
 
@@ -214,4 +214,4 @@ Unused primitives in the mockup (about seven) are not imported.
 
 ## 4. Fixtures and rules in code
 
-The mockup keeps its demo world in `data/` (Larchwood Outdoor: 22 context items, 18 Inbox cards, 12 reviews, 12 saved questions, 10 topics, 8 alert rules, 22 metrics, 5 dimensions, 13 terms and 14 people). In the app it is the mock binding (`src/web/api/mock`) of one typed interface, `HeedApi` (`src/web/api/client.ts`); no page reads it directly. Where the API contract has a counterpart, its shapes are typed and tested against it (`tests/web/mock/contract.test.ts`). Pure rules live in `lib/` with their unit tests (agent reply, bulk, selection, connect timers, replay, saved check, line diff, links, motion and copy).
+The mockup keeps its demo world in `data/` (Larchwood Outdoor: 22 context items, 18 Inbox cards, 12 reviews, 12 saved questions, 10 topics, 8 alert rules, 22 metrics, 5 dimensions, 13 terms and 14 people). In the app it is the mock binding (`src/web/api/mock`) of one typed interface, `FootnoteApi` (`src/web/api/client.ts`); no page reads it directly. Where the API contract has a counterpart, its shapes are typed and tested against it (`tests/web/mock/contract.test.ts`). Pure rules live in `lib/` with their unit tests (agent reply, bulk, selection, connect timers, replay, saved check, line diff, links, motion and copy).

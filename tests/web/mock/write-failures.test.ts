@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { heedApiMethods, readMethods, type HeedApi, type HeedApiMethod } from '@/api/client'
+import {
+  footnoteApiMethods,
+  readMethods,
+  type FootnoteApi,
+  type FootnoteApiMethod,
+} from '@/api/client'
 import { createMockApi } from '@/api/mock'
 
 // Every write the app makes can fail or be refused offline in the mock, so a journey can see each
 // failed state. The input is empty on purpose: a switch answers before the write reads it.
-const writes = heedApiMethods.filter(
+const writes = footnoteApiMethods.filter(
   (method) => !(readMethods as readonly string[]).includes(method),
 )
 
-const attempt = (api: HeedApi, method: HeedApiMethod) =>
+const attempt = (api: FootnoteApi, method: FootnoteApiMethod) =>
   (api[method] as (input: unknown) => Promise<unknown>)({})
 
 const mockAt = (query: Record<string, string>) => {

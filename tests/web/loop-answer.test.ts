@@ -289,7 +289,7 @@ describe("Ask's loop answer, state by state", () => {
         ? (example('loop-list').body.find((b) => b.t === 'list') as { rows: string[] }).rows.length
         : 0,
     )
-    expect(text(el)).toContain('From Heed')
+    expect(text(el)).toContain('From Footnote')
   })
 
   it("A long answer: the model's short list as a list, each line with its citation", () => {

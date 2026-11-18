@@ -89,7 +89,7 @@ export function toolInputMismatch(
         )
       else if (spec.treatment === 'derived' && !asks.length)
         problems.push(
-          `The tool input "${input}" suggests "${name}", which Heed derives and never asks for. Remove the input, or let the person confirm it through a question.`,
+          `The tool input "${input}" suggests "${name}", which Footnote derives and never asks for. Remove the input, or let the person confirm it through a question.`,
         )
     }
   return problems

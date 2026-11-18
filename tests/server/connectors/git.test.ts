@@ -122,7 +122,7 @@ describe('a Cube model in a Git repository', () => {
   )
 
   it(
-    'gives each domain the model names the Heed domain the domain names map to',
+    'gives each domain the model names the Footnote domain the domain names map to',
     async () => {
       const snapshot = await source({ domainNames: { marketing: 'paid_media' } }).read()
       const domain = (ref: string) => snapshot.definitions.find((d) => d.ref === ref)?.areaHint
@@ -254,7 +254,7 @@ describe('fetching from Git', () => {
   })
 
   it('passes the token to git in its environment, never in its arguments', async () => {
-    const bin = await mkdtemp(join(tmpdir(), 'heed-fake-git-'))
+    const bin = await mkdtemp(join(tmpdir(), 'footnote-fake-git-'))
     const log = join(bin, 'calls.jsonl')
     await writeFile(
       join(bin, 'git'),

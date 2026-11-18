@@ -179,8 +179,8 @@ const items = { a: '', b: '', c: '', d: '' }
 let noticesBefore = 0
 
 beforeAll(async () => {
-  modelDir = await mkdtemp(join(tmpdir(), 'heed-flags-model-'))
-  configDir = await mkdtemp(join(tmpdir(), 'heed-flags-config-'))
+  modelDir = await mkdtemp(join(tmpdir(), 'footnote-flags-model-'))
+  configDir = await mkdtemp(join(tmpdir(), 'footnote-flags-config-'))
   renamesFile = join(configDir, 'renames.json')
   await writeModel()
   await writeFile(renamesFile, JSON.stringify({}))

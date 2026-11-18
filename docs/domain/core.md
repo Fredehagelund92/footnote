@@ -1,4 +1,4 @@
-# Heed domain core
+# Footnote domain core
 
 `src/domain` has no database, transport, environment, clock or model dependency. Calendar dates,
 source availability, edition content, overlay state and preview authority are inputs. Hashing uses
@@ -26,7 +26,7 @@ project: `npx vitest run --project server tests/server/domain`.
   is one a term points at, or when it is the whole text. Dates are read in the words the names did
   not take, by `readDates` (`dates.ts`); the result says how (`dates`: the words and a reads-as
   phrase). Unreadable dates and explicitly unknown dimension values require more detail; the dates
-  issue says which words and what Heed reads. A question that gives no dates at all is read at the
+  issue says which words and what Footnote reads. A question that gives no dates at all is read at the
   supplied `today`, and the result says so (`assumed`, worded by `assumedDate`). A word after a
   dimension name is not a candidate value when it is a preposition, an everyday word
   (`everyday-words.ts`: "how is the mobile team doing") or part of a date (so `market in August
@@ -46,7 +46,7 @@ project: `npx vitest run --project server tests/server/domain`.
   short code, a value's name of three letters or fewer its owner wrote in capitals ("NO", "UK"),
   is read in Ask only when written in capitals or beside its dimension's name, so "no" and "it"
   stay everyday words; agents read it in any case, as before. In Ask only (`loose`), a word that
-  names nothing Heed knows and sits where a value goes is a value Heed does not have, said and
+  names nothing Footnote knows and sits where a value goes is a value Footnote does not have, said and
   never dropped, so the answer is Not found: after in, for, from, to, at or across, with or
   without "the" ("orders from jordan", "orders in the Nordics"), right before a metric when it
   starts what is asked ("jordan orders", "the jordan orders", never "who owns orders") or right

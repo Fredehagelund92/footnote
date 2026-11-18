@@ -39,7 +39,7 @@ import { contextVoice, refusedSaid, unknownDomainWords } from '../../domain/say.
   The outcome tools (FR-338 to FR-340): a few task-shaped reads that each answer one thing
   people bring, shared by the MCP server and the assistant. They read the served edition as an
   agent does (FR-314): an item an agent does not get is counted with its reason, never shown.
-  They accept the names people use, and a name Heed does not know comes back with the closest
+  They accept the names people use, and a name Footnote does not know comes back with the closest
   one and every valid choice, so the caller can recover without guessing. Nothing here calls a
   language model or records demand.
 */
@@ -113,7 +113,7 @@ const domainChoices = (bundle: ServingBundle) =>
   [...bundle.areas].sort(byName).map((area) => domainAbout(area, false))
 
 /**
- * A domain the caller named that Heed does not know: the closest one, and every valid choice
+ * A domain the caller named that Footnote does not know: the closest one, and every valid choice
  * ("Unknown domain 'sails'. Did you mean Sales (area_sales)?").
  */
 export function unknownDomain(input: string, bundle: ServingBundle) {
@@ -129,7 +129,7 @@ export function unknownDomain(input: string, bundle: ServingBundle) {
 }
 
 /**
- * The words Heed knows apart from a domain's own name: its id, the vocabulary and the other
+ * The words Footnote knows apart from a domain's own name: its id, the vocabulary and the other
  * domains. A stored name's word that is none of them, beside one that is, looks misspelt.
  */
 function wordsBeside(bundle: ServingBundle, area: Area) {
@@ -140,7 +140,7 @@ function wordsBeside(bundle: ServingBundle, area: Area) {
   ])
 }
 
-/** How Heed read words for a domain that are not its stored name, said once, or null. */
+/** How Footnote read words for a domain that are not its stored name, said once, or null. */
 export function readAsOf(
   bundle: ServingBundle,
   area: Area,
@@ -367,7 +367,7 @@ export function quoted(words: string): { text: string; shortened: boolean } {
 }
 
 /**
- * What the definition source says about a term, where that comes from, and what Heed adds: the
+ * What the definition source says about a term, where that comes from, and what Footnote adds: the
  * items about it agents get, beside how many items are about it as the catalogue counts them
  * (`termItems`). The caller shows only a term an agent may see (`termShown`).
  */
@@ -487,7 +487,7 @@ function partlyNamed(bundle: ServingBundle, read: ReadQuery): string[] {
   })
 }
 
-/** The terms a query names, as Heed reads them: "Net revenue (metric), Spain (Market)". */
+/** The terms a query names, as Footnote reads them: "Net revenue (metric), Spain (Market)". */
 function readAs(bundle: ServingBundle, read: ReadQuery) {
   const named = [
     ...read.used.domains.map((id) => `${areaName(bundle, id) ?? id} (domain)`),
@@ -516,7 +516,7 @@ type SourceMember =
   | { member: string; term: null; message: string; options: { key: string; name: string }[] }
 /**
  * The source member names the words hold (`payments.orders`, as the data tool names what an
- * agent just queried), each with the metric or dimension in Heed that points at it, or the
+ * agent just queried), each with the metric or dimension in Footnote that points at it, or the
  * closest names when none does (CON-517).
  */
 function sourceMembers(bundle: ServingBundle, read: ReadQuery): SourceMember[] {
@@ -629,7 +629,7 @@ function nothingFound(
  * find_context (FR-338): the items whose words or names match, best first; when no words match,
  * the items that apply to the scope the words name (as get_context matches them), on the dates
  * given or today. It also says what the definition source gives for each metric or dimension the
- * words name, where that definition comes from, and what Heed adds. When nothing is found it says
+ * words name, where that definition comes from, and what Footnote adds. When nothing is found it says
  * why and what to try.
  */
 export function findContext(
@@ -699,7 +699,7 @@ export function findContext(
     )
     .slice(0, 5)
     .map((term) => definitionOf(bundle, term, today, !exact.has(term.key)))
-  // How Heed read words for a domain that are not its stored name, once per domain.
+  // How Footnote read words for a domain that are not its stored name, once per domain.
   const readAs = [
     ...(domain.readAs && area ? [{ id: area.id, note: domain.readAs }] : []),
     ...read.spelled.flatMap((spelt) => {
