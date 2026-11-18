@@ -28,11 +28,12 @@ RUN npm ci --omit=dev
 
 FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS service
 # pg_dump and pg_restore of PostgreSQL 18, for backups and the restore drill
-# (docs/self-hosting.md, "Back up"): Debian's own are older than the server.
+# (docs/self-hosting.md, "Back up"): Debian's own are older than the server. And git, which the
+# sources that read a Git repository run (src/server/modules/connectors/git.ts).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates postgresql-common \
     && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
-    && apt-get install -y --no-install-recommends postgresql-client-18 \
+    && apt-get install -y --no-install-recommends postgresql-client-18 git \
     && apt-get purge -y --auto-remove postgresql-common \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

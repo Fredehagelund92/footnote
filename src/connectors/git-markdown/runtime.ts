@@ -87,6 +87,7 @@ const reachFix: Record<string, string> = {
   unreachable: 'Check the address, and that the host can be reached from the internet.',
   private_address: 'Use an address on a public host, over https.',
   secret_missing: 'Give the token again: it is gone from the secret store.',
+  git_missing: 'Install git on the server: it has no git program to read a repository with.',
 }
 
 /** The runtime of Markdown in Git: one commit, the chosen folders, their Markdown files. */

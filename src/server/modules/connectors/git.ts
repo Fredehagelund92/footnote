@@ -26,6 +26,8 @@ export type GitProblem =
   | 'ref_not_found'
   | 'folder_missing'
   | 'fetch_failed'
+  /** The server has no `git` program to run. */
+  | 'git_missing'
 
 export class GitFetchError extends Error {
   override name = 'GitFetchError'
@@ -318,6 +320,8 @@ export async function withGitCheckout<T>(
         { cwd: home, env, timeout, killSignal: 'SIGKILL', maxBuffer: 1_000_000, windowsHide: true },
         (error, stdout, stderr) => {
           if (!error) resolve(stdout)
+          else if ((error as { code?: unknown }).code === 'ENOENT')
+            reject(new GitFetchError('git_missing'))
           else if ((error as { killed?: boolean }).killed) reject(new GitFetchError('unreachable'))
           else reject(new GitFetchError(problemOf(`${stderr}\n${error.message}`)))
         },

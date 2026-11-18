@@ -99,6 +99,7 @@ const FAILURES: Record<string, string> = {
   timed_out: 'it took too long',
   unreadable_file: 'it is too large, or not text',
   fetch_failed: 'the host would not hand it over',
+  git_missing: 'the server has no git program to read a repository with',
   private_address: 'its address is not one it may reach: use https, on a public host',
   redirect_refused: 'it redirects somewhere it may not follow',
 }

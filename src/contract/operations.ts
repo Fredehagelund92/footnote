@@ -42,14 +42,14 @@ export const jobOverviewSchema = z.object({
  * server's list, a rename that does not apply, and a member another source already reads. The rest
  * say why a read failed before anything was read, naming the repository, its ref, its folder or the
  * secret: the address could not be reached, the token was refused, no repository or ref is there,
- * the folder is not in it, the secret is not in the store, or the fetch failed otherwise. An
- * interface 3 connector's read may also fail because it sent what the contract does not allow or
- * took longer than its limit, and is in part when it sent more records than its limit; its own
- * warnings are namespaced (`<connector>.<code>`) and worded in its manifest. A content source's
- * read names each document it did not offer and why (it appears to name people, holds a secret,
- * names nothing in the vocabulary, holds no words, or is longer than a read takes), and is in
- * part when it held more text than one read takes, or would have withdrawn more suggestions than
- * a read may at once. A tool that asks to be called less often is `rate_limited`. A source that
+ * the folder is not in it, the secret is not in the store, the server has no `git` program, or the
+ * fetch failed otherwise. An interface 3 connector's read may also fail because it sent what the
+ * contract does not allow or took longer than its limit, and is in part when it sent more records
+ * than its limit; its own warnings are namespaced (`<connector>.<code>`) and worded in its
+ * manifest. A content source's read names each document it did not offer and why (it appears to
+ * name people, holds a secret, names nothing in the vocabulary, holds no words, or is longer than a
+ * read takes), and is in part when it held more text than one read takes, or would have withdrawn
+ * more suggestions than a read may at once. A tool that asks to be called less often is `rate_limited`. A source that
  * reads only the groups listed for it (a Cube view) names each listed group the read did not find,
  * and says when no group is listed, so it read nothing.
  */
@@ -70,6 +70,7 @@ export const sourceWarningCodes = [
   'folder_missing',
   'secret_missing',
   'fetch_failed',
+  'git_missing',
   'compiler_unavailable',
   'no_model_files',
   'compile_error',
