@@ -81,7 +81,7 @@ The address is the one that connected, unless that is a proxy named in `HEED_TRU
 
 ## Scheduled jobs
 
-The service runs its own jobs on the same database. A job that came due while the service was stopped runs once when it starts again.
+The service runs its own jobs on the same database. A job that came due while the service was stopped runs once when it starts again. `connectors.sync` also runs once at every start, so the server's own model folder is read at once.
 
 | Job                      | When (UTC)       | What it does                                                   |
 | ------------------------ | ---------------- | -------------------------------------------------------------- |

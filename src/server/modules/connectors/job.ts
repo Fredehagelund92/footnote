@@ -8,8 +8,8 @@ import { ConnectorService } from './service.ts'
 /**
  * The reads of every source that is due (CON-115, CON-506): the server's own and those
  * administrators added, of definitions and of content. Each source has its own schedule, so the
- * job runs every five minutes and reads only the sources whose next read has come; one never
- * read yet is due (a source is queued when its next read has come, and the job marks the one it is
+ * job runs as the service starts and every five minutes after, and reads only the sources whose
+ * next read has come; one never read yet is due (a source is queued when its next read has come, and the job marks the one it is
  * reading, so its page tells a queued source from a running read). Read again on a source's page
  * makes it due now and runs the job (CON-115).
  * A source that cannot be read records a failed read, which its page and the operations view
@@ -26,6 +26,8 @@ export function connectorSyncJob(
     name: 'connectors.sync',
     cron: '*/5 * * * *',
     expectedEverySeconds: 30 * 60,
+    // A server started on a model folder reads it at once, not at the schedule's next turn.
+    runAtStart: true,
     async run({ database }) {
       const definitions = new ConnectorService(database, registry)
       const content = new ContentPipeline(database, clock)

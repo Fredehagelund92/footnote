@@ -14,7 +14,8 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   item's "use ... from 19 January 2026" in its own voice, V04 says what Ask does not answer, H24
   says Ask does not answer and cites no item under a Partial read, V08 says "0 of 6", F12 names
   a third France item, G06 names an April item among October's checks, V02 starts its decline
-  with "No", and H04 and H06 as before.
+  with "No", H04 and H06 as before, and H24 names the owners of two domains by the domains'
+  own mentions ("the owners of Paid media and Sales are Paid media and Sales").
   About 25 steps follow tool results that are not the same from one run to the next (an Inbox
   card's id is made afresh each run), so no recorded step matches them, even on the code that
   recorded them: the scripted reader takes those in every build.
@@ -26,6 +27,7 @@ askEvalSuite({
     hidden: ['V06'],
     advice: ['V04', 'GP10'],
     state: ['H24'],
+    whole: ['H24'],
     never: ['V02', 'V08', 'F12', 'G06', 'H04', 'H06'],
   },
   missingToday: [

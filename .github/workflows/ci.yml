@@ -76,7 +76,8 @@ jobs:
   migrations:
     # Before any database starts: a change whose new migration takes a number its base already has
     # (another pull request merged one first), or shares one, fails here within seconds. The held-out
-    # seal rides along, so the run holds one runner less. Both need only git and node: no install.
+    # seal and the held-back count ride along, so the run holds one runner less. All need only git
+    # and node: no install.
     name: Migration numbers and held-out seal
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -105,6 +106,18 @@ jobs:
             cp scripts/check-held-out-seal.ts "$RUNNER_TEMP/check-held-out-seal.ts"
           fi
           node "$RUNNER_TEMP/check-held-out-seal.ts" HEAD^1 HEAD
+      - name: No merge lowers the held-back count of Ask's evaluation harness
+        # Each answerer's suite holds how many held-back cases pass, and its build holds the run to
+        # it; a change may keep the number or raise it, never lower it (scripts/check-held-count.ts).
+        # The base branch's copy of the guard judges the change, as for the seal.
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        run: |
+          if git cat-file -e HEAD^1:scripts/check-held-count.ts 2>/dev/null; then
+            git show HEAD^1:scripts/check-held-count.ts > "$RUNNER_TEMP/check-held-count.ts"
+          else
+            cp scripts/check-held-count.ts "$RUNNER_TEMP/check-held-count.ts"
+          fi
+          node "$RUNNER_TEMP/check-held-count.ts" HEAD^1 HEAD
 
   # The checks run as two jobs side by side, so the slower half sets the wait, not their sum.
   check:
