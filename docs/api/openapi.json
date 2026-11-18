@@ -77700,12 +77700,12 @@
                               "type": "string"
                             },
                             "state": {
-                              "type": "string",
                               "enum": [
                                 "reading",
                                 "read",
                                 "failed"
-                              ]
+                              ],
+                              "type": "string"
                             }
                           },
                           "required": [
