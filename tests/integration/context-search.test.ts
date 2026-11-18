@@ -32,6 +32,13 @@ type Found = {
   check_report: { matched: number; statements: string[] }
 }
 async function search(input: Record<string, unknown>): Promise<Found> {
+  return (await call('find_context', { response_format: 'full', ...input }, records)) as Found
+}
+async function call(
+  tool: 'find_context' | 'get_context',
+  input: Record<string, unknown>,
+  sink: AnonymousRecord[],
+) {
   const execute = createToolService(
     {
       bundle: () => Promise.resolve(bundle),
@@ -53,14 +60,14 @@ async function search(input: Record<string, unknown>): Promise<Found> {
     () => new Date('2026-10-12T12:00:00Z'),
   )
   const reply = await execute(
-    'find_context',
-    { response_format: 'full', ...input },
+    tool,
+    input,
     { client: 'assistant', scopes: ['read'], caller: 'eval', canSelectEdition: false },
     100_000,
-    (r) => records.push(r),
+    (r) => sink.push(r),
   )
   expect(reply.isError).not.toBe(true)
-  return reply.structuredContent as Found
+  return reply.structuredContent
 }
 const areaOf = (id: string) => bundle.items.find((i) => i.id === id)?.areaId
 
@@ -160,5 +167,32 @@ describe('find_context on the demo library', () => {
 
   it('records nothing: the words live only in the call', () => {
     expect(records).toEqual([])
+  })
+})
+
+describe('get_context on the demo library', () => {
+  it('says what Orders is in the short reply, so an agent never calls the amount a count (M9)', async () => {
+    // The outside agent's question from the release judge's run (M9), as it passed it.
+    const reply = await call(
+      'get_context',
+      {
+        question: 'What were total orders in Norway in October 2026, in euros?',
+        metrics: ['orders'],
+        dimension_filters: [{ dimension: 'market', values: ['Norway'] }],
+        window: { from: '2026-10-01', to: '2026-10-31' },
+      },
+      [],
+    )
+    expect(reply).toMatchObject({
+      asked: 'Orders in Norway in October 2026',
+      defined: [
+        {
+          metric: 'Orders',
+          definition:
+            'The value of orders customers completed and paid for, in euros at the daily rate.',
+          from: 'Cube',
+        },
+      ],
+    })
   })
 })

@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "1d4610ee8a0fbb22c09679cb34ca4590703dad792bc59e8c856d53c94577b760",
+  "digest": "02ce7d6466759a54295ccb10b0b065e5e29c18191d4ad0cb0a612b3e4978d475",
   "tools": [
     {
       "annotations": {
@@ -11,7 +11,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "The context that applies to a question, with one sentence to relay. Call get_context before answering a question about company data. Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
+      "description": "The context that applies to a question, with one sentence to relay. Call get_context before answering a question about company data. Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -175,6 +175,30 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 "title",
                 "kind",
                 "url",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "defined": {
+            "description": "What each metric asked for is: the first sentence of its definition, in the words of the tool it comes from. Say a figure as this says it is, such as an amount or a count.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "definition": {
+                  "type": "string",
+                },
+                "from": {
+                  "type": "string",
+                },
+                "metric": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "metric",
+                "definition",
+                "from",
               ],
               "type": "object",
             },

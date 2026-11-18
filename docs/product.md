@@ -244,7 +244,7 @@ Six tools. Each is described in one list in the code (`AGENT_TOOLS`), which Sett
 | `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
 | `get_related`     | Follow a link between items, definitions and domains, one step at a time. It has its own switch.                                                   |
 
-The default reply holds the answer state, one sentence to relay (`say`), what was asked, the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a separate, read-only tool, `get_related`, at most 50 nodes, in a fixed order. It never changes what an answer includes.
+The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a separate, read-only tool, `get_related`, at most 50 nodes, in a fixed order. It never changes what an answer includes.
 
 ## 11. Roles
 
