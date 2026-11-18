@@ -443,8 +443,8 @@ export function createMockApi() {
         install: state.install,
         fresh: state.fresh,
         profileLabel: null,
-        // The mock's Ask is the design's, not the service's scripted reader.
-        modelConnected: true,
+        // The mock's Ask is its own reader in the browser, a design preview of Ask.
+        answeredBy: 'preview',
       })),
     // The picker, with no label; an invite link opens the invite it names. Not the demo install
     // (demo: false), which lets a visitor in as its admin and has its own switch between people:
@@ -471,7 +471,7 @@ export function createMockApi() {
           install: state.install,
           fresh: state.fresh,
           profileLabel: null,
-          modelConnected: true,
+          answeredBy: 'preview',
         }
       })
     },

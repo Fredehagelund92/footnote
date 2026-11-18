@@ -94,13 +94,11 @@ If port 8080 or 3000 is taken on this computer, move them: start with `HEED_WEB_
 front of `docker compose`, and connect agents to port 3001. Under Colima a taken port may fail without a word,
 and the other program answers there instead.
 
-Two other ways in:
+Another way in:
 
 - **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
   pulls them instead of building. They are release 0.1.0 of 2 November 2026, which is behind this page: it
   opens on a sign-in page that lists the demo people, with no **View as**. The next release replaces them.
-- **No Docker, under a minute.** With Node 26, `npm ci && npm run dev` opens the app on mock data at
-  <http://localhost:5173>. It has no database and no MCP server.
 
 To choose how to run Footnote for your own team, see [Where to run Footnote](docs/where-to-run.md). To keep it running
 here, back it up, upgrade it or roll an upgrade back, see [Self-host Footnote on one computer](docs/self-hosting.md).
