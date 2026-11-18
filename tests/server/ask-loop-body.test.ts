@@ -25,7 +25,7 @@ const names = [
   { id: 'domain:area_support', name: 'Support', of: null, type: null },
   { id: 'person:p_ada', name: 'Ada Okafor', of: null, type: null },
 ]
-const outOf = { count: 12, of: 'published context items you may read' }
+const outOf = { count: 12, of: 'published context items you can see' }
 const row = (id: string, about: string[], extra: Record<string, unknown> = {}) => ({
   id,
   title: `Item ${id}`,
@@ -175,13 +175,13 @@ describe("the model's words, checked against the reads", () => {
       [],
     )
     expect(runs(t).filter((r) => r.t === 'count' || r.t === 'date')).toEqual([
-      { t: 'count', value: '12', of: 'published context items you may read' },
+      { t: 'count', value: '12', of: 'published context items you can see' },
       { t: 'count', value: '1', of: null },
       { t: 'date', day: '2026-10-02' },
     ])
     // The reference no read holds is left out of its sentence, which stays, and is flagged.
     expect(t.text).toBe(
-      'Of 12 published context items you may read, 1 apply. It was checked on 2 October 2026. It closed tickets.',
+      'Of 12 published context items you can see, 1 apply. It was checked on 2 October 2026. It closed tickets.',
     )
     expect(t.checks).toEqual([{ kind: 'number', words: '[#r1.tickets]' }])
   })
@@ -226,14 +226,14 @@ describe("the model's words, checked against the reads", () => {
   it('gives a count with what it is out of once, when the words name its noun after it', () => {
     const said = (words: string) => turnOf(words, made, []).text
     expect(said('In that period [#r1.items.length] of [#r1.outOf] context items changed.')).toBe(
-      'In that period 1 of 12 published context items you may read changed.',
+      'In that period 1 of 12 published context items you can see changed.',
     )
     expect(said('Of [#r1.outOf] items, one applies.')).toBe(
-      'Of 12 published context items you may read, one applies.',
+      'Of 12 published context items you can see, one applies.',
     )
     // Words after it that are not its noun stay.
     expect(said('Of [#r1.outOf] read today, one applies.')).toBe(
-      'Of 12 published context items you may read read today, one applies.',
+      'Of 12 published context items you can see read today, one applies.',
     )
   })
 
@@ -679,7 +679,7 @@ describe('the evidence, by code from the reads', () => {
       items: ['itm_pppp1111', 'itm_pppp2222', 'itm_qqqq1111'],
     })
     expect(t.owners).toEqual([{ domain: 'domain:area_support', people: ['person:p_ada'] }])
-    expect(t.footer.denominator).toBe('0 of 12 published context items you may read apply.')
+    expect(t.footer.denominator).toBe('0 of 12 published context items you can see apply.')
     expect(JSON.stringify(t)).not.toMatch(/market/i)
   })
 

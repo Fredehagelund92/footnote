@@ -1229,7 +1229,7 @@ function AllDone({
         </EmptyMedia>
         <EmptyTitle>Nothing needs you</EmptyTitle>
         <EmptyDescription className="text-xs">
-          Nothing new is uncovered, reported or suggested.
+          No new suggestion, report or unanswered question waits for you.
           {waitingCount > 0 &&
             ` ${waitingCount === 1 ? 'One suggestion of yours is' : `${waitingCount} of yours are`} waiting on others, under All.`}
         </EmptyDescription>

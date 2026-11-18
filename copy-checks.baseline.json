@@ -114,32 +114,14 @@
     }
   },
   "copy/one-word-one-thing": {
-    "src/web/api/http-integrations.ts": {
-      "a read": 2
-    },
     "src/web/api/http.ts": {
       "thread": 1
-    },
-    "src/web/api/mock/data/alerts.ts": {
-      "sync": 1
-    },
-    "src/web/api/mock/data/integrations.ts": {
-      "a read": 1
     },
     "src/web/api/mock/data/world.ts": {
       "flag": 1
     },
-    "src/web/api/mock/integrations.ts": {
-      "a read": 1
-    },
     "src/web/components/editor/labels.ts": {
       "url": 1
-    },
-    "src/web/components/error-boundary.tsx": {
-      "dev server": 1
-    },
-    "src/web/components/footnote/answer.tsx": {
-      "gap": 1
     },
     "src/web/components/footnote/definition-peek.tsx": {
       "read-only": 1
@@ -147,35 +129,8 @@
     "src/web/components/footnote/definition.tsx": {
       "read-only": 3
     },
-    "src/web/components/footnote/field-controls.tsx": {
-      "gap": 1
-    },
-    "src/web/components/footnote/fold.tsx": {
-      "gap": 2
-    },
-    "src/web/components/footnote/frame.tsx": {
-      "gap": 1
-    },
     "src/web/components/footnote/load-state.tsx": {
       "retry": 1
-    },
-    "src/web/components/footnote/loop-nouns.tsx": {
-      "gap": 1
-    },
-    "src/web/components/footnote/mention-chip.tsx": {
-      "gap": 1
-    },
-    "src/web/components/footnote/scope-field.tsx": {
-      "gap": 1
-    },
-    "src/web/components/footnote/source-review.tsx": {
-      "gap": 1
-    },
-    "src/web/components/obs/filter-bar.tsx": {
-      "gap": 1
-    },
-    "src/web/components/obs/save-question.tsx": {
-      "sync": 1
     },
     "src/web/lib/agents.ts": {
       "url": 1
@@ -185,12 +140,6 @@
     },
     "src/web/lib/emoji.ts": {
       "flag": 2
-    },
-    "src/web/model/history.ts": {
-      "synced": 2
-    },
-    "src/web/model/inbox.ts": {
-      "a read": 1
     },
     "src/web/pages/agent-policies.tsx": {
       "clashe": 1
@@ -202,85 +151,12 @@
       "retry": 1
     },
     "src/web/pages/integrations.tsx": {
-      "a read": 10,
+      "a read": 1,
       "retry": 1
     }
   },
   "copy/errors-say-three-things": {},
-  "copy/no-fixed-locale": {
-    "src/web/api/http-figures.ts": {
-      "locale": 4
-    },
-    "src/web/api/mock/data/figures.ts": {
-      "locale": 1
-    },
-    "src/web/api/mock/obs-engine.ts": {
-      "locale": 3
-    },
-    "src/web/components/footnote/answer.tsx": {
-      "locale": 1
-    },
-    "src/web/components/footnote/count-up.tsx": {
-      "locale": 1
-    },
-    "src/web/components/footnote/loop-answer.tsx": {
-      "locale": 4
-    },
-    "src/web/components/footnote/scope-field.tsx": {
-      "locale": 1
-    },
-    "src/web/components/obs/charts.tsx": {
-      "locale": 1
-    },
-    "src/web/components/obs/controls.tsx": {
-      "locale": 1
-    },
-    "src/web/components/obs/facet-rail.tsx": {
-      "locale": 1
-    },
-    "src/web/components/obs/filter-picker.tsx": {
-      "locale": 4
-    },
-    "src/web/components/obs/topic-table.tsx": {
-      "locale": 2
-    },
-    "src/web/lib/obs-views.ts": {
-      "locale": 3
-    },
-    "src/web/model/observability.ts": {
-      "locale": 3
-    },
-    "src/web/model/settings.ts": {
-      "locale": 3
-    },
-    "src/web/pages/about-editor.tsx": {
-      "locale": 2
-    },
-    "src/web/pages/context.tsx": {
-      "locale": 1
-    },
-    "src/web/pages/definition-editor.tsx": {
-      "locale": 1
-    },
-    "src/web/pages/definitions.tsx": {
-      "locale": 2
-    },
-    "src/web/pages/domain-page.tsx": {
-      "locale": 1
-    },
-    "src/web/pages/editor.tsx": {
-      "locale": 2
-    },
-    "src/web/pages/observability/overview.tsx": {
-      "locale": 3
-    },
-    "src/web/pages/observability/usage.tsx": {
-      "locale": 3
-    },
-    "src/web/pages/settings.tsx": {
-      "locale": 1
-    }
-  },
+  "copy/english-locale": {},
   "copy/no-demo-in-shared-code": {
     "src/web/components/view-as.tsx": {
       "demo": 1

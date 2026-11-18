@@ -94,7 +94,7 @@ describe('get_facts says, for each status', () => {
     const reply = await setup()('get_facts', ask())
     expect(reply.structuredContent.status).toBe('matched')
     expect(said(reply)).toBe(
-      '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+      '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
     )
     // Nothing for the AI agent to do but answer.
     expect(reply.structuredContent).not.toHaveProperty('next')
@@ -110,7 +110,7 @@ describe('get_facts says, for each status', () => {
       items: [{ match: 'partial' }],
     })
     expect(said(reply)).toBe(
-      '1 context item applies to Orders in August 2026. Only that was checked. It applies to only part of that question.',
+      '1 context item applies to Orders in August 2026. Nothing else was looked up. It applies to only part of that question.',
     )
     expect(nextOf(reply)).toBe('applies_note says which part each partial context item covers.')
   })
@@ -120,7 +120,7 @@ describe('get_facts says, for each status', () => {
       data.items[0]!.checkFlag = 'needs_check'
     })('get_facts', ask())
     expect(said(reply)).toBe(
-      '1 context item applies to Orders in Norway in August 2026. Only that was checked. It may be out of date.',
+      '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. It may be out of date.',
     )
   })
 
@@ -132,7 +132,7 @@ describe('get_facts says, for each status', () => {
     })('get_facts', ask())
     expect(reply.structuredContent.status).toBe('conflict')
     expect(said(reply)).toBe(
-      '2 context items apply to Orders in Norway in August 2026. Only that was checked. Some of them disagree.',
+      '2 context items apply to Orders in Norway in August 2026. Nothing else was looked up. Some of them disagree.',
     )
     expect(nextOf(reply)).toBe('Give both sides of conflicts_with and say they disagree.')
   })
@@ -144,7 +144,7 @@ describe('get_facts says, for each status', () => {
     )
     expect(reply.structuredContent.status).toBe('no_match')
     expect(said(reply)).toBe(
-      'Nothing is written down for Orders in Norway in July 2026. Only that was checked.',
+      'Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(nextOf(reply)).toBe(
       `${notProof}, and it covers only this question, never the whole topic. Check the names and dates, or call find_facts with the question's words. If nothing applies there either, say nothing is written down for exactly this question, and call report_gap.`,
@@ -158,7 +158,7 @@ describe('get_facts says, for each status', () => {
     })
     expect(reply.structuredContent.status).toBe('no_match')
     expect(said(reply)).toBe(
-      'Nothing is written down for Market in July 2026. Only that was checked.',
+      'Nothing is written down for Market in July 2026. Nothing else was looked up.',
     )
   })
 
@@ -193,7 +193,7 @@ describe('get_facts says, for each status', () => {
       data.items.push({ ...first, id: 'itm_norway03' })
     })('get_facts', ask({ max_items: 1 }))
     expect(said(reply)).toBe(
-      "1 context item applies to Orders in Norway in August 2026. Only that was checked. 1 more context item applies but didn't fit in this reply. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check.",
+      "1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. 1 more context item applies but didn't fit in this reply. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check.",
     )
     expect(nextOf(reply)).toBe(
       'cut_ids lists the context items left out: call again with response_format concise or a higher max_bytes to get them.',
@@ -247,7 +247,7 @@ describe('get_facts says, for each status', () => {
     expect(reply.structuredContent).toMatchObject({ status: 'matched', assumed_date: { sentence } })
     const say = said(reply)
     expect(say).toBe(
-      `1 context item applies to Orders in Norway. Only that was checked. ${sentence}`,
+      `1 context item applies to Orders in Norway. Nothing else was looked up. ${sentence}`,
     )
     expect(say.split(sentence)).toHaveLength(2)
   })
@@ -257,7 +257,7 @@ describe('get_facts says, for each status', () => {
       question: 'Net revenue in Norway this year',
     })
     expect(said(reply)).toBe(
-      '2 context items apply to Net revenue in Norway from 1 January to 7 October 2026 (this year so far). Only that was checked.',
+      '2 context items apply to Net revenue in Norway from 1 January to 7 October 2026 (this year so far). Nothing else was looked up.',
     )
     expect(reply.structuredContent).toMatchObject({
       dates_read: { reads_as: '1 Jan to 7 Oct 2026 (this year so far; UTC)' },
@@ -274,7 +274,7 @@ describe('get_facts says, for each status', () => {
       question: 'How is revenue doing in Norway in August 2026?',
     })
     expect(said(reply)).toBe(
-      `3 context items apply to Revenue in Norway in August 2026. Only that was checked. ${group}`,
+      `3 context items apply to Revenue in Norway in August 2026. Nothing else was looked up. ${group}`,
     )
     expect(nextOf(reply)).toBe(
       'Each context item names the metrics it is about (about): answer for each metric apart.',
@@ -282,7 +282,7 @@ describe('get_facts says, for each status', () => {
     // Nothing found for the group still says what it holds, and never reads as an absence.
     const none = await run('get_facts', { question: 'How was revenue in Norway in 2025?' })
     expect(said(none)).toBe(
-      `Nothing is written down for Revenue in Norway in 2025. Only that was checked. ${group}`,
+      `Nothing is written down for Revenue in Norway in 2025. Nothing else was looked up. ${group}`,
     )
     expect(nextOf(none)).toContain(notProof)
     // One metric of the group is one metric: nothing more is said.
@@ -290,7 +290,7 @@ describe('get_facts says, for each status', () => {
       question: 'Net revenue in Norway in August 2026',
     })
     expect(said(one)).toBe(
-      '2 context items apply to Net revenue in Norway in August 2026. Only that was checked.',
+      '2 context items apply to Net revenue in Norway in August 2026. Nothing else was looked up.',
     )
   })
 
@@ -406,7 +406,7 @@ describe("find_context's sentence when no words match but what they name does", 
         },
       ),
     ).toEqual({
-      say: `3 context items apply to Orders in Norway. 2 are shown. Only that was checked. ${assumed}`,
+      say: `3 context items apply to Orders in Norway. 2 are shown. Nothing else was looked up. ${assumed}`,
       next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, markets or dates. Raise limit for more.",
     })
   })
@@ -475,14 +475,14 @@ describe('get_context says, with the answer line first', () => {
   it('says each state in its own words, and the rest as get_facts says it', async () => {
     const call = setup()
     expect(contextSaidOf(await call('get_context', ask()))).toBe(
-      'Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+      'Checked. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
     )
     const none = await call(
       'get_context',
       ask({ window: { from: '2026-07-01', to: '2026-07-31' } }),
     )
     expect(contextSaidOf(none)).toBe(
-      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Only that was checked.',
+      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(nextOf(none)).not.toMatch(/find_facts|report_gap|get_facts/)
     expect(contextSaidOf(await call('get_context', { question: 'What happened?' }))).toMatch(

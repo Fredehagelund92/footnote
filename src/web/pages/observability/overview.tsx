@@ -115,7 +115,7 @@ const pct = (n: number) => `${n > 0 ? '+' : ''}${n}`
 /** The share of answers that were Checked: never one with a warning, never one that found nothing. */
 const CHECKED = 'Checked answers'
 /** What a hidden headline count says: true whether it is small itself or keeps a small one safe. */
-const HIDDEN = 'hidden: under 5, or it would give one under 5 away'
+const HIDDEN = 'hidden, to protect small counts'
 
 export function OverviewPage({ topicsFirst }: { topicsFirst?: boolean }) {
   // Another range, domain or agent keeps this view until the next has loaded: the numbers count

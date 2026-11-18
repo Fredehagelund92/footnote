@@ -3,6 +3,8 @@
 // value in words. Both bindings list them through `settingGroups`, so the demo and the service
 // read the same.
 
+import { monthLong } from '@/lib/dates'
+
 /**
  * Who changed a setting last, when and why; null while it keeps the value it was installed with.
  * `who` is null for a change no person made: an update of the app or a script.
@@ -24,14 +26,14 @@ const n = (value: unknown) => (typeof value === 'number' ? value : 0)
 const field = (value: unknown, key: string) =>
   value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined
 const count = (value: unknown, one: string, many = `${one}s`) =>
-  `${n(value).toLocaleString('en')} ${n(value) === 1 ? one : many}`
+  `${n(value).toLocaleString('en-GB')} ${n(value) === 1 ? one : many}`
 const days = (value: unknown) => count(value, 'day')
 const seconds = (value: unknown) => count(value, 'second')
-const perMinute = (value: unknown) => `${n(value).toLocaleString('en')} a minute`
+const perMinute = (value: unknown) => `${n(value).toLocaleString('en-GB')} a minute`
 /** Model spend is kept in millionths of a dollar. */
 const dollars = (micros: unknown) => {
   const amount = n(micros) / 1_000_000
-  return `$${amount.toLocaleString('en-US', { maximumFractionDigits: amount < 10 ? 2 : 0 })}`
+  return `$${amount.toLocaleString('en-GB', { maximumFractionDigits: amount < 10 ? 2 : 0 })}`
 }
 const model = (value: unknown) => {
   const provider = field(value, 'provider')
@@ -58,7 +60,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         value: (v) => {
           const month = n(field(v, 'month'))
           return month
-            ? `${n(field(v, 'day'))} ${new Intl.DateTimeFormat(undefined, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(2026, month - 1, 1))}`
+            ? `${n(field(v, 'day'))} ${monthLong(Date.UTC(2026, month - 1, 1), { utc: true })}`
             : 'Not set: fiscal years read as calendar years'
         },
       },

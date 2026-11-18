@@ -1476,7 +1476,7 @@ export function TryIt({ cardId, embedded }: { cardId?: string; embedded?: boolea
           .slice(0, 2)
           .join(' ')} [1]`,
         sources: [draft.id],
-        said: `1 context item applies to ${draft.where.join(' in ')}. Only that was checked.`,
+        said: `1 context item applies to ${draft.where.join(' in ')}. Nothing else was looked up.`,
       },
     ]
     // The draft is read once it exists, when Try it opens.

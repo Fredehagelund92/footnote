@@ -1,31 +1,19 @@
-// Dates as the reader's own locale writes them. Month and weekday names come from Intl, never from
-// a list typed in the code, so the order, the punctuation and the language follow the browser
-// (copy.md 2.11). A day the service names ("2026-10-21") is a UTC day; a moment is the reader's.
+// Dates in British English, whatever language the browser is set to: Footnote is English only, so
+// a date in another language would put two languages on one screen (copy.md 2.11). Month and
+// weekday names come from Intl, never from a list typed in the code. A day the service names
+// ("2026-10-21") is a UTC day; a moment is the reader's, in their own time zone.
 
-let override: string | undefined
-
-/** The reader's locale: the browser's first language. Tests and previews can pin one. */
-export function readerLocale(): string | undefined {
-  if (override) return override
-  return typeof navigator !== 'undefined'
-    ? navigator.languages?.[0] || navigator.language
-    : undefined
-}
-
-/** Pins the locale until called with nothing. For tests. */
-export function setReaderLocale(locale?: string) {
-  override = locale
-}
+/** The one locale every date and number is written in. */
+export const LOCALE = 'en-GB'
 
 type Input = Date | number | string
 type Style = { utc?: boolean }
 
 const formats = new Map<string, Intl.DateTimeFormat>()
 const format = (options: Intl.DateTimeFormatOptions) => {
-  const locale = readerLocale()
-  const key = `${locale}|${JSON.stringify(options)}`
+  const key = JSON.stringify(options)
   let f = formats.get(key)
-  if (!f) formats.set(key, (f = new Intl.DateTimeFormat(locale, options)))
+  if (!f) formats.set(key, (f = new Intl.DateTimeFormat(LOCALE, options)))
   return f
 }
 
@@ -47,6 +35,16 @@ export const dayMonthYear = (when: Input, style: Style = {}) =>
 export const dayMonthYearLong = (when: Input, style: Style = {}) =>
   format({ day: 'numeric', month: 'long', year: 'numeric', ...zone(when, style) }).format(at(when))
 
+/** "Wednesday, 21 October 2026": a day in full, as a screen reader says a calendar's day. */
+export const weekdayDayMonthYearLong = (when: Input, style: Style = {}) =>
+  format({
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    ...zone(when, style),
+  }).format(at(when))
+
 /** "Tue 21 Oct". */
 export const weekdayDayMonth = (when: Input, style: Style = {}) =>
   format({ weekday: 'short', day: 'numeric', month: 'short', ...zone(when, style) }).format(
@@ -65,6 +63,10 @@ export const dayNumber = (when: Input, style: Style = {}) =>
 export const clockTime = (when: Date | number) =>
   format({ hour: '2-digit', minute: '2-digit' }).format(when)
 
+/** "October": a month alone, in full. */
+export const monthLong = (when: Input, style: Style = {}) =>
+  format({ month: 'long', ...zone(when, style) }).format(at(when))
+
 /** "Oct": a month alone. */
 export const monthShort = (when: Input, style: Style = {}) =>
   format({ month: 'short', ...zone(when, style) }).format(at(when))
@@ -77,46 +79,31 @@ export const monthYearLong = (when: Input, style: Style = {}) =>
 export const monthYear = (when: Input, style: Style = {}) =>
   format({ month: 'short', year: 'numeric', ...zone(when, style) }).format(at(when))
 
-/** The twelve months' names in a locale, long and short, lower-cased and without dots. */
-const names = new Map<string, string[][]>()
-const monthNames = (locale: string | undefined) => {
-  const key = String(locale)
-  let found = names.get(key)
-  if (!found)
-    names.set(
-      key,
-      (found = [...Array(12).keys()].map((m) =>
-        (['long', 'short'] as const).map((month) =>
-          new Intl.DateTimeFormat(locale, { month, timeZone: 'UTC' })
-            .format(Date.UTC(2026, m, 15))
-            .toLowerCase()
-            .replace(/\./g, ''),
-        ),
-      )),
-    )
-  return found
-}
+/** The twelve months' names, long and short, lower-cased and without dots ("sept"). */
+const months = [...Array(12).keys()].map((m) =>
+  (['long', 'short'] as const).map((month) =>
+    new Intl.DateTimeFormat(LOCALE, { month, timeZone: 'UTC' })
+      .format(Date.UTC(2026, m, 15))
+      .toLowerCase()
+      .replace(/\./g, ''),
+  ),
+)
 
 /**
- * The month (0 to 11) a typed name stands for, in the reader's locale or in English; -1 for
- * anything else. "Aug", "august", "Sept" and "okt." all read, each in the language that has them.
+ * The month (0 to 11) a typed English name stands for; -1 for anything else. "Aug", "august",
+ * "Sep" and "Sept" all read.
  */
 export function monthOfName(name: string): number {
   const word = name.toLowerCase().replace(/\./g, '').trim()
   if (word.length < 3) return -1
-  for (const locale of [readerLocale(), 'en']) {
-    const found = monthNames(locale).findIndex(([long, short]) => {
-      return long === word || short === word || (long!.startsWith(word) && word.length >= 3)
-    })
-    if (found >= 0) return found
-  }
-  return -1
+  return months.findIndex(([long, short]) => {
+    return long === word || short === word || long!.startsWith(word)
+  })
 }
 
 /**
- * A typed day, in the order the reader's locale writes it: "4 Aug 2026", "4 August 2026",
- * "4. okt. 2026", "Aug 4, 2026", or with no year ("4 Aug", given `year`). Null for anything else.
- * The result is a UTC time.
+ * A typed day: "4 Aug 2026", "4 August 2026", "Aug 4, 2026", or with no year ("4 Aug", given
+ * `year`). Null for anything else. The result is a UTC time.
  */
 export function parseDay(text: string, year?: number): number | null {
   const words = text.trim()

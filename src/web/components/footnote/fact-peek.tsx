@@ -161,7 +161,7 @@ export function FactPeek({ id }: { id: string }) {
       }
     >
       Reported {flag.flag!.reason}, {flag.flag!.when}: “{flag.flag!.note}”
-      {unchecked && " Not checked whether another item disagrees: it didn't load."}
+      {unchecked && " The other items didn't load, so it isn't known yet whether one disagrees."}
     </PeekAttention>
   ) : overlap ? (
     <Disagreement other={overlap} pair={pair} onRetry={retry} />
@@ -174,8 +174,8 @@ export function FactPeek({ id }: { id: string }) {
         </Button>
       }
     >
-      Not checked whether another item disagrees: it didn&apos;t load. Don&apos;t decide anything on
-      it yet.
+      The other items didn&apos;t load, so it isn&apos;t known yet whether one disagrees. Wait
+      before you decide anything on it.
     </PeekAttention>
   ) : stale && fact.status !== 'Archived' ? (
     <PeekAttention
@@ -383,12 +383,12 @@ function Disagreement({
         pair.asked > 0 &&
         `Agents say Conflict for ${pair.asked} ${pair.asked === 1 ? 'question' : 'questions'} this week.`
       ) : pair.state === 'failed' ? (
-        "Not checked who can decide it: it didn't load. Don't decide it yet."
+        "Who can decide it didn't load. Wait before you decide it."
       ) : (
         // The sentence's own shape, so the line wraps as it will once the count is in.
         <span className="animate-pulse rounded-sm bg-foreground/12 box-decoration-clone text-transparent">
           Agents say Conflict for 00 questions this week.
-          <span className="sr-only">Checking who can decide it.</span>
+          <span className="sr-only">Loading who can decide it.</span>
         </span>
       )}
     </PeekAttention>

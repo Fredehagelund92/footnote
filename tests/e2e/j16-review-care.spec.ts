@@ -74,7 +74,7 @@ test('an overlap with several live items asks about each, and archives only the 
   const overlaps = await page.getByText('About the same thing as 3 published items').boundingBox()
   expect(asked!.y).toBeLessThan(overlaps!.y)
   await expect(page.getByText('Marked unrelated')).toBeVisible()
-  await expect(decide.getByText('Check how they relate.')).toHaveCount(0)
+  await expect(decide.getByText("Compare it with what's published.")).toHaveCount(0)
   await expect(decide.getByRole('button', { name: 'Publish' })).toBeEnabled()
   // One answer is not an answer for the others.
   await relate(credit, 'Replaces it')

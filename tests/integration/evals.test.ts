@@ -15,10 +15,15 @@ import {
   createEvalsService,
   evalJobs,
   queueAreaRun,
+  readEvalSettings,
   runWithheld,
   workEvaluations,
 } from '../../src/server/modules/evals/index.ts'
-import { createModelPort, type ModelPort } from '../../src/server/modules/models/index.ts'
+import {
+  createModelPort,
+  readCallLimits,
+  type ModelPort,
+} from '../../src/server/modules/models/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { foundation, people } from './fixtures.ts'
@@ -422,7 +427,9 @@ describe('cost control', () => {
       const d = await detail(run.id)
       // A cap is no failure of the run: it stops incomplete, and resuming it makes what is missing.
       expect(d.run).toMatchObject({ state: 'incomplete' })
-      expect(d.run.failure).toMatch(/Evaluation spending reached its monthly cap of \$0\.00/)
+      expect(d.run.failure).toMatch(
+        /The AI cost limit for answer tests this month, \$0\.00, is reached/,
+      )
       expect((d as unknown as { stopped: { reason: string } }).stopped).toMatchObject({
         reason: 'cap',
       })
@@ -1334,18 +1341,30 @@ describe('questions run in memory, with nothing of them kept (FR-525)', () => {
     expect(record.rows[0]!.failure).not.toContain(canary)
   })
 
-  /** A held-out run whose answers wait until it is let go, and the run's row once it asks. */
+  /**
+   * A held-out run whose answers wait until it is let go, and the run's row once every worker it
+   * runs in parallel is parked in one. Each worker renews the lease before its answer, so only
+   * then can no renewal follow a test's change to the lease.
+   */
   async function heldRun() {
+    const wordings = question('sealed-lifecycle', 'Online sales').wordings.length
+    const workers = await database.transaction(null, async (tx) =>
+      Math.min(
+        (await readCallLimits(tx)).concurrency,
+        wordings * (await readEvalSettings(tx)).tries,
+      ),
+    )
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
     let asked!: () => void
     const asking = new Promise<void>((resolve) => (asked = resolve))
+    let parked = 0
     const scripted = models.choose('eval_answer').model as MockLanguageModelV4
     const waiting = new MockLanguageModelV4({
       provider: 'mock',
       modelId: 'scripted-answer',
       doGenerate: async (options) => {
-        asked()
+        if (++parked === workers) asked()
         await gate
         return scripted.doGenerate(options)
       },

@@ -49,7 +49,7 @@ describe('the Ready line', () => {
     expect(clash.clash!.items).toHaveLength(3)
     expect(readiness(clash)).toMatchObject({
       ok: false,
-      text: 'It overlaps 3 live items, each answered Unrelated unless you change it.',
+      text: 'It is about the same thing as 3 published items. Unless you choose, they stay as they are.',
     })
     // Two answers are not three: one answer never stands for another item.
     expect(clashOutcome(clash, { [stop!]: 'unrelated', [credit!]: 'replaces' })).toBeNull()

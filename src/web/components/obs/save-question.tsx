@@ -147,8 +147,9 @@ export function SaveQuestion({
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            In {domains[domain]?.name}. After every publish, archive, restore, sync or check date
-            passing, it is checked again. It checks what agents get, not how an agent words it.
+            In {domains[domain]?.name}. After every publish, archive, restore, new read from a tool
+            or check date passing, it is checked again. It checks what agents get, not how an agent
+            words it.
           </p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
