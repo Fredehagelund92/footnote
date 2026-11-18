@@ -66,7 +66,7 @@ The server speaks the two latest revisions of the MCP protocol.
 
 ## Limits
 
-Over a limit, the answer is 429 with `Retry-After` in seconds.
+Over a limit, the answer is 429 with `Retry-After` in seconds, and its text says how many seconds to wait.
 
 | Limit                                   | Default a minute |
 | --------------------------------------- | ---------------- |
@@ -74,5 +74,8 @@ Over a limit, the answer is 429 with `Retry-After` in seconds.
 | Calls by one client label               | 120              |
 | `get_context` calls by one client label | 120              |
 | `report` calls by one client label      | 20               |
+| Other messages by one person            | 120              |
+
+Only tool calls count as calls. Starting a session and listing the tools are other messages, so an agent that opens many sessions at once still gets the tools.
 
 Admins change these with the settings `limits.mcp_requests_per_minute` and `limits.mcp_rate_per_minute`, and a change applies at the next request: see [Administer the service](../administration.md#change-a-setting). Each instance counts on its own.

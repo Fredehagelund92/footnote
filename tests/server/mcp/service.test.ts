@@ -1156,6 +1156,7 @@ describe('get_context', () => {
     expect(keys(out)).toEqual([
       'asked',
       'context',
+      'defined',
       'edition',
       'period_read',
       'reply_id',
@@ -1170,6 +1171,28 @@ describe('get_context', () => {
     // The reply id is the delivery's id, which report takes.
     expect(s.records[0]).toMatchObject({ kind: 'delivery', value: { id: out.reply_id } })
     expect(reply._meta).toMatchObject({ tool_schema_digest: toolSchemaDigest, overlay: '0' })
+  })
+
+  it('says what each asked metric is in the first sentence of its definition, short or full (M9)', async () => {
+    const s = setup()
+    s.data.terms[0]!.described!.description =
+      'The value of paid orders, in euros. Cancelled orders are left out.'
+    const amount = [
+      { metric: 'Orders', definition: 'The value of paid orders, in euros.', from: 'Cube' },
+    ]
+    for (const response_format of ['concise', 'full'])
+      expect(
+        (await s.call('get_context', { question, response_format })).structuredContent,
+      ).toMatchObject({ defined: amount })
+    // A metric its source does not describe has no line, and the reply leaves the field out.
+    s.data.terms[0]!.described = null
+    expect((await s.call('get_context', { question })).structuredContent).not.toHaveProperty(
+      'defined',
+    )
+    // A question that names no metric has none either.
+    expect(
+      (await s.call('get_context', { question: 'Norway August 2026' })).structuredContent,
+    ).not.toHaveProperty('defined')
   })
 
   it('is Partial when the question gave no dates, and get_facts keeps Checked', async () => {
@@ -1309,7 +1332,7 @@ describe('get_context', () => {
     const s = setup()
     s.data.items[0]!.summary = 'x'.repeat(900)
     second(s, { summary: 'y'.repeat(900) })
-    const out = (await s.call('get_context', { question, max_bytes: 4500 })).structuredContent as {
+    const out = (await s.call('get_context', { question, max_bytes: 4600 })).structuredContent as {
       say: string
       next: string
       context: unknown[]

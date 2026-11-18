@@ -119,6 +119,12 @@ does, pass them as `period: { "words": "August last year" }`. A `window` stands 
 as a choice, `{ "from": "2025-08-01", "to": "2025-08-31", "reads_as": ..., "words": ... }`, and
 `next` says to confirm it and call again: it is never taken for the agent.
 
+Every reply that names a metric carries `defined`, in the short reply too: for each metric asked,
+at most five, the first sentence of its definition source's own words, as `metric`, `definition`
+and `from` (the tool, such as Cube). It says whether a figure is an amount or a count, so an agent
+never calls Orders a count when the source sums their value. A metric its source does not describe
+has no line. The full `definitions` still come only when the question asks what a metric means.
+
 With `response_format: "full"` (FR-342) the reply keeps the same fields and adds what it always
 carried: each item's version, body, validity, claim level, every source, owner, review stamp and
 links (FR-326, FR-331), `scope_used`, `dates_read` and `assumed_date`, the domains the question is
@@ -248,8 +254,10 @@ whose policy sets no rate of its own, so one person cannot spend the budget of e
 client label (the evaluation runner's token is no person, so a run counts against the `eval`
 client only). The setting `limits.mcp_rate_per_minute` also limits each tool per client (by
 default 120 `get_context` calls and 20 `report` calls a minute; a feedback tool without a value
-gets ten). Over a limit, the answer is 429 with `Retry-After` in
-seconds. Administrators change all of these through the API ([Administration, import and export](../administration.md)), and a
+gets ten). Only `tools/call` spends these. Every other message (starting a session, listing the
+tools, a ping) counts against a fixed 120 a minute for each person instead, so an agent that opens
+a session for each of its helpers still lists the tools. Over a limit, the answer is 429 with
+`Retry-After` in seconds, and its text says how many seconds to wait. Administrators change all of these through the API ([Administration, import and export](../administration.md)), and a
 change applies on the next request. Local rate counters live in memory for at most one minute.
 Several replicas of the service would need a shared limiter.
 

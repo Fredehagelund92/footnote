@@ -321,7 +321,11 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
     )
     return wire
   }
-  const mcpStatus = async (accessToken: string) =>
+  /** The status of one MCP message, a tool list unless another message is given. */
+  const mcpStatus = async (
+    accessToken: string,
+    message: unknown = { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  ) =>
     (
       await fetch(resource, {
         method: 'POST',
@@ -330,7 +334,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
           'content-type': 'application/json',
           accept: 'application/json, text/event-stream',
         },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+        body: JSON.stringify(message),
       })
     ).status
 

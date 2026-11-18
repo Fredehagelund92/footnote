@@ -637,12 +637,21 @@ describe('the MCP server checks every token itself', () => {
     const two = await signInFlow(clientId)
     const first = await exchange(clientId, one.code!, one.verifier)
     const second = await exchange(clientId, two.code!, two.verifier)
-    expect(await mcpStatus(first.body.access_token!)).toBe(200)
+    // Only a tool call spends the limit (H22): a tool list in between spends none.
+    const call = {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: 'get_context', arguments: { question: 'Orders in Norway' } },
+    }
+    expect(await mcpStatus(first.body.access_token!, call)).toBe(200)
     expect(await mcpStatus(second.body.access_token!)).toBe(200)
-    expect(await mcpStatus(second.body.access_token!)).toBe(429)
+    expect(await mcpStatus(second.body.access_token!, call)).toBe(200)
+    expect(await mcpStatus(second.body.access_token!, call)).toBe(429)
+    expect(await mcpStatus(second.body.access_token!)).toBe(200)
     const other = await signInFlow(clientId, { person: 'owner' })
     const third = await exchange(clientId, other.code!, other.verifier)
-    expect(await mcpStatus(third.body.access_token!)).toBe(200)
+    expect(await mcpStatus(third.body.access_token!, call)).toBe(200)
   })
 })
 
