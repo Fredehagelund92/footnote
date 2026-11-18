@@ -78,12 +78,13 @@ You need Docker:
 
 ```sh
 git clone https://github.com/Fredehagelund92/heed.git && cd heed
-docker compose -f compose.yaml -f compose.images.yaml up
+docker compose up
 ```
 
-The first start pulls the published images and loads the demo, which takes about two minutes. Then open
-<http://localhost:8080>. It opens as Ravi Kapoor, the admin. **View as**, in the top right corner, switches to Jon
-Abara, who owns Sales, or to Maria Lindqvist, who can read and suggest. Sign out to pick any other demo person.
+`docker compose up` builds the images from this checkout, so you get what this page describes. The first start
+builds them and loads the demo, which takes several minutes. Then open <http://localhost:8080>. It opens as Ravi
+Kapoor, the admin. **View as**, in the top right corner, switches to Jon Abara, who owns Sales, or to Maria
+Lindqvist, who can read and suggest. Sign out to pick any other demo person.
 
 The demo is an invented outdoor-gear retailer: people, domains and context items, with their history,
 suggestions waiting for review and what agents asked over the past weeks. Nothing leaves your computer, and no
@@ -91,10 +92,11 @@ AI service is called. Stop with Ctrl+C; `docker compose down --volumes` also rem
 
 Two other ways in:
 
+- **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
+  pulls them instead of building. They are release 0.1.0 of 2 November 2026, which is behind this page: it
+  opens on a sign-in page that lists the demo people, with no **View as**. The next release replaces them.
 - **No Docker, under a minute.** With Node 26, `npm ci && npm run dev` opens the app on mock data at
   <http://localhost:5173>. It has no database and no MCP server.
-- **The code in this checkout.** `docker compose up` builds the images here, which takes far longer. The
-  published images are the latest release, so use this for anything merged since.
 
 To choose how to run Heed for your own team, see [Where to run Heed](docs/where-to-run.md). To keep it running
 here, back it up, upgrade it or roll an upgrade back, see [Self-host Heed on one computer](docs/self-hosting.md).
@@ -128,19 +130,17 @@ Heed reads metric and dimension names from your semantic layer, and never writes
 [Cube](https://cube.dev) model, name its folder:
 
 ```sh
-CUBE_MODEL_DIR=/path/to/your/cube/model docker compose -f compose.yaml -f compose.images.yaml up
+CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
 ```
 
-This runs the published images, as the Quick start does; `docker compose up` alone builds them from this
-checkout, which takes much longer. With your own model Heed starts empty, with no demo data. Sign in as Ravi Kapoor, the administrator in
-`db/seed/people.local.yml`, and follow the setup checklist in the Inbox: add your domains, then publish the
+This builds the images from this checkout, as the Quick start does. With your own model Heed starts empty, with
+no demo data. Sign in as Ravi Kapoor, the administrator in `db/seed/people.local.yml`, and follow the setup checklist in the Inbox: add your domains, then publish the
 names each read makes, on one card. Your context applies to those names. On a Mac the folder must be one Docker shares, or Heed refuses to start and says so. See
 [the Cube connector](docs/connectors/cube.md).
 
 For dbt, Heed reads the `semantic_manifest.json` that `dbt parse` writes, from a link, object storage, a Git
-repository or a folder: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md). It needs
-this checkout, which is ahead of the latest release, so start Heed with `docker compose up`. Tokens and signed
-links stay in a secret store in Docker's `heed_keys` volume.
+repository or a folder: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md). Start Heed
+with `docker compose up`, as above. Tokens and signed links stay in a secret store in Docker's `heed_keys` volume.
 
 ## What you get
 
@@ -229,7 +229,8 @@ The clickable mockup is the design the app was built from, kept as a reference i
 
 ## Status
 
-Heed is **pre-1.0**, and [v0.1.0](https://github.com/Fredehagelund92/heed/releases/tag/v0.1.0) is its first release.
+Heed is **pre-1.0**. Its only release so far is [0.1.0](https://github.com/Fredehagelund92/heed/releases/tag/v0.1.0)
+of 2 November 2026, and this page describes the code on main, which is well ahead of it.
 It is for trying on one computer, not for production use. Expect rough edges and breaking changes.
 
 **Works today**
