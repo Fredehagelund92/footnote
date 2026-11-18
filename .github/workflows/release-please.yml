@@ -3,7 +3,8 @@ name: Release pull request
 # Keeps one pull request open that would release what main holds (docs/releasing.md). release-please
 # reads the conventional commit titles since the last release and, in that pull request, writes
 # CHANGELOG.md and raises the version in package.json, package-lock.json,
-# .release-please-manifest.json, docs/api/openapi.json and SECURITY.md (release-please-config.json).
+# .release-please-manifest.json, docs/api/openapi.json, SECURITY.md and the images
+# compose.images.yaml pulls (release-please-config.json).
 # Merging it releases nothing yet: pushing the tag does (release.yml).
 on:
   push:

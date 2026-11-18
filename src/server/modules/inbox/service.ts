@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/client'
-import type { Card, Feed } from '../../../contract/inbox.ts'
+import type { Card, Feed, Setup } from '../../../contract/inbox.ts'
 import type { ReportOutcome } from '../../../contract/reports.ts'
 import {
   alertCardDays,
@@ -892,8 +892,12 @@ export function createInboxFeedService(
       throw new ORPCError('NOT_FOUND', { message: missing('this change') })
     },
 
-    /** A new workspace's setup checklist (FR-816), read from what exists. */
-    async setup(): Promise<{ steps: { id: SetupStep; done: boolean }[]; done: boolean }> {
+    /**
+     * A new workspace's setup checklist (FR-816), read from what exists, with the server's own
+     * definitions source (of `serverSources`, its ids) and where its read stands (none ended, a
+     * good one, or only failed or discarded ones): the first one not read well yet, else the first.
+     */
+    async setup(serverSources: readonly string[] = []): Promise<Setup> {
       const [row] = await tx.query<Record<SetupStep, boolean>>(
         `select coalesce(length(btrim((select value #>> '{}' from settings_current where key='business.about'))),0) > 0 as about,
                 exists(select 1 from areas where archived_at is null) as domain,
@@ -905,7 +909,23 @@ export function createInboxFeedService(
                  or exists(select 1 from auth.oauth_grants)) as agent`,
       )
       const steps = setupSteps.map((id) => ({ id, done: Boolean(row?.[id]) }))
-      return { steps, done: steps.every((s) => s.done) }
+      const reads = new Map(
+        (
+          await tx.query<{ id: string; good: boolean }>(
+            `select connector_id as id, bool_or(status in ('ok','partial')) as good
+               from connector_snapshots where connector_id = any($1) group by connector_id`,
+            [serverSources],
+          )
+        ).map((r) => [r.id, r.good] as const),
+      )
+      const stateOf = (source: string) =>
+        reads.get(source) === undefined ? 'reading' : reads.get(source) ? 'read' : 'failed'
+      const id = serverSources.find((source) => stateOf(source) !== 'read') ?? serverSources[0]
+      return {
+        steps,
+        done: steps.every((s) => s.done),
+        serverSource: id === undefined ? null : { id, state: stateOf(id) },
+      }
     },
 
     /** Ask was used: the checklist's step that leaves no other record (no words, nobody). */

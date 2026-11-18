@@ -14,6 +14,7 @@ import {
   type ScriptedPrompt,
   type ScriptedStep,
 } from '../../src/server/modules/answer/index.ts'
+import { UNCHECKED } from '../../src/server/modules/answer/loop-check.ts'
 
 /*
   Ask's loop without a database (FR-718 to FR-720): what code writes from the reads (the citations
@@ -983,7 +984,7 @@ describe('an overview, whatever the model sends of it', () => {
   // The words of a real try of "what do i need to handle?" that showed no groups: a lead, then a
   // list of its own with citations, and no overview asked for.
   const handleWords =
-    'Your Inbox holds 20 cards, and the largest group is 11 suggestions. The Inbox is shown below in its own order, with what needs you first.\n\nSeveral cards need attention beyond suggestions: three context items are due for a check, including [itm_germany01] (Returns changed definition on 28 April 2026, for [@value:market/norway]) and [itm_another01] (a Marketing item on price promotions in [@value:market/italy]). The Orders in Spain question has been asked 9 times and nothing written covers it. Two alerts report syncs that did not complete, and one reported wrong answer is waiting.'
+    'Your Inbox holds 20 cards, and the largest group is 11 suggestions. The Inbox is shown below in its own order, with what needs you first.\n\nSeveral cards need attention beyond suggestions: two context items are due for a check, including [itm_germany01] (Returns changed definition, for [@value:market/norway]) and another (a Marketing item on price promotions in [@value:market/italy]). The Orders in Spain question has been asked often and nothing written covers it. Two alerts report syncs that did not complete, and one reported wrong answer is waiting.'
   const handled = (question: string, read: object = inbox) =>
     turnWith(
       ({ step }) =>
@@ -997,14 +998,15 @@ describe('an overview, whatever the model sends of it', () => {
       ['mention', 1],
       ['check', 2],
     ])
-    // The words' first paragraph leads; their own list and the rest are what the groups show.
+    // The words' first paragraph leads; their own list and the rest are what the groups show. Its
+    // counts are the model's own, which no read returned: the answer check said so (FR-720.10).
     expect(turn.body).toEqual([
       {
         t: 'p',
         runs: [
           {
             t: 'text',
-            text: 'Your Inbox holds 20 cards, and the largest group is 11 suggestions. The Inbox is shown below in its own order, with what needs you first.',
+            text: `${UNCHECKED} The Inbox is shown below in its own order, with what needs you first.`,
           },
         ],
       },

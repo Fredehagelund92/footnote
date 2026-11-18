@@ -292,6 +292,13 @@ release pull request current after every push to `main`, `release.yml`
 builds and publishes a release when a maintainer pushes a version tag, and `docs-site.yml` builds
 the public docs site, for a release and for every push to `main` that changes it.
 
+`demo-images.yml` builds `main`'s images every night at 04:41 UTC, starts the demo from them with
+`docker compose up`, and runs the demo journey and the eight demo questions
+(`tests/e2e-seed/demo.spec.ts` and `demo-questions.spec.ts`) in a browser against it. `release.yml`
+runs the same on the images it published. To run them against a demo you started yourself, set
+`PW_SEED_BASE_URL=http://localhost:8080` for `npm run test:e2e:seed`: nothing is built or started
+then.
+
 ### Validation tiers
 
 A pull request takes the highest tier any of its files falls in.

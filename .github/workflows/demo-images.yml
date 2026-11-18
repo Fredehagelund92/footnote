@@ -1,0 +1,105 @@
+name: Demo from the images
+
+# The demo as `docker compose up` gives it, from the images themselves rather than from a service
+# run with node: the demo journey (tests/e2e-seed/demo.spec.ts) and the eight demo questions
+# (tests/e2e-seed/demo-questions.spec.ts), in a browser on http://localhost:8080.
+#
+# - Every night, and by hand, it builds main's images (docker compose build), so a change that
+#   breaks the demo only inside the images is found before a release.
+# - release.yml calls it with the two images it published. It then runs the README's Quick start
+#   as written at the tag: compose.images.yaml names the release's version, written by
+#   release-please, and must name exactly the images the release pushed. They are pulled without
+#   signing in, as a stranger pulls them.
+on:
+  schedule:
+    - cron: '41 4 * * *'
+  workflow_call:
+    inputs:
+      version:
+        description: The release, MAJOR.MINOR.PATCH, whose images compose.images.yaml names.
+        required: true
+        type: string
+      service:
+        description: The published service image, service=<name>@<digest>, as release.yml's publish job hands it on.
+        required: true
+        type: string
+      web:
+        description: The published web image, web=<name>@<digest>.
+        required: true
+        type: string
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# bash with -e and pipefail, so a failed command inside a pipe fails its step.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  demo:
+    name: The demo journey and the eight demo questions
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: ./.github/actions/playwright
+      - name: Build main's images
+        if: ${{ !inputs.version }}
+        run: docker compose build
+      - name: compose.images.yaml names the images the release published
+        if: ${{ inputs.version }}
+        env:
+          VERSION: ${{ inputs.version }}
+          SERVICE: ${{ inputs.service }}
+          WEB: ${{ inputs.web }}
+        run: |
+          named=$(docker compose -f compose.yaml -f compose.images.yaml config --format json)
+          for pair in "heed=${SERVICE#*=}" "web=${WEB#*=}"; do
+            service=${pair%%=*}
+            published=${pair#*=}
+            image=$(jq -r --arg service "$service" '.services[$service].image' <<< "$named")
+            if [ "$image" != "${published%@*}:$VERSION" ]; then
+              echo "::error::compose.images.yaml names $image for $service, not ${published%@*}:$VERSION."
+              exit 1
+            fi
+            digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+            if [ "$digest" != "${published#*@}" ]; then
+              echo "::error::$image is $digest, not the ${published#*@} the release published."
+              exit 1
+            fi
+            echo "$service: $image is $digest."
+          done
+      - name: Pull the published images, without signing in
+        if: ${{ inputs.version }}
+        run: docker compose -f compose.yaml -f compose.images.yaml pull heed web
+      - name: Start the demo
+        env:
+          FILES: ${{ inputs.version && '-f compose.yaml -f compose.images.yaml' || '-f compose.yaml' }}
+        run: |
+          # shellcheck disable=SC2086 # the files are several arguments
+          docker compose $FILES up --no-build --detach --wait --wait-timeout 300
+          docker compose logs heed | grep 'Loaded the demo' > /dev/null
+      - name: The demo journey and the eight demo questions
+        env:
+          PW_SEED_BASE_URL: http://localhost:8080
+        run: npx playwright test -c playwright.seed.config.ts tests/e2e-seed/demo.spec.ts tests/e2e-seed/demo-questions.spec.ts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report-demo-images
+          path: |
+            playwright-report/e2e-seed
+            test-results/e2e-seed
+          retention-days: 7
+      - name: The demo's logs
+        if: failure()
+        run: docker compose logs --no-color | tail -n 300
