@@ -90,6 +90,10 @@ The demo is an invented outdoor-gear retailer: people, domains and context items
 suggestions waiting for review and what agents asked over the past weeks. Nothing leaves your computer, and no
 AI service is called. Stop with Ctrl+C; `docker compose down --volumes` also removes the data.
 
+If port 8080 or 3000 is taken on this computer, move them: start with `HEED_WEB_PORT=8081 HEED_PORT=3001` in
+front of `docker compose`, and connect agents to port 3001. Under Colima a taken port may fail without a word,
+and the other program answers there instead.
+
 Two other ways in:
 
 - **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
@@ -254,8 +258,9 @@ It is for trying on one computer, not for production use. Expect rough edges and
 **Good to know**
 
 - The Docker demo uses the demo sign-in: anyone can be an admin, so keep it off the internet.
-- The demo runs on scripted mock models and spends nothing. Ask's words and the test runs can use Anthropic, directly
-  or through Vercel's AI Gateway, chosen by an admin.
+- The demo runs on scripted mock models and spends nothing. `MODELS=live ANTHROPIC_API_KEY=... docker compose up`
+  answers on Claude instead: [Ask on a real model](docs/self-hosting.md#ask-on-a-real-model) says what then leaves
+  your computer and what it costs.
 - Built with TypeScript on Node 26, Fastify, PostgreSQL 18, React 19 and the official MCP SDK.
 
 ## Contributing

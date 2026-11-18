@@ -9,6 +9,11 @@
 # HEED_PORT move the web app (8080) and the service (3000). Both listen on this computer only:
 # anyone who reaches them can sign in as any of the demo people.
 #
+# Ask and the test runs answer on scripted models and send nothing out. MODELS=live with a key
+# answers on a real model (docs/self-hosting.md, "Ask on a real model"):
+#
+#   MODELS=live ANTHROPIC_API_KEY=... docker compose up
+#
 # Not for production: the database trusts every connection inside this network, and sign-in is
 # the demo's people picker.
 
@@ -56,6 +61,13 @@ services:
       # own in the keys volume, so they stay when the container is made again. The service makes
       # it, for its own user alone: it refuses a folder others may read, as the volume's top is.
       HEED_SECRETS_DIR: /var/lib/heed/secrets
+      # The models, and the key and address of each provider, when you name them; empty, the
+      # scripted models (docs/configuration.md, "Models").
+      MODELS: ${MODELS:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      VERCEL_AI_GATEWAY_API_KEY: ${VERCEL_AI_GATEWAY_API_KEY:-}
+      VERCEL_AI_GATEWAY_BASE_URL: ${VERCEL_AI_GATEWAY_BASE_URL:-}
     volumes:
       # Your own model's folder, or an empty volume nothing reads when you name none: the demo
       # never depends on a folder Docker shares from this computer.
