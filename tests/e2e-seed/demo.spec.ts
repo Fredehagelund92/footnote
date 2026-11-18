@@ -116,6 +116,8 @@ test('a new install of the demo: sign in, and every main screen draws on its dat
 test("the demo's Ask says no AI model answers, and its scripted reader reads sensibly", async ({
   page,
 }) => {
+  // Three answers, each given the time a busy runner needs.
+  test.setTimeout(180_000)
   // A first visit signs in as the demo's administrator, then Ask.
   await page.goto('/')
   await expect(page).toHaveURL(/\/inbox$/)
@@ -132,7 +134,8 @@ test("the demo's Ask says no AI model answers, and its scripted reader reads sen
     await box.click()
     await box.pressSequentially(question)
     await box.press('Enter')
-    await expect(turn(n).getByText('What Ask read')).toBeVisible()
+    // The scripted reader answers in seconds, but a busy runner can take far longer.
+    await expect(turn(n).getByText('What Ask read')).toBeVisible({ timeout: 60_000 })
   }
 
   // Asked what a metric is, the answer is its definition, first and alone.

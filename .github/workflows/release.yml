@@ -4,10 +4,12 @@ name: Release
 # that merged the release pull request (release-please.yml), whose CI passed. Then both images in
 # the Dockerfile, the service and the web app, are built natively for linux/amd64 and linux/arm64,
 # pushed to ghcr.io with an SBOM and the build provenance, and signed with GitHub's build
-# provenance. The docs site is built at the tag (docs-site.yml), apart from all of that. The GitHub
-# Release gets the notes release-please wrote into CHANGELOG.md. Last, a separate job attaches the
-# docs as a tarball when the docs build succeeded; if it failed, the release and images stand and
-# a warning says the tarball is missing.
+# provenance. Each is scanned before it is tagged. Before the release names them, the demo journey
+# and the eight demo questions run on the tagged images as the README's Quick start pulls them
+# (demo-images.yml). The docs site is built at the tag (docs-site.yml), apart from all of that. The
+# GitHub Release gets the notes release-please wrote into CHANGELOG.md. Last, a separate job
+# attaches the docs as a tarball when the docs build succeeded; if it failed, the release and
+# images stand and a warning says the tarball is missing.
 # Only the workflow's own token is used, each job with the least it needs.
 on:
   push:
@@ -140,6 +142,20 @@ jobs:
           outputs: type=image,name=${{ steps.name.outputs.image }},push-by-digest=true,name-canonical=true,push=true
           provenance: mode=max
           sbom: true
+      # Before the image has a tag: one with a critical or high vulnerability that a newer
+      # package already fixes is never named. One that has no fix yet does not stop the release.
+      - name: Trivy
+        run: |
+          curl -fsSL -o trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz
+          echo "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0  trivy.tar.gz" | sha256sum -c -
+          tar -xzf trivy.tar.gz -C "$RUNNER_TEMP" trivy
+      - name: No critical or high vulnerability that has a fix
+        env:
+          REF: ${{ steps.name.outputs.image }}@${{ steps.build.outputs.digest }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          "$RUNNER_TEMP/trivy" image --image-src remote --platform "$PLATFORM" --scanners vuln \
+            --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 --no-progress "$REF"
       - name: Keep the digest for the publish job
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -253,6 +269,15 @@ jobs:
           REF: ${{ steps.name.outputs.image }}@${{ steps.push.outputs.digest }}
         run: echo "$ROLE=$ROLE=$REF" >> "$GITHUB_OUTPUT"
 
+  demo:
+    name: Demo from the published images
+    needs: [check, publish]
+    uses: ./.github/workflows/demo-images.yml
+    with:
+      version: ${{ needs.check.outputs.version }}
+      service: ${{ needs.publish.outputs.service }}
+      web: ${{ needs.publish.outputs.web }}
+
   docs:
     # Its publish job, which needs the write, only runs once a maintainer has turned it on.
     name: Docs site
@@ -265,7 +290,7 @@ jobs:
 
   release:
     name: GitHub Release
-    needs: [check, publish]
+    needs: [check, publish, demo]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
