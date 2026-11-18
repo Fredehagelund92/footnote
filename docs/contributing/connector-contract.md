@@ -178,6 +178,7 @@ A read that fails before anything is read says why with one of these, on a faile
 | `folder_missing`  | the model folder | The model folder is not there           |
 | `secret_missing`  | the secret's key | The token is gone from the secret store |
 | `fetch_failed`    | the repository   | The repository could not be read        |
+| `git_missing`     | `git`            | The server has no git program           |
 
 The codes are `sourceWarningCodes` in `src/contract/operations.ts`; the connectors' schema uses
 the same list, and the web app words why a read failed by its code

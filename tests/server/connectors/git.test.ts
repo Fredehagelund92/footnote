@@ -218,6 +218,34 @@ describe('a Cube model in a Git repository', () => {
     },
     GIT_TIMEOUT,
   )
+
+  it('says the server has no git program, and Markdown in Git says it in words', async () => {
+    const empty = await mkdtemp(join(tmpdir(), 'heed-no-git-'))
+    const path = process.env.PATH
+    process.env.PATH = empty
+    try {
+      expect(await failure(source().read())).toEqual([{ code: 'git_missing', target: 'git' }])
+      const markdown = builtInConnectors.find((module) => module.manifest.id === 'git-markdown')!
+      const check = await fromModule(markdown).check({
+        id: 'handbook',
+        name: 'Handbook',
+        config: { repository: host.address('analytics'), ref: 'main', folder: '' },
+        secrets: { token: TOKEN },
+      })
+      expect(check.steps).toEqual([
+        {
+          id: 'reach',
+          title: 'Reach the repository',
+          status: 'failed',
+          detail: 'It could not be read (git_missing).',
+          fix: 'Install git on the server: it has no git program to read a repository with.',
+        },
+      ])
+    } finally {
+      process.env.PATH = path
+      await rm(empty, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('fetching from Git', () => {
