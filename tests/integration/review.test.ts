@@ -756,12 +756,19 @@ describe('review and release', () => {
   })
 
   it('moves on the review date an item with an end date was given, so its check is no longer due', async () => {
-    const item = await acceptedItem({
-      title: 'Ended event with a check date',
-      kind: 'event',
-      validity: { start: '2026-04-18', end: '2026-05-31' },
-      reviewDate: '2026-09-18',
-    })
+    // Accepted on 2026-09-01, so its date is still ahead and accept leaves it alone.
+    today = '2026-09-01'
+    let item: string
+    try {
+      item = await acceptedItem({
+        title: 'Ended event with a check date',
+        kind: 'event',
+        validity: { start: '2026-04-18', end: '2026-05-31' },
+        reviewDate: '2026-09-18',
+      })
+    } finally {
+      today = '2026-10-08'
+    }
     const reviewDate = async () =>
       (
         await client.query<{ review_date: string | null }>(
