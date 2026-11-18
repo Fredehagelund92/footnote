@@ -77,6 +77,8 @@ Every request under `/api` counts against a limit each minute, the setting `limi
 
 Over a limit, the answer is 429 with `Retry-After` in seconds. Each instance counts on its own. `/health`, `/health/ready` and `/metrics` are not limited.
 
+`/mcp` refuses 60 requests a minute from one address before a token is accepted: no token, a token that fails, or a wrong host, origin or method. Past that, each is a 429 that writes no request record and no log line until the minute ends. A valid token is never held back by it.
+
 The address is the one that connected, unless that is a proxy named in `FOOTNOTE_TRUSTED_PROXIES`. Then it is the address the proxy forwards. Unset, the service believes no forwarded address.
 
 ## Scheduled jobs

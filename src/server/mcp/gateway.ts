@@ -119,6 +119,13 @@ function resultStatusOf(result: { structuredContent?: Record<string, unknown> })
  */
 const SESSION_MESSAGES_PER_MINUTE = 120
 
+/**
+ * The requests one caller address may have refused a minute before a token is accepted (S3): a
+ * missing or invalid token, a wrong host or origin, a wrong method. Past them, a refusal is a 429
+ * that writes no record and no log line, so a flood without a token reaches no database.
+ */
+const REFUSALS_PER_MINUTE = 60
+
 /** The key of the one form `suggest_context` asks in a round. */
 const QUESTIONS = 'draft_questions'
 
@@ -146,7 +153,8 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     metrics?.recordsDropped(count)
     app.log.warn({ droppedRecords }, 'anonymous MCP records dropped')
   })
-  // Local-process limits use ephemeral token digests, discarded after each minute. They never enter records.
+  // Local-process limits use ephemeral token digests and caller addresses, discarded after each
+  // minute. They never enter records.
   const limit = createLimiter(deps.wallClock ?? now)
   const resource = new URL(deps.resource)
   const metadata = new URL('/.well-known/oauth-protected-resource/mcp', resource).href
@@ -186,6 +194,8 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     let status: RequestRecord['status'] = 'error'
     let resultStatus: ResultStatus | null = null
     let responseBytes = 0
+    // Set for a refusal past the caller address's budget, which is counted in the metrics only.
+    let unrecorded = false
     reply.raw.once('finish', () => {
       // A delivery is counted by the kind of agent that asked (FR-410), as its request is.
       for (const record of pending)
@@ -194,6 +204,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
         )
       const duration = performance.now() - started
       metrics?.mcpRequest({ tool: name ?? 'protocol', status, appFamily: family }, duration / 1000)
+      if (unrecorded) return
       queue.enqueue({
         kind: 'request',
         value: {
@@ -214,15 +225,30 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       status = recordStatus
       return reply.code(code).send({ error: message })
     }
+    // A refusal before a token is accepted spends the caller address's budget first, and past it is
+    // only a 429 (S3).
+    const refusedBefore = () => {
+      const retry = limit([{ key: `refused:${request.ip}`, limit: REFUSALS_PER_MINUTE }])
+      if (!retry) return null
+      unrecorded = true
+      reply.header('Retry-After', retry)
+      return deny(
+        429,
+        `Too many calls to ${productName} this minute. Wait ${retry} seconds, then try again.`,
+        'rate_limited',
+      )
+    }
+    const refuse = (code: number, message: string, recordStatus: RequestRecord['status']) =>
+      refusedBefore() ?? deny(code, message, recordStatus)
     if (!['POST', 'GET', 'DELETE'].includes(request.method))
-      return deny(405, 'Method not allowed', 'error')
+      return refuse(405, 'Method not allowed', 'error')
     try {
       if (!hosts.includes(new URL(`http://${request.headers.host}`).hostname))
-        return deny(403, 'Invalid host', 'forbidden')
+        return refuse(403, 'Invalid host', 'forbidden')
       if (request.headers.origin && !hosts.includes(new URL(request.headers.origin).hostname))
-        return deny(403, 'Invalid origin', 'forbidden')
+        return refuse(403, 'Invalid origin', 'forbidden')
     } catch {
-      return deny(403, 'Invalid origin or host', 'forbidden')
+      return refuse(403, 'Invalid origin or host', 'forbidden')
     }
     const authorization = request.headers.authorization
     const token = authorization?.match(/^Bearer ([^\s]+)$/i)?.[1]
@@ -231,7 +257,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
         'WWW-Authenticate',
         `Bearer resource_metadata="${metadata}", scope="${challengeScope}"`,
       )
-      return deny(401, 'Bearer token required', 'unauthorized')
+      return refuse(401, 'Bearer token required', 'unauthorized')
     }
     let principal
     try {
@@ -242,6 +268,8 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
         'WWW-Authenticate',
         `Bearer error="invalid_token", resource_metadata="${metadata}", scope="${challengeScope}"`,
       )
+      const limited = refusedBefore()
+      if (limited) return limited
       // A reason code and the client label only (FR-411): never the token or anything in it.
       const refusal = error instanceof TokenError ? error : new TokenError('malformed')
       app.log.warn({ reason: refusal.reason, client: refusal.client }, 'MCP token rejected')
