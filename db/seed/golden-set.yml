@@ -31,7 +31,9 @@
 # get_context. The assistant's cases keep their tool names: the assistant keeps its tools.
 # Version 18 (30 October 2026): the in-app assistant is gone (the web app's Ask answers on the
 # answer engine), and its cases with it. The agent cases are the same.
-version: 18
+# Version 19 (18 November 2026): a demo item whose title names a metric applies to that metric only,
+# so four cases are given the same items they were, but none of them is out of date: they are Checked.
+version: 19
 library:
   seed: 20261007
   items: 1500
@@ -849,13 +851,14 @@ cases:
         from: '2026-10-01'
         to: '2026-10-07'
     delivery:
-      status: stale
+      status: matched
       must_deliver: [itm_k4p3nj1b]
     answer:
       must_cite: [itm_k4p3nj1b]
     rubrics:
       - 'Says the recent days are expected to catch up and names until when the issue is expected'
     source: 'Library: the demo issue on Poland orders, 1 to 15 October 2026, asked inside it'
+    notes: "Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same."
 
   - id: gs-date-discount-cost-netherlands-latest
     area: area_marketing
@@ -876,7 +879,7 @@ cases:
         from: '2026-10-06'
         to: '2026-10-07'
     delivery:
-      status: stale
+      status: matched
       must_deliver: [itm_1y8znds2]
       must_not_deliver: [itm_3romadve]
       text: [one day]
@@ -884,7 +887,7 @@ cases:
       must_cite: [itm_1y8znds2]
       caveat: Discount cost lags by one day in the source tool.
     source: 'Re-worded seed question discount-cost-netherlands-latest-days'
-    notes: "Version 15: the demo world's words (a retailer), with the same expectations."
+    notes: "Version 15: the demo world's words (a retailer), with the same expectations. Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same."
 
   - id: gs-date-first-buyers-netherlands-before
     area: area_sandbox
@@ -989,7 +992,7 @@ cases:
         from: '2024-01-01'
         to: '2026-10-07'
     delivery:
-      status: stale
+      status: matched
       must_deliver: [itm_yz287ldv, itm_nqtawzby]
       rank_max: 10
     answer:
@@ -998,6 +1001,7 @@ cases:
       - 'Says the early months are not reliable'
       - 'Says the latest day is not complete yet'
     source: 'Library: a reliability note and a lag note on the same metric and market'
+    notes: "Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The items expected are the same."
 
   - id: gs-two-repeat-purchase-canada
     area: area_marketing
@@ -1392,7 +1396,7 @@ cases:
         from: '2026-10-06'
         to: '2026-10-07'
     delivery:
-      status: stale
+      status: matched
       must_deliver: [itm_1y8znds2]
     answer:
       must_cite: [itm_1y8znds2]
@@ -1418,6 +1422,7 @@ cases:
         rubrics:
           - 'Drops the Netherlands answer and does not carry the Netherlands caveat over to Poland'
     source: 'Library and fixture: a correction of the market'
+    notes: "Version 19: the bulk items are no longer stretched to a second metric, so no item given has a passed check date and the status is matched. The first turn's items are the same; the correction turn is still stale."
 
   - id: gs-conversation-definition-then-data
     area: area_sandbox
