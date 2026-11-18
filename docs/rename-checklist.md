@@ -37,6 +37,10 @@ Two names wait for the repository rename, since they only exist after it: the cl
 GitHub Pages serves the site) move to `footnote` with it. After the rename, rebuild the already
 published `/v0.1/` folder, which was built under `/heed/v0.1`.
 
+Rename the repository before the next release. A release made before it would publish the images
+under `heed` while `compose.images.yaml` names `footnote`, so the release's demo job
+(`demo-images.yml`) would fail.
+
 ## The setting
 
 One setting holds the name people and agents read: `FOOTNOTE_PRODUCT_NAME`, default `Footnote`
