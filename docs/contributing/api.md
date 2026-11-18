@@ -1181,7 +1181,7 @@ the contract is in `src/contract/alerts.ts`.
   questions not found); a share of yesterday's calls that failed or could not be read (Calls
   fail); this month's model spend at the threshold of the monthly cap (Model spend); a
   definition source whose last read failed or that has not read for longer than it should (A
-  connected tool did not sync), told to the owners of the domains whose live items rely on its
+  connected tool could not be read), told to the owners of the domains whose live items rely on its
   definitions too; and a live item whose check date passed, from 07:00 UTC (A check is due).
 - A raise is one row and one outbox event, written together by `cl_alert_raise`; the relay
   delivers it as Inbox items to the rule's audience less those who muted it for the domain. Its
