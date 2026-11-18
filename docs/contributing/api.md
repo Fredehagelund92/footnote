@@ -248,8 +248,10 @@ whose policy sets no rate of its own, so one person cannot spend the budget of e
 client label (the evaluation runner's token is no person, so a run counts against the `eval`
 client only). The setting `limits.mcp_rate_per_minute` also limits each tool per client (by
 default 120 `get_context` calls and 20 `report` calls a minute; a feedback tool without a value
-gets ten). Over a limit, the answer is 429 with `Retry-After` in
-seconds. Administrators change all of these through the API ([Administration, import and export](../administration.md)), and a
+gets ten). Only `tools/call` spends these. Every other message (starting a session, listing the
+tools, a ping) counts against a fixed 120 a minute for each person instead, so an agent that opens
+a session for each of its helpers still lists the tools. Over a limit, the answer is 429 with
+`Retry-After` in seconds, and its text says how many seconds to wait. Administrators change all of these through the API ([Administration, import and export](../administration.md)), and a
 change applies on the next request. Local rate counters live in memory for at most one minute.
 Several replicas of the service would need a shared limiter.
 
