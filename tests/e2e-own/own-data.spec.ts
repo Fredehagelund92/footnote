@@ -74,6 +74,13 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByText('Pick who you are.', { exact: true })).toBeVisible()
   await expect(page.getByText(/invented company|This is a demo/)).toHaveCount(0)
   await expect(label).toContainText('Own data trial')
+  // The people it starts with are the sample file's, and the page says so and who the admin is.
+  await expect(
+    page.getByText(
+      'These are sample people, made up for trying Footnote. Ravi Kapoor is the admin, who sets it up.',
+    ),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: /Ravi Kapoor/ })).toContainText('Admin')
   await shot('05-sign-in')
   await page.getByRole('button', { name: /Ravi Kapoor/ }).click()
   await expect(page).toHaveURL(/\/inbox$/)

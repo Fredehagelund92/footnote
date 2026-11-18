@@ -26,7 +26,7 @@ import {
   workspaceQuery,
 } from '@/api/queries'
 import { Button } from '@/components/ui/button'
-import type { SignInMethod } from '@/api/client'
+import type { SignInChoice, SignInMethod } from '@/api/client'
 import { useRoute } from '@/lib/router'
 import { PRODUCT } from '@/lib/brand'
 import { demoLanding, signedOutOnPurpose } from '@/lib/demo-profiles'
@@ -94,6 +94,23 @@ function DemoNote({ method }: { method: SignInMethod }) {
   return (
     <p className="px-6 text-center text-xs text-balance text-muted-foreground">
       Larchwood Outdoor is an invented company. Every name, fact and number here is mock data.
+    </p>
+  )
+}
+
+/**
+ * Says who the picker's people are, under the sign-in card, on an install with its own data: they
+ * are the sample people it starts with, and one of them is the admin who sets it up (README, "Use
+ * your own data"). Once a real person is in the list (not at a .test address), it says nothing.
+ */
+function SampleNote({ method, people }: { method: SignInMethod; people: readonly SignInChoice[] }) {
+  if (method.demo || !people.length || !people.every((p) => p.sample)) return null
+  const admins = people.filter((p) => p.admin).map((p) => p.name)
+  return (
+    <p className="px-6 text-center text-xs text-balance text-muted-foreground">
+      These are sample people, made up for trying {PRODUCT}.
+      {admins.length === 1 && ` ${admins[0]} is the admin, who sets it up.`}
+      {admins.length > 1 && ` ${admins.join(' and ')} are the admins, who set it up.`}
     </p>
   )
 }
@@ -194,7 +211,8 @@ const ONE_COLUMN = 6
 // The person picker, of a demo or of development. A long list of people takes two columns on a
 // wide screen, so they stay in view without scrolling.
 function PickerSignIn({ token, method }: { token: string | null; method: SignInMethod }) {
-  const wide = (useQuery(signInPeopleQuery()).data?.length ?? 0) > ONE_COLUMN
+  const offered = useQuery(signInPeopleQuery()).data ?? []
+  const wide = offered.length > ONE_COLUMN
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-4 md:p-10">
       <div className={cn('flex w-full max-w-sm flex-col gap-6', wide && 'sm:max-w-2xl')}>
@@ -216,23 +234,26 @@ function PickerSignIn({ token, method }: { token: string | null; method: SignInM
           </CardContent>
         </Card>
         <DemoNote method={method} />
+        <SampleNote method={method} people={offered} />
       </div>
     </main>
   )
 }
 
-/** The demo's people, one button each: a press signs in as them. */
+/** The picker's people, one button each: a press signs in as them. */
 function PeoplePicker({ columns = 1 }: { columns?: 1 | 2 }) {
   const signIn = useApiWrite('signIn')
   const offered = useQuery(signInPeopleQuery()).data ?? []
-  // Signed out on the service, nobody's workspace can be read: the picker shows names alone.
+  // Signed out on the service, nobody's workspace can be read: the picker shows who is an admin
+  // alone, which the sign-in's own list says.
   const people = useQuery(workspaceQuery()).data?.people ?? []
   return (
     <ItemGroup className={cn('gap-2', columns === 2 && 'sm:grid sm:grid-cols-2')}>
-      {offered.map((name) => {
-        const role = people.find((x) => x.name === name)?.role
+      {offered.map(({ name, admin }) => {
+        const role = people.find((x) => x.name === name)?.role || (admin ? 'Admin' : '')
         return (
-          <div role="listitem" key={name}>
+          // Full height, so a row that says a role is no taller than the one beside it.
+          <div role="listitem" key={name} className="flex">
             <Item
               variant="outline"
               size="sm"
