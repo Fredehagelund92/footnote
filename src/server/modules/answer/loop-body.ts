@@ -192,8 +192,15 @@ const plainName = (id: string, nouns: ReadonlyMap<string, Noun>) => {
   return same?.name ?? words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-/** A typed id as a read gives it, when the model wrote its kind twice (`domain:domain:area_x`). */
-const typedId = (id: string) => id.replace(/^([a-z]+):\1:/, '$1:')
+/**
+ * A typed id as a read gives it, when the model wrote its kind twice: `domain:domain:area_x`, or
+ * `domain:domain_area_x` for a noun a read named as `domain:area_x`.
+ */
+const typedId = (id: string, nouns?: ReadonlyMap<string, Noun>) => {
+  const once = id.replace(/^([a-z]+):\1:/, '$1:')
+  const joined = once.replace(/^([a-z]+):\1_/, '$1:')
+  return joined !== once && nouns?.has(joined) && !nouns.has(once) ? joined : once
+}
 
 /** A name as words, not inside another word, in any case. */
 const nameIn = (name: string) =>
@@ -212,6 +219,23 @@ function valueAt(result: unknown, path: readonly string[]): unknown {
     else return undefined
   }
   return at
+}
+
+/**
+ * The value a reference names in a read's result: at its path; for the `count` of a read that
+ * gives none, how many items it gives; else at a path of two or more parts one level in, when
+ * only one part of the result holds it (`days.from` for get_context's `read.days.from`).
+ */
+function readValue(result: unknown, path: readonly string[]): unknown {
+  const at = valueAt(result, path)
+  if (at !== undefined || !isObj(result)) return at
+  if (path.length === 1)
+    return path[0] === 'count' && Array.isArray(result.items) ? result.items.length : undefined
+  const inside = Object.values(result)
+    .filter(isObj)
+    .map((part) => valueAt(part, path))
+    .filter((v) => v !== undefined)
+  return inside.length === 1 ? inside[0] : undefined
 }
 
 /** A read's value as a run: a count, a count with what it is out of, a floor ("13+") or a day. */
@@ -241,6 +265,8 @@ const valueOf = (number: string) => Number(number.replace(/[,+]/g, ''))
 /** The counts people write in words, one to twelve, by value. */
 const NUMBER_WORDS = 'one two three four five six seven eight nine ten eleven twelve'.split(' ')
 const NUMBER_WORD = new RegExp(`\\b(?:${NUMBER_WORDS.join('|')})\\b`, 'gi')
+/** The words that say a count of nothing. */
+const ZERO_WORD = /\b(?:none|zero)\b/i
 
 /** The words of the clause so far, as the model wrote them: since the sentence's last , ; or : */
 function clauseSoFar(runs: readonly LoopRun[]): string {
@@ -288,6 +314,7 @@ function saidAlready(runs: LoopRun[], run: LoopRun): boolean {
       (x) => NUMBER_WORDS.indexOf(x[0].toLowerCase()) + 1 === value,
     )
     if (spelled && !run.value.endsWith('+')) return true
+    if (value === 0 && ZERO_WORD.test(clause)) return true
   } else return false
   const last = runs.at(-1)
   const before = last?.t === 'text' ? last.text.trimEnd() : ''
@@ -312,6 +339,31 @@ function floorIn(runs: LoopRun[], number: string) {
   }
 }
 
+/** Words a count may end a sentence after: a verb or a word that leads into a number, or a colon. */
+const LEADS_TO_COUNT =
+  /(?:\b(?:is|are|was|were|be|been|of|to|from|by|at|than|about|around|over|under|nearly|almost|exactly|only|just|totals?|reach(?:ed|es)?|makes?|made|gives?|gave|gives|equals?|has|have|had|having|finds?|found|with|without|shows?|showed|lists?|listed|counts?|counted|numbers?|holds?|gets|got|sees|saw|returned|returns|contains?|includes?)|[:=])\s*$/i
+
+/**
+ * Whether a count the words end a sentence with, right after a noun ("… changed in that period
+ * [#r2.count]."), only says again a number an earlier sentence gave ("Two written items …"): it is
+ * the value said twice, and is left out.
+ */
+function strayAtEnd(runs: readonly LoopRun[], run: LoopRun, rest: string, earlier: string) {
+  if (run.t !== 'count' || run.of || run.value.endsWith('+')) return false
+  if (!/^[\s.!?]*$/.test(rest.replace(/\[[^[\]\n]{1,200}\]/g, ''))) return false
+  const last = runs.at(-1)
+  if (last?.t !== 'text' || !/\p{L}\s*$/u.test(last.text) || LEADS_TO_COUNT.test(last.text))
+    return false
+  const value = valueOf(run.value)
+  const words = earlier.replace(DAY, (x) => ' '.repeat(x.length))
+  return (
+    [...words.matchAll(NUMBER)].some((x) => valueOf(x[0]) === value) ||
+    [...words.matchAll(NUMBER_WORD)].some(
+      (x) => NUMBER_WORDS.indexOf(x[0].toLowerCase()) + 1 === value,
+    )
+  )
+}
+
 /** Runs of words, a run of plain words merged with the one before it. */
 function pushRun(runs: LoopRun[], run: LoopRun) {
   const last = runs.at(-1)
@@ -320,21 +372,36 @@ function pushRun(runs: LoopRun[], run: LoopRun) {
 }
 
 /**
- * How many characters at the start of `after` repeat the noun of what a count is out of, which
- * its run already says ("[#r1.outOf] context items changed": "23 published context items you may
- * read" then "changed"): a last part of the words before "you", "in" or "of" in it.
+ * How many characters at the start of `after` repeat what a count is out of, which its run
+ * already says: the words right after it that its `of` gives, in its order, up to the last one,
+ * when they name its noun ("[#r1.outOf] context items changed": "23 published context items you
+ * may read" then "changed"; "[#r1.outOf] published items you may read mention it": "… you may
+ * read" then "mention it").
  */
 function ownNoun(run: LoopRun, after: string): number {
   if (run.t !== 'count' || !run.of) return 0
-  const noun = run.of
-    .split(/\s+(?:you|in|of|that|which)\b/)[0]!
-    .split(/\s+/)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  for (let i = 0; i < noun.length; i++) {
-    const m = new RegExp(`^\\s+${noun.slice(i).join('\\s+')}(?![\\p{L}\\p{N}])`, 'iu').exec(after)
-    if (m) return m[0].length
+  const words = run.of.toLowerCase().split(/\s+/)
+  const noun = words.indexOf(
+    run.of
+      .split(/\s+(?:you|in|of|that|which)\b/)[0]!
+      .split(/\s+/)
+      .at(-1)!
+      .toLowerCase(),
+  )
+  let at = 0
+  let from = 0
+  let named = false
+  let end = 0
+  for (;;) {
+    const m = /^\s+([\p{L}\p{N}]+)(?![\p{L}\p{N}])/u.exec(after.slice(at))
+    const found = m ? words.indexOf(m[1]!.toLowerCase(), from) : -1
+    if (!m || found < 0) break
+    at += m[0].length
+    from = found + 1
+    if (found === noun) named = true
+    if (named) end = at
   }
-  return 0
+  return end
 }
 
 /** A read's words after the runs so far, without a first word the runs end with ("from From 1 May"). */
@@ -395,9 +462,11 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
   const check = (kind: string, words: string) => {
     if (!checks.some((c) => c.kind === kind && c.words === words)) checks.push({ kind, words })
   }
+  /** The words of the sentences before the one being read. */
+  let earlier = ''
   /** A mention by its id, or by the name the model wrote in its place: a chip, else the name. */
   const mention = (runs: LoopRun[], written: string) => {
-    const id = typedId(written)
+    const id = typedId(written, ctx.nouns)
     const kind = id.slice(0, id.indexOf(':'))
     const words = id.slice(id.indexOf(':') + 1)
     const named = /\s/.test(words)
@@ -425,7 +494,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       // a metric's or a value's (`… left out [metric:orders].`) marks a definition, no source,
       // and is left out, as is any that the sentence has named already.
       const typed = inner?.trim().match(/^([a-z]+:\S+)$/)?.[1]
-      const kind = typed ? nounKindOf(typedId(typed)) : null
+      const kind = typed ? nounKindOf(typedId(typed, ctx.nouns)) : null
       const needed =
         kind === 'person' || /^\s*[\p{L}\p{N}]/u.test(words.slice(m.index + whole.length))
       // A mention with the name written in place of its id (`[@person:Ada Okafor]`).
@@ -433,24 +502,29 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       const asWritten = written ?? (byName && nounKindOf(byName) ? byName : undefined)
       if (asWritten !== undefined) mention(runs, asWritten)
       else if (typed && kind && needed) {
-        const id = typedId(typed)
+        const id = typedId(typed, ctx.nouns)
         const name = ctx.nouns.get(id)?.name ?? plainName(id, ctx.nouns)
         if (!nameIn(name).test(words.slice(0, m.index))) mention(runs, typed)
       } else if (ref !== undefined && path !== undefined) {
         const read = ctx.reads.find((r) => r.ref === ref)
-        const value = read ? valueAt(read.result, path.slice(1).split('.')) : undefined
+        const value = read ? readValue(read.result, path.slice(1).split('.')) : undefined
         const run = numberRun(value)
         // A reference to an item's id that a read returned is that item's citation, not a number.
         if (typeof value === 'string' && ITEM_ID.test(value) && ctx.known.has(value))
           pushRun(runs, { t: 'cite', n: cite(value) })
-        // A reference to a read's own words (a period, a title) is those words.
+        // A reference to a read's own words (a period, a title) is those words, unless its
+        // clause says them already ("fewer than 5 did [#r1.topics.0.foundNothing]").
         else if (!run && typeof value === 'string' && value.trim()) {
-          check('words', whole)
-          pushRun(runs, { t: 'text', text: withoutRepeat(runs, value.trim()) })
+          if (nameIn(value.trim()).test(clauseSoFar(runs))) check('twice', whole)
+          else {
+            check('words', whole)
+            pushRun(runs, { t: 'text', text: withoutRepeat(runs, value.trim()) })
+          }
         }
         // One to nothing a read holds as words or a number is left out: its sentence stays.
         else if (!run) check('number', whole)
         else if (saidAlready(runs, run)) check('twice', whole)
+        else if (strayAtEnd(runs, run, words.slice(at), earlier)) check('twice', whole)
         else {
           pushRun(runs, run)
           at += ownNoun(run, words.slice(at))
@@ -466,6 +540,8 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       }
     }
     pushRun(runs, { t: 'text', text: words.slice(at) })
+    // A reference left out of brackets leaves no empty brackets behind.
+    for (const r of runs) if (r.t === 'text') r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '')
     // A citation sits right after what it supports: three or more at a sentence's end are a pile.
     let piled = 0
     for (let i = runs.length - 1; i >= 0; i--) {
@@ -480,7 +556,9 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         for (const d of r.text.match(/\d+(?:[.,]\d+)*/g) ?? [])
           if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
     // A name the words give is said once: a mention after it is drawn on it (FR-720.3).
-    return stopBeforeCites(placed(runs, ctx.nouns))
+    const done = stopBeforeCites(placed(runs, ctx.nouns))
+    earlier += ` ${runWords(done, ctx.nouns)}`
+    return done
   }
   /** A paragraph's sentences; a long enumeration after a colon as a lead and a list. */
   const paragraph = (words: string): LoopBlock[] => {
