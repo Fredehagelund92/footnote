@@ -231,7 +231,7 @@ it('shows a failed read beside the data that is still served', async () => {
 it('reports a source with no good read as failed, not as on its way', async () => {
   expect((await setup()).serverSource).toEqual({ id: 'cube', state: 'read' })
   await client.query(
-    `delete from connector_snapshots where connector_id = 'cube' and status <> 'failed'`,
+    `update connector_snapshots set status = 'failed' where connector_id = 'cube' and status <> 'failed'`,
   )
   expect((await setup()).serverSource).toEqual({ id: 'cube', state: 'failed' })
 }, 60_000)

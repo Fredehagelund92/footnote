@@ -255,9 +255,11 @@ export const setupSchema = z.object({
   done: z.boolean(),
   /**
    * The definitions the server's own configuration reads, such as a model folder: the source's id
-   * and where its read stands: still on its way, read, or ended without a good read. Null when the server reads none, and the definitions
-   * step offers to connect a tool.
+   * and where its read stands: still on its way, read, or ended without a good read. Null when the
+   * server reads none, and the definitions step offers to connect a tool.
    */
-  serverSource: z.nullable(z.object({ id: z.string(), state: z.enum(['reading', 'read', 'failed']) })),
+  serverSource: z.nullable(
+    z.object({ id: z.string(), state: z.enum(['reading', 'read', 'failed']) }),
+  ),
 })
 export type Setup = z.infer<typeof setupSchema>
