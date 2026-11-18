@@ -29594,12 +29594,16 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "person",
                     "csrfToken",
-                    "profileLabel"
+                    "profileLabel",
+                    "modelConnected"
                   ]
                 }
               }
@@ -30203,12 +30207,16 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "person",
                     "csrfToken",
-                    "profileLabel"
+                    "profileLabel",
+                    "modelConnected"
                   ]
                 }
               }
@@ -77690,11 +77698,39 @@
                     },
                     "done": {
                       "type": "boolean"
+                    },
+                    "serverSource": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "enum": [
+                                "reading",
+                                "read",
+                                "failed"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "steps",
-                    "done"
+                    "done",
+                    "serverSource"
                   ]
                 }
               }

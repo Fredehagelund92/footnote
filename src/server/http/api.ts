@@ -304,6 +304,8 @@ export function createRouter({
   const limitGapReports = createLimiter(() => clock.now())
   // The editions the answer engine reads, kept a short while: one for every person.
   const answerBundles = createBundleCache()
+  // Whether Ask answers with an AI model, or with the scripted reader (MODELS=mock), for the page.
+  const modelConnected = models.mode === 'live'
   const os = implement(contract).$context<RequestContext>()
   const authorized = os.use(async ({ context, next, path }) => {
     // Work outside the database that must follow the transaction's outcome, such as a secret
@@ -628,7 +630,7 @@ export function createRouter({
             cookieAge(signIn.lifetime),
           ),
         )
-        return { ...login.session, profileLabel }
+        return { ...login.session, profileLabel, modelConnected }
       }),
       signOut: authorized.auth.signOut.handler(async ({ context }) => {
         await signIn.signOut(context.tx, context.request.headers.cookie)
@@ -641,6 +643,7 @@ export function createRouter({
       session: authorized.auth.session.handler(({ context }) => ({
         ...context.session!,
         profileLabel,
+        modelConnected,
       })),
     },
     connections: {
@@ -1164,7 +1167,15 @@ export function createRouter({
       ),
     },
     setup: {
-      state: authorized.setup.state.handler(({ context }) => context.cards.setup()),
+      state: authorized.setup.state.handler(({ context }) =>
+        // The demo's invented definitions are no folder the person started the server on.
+        context.cards.setup(
+          sources
+            ?.list()
+            .filter((source) => source.type !== 'demo')
+            .map((source) => source.id),
+        ),
+      ),
     },
     evals: {
       questions: {
