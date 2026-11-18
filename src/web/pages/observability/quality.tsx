@@ -472,7 +472,7 @@ function AddQuestion({ domains: choices, me }: { domains: DomainId[]; me: string
               id="add-q"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Why did orders in Spain fall in October?"
+              placeholder="Why did orders fall last month?"
             />
           </label>
           {choices.length > 1 && (

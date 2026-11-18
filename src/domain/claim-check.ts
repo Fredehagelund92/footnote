@@ -185,7 +185,8 @@ const numberValue = (raw: string) => {
 
 /**
  * Each claim of `text` against `sentence`, the sentence copied from the source: its dates, its
- * numbers with what they count, and its clauses of plain words, in the order the text makes them.
+ * numbers with what they count, and its clauses of plain words, in the order the text makes them,
+ * each once.
  */
 export function claimCheck(text: string, sentence: string): ClaimRow[] {
   const source = sentence.trim()
@@ -277,7 +278,17 @@ export function claimCheck(text: string, sentence: string): ClaimRow[] {
       })
     }
   }
-  return rows.sort((a, b) => a.at - b.at).map((r) => r.row)
+  // A claim the text makes twice, as a summary its body repeats, is one detail to compare.
+  const seen = new Set<string>()
+  return rows
+    .sort((a, b) => a.at - b.at)
+    .map((r) => r.row)
+    .filter((r) => {
+      const key = `${r.claim}\n${r.source ?? ''}\n${r.verdict}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 }
 
 /** How many claims the copied sentence does not plainly say: different, or to check. */

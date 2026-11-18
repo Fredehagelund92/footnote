@@ -2,47 +2,48 @@ import { lookupFailedNote } from '@domain/words'
 import type { AnswerState } from '@/model/ask'
 
 // How the same answers read inside a person's own agent: a static transcript for the agent
-// preview, each answer ending in the one line that names its state. Copy, not data.
+// preview, each answer ending in the one line that names its state. Copy, not data, and shown on
+// every install: it names no market or product of the demo's.
 
 /** The same states as an agent shows them: a static transcript in Claude. */
 export const inAgent = [
   {
     state: 'grounded' as AnswerState,
-    you: 'Why did orders drop in Norway in August?',
-    agent: `Orders in Norway fell 31% from July (from your data tool). The team has 2 checked context items: online sales to Norway stopped on 4 August 2026, and price promotions there have been paused since 9 May. Neither says how much each moved orders.`,
+    you: 'Why did orders drop in August?',
+    agent: `Orders fell 31% from July (from your data tool). The team has 2 checked context items: the webshop was down from 4 to 6 August 2026, and price promotions have been paused since 9 May. Neither says how much each moved orders.`,
     line: 'Context: based on 2 checked items (owners of Sales and Marketing, Sep and Oct 2026).',
   },
   {
     state: 'partial' as AnswerState,
-    you: 'And Spain, last quarter?',
+    you: 'And orders and returns, last quarter?',
     agent:
-      'The checked context covers part of this: there is context for Norway and nothing for Spain. I read “last quarter” as 1 July to 30 September 2026; tell me if you meant other dates.',
-    line: 'Context: covers part of it (Norway only).',
+      'The checked context covers part of this: there is context for orders and nothing for returns. I read “last quarter” as 1 July to 30 September 2026; tell me if you meant other dates.',
+    line: 'Context: covers part of it (orders only).',
   },
   {
     state: 'missing' as AnswerState,
-    you: 'How did orders in Spain change in October?',
+    you: 'How did returns change in October?',
     agent:
-      "Nothing is written down for Orders in Spain in October 2026. That doesn't rule out an explanation. Shall I tell the owner of Sales it's missing?",
+      "Nothing is written down for Returns in October 2026. That doesn't rule out an explanation. Shall I tell the owner of Sales it's missing?",
     line: 'Context: nothing written down.',
   },
   {
     state: 'conflict' as AnswerState,
-    you: 'Do Norway orders include gift-card money?',
+    you: 'Do orders include shipping fees?',
     agent:
-      "Two context items disagree. Jon Abara's says Norway orders count store credit and gift cards; Sofia Brandt's says they count card and cash payments only. I can't pick one for you.",
+      "Two context items disagree. Jon Abara's says orders include shipping fees; Sofia Brandt's says they leave them out. I can't pick one for you.",
     line: 'Context: disagrees (2 items, owner of Sales).',
   },
   {
     state: 'stale' as AnswerState,
-    you: 'Why did Norway returns drop at the end of April?',
+    you: 'Why did returns drop at the end of April?',
     agent:
-      "From 28 April 2026, Norway returns count only refunds that reached the customer's bank. This context item may be out of date: its check date passed on 2 October.",
+      "From 28 April 2026, returns count only refunds that reached the customer's bank. This context item may be out of date: its check date passed on 2 October.",
     line: 'Context: may be out of date (1 item).',
   },
   {
     state: 'failed' as AnswerState,
-    you: 'What changed in returns in the United Kingdom this week?',
+    you: 'What changed in returns this week?',
     agent: lookupFailedNote,
     line: 'Context: not looked up.',
   },

@@ -27,8 +27,7 @@ import type { SaveState } from '@/lib/autosave'
 // An editor's header keeps to what matters: the way back, the title, whether the draft is saved,
 // one Write / Try it toggle and the one primary action. Everything else sits in one More menu.
 
-const words: Record<SaveState, string> = {
-  clean: 'Saved',
+const words: Record<Exclude<SaveState, 'clean'>, string> = {
   dirty: 'Not saved yet',
   saving: 'Saving',
   saved: 'Saved',
@@ -36,31 +35,30 @@ const words: Record<SaveState, string> = {
   offline: 'Offline, not saved yet',
 }
 const icons = {
-  clean: CheckIcon,
   dirty: CircleDashedIcon,
   saving: Loader2Icon,
   saved: CheckIcon,
   failed: CircleAlertIcon,
   offline: CloudOffIcon,
-} satisfies Record<SaveState, unknown>
+} satisfies Record<Exclude<SaveState, 'clean'>, unknown>
 
 /**
- * Whether what is written is saved, said only when it is true: Saved when the page holds nothing
- * that is not stored (`saved` just now, `clean` as it opened), Not saved yet while words wait,
+ * Whether what is written is saved, said only when it is true: Saved once a save has stored
+ * what the page holds, nothing as it opened (nothing was saved yet), Not saved yet while words wait,
  * Saving while a save is on its way, and Not saved when the last try failed, with Try again when
  * the page can try. Offline, nothing is kept anywhere, and it says so.
  */
 export function SaveStatus({ status, retry }: { status: SaveState; retry?: () => void }) {
-  const Icon = icons[status]
   const failed = status === 'failed'
+  const className = cn(
+    'flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums',
+    failed && 'text-destructive',
+  )
+  // The live region is there from the start, so the first word it gets is read out.
+  if (status === 'clean') return <span className={className} aria-live="polite" />
+  const Icon = icons[status]
   return (
-    <span
-      className={cn(
-        'flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums',
-        failed && 'text-destructive',
-      )}
-      aria-live="polite"
-    >
+    <span className={className} aria-live="polite">
       <Icon
         // Just saved: the check grows in once, so the change is seen; it is simply there on first show.
         key={status}

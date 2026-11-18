@@ -32,12 +32,15 @@ export function NavUser() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={<SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />}
+            render={
+              <SidebarMenuButton size="lg" className="h-auto min-h-12 aria-expanded:bg-muted" />
+            }
           >
             <PersonAvatar name={me.name} size={32} />
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{me.name}</span>
-              <span className="truncate text-xs text-muted-foreground">{me.role}</span>
+            {/* Who and what they own wrap rather than being cut: "Owner of Memberships, admin". */}
+            <div className="grid flex-1 text-left text-sm leading-tight wrap-break-word">
+              <span className="font-medium">{me.name}</span>
+              <span className="text-xs text-muted-foreground">{me.role}</span>
             </div>
             <ChevronsUpDownIcon className="ml-auto size-4" />
           </DropdownMenuTrigger>
@@ -51,9 +54,9 @@ export function NavUser() {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <PersonAvatar name={me.name} size={32} />
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium text-foreground">{me.name}</span>
-                    <span className="truncate text-xs">{me.role}</span>
+                  <div className="grid flex-1 text-left text-sm leading-tight wrap-break-word">
+                    <span className="font-medium text-foreground">{me.name}</span>
+                    <span className="text-xs">{me.role}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
