@@ -8,14 +8,14 @@ import { contentDigest } from './canonical.ts'
   not by writing them again.
 */
 
-/** The most other names Heed keeps for one definition: as many as a term may have (FR-107). */
+/** The most other names Footnote keeps for one definition: as many as a term may have (FR-107). */
 export const SYNONYMS_MAX = 20
-/** The longest other name Heed keeps, in characters. */
+/** The longest other name Footnote keeps, in characters. */
 export const SYNONYM_LENGTH_MAX = 200
 /** The longest description copy, in characters (CON-207). */
 export const DESCRIPTION_COPY_MAX = 500
 
-/** A Heed domain id: what a domain hint must be. */
+/** A Footnote domain id: what a domain hint must be. */
 export const domainIdPattern = /^[a-z][a-z0-9_]{1,39}$/
 
 /**
@@ -39,7 +39,7 @@ export function synonymsOf(value: unknown): string[] {
 }
 
 /**
- * A description as Heed keeps it: its first 500 characters, as a copy, and whether it was cut,
+ * A description as Footnote keeps it: its first 500 characters, as a copy, and whether it was cut,
  * so the connector warns that it was (its own `description_cut`). Null for none or an empty one.
  */
 export function descriptionCopy(text: string | null | undefined): {

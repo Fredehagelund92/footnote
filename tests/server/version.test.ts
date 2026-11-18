@@ -4,11 +4,11 @@ import { buildApp } from '../../src/server/app.ts'
 import type { Database } from '../../src/server/db/database.ts'
 import { openApiDocument } from '../../src/server/http/api.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
-import { heedVersion } from '../../src/server/version.ts'
+import { footnoteVersion } from '../../src/server/version.ts'
 import { idleJobs } from './idle-jobs.ts'
 
 /*
-  Heed has one version, written in package.json and raised by the release pull request
+  Footnote has one version, written in package.json and raised by the release pull request
   (docs/releasing.md). Everything else that names a version must name that one. The MCP server
   info is checked on the wire in tests/server/mcp/conformance.test.ts.
 */
@@ -25,13 +25,13 @@ const reachable: Database = {
   close: () => Promise.resolve(),
 }
 
-describe("Heed's version", () => {
+describe("Footnote's version", () => {
   it('is a plain release number', () => {
     expect(version).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
   it('is what the service reads', () => {
-    expect(heedVersion).toBe(version)
+    expect(footnoteVersion).toBe(version)
   })
 
   it("is the lockfile's, and the release tool's last release", async () => {

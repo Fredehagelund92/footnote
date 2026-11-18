@@ -97,7 +97,7 @@ export function isPublicIp(ip: string): boolean {
 }
 
 /**
- * Whether Heed may fetch from this machine and private networks: in development and tests only
+ * Whether Footnote may fetch from this machine and private networks: in development and tests only
  * (a local Git host), never in production, where an administrator could otherwise make the
  * server reach services that are not meant to be reached from outside.
  */
@@ -139,7 +139,7 @@ export function canonicalAddress(address: string): string | null {
 }
 
 /**
- * True for an address Heed may fetch: https to a public host, or to one of `privateHosts`, without
+ * True for an address Footnote may fetch: https to a public host, or to one of `privateHosts`, without
  * credentials, query or fragment. Outside production also plain http to this machine and private
  * addresses.
  */
@@ -304,7 +304,7 @@ export async function withGitCheckout<T>(
   const parts = folderParts(options.folder)
   if (!parts) throw new GitFetchError('folder_missing')
   const deadline = Date.now() + (options.timeoutMs ?? 60_000)
-  const home = await mkdtemp(join(tmpdir(), 'heed-git-'))
+  const home = await mkdtemp(join(tmpdir(), 'footnote-git-'))
   const repo = join(home, 'repo')
   const env = gitEnvironment(home, options, pinned)
   const git = (args: string[]) =>

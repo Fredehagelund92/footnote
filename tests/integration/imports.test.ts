@@ -151,7 +151,7 @@ beforeAll(async () => {
     }
   }
   cliBase = await app.listen({ host: '127.0.0.1', port: 0 })
-  folder = await mkdtemp(join(tmpdir(), 'heed-cli-'))
+  folder = await mkdtemp(join(tmpdir(), 'footnote-cli-'))
 })
 afterAll(async () => {
   await app.close()
@@ -380,7 +380,7 @@ describe('edition export', () => {
     const schema = await app.inject({ method: 'GET', url: '/api/v1/schema/item' })
     expect(schema.statusCode).toBe(200)
     const body = schema.json<{ title: string; properties: Record<string, unknown> }>()
-    expect(body.title).toBe('Heed item')
+    expect(body.title).toBe('Footnote item')
     expect(Object.keys(body.properties)).toEqual(
       expect.arrayContaining(['summaryMarkup', 'bodyMarkup', 'mentions', 'scope']),
     )

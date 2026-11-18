@@ -9,7 +9,7 @@ import { foundation, people } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
-  People as Heed v1 has them (FR-804; docs/product.md, section 11), end to end over HTTP and
+  People as Footnote v1 has them (FR-804; docs/product.md, section 11), end to end over HTTP and
   PostgreSQL: Admin or Member, ownership on each domain, owners who add owners to their own
   domain and nothing else, a removal that waits while a domain has the person as its only owner,
   and an Undo that puts back exactly what the removal ended. Row security holds the same lines

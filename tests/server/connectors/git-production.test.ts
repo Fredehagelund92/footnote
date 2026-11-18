@@ -142,7 +142,7 @@ describe('addresses that lead somewhere else', () => {
 
 describe('git connects to the address that was checked', () => {
   it('pins the name to the public address it resolved to, so git cannot be told another', async () => {
-    const bin = await mkdtemp(join(tmpdir(), 'heed-fake-git-'))
+    const bin = await mkdtemp(join(tmpdir(), 'footnote-fake-git-'))
     const log = join(bin, 'calls.jsonl')
     await writeFile(
       join(bin, 'git'),

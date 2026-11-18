@@ -1,7 +1,7 @@
 # Cube model in a Git repository
 
 The first definitions connector (connector interface 3.0, [the contract](../../../docs/contributing/connector-contract.md)).
-It reads the YAML model files of a Cube project and gives Heed each public member as a definition
+It reads the YAML model files of a Cube project and gives Footnote each public member as a definition
 under `cube:`, so context can be checked against the metrics and dimensions that exist. It reads
 files only, offline: never a Cube server, a warehouse or data, and it keeps no calculation. A read
 only flags the items that rely on a member that changed or left: it never changes an item and

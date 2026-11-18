@@ -31,7 +31,7 @@ test('a question about the records gets a records answer, never Not found', asyn
       /^(Nothing was created in the last 24 hours\.|[\d,]+ context items? (was|were) created in the last 24 hours\.)$/,
     ),
   ).toBeVisible()
-  // The period it counted, in UTC: Heed keeps no time zone of its own.
+  // The period it counted, in UTC: Footnote keeps no time zone of its own.
   await expect(log.getByText(/^Context created, last 24 hours \(.+ to .+, UTC\)$/)).toBeVisible()
   await expect(
     log.getByText('Agents did not read this answer. It says nothing about what they get.'),

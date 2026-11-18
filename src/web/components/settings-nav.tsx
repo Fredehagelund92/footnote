@@ -24,7 +24,7 @@ import { BACK_TO_APP } from '@/lib/brand'
 import { useMe } from '@/lib/workspace'
 
 // Inside Settings the app sidebar gives way to the settings navigation, as Linear's does: a way
-// back to Heed on top, then six sections in three groups. No tabs anywhere in Settings.
+// back to Footnote on top, then six sections in three groups. No tabs anywhere in Settings.
 
 const settingsSections = [
   {

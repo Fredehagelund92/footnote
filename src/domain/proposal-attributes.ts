@@ -33,7 +33,7 @@ export {
 } from './proposal-rules.ts'
 
 /**
- * How the agent tool treats an attribute. `derived`: Heed works it out exactly (from the
+ * How the agent tool treats an attribute. `derived`: Footnote works it out exactly (from the
  * vocabulary, the area, the signed-in person). `defaulted`: the documented default, which only
  * people change. `prefilled`: the agent may suggest it, and the person confirms it before it
  * counts. `never_inferred`: never filled from what an agent passes; people decide it.

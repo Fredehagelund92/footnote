@@ -4,7 +4,7 @@ import { accept, foundation, people, publish, version } from './fixtures.ts'
 import { testDatabase, transaction } from './support.ts'
 
 /*
-  The tables and the function the review of Heed v1 reads (0005_review_path.sql), as the
+  The tables and the function the review of Footnote v1 reads (0005_review_path.sql), as the
   service's own role meets them: read receipts are each person's own (FR-226), the answer to a
   clash is an owner's or an administrator's, written once (FR-225), and a suggestion's difference
   starts from the version in service it was written against (FR-224).

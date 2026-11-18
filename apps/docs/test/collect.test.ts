@@ -20,7 +20,7 @@ const versions = () => JSON.parse(readFileSync(join(pages, 'versions.json'), 'ut
 const read = (path: string) => readFileSync(join(pages, path), 'utf8')
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'heed-docs-collect-'))
+  scratch = mkdtempSync(join(tmpdir(), 'footnote-docs-collect-'))
   pages = join(scratch, 'pages')
   mkdirSync(pages)
 })

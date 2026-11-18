@@ -1,6 +1,6 @@
 {
   "info": {
-    "title": "Heed API",
+    "title": "Footnote API",
     "version": "0.1.0",
     "description": "Accepted business context, proposals, gaps and domain dashboards, dev sessions and role administration. Only dev sign-in and its people list are public."
   },
@@ -31066,7 +31066,7 @@
     "/connections": {
       "get": {
         "operationId": "connections.list",
-        "summary": "The agents connected to Heed as the signed-in person",
+        "summary": "The agents connected to Footnote as the signed-in person",
         "tags": [
           "session"
         ],

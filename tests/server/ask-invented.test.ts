@@ -13,7 +13,7 @@ import { UTC_CALENDAR } from '../../src/domain/dates.ts'
 /*
   Ask's tools and what code writes of an answer, on a workspace whose dimensions are not the
   demo's (FR-718 to FR-720): a help desk that counts Tickets closed by Team and by Sprint, in one
-  domain, Support. Heed is open source, so nothing in the tools, the answer or the page may assume
+  domain, Support. Footnote is open source, so nothing in the tools, the answer or the page may assume
   a market or any other dimension: every noun comes with the id a typed mention writes, every
   value with its own dimension, and the closest written are counted by whichever dimension the
   question narrowed.

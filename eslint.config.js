@@ -183,7 +183,7 @@ export default tseslint.config(
     rules: { 'writes/reported': 'error' },
   },
   {
-    // The api folder binds the mock binding behind HeedApi, so it may import it.
+    // The api folder binds the mock binding behind FootnoteApi, so it may import it.
     files: ['src/web/api/**/*.ts'],
     rules: { 'no-restricted-imports': ['error', { patterns: webBannedImports }] },
   },

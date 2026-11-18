@@ -43,10 +43,10 @@ const flagSchema = z.strictObject({
 export type ProvenanceFlag = z.infer<typeof flagSchema>
 
 /**
- * An evidence entry the assistant took from a public web page Heed read for the person: an
+ * An evidence entry the assistant took from a public web page Footnote read for the person: an
  * external source nobody has reviewed yet. `quoteFound` is the automatic quote match against the
- * text Heed read on `readOn`: when false the person and the owner are warned, never stopped.
- * Heed sets it from what it read, never from what a model says.
+ * text Footnote read on `readOn`: when false the person and the owner are warned, never stopped.
+ * Footnote sets it from what it read, never from what a model says.
  */
 const externalSchema = z.strictObject({
   url: z.string().check(z.maxLength(limits.url)),
@@ -64,7 +64,7 @@ export const provenanceSchema = z.strictObject({
   by: z.enum(['agent', 'assistant', 'source']),
   fields: z.partialRecord(z.enum(markedFields), z.enum(fieldMarks)),
   flags: z.array(flagSchema).check(z.maxLength(20)),
-  /** The evidence entries taken from web pages Heed read; absent when there are none. */
+  /** The evidence entries taken from web pages Footnote read; absent when there are none. */
   external: z.optional(z.array(externalSchema).check(z.maxLength(toolInputLimits.evidence))),
 })
 export type Provenance = z.infer<typeof provenanceSchema>
@@ -107,7 +107,7 @@ export function keepMarks(provenance: Provenance, before: Draft, after: Draft): 
   const uncertain =
     provenance.flags.some((flag) => flag.code === 'uncertain_dates') &&
     same(before.validity, after.validity)
-  // An entry the person changed is theirs: it no longer stands for the page Heed read.
+  // An entry the person changed is theirs: it no longer stands for the page Footnote read.
   return {
     by: provenance.by,
     fields,
@@ -118,7 +118,7 @@ export function keepMarks(provenance: Provenance, before: Draft, after: Draft): 
 
 /**
  * The provenance of a saved draft: the marks of the fields it holds, the flags of its words, the
- * evidence entries taken from web pages Heed read, and whether the person was unsure of the
+ * evidence entries taken from web pages Footnote read, and whether the person was unsure of the
  * dates (flagged only when the draft has dates to check).
  */
 export function provenanceOf(

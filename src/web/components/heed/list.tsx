@@ -36,7 +36,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Status } from '@/model/items'
 
-// The parts the Context and Definitions lists share, drawn the way the Heed app draws its list and
+// The parts the Context and Definitions lists share, drawn the way the Footnote app draws its list and
 // Efferd its tables: a quiet filter bar, a thin header row, rows of one line at one density, plain
 // text and glyphs instead of pills, and a cursor the keyboard moves.
 
@@ -70,7 +70,7 @@ export function SearchField({
   placeholder: string
 }) {
   const ref = React.useRef<HTMLInputElement>(null)
-  // "/" jumps to the search field, as in the Heed app.
+  // "/" jumps to the search field, as in the Footnote app.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
@@ -205,7 +205,7 @@ export function FilterRow({
   )
 }
 
-/** The words a search matched, in bold, as the Heed app marks them. */
+/** The words a search matched, in bold, as the Footnote app marks them. */
 export function Highlight({ text, query }: { text: string; query: string }) {
   const ws = words(query)
   if (!ws.length) return <>{text}</>
@@ -421,7 +421,7 @@ export function DockStepper({
 }
 
 /**
- * The header row's cell look: 36 high like the Heed app's, 12px medium muted labels on a faint
+ * The header row's cell look: 36 high like the Footnote app's, 12px medium muted labels on a faint
  * muted band, and a hairline a touch stronger than the rows' drawn as an inset shadow, so it stays
  * when the header sticks while scrolling (a collapsed border would not).
  */
@@ -585,7 +585,7 @@ const statusHint: Record<Status, string> = {
 }
 
 /**
- * A status as a small dot. As in the Heed app, a calm status is the dot alone with its name in a
+ * A status as a small dot. As in the Footnote app, a calm status is the dot alone with its name in a
  * tooltip; one that asks for a look says it in words too.
  */
 export function StatusDot({

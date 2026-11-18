@@ -839,7 +839,7 @@ function getContext(
       ? eventAnchor(view, input.about, plain.scope, today, calendar)
       : null
   const window = anchored?.window ?? given
-  // A name the person may not see is read as one Heed does not know.
+  // A name the person may not see is read as one Footnote does not know.
   const hidesName = (a: Answer) =>
     !!a.scope &&
     [
@@ -1058,7 +1058,7 @@ function unreadOf(
     const c = closest(w, shownTerms, (t) => [t.name, ...t.aliases])
     return c ? [c.name] : []
   })
-  // A value word Heed does not know, in words that name a metric: what it is not, said plainly,
+  // A value word Footnote does not know, in words that name a metric: what it is not, said plainly,
   // only when the person may see every dimension and value the words name.
   const shownIssue = (i: Answer['issues'][number]) =>
     (i.field === 'values'

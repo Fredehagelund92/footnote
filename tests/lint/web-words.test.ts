@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import plainWords, { webPlacesOf, webSurfaces } from '../../eslint.plain-words.js'
 
 /**
- * heed/plain-words with glossary v2 (src/domain/words.ts, docs/design/copy.md) is the copy guard
+ * footnote/plain-words with glossary v2 (src/domain/words.ts, docs/design/copy.md) is the copy guard
  * rail of the web app, as a lint rule on src/web. It reports each banned word in text people read, allows a word only on the place the
  * glossary names, and leaves code alone.
  */
@@ -26,8 +26,8 @@ function said(code: string, file = 'src/web/pages/inbox.tsx') {
             parser: tseslint.parser,
             parserOptions: { ecmaFeatures: { jsx: true } },
           },
-          plugins: { heed: plainWords },
-          rules: { 'heed/plain-words': 'error' },
+          plugins: { footnote: plainWords },
+          rules: { 'footnote/plain-words': 'error' },
         },
       ],
       { filename: join(root, file) },
@@ -38,7 +38,7 @@ function said(code: string, file = 'src/web/pages/inbox.tsx') {
 const write = (found: string, instead: string) =>
   `Instead of "${found}", write: ${instead}. See docs/design/copy.md.`
 
-describe('heed/plain-words in the web app (glossary v2)', () => {
+describe('footnote/plain-words in the web app (glossary v2)', () => {
   it('accepts the names of glossary v2', () => {
     expect(
       said(`export const a = <p>3 context items. Invite people as an Admin or a Member.</p>`),

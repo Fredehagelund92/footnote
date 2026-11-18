@@ -100,7 +100,7 @@ const inside = (p: Span, s: Span) => p.start >= s.start && p.end <= s.end
 /* ---------- what was caught ---------- */
 
 /**
- * The changes after which Heed checks the saved questions again on its own (a check run's
+ * The changes after which Footnote checks the saved questions again on its own (a check run's
  * trigger): a publish, an archive, a restore, a sync and a check date passing, in the order a
  * line names them. Check now, a question saved and a new answer kept are not changes.
  */
@@ -108,9 +108,9 @@ export const caughtTriggers = ['publish', 'archive', 'restore', 'sync', 'check_d
 export type CaughtTrigger = (typeof caughtTriggers)[number]
 
 /**
- * The alert rules whose raise asks an owner for a decision Heed keeps, so that it can be acted on:
+ * The alert rules whose raise asks an owner for a decision Footnote keeps, so that it can be acted on:
  * a Not found card (its gap), a saved question that needs a look, and a check that is due. The
- * other rules raise something no owner decides in Heed (db/migrations/0033_obs_caught.sql).
+ * other rules raise something no owner decides in Footnote (db/migrations/0033_obs_caught.sql).
  */
 export const decidedRules = ['gap', 'saved', 'due'] as const satisfies readonly AlertRuleId[]
 

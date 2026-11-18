@@ -9,7 +9,7 @@ import { localKeys } from '../../../src/server/modules/oauth/keys.ts'
 
 let dir: string
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'heed-oauth-keys-'))
+  dir = await mkdtemp(join(tmpdir(), 'footnote-oauth-keys-'))
 })
 afterEach(() => rm(dir, { recursive: true, force: true }))
 

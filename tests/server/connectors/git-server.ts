@@ -8,7 +8,7 @@ import { promisify } from 'node:util'
 
 const run = promisify(execFile)
 const git = (cwd: string, ...args: string[]) =>
-  run('git', ['-c', 'user.name=Heed test', '-c', 'user.email=test@example.test', ...args], {
+  run('git', ['-c', 'user.name=Footnote test', '-c', 'user.email=test@example.test', ...args], {
     cwd,
     env: { PATH: process.env.PATH, HOME: cwd, GIT_CONFIG_NOSYSTEM: '1' },
   })
@@ -19,7 +19,7 @@ const git = (cwd: string, ...args: string[]) =>
  * and address it was sent, so a test can prove where the token travelled.
  */
 export async function gitHost({ token }: { token: string | null }) {
-  const root = await mkdtemp(join(tmpdir(), 'heed-git-host-'))
+  const root = await mkdtemp(join(tmpdir(), 'footnote-git-host-'))
   const backend = join((await run('git', ['--exec-path'])).stdout.trim(), 'git-http-backend')
   const requests: { url: string; authorization: string | null }[] = []
 
@@ -107,7 +107,7 @@ export async function gitHost({ token }: { token: string | null }) {
       branch = 'main',
       links: Record<string, string> = {},
     ) {
-      const work = await mkdtemp(join(tmpdir(), 'heed-git-work-'))
+      const work = await mkdtemp(join(tmpdir(), 'footnote-git-work-'))
       try {
         await git(work, 'init', '--quiet', '-b', branch)
         for (const [path, text] of Object.entries(files)) {

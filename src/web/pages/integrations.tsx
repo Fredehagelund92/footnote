@@ -130,7 +130,7 @@ import { useDefinitions } from '@/lib/definitions'
 import { SettingsCrumbs } from '@/pages/settings'
 import { Frame, FrameNumbers, FramePage, FrameScroll, FrameSection } from '@/components/heed/frame'
 
-// Settings > Integrations: the tools Heed reads. Connected tools as rows (is it healthy, when did
+// Settings > Integrations: the tools Footnote reads. Connected tools as rows (is it healthy, when did
 // it last read, what is waiting), available tools as Efferd hairline cells below in two groups,
 // Definitions and Context, and a link to request a connector. Each connected tool has one page with sections
 // and no tabs; connecting is five steps on a full page. A sync never publishes.

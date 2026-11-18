@@ -82,7 +82,7 @@ import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
 import { useFigures } from '@/lib/figures'
 import { useLeavingRows } from '@/lib/presence'
 
-// Definitions: the data glossary, laid out like the Heed app's catalogue. Views with counts (All,
+// Definitions: the data glossary, laid out like the Footnote app's catalogue. Views with counts (All,
 // Metrics, Dimensions, Terms), a line saying where the definitions come from, the same quiet bar
 // and compact rows as Context, grouped by domain by default, and v1's two cues in the Status
 // column: Definition changed, and No context yet with Write one. Metrics and dimensions come from

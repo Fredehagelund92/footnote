@@ -1,33 +1,33 @@
-# Heed v1: the product
+# Footnote v1: the product
 
-This page says what Heed v1 is: the job, the people, the promise, every screen with its address, the six answer states, the kinds, the roles, the privacy rules and the words. It is short on purpose. The details of each rule are in the [design contract](design/design-contract.md), the [copy rules](design/copy.md) and the [requirements](requirements.md).
+This page says what Footnote v1 is: the job, the people, the promise, every screen with its address, the six answer states, the kinds, the roles, the privacy rules and the words. It is short on purpose. The details of each rule are in the [design contract](design/design-contract.md), the [copy rules](design/copy.md) and the [requirements](requirements.md).
 
 |                      |                                                                                                                                                                                                               |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Status               | v1 spec, written from the approved mockup                                                                                                                                                                     |
 | Date                 | 2026-10-25                                                                                                                                                                                                    |
-| Acceptance reference | The Heed v1 mockup, in git history, under the tag `mockup-archive` (section 14)                                                                                                                               |
-| Written for          | Everyone who builds, reviews or runs Heed: contributors, coding agents, and the people who pick Heed up for their own company                                                                                 |
+| Acceptance reference | The Footnote v1 mockup, in git history, under the tag `mockup-archive` (section 14)                                                                                                                           |
+| Written for          | Everyone who builds, reviews or runs Footnote: contributors, coding agents, and the people who pick Footnote up for their own company                                                                         |
 | Order of authority   | The app first. Then this page and the design contract, which say what it does. Then the requirements, which are changed to match both. The mockup is a reference ([section 14](#14-the-acceptance-reference)) |
 
 ## 1. The job
 
 Company data shows what happened to a number. It rarely shows why. A market closed, a tool changed how it counts, a partner's data came late. People know this. An AI agent cannot see it, so it guesses.
 
-Heed is a library of checked context that agents read before they answer. People write down what the numbers do not show. The owner of each domain checks it and publishes it. Agents get only what an owner published, each item with its source and its check date. When nothing is written down, the agent is told that too.
+Footnote is a library of checked context that agents read before they answer. People write down what the numbers do not show. The owner of each domain checks it and publishes it. Agents get only what an owner published, each item with its source and its check date. When nothing is written down, the agent is told that too.
 
 One sentence for the product: **agents read checked context before they answer.**
 
 ## 2. Who it is for
 
-| Who                  | What they do in Heed                                                                                                                                             |
+| Who                  | What they do in Footnote                                                                                                                                         |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                             |
 | An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch. |
 | An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                           |
-| An agent             | Software outside Heed (for example a coding agent or a chat app) that connects over MCP and calls the six tools (section 10). It reads. It may also suggest.     |
+| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the six tools (section 10). It reads. It may also suggest. |
 
-The data team that runs Heed is the first reader of this page. The people it serves are in finance, marketing, operations and management. Many of them read English as a second language. They know their business. They should never need to know data or AI words. [Copy rules](design/copy.md) says how Heed speaks to them.
+The data team that runs Footnote is the first reader of this page. The people it serves are in finance, marketing, operations and management. Many of them read English as a second language. They know their business. They should never need to know data or AI words. [Copy rules](design/copy.md) says how Footnote speaks to them.
 
 ## 3. The promise
 
@@ -35,8 +35,8 @@ The data team that runs Heed is the first reader of this page. The people it ser
 2. **Every item has a source and a check date.** An item whose check date has passed is marked, and agents are told it may be old.
 3. **Nothing written down is said as nothing written down.** An agent never fills a gap with a guess that sounds sure.
 4. **People decide, software proposes.** An agent or an integration can suggest. Only a person publishes. An owner may decide in advance for one named agent's low-risk new items in their domain ([Publish without review](help/publish-without-review.md)); each is still their decision, under their name, and can be undone.
-5. **Heed stores no numbers.** It reads a figure when someone asks, only if an admin switched figures on for that integration, and keeps it nowhere.
-6. **Heed keeps no record of what people asked an agent.** It keeps only what a question was about and how often (section 9).
+5. **Footnote stores no numbers.** It reads a figure when someone asks, only if an admin switched figures on for that integration, and keeps it nowhere.
+6. **Footnote keeps no record of what people asked an agent.** It keeps only what a question was about and how often (section 9).
 
 ## 4. How it works
 
@@ -93,7 +93,7 @@ An answer arrives the way it does in other chat tools. The question shows in the
 
 Ask also answers questions about the context's own records, such as "give me context created in the last 24 hours" or "who owns Sales?" (FR-718). The list is closed, and no model reads or writes them: what was created, what changed, what is due for a check, what is archived, who owns a domain (or a metric's domain) and which have no owner, how many context items or definitions there are, what agents asked this week that found nothing, which context items disagree ("list conflicts", "any conflicts in Sales?", "what is unresolved?", each pair opening its own page, as Context's Conflicts filter lists them), and what Definitions lists: the metrics and dimensions ("list 10 dimensions", "how many metrics are in Sales?") and a dimension's values ("what markets are there?"). Each is counted from what the Context list shows the person asking, never a draft and never what one person did. A records answer has no answer line: a **Records** chip, the sentence "From the app's own list of what was written and changed. Not from your sales data.", one plain sentence, and at most five rows that open in the right panel, or a small table of counts, with Context keeping the full list. Nothing found is an answer too: "Nothing was created in the last 24 hours.", with the period in UTC and when the latest one was. It ends "Agents did not read this answer. It says nothing about what they get." A question about one person's work ("what did Maria write this week?") is refused, with what Ask can say instead.
 
-Ask is the steward's companion for the context itself: what is missing, stale, conflicting or unowned (FR-720). Agents are the companion for numbers and advice, because Heed keeps no numbers. So Ask also answers an analysis of the records, from what the person may see: "what definitions are missing?", "which metrics have no owner?", "is anything written twice?", "how complete is the Sales domain?", and from their own Inbox, "what is waiting on me?". Code counts every line. Each count has its denominator ("13 of 22 metrics"), up to four sections of up to five rows open their records, a ranking says its rule, and a last line says what the read cannot see, such as a definition the source does not hold. Nothing here sets an answer state.
+Ask is the steward's companion for the context itself: what is missing, stale, conflicting or unowned (FR-720). Agents are the companion for numbers and advice, because Footnote keeps no numbers. So Ask also answers an analysis of the records, from what the person may see: "what definitions are missing?", "which metrics have no owner?", "is anything written twice?", "how complete is the Sales domain?", and from their own Inbox, "what is waiting on me?". Code counts every line. Each count has its denominator ("13 of 22 metrics"), up to four sections of up to five rows open their records, a ranking says its rule, and a last line says what the read cannot see, such as a definition the source does not hold. Nothing here sets an answer state.
 
 ### Context
 
@@ -189,7 +189,7 @@ A question the fixed rules cannot read ("any interesting jumps that can be expla
 
 An answer from the records (section 5, Ask) is not an answer about context, so it has no answer line either: it starts with the Records chip and says where it was counted from.
 
-Ask answers the question asked, or says it did not (FR-720). It never replaces a question with a nearby read, however true the sentence would be. A question beyond the written context ("should we restart the Norway campaign?", "will orders recover next quarter?") gets one fixed sentence, then what is written, with the state of what was read: "What to do is not written down. Here is what is." A question nothing in Heed can answer ("which market is growing fastest?", "write a new definition of churn rate") gets a fixed sentence and looks nothing up, so it has no answer line: "Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first." Each such refusal ends with questions to press. Ask does not advise in its own voice. When a question has two parts and one is answered, the answer names the other. With no model, a limit reached or a slow provider, Ask says it could not read the question, not that it needs a metric or a market.
+Ask answers the question asked, or says it did not (FR-720). It never replaces a question with a nearby read, however true the sentence would be. A question beyond the written context ("should we restart the Norway campaign?", "will orders recover next quarter?") gets one fixed sentence, then what is written, with the state of what was read: "What to do is not written down. Here is what is." A question nothing in Footnote can answer ("which market is growing fastest?", "write a new definition of churn rate") gets a fixed sentence and looks nothing up, so it has no answer line: "Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first." Each such refusal ends with questions to press. Ask does not advise in its own voice. When a question has two parts and one is answered, the answer names the other. With no model, a limit reached or a slow provider, Ask says it could not read the question, not that it needs a metric or a market.
 
 ## 7. The kinds
 
@@ -219,7 +219,7 @@ A context item has one of four statuses, each a circle icon with a word on hover
 
 ## 9. Privacy
 
-One rule everywhere: **from agents, Heed keeps only what a question was about and how often (scopes and counts). It never keeps the words, and it never keeps who asked.**
+One rule everywhere: **from agents, Footnote keeps only what a question was about and how often (scopes and counts). It never keeps the words, and it never keeps who asked.**
 
 1. **Scopes and counts only.** A question an agent asked becomes a topic: domain, metric, market and the month its dates start in. Nothing else about it is stored.
 2. **Fewer than 5.** A count under 5 reads "Fewer than 5". No total is shown when a hidden part could be worked out by subtraction (it reads "13+").
@@ -228,7 +228,7 @@ One rule everywhere: **from agents, Heed keeps only what a question was about an
 5. **Agents never read comments, reports or saved questions.** An agent's answer is built from published context only.
 6. **Report a problem** opens a mail with the page's address when `HEED_SUPPORT_EMAIL` is set; unset, it opens a GitHub issue with the page's path only. A person's name goes with neither, and never an agent's words.
 7. **Figures are read when asked and kept nowhere.** No person's identity is passed to the data source.
-8. **No tracking.** Heed sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
+8. **No tracking.** Footnote sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
 9. **No promise of anonymity.** Copy says what is kept, not that nobody can see.
 
 ## 10. What agents get
@@ -263,7 +263,7 @@ An earlier model had more roles (auditor, approver) and risk levels. v1 has neit
 
 ## 12. Integrations
 
-Integrations connect Heed to where metrics are defined and where documents live. Connect one in five steps: Pick, Connect, Choose, Map, Schedule.
+Integrations connect Footnote to where metrics are defined and where documents live. Connect one in five steps: Pick, Connect, Choose, Map, Schedule.
 
 | Integration     | For                  | Notes                                                                                         |
 | --------------- | -------------------- | --------------------------------------------------------------------------------------------- |
@@ -290,7 +290,7 @@ Ask answers from what the workspace has written. An item with no Applies to is r
 
 ## 14. The acceptance reference
 
-**The web app leads, and the Heed v1 mockup is a reference.** The mockup was the acceptance specification while the web app was built from it: a complete clickable build of this page, with mock data from the Larchwood Outdoor demo world and no backend. The app now differs from it on purpose in places, such as Overview holding the topics and Conflicts being a filter of the Context list.
+**The web app leads, and the Footnote v1 mockup is a reference.** The mockup was the acceptance specification while the web app was built from it: a complete clickable build of this page, with mock data from the Larchwood Outdoor demo world and no backend. The app now differs from it on purpose in places, such as Overview holding the topics and Conflicts being a filter of the Context list.
 
 |                   |                                                                                                             |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -362,7 +362,7 @@ One name for each thing, in every screen, help page, agent reply and demo text. 
 | **Not found**         | A question agents asked several times and found nothing written for. Its card brings a draft. Also an answer state.                                | gap                          |
 | **Reported**          | Someone said a context item is wrong or unclear.                                                                                                   | flag                         |
 | **Due for a check**   | A context item whose check date has passed.                                                                                                        | review due                   |
-| **Saved question**    | A question an owner or admin keeps, and Heed checks again after every change. Result: Same, Changed or Needs a look.                               | saved view, test question    |
+| **Saved question**    | A question an owner or admin keeps, and Footnote checks again after every change. Result: Same, Changed or Needs a look.                           | saved view, test question    |
 | **Try it**            | What agents would say for a question, on a draft or on live context, without asking an AI.                                                         |                              |
 | **Ask**               | The page where a person asks and sees the same answer label an agent gets.                                                                         | assistant                    |
 | **Records**           | What the workspace keeps about its context: when items were created, changed, checked or archived, and who owns each domain. Ask counts from them. | library index                |
@@ -370,7 +370,7 @@ One name for each thing, in every screen, help page, agent reply and demo text. 
 | **Edition**           | A sealed snapshot of what agents get. Shown only in Settings, Advanced, and in the agent reply. Never in success copy.                             | edition                      |
 | **Don't conclude**    | A line on an item that stops an agent from reading a cause into it.                                                                                | caveat, what not to conclude |
 | **Integration**       | A connected tool: where definitions live, where documents live, where figures come from.                                                           | source, connector            |
-| **Agent**             | Software outside Heed that reads context over MCP. Never a person.                                                                                 | AI app, client               |
+| **Agent**             | Software outside Footnote that reads context over MCP. Never a person.                                                                             | AI app, client               |
 | **What agents get**   | The text an agent receives for an item or a question.                                                                                              | served, delivered            |
 
 Words that no screen uses: fact (for an item), gap, flag, approver, auditor, steward, caveat, AI app, Users (write People), anonymous, "Based on checked context" and the other old answer labels (kept only as the long form).

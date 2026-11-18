@@ -141,7 +141,7 @@ const readOperations = [
   // The workspace's name, which everyone signed in reads (FR-818).
   'workspace.get',
   'people.list',
-  // People as Heed v1 has them: anyone signed in reads them and the open invites. An owner
+  // People as Footnote v1 has them: anyone signed in reads them and the open invites. An owner
   // invites a member to their own domains and sets their owners; the service and row security
   // narrow to that, and to an invite's sender or an admin for sending it again or taking it back.
   'members.list',

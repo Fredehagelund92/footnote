@@ -29,7 +29,7 @@ export function termDomain(
 
 /**
  * What the source says about a definition now. `missing`: the newest complete read no longer
- * lists it (CON-210). `changed`: the source changed it after Heed first read it, and accepted
+ * lists it (CON-210). `changed`: the source changed it after Footnote first read it, and accepted
  * items still carry an older change mark, so they wait for a re-check (CON-209). `current`
  * otherwise.
  */

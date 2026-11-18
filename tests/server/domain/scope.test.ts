@@ -159,7 +159,7 @@ describe('scope extraction', () => {
       expect(extractScope('Orders Norway last 7 days', terms, '2026-08-05')).not.toHaveProperty(
         'assumed',
       )
-      // Dates Heed cannot read are still dates: it asks for them, says which words it could
+      // Dates Footnote cannot read are still dates: it asks for them, says which words it could
       // not read and what it reads, instead of reading today.
       for (const [text, input] of [
         ['Orders Norway 2026-02-30', '2026-02-30'],
@@ -656,7 +656,7 @@ describe('a definition question', () => {
     'Has the way we calculate retention changed lately?',
     'What does verification pass rate measure in Germany?',
     "What's margin rate?",
-    'What is return on ad spend, and what does Heed add to it for Spain?',
+    'What is return on ad spend, and what does Footnote add to it for Spain?',
   ])('asks what a metric is: %s', (question) => expect(asksDefinition(question)).toBe(true))
 
   it.each([

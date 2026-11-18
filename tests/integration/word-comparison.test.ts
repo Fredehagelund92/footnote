@@ -40,7 +40,7 @@ const letter = fc
   .map((code) => String.fromCodePoint(code))
 
 it('keeps the words there are, and compares a word one way from then on', async () => {
-  const before = await mkdtemp(join(tmpdir(), 'heed-migration-0038-'))
+  const before = await mkdtemp(join(tmpdir(), 'footnote-migration-0038-'))
   try {
     const names = (await readdir(new URL('.', migrationDirectory))).filter((n) =>
       n.endsWith('.sql'),

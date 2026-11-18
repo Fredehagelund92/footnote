@@ -14,7 +14,7 @@ import {
 import type { FastifyInstance } from 'fastify'
 import { appFamilyOf, type AppFamily } from '../../domain/app-family.ts'
 import { productName } from '../brand.ts'
-import { heedVersion } from '../version.ts'
+import { footnoteVersion } from '../version.ts'
 import type { EditionSource, ServingBundle } from '../modules/editions/index.ts'
 import { personScopes, TokenError, type TokenVerifier } from './auth.ts'
 import {
@@ -78,7 +78,7 @@ export interface McpDependencies {
   reads?: ServingReads
   /**
    * The web app's address (the first of HEED_WEB_ORIGINS, as for the draft link), for each delivered
-   * item's page in Heed (FR-347). Without it the pages are paths on the web app.
+   * item's page in Footnote (FR-347). Without it the pages are paths on the web app.
    */
   web?: string | null
 }
@@ -396,7 +396,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
         const server = new McpServer(
           // The id stays `heed`, since AI agents register the server by it; the title follows
           // the product's name (docs/rename-checklist.md).
-          { name: 'heed', title: productName, version: heedVersion },
+          { name: 'heed', title: productName, version: footnoteVersion },
           {
             instructions,
             cacheHints: {

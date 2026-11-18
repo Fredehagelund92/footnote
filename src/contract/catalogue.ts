@@ -10,7 +10,7 @@ import { calendarDateSchema } from '../domain/validity.ts'
 
 /**
  * The catalogue (FR-136): every metric and dimension of the live vocabulary, with a labelled
- * copy of what the definition source last read and what the library holds about it. Heed keeps
+ * copy of what the definition source last read and what the library holds about it. Footnote keeps
  * no calculation (CON-207): a page links to the source for the formula.
  */
 
@@ -30,7 +30,7 @@ export const catalogueDefinitionSchema = z.object({
   state: z.enum(definitionStates),
   /** The new id of a definition that is gone, when the source names it (CON-512). */
   renamedTo: z.nullable(z.string()),
-  /** When the source last changed it after Heed first read it; null when it never did. */
+  /** When the source last changed it after Footnote first read it; null when it never did. */
   changedAt: z.nullable(z.string()),
   /** The newest read that listed it (ISO 8601): the age of the copy. */
   readAt: z.nullable(z.string()),

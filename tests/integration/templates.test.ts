@@ -48,7 +48,7 @@ async function heed(args: string[], email: string) {
 
 beforeAll(async () => {
   base = await app.listen({ host: '127.0.0.1', port: 0 })
-  folder = await mkdtemp(join(tmpdir(), 'heed-templates-'))
+  folder = await mkdtemp(join(tmpdir(), 'footnote-templates-'))
 }, 60_000)
 afterAll(async () => {
   await app.close()

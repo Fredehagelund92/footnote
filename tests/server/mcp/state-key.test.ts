@@ -8,7 +8,7 @@ import { loadStateKey } from '../../../src/server/mcp/state-key.ts'
 
 let dir: string
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'heed-state-key-'))
+  dir = await mkdtemp(join(tmpdir(), 'footnote-state-key-'))
 })
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true })

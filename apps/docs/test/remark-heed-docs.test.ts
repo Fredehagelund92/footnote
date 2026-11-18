@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { VFile } from 'vfile'
 import type { LinkContext } from '../lib/links.ts'
 import { repoRoot } from '../lib/pages.ts'
-import { remarkHeedDocs } from '../lib/remark-heed-docs.ts'
+import { remarkFootnoteDocs } from '../lib/remark-heed-docs.ts'
 
 const context: LinkContext = {
   pages: new Map([['docs/help/tools.md', 'tools']]),
@@ -18,7 +18,7 @@ const context: LinkContext = {
 
 function read(markdown: string): Root {
   const tree = fromMarkdown(markdown)
-  remarkHeedDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
+  remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
   return tree
 }
 
@@ -46,7 +46,7 @@ describe('the remark plugin', () => {
       extensions: [gfm()],
       mdastExtensions: [gfmFromMarkdown()],
     })
-    remarkHeedDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
+    remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
     const [, row] = (tree.children[0] as Table).children
     expect(row!.children.map((cell) => cell.data)).toEqual([
       { hProperties: { dataLabel: 'Job' } },
@@ -59,7 +59,7 @@ describe('the remark plugin', () => {
       extensions: [gfm()],
       mdastExtensions: [gfmFromMarkdown()],
     })
-    remarkHeedDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
+    remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
     expect(tree.children[0]?.data).toMatchObject({ hProperties: { tabIndex: 0 } })
   })
 

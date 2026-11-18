@@ -4,13 +4,13 @@
 export type Overlay = 'palette' | 'connect' | 'shortcuts' | 'report'
 
 export function open(overlay: Overlay) {
-  window.dispatchEvent(new CustomEvent('heed:open', { detail: overlay }))
+  window.dispatchEvent(new CustomEvent('footnote:open', { detail: overlay }))
 }
 
 export function onOpen(overlay: Overlay, run: () => void) {
   const listener = (e: Event) => {
     if ((e as CustomEvent<Overlay>).detail === overlay) run()
   }
-  window.addEventListener('heed:open', listener)
-  return () => window.removeEventListener('heed:open', listener)
+  window.addEventListener('footnote:open', listener)
+  return () => window.removeEventListener('footnote:open', listener)
 }

@@ -229,7 +229,7 @@ describe('every agent by name', () => {
     expect(refused.headers.get('www-authenticate')).toBeNull()
     expect(await refused.json()).toEqual({
       error:
-        'An admin switched suggest_context off for this agent in Heed. The person can suggest in Heed instead.',
+        'An admin switched suggest_context off for this agent in Footnote. The person can suggest in Footnote instead.',
     })
     expect(await proposalCount()).toBe(before)
 
@@ -283,7 +283,7 @@ describe('every agent by name', () => {
     })
     expect(one.status).toBe(403)
     expect(((await one.json()) as { error: string }).error).toBe(
-      'An admin switched find_context off for this agent in Heed.',
+      'An admin switched find_context off for this agent in Footnote.',
     )
     expect(await mcpStatus(app.token)).toBe(200)
 

@@ -16,7 +16,7 @@ import { isCalendarDate, shiftDate } from './validity.ts'
   in the person's agent when it supports MCP elicitation (protocol 2026-07-28, form mode: a flat
   object of strings, dates, booleans and closed choices). Every answer arrives from the client,
   so it is read as untrusted data: a value outside the choices offered, a malformed date or link,
-  or text past its limit counts as no answer, and the question stays open for Heed's own form.
+  or text past its limit counts as no answer, and the question stays open for Footnote's own form.
 */
 
 /** One question for the person, in the tool's result and, when the client can, in a form. */

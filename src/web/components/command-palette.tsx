@@ -81,7 +81,7 @@ const firstRow = (list: HTMLElement | null) => {
 }
 
 // Search: shadcn's Command in a dialog, opened with Cmd K or the sidebar's Search. Sized as the
-// Heed app's search: 640 wide in the upper part of the screen, a 48px input row, 40px result rows
+// Footnote app's search: 640 wide in the upper part of the screen, a 48px input row, 40px result rows
 // with a type glyph, quiet group headers, and a row of key hints.
 export function CommandPalette() {
   const domains = useDomains()

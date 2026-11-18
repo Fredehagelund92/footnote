@@ -36,7 +36,7 @@ function labelCells({ children: [heading, ...rows] }: Table) {
     })
 }
 
-export function remarkHeedDocs(context: LinkContext) {
+export function remarkFootnoteDocs(context: LinkContext) {
   return (tree: Root, file: VFile) => {
     const from = relative(repoRoot, file.path)
     visit(tree, (node, index, parent) => {

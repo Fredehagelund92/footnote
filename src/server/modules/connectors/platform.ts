@@ -188,7 +188,7 @@ export class FigureReadError extends Error {
 
 /**
  * The fetch a figure gets: GET only, to the data endpoint's own origin (its scheme, host and port:
- * the declared host) at an address Heed may fetch (https to a public host in production), the
+ * the declared host) at an address Footnote may fetch (https to a public host in production), the
  * host's name looked up once and the connection pinned to an answer that is public (no DNS
  * rebinding), no redirect followed, within the figure's time limit. The token goes nowhere else.
  */
@@ -313,7 +313,7 @@ function capped(response: Response, maxBytes: number, target: string): Response 
 }
 
 /**
- * Whether Heed may fetch an address that carries a query (an API's parameters, a signed link's
+ * Whether Footnote may fetch an address that carries a query (an API's parameters, a signed link's
  * signature): it is checked as a settings address is, without the query.
  */
 function fetchableWithQuery(url: URL, privateHosts: ReadonlySet<string>): boolean {
@@ -326,7 +326,7 @@ function fetchableWithQuery(url: URL, privateHosts: ReadonlySet<string>): boolea
 }
 
 /**
- * The fetch a runtime gets (CON-113): GET or HEAD, to an address Heed may fetch (https to a public
+ * The fetch a runtime gets (CON-113): GET or HEAD, to an address Footnote may fetch (https to a public
  * host or one whoever runs the server allows, with a query if it needs one), on a host the
  * manifest declares, by name, from an address setting or from an address kept as a secret. The
  * host's name is looked up once and the connection pinned to the answer. A redirect is followed
@@ -779,7 +779,7 @@ async function discoverOf(running: Running, stored: StoredSource): Promise<Scope
 }
 
 /**
- * The hosts a source's settings name, refused with the settings when Heed may not reach them: in
+ * The hosts a source's settings name, refused with the settings when Footnote may not reach them: in
  * production a private address or plain http (CON-113), as `ctx.fetch` and `ctx.git` refuse them.
  */
 function unreachable(manifest: ConnectorManifest, config: SourceConfig): FieldProblem[] {

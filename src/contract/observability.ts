@@ -322,7 +322,7 @@ export const obsFeedbackSchema = z.object({
       itemId: z.nullable(z.string()),
       topicId: z.nullable(z.string()),
       note: z.nullable(z.string()),
-      /** Who sent it: an agent by its kind, or a person through Heed, never named. */
+      /** Who sent it: an agent by its kind, or a person through Footnote, never named. */
       from: z.enum(['agent', 'person']),
       agent: z.nullable(z.string()),
       /** Who sent a named report: it is sent on purpose, with a name (FR-622). */

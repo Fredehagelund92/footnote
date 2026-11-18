@@ -228,7 +228,7 @@ it('serializes refreshes for a connector and leaves members another source reads
 it('runs the local refresh command with configured Cube and override paths', async () => {
   const cliUrl = new URL(url)
   cliUrl.searchParams.set('options', '-c role=context_layer_api')
-  const directory = await mkdtemp(join(tmpdir(), 'heed-sync-'))
+  const directory = await mkdtemp(join(tmpdir(), 'footnote-sync-'))
   try {
     const overrides = join(directory, 'domains.json')
     await writeFile(overrides, JSON.stringify({ marketing: 'paid_media' }))
@@ -260,7 +260,7 @@ it('runs the local refresh command with configured Cube and override paths', asy
 }, 20_000)
 
 it('records per-file warnings on failed compiles without changing stored definitions', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'heed-broken-model-'))
+  const directory = await mkdtemp(join(tmpdir(), 'footnote-broken-model-'))
   try {
     await writeFile(join(directory, 'bad.yml'), 'cubes: [')
     const service = new ConnectorService(

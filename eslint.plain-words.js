@@ -338,8 +338,8 @@ export const plainWordsConfigs = [
   {
     files: webWordsFiles,
     ignores: webNotProductFiles,
-    plugins: { heed: plugin },
-    rules: { 'heed/plain-words': 'error' },
+    plugins: { footnote: plugin },
+    rules: { 'footnote/plain-words': 'error' },
   },
 ]
 
@@ -360,19 +360,19 @@ export const copyRatchetConfigs = [
   {
     files: webWordsFiles,
     ignores: webNotProductFiles,
-    plugins: { heed: plugin },
-    rules: { 'heed/plain-words-wide': 'warn' },
+    plugins: { footnote: plugin },
+    rules: { 'footnote/plain-words-wide': 'warn' },
   },
   {
     files: glossaryV2Files,
     ignores: glossaryV2Not,
-    plugins: { heed: plugin },
-    rules: { 'heed/plain-words-v2': ['warn'] },
+    plugins: { footnote: plugin },
+    rules: { 'footnote/plain-words-v2': ['warn'] },
   },
   {
     files: errorMessageFiles,
     ignores: [...glossaryV2Files, ...glossaryV2Not],
-    plugins: { heed: plugin },
-    rules: { 'heed/plain-words-v2': ['warn', { errorsOnly: true }] },
+    plugins: { footnote: plugin },
+    rules: { 'footnote/plain-words-v2': ['warn', { errorsOnly: true }] },
   },
 ]

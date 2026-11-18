@@ -68,7 +68,7 @@ const same = (a: string, b: string) => termWord(a) === termWord(b)
 export const findDefinition = (all: Definition[], name: string | undefined) =>
   name ? (all.find((d) => d.name === name) ?? all.find((d) => same(d.name, name))) : undefined
 
-/** The terms that mean the same as this definition: its "Also called in Heed". */
+/** The terms that mean the same as this definition: its "Also called in Footnote". */
 export const synonymsOf = (all: Definition[], name: string) =>
   all.filter((d) => d.sameAs && same(d.sameAs, name))
 
@@ -85,7 +85,7 @@ export function meaningOf(all: Definition[], d: Definition): Definition {
   return at
 }
 
-/** Every word that means this definition: its name, its tool's other names, and Heed's synonyms. */
+/** Every word that means this definition: its name, its tool's other names, and Footnote's synonyms. */
 export const namesOf = (all: Definition[], d: Definition) => [
   d.name,
   ...d.sourceNames,
@@ -164,7 +164,7 @@ export function contextAbout(all: Definition[], d: Definition, facts: Fact[]) {
   )
 }
 
-/** The word in a question that is a Heed synonym, and the synced item it means: "turnover" is Net revenue. */
+/** The word in a question that is a Footnote synonym, and the synced item it means: "turnover" is Net revenue. */
 export function synonymIn(
   all: Definition[],
   question: string,

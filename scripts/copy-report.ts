@@ -23,7 +23,7 @@ import { concepts } from '../src/domain/words.ts'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const base = process.argv[2] ?? 'origin/main'
 
-/** The files whose text people read, as heed/plain-words and the copy rules read them. */
+/** The files whose text people read, as footnote/plain-words and the copy rules read them. */
 const corpus =
   /^(src\/(web|domain|contract)\/.*\.tsx?|src\/connectors\/[^/]+\/manifest\.ts|db\/seed\/fixtures\/.*\.ts)$/
 const notCopy =

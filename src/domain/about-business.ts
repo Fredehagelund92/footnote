@@ -33,7 +33,7 @@ export const ABOUT_BUSINESS_STARTER = [
 export const ABOUT_BUSINESS_END = 'End of about our business.'
 
 /**
- * The text as Heed keeps and sends it: line breaks as `\n`, no control or invisible characters,
+ * The text as Footnote keeps and sends it: line breaks as `\n`, no control or invisible characters,
  * at most one empty line in a row, no line that would end the block early, and no space around it.
  */
 export function normalizeAboutBusiness(text: string): string {

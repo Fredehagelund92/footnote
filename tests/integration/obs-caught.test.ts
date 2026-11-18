@@ -12,7 +12,7 @@ import { foundation, people, servingEdition, version } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
-  What Heed caught (FR-620), besides the answers with a warning: the saved questions whose answer
+  What Footnote caught (FR-620), besides the answers with a warning: the saved questions whose answer
   changed after a change, by the change, and the alerts that asked an owner for a decision and
   were acted on within 14 days. Kept each week in obs_caught_weekly as counts only, shown on
   Summary through its disclosure pass, and kept in its monthly snapshot. Today is Wednesday
@@ -72,7 +72,7 @@ const questions: string[] = []
 const baselines: string[] = []
 const gaps: Record<string, { id: string; ref: string }> = {}
 
-/** A check run Heed or a person started, at noon on a day, and its results. */
+/** A check run Footnote or a person started, at noon on a day, and its results. */
 async function run(trigger: string, day: string, results: [number, 'same' | 'changed' | 'look'][]) {
   const at = `${day}T12:00:00Z`
   const { rows } = await client.query<{ id: string }>(
@@ -253,7 +253,7 @@ beforeAll(async () => {
      values ($1, 'finance', $2, 'owner', 'retire', 'Checked: archived.', '2026-10-27T08:00:00Z')`,
     [due.id, people.owner],
   )
-  // A conflict asks for no decision Heed keeps: never counted on this line.
+  // A conflict asks for no decision Footnote keeps: never counted on this line.
   await raise('disagree', 'topic:2026-10-12', ['finance'], '2026-10-14T06:00:00Z', {
     topic: 'topic',
   })

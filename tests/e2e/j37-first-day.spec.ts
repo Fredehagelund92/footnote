@@ -41,7 +41,7 @@ test("each page's tab and heading say its name alone", async ({ page }) => {
   await go(page, '/context/itm_norway_stop')
   const title = 'Online sales to Norway stopped on 4 August 2026'
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
-  await expect(page).toHaveTitle(`${title} - Heed`)
+  await expect(page).toHaveTitle(`${title} - Footnote`)
 })
 
 test('the counts read alike and stay inside the screen', async ({ page }) => {

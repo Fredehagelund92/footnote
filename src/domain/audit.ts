@@ -33,7 +33,7 @@ export type AuditTerm = {
   areaId: string | null
   /** What the source says now: `changed` and `gone` are CON-209 and CON-210. */
   state: 'current' | 'changed' | 'gone'
-  /** When the source last changed it after Heed first read it; null when it never did. */
+  /** When the source last changed it after Footnote first read it; null when it never did. */
   changedAt?: string | null
   /** The source's own words; null when it gives none. */
   words: string | null

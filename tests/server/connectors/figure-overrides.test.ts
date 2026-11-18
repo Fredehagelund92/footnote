@@ -7,7 +7,7 @@ import { readFigureOverrides } from '../../../src/server/modules/connectors/figu
 // The server's figure settings (HEED_FIGURE_OVERRIDES): read when the service starts, so a file
 // that is not one stops the start and names the setting, never a figure read later.
 
-const folder = await mkdtemp(join(tmpdir(), 'heed-figure-overrides-'))
+const folder = await mkdtemp(join(tmpdir(), 'footnote-figure-overrides-'))
 afterAll(() => rm(folder, { recursive: true, force: true }))
 
 const file = async (name: string, text: string) => {

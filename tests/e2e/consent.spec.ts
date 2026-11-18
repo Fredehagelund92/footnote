@@ -134,12 +134,12 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
   await go(page, '/inbox')
   await signOut(page)
   const agent = await agentAsks(page)
-  await expect(page.getByRole('heading', { name: 'Sign in to Heed' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign in to Footnote' })).toBeVisible()
   await expect(page.getByText('An agent asked to connect as you.')).toBeVisible()
   await page.getByRole('button', { name: /Ines Duarte/ }).click()
 
   await expect(
-    page.getByRole('heading', { name: `Allow ${AGENT} to use Heed as you?` }),
+    page.getByRole('heading', { name: `Allow ${AGENT} to use Footnote as you?` }),
   ).toBeVisible()
   const can = page.getByRole('region', { name: 'It will be able to' })
   await expect(can.getByText('Read context', { exact: true })).toBeVisible()

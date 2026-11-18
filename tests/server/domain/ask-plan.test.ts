@@ -343,13 +343,13 @@ describe('a plan that does not answer the question asked', () => {
 describe('the question Ask asks back', () => {
   const back = (text: string) => checkedQuestionBack(text, ctx())
 
-  it('is one short question in prose, with names Heed holds', () => {
+  it('is one short question in prose, with names Footnote holds', () => {
     expect(back(' Do you mean Orders or Net revenue in Sweden? ')).toBe(
       'Do you mean Orders or Net revenue in Sweden?',
     )
   })
 
-  it('is refused with a number, a link, a list, a second sentence or a name Heed does not hold', () => {
+  it('is refused with a number, a link, a list, a second sentence or a name Footnote does not hold', () => {
     for (const text of [
       'Do you mean the 12 markets?',
       'Do you mean Orders? Or Net revenue?',
@@ -956,7 +956,7 @@ describe('the question as it reads alone', () => {
     return got.ok && got.plan.kind === 'reads' ? got.plan.standalone : 'no plan'
   }
 
-  it('is kept when it says only what the chat said and Heed holds', () => {
+  it('is kept when it says only what the chat said and Footnote holds', () => {
     expect(standalone('Why did Orders drop in Sweden?')).toBe('Why did Orders drop in Sweden?')
     expect(standalone('What about Orders in Sweden in August?')).toBeDefined()
   })

@@ -2,9 +2,9 @@
 
 How sign-in works inside: the flows, the threat notes, the limits and the requirements. The reader pages are [Sign in your own agent](../ai-sign-in.md) and [Set up company sign-in](../company-sign-in.md), which hold the steps and the settings.
 
-A person adds the Heed MCP address to their own agent (Claude, ChatGPT, Cursor and others). The
-app finds out how to sign in, the person signs in to Heed as themselves, approves a short consent
-screen, and from then on the app calls Heed's tools with exactly that person's audience and
+A person adds the Footnote MCP address to their own agent (Claude, ChatGPT, Cursor and others). The
+app finds out how to sign in, the person signs in to Footnote as themselves, approves a short consent
+screen, and from then on the app calls Footnote's tools with exactly that person's audience and
 scopes. This page covers FR-401 to FR-406, FR-408, FR-410, FR-411, FR-414 and NFR-022 for the
 first build, which runs on one computer (FR-413).
 
@@ -14,7 +14,7 @@ first build, which runs on one computer (FR-413).
    `MCP_RESOURCE_URL` of the service). For Claude Code:
    `claude mcp add --transport http heed http://localhost:3000/mcp`, then `/mcp` and
    Authenticate (Claude Code registers itself, so it needs dynamic registration on).
-2. The app opens a browser at Heed. Sign in (locally: choose who you are from the dev people),
+2. The app opens a browser at Footnote. Sign in (locally: choose who you are from the dev people),
    read which app asks and what it may do, and choose **Allow** or **Deny**.
 3. The browser returns to the app. Its tools work as you. On **Connect an agent** (the user
    menu, or Settings) you see every app connected as you, and **Disconnect** ends one at once.
@@ -46,7 +46,7 @@ administrator gives it.
   with every tool on, bounded by the consent; one an administrator changed keeps its switches
   across a new sign-in of the same app. An app that registers again gets a new client id; a new
   agent of the same person by the same name starts with only the tools every one of theirs an
-  administrator switched still has on, so registering anew never undoes a switch. A tool Heed adds
+  administrator switched still has on, so registering anew never undoes a switch. A tool Footnote adds
   later starts off for the agents there are. The workspace switches in **Tools and access keys** still turn a tool
   off for every agent.
 - **At the next request.** The MCP server asks the serving database at every request which tools
@@ -127,7 +127,7 @@ locally its people can keep using `npm run token:dev`.
 ## How it works
 
 ```text
-AI agent                Heed MCP server         Heed login server            Browser (person)
+AI agent                Footnote MCP server         Footnote login server            Browser (person)
   | POST /mcp (no token)        |                        |                          |
   |---------------------------->| 401, WWW-Authenticate: resource_metadata=...      |
   | GET /.well-known/oauth-protected-resource/mcp  -> authorization_servers         |
@@ -275,7 +275,7 @@ ended, or passed `expires_at`, is refused at the next request in every instance,
 People sign in to the web app with the company's OpenID Connect provider (FR-416): Okta, Microsoft
 Entra ID, Google, Keycloak, Auth0 or any other that publishes a discovery document. There is no
 provider-specific code. SAML providers work through an OIDC broker (Keycloak, Dex, or the
-provider's own OIDC bridge); Heed speaks OIDC only. The agent sign-in above then signs a person in
+provider's own OIDC bridge); Footnote speaks OIDC only. The agent sign-in above then signs a person in
 through the same web session.
 
 ### Set it up
@@ -366,10 +366,10 @@ The People list, this lookup and the sign-in read one rule, `invite_standing`.
   document and the addresses it names, over https (http on this computer only, for tests), without
   redirects, with a time limit.
 
-Known limits: signing out ends the Heed session, not the session at the provider; the provider's
+Known limits: signing out ends the Footnote session, not the session at the provider; the provider's
 groups are read from the ID token only (not the userinfo endpoint), so a provider that sends them
 elsewhere needs a claim mapping there; a provider that never says an address is verified (some
-directories leave `email_verified` out of the ID token) signs nobody in, because Heed links no
+directories leave `email_verified` out of the ID token) signs nobody in, because Footnote links no
 account by an unverified address, and trusting such a provider's addresses would be a setting to
 add; audience groups for items (FR-405) are not read from the provider yet.
 

@@ -24,7 +24,7 @@ beforeAll(async () => {
   await source.client.query(
     "insert into areas (id, name, is_demo) values ('area_sandbox', 'Sandbox', true)",
   )
-  folder = await mkdtemp(join(tmpdir(), 'heed-snapshot-'))
+  folder = await mkdtemp(join(tmpdir(), 'footnote-snapshot-'))
   file = join(folder, 'demo.dump')
   await pgTool('pg_dump', undefined, [
     '--format=custom',

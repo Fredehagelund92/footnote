@@ -47,7 +47,7 @@ it('roundtrips 1500 fixture items through the API read model', { timeout: 300_00
       )
     ).rows[0]!.n,
   ).toBe(0)
-  await expect(bulkSeed(client, items)).rejects.toThrow('empty Heed database')
+  await expect(bulkSeed(client, items)).rejects.toThrow('empty Footnote database')
   await expect(client.query("update item_versions set title='Changed'")).rejects.toMatchObject({
     code: '23001',
   })

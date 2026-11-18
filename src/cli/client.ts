@@ -1,5 +1,5 @@
 /**
- * The command-line tool's connection to Heed: the typed contract client (src/contract), signed in
+ * The command-line tool's connection to Footnote: the typed contract client (src/contract), signed in
  * the way the web app is. Locally that is the dev sign-in; the company sign-in replaces it with
  * the hosting stage. Mutations carry the session's CSRF token, the origin the service allows,
  * and a fresh retry key.
@@ -10,7 +10,7 @@ import type { ContractRouterClient } from '@orpc/contract'
 import { OpenAPILink } from '@orpc/openapi-client/fetch'
 import { API_PREFIX, contract, type Contract } from '../contract/index.ts'
 
-export type HeedClient = ContractRouterClient<Contract>
+export type FootnoteClient = ContractRouterClient<Contract>
 export type Connection = {
   /** The service, for example http://127.0.0.1:3000. */
   url: string
@@ -38,7 +38,7 @@ export function createClient(connection: Connection) {
       return response
     },
   })
-  const client: HeedClient = createORPCClient(link)
+  const client: FootnoteClient = createORPCClient(link)
   return {
     client,
     /** Dev sign-in as a person in the service's people file. */

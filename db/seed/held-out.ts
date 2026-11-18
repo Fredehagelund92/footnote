@@ -7,7 +7,7 @@ import { goldenCaseSchema, type GoldenCase, type GoldenSet } from '../../src/dom
 
 /*
   The sealed held-out cases of the golden set (output test plan, "How it stays honest"; FR-525).
-  Nobody who changes Heed's prompts, tool descriptions or scoring may read a held-out case, so
+  Nobody who changes Footnote's prompts, tool descriptions or scoring may read a held-out case, so
   they are not in golden-set.yml: they are in golden-held-out.age, encrypted with age to one key
   that only its holder has. The file is committed; the key never is, and it reaches a command
   only through HEED_HELDOUT_KEY (the key itself) or HEED_HELDOUT_KEY_FILE (a file holding it),

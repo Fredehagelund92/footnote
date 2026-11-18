@@ -27,7 +27,7 @@ import { productName } from '../brand.ts'
 /*
   `suggest_context` (FR-121, changed for the agent contract): after the person says yes, an agent
   sends a suggestion, as the person it acts for, to the owner of its domain. The agent's model
-  writes the words; Heed calls no model here. It derives what it can derive exactly, marks every
+  writes the words; Footnote calls no model here. It derives what it can derive exactly, marks every
   field, lists what only the person can answer, saves through the same write path as the
   assistant's drafts (saveAgentDraft), and then sends it for review through the same path as the
   person's own Send for review (proposals.submit), so it waits in the owner's queue with every
@@ -64,7 +64,7 @@ export const ROUND_SECONDS = 600
 
 /** What the gateway knows about this round of a call (see gateway.ts). */
 export type DraftRound = {
-  /** The client declared form elicitation on this request, and Heed can seal state. */
+  /** The client declared form elicitation on this request, and Footnote can seal state. */
   canAsk: boolean
   /**
    * The request state the client echoed: its verified payload, or `refused` when its signature,
@@ -207,7 +207,7 @@ export function createDraftTool(options: {
     const cut = summaryCut(args)
     if (cut) return refusal(`${cut} Nothing was saved.`, { reason: 'summary_too_long' })
     const digest = digestOf(args)
-    // A retried call carries the state of the round that asked: it must be Heed's own, for this
+    // A retried call carries the state of the round that asked: it must be Footnote's own, for this
     // person, app and call, fresh, and unused. Anything else saves nothing.
     let answering: QuestionRound | null = null
     if (round.state !== undefined) {

@@ -114,7 +114,7 @@ const domainName = z
   .max(80)
   .describe('A domain by its name, such as Sales (its id, such as area_sales, works too).')
 /**
- * FR-338: find what Heed holds about a few words or a question, by the names people use. The
+ * FR-338: find what Footnote holds about a few words or a question, by the names people use. The
  * window only narrows the items that apply when no words match.
  */
 export const findInput = z.strictObject({
@@ -213,7 +213,7 @@ export const relatedInput = z.strictObject({
 })
 /**
  * FR-121: what an agent passes to draft context for the person. Every field is a suggestion the
- * person confirms; Heed resolves names against the vocabulary and never trusts a key or a fact
+ * person confirms; Footnote resolves names against the vocabulary and never trusts a key or a fact
  * from the agent's memory. Bounded fields only: never a conversation (FR-603).
  */
 export const draftInput = z.strictObject({
@@ -413,7 +413,7 @@ const said = {
  * which an output schema does not describe.
  */
 export const readOutput = z.object(said).loose()
-/** An item as the agent contract gives it: its page in Heed, and how it was checked. */
+/** An item as the agent contract gives it: its page in Footnote, and how it was checked. */
 const contextEntry = z
   .object({
     id: z.string(),
@@ -514,11 +514,11 @@ export const contextOutput = z
     edition: z.string().optional(),
   })
   .loose()
-/** find_context: the matching items, with their pages in Heed (FR-347). */
+/** find_context: the matching items, with their pages in Footnote (FR-347). */
 export const findContextOutput = z
   .object({ ...said, context: z.array(contextEntry).optional(), terms })
   .loose()
-/** read_context: the one item in full, with its page in Heed (FR-347). */
+/** read_context: the one item in full, with its page in Footnote (FR-347). */
 export const readContextOutput = z
   .object({ ...said, context: contextEntry.optional(), terms })
   .loose()

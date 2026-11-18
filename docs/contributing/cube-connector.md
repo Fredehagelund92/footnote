@@ -3,7 +3,7 @@
 How the Cube connector compiles a model, what its marks hash and how it is tested. The reader page is [The Cube connector](../connectors/cube.md).
 
 The Cube connector is the first definition source (CON-501). It reads Cube model files, from the
-server's own folder or from a Git repository an administrator adds, and gives Heed the public
+server's own folder or from a Git repository an administrator adds, and gives Footnote the public
 members of the model as definitions. It is written to the [connector contract](connector-contract.md),
 interface 3.0: a manifest and a runtime in `src/connectors/cube/`, with a worker for its compiler
 ([its page](../../src/connectors/cube/README.md)). The rules it follows to reach a repository and
@@ -11,17 +11,17 @@ keep its token are in [Security and egress](connector-security.md).
 
 ## The minimal Cube setup
 
-What a Cube project needs for Heed to read it:
+What a Cube project needs for Footnote to read it:
 
-1. A folder of **YAML** Cube model files Heed can read: the server's folder, or a folder of a Git
+1. A folder of **YAML** Cube model files Footnote can read: the server's folder, or a folder of a Git
    repository at a branch, tag or commit, with a read-only token (CON-502). JavaScript, Python
    and Jinja templates are skipped with `unsupported_file`, and a symbolic link, which is never
    followed, with `unreadable_file`.
 2. It compiles with the pinned Cube compiler, **1.7.39** (`@cubejs-backend/schema-compiler`).
-3. At least one **public view** (or public cube). Heed lists public members only.
+3. At least one **public view** (or public cube). Footnote lists public members only.
 4. Recommended: `title` and `description` on each public member, and `meta.domain:
 <heed_domain_id>` on each view, with a member's own `meta.domain` to override it. The value
-   must equal a Heed domain id exactly.
+   must equal a Footnote domain id exactly.
 5. Optional: `meta.synonyms` on a member, a list of the other names people use for it
    (`[geo, market]`). A term proposed for the member takes them as other names, each for one
    term only.
@@ -35,19 +35,19 @@ What a Cube project needs for Heed to read it:
 
 An administrator adds one in Settings › Integrations with:
 
-| Field                   | Meaning                                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Repository              | The https address of the repository (plain http only to this machine), without credentials.                              |
-| Branch, tag or commit   | What Heed reads. A tag or commit holds still; a branch moves with each change.                                           |
-| Model folder            | The folder of model files in the repository; empty for the top.                                                          |
-| Read-only token         | A secret, in the secret store. Empty for a public repository.                                                            |
-| User name for the token | Sent with the token; `x-access-token` when empty. Most hosts accept any.                                                 |
-| Model folder address    | The folder in the host's web view, for links to each model file (as `sources.cube_model_url` is for the server's model). |
-| Domain names            | The model's `meta.domain` value to the Heed domain it means (CON-206), for a model whose names differ from Heed's ids.   |
+| Field                   | Meaning                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Repository              | The https address of the repository (plain http only to this machine), without credentials.                                    |
+| Branch, tag or commit   | What Footnote reads. A tag or commit holds still; a branch moves with each change.                                             |
+| Model folder            | The folder of model files in the repository; empty for the top.                                                                |
+| Read-only token         | A secret, in the secret store. Empty for a public repository.                                                                  |
+| User name for the token | Sent with the token; `x-access-token` when empty. Most hosts accept any.                                                       |
+| Model folder address    | The folder in the host's web view, for links to each model file (as `sources.cube_model_url` is for the server's model).       |
+| Domain names            | The model's `meta.domain` value to the Footnote domain it means (CON-206), for a model whose names differ from Footnote's ids. |
 
 Each read fetches the one commit the ref names into a folder of its own (`ctx.git`), reads its
 model folder as the server's folder is read, and removes it. The read's version and cursor are
-the commit. A folder that leads out of the checkout is `folder_missing`. How Heed reaches the
+the commit. A folder that leads out of the checkout is `folder_missing`. How Footnote reaches the
 repository, which addresses it refuses and how the token travels are in
 [Security and egress](connector-security.md#git). **Test connection** reaches the repository and counts the
 model files, then reads the model once and keeps nothing; a repository it cannot reach fails with
@@ -70,7 +70,7 @@ applies the domain names and the renames below to what it read.
 
 | Variable                | Setting         | Meaning                                                                                   |
 | ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
-| `CUBE_MODEL_DIR`        | Model folder    | The folder Heed reads. Unset, the server reads the demo source.                           |
+| `CUBE_MODEL_DIR`        | Model folder    | The folder Footnote reads. Unset, the server reads the demo source.                       |
 | `HEED_DOMAIN_OVERRIDES` | Domain names    | A JSON file outside the model folder: view to domain, for views the model names none for. |
 | `CUBE_RENAMES_FILE`     | Renamed members | A JSON file: old id to new id.                                                            |
 
@@ -165,7 +165,7 @@ only the service's source and dependencies and the project's package file. The r
 the model files itself (through `ctx.git`, or `ctx.folder` for the server's folder) and hands
 them to the worker over IPC, so the worker reads no model folder, and never the repository's
 other files, the secret store, a home folder or another process's environment, since a model
-from Git may be written by people who are not Heed's administrators. The compiler needs read
+from Git may be written by people who are not Footnote's administrators. The compiler needs read
 access, its native addon (which the operating system loads) and its own transpiler threads. On
 Linux Cube asks at import which C library the machine runs (`getconf`, `ldd`); the service finds
 that out before the process starts and the worker answers Cube itself
@@ -187,7 +187,7 @@ a mark built from a stable projection of the compiled member first.
 
 A process is required because Cube 1.7.39's native logger aborts on a second load in successive
 Node worker threads. Each compile has a fresh native runtime; a crash or timeout cannot abort
-the Heed process. Raw compiler diagnostics are discarded because they can contain SQL.
+the Footnote process. Raw compiler diagnostics are discarded because they can contain SQL.
 
 Change marks hash canonical raw member nodes plus compiled member meaning, resolved alias
 sources, source relation, type, description and public visibility (CON-505). The domain is not
@@ -221,7 +221,7 @@ none, when Cube has nothing for those days) and Cube's `lastRefreshTime`, or a f
 **Show figures in Ask** switches it on, once a data contact is named. On the API these are
 `PUT /api/v1/figures/{id}` and `POST /api/v1/figures/{id}/try`, for administrators.
 
-When someone asks in Ask, Heed reads one figure from Cube, apart from the answer and within 4
+When someone asks in Ask, Footnote reads one figure from Cube, apart from the answer and within 4
 seconds, and keeps it nowhere:
 
 1. The metric's definition decides which integration answers: the source that holds its ref under

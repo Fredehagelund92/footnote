@@ -16,7 +16,7 @@ export type Person = {
   admin: boolean
   /** Their work address; derived from the name when not given. */
   email?: string
-  /** When they last used Heed, in words. */
+  /** When they last used Footnote, in words. */
   lastActive?: string
 }
 

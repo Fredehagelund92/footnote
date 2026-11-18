@@ -3,7 +3,7 @@ import { defineManifest } from '../../domain/define-manifest.ts'
 /**
  * Cube model files (CON-501, CON-502): the YAML model of a Cube project, read from a Git
  * repository an admin names, or from the folder whoever runs the server names. Its public members
- * become the definitions Heed checks context against. A read is read only and offline: never a
+ * become the definitions Footnote checks context against. A read is read only and offline: never a
  * Cube server, a warehouse or data, and never a calculation kept. Figures in Ask (CON-612) are
  * apart from it: only when an admin sets Cube's data endpoint and switches figures on, one
  * figure is read from Cube's REST API when someone asks, and kept nowhere.

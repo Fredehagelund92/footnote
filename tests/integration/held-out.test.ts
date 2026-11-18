@@ -20,7 +20,7 @@ import { apiDatabase, testDatabase } from './support.ts'
 
 const { client, url } = testDatabase({ seeded: true })
 const database = apiDatabase(url)
-const dir = mkdtempSync(join(tmpdir(), 'heed-held-out-run-'))
+const dir = mkdtempSync(join(tmpdir(), 'footnote-held-out-run-'))
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 
 const canary = 'CANARY9C2E'

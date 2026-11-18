@@ -27,7 +27,7 @@ const hues: Record<DomainId, number | null> = {
 
 /**
  * Blue is for acting and for what is selected (design contract 2.1), so a domain's dot keeps this
- * far from the hue of Heed blue (262 in oklch, in both themes).
+ * far from the hue of Footnote blue (262 in oklch, in both themes).
  */
 const accentHue = 262
 const accentClear = 35

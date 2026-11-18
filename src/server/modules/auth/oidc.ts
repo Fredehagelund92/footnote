@@ -30,7 +30,7 @@ import { acceptInvite } from './invites.ts'
   Who may sign in: a person already linked to their account at the provider; an active person or
   an open invite, by an address the provider has verified; or, when the install maps groups, a
   member of one (a Member, or an Admin for the admin group). Anyone else is told one plain thing,
-  whatever the reason, so the answer says nothing about which addresses Heed knows.
+  whatever the reason, so the answer says nothing about which addresses Footnote knows.
 
   Nothing here logs an address, a subject, a code or a token: a sign-in line carries its result
   and a reason code only.

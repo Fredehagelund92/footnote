@@ -46,7 +46,7 @@ provider of each kind).
 The evaluation runner scores the live library: the weekly runs, the runs an owner starts, the
 link runs and the runs a change outside the review sets off. It no longer gates a suggestion:
 every proposal needs levels 1 to 3 only, at every risk level (FR-513), and the free check of
-saved questions follows each publish instead (FR-526). The runs of proposals made before Heed v1
+saved questions follows each publish instead (FR-526). The runs of proposals made before Footnote v1
 keep the levels 4 and 5 they recorded.
 
 - **Golden questions** (FR-501, FR-504): an id, a domain, a natural and a precise wording, the
@@ -60,7 +60,7 @@ keep the levels 4 and 5 they recorded.
   valid); every save is a revision a run can name. Owners of the domain and administrators
   maintain them; held-out questions are hidden from everyone else.
 - **Runs**: a run of a domain answers its active questions on the live edition. A run of a
-  proposed version, made before Heed v1, compared the live edition with the live edition plus the
+  proposed version, made before Footnote v1, compared the live edition with the live edition plus the
   version on its impact set (FR-511: every active question whose delivery changes, or that names
   the item) and replayed the stored agent deliveries by topic (FR-512); such runs still finish and
   read as they were, and none is queued any more. Each question's wordings
@@ -238,7 +238,7 @@ and a new one replaces it. The held-out cases of Ask and the cold panel are run 
 
 ## Ask's evaluation harness
 
-Ask is being rebuilt as one model in a tool loop on Heed's own read tools, run as the person
+Ask is being rebuilt as one model in a tool loop on Footnote's own read tools, run as the person
 asking. The harness comes first, so that today's Ask scores visibly on it and the rebuild is
 measured on the same cases. It grades what a person reads, never how an answer was made: an
 _answerer_ takes a conversation and a reader and returns each reply's text, state chip, cited

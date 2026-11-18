@@ -36,7 +36,7 @@ let app: ReturnType<typeof buildApp>
 let auth: Record<string, string> = {}
 
 beforeAll(async () => {
-  modelDir = await mkdtemp(join(tmpdir(), 'heed-health-model-'))
+  modelDir = await mkdtemp(join(tmpdir(), 'footnote-health-model-'))
   await copyFile(fixture, join(modelDir, 'model.yml'))
   const sources = new ConnectorRegistry([createCubeSource({ modelDir })])
   const jobs = createJobRunner({

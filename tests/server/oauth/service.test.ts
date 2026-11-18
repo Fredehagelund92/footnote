@@ -7,7 +7,7 @@ import type { Database } from '../../../src/server/db/database.ts'
 import { createLoginServer, loadKeyRing } from '../../../src/server/modules/oauth/index.ts'
 import { browserToken, pkceMatches, sameText } from '../../../src/server/modules/oauth/service.ts'
 
-const dir = await mkdtemp(join(tmpdir(), 'heed-oauth-service-'))
+const dir = await mkdtemp(join(tmpdir(), 'footnote-oauth-service-'))
 afterAll(() => rm(dir, { recursive: true, force: true }))
 const keys = await loadKeyRing({ file: join(dir, 'k.pem'), previousFiles: [], nodeEnv: 'test' })
 const config = {

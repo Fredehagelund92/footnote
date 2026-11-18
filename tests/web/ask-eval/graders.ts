@@ -48,7 +48,7 @@ export type GradeContext = {
   said: readonly string[]
   /** The replies before this one in the chat. */
   earlier: readonly Reply[]
-  /** What Ask knows without a tool: today, the week, what Heed keeps. */
+  /** What Ask knows without a tool: today, the week, what Footnote keeps. */
   fixed: string
 }
 

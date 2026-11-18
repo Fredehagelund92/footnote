@@ -98,11 +98,11 @@ jobs:
             runner: ubuntu-24.04-arm
           - image: service
             suffix: ''
-            title: Heed service
+            title: Footnote service
             description: The API, the MCP server agents read from, and the background jobs.
           - image: web
             suffix: '-web'
-            title: Heed web app
+            title: Footnote web app
             description: The web app, served by nginx, which forwards /api/v1 to the service.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -168,11 +168,11 @@ jobs:
         include:
           - image: service
             suffix: ''
-            title: Heed service
+            title: Footnote service
             description: The API, the MCP server agents read from, and the background jobs.
           - image: web
             suffix: '-web'
-            title: Heed web app
+            title: Footnote web app
             description: The web app, served by nginx, which forwards /api/v1 to the service.
     outputs:
       # One output per image, from the matrix job that published it.
@@ -290,10 +290,10 @@ jobs:
         run: |
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-              --title "Heed $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+              --title "Footnote $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
           else
             gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
-              --title "Heed $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+              --title "Footnote $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
           fi
       # release-please opens no new release pull request while a merged one is still pending.
       - name: Mark the release pull request as tagged

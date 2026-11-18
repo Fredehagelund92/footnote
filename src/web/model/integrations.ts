@@ -10,11 +10,11 @@ import notion from '@/assets/logos/notion.svg'
 
 import type { DomainId } from './items'
 
-// The tools Heed reads, from the settings and integrations design (round 3, all picks adopted).
+// The tools Footnote reads, from the settings and integrations design (round 3, all picks adopted).
 // Definitions (what exists: metrics and dimensions) and context (what people know: documents).
 // Figures for Ask are not a kind of their own: a definitions tool that can read them has a second
 // connection for them, off until an admin switches it on, because the tool a metric's definition
-// comes from is the one that answers it. Heed stores no numbers: it reads one when an answer asks
+// comes from is the one that answers it. Footnote stores no numbers: it reads one when an answer asks
 // for it. A sync never publishes: definitions are a read-only copy that flags the context relying
 // on them, documents become suggestions in the owners' Inbox, one per document.
 //

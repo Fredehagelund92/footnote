@@ -6,7 +6,7 @@ import * as z from 'zod/mini'
   tests/server/people-filters.test.ts keeps them so.
 */
 
-/** The role filter: any role across Heed or in an area, or none at all ("contributor only"). */
+/** The role filter: any role across Footnote or in an area, or none at all ("contributor only"). */
 export const peopleRoleFilterSchema = z.enum([
   'administrator',
   'auditor',

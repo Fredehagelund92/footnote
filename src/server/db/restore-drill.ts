@@ -13,7 +13,7 @@ import type { Queryable } from './database.ts'
 import { identifier } from './roles.ts'
 
 /**
- * The restore drill (NFR-044, NFR-045): back up a Heed database with pg_dump, restore it into a
+ * The restore drill (NFR-044, NFR-045): back up a Footnote database with pg_dump, restore it into a
  * new scratch database with pg_restore, and prove the copy is the same database:
  *
  * 1. every table holds the same rows (count and fingerprint) and every sequence the same value,
@@ -294,7 +294,7 @@ export async function restoreDrill(options: DrillOptions): Promise<DrillReport> 
     connectionString: databaseUrl(options.sourceUrl, 'postgres'),
   })
   const source = new pg.Client({ connectionString: options.sourceUrl })
-  const directory = await mkdtemp(join(tmpdir(), 'heed-drill-'))
+  const directory = await mkdtemp(join(tmpdir(), 'footnote-drill-'))
   const dumpFile = join(directory, 'heed.dump')
   let created = false
   let restored: pg.Client | undefined

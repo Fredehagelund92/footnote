@@ -140,7 +140,7 @@ const envSchema = z
     // `mock` scripts every role; `live` uses each role's provider and model from the settings
     // (`models.<role>`), with the provider's key from this environment.
     MODELS: z.enum(['mock', 'live']).default('mock'),
-    // Ask answers with one model that reads with Heed's own read tools, as the person asking
+    // Ask answers with one model that reads with Footnote's own read tools, as the person asking
     // (FR-718 to FR-720), in place of its fixed rules and planner. On by default; off answers with
     // the router.
     HEED_ASK_LOOP: z.enum(['on', 'off']).default('on'),

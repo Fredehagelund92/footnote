@@ -5,7 +5,7 @@ import { concepts } from './words.ts'
   Reviewed before served: how a fact an agent receives was reviewed (FR-326, amended 18 Oct
   2026). Every delivered item says it was accepted, on which day, by which role in which domain,
   and in which edition. What an agent receives names the role ("the owner of Sales"),
-  never the person; inside Heed, behind sign-in, the review stamp may name the person too
+  never the person; inside Footnote, behind sign-in, the review stamp may name the person too
   (design contract 7.2, `ReviewStamp`).
 */
 

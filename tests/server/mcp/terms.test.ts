@@ -121,7 +121,7 @@ it('names the terms of the question, and answers as the same question does witho
     )
     // The reply's text says where a person reads it, and who wrote it.
     expect(after.content.at(-1)!.text).toContain(
-      'Open in Heed - Peak season: https://heed.example/definitions/Peak%20season - Written 20 Oct 2026 by the owner of Finance, in Definitions.',
+      'Open in Footnote - Peak season: https://heed.example/definitions/Peak%20season - Written 20 Oct 2026 by the owner of Finance, in Definitions.',
     )
   }
 })

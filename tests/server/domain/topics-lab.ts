@@ -4,7 +4,7 @@ import type { Term } from '../../../src/domain/vocabulary.ts'
 
 /*
   The topics lab as fixtures: the 50 plausible phrasings and the 24 named cases with which the
-  topics study ran Heed's scope reader on the Larchwood Outdoor names (docs/design/demo-world.md,
+  topics study ran Footnote's scope reader on the Larchwood Outdoor names (docs/design/demo-world.md,
   sections 4 to 6). Each records the scope or topic the reader gave then, its known misses
   included: "turnover" is no name, so it loses the metric; a typo is suggested, never chosen; two
   scopes in one question share one topic. A change to the reader that changes what a question is

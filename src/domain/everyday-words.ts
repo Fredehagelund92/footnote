@@ -1,10 +1,10 @@
 /*
   Everyday words: words a question uses for how, when, how much or what kind, never as the name of
-  a value. A word in no list that sits where a value goes ("orders from jordan") is a value Heed
+  a value. A word in no list that sits where a value goes ("orders from jordan") is a value Footnote
   does not have, unless it is one of these ("orders from yesterday", "revenue in gbp", "how is the
   mobile team doing"). Lowercase, as normalizeName gives them. A value that has one of these as its
   name is still read by that name: names are read first, and this list only keeps a word from
-  being taken for a value Heed does not have.
+  being taken for a value Footnote does not have.
 */
 
 const words = `

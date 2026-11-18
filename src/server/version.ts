@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs'
 import { bundled } from './bundled.ts'
 
 /**
- * Heed's version, read once when the service starts from package.json, the one place it is
+ * Footnote's version, read once when the service starts from package.json, the one place it is
  * written; the Vercel bundle carries it from there (bundled.ts). The release pull request raises it
  * (docs/releasing.md). The MCP server info, the OpenAPI document and `GET /health` all name it, and
  * tests/server/version.test.ts fails when one of them names another.
  */
-export const heedVersion: string =
+export const footnoteVersion: string =
   bundled?.version ??
   (
     JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {

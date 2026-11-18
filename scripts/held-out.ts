@@ -76,7 +76,7 @@ export async function keygen(out: string): Promise<string> {
     )
   const identity = await generateIdentity()
   const recipient = await identityToRecipient(identity)
-  const text = `# Heed held-out key (age), created ${new Date().toISOString()}\n# public key: ${recipient}\n${identity}\n`
+  const text = `# Footnote held-out key (age), created ${new Date().toISOString()}\n# public key: ${recipient}\n${identity}\n`
   try {
     await writeFile(file, text, { mode: 0o600, flag: 'wx' })
   } catch (error) {
@@ -117,7 +117,7 @@ export async function editSealed(options: {
   const before = existsSync(options.file)
     ? await unseal(readFileSync(options.file, 'utf8'), options.identity)
     : emptySet
-  const dir = await mkdtemp(join(tmpdir(), 'heed-held-out-'))
+  const dir = await mkdtemp(join(tmpdir(), 'footnote-held-out-'))
   const buffer = join(dir, 'held-out.yml')
   // Stopped from the terminal, it still removes the decrypted file, then stops as asked.
   const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const

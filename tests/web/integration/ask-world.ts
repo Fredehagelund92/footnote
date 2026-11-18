@@ -1,6 +1,6 @@
 import { afterAll, beforeAll } from 'vitest'
 import { createHttpApi } from '@/api/http'
-import type { HeedApi } from '@/api/client'
+import type { FootnoteApi } from '@/api/client'
 import type { AskTools, AskTrace } from '../../../src/server/modules/answer/index.ts'
 import type { ModelPort } from '../../../src/server/modules/models/index.ts'
 import { buildApp } from '../../../src/server/app.ts'
@@ -43,7 +43,7 @@ export function askWorld(
     ...(options.askLoop ? { askLoop: true } : {}),
   })
   let address = ''
-  const sessions = new Map<string, Promise<HeedApi>>()
+  const sessions = new Map<string, Promise<FootnoteApi>>()
 
   beforeAll(async () => {
     await client.query('reset role')

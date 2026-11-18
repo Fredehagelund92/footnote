@@ -7,7 +7,7 @@ import { readClientSecret, safeReturnTo } from '../../src/server/modules/auth/in
 // The OIDC client secret is read from a file only its owner may read, and never said back.
 let folder: string
 beforeAll(async () => {
-  folder = await mkdtemp(join(tmpdir(), 'heed-oidc-'))
+  folder = await mkdtemp(join(tmpdir(), 'footnote-oidc-'))
 })
 afterAll(() => rm(folder, { recursive: true, force: true }))
 

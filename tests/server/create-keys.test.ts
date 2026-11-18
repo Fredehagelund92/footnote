@@ -24,7 +24,7 @@ const run = (env: Record<string, string>) =>
 // Each test starts Node processes that load the key code; slow on a busy machine, as in main.test.ts.
 describe('creating the keys production needs', { timeout: 30_000 }, () => {
   it('creates each missing key owner-only, keeps one that exists, and prints no key', async () => {
-    folder = await mkdtemp(join(tmpdir(), 'heed-keys-'))
+    folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
     const env = {
       HEED_OAUTH_SIGNING_KEY_FILE: join(folder, 'oauth-key.pem'),
       HEED_MCP_STATE_KEY_FILE: join(folder, 'mcp-state.key'),
@@ -52,7 +52,7 @@ describe('creating the keys production needs', { timeout: 30_000 }, () => {
   })
 
   it('refuses a key others can read, and says which file', async () => {
-    folder = await mkdtemp(join(tmpdir(), 'heed-keys-'))
+    folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
     const file = join(folder, 'oauth-key.pem')
     expect(
       run({ HEED_OAUTH_SIGNING_KEY_FILE: file, HEED_MCP_STATE_KEY_FILE: join(folder, 's') }).status,

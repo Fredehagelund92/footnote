@@ -429,7 +429,7 @@
           "tags": [
             "session"
           ],
-          "summary": "The agents connected to Heed as the signed-in person"
+          "summary": "The agents connected to Footnote as the signed-in person"
         }
       }
     },

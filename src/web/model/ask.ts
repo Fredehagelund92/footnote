@@ -140,7 +140,7 @@ export type Answer = {
   said: string
   leftOut?: string
   times?: number
-  /** A Heed synonym in the question, and what it was read as: "turnover" is Net revenue. */
+  /** A Footnote synonym in the question, and what it was read as: "turnover" is Net revenue. */
   alias?: { asked: string; is: string; type: 'metric' | 'dimension' }
   /** Open the Something wrong? form, filled in, for the "needs correction" example. */
   correction?: { note: string; correct: string; link: string }

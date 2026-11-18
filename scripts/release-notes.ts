@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
     node scripts/release-notes.ts <version> <owner/repo> service=<image@digest> web=<image@digest>
 
-  prints them. They are what the release is for (while Heed is 0.x), the section release-please
+  prints them. They are what the release is for (while Footnote is 0.x), the section release-please
   wrote into CHANGELOG.md for that version, and the two images with their digests and how to check
   where they were built. It fails when CHANGELOG.md has no section for the version, so a tag that
   skipped the release pull request never gets a release.
@@ -58,7 +58,7 @@ export function releaseNotes({
   return [
     ...(version.startsWith('0.')
       ? [
-          `Heed ${version.split('.').slice(0, 2).join('.')} is for trying Heed on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/${repository}/blob/${tag}/README.md#quick-start) at this tag.`,
+          `Footnote ${version.split('.').slice(0, 2).join('.')} is for trying Footnote on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/${repository}/blob/${tag}/README.md#quick-start) at this tag.`,
           '',
         ]
       : []),

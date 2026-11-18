@@ -51,7 +51,7 @@ const logger = createLogger({
     },
   }),
 })
-const secretsDir = await mkdtemp(join(tmpdir(), 'heed-figures-secrets-'))
+const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-figures-secrets-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
 const registry = new ConnectorRegistry([], { secrets: store })
 const app = buildApp({

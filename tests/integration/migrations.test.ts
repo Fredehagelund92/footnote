@@ -15,7 +15,7 @@ it('applies the full baseline once and then does nothing', async () => {
   expect(rows.rowCount).toBe(files.length)
 })
 it('serializes concurrent migrations, rolls back failures and refuses altered history', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'heed-migration-'))
+  const directory = await mkdtemp(join(tmpdir(), 'footnote-migration-'))
   const other = new pg.Client({ connectionString: url })
   await other.connect()
   await other.query(`set role ${identifier(localRoles.owner)}`)

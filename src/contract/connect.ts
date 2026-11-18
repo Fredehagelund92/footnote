@@ -76,9 +76,9 @@ const readTermSchema = z.object({
 
 /**
  * The scope the question names, as far as it resolves, read as get_context reads it (Home's Try
- * it, and the Ask composer's "Heed reads" line): its terms by key and name, metrics first, and both
- * days included, or null when it names no dates; how Heed read the dates; the words that name
- * more than one term, with the terms they could be; words that name dates Heed cannot read; the
+ * it, and the Ask composer's "Footnote reads" line): its terms by key and name, metrics first, and both
+ * days included, or null when it names no dates; how Footnote read the dates; the words that name
+ * more than one term, with the terms they could be; words that name dates Footnote cannot read; the
  * day a question without dates is read at; and where each name and the dates are in the words.
  */
 export const tryItReadingSchema = z.object({

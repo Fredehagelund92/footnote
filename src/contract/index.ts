@@ -735,7 +735,7 @@ export const contract = {
         path: '/connections',
         tags: ['session'],
         // eslint-disable-next-line brand/no-product-name -- API documentation for developers (docs/rename-checklist.md)
-        summary: 'The agents connected to Heed as the signed-in person',
+        summary: 'The agents connected to Footnote as the signed-in person',
       })
       .output(z.array(connectionSchema)),
     disconnect: read
@@ -1409,7 +1409,7 @@ export const contract = {
       .input(removeSourceSchema)
       .output(removedSourceSchema),
   },
-  // The people of the workspace as Heed v1 has them: Admin or Member, and the domains each owns.
+  // The people of the workspace as Footnote v1 has them: Admin or Member, and the domains each owns.
   members: {
     list: read
       .route({

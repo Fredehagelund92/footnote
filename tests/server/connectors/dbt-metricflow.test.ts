@@ -462,7 +462,7 @@ describe('the runtime on the server’s folder', () => {
   })
 })
 
-describe('the terms Heed proposes from it', () => {
+describe('the terms Footnote proposes from it', () => {
   it('proposes each dimension on its own, and no time dimension', async () => {
     const { definitions } = await mapped(legacyManifest)
     const members = definitions.map((definition): CandidateMember => ({

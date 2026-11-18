@@ -11,13 +11,13 @@ What a connector declares, what it returns and what the core does with it, with 
 > [interface 2](#interface-2-the-definitions-pipeline)'s pipeline, which stores every definitions
 > read. A new connector needs no core or web code: its folder, two list lines, a kit fixture.
 
-A connector is how Heed reads a tool it does not own. It is the contract between the core and
+A connector is how Footnote reads a tool it does not own. It is the contract between the core and
 every connector: what a connector declares, what it returns and what the core does with it.
 
 There are two kinds:
 
-- A **definition source** says which metrics and dimensions exist, so Heed can check items
-  against them. It may change what Heed knows exists, never what Heed says: a change only flags
+- A **definition source** says which metrics and dimensions exist, so Footnote can check items
+  against them. It may change what Footnote knows exists, never what Footnote says: a change only flags
   the items that rely on it (CON-209 to CON-214). Cube model files are the first one, and the demo
   source (two invented definitions) the fallback.
 - A **content source** reads documents from folders, spaces or pages an administrator chose, and
@@ -68,7 +68,7 @@ tests them, so no connector can break them.
 Administrators look after the sources in **Settings › Integrations**: a list of the tools with
 their status, last read, what they hold and their issues, the five-step connect, and one page per
 tool with its status, issues, views and domains, settings and recent reads, and Read again. AI
-apps that read _from_ Heed are the other direction, in Settings › Agents and access.
+apps that read _from_ Footnote are the other direction, in Settings › Agents and access.
 
 A source is configured in one of two places. Whoever runs the server selects one with its
 environment (the Cube model folder, read by the Cube connector, or the demo): its settings are
@@ -140,7 +140,7 @@ A **definition** has:
   member; items record it.
 - `kind` (`metric` or `dimension`), `name` (the member's name in the tool, `orders.orders`),
   `title`, `descriptionCopy` (at most 500 characters, labelled as a copy), `valueType`.
-- `areaHint`, the domain the tool names (a Heed domain id, `^[a-z][a-z0-9_]{1,39}$`) and
+- `areaHint`, the domain the tool names (a Footnote domain id, `^[a-z][a-z0-9_]{1,39}$`) and
   `domainSource` (`source`, `override` or `none`). A hint is a suggestion: it never creates a domain
   or changes the vocabulary.
 - `modelFile`, the file that defines it relative to the model folder, and `changeMark`, the
@@ -211,7 +211,7 @@ administrator may add a source of, by what it syncs, with its title, its summary
 along it is. Choosing one opens its page: what it syncs, how often it reads, the hosts it reaches
 and the least access it needs, then the form its manifest declares. **Test connection** runs
 the connector's check step by step, then
-reads the source once with the form's settings and keeps nothing: it says what Heed would hold
+reads the source once with the form's settings and keeps nothing: it says what Footnote would hold
 (version, views, metrics, dimensions and the read's warnings, including members another source
 already reads) or why it could not read. The last step, Schedule and review, saves the source with
 a reason and queues a read. The source's page shows its settings, each secret only as set or not set, and
@@ -233,7 +233,7 @@ holds, and a new one replaces it.
 Every operation is for administrators; the service refuses anyone else (403) whatever the screen
 shows. Settings with problems are refused (422) with a finding per field: an address that is not
 https (plain http only to this machine), credentials in an address, a ref git could read as an
-option or a range, a folder that leaves the repository, a domain name that is not a Heed domain,
+option or a range, a folder that leaves the repository, a domain name that is not a Footnote domain,
 and a secret pasted into another field. Changes are kept in the history log (`source.added`,
 `source.changed`, `source.paused`, `source.resumed`, `source.removed`) with the settings and, for
 each secret, only `set`, `replaced` or `removed`. A source added or changed is read at once: the
@@ -362,14 +362,14 @@ export default defineManifest({
   summary: 'Markdown files in folders you choose become drafts for a domain’s owners to review.',
   icon: './icon.svg',
   docs: './README.md',
-  maintainer: { name: 'Heed' },
+  maintainer: { name: 'Footnote' },
   support: 'core', // 'core' | 'verified' | 'community'
   maturity: 'beta', // 'stable' | 'beta' | 'experimental'
   refPrefix: undefined, // definitions only: the tool's prefix (CON-117)
   config: { groups, fields }, // the form, as a restricted schema
   secrets: [{ key: 'token', label: 'Read-only token', required: false, boundTo: ['repository'] }],
   // a secret given as an uploaded file, such as a JSON key, adds `file: true`
-  access: ['Read access to this one repository. Heed never writes to it.'],
+  access: ['Read access to this one repository. Footnote never writes to it.'],
   egress: { hosts: [{ fromField: 'repository' }], git: true },
   capabilities: {
     discover: 'folders', // 'views' | 'folders' | 'spaces' | false
@@ -456,7 +456,7 @@ interface Context<Config> {
 ### Check, discover, read
 
 - **Check** runs ordered steps (reach, sign in, sample), each with a message and a fix, and
-  changes nothing. For a definition source, Test connection may still show what Heed would hold.
+  changes nothing. For a definition source, Test connection may still show what Footnote would hold.
 - **Discover** lists the scopes an administrator may choose, each with a suggested domain. The
   choice is stored on the source and handed to every read.
 - **Read** is a stream that ends with `end { version, complete, cursor }`:
@@ -579,7 +579,7 @@ capabilities a manifest declares:
   (`egress.hosts[].fromSecret`), a secret's `visibleIf`, a list in `visibleIf`, an option's `recipe`
   and `serverOnly`, `maxBytes` on `ctx.fetch` and `end.unchanged`, so a connector that uses them
   says that version). A minor version only adds; a
-  major one may break. Heed runs the current and the previous major for at least 12 months or two
+  major one may break. Footnote runs the current and the previous major for at least 12 months or two
   releases, whichever is longer, and warns on a source's page when its connector uses a major that
   will stop being supported (CON-109). Experimental parts are open to built-in connectors only.
 - **Connector version**, a semver stored on each read. A major version ships `migrateConfig`.
@@ -642,7 +642,7 @@ Where the build differs from the decided text above:
   its domain; none for definitions), `cursor`, `secret` (its own secrets only), `fetch`, `git`,
   `folder`, `worker`, `signal` (the manifest's `limits.timeoutSeconds`, or for a connector with a
   worker the server gave longer, that long and a minute more), `log` and `now`. `fetch` is a GET
-  or a HEAD, with a query if it needs one, to an address Heed may fetch (https to a public host in
+  or a HEAD, with a query if it needs one, to an address Footnote may fetch (https to a public host in
   production, or a host whoever runs the server allows by name), on a host the manifest declares by
   name, through an address setting (`fromField`) or through an address kept as a secret
   (`fromSecret`). The host's name is looked up once and the connection pinned to an address that
@@ -659,7 +659,7 @@ Where the build differs from the decided text above:
   and null for a source an administrator added. `worker` runs the connector's worker
   ([security](connector-security.md#where-connector-code-runs)) with an input and returns its
   one answer, untrusted. An address setting the manifest names as a host is refused with the
-  settings when Heed may not reach it (in production, plain http or a private address).
+  settings when Footnote may not reach it (in production, plain http or a private address).
 - **A read** is checked message by message: a definition must be strict, under the connector's
   `refPrefix`, and sent once; a document must be in a chosen scope and sent once; a warning must
   be one of the core's codes or the connector's own (`<id>.<code>`, worded in its manifest); a
@@ -756,7 +756,7 @@ fetch, signal, now }`; the runtime answers `{ value, asOf, format, aggregation? 
   migration 0025). It reaches the item's owners, the data contact, or both, and while it is open
   `figures.read` names the item, which Ask shows beside the figure with no verdict.
 - **Conformance**: the kit reads a figure through the core from the fixture's endpoint, and checks
-  that a refused token, a figure out of time and an endpoint Heed may not fetch each fail with
+  that a refused token, a figure out of time and an endpoint Footnote may not fetch each fail with
   their code, and that the token reached only the endpoint's host.
 
 ## Content sources
@@ -772,7 +772,7 @@ edition (CON-604). Markdown in Git is the first connector
 An admin adds a content source like any other, with its scopes: **Test connection** runs the
 connector's check, then lists the scopes it may cover (`discover`), each with the domain it most
 likely belongs to, and reads nothing. The admin chooses at least one scope and maps each to one
-Heed domain (CON-602); **Add** saves them on the source (`connectors.scopes`). A change to the
+Footnote domain (CON-602); **Add** saves them on the source (`connectors.scopes`). A change to the
 scopes applies from the next read. **Disconnect** withdraws its open suggestions (CON-118). The source's form says that who may read a document is not
 copied (CON-610).
 

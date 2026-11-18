@@ -1,12 +1,12 @@
-# Releasing Heed
+# Releasing Footnote
 
-How a version of Heed is made: one version number, a release pull request that writes the
+How a version of Footnote is made: one version number, a release pull request that writes the
 changelog, and a tag that builds the images, the docs site and the GitHub Release. Only a
 maintainer merges the release pull request and pushes the tag; nothing is released by a merge alone.
 
 ## One version number
 
-Heed's version is written in one place, `version` in `package.json`. The service reads it from
+Footnote's version is written in one place, `version` in `package.json`. The service reads it from
 there when it starts (`src/server/version.ts`) and names it in:
 
 - the MCP server info an agent gets when it connects (`serverInfo.version`);
@@ -18,7 +18,7 @@ there when it starts (`src/server/version.ts`) and names it in:
 `.release-please-manifest.json` names another version. Nobody changes the number by hand: the
 release pull request does.
 
-Before 1.0, Heed is for trying it on one computer, not for production use, and every release says
+Before 1.0, Footnote is for trying it on one computer, not for production use, and every release says
 so in its notes.
 
 ## How a release happens
@@ -53,7 +53,7 @@ so in its notes.
       that each platform has its SBOM and provenance and that the signature verifies;
    5. it builds the docs site at the tag ([The docs site](#the-docs-site)), in parallel and apart
       from the release, so a failed docs build never stops it;
-   6. it creates the GitHub Release `Heed 0.1.0`: its notes are the version's section of
+   6. it creates the GitHub Release `Footnote 0.1.0`: its notes are the version's section of
       `CHANGELOG.md` (`scripts/release-notes.ts`) and the two images with their digests;
    7. it moves the release pull request's label from `autorelease: pending` to
       `autorelease: tagged`. release-please opens no new release pull request while a merged one
@@ -154,7 +154,7 @@ its own version where these say `0.2.0`:
    ```sh
    git fetch origin
    sha=$(gh pr view <release pull request number> --repo Fredehagelund92/heed --json mergeCommit --jq .mergeCommit.oid)
-   git tag -a v0.2.0 -m "Heed 0.2.0" "$sha"
+   git tag -a v0.2.0 -m "Footnote 0.2.0" "$sha"
    git push origin v0.2.0
    ```
 

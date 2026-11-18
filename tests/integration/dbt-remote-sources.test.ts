@@ -41,7 +41,7 @@ const logger = createLogger({
   }),
 })
 const clock = systemClock('2026-10-08')
-const secretsDir = await mkdtemp(join(tmpdir(), 'heed-dbt-remote-'))
+const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-dbt-remote-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
 const registry = new ConnectorRegistry([], { secrets: store })
 const app = buildApp({
@@ -189,7 +189,7 @@ describe('a semantic manifest at a signed link', () => {
     )
   })
 
-  it('refuses an address Heed may not fetch when it is given, on its own field, without saying it', async () => {
+  it('refuses an address Footnote may not fetch when it is given, on its own field, without saying it', async () => {
     const plain = 'http://files.example.com/semantic_manifest.json?sig=topsecretvalue'
     const body = (path: string) =>
       call('POST', path, 'admin', {

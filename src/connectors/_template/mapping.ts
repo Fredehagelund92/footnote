@@ -22,7 +22,7 @@ import { manifest } from './manifest.ts'
   - The mark is the meaning: the calculation with the meanings it is built from, the type, the
     title and the description; never the domain, the other names or the environment.
   - A record built on one the file does not hold is left out, with a warning, and the read is in
-    part, so what Heed already knew of it stays as it was.
+    part, so what Footnote already knew of it stays as it was.
 */
 
 /**

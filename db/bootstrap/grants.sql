@@ -191,7 +191,7 @@ grant execute on function cl_obs_weekly_rollup_due(date) to :api;
 -- same whoever reads.
 grant insert on obs_snapshots to :api;
 grant execute on function cl_obs_changes(text[], date, date) to :api;
--- What Heed caught, kept without limit (obs_caught_weekly): counts by week, domain and a trigger or
+-- What Footnote caught, kept without limit (obs_caught_weekly): counts by week, domain and a trigger or
 -- alert rule from fixed lists, never a question, an item or a person. The API role reads them and
 -- counts a piece of a week from the records; only the roll-up job writes them. Both functions run
 -- as the owner, so the counts are the same whoever reads.

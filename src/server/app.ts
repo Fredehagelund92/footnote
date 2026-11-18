@@ -178,7 +178,7 @@ export function buildApp({
       app,
       {
         drafts: createDraftTool({ database, clock, web: origins[0] ?? null }),
-        // Each delivered item's page in Heed, on the same address (FR-347).
+        // Each delivered item's page in Footnote, on the same address (FR-347).
         web: origins[0] ?? null,
         // What a domain's definition source has beyond the vocabulary, for find_context, read
         // as nobody.

@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { bindApi, type HeedApi, type ObsValuesInput } from '@/api'
+import { bindApi, type FootnoteApi, type ObsValuesInput } from '@/api'
 import { dimensionValuesQuery } from '@/api/queries'
 import { FilterBar, type Field } from '@/components/obs/filter-bar'
 import { FacetRail } from '@/components/obs/facet-rail'
@@ -111,7 +111,7 @@ const words = (key: FilterKey, v: string) =>
       : v
 
 function mount(chips: Filters, seed?: (client: QueryClient) => void) {
-  bindApi(service as unknown as HeedApi)
+  bindApi(service as unknown as FootnoteApi)
   const onChange = vi.fn<(chips: Filters, said: string, instant?: boolean) => void>()
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)

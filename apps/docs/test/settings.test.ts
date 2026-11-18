@@ -5,7 +5,7 @@ describe('the build settings', () => {
   it('serve a build with none at the root of its host', () => {
     const settings = readSettings({})
     expect(basePath(settings)).toBe('')
-    expect(settings).toMatchObject({ site: '', ref: 'main', product: 'Heed' })
+    expect(settings).toMatchObject({ site: '', ref: 'main', product: 'Footnote' })
   })
 
   it('put a version in its folder under the root', () => {
