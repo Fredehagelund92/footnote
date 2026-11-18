@@ -25,7 +25,7 @@ test('what is missing is an analysis in sections, never a count of what is there
   ).toBeVisible()
   await expect(page.getByText(/^Not seen: /)).toBeVisible()
   await expect(page.getByText(/\d+ definitions: /)).toHaveCount(0)
-  await expect(page.getByText('Agents did not read this answer.', { exact: false })).toBeVisible()
+  await expect(page.getByText('This answer is only for you.', { exact: false })).toBeVisible()
 })
 
 test('what has no context is no question about a person', async ({ page }) => {

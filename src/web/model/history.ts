@@ -55,7 +55,7 @@ export const VERB: Record<VersionKind, string> = {
   published: 'published a suggestion',
   returned: 'returned a suggestion',
   checked: 'checked it: still true',
-  synced: 'synced a change',
+  synced: 'read a change from its tool',
   archived: 'archived it',
   moved: 'moved it',
   retyped: 'changed its kind',

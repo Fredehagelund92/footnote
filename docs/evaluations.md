@@ -265,7 +265,7 @@ service runs it.
   read; no instruction in Ask's own voice (an item's own check, relayed and attributed, is fine);
   the state chip matches the items found; no sentence has a hole where a reference was lost (two
   words in a row that need words between them, as "from to:", empty brackets, markup left as
-  written, or the same words said twice within a few, as "you may read you may read"); no message
+  written, or the same words said twice within a few, as "you can see you can see"); no message
   of the run is in any table afterwards. A case's own must-nots count as a promise too.
 - **The judge** (`judge.ts`), on a real run only, reads each reply a model wrote and may only fail
   it, on three rules code cannot decide: advice in Ask's own voice (the strict rule: an item's own

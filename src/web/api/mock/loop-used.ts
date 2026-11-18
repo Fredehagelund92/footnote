@@ -73,7 +73,7 @@ export function usedTurn(count: number, { look = 0 } = {}): LoopTurn {
     sources: items.map((i) => i.id),
     state: stale.length ? 'stale' : 'grounded',
     footer: {
-      denominator: `${applies} of 1,209 published context items you may read apply.`,
+      denominator: `${applies} of 1,209 published context items you can see apply.`,
       notSeen: null,
       stale: stale.length ? stale.join(' ') : null,
     },

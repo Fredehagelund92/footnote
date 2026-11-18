@@ -1167,7 +1167,7 @@ export function readLines(made: readonly MadeRead[]): string[] {
         return [
           isObj(r.item)
             ? `Read “${str(r.item.title)}”.`
-            : `Read ${str(m.input.id)}: no item you may read has that id.`,
+            : `Read ${str(m.input.id)}: no item you can see has that id.`,
         ]
       case 'definitions': {
         const names = Array.isArray(m.input.names) ? (m.input.names as string[]) : []
@@ -1226,7 +1226,9 @@ export function footerOf(
         : null
   const more = ok.reduce((n, r) => n + num(r.more), 0)
   const notSeen = [
-    more ? `${counted(more, 'more item was', 'more items were')} found and not listed.` : null,
+    more
+      ? `${counted(more, 'more item matches', 'more items match')} and ${more === 1 ? 'is' : 'are'} not shown.`
+      : null,
     made.some((m) => m.tool === 'agent_questions')
       ? 'A topic agents asked about fewer times than the minimum is not listed.'
       : null,

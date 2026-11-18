@@ -175,6 +175,21 @@ describe('copy/one-word-one-thing', () => {
 
   it('reads the lower case of gap and flag, which the capital check misses', () => {
     expect(copy('one-word-one-thing', "export const a = 'flag and suggest'")).toEqual(['second'])
+    expect(copy('one-word-one-thing', "export const a = 'a gap in the record'")).toEqual(['second'])
+  })
+
+  it('reads neither a class nor read-only as a second name', () => {
+    expect(copy('one-word-one-thing', "export const a = 'flex items-center gap-1.5'")).toEqual([])
+    expect(copy('one-word-one-thing', "export const a = 'Nothing is published by a read'")).toEqual(
+      ['second'],
+    )
+    expect(
+      copy(
+        'one-word-one-thing',
+        "export const a = 'as a read-only copy'",
+        'src/web/pages/settings.tsx',
+      ),
+    ).toEqual([])
   })
 
   it('keeps engineer words to their pages', () => {

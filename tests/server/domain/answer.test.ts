@@ -72,7 +72,7 @@ describe('the steps', () => {
   it("says context item in the people's voice, with the answer line left to the screen", () => {
     const result = answer(bundleOf([orders('itm_00000001')]), ask, { today, voice: peopleVoice })
     expect(result.say).toBe(
-      '1 context item applies to Orders in Norway in August 2026 (the whole month, including the days after today). Only that was checked.',
+      '1 context item applies to Orders in Norway in August 2026 (the whole month, including the days after today). Nothing else was looked up.',
     )
   })
 

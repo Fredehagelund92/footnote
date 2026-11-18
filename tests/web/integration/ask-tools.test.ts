@@ -123,7 +123,7 @@ describe.each(persons)('as %s', (name) => {
       expect(salesDue.count).toBe(sales.filter((f) => f.status === 'Due for a check').length)
       // The denominator is the domain and status asked about, by code.
       expect(salesDue.counted).toBe(
-        `${salesDue.count} of ${salesDue.outOf.count} context ${salesDue.outOf.count === 1 ? 'item' : 'items'} due for a check in Sales you may read`,
+        `${salesDue.count} of ${salesDue.outOf.count} context ${salesDue.outOf.count === 1 ? 'item' : 'items'} due for a check in Sales you can see`,
       )
       const published = await ok(tools, 'records', {
         show: 'count',
@@ -133,7 +133,7 @@ describe.each(persons)('as %s', (name) => {
       expect(published.outOf.count).toBe(
         listed.filter((f) => f.status === 'Live' || f.status === 'Due for a check').length,
       )
-      expect(published.counted).toMatch(/ of \d+ published context items you may read$/)
+      expect(published.counted).toMatch(/ of \d+ published context items you can see$/)
     })
   })
 
@@ -461,7 +461,7 @@ describe('no dead ends (FR-719.3)', () => {
       expect(poland.nothing).toContain('"orders in Poland" read as Orders and Poland')
       expect(poland.nothing).toContain('every kind')
       expect(poland.nothing).toContain(
-        `Out of ${poland.outOf.count} published context items you may read`,
+        `Out of ${poland.outOf.count} published context items you can see`,
       )
       // Not asked to widen, it reads once.
       const once = await ok(tools, 'get_context', { about: 'orders in Poland' })
@@ -477,7 +477,7 @@ describe('no dead ends (FR-719.3)', () => {
         ['Poland', 'Polish'],
       ])
       expect(words.nothing).toMatch(
-        /^Searched "Poland" read as Poland, 23 Oct 2026, every kind: 0 found; then, wider, "Polish", .*: 0 found\. Out of \d+ published context items you may read\.$/,
+        /^Searched "Poland" read as Poland, 23 Oct 2026, every kind: 0 found; then, wider, "Polish", .*: 0 found\. Out of \d+ published context items you can see\.$/,
       )
       // A search that finds what matches every word needs no wider one.
       const norway = await ok(tools, 'find_context', {
@@ -504,7 +504,7 @@ describe('no dead ends (FR-719.3)', () => {
       expect(read).toEqual({
         found: false,
         item: null,
-        nothing: 'No context item you may read has the id itm_nosuchitem1.',
+        nothing: 'No context item you can see has the id itm_nosuchitem1.',
         names: [],
         ids: [],
       })

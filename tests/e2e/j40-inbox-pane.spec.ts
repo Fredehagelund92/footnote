@@ -59,8 +59,8 @@ test('a suggestion that clashes says what agents would hear if it went out as it
   await expect(a.getByText('If you publish as it is')).toBeVisible()
   // The after side's line; on the service the live items already disagree today too.
   await expect(a.getByText('Conflict', { exact: true }).last()).toBeVisible()
-  await expect(p.getByText('Overlaps are answered Unrelated unless you change them')).toBeVisible()
-  await p.getByRole('button', { name: 'Decide how they relate' }).click()
+  await expect(p.getByText('Unless you choose, nothing published changes')).toBeVisible()
+  await p.getByRole('button', { name: "Compare with what's published" }).click()
   await expect(page).toHaveURL(new RegExp(`/inbox/${cardIn('sug-sofia-clash')}/review`))
 })
 
@@ -184,6 +184,6 @@ test('the review quick view in the dock has the same head, answers and decision'
     dock.getByRole('heading', { level: 2, name: /Norway orders leave out store credit/ }),
   ).toBeVisible()
   await expect(dock.getByText('If you publish as it is')).toBeVisible()
-  await dock.getByRole('button', { name: 'Decide how they relate' }).click()
+  await dock.getByRole('button', { name: "Compare with what's published" }).click()
   await expect(page).toHaveURL(/\/inbox\/sug-sofia-clash\/review/)
 })

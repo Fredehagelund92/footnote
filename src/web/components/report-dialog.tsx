@@ -16,7 +16,7 @@ import { onOpen } from '@/lib/events'
 import { cn } from '@/lib/utils'
 
 /**
- * Report a problem: one box. Send opens a mail to support in the person's own mail app, or an
+ * Report a problem: one box. Its button opens a mail to support in the person's own mail app, or an
  * issue on GitHub when the install names no support address, with the page it was sent from, so
  * nothing goes through the service. The words of questions never go with it: the page's address
  * leaves out its query.
@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils'
 export function ReportDialog() {
   const [open, setOpen] = React.useState(false)
   const [text, setText] = React.useState('')
+  // It sends nothing itself: it opens the report where the person sends it.
+  const openWords = supportByMail ? 'Open in your mail app' : 'Open on GitHub'
   React.useEffect(() => onOpen('report', () => setOpen(true)), [])
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -61,10 +63,10 @@ export function ReportDialog() {
                 )
               }}
             >
-              Send
+              {openWords}
             </a>
           ) : (
-            <Button disabled>Send</Button>
+            <Button disabled>{openWords}</Button>
           )}
         </DialogFooter>
       </DialogContent>

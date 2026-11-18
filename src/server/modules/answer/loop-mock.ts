@@ -207,7 +207,7 @@ function disagreeingOf(items: readonly Obj[]): Obj[] {
 /**
  * The scripted reader (MODELS=mock): it looks the person's message up once, with get_context and
  * find_context, then writes what applies, each item's title and first sentence with its id, or
- * with nothing found, what the reads say was searched and who owns the subject. A message that
+ * with nothing found, one sentence that says so and who owns the subject. A message that
  * names nothing and points back at the chat ("and who decides?") is looked up once more with the
  * question before it. Asked what a metric is, it gives the definition, in its own words; under
  * Conflict, the two items that disagree come first. Told that its answer failed the answer check,
@@ -283,9 +283,13 @@ export function scriptedLoopModel(): ModelChoice {
         ? [`${String(o.domain)} is owned by ${list(o.owners as string[])}.`]
         : [],
     )
-    const nothing = [get.nothing, find.nothing].find((n) => typeof n === 'string')
+    // One plain sentence: the page shows what was searched, out of how many, and what is nearest.
+    const names = about.map((id) => `[@${id}]`)
     return {
-      text: [nothing ?? 'Nothing is written about this.', ...owners].join(' '),
+      text: [
+        names.length ? `Nothing written covers ${list(names)}.` : 'Nothing written covers this.',
+        ...owners,
+      ].join(' '),
     }
   })
 }

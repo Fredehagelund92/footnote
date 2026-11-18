@@ -323,7 +323,10 @@ function engineAnswerOf(
     return {
       ...base,
       text: said,
-      note: `Based on ${seen.length === 1 ? '1 context item' : `${seen.length} context items, one of them`} that may be out of date: ${reason}.`,
+      note:
+        seen.length === 1
+          ? `Based on 1 context item that may be out of date: ${reason}.`
+          : `Based on ${seen.length} context items. One of them may be out of date: ${reason}.`,
     }
   }
   // A question about why something moved is told the context does not give the cause.
