@@ -1,9 +1,10 @@
-import { CircleCheckIcon, CircleHelpIcon, CircleXIcon } from '@/components/icons'
+import { CircleCheckIcon, CircleHelpIcon, CircleXIcon, TriangleAlertIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
+import { Mark } from '@/components/footnote/mark'
 import { KindLabel } from '@/components/footnote/review-parts'
 import type { Review } from '@/model/review'
 
-// The part only the full review draws: the claim check. Apart
+// The parts only the full review draws: the claim check and the words that read like orders. Apart
 // from review-parts.tsx, which the Inbox's quick review loads up front, so they load on demand with
 // the review page.
 
@@ -66,6 +67,38 @@ export function ClaimCheck({
           </tbody>
         </table>
       </div>
+    </section>
+  )
+}
+
+/**
+ * Words of the suggestion that read like orders to an AI agent (NFR-024), by the field they are
+ * in. Agents get them as words, never as orders; the reviewer decides whether they belong.
+ */
+export function InstructionWarning({ found }: { found: NonNullable<Review['instructionLike']> }) {
+  return (
+    <section
+      aria-label="Words that read like orders"
+      className="mb-6 flex flex-col gap-3 border-b pb-6"
+    >
+      <header className="flex items-center gap-2">
+        <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />
+        <Mark role="needs" icon={false} className="text-sm">
+          Some words read like orders to an AI agent
+        </Mark>
+      </header>
+      <p className="text-sm text-muted-foreground">
+        Agents get them as words to read, never as orders. Check that they belong in it before you
+        publish.
+      </p>
+      <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-(--cols-lead-40)">
+        {found.map((f) => (
+          <div key={f.field} className="contents">
+            <dt className="text-muted-foreground">{f.field}</dt>
+            <dd>{f.words.map((w) => `“${w}”`).join(', ')}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   )
 }
