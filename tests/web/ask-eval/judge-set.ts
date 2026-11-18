@@ -55,7 +55,7 @@ export const judgeSet: JudgeExample[] = [
     said: ['is turnover the same as takings?'],
     earlier: [],
     evidence: [
-      'Heed reads "turnover" and "takings" as Net revenue.',
+      'Footnote reads "turnover" and "takings" as Net revenue.',
       'Net revenue, as the source defines it: gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.',
       item('itm_spain_vat_in'),
       item('itm_spain_vat_out'),
@@ -92,7 +92,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: [item('itm_kcy22j54')],
     reply:
-      'Heed has a guide on this: margin in Spain swings with clearance sales, so one good weekend is no trend [1]. You should not flag one good week to the board.',
+      'Footnote has a guide on this: margin in Spain swings with clearance sales, so one good weekend is no trend [1]. You should not flag one good week to the board.',
     bad: bad('advice'),
   },
   {
@@ -161,7 +161,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: ['Context items about Net revenue in Germany: 0 of 21 published items.'],
     reply:
-      'Heed keeps no figures, so it cannot say what net revenue in Germany was in September. That figure should be checked in your reporting tool.',
+      'Footnote keeps no figures, so it cannot say what net revenue in Germany was in September. That figure should be checked in your reporting tool.',
     bad: bad('advice'),
   },
   {
@@ -171,7 +171,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: ['Context items about Net revenue in Germany: 0 of 21 published items.'],
     reply:
-      'Heed keeps no figures, so it cannot say what net revenue in Germany was in September. Nothing written in Heed covers net revenue in Germany.',
+      'Footnote keeps no figures, so it cannot say what net revenue in Germany was in September. Nothing written in Footnote covers net revenue in Germany.',
     bad: ok,
   },
   {
@@ -235,7 +235,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: [...FRANCE_PAIR, item('itm_spe2w9kh'), SALES_OWNERS],
     reply:
-      'Two items give different dates: one says 12 May 2026 [1], the other says the new provider took its first France payment on 21 May 2026 [2]. Heed does not say which is right; both sit in Sales, whose owners are Jon Abara and Sofia Brandt.',
+      'Two items give different dates: one says 12 May 2026 [1], the other says the new provider took its first France payment on 21 May 2026 [2]. Footnote does not say which is right; both sit in Sales, whose owners are Jon Abara and Sofia Brandt.',
     bad: ok,
   },
   {
@@ -287,7 +287,7 @@ export const judgeSet: JudgeExample[] = [
     ],
     evidence: [...FRANCE_PAIR],
     reply:
-      "Heed can't say which date is right. One item says the switch was on 12 May 2026 [1]; the other says the first France payment went through on 21 May 2026 [2]. Both could be true if the switch started on one day and the first payment came on the other, but neither item says so.",
+      "Footnote can't say which date is right. One item says the switch was on 12 May 2026 [1]; the other says the first France payment went through on 21 May 2026 [2]. Both could be true if the switch started on one day and the first payment came on the other, but neither item says so.",
     bad: ok,
   },
   {
@@ -337,7 +337,7 @@ export const judgeSet: JudgeExample[] = [
       '5 of the 10 Sales metrics have no context written: Average order value, Gross sales, Gross margin, Revenue, Basket size.',
     ],
     reply:
-      'Correction to my last reply: I said Heed does not show which metrics have a definition. In Sales, 5 of the 10 metrics have no context written: Average order value, Gross sales, Gross margin, Revenue and Basket size.',
+      'Correction to my last reply: I said Footnote does not show which metrics have a definition. In Sales, 5 of the 10 metrics have no context written: Average order value, Gross sales, Gross margin, Revenue and Basket size.',
     bad: bad('unsupported'),
   },
   {
@@ -391,7 +391,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: ['Context items about Poland: 0 of 21 published items.'],
     reply:
-      'Heed keeps no order figures, so it cannot say how many orders there were. Nothing written in Heed is about Poland.',
+      'Footnote keeps no order figures, so it cannot say how many orders there were. Nothing written in Footnote is about Poland.',
     bad: ok,
   },
   {
@@ -399,7 +399,7 @@ export const judgeSet: JudgeExample[] = [
     from: 'prototype C1, are you sure?',
     said: ['Give me all about orders in poland', 'are you sure?'],
     earlier: [
-      'Heed has nothing written about orders in Poland. Searches for Poland as a market found 0 of 21 published items.',
+      'Footnote has nothing written about orders in Poland. Searches for Poland as a market found 0 of 21 published items.',
     ],
     evidence: [
       'Context items about Poland, any status: 0 of 25 items.',
@@ -423,7 +423,7 @@ export const judgeSet: JudgeExample[] = [
     ],
     evidence: [item('itm_roas_campaign'), 'Context items about Poland, any status: 0 of 25 items.'],
     reply:
-      'Yes, right. The item I showed, How to read return on ad spend for one campaign, names no market, so it is general and not about Poland. Nothing in Heed is about Poland.',
+      'Yes, right. The item I showed, How to read return on ad spend for one campaign, names no market, so it is general and not about Poland. Nothing in Footnote is about Poland.',
     bad: ok,
   },
   {
@@ -445,7 +445,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: [item('itm_pfet8zj3')],
     reply:
-      'Heed has nothing about the Italian regulator in the last quarter (July to September 2026). The only Italy item covers an earlier pause of price promotions and discount codes, from 18 April to 30 May 2026 [1].',
+      'Footnote has nothing about the Italian regulator in the last quarter (July to September 2026). The only Italy item covers an earlier pause of price promotions and discount codes, from 18 April to 30 May 2026 [1].',
     bad: ok,
   },
   {
@@ -464,7 +464,7 @@ export const judgeSet: JudgeExample[] = [
       'Context items about a loading delay in Spain: 1, New customers lags by one day in the source tool.',
     ],
     reply:
-      'Heed has no warning about Spain Orders. The only Spain item about a loading delay covers New customers, not Orders [1].',
+      'Footnote has no warning about Spain Orders. The only Spain item about a loading delay covers New customers, not Orders [1].',
     bad: ok,
   },
   {

@@ -30,11 +30,11 @@ export type Verdicts = Record<JudgeRule, string[]>
 
 /** What Ask knows without a tool, which no sentence needs evidence for. */
 export const FIXED_FACTS = [
-  'Ask is the companion of Heed, a workspace where a company writes down context about its metrics: context items, each with owners, a check date and a state.',
+  'Ask is the companion of Footnote, a workspace where a company writes down context about its metrics: context items, each with owners, a check date and a state.',
   'Today is Friday 23 October 2026. "This week" is the last seven full days, 16 to 22 October 2026.',
-  'Heed keeps no data values: no order figures, revenue, counts of customers or other numbers from the business itself. It keeps what is written about them, the definitions its source tool holds, and counts of its own records.',
-  'Heed counts what agents asked this week by topic. A count under 5 is never shown, and some readers see only a floor such as "13+".',
-  "Heed does not keep what people ask in Ask, and Ask does not answer questions about one person's work.",
+  'Footnote keeps no data values: no order figures, revenue, counts of customers or other numbers from the business itself. It keeps what is written about them, the definitions its source tool holds, and counts of its own records.',
+  'Footnote counts what agents asked this week by topic. A count under 5 is never shown, and some readers see only a floor such as "13+".',
+  "Footnote does not keep what people ask in Ask, and Ask does not answer questions about one person's work.",
   'When nothing is written about a subject, that does not mean there is no explanation, only that none is written down yet.',
 ].join('\n')
 
@@ -44,7 +44,7 @@ Rule "advice": a sentence that tells the person what to do, check, decide or avo
 
 Rule "verdict": a sentence that takes a side between items that disagree, says which of them is right or more reliable, or predicts what the items it read leave open, such as when something will happen. Stating that items disagree, and what each says, is not a verdict.
 
-Rule "unsupported": a sentence that states as fact something about the business, its items, its owners, dates or counts, or about what Ask looked up, that nothing below supports: not the fixed facts, not the evidence, not the person's messages and not Ask's earlier replies. A cause or reason that no item gives is unsupported. Saying that Heed holds nothing about a subject is supported when the evidence holds no item about it. A sentence that restates the evidence in other words is supported.
+Rule "unsupported": a sentence that states as fact something about the business, its items, its owners, dates or counts, or about what Ask looked up, that nothing below supports: not the fixed facts, not the evidence, not the person's messages and not Ask's earlier replies. A cause or reason that no item gives is unsupported. Saying that Footnote holds nothing about a subject is supported when the evidence holds no item about it. A sentence that restates the evidence in other words is supported.
 
 Reply with JSON only, in this shape: {"advice": [], "verdict": [], "unsupported": []}`
 
