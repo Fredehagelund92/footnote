@@ -6,13 +6,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { docFiles, helpDocs, loadDocs } from './scripts/docs-plugin.ts'
 import { llmsFullTxt, llmsTxt } from './src/domain/docs.ts'
-import { storageKey } from './src/web/lib/brand.ts'
 import { productNameFrom } from './src/domain/brand.ts'
-import {
-  renamedSettings,
-  renamedSettingsWarning,
-  withRenamedSettings,
-} from './src/domain/renamed-settings.ts'
+import { renamedSettingsWarning, withRenamedSettings } from './src/domain/renamed-settings.ts'
 
 /*
   The web app in src/web, on the repository's router, icon module and class merge.
@@ -47,9 +42,9 @@ export function renamedWebSettings(): Plugin {
     name: 'footnote-web:renamed-settings',
     config(_, { mode }) {
       const { environment, oldNames } = withRenamedSettings(loadEnv(mode, root, ''))
-      const used = oldNames.filter((name) => webSettings.includes(renamedSettings[name]))
-      for (const name of used)
-        process.env[renamedSettings[name]] = environment[renamedSettings[name]]
+      const newName = (name: string) => name.replace(/^HEED_(DEFAULT_)?/, 'FOOTNOTE_')
+      const used = oldNames.filter((name) => webSettings.includes(newName(name)))
+      for (const name of used) process.env[newName(name)] = environment[newName(name)]
       if (used.length && !warnedOfOldNames) {
         warnedOfOldNames = true
         console.warn(renamedSettingsWarning(used))
@@ -87,8 +82,12 @@ const bootstrapPath = fileURLToPath(new URL('./src/web/theme-bootstrap.js', impo
  * applied before first paint. tests/web/theme-bootstrap.test.ts runs the same file.
  */
 export function themeBootstrap(): Plugin {
+  let prefix = `${productNameFrom(undefined).toLowerCase()}-`
   return {
     name: 'footnote-web:theme-bootstrap',
+    configResolved(config) {
+      prefix = `${productNameFrom((config.env as Record<string, string | undefined>).FOOTNOTE_PRODUCT_NAME).toLowerCase()}-`
+    },
     transformIndexHtml: {
       order: 'pre',
       handler: () => [
@@ -97,8 +96,8 @@ export function themeBootstrap(): Plugin {
           // Drop full-line comments: the file is documented for people, not for the wire.
           children: readFileSync(bootstrapPath, 'utf8')
             .replace(/^\s*\/\/.*\n/gm, '')
-            .replaceAll('THEME_KEY', JSON.stringify(storageKey('theme')))
-            .replaceAll('STORAGE_PREFIX', JSON.stringify(storageKey(''))),
+            .replaceAll('THEME_KEY', JSON.stringify(`${prefix}theme`))
+            .replaceAll('STORAGE_PREFIX', JSON.stringify(prefix)),
           injectTo: 'head-prepend',
         },
       ],

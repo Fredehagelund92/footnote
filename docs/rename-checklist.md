@@ -32,6 +32,11 @@ repository forward nowhere, and `compose.images.yaml` finds no image. The docs s
 repository to `fredehagelund92.github.io/footnote`. GitHub's social preview and the owner's avatar
 change when a maintainer uploads them.
 
+Two names wait for the repository rename, since they only exist after it: the clone address in
+`tests/image/git-markdown.sh` and `DOCS_ROOT` in `.github/workflows/docs-site.yml` (`/heed`, where
+GitHub Pages serves the site) move to `footnote` with it. After the rename, rebuild the already
+published `/v0.1/` folder, which was built under `/heed/v0.1`.
+
 ## The setting
 
 One setting holds the name people and agents read: `FOOTNOTE_PRODUCT_NAME`, default `Footnote`

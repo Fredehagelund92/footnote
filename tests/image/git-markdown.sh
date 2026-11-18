@@ -9,7 +9,8 @@ port=${FOOTNOTE_WEB_PORT:-8080}
 web=http://127.0.0.1:$port
 # The address compose.yaml lets a browser write from.
 origin=http://localhost:$port
-repository=https://github.com/Fredehagelund92/footnote.git
+# Moves with the GitHub repository rename (docs/rename-checklist.md).
+repository=https://github.com/Fredehagelund92/heed.git
 # A commit of main, so what is read never changes.
 commit=4dde3939639966419666398d40c59fae66e38dbb
 folder=tests/fixtures/dbt-metricflow/project/models/marts
