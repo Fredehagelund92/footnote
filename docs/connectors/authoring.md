@@ -106,10 +106,9 @@ A code is one of [the service's own](../../src/contract/operations.ts), or yours
 
 Nothing else in the app changes: the Integrations cell, the connect form and every word on screen come from the manifest.
 
-Three small things are optional:
+Two small things are optional:
 
 - A logo: add the tool's to `logos` in [the integrations model](../../src/web/model/integrations.ts), keyed by your id. Without one, the cell shows the manifest's `icon`.
-- A Soon cell: if [the catalogue](../../src/web/model/catalogue.ts) shows your tool as Soon, remove it, as the manifest replaces it.
 - Words: the lead of its page and the name of its domain setting go in `words`, in the same file.
 
 ## Mapping rules
