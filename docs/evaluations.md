@@ -211,7 +211,7 @@ replay. The cases that still fail are listed in the test, so the list only shrin
 also prints every dropped sentence (`dropped`), which only a run may do: the service logs why a
 sentence was left out, never the sentence.
 
-Forty development cases are held back (`held-back.ts`): a fixed hash of their ids chose them, they
+Some development cases are held back (`held-back.ts`; the count is under "Held back" below): a fixed hash of their ids chose them, they
 run with the others, and every report gives them as a count. Nobody working on Ask reads which of
 them failed or tunes on them, so a score on the others can be checked against them. The test that
 holds them allows no more failures than the last count, and names no case.
