@@ -540,7 +540,7 @@ export function createInboxFeedService(
         ref: row.ref,
         title: row.ref,
         scope: { metrics: [], values: [], dimensions: [], month: null },
-        times: null,
+        times: 0,
         told: 0,
         draft: null,
       })

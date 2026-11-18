@@ -239,6 +239,8 @@ describe('the Inbox', () => {
     )
     const [hidden] = inboxOf(feed([{ ...gap, times: null }]), 'Jon Abara', domains, now).cards
     expect(hidden!.gap).toMatchObject({ times: null })
+    // A resolved card carries no count: it never says fewer than 5.
+    expect(line(0, 0)).not.toMatch(/fewer than 5/)
     expect(line(9, 1)).toBe(
       'Agents found nothing written down for this, 9 times this week. Someone asked Ask about this, found nothing written down and told you.',
     )
