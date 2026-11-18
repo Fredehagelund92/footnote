@@ -55,6 +55,24 @@ describe('the renamed settings', () => {
     })
   })
 
+  it('reads the HEED_DEFAULT_ defaults of the 0.1.0 compose.yaml, as old names, below every other source', () => {
+    const former = { HEED_DEFAULT_WEB_ORIGINS: 'http://localhost:8080' }
+    expect(withRenamedSettings(former)).toMatchObject({
+      environment: { FOOTNOTE_WEB_ORIGINS: 'http://localhost:8080' },
+      oldNames: ['HEED_DEFAULT_WEB_ORIGINS'],
+    })
+    expect(
+      withRenamedSettings({ ...former, FOOTNOTE_DEFAULT_WEB_ORIGINS: 'http://a' }),
+    ).toMatchObject({ environment: { FOOTNOTE_WEB_ORIGINS: 'http://a' }, oldNames: [] })
+    expect(withRenamedSettings({ ...former, HEED_WEB_ORIGINS: 'http://b' })).toMatchObject({
+      environment: { FOOTNOTE_WEB_ORIGINS: 'http://b' },
+      oldNames: ['HEED_WEB_ORIGINS'],
+    })
+    expect(renamedSettingsWarning(['HEED_DEFAULT_WEB_ORIGINS'])).toContain(
+      'HEED_DEFAULT_WEB_ORIGINS is now FOOTNOTE_DEFAULT_WEB_ORIGINS',
+    )
+  })
+
   it('no longer reads the CL_ names of before 0.1.0', () => {
     expect(withRenamedSettings({ CL_AUTH: 'demo' })).toEqual({
       environment: { CL_AUTH: 'demo' },

@@ -1,5 +1,7 @@
 import { stat } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 import { withNewSettingNames } from './config/env.ts'
+import { formerKeyFiles } from './config/former-key-files.ts'
 import { loadStateKey } from './mcp/state-key.ts'
 import { loadKeyRing } from './modules/oauth/index.ts'
 
@@ -25,7 +27,9 @@ const exists = (file: string) =>
 
 try {
   for (const [name, file] of Object.entries(files)) {
-    const had = await exists(file)
+    const former = formerKeyFiles.get(basename(file))
+    const had =
+      (await exists(file)) || (former !== undefined && (await exists(join(dirname(file), former))))
     // Outside production both loaders create a missing key, owner-only, and check one that exists.
     if (name === 'FOOTNOTE_OAUTH_SIGNING_KEY_FILE')
       await loadKeyRing({ file, previousFiles: [], nodeEnv: 'development' })

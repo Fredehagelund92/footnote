@@ -14,10 +14,10 @@
       var keys = []
       for (var i = 0; i < store.length; i++) keys.push(store.key(i))
       keys.forEach(function (key) {
+        if (!key || key.indexOf(STORAGE_PREFIX) === 0 || key.indexOf('footnote.') === 0) return
         var former = /^heed([-.])([\s\S]*)$/.exec(key || '')
         if (!former) return
         var renamed = former[1] === '-' ? STORAGE_PREFIX + former[2] : 'footnote.' + former[2]
-        if (renamed === key) return
         if (store.getItem(renamed) === null) store.setItem(renamed, store.getItem(key))
         store.removeItem(key)
       })

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { chmod, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { chmod, mkdtemp, writeFile, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -51,6 +51,29 @@ describe('creating the keys production needs', { timeout: 30_000 }, () => {
     expect(await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')).toBe(signingKey)
     expect(await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')).toBe(stateKey)
     expect(second.stdout + second.stderr).not.toContain('PRIVATE KEY')
+  })
+
+  it('reports a key moved from its former default name as kept, never created', async () => {
+    folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
+    const env = {
+      FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, '.footnote-oauth-key.pem'),
+      FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, '.footnote-mcp-state.key'),
+    }
+    expect(run(env).status).toBe(0)
+    const signingKey = await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')
+    const stateKey = await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')
+    await rm(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE)
+    await rm(env.FOOTNOTE_MCP_STATE_KEY_FILE)
+    const formerSigning = join(folder, '.heed-oauth-key.pem')
+    const formerState = join(folder, '.heed-mcp-state.key')
+    await writeFile(formerSigning, signingKey, { mode: 0o600 })
+    await writeFile(formerState, stateKey, { mode: 0o600 })
+    const moved = run(env)
+    expect(moved.status).toBe(0)
+    expect(moved.stdout).toContain('FOOTNOTE_OAUTH_SIGNING_KEY_FILE: kept')
+    expect(moved.stdout).toContain('FOOTNOTE_MCP_STATE_KEY_FILE: kept')
+    expect(moved.stdout).not.toContain('created')
+    expect(await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')).toBe(signingKey)
   })
 
   it('refuses a key others can read, and says which file', async () => {

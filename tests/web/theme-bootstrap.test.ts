@@ -7,11 +7,13 @@ import { storageKey } from '@/lib/brand'
 // THEME_KEY is that key as a global.
 
 async function run({
+  prefix = storageKey(''),
   saved,
   search = '',
   systemDark = false,
   before = () => {},
 }: {
+  prefix?: string
   saved?: string
   search?: string
   systemDark?: boolean
@@ -28,8 +30,8 @@ async function run({
     matches: query.includes('dark') && systemDark,
     media: query,
   })) as unknown as typeof window.matchMedia
-  vi.stubGlobal('THEME_KEY', storageKey('theme'))
-  vi.stubGlobal('STORAGE_PREFIX', storageKey(''))
+  vi.stubGlobal('THEME_KEY', `${prefix}theme`)
+  vi.stubGlobal('STORAGE_PREFIX', prefix)
   // The bootstrap is an inline <head> script with side effects, so import a fresh copy each time.
   vi.resetModules()
   await import('@/theme-bootstrap.js')
@@ -77,6 +79,22 @@ describe('the theme bootstrap', () => {
       Array.from({ length: store.length }, (_, i) => store.key(i)),
     )
     expect(left.filter((key) => key?.startsWith('heed'))).toEqual([])
+  })
+
+  it('leaves its own keys alone when the product slug itself starts with heed', async () => {
+    const dark = await run({
+      prefix: 'heed-ai-',
+      before: () => {
+        window.localStorage.setItem('heed-ai-theme', 'dark')
+        window.localStorage.setItem('heed-ai-pane:inbox', '420')
+        window.localStorage.setItem('footnote.ask.chats.per_jon', '[]')
+      },
+    })
+    expect(dark).toBe(true)
+    expect(window.localStorage.getItem('heed-ai-theme')).toBe('dark')
+    expect(window.localStorage.getItem('heed-ai-pane:inbox')).toBe('420')
+    expect(window.localStorage.getItem('footnote.ask.chats.per_jon')).toBe('[]')
+    expect(window.localStorage.length).toBe(3)
   })
 
   it("keeps the key in the product's name, as every key the app stores", () => {

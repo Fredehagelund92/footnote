@@ -61,14 +61,15 @@ const isSet = (value: string | undefined) => value !== undefined && value !== ''
  * empty value counts as unset, as `.env` files write them), and the old names it took. A new name
  * that is set always wins. When neither name is set, `FOOTNOTE_DEFAULT_` plus the rest of the name
  * supplies the value, so the image and compose.yaml can ship a default that an operator's old name
- * still overrides, with its warning.
+ * still overrides, with its warning. The 0.1.0 compose.yaml shipped those as `HEED_DEFAULT_`, which
+ * still count for this release, as old names.
  */
 export function withRenamedSettings(environment: Environment): {
   environment: Environment
-  oldNames: OldSettingName[]
+  oldNames: string[]
 } {
   const renamed = { ...environment }
-  const oldNames: OldSettingName[] = []
+  const oldNames: string[] = []
   for (const [oldName, newName] of Object.entries(renamedSettings) as [OldSettingName, string][]) {
     if (isSet(environment[newName])) continue
     if (isSet(environment[oldName])) {
@@ -76,14 +77,24 @@ export function withRenamedSettings(environment: Environment): {
       oldNames.push(oldName)
       continue
     }
-    const shipped = environment[newName.replace(/^FOOTNOTE_/, 'FOOTNOTE_DEFAULT_')]
-    if (isSet(shipped)) renamed[newName] = shipped
+    const shippedName = newName.replace(/^FOOTNOTE_/, 'FOOTNOTE_DEFAULT_')
+    if (isSet(environment[shippedName])) {
+      renamed[newName] = environment[shippedName]
+      continue
+    }
+    const formerShippedName = oldName.replace(/^HEED_/, 'HEED_DEFAULT_')
+    if (isSet(environment[formerShippedName])) {
+      renamed[newName] = environment[formerShippedName]
+      oldNames.push(formerShippedName)
+    }
   }
   return { environment: renamed, oldNames }
 }
 
 /** The one warning line about old names in use: each with its new name, never a value. */
-export function renamedSettingsWarning(oldNames: readonly OldSettingName[]): string {
-  const names = oldNames.map((name) => `${name} is now ${renamedSettings[name]}`).join(', ')
+export function renamedSettingsWarning(oldNames: readonly string[]): string {
+  const names = oldNames
+    .map((name) => `${name} is now ${name.replace(/^HEED_/, 'FOOTNOTE_')}`)
+    .join(', ')
   return `Renamed settings: ${names}. The old names work in this release only (docs/operations.md, "Settings that started with HEED_").`
 }
