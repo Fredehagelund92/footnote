@@ -484,6 +484,29 @@ export async function askedThisWeek(
   return (await askedFor(tx, clock, cache)).asked
 }
 
+/**
+ * What agents asked this week as the reader may have it: the topics listed and not, and the total
+ * beside them. Asked this week and the Inbox's week line both count from here, so the two agree.
+ */
+export async function askedCounts(tx: Queryable, clock: Clock) {
+  const { subjects, domains, minimum, start } = await createObservabilityService(tx, clock).asked()
+  const size = (s: (typeof subjects)[number]) => s.count ?? s.atLeast
+  const listed = subjects
+    .filter((s) => size(s) >= minimum)
+    .sort((a, b) => size(b) - size(a) || compareIds(a.key, b.key))
+  const askedAtLeast = listed.reduce((sum, s) => sum + size(s), 0)
+  const calls = (rows: typeof subjects) => rows.reduce((sum, s) => sum + s.calls, 0)
+  const unshown = subjects.filter((s) => !listed.includes(s))
+  const { asked, hidden } = askedTotals(
+    listed.map((s) => ({ domain: s.domain, size: size(s) })),
+    calls(unshown),
+    calls(subjects),
+    domains,
+    minimum,
+  )
+  return { subjects, listed, unshown, domains, minimum, start, asked, askedAtLeast, hidden }
+}
+
 /** Asked this week, with the topics that show too little to be listed and the minimum. */
 export async function askedFor(
   tx: Queryable,
@@ -497,21 +520,16 @@ export async function askedFor(
 }> {
   const bundle = await liveBundle(tx, cache)
   const today = clock.today()
-  const { subjects, domains, minimum, start } = await createObservabilityService(tx, clock).asked()
-  const size = (s: (typeof subjects)[number]) => s.count ?? s.atLeast
-  const listed = subjects
-    .filter((s) => size(s) >= minimum)
-    .sort((a, b) => size(b) - size(a) || compareIds(a.key, b.key))
-  const shown = listed.reduce((sum, s) => sum + size(s), 0)
-  const calls = (rows: typeof subjects) => rows.reduce((sum, s) => sum + s.calls, 0)
-  const unshown = subjects.filter((s) => !listed.includes(s))
-  const { asked: askedTotal, hidden } = askedTotals(
-    listed.map((s) => ({ domain: s.domain, size: size(s) })),
-    calls(unshown),
-    calls(subjects),
+  const {
+    listed,
+    unshown,
     domains,
     minimum,
-  )
+    start,
+    asked: askedTotal,
+    askedAtLeast,
+    hidden,
+  } = await askedCounts(tx, clock)
   const gaps = await openGaps(tx)
   const asked: Asked = {
     week: start,
@@ -534,7 +552,7 @@ export async function askedFor(
         scope,
         months: subject.months.map((m) => `${m}-01`),
         count: subject.count,
-        atLeast: size(subject),
+        atLeast: subject.count ?? subject.atLeast,
         state: now.state,
         items: now.items.length,
         nothing: subject.nothing,
@@ -545,7 +563,7 @@ export async function askedFor(
     // The total beside the rows: shown only when what it adds over the counts the rows show is
     // zero or at least the minimum, so it never gives a small count away by subtraction.
     asked: askedTotal,
-    askedAtLeast: shown,
+    askedAtLeast,
     starters: startersOf(bundle, today).map((scope) => ({
       title: topicWords(bundle, scope),
       scope,

@@ -92,6 +92,7 @@ import type { Outcome } from '@/model/inbox'
 import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments'
 import {
   groupOf,
+  dueScope,
   INBOX_GROUPS,
   startsFolded,
   type InboxGroup,
@@ -270,6 +271,7 @@ function InboxList({
   list: React.RefObject<HTMLUListElement | null>
 }) {
   const { opened } = useInbox()
+  const me = useMe()
   const reviews = useReviews()
   const leaving = useLeavingRows()
   // Rows added after the list first shows open in; the first ones are simply there.
@@ -332,7 +334,10 @@ function InboxList({
                   className="flex h-8 w-full items-end gap-1.5 px-4 pb-1.5 text-left text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
                 >
                   {INBOX_GROUPS.find((g) => g.id === group)!.label}
-                  <span className="font-normal tabular-nums">{inGroup}</span>
+                  <span className="font-normal tabular-nums">
+                    {inGroup}
+                    {group === 'check' && ` ${dueScope(me)}`}
+                  </span>
                   <ChevronDownIcon
                     aria-hidden
                     className={cn('size-3.5', folded.has(group) && '-rotate-90')}
@@ -742,7 +747,7 @@ function CardDetail({
                   <p>
                     {card.gap.times === 0
                       ? `Agents asked about ${card.gap.scope.join(', ')} before this week, not since.`
-                      : `Agents asked about ${card.gap.scope.join(', ')}, ${card.gap.times} times this week.`}
+                      : `Agents asked about ${card.gap.scope.join(', ')}, ${card.gap.times ?? 'fewer than 5'} times this week.`}
                   </p>
                   <p>
                     <span className="font-medium">Where the fix probably belongs:</span>{' '}
@@ -1183,7 +1188,13 @@ function Setup() {
 function WeekLine() {
   const { week } = useInbox()
   if (week.asked === 0) return <>Agents asked nothing this week.</>
-  if (week.asked === null) return <>This week agents asked fewer than 5 times.</>
+  // As Ask's Asked this week says it: a floor when the total would give a small count away.
+  if (week.asked === null)
+    return week.askedAtLeast >= 5 ? (
+      <>This week agents asked {week.askedAtLeast}+ times.</>
+    ) : (
+      <>This week agents asked fewer than 5 times.</>
+    )
   if (week.found === null || week.nothing === null)
     return <>This week agents asked {week.asked} times.</>
   const most = week.mostAbout ? `, most about ${week.mostAbout}` : ''

@@ -10,7 +10,13 @@ import { alertCardWords } from '@domain/alerts'
  * This week's questions from agents, as counts: what is kept about them (no question text, no
  * names). The Inbox says it in one quiet sentence, including when nothing needs you.
  */
-export const week = { asked: 142, found: 117, nothing: 25, mostAbout: 'Orders in Spain' }
+export const week = {
+  asked: 142,
+  askedAtLeast: 142,
+  found: 117,
+  nothing: 25,
+  mostAbout: 'Orders in Spain',
+}
 
 const unitsSold = factById('itm_s90n5xps')!
 const campaign = factById('itm_eprlkrz2')!

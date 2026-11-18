@@ -51,7 +51,7 @@ async function signIn(name: string) {
   return { cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '), origin }
 }
 
-/** One topic with `calls` agent calls this hour, none delivering an item, and a reported gap. */
+/** One topic with `calls` agent calls yesterday at noon UTC (the last full day), none delivering an item, and a reported gap. */
 async function asked(metric: string, calls: number, edition: string) {
   const { rows } = await client.query<{ id: string }>(
     `insert into topics (key,area_id,metric_keys,value_keys,month)
@@ -61,8 +61,8 @@ async function asked(metric: string, calls: number, edition: string) {
   const topic = rows[0]!.id
   for (let i = 0; i < calls; i++)
     await client.query(
-      `insert into deliveries (delivered_hour,client_label,caller,edition_seq,overlay_seq,tool_schema_digest,topic_id,scope,status,delivered)
-       values (date_trunc('hour', now(), 'UTC'),'claude-code','agent',$1,0,'digest',$2,'{}','no_match','[]')`,
+      `insert into deliveries (delivered_hour,client_label,caller,edition_seq,overlay_seq,tool_schema_digest,topic_id,scope,status,answer_state,delivered)
+       values (date_trunc('day', now(), 'UTC') - interval '12 hours','claude-code','agent',$1,0,'digest',$2,'{}','no_match','missing','[]')`,
       [edition, topic],
     )
   const gap = await client.query<{ id: string }>(
@@ -89,6 +89,8 @@ beforeAll(async () => {
     )
     const { edition } = await servingEdition(client)
     const hidden = await asked(rare, 4, edition)
+    // A second small topic: one alone would be the difference of the shown ones, so no count could show.
+    await asked(`${rare}_other`, 4, edition)
     const shown = await asked(common, 5, edition)
     ids.rareGap = hidden.gap
     ids.commonGap = shown.gap

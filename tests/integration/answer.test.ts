@@ -3,6 +3,7 @@ import type { MockLanguageModelV4 } from 'ai/test'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { seedPersonId } from '../../db/seed/bulk.ts'
 import type { AnswerResult, Asked, LookupEvent, Replay } from '../../src/contract/answer.ts'
+import type { Feed } from '../../src/contract/inbox.ts'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
 import type { ReviewSheet } from '../../src/contract/review-path.ts'
 import { stateOfStatus } from '../../src/domain/answer-state.ts'
@@ -903,6 +904,32 @@ describe('Asked this week', () => {
       asked: 31,
       askedAtLeast: 21,
     })
+  })
+
+  it('is the count the Inbox says, over the same 7 days, for everyone', async () => {
+    // Calls on Thursday 1 October: in the last 7 full days, and before this week's Monday.
+    const { rows } = await client.query<{ id: string }>(
+      `select id::text from topics where metric_keys = '{metric:orders}' and value_keys = '{val:market/spain}'`,
+    )
+    const thursday = '2026-10-01T10:00:00Z'
+    await client.query(
+      `insert into deliveries (delivered_hour, client_label, caller, edition_seq, overlay_seq,
+                               tool_schema_digest, topic_id, scope, status, answer_state, app_family)
+       select $1, 'claude-code', 'agent', (select seq from live_edition), 0, 'digest', $2, '{}',
+              'matched', 'grounded', 'claude_code'
+         from generate_series(1, 6)`,
+      [thursday, rows[0]!.id],
+    )
+    try {
+      expect(await ok<Asked>('GET', '/ask/asked', 'kofi')).toMatchObject({ asked: 37 })
+      for (const who of ['maria', 'jon', 'ravi', 'tomas', 'kofi'] as const) {
+        const asked = await ok<Asked>('GET', '/ask/asked', who)
+        const { week } = await ok<Feed>('GET', '/inbox/feed', who)
+        expect([week.asked, week.askedAtLeast], who).toEqual([asked.asked, asked.askedAtLeast])
+      }
+    } finally {
+      await client.query('delete from deliveries where delivered_hour = $1', [thursday])
+    }
   })
 
   it('offers first questions made from what the workspace has written', async () => {
