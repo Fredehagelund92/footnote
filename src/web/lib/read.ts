@@ -1,7 +1,10 @@
+import { onlineManager } from '@tanstack/react-query'
+
 // Where a read stands, worked out once for the screen that shows it (#198): still loading, failed
 // with a way to read again, missing (it answered, and there is nothing there), or ready with its
 // data. A refresh that fails keeps what was read, so it is still ready; a failed read being tried
-// again is loading.
+// again is loading. A first read waiting offline is failed, as it is never sent until the
+// connection is back (LoadError says so).
 
 export type Read<T> =
   | { state: 'loading' }
@@ -14,6 +17,7 @@ export type ReadQuery<T> = {
   data: T | undefined
   isError: boolean
   isFetching: boolean
+  isPaused: boolean
   refetch: () => unknown
 }
 
@@ -29,6 +33,7 @@ export function readOf<T>(
     if (q.data === null || isMissing(q.data)) return { state: 'missing' }
     return { state: 'ready', data: q.data }
   }
-  if (q.isError && !q.isFetching) return { state: 'failed', retry: () => void q.refetch() }
+  if ((q.isError && !q.isFetching) || (q.isPaused && !onlineManager.isOnline()))
+    return { state: 'failed', retry: () => void q.refetch() }
   return { state: 'loading' }
 }
