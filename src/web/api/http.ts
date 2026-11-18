@@ -468,7 +468,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   /** The person another tab signed in as, until the app has moved to them. */
   let movingTo: string | undefined
   /** Who the sign-in offers, by name, so a name signs in as that person's address. */
-  let offered: { name: string; email: string }[] = []
+  let offered: { name: string; email: string; roles: string[] }[] = []
   /** What a review's decisions need, by the card it is reviewed from. */
   const refs = new Map<string, SheetRef>()
   /** The retry key of each change still waiting for an answer. */
@@ -1304,7 +1304,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     },
     listSignInPeople: async () => {
       offered = await read(() => client.auth.people())
-      return offered.map((p) => p.name)
+      return offered.map((p) => ({
+        name: p.name,
+        admin: p.roles.includes('administrator'),
+        sample: p.email.endsWith('.test'),
+      }))
     },
     // The local sign-in carries its own fixed header instead of a session's token, which it does
     // not have yet; the answer is the new session and its token.
