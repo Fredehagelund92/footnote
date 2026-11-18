@@ -79,7 +79,7 @@ export function rejectMentions(text: string) {
 }
 
 /**
- * What is wrong with the current version, as a change to an item stores it (heed-ux B5): trimmed,
+ * What is wrong with the current version, as a change to an item stores it (UX review B5): trimmed,
  * null when empty, plain text without mentions or sensitive text. A new item has no current version.
  */
 export function changeReason(text: string | null | undefined, action: ProposalRecord['action']) {

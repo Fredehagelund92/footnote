@@ -4,7 +4,6 @@ import { mkdtemp, realpath, rm, stat } from 'node:fs/promises'
 import { BlockList, isIP } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
-import { withRenamedSettings } from '../../../domain/renamed-settings.ts'
 
 /**
  * Reads one commit of a Git repository into a folder of its own, for a connector to read and
@@ -112,7 +111,7 @@ export const reachesLocal = () => process.env.NODE_ENV !== 'production'
  */
 export const egressPrivateHosts = (): ReadonlySet<string> =>
   new Set(
-    (withRenamedSettings(process.env).environment.FOOTNOTE_EGRESS_PRIVATE_HOSTS ?? '')
+    (process.env.FOOTNOTE_EGRESS_PRIVATE_HOSTS ?? '')
       .split(',')
       .map((host) => host.trim().toLowerCase())
       .filter(Boolean),

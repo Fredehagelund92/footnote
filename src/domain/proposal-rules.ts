@@ -22,7 +22,7 @@ export const limits = {
   claimAuthority: 200,
   claimQuote: 500,
   mentions: 50,
-  /** What is wrong with the current version, on a change to an item (heed-ux B5); UTF-16 units. */
+  /** What is wrong with the current version, on a change to an item (UX review B5); UTF-16 units. */
   changeReason: 500,
 } as const
 

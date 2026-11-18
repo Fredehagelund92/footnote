@@ -13,7 +13,7 @@ import {
   heldOutProblems,
   HeldOutError,
   identityFrom,
-  everyKeyVariable,
+  keyVariables,
   noSealedCases,
   parseHeldOut,
   readHeldOutKey,
@@ -132,7 +132,7 @@ export async function editSealed(options: {
     for (;;) {
       // The editor and whatever it starts never get the key.
       const env = { ...process.env }
-      for (const name of everyKeyVariable) delete env[name]
+      for (const name of keyVariables) delete env[name]
       const opened = spawnSync(`${options.editor} "${buffer}"`, {
         shell: true,
         stdio: 'inherit',
@@ -195,7 +195,7 @@ const usd = (micros: number) => `$${(micros / 1_000_000).toFixed(2)}`
  */
 function evalEnvironment(real: boolean): Record<string, string | undefined> {
   const local = existsSync('.env.local') ? parseEnv(readFileSync('.env.local', 'utf8')) : {}
-  for (const name of everyKeyVariable) Reflect.deleteProperty(local, name)
+  for (const name of keyVariables) Reflect.deleteProperty(local, name)
   return { ...local, ...process.env, MODELS: real ? 'live' : 'mock' }
 }
 

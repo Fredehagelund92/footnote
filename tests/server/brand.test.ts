@@ -8,7 +8,7 @@ import {
 import { ConfigError, loadConfig } from '../../src/server/config/env.ts'
 
 /*
-  The product's name setting (docs/rename-checklist.md): one setting, FOOTNOTE_PRODUCT_NAME, read once
+  The product's name setting (docs/product-name.md): one setting, FOOTNOTE_PRODUCT_NAME, read once
   at start by the service and the web build. A value that cannot be a name stops the start; a
   help page's token becomes the name.
 */

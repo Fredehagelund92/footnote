@@ -3,7 +3,7 @@ import { API_PREFIX } from '../../contract/index.ts'
 import {
   clearBrowserCookie,
   cookieAge,
-  sessionCookies,
+  sessionCookie,
   type OidcSignIn,
 } from '../modules/auth/index.ts'
 
@@ -55,12 +55,7 @@ export function registerOidcRoutes(
       requestId: request.id,
     })
     const cookies = [clearBrowserCookie(signIn)]
-    if (result.ok)
-      cookies.push(
-        ...[
-          sessionCookies(request.headers.cookie, result.token, secure, cookieAge(signIn.lifetime)),
-        ].flat(),
-      )
+    if (result.ok) cookies.push(sessionCookie(result.token, secure, cookieAge(signIn.lifetime)))
     return reply
       .header('set-cookie', cookies)
       .redirect(result.ok ? `${webOrigin}${result.returnTo}` : signInScreen(result.refusal), 302)

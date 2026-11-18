@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run from the repository, with `docker compose up` already running the demo: the service image has
-# git, and Markdown in Git against a public repository (Heed's own, at a commit of main) passes Test
+# git, and Markdown in Git against a public repository (this one, at a commit of main) passes Test
 # connection, and its first read makes one suggestion. The folder holds one Markdown file, about
 # Gross margin, a metric of the demo.
 set -euo pipefail
@@ -9,8 +9,8 @@ port=${FOOTNOTE_WEB_PORT:-8080}
 web=http://127.0.0.1:$port
 # The address compose.yaml lets a browser write from.
 origin=http://localhost:$port
-# Moves with the GitHub repository rename (docs/rename-checklist.md).
-repository=https://github.com/Fredehagelund92/heed.git
+# The repository CI runs in, whatever its name on GitHub (docs/product-name.md).
+repository=${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-Fredehagelund92/footnote}.git
 # A commit of main, so what is read never changes.
 commit=4dde3939639966419666398d40c59fae66e38dbb
 folder=tests/fixtures/dbt-metricflow/project/models/marts
@@ -42,7 +42,7 @@ node -e '
   if (!check.ok || steps !== "reach:ok folders:warning documents:ok") process.exit(1)
 ' "$tested" || fail "Test connection passes: $tested"
 
-added=$(call --data "{\"type\":\"git-markdown\",\"name\":\"Heed's fixtures\",\"config\":$config,\"secrets\":{},\"scopes\":[{\"id\":\".\",\"title\":\"$folder\",\"domain\":\"area_sales\"}],\"reason\":\"Checking Markdown in Git in the image\"}" \
+added=$(call --data "{\"type\":\"git-markdown\",\"name\":\"Footnote's fixtures\",\"config\":$config,\"secrets\":{},\"scopes\":[{\"id\":\".\",\"title\":\"$folder\",\"domain\":\"area_sales\"}],\"reason\":\"Checking Markdown in Git in the image\"}" \
   "$web/api/v1/sources") || fail "the source is added: $added"
 id=$(node -pe 'JSON.parse(process.argv[1]).id' "$added")
 call --request POST --data '{}' "$web/api/v1/sources/$id/read" > /dev/null || fail 'Read again starts a read'

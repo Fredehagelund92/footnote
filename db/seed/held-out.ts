@@ -30,16 +30,6 @@ export const sealedFile = new URL('./golden-held-out.age', import.meta.url)
 /** What a command reads the key from: the key itself, or a file that holds it. */
 export const keyVariables = ['FOOTNOTE_HELDOUT_KEY', 'FOOTNOTE_HELDOUT_KEY_FILE'] as const
 
-/**
- * The same two by their names before the rename to Footnote. For one release a command still reads
- * one when its new name is unset, and every place that keeps the key from what it starts clears
- * them too.
- */
-export const formerKeyVariables = ['HEED_HELDOUT_KEY', 'HEED_HELDOUT_KEY_FILE'] as const
-
-/** Every variable a key may come in. */
-export const everyKeyVariable = [...keyVariables, ...formerKeyVariables] as const
-
 /** Why the held-out part did not run without a key, as every runner says it. */
 export const noKey = `No held-out key was given (${keyVariables.join(' or ')}), so the held-out cases did not run: only the visible ones did.`
 
@@ -68,7 +58,7 @@ const identityPattern = /^AGE-SECRET-KEY-(?:PQ-)?1[02-9AC-HJ-NP-Z]+$/
 
 /** Whether this command was given a key, without reading it. */
 export const heldOutKeyGiven = (env: NodeJS.ProcessEnv = process.env) =>
-  everyKeyVariable.some((name) => Boolean(env[name]))
+  keyVariables.some((name) => Boolean(env[name]))
 
 /**
  * Why the held-out cases cannot run here, without reading the key or the file: there is no
@@ -98,9 +88,7 @@ export function identityFrom(text: string): string {
 
 /** The key this command was given, or null. Never echoes what it read. */
 export async function readHeldOutKey(env: NodeJS.ProcessEnv = process.env): Promise<string | null> {
-  const [inline, file] = keyVariables.map(
-    (name, i) => env[name] || env[formerKeyVariables[i]!] || undefined,
-  )
+  const [inline, file] = keyVariables.map((name) => env[name] || undefined)
   if (inline && file) throw new HeldOutError(`Set ${keyVariables.join(' or ')}, not both`)
   if (inline) return identityFrom(inline)
   if (!file) return null

@@ -1,6 +1,6 @@
 import type { AnswerState } from './answer.ts'
 import { isAbout, notSeen, recordsFooter } from './answer-footer.ts'
-import { DEFAULT_PRODUCT_NAME, FORMER_PRODUCT_NAME } from './brand.ts'
+import { DEFAULT_PRODUCT_NAME } from './brand.ts'
 import {
   auditAnswer,
   auditedTerms,
@@ -226,7 +226,7 @@ const PLAIN_NOUN =
   /\b(items?|entries|entry|records?|facts?|guides?|rules?|warnings?|events?|notes?)\b/
 
 /** Who may be the subject of "what did X write" without it being one person's work. */
-const NOT_A_PERSON = `agents?|its|anyone|anybody|someone|somebody|nobody|noone|people|everyone|everybody|we|the|owners|administrators|admins|${DEFAULT_PRODUCT_NAME.toLowerCase()}|${FORMER_PRODUCT_NAME.toLowerCase()}|been|it|this|that|there|they|you|no|any|some|all|none|nothing|anything|something|everything|our|their|these|those|a|an|not|most|many|few|was|were|is|are|has|have|had|got|just|recently|lately|already|ever|still|yet|context|items?|entries|entry|records?|facts?|notes?|guides?|rules?|warnings?|events?|metrics?|dimensions?|definitions?|domains?|sources?|values?|kpis?|things?|questions?|topics?`
+const NOT_A_PERSON = `agents?|its|anyone|anybody|someone|somebody|nobody|noone|people|everyone|everybody|we|the|owners|administrators|admins|${DEFAULT_PRODUCT_NAME.toLowerCase()}|been|it|this|that|there|they|you|no|any|some|all|none|nothing|anything|something|everything|our|their|these|those|a|an|not|most|many|few|was|were|is|are|has|have|had|got|just|recently|lately|already|ever|still|yet|context|items?|entries|entry|records?|facts?|notes?|guides?|rules?|warnings?|events?|metrics?|dimensions?|definitions?|domains?|sources?|values?|kpis?|things?|questions?|topics?`
 const PERSON_VERBS =
   'write|wrote|written|add|added|change|changed|edit|edited|check|checked|create|created|publish|published|archive|archived|suggest|suggested|review|reviewed|do|done|work on|worked on'
 const PERSON_PAST =

@@ -7,7 +7,6 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { docFiles, helpDocs, loadDocs } from './scripts/docs-plugin.ts'
 import { llmsFullTxt, llmsTxt } from './src/domain/docs.ts'
 import { productNameFrom } from './src/domain/brand.ts'
-import { renamedSettingsWarning, withRenamedSettings } from './src/domain/renamed-settings.ts'
 
 /*
   The web app in src/web, on the repository's router, icon module and class merge.
@@ -16,41 +15,13 @@ import { renamedSettingsWarning, withRenamedSettings } from './src/domain/rename
   service with VITE_API_MODE=http.
 */
 
-const apiProxy = {
-  '/api/v1':
-    withRenamedSettings(process.env).environment.FOOTNOTE_API_URL ?? 'http://127.0.0.1:3000',
-}
+const apiProxy = { '/api/v1': process.env.FOOTNOTE_API_URL ?? 'http://127.0.0.1:3000' }
 
 const HTML_ENTITIES: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
   '>': '&gt;',
   '"': '&quot;',
-}
-
-/** The settings the web build reads, besides VITE_ ones. */
-const webSettings: readonly string[] = ['FOOTNOTE_PRODUCT_NAME', 'FOOTNOTE_SUPPORT_EMAIL']
-let warnedOfOldNames = false
-
-/**
- * The web build's settings under their old HEED_ names (src/domain/renamed-settings.ts): read as
- * their FOOTNOTE_ names when only the old one is set, from the environment or an env file, with one
- * warning per process. Vite reads the environment after this hook, and it wins over the files.
- */
-export function renamedWebSettings(): Plugin {
-  return {
-    name: 'footnote-web:renamed-settings',
-    config(_, { mode }) {
-      const { environment, oldNames } = withRenamedSettings(loadEnv(mode, root, ''))
-      const newName = (name: string) => name.replace(/^HEED_(DEFAULT_)?/, 'FOOTNOTE_')
-      const used = oldNames.filter((name) => webSettings.includes(newName(name)))
-      for (const name of used) process.env[newName(name)] = environment[newName(name)]
-      if (used.length && !warnedOfOldNames) {
-        warnedOfOldNames = true
-        console.warn(renamedSettingsWarning(used))
-      }
-    },
-  }
 }
 
 /**
@@ -96,8 +67,7 @@ export function themeBootstrap(): Plugin {
           // Drop full-line comments: the file is documented for people, not for the wire.
           children: readFileSync(bootstrapPath, 'utf8')
             .replace(/^\s*\/\/.*\n/gm, '')
-            .replaceAll('THEME_KEY', JSON.stringify(`${prefix}theme`))
-            .replaceAll('STORAGE_PREFIX', JSON.stringify(prefix)),
+            .replaceAll('THEME_KEY', JSON.stringify(`${prefix}theme`)),
           injectTo: 'head-prepend',
         },
       ],
@@ -148,7 +118,6 @@ export default defineConfig(({ mode }) => ({
         : [],
   },
   plugins: [
-    renamedWebSettings(),
     // The Inbox and Ask load with the app; every other page is a lazy route of its own
     // (routes/**/*.lazy.tsx), fetched when a link to it is hovered or once the browser is idle
     // after the first page (main.tsx). scripts/check-bundle-size.mjs holds the first load to its

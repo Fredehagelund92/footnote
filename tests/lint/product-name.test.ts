@@ -3,7 +3,7 @@ import { ESLint } from 'eslint'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The product's name is written once (docs/rename-checklist.md). The rule brand/no-product-name
+ * The product's name is written once (docs/product-name.md). The rule brand/no-product-name
  * (eslint.product-name.js) is the guard, so it has to fail loudly. The fixtures under
  * tests/lint/fixtures are ordinary files the rule is enabled for.
  */
@@ -21,7 +21,6 @@ describe('brand/no-product-name', () => {
     expect(await reported('product-name.ts')).toEqual([
       '1: brand/no-product-name',
       '2: brand/no-product-name',
-      '7: brand/no-product-name',
     ])
   })
 

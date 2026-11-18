@@ -54,8 +54,8 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
     MCP_DEV_KEY_FILE=/var/lib/footnote/mcp-dev-key.pem \
-    FOOTNOTE_DEFAULT_MCP_STATE_KEY_FILE=/var/lib/footnote/mcp-state.key \
-    FOOTNOTE_DEFAULT_OAUTH_SIGNING_KEY_FILE=/var/lib/footnote/oauth-key.pem
+    FOOTNOTE_MCP_STATE_KEY_FILE=/var/lib/footnote/mcp-state.key \
+    FOOTNOTE_OAUTH_SIGNING_KEY_FILE=/var/lib/footnote/oauth-key.pem
 EXPOSE 3000
 # Ready once the database answers. Every 2 seconds while it starts (the first start loads the
 # demo, a minute or two), then every 30.
@@ -75,10 +75,9 @@ RUN sed -i '/^user /d; s,^pid .*,pid /tmp/nginx.pid;,' /etc/nginx/nginx.conf \
 COPY docker/web.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=web-build /app/security-headers.conf /etc/nginx/footnote/security-headers.conf
 COPY --from=web-build /app/dist/web /usr/share/nginx/html
-# Where /api/v1 goes: FOOTNOTE_API_URL, http://footnote:3000 unless set. nginx fills it into the
-# template when it starts, after this script settles it.
-COPY docker/16-api-url.envsh /docker-entrypoint.d/16-api-url.envsh
 USER nginx
+# Where /api/v1 goes; nginx fills it into the template when it starts.
+ENV FOOTNOTE_API_URL=http://footnote:3000
 EXPOSE 8080
 HEALTHCHECK --start-period=30s --start-interval=1s --interval=30s --timeout=5s --retries=3 \
     CMD ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]

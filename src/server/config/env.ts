@@ -2,11 +2,6 @@ import { isIP } from 'node:net'
 import * as z from 'zod'
 import { DEFAULT_WEB_ORIGINS } from '../../contract/limits.ts'
 import { productNameProblem } from '../../domain/brand.ts'
-import {
-  renamedSettingsWarning,
-  withRenamedSettings,
-  type Environment,
-} from '../../domain/renamed-settings.ts'
 import { modelProviders } from '../modules/models/index.ts'
 
 /**
@@ -381,28 +376,10 @@ export class ConfigError extends Error {
   override name = 'ConfigError'
 }
 
-let warnedOfOldNames = false
-
-/**
- * The environment with each setting's old `HEED_` name read as its `FOOTNOTE_` name when only the old
- * one is set (src/domain/renamed-settings.ts). The first time a process meets old names, it warns
- * once, naming each and its new name, never a value.
- */
-export function withNewSettingNames(environment: Environment): Environment {
-  const { environment: renamed, oldNames } = withRenamedSettings(environment)
-  if (oldNames.length && !warnedOfOldNames) {
-    warnedOfOldNames = true
-    console.warn(renamedSettingsWarning(oldNames))
-  }
-  return renamed
-}
-
 /** Parses the environment. An empty value counts as unset, as `.env` files write them. */
 export function loadConfig(environment: Record<string, string | undefined>): Config {
   const present = Object.fromEntries(
-    Object.entries(withNewSettingNames(environment)).filter(
-      ([, value]) => value !== undefined && value !== '',
-    ),
+    Object.entries(environment).filter(([, value]) => value !== undefined && value !== ''),
   )
   const result = envSchema.safeParse(present)
   if (!result.success) {

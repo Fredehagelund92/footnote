@@ -11,8 +11,8 @@ test-results
 .env.*
 !.env.example
 .footnote-*
-.heed-*
 *.pem
+*.key
 *held-out*.key
 overlay
 .claude

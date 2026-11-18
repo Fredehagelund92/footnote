@@ -79,7 +79,7 @@ const MAX_REDIRECTS = 5
 
 /** Said plainly to every site Footnote reads, so its owner can tell what reads it. */
 const headers = {
-  // eslint-disable-next-line brand/no-product-name -- the user agent sites see, a technical name (docs/rename-checklist.md)
+  // eslint-disable-next-line brand/no-product-name -- the user agent sites see, a technical name (docs/product-name.md)
   'user-agent': 'Mozilla/5.0 (compatible; Footnote/1.0; reads a page a person linked)',
   accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5',
   'accept-language': 'en;q=0.9, pt;q=0.8, es;q=0.8, *;q=0.5',
