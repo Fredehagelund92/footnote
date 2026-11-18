@@ -1,5 +1,5 @@
 import { ChevronsUpDownIcon, LogOutIcon, PlugIcon } from '@/components/icons'
-import { PersonAvatar } from '@/components/heed/bits'
+import { PersonAvatar } from '@/components/footnote/bits'
 import {
   DropdownMenu,
   DropdownMenuContent,

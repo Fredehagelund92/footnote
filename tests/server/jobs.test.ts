@@ -218,7 +218,7 @@ describe('the operations view and manual runs', () => {
     })
     return { instance, runs }
   }
-  const own = { origin: 'http://localhost:3000', 'x-heed-csrf': 'csrf' }
+  const own = { origin: 'http://localhost:3000', 'x-footnote-csrf': 'csrf' }
 
   it('serves the operations view under /api/v1, every time in ISO 8601', async () => {
     const { instance } = app({ outcome: 'not_running' })
@@ -235,7 +235,7 @@ describe('the operations view and manual runs', () => {
   it('says how this server reads a source, from its own sources of the same type', async () => {
     const settings = [
       { key: 'model_folder', variable: 'CUBE_MODEL_DIR', value: '/srv/model' },
-      { key: 'domain_overrides', variable: 'HEED_DOMAIN_OVERRIDES', value: null },
+      { key: 'domain_overrides', variable: 'FOOTNOTE_DOMAIN_OVERRIDES', value: null },
     ] as const
     const read = async (sources: ApiServices['sources']) => {
       const { instance } = app({ outcome: 'not_running' }, { sources })
@@ -275,7 +275,7 @@ describe('the operations view and manual runs', () => {
       const refused = await instance.inject({
         method: 'POST',
         url,
-        headers: { origin, 'x-heed-csrf': 'csrf' },
+        headers: { origin, 'x-footnote-csrf': 'csrf' },
       })
       expect(refused.statusCode).toBe(403)
     }

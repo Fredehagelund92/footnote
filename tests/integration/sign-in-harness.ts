@@ -183,7 +183,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
           method: 'POST',
           headers: {
             origin: web,
-            'x-heed-csrf': 'dev-sign-in',
+            'x-footnote-csrf': 'dev-sign-in',
             'content-type': 'application/json',
           },
           body: JSON.stringify({ email: `${name}@example.test` }),
@@ -196,7 +196,7 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
           method: body ? 'POST' : 'GET',
           headers: {
             origin: web,
-            'x-heed-csrf': csrf,
+            'x-footnote-csrf': csrf,
             ...(body ? { 'content-type': 'application/json' } : {}),
             ...headers,
           },

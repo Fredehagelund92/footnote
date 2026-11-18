@@ -1,9 +1,8 @@
 # The Footnote logo
 
 Footnote is the product's name. The product was called Heed until 18 November 2026, when the
-captain chose Footnote and asked for a full rename; the technical names that still carry the old
-name (the command-line tool `heed`, the MCP server id, the file names below) are listed in the
-[rename checklist](../rename-checklist.md).
+captain chose Footnote and asked for a full rename, which the
+[rename checklist](../rename-checklist.md) records.
 
 **The final mark is pending.** The owner is having logo options drawn separately. Until one is
 chosen, the logo is a placeholder: the name set in type, with no drawn symbol. It replaces the
@@ -45,30 +44,29 @@ it; on its own, `Logo` is one image named "Footnote".
 
 ## Files
 
-The files keep their names, `heed-` included, and their sizes, so the final mark can replace them
-one for one, and links to them keep working until step 6 of the
-[rename checklist](../rename-checklist.md).
+The files keep their names and their sizes, so the final mark can replace them one for one. They
+were named `heed-` until step 6 of the [rename checklist](../rename-checklist.md), and the old
+`heed-mark.svg`, a copy of the symbol kept for old links, went with it.
 
-| File                                                         | Use                                                                                                |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `components/heed/logo.tsx`                                   | `LogoSymbol` (the F) and `Logo` (the wordmark) in the app, each a `<use>` of a public file below   |
-| `public/heed-symbol.svg`                                     | The F on its own, in currentColor, for docs and slides                                             |
-| `public/heed-lockup.svg`                                     | The wordmark, outlined, in currentColor                                                            |
-| `public/heed-mark.svg`                                       | The same as `heed-symbol.svg`, kept so links to the old file still work                            |
-| `public/favicon.svg`                                         | The F's grid 22 of 32 high in #f4f5f8 on a #13161d tile with 7 unit corners, in every scheme       |
-| `public/favicon.ico`                                         | 16, 32 and 48, rendered from `favicon.svg`, for browsers without SVG icons                         |
-| `public/apple-touch-icon.png`                                | 180, the F's grid 112 high in #f4f5f8 on #13161d, for home screens                                 |
-| `docs/images/heed-lockup-light.svg`, `heed-symbol-light.svg` | The wordmark and the F in #13161d, for GitHub's light pages                                        |
-| `docs/images/heed-lockup-dark.svg`, `heed-symbol-dark.svg`   | The wordmark and the F in #f4f5f8, for GitHub's dark pages                                         |
-| `docs/images/heed-social-preview.png`                        | 1280 by 640, the wordmark in #f4f5f8 and the tagline in Nunito Sans 400 at 44, #a1a4ac, on #13161d |
-| `docs/images/heed-avatar.png`                                | 500, the F on the ink tile, for the owner's avatar                                                 |
+| File                                                                 | Use                                                                                                |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `components/footnote/logo.tsx`                                       | `LogoSymbol` (the F) and `Logo` (the wordmark) in the app, each a `<use>` of a public file below   |
+| `public/footnote-symbol.svg`                                         | The F on its own, in currentColor, for docs and slides                                             |
+| `public/footnote-lockup.svg`                                         | The wordmark, outlined, in currentColor                                                            |
+| `public/favicon.svg`                                                 | The F's grid 22 of 32 high in #f4f5f8 on a #13161d tile with 7 unit corners, in every scheme       |
+| `public/favicon.ico`                                                 | 16, 32 and 48, rendered from `favicon.svg`, for browsers without SVG icons                         |
+| `public/apple-touch-icon.png`                                        | 180, the F's grid 112 high in #f4f5f8 on #13161d, for home screens                                 |
+| `docs/images/footnote-lockup-light.svg`, `footnote-symbol-light.svg` | The wordmark and the F in #13161d, for GitHub's light pages                                        |
+| `docs/images/footnote-lockup-dark.svg`, `footnote-symbol-dark.svg`   | The wordmark and the F in #f4f5f8, for GitHub's dark pages                                         |
+| `docs/images/footnote-social-preview.png`                            | 1280 by 640, the wordmark in #f4f5f8 and the tagline in Nunito Sans 400 at 44, #a1a4ac, on #13161d |
+| `docs/images/footnote-avatar.png`                                    | 500, the F on the ink tile, for the owner's avatar                                                 |
 
 GitHub shows a README image as an `<img>`, where `currentColor` is black on any page, so the README
 uses the fixed-colour files in a `<picture>` with a `prefers-color-scheme: dark` source; they are
 the public files with only the fill changed.
 
-The public files are in `src/web/public`. The app draws `heed-lockup.svg` and `heed-symbol.svg`
-by reference (`<use href="/heed-lockup.svg#mark">`), so their drawing never weighs on the app's
+The public files are in `src/web/public`. The app draws `footnote-lockup.svg` and `footnote-symbol.svg`
+by reference (`<use href="/footnote-lockup.svg#mark">`), so their drawing never weighs on the app's
 first load, and a new mark only has to keep three things: the element `id="mark"`, drawn in
 `currentColor` (no fill of its own), the `viewBox` the component gives (`0 0 120 40` for the
 lockup, `0 0 36 40` for the symbol; change the component with it otherwise), and the file names.

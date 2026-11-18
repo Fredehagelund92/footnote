@@ -1,8 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/heed-lockup-dark.svg">
-  <img alt="Footnote" src="docs/images/heed-lockup-light.svg" height="56">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/footnote-lockup-dark.svg">
+  <img alt="Footnote" src="docs/images/footnote-lockup-light.svg" height="56">
 </picture>
 
 ### Stop AI agents misreading your numbers.
@@ -77,7 +77,7 @@ Drive into suggestions for owners. [Build a connector](docs/connectors/authoring
 You need Docker:
 
 ```sh
-git clone https://github.com/Fredehagelund92/heed.git && cd heed
+git clone https://github.com/Fredehagelund92/footnote.git && cd footnote
 docker compose up
 ```
 
@@ -90,7 +90,7 @@ The demo is an invented outdoor-gear retailer: people, domains and context items
 suggestions waiting for review and what agents asked over the past weeks. Nothing leaves your computer, and no
 AI service is called. Stop with Ctrl+C; `docker compose down --volumes` also removes the data.
 
-If port 8080 or 3000 is taken on this computer, move them: start with `HEED_WEB_PORT=8081 HEED_PORT=3001` in
+If port 8080 or 3000 is taken on this computer, move them: start with `FOOTNOTE_WEB_PORT=8081 FOOTNOTE_PORT=3001` in
 front of `docker compose`, and connect agents to port 3001. Under Colima a taken port may fail without a word,
 and the other program answers there instead.
 
@@ -98,7 +98,8 @@ Another way in:
 
 - **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
   pulls them instead of building. They are the latest release, named in `compose.images.yaml`, which can be
-  behind this page and may differ from it. A newer release replaces them.
+  behind this page and may differ from it. A newer release replaces them. They exist from the first release
+  under the name Footnote; until then `docker compose up` builds them.
 
 To choose how to run Footnote for your own team, see [Where to run Footnote](docs/where-to-run.md). To keep it running
 here, back it up, upgrade it or roll an upgrade back, see [Self-host Footnote on one computer](docs/self-hosting.md).
@@ -113,10 +114,10 @@ sign-in: see [Run the image in production mode](docs/operations.md#run-the-image
 With the demo running:
 
 ```sh
-claude mcp add --transport http heed http://localhost:3000/mcp
+claude mcp add --transport http footnote http://localhost:3000/mcp
 ```
 
-Then run `/mcp` in Claude Code, choose **heed**, and choose **Authenticate**. Your browser opens Footnote; choose a
+Then run `/mcp` in Claude Code, choose **footnote**, and choose **Authenticate**. Your browser opens Footnote; choose a
 demo person and **Allow**. Ask _"How did orders in Norway change in October 2026?"_
 
 <p align="center">
@@ -146,7 +147,7 @@ To sign in as yourself, add your name and email to the top of `db/seed/people.lo
 
 For dbt, Footnote reads the `semantic_manifest.json` that `dbt parse` writes, from a link, object storage, a Git
 repository or a folder: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md). Start Footnote
-with `docker compose up`, as above. Tokens and signed links stay in a secret store in Docker's `heed_keys` volume.
+with `docker compose up`, as above. Tokens and signed links stay in a secret store in Docker's `footnote_keys` volume.
 
 ## What you get
 
@@ -222,7 +223,7 @@ source, and its owner checks it. It doesn't watch people: it counts questions by
 |                                                         | [Administer the service](docs/administration.md): settings, the history log, import and export   |
 
 <!-- Docs site: when it is published, add this line:
-Read these as a site at [fredehagelund92.github.io/heed](https://fredehagelund92.github.io/heed/). -->
+Read these as a site at [fredehagelund92.github.io/footnote](https://fredehagelund92.github.io/footnote/). -->
 
 The help pages are also the app's own Docs, at `/docs`, and [the docs site](apps/docs/README.md), which isn't
 published yet: `npm run site:dev` runs it on your computer. [Requirements](docs/requirements.md) says what Footnote must
@@ -235,7 +236,7 @@ The clickable mockup is the design the app was built from, kept as a reference i
 
 ## Status
 
-Footnote is **pre-1.0**. Its only release so far is [0.1.0](https://github.com/Fredehagelund92/heed/releases/tag/v0.1.0)
+Footnote is **pre-1.0**. Its only release so far is [0.1.0](https://github.com/Fredehagelund92/footnote/releases/tag/v0.1.0)
 of 2 November 2026, and this page describes the code on main, which is well ahead of it.
 It is for trying on one computer, not for production use. Expect rough edges and breaking changes.
 
@@ -273,7 +274,7 @@ to start from. For anything else, open an issue first if it is bigger than a sma
 [code of conduct](CODE_OF_CONDUCT.md).
 
 Data status for agents, which would let an agent know when the data behind a metric is late or failing, is not built
-yet. [The design is open](https://github.com/Fredehagelund92/heed/issues/159), and your input is welcome there.
+yet. [The design is open](https://github.com/Fredehagelund92/footnote/issues/159), and your input is welcome there.
 
 ## Security
 

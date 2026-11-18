@@ -75,9 +75,11 @@ it('checks the S256 proof and compares in constant time', () => {
 
 it('reads exactly one well-formed browser cookie', () => {
   const value = 'a'.repeat(64)
-  expect(browserToken(`heed_oauth_browser=${value}`)).toBe(value)
-  expect(browserToken(`x=1; heed_oauth_browser=${value}; y=2`)).toBe(value)
-  expect(browserToken(`heed_oauth_browser=${value}; heed_oauth_browser=${value}`)).toBeUndefined()
-  expect(browserToken('heed_oauth_browser=short')).toBeUndefined()
+  expect(browserToken(`footnote_oauth_browser=${value}`)).toBe(value)
+  expect(browserToken(`x=1; footnote_oauth_browser=${value}; y=2`)).toBe(value)
+  expect(
+    browserToken(`footnote_oauth_browser=${value}; footnote_oauth_browser=${value}`),
+  ).toBeUndefined()
+  expect(browserToken('footnote_oauth_browser=short')).toBeUndefined()
   expect(browserToken(undefined)).toBeUndefined()
 })

@@ -63,7 +63,7 @@ export const webSurfaces = [
   {
     // The review's own sentences, which never name the tool an agent ran in.
     place: 'the review',
-    files: ['src/web/pages/review-page.tsx', 'src/web/components/heed/review-parts.tsx'],
+    files: ['src/web/pages/review-page.tsx', 'src/web/components/footnote/review-parts.tsx'],
   },
 ]
 

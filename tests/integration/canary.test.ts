@@ -1,6 +1,6 @@
 import { resolverStatusOf } from '../../src/domain/answer-state.ts'
 import { execFile } from 'node:child_process'
-import { createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
+import { createHash, generateKeyPairSync, randomBytes, randomInt, randomUUID } from 'node:crypto'
 import { promisify } from 'node:util'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { afterAll, beforeAll, expect, it } from 'vitest'
@@ -41,7 +41,7 @@ const person = {
   email: `canary.${marker}@example.test`,
   name: `Canary ${marker}`,
 }
-const address = `203.0.113.${1 + (randomBytes(1)[0]! % 250)}`
+const address = `203.0.113.${randomInt(1, 251)}`
 const userAgent = `CanaryAgent/${marker}`
 const appMarker = randomBytes(8).toString('hex')
 const connectedAgent = { name: `Canary app ${appMarker}`, version: `1.0.${appMarker}` }
@@ -81,7 +81,7 @@ async function signIn(email: string) {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email },
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -315,7 +315,7 @@ it(
     })
     expect(metrics.statusCode).toBe(200)
     expect(metrics.body).toContain(
-      'heed_mcp_requests_total{app_family="other",status="ok",tool="get_context"} 1000',
+      'footnote_mcp_requests_total{app_family="other",status="ok",tool="get_context"} 1000',
     )
     exported.push(metrics.body)
     for (const gap of gaps)

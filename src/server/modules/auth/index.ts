@@ -1,8 +1,10 @@
 export { createDevSignIn, readDevPeople, type SignIn, type DevPerson } from './dev-sign-in.ts'
+export { cookieValue } from './cookie-token.ts'
 export {
   cookieAge,
   principalFor,
   sessionCookie,
+  sessionCookies,
   sessionPersonId,
   type Session,
   type SessionLifetime,

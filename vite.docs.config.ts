@@ -23,7 +23,7 @@ export default defineConfig({
   root: fileURLToPath(new URL('./src/web/docs', import.meta.url)),
   base: `${docsBase}/`,
   envDir: root,
-  envPrefix: ['VITE_', 'HEED_PRODUCT_NAME', 'HEED_SUPPORT_EMAIL'],
+  envPrefix: ['VITE_', 'FOOTNOTE_PRODUCT_NAME', 'FOOTNOTE_SUPPORT_EMAIL'],
   publicDir: `${webRoot}/public`,
   define: { 'import.meta.env.VITE_DOCS_BASE': JSON.stringify(docsBase) },
   resolve: {

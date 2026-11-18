@@ -68,7 +68,7 @@ export async function setSetting(
     throw new ORPCError('UNPROCESSABLE_CONTENT', { message: error.message })
   }
   // One writer per key at a time; the primary key catches any other race.
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.setting:' || $1,0))", [
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.setting:' || $1,0))", [
     input.key,
   ])
   const [current] = await tx.query<Row>(

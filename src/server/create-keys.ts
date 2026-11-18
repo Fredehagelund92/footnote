@@ -1,21 +1,23 @@
 import { stat } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 import { withNewSettingNames } from './config/env.ts'
+import { formerKeyFiles } from './config/former-key-files.ts'
 import { loadStateKey } from './mcp/state-key.ts'
 import { loadKeyRing } from './modules/oauth/index.ts'
 
 /**
  * `npm run keys:create`, or `node src/server/create-keys.ts` in the service image: creates the
  * keys production never creates on its own, each only when its file does not exist yet, readable
- * by its owner only: the login server's signing key (HEED_OAUTH_SIGNING_KEY_FILE) and the key that
- * seals suggest_context's questions (HEED_MCP_STATE_KEY_FILE). It reads an existing key to check
+ * by its owner only: the login server's signing key (FOOTNOTE_OAUTH_SIGNING_KEY_FILE) and the key that
+ * seals suggest_context's questions (FOOTNOTE_MCP_STATE_KEY_FILE). It reads an existing key to check
  * it, and prints file names only, never key material (docs/operations.md, "Run the image in
  * production mode").
  */
 
 const env = withNewSettingNames(process.env)
 const files = {
-  HEED_OAUTH_SIGNING_KEY_FILE: env.HEED_OAUTH_SIGNING_KEY_FILE || '.heed-oauth-key.pem',
-  HEED_MCP_STATE_KEY_FILE: env.HEED_MCP_STATE_KEY_FILE || '.heed-mcp-state.key',
+  FOOTNOTE_OAUTH_SIGNING_KEY_FILE: env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE || '.footnote-oauth-key.pem',
+  FOOTNOTE_MCP_STATE_KEY_FILE: env.FOOTNOTE_MCP_STATE_KEY_FILE || '.footnote-mcp-state.key',
 }
 const exists = (file: string) =>
   stat(file).then(
@@ -25,9 +27,11 @@ const exists = (file: string) =>
 
 try {
   for (const [name, file] of Object.entries(files)) {
-    const had = await exists(file)
+    const former = formerKeyFiles.get(basename(file))
+    const had =
+      (await exists(file)) || (former !== undefined && (await exists(join(dirname(file), former))))
     // Outside production both loaders create a missing key, owner-only, and check one that exists.
-    if (name === 'HEED_OAUTH_SIGNING_KEY_FILE')
+    if (name === 'FOOTNOTE_OAUTH_SIGNING_KEY_FILE')
       await loadKeyRing({ file, previousFiles: [], nodeEnv: 'development' })
     else await loadStateKey(file, 'development')
     console.log(`${name}: ${had ? 'kept' : 'created'} ${file}`)

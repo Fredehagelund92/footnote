@@ -2,7 +2,7 @@ import { dayIn } from '../domain/dates.ts'
 
 /**
  * The service's sense of time. Domain code takes `today` as an argument; the service gets it here,
- * so tests and demo runs can pin it (`HEED_FIXED_TODAY`, refused in production).
+ * so tests and demo runs can pin it (`FOOTNOTE_FIXED_TODAY`, refused in production).
  */
 export interface Clock {
   /** The current instant. */

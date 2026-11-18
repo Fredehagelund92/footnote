@@ -239,11 +239,11 @@ it('runs the local refresh command with configured Cube and override paths', asy
         env: {
           ...process.env,
           NODE_ENV: 'test',
-          HEED_AUTH: 'dev',
+          FOOTNOTE_AUTH: 'dev',
           MODELS: 'mock',
           DATABASE_URL: cliUrl.href,
           CUBE_MODEL_DIR: fileURLToPath(new URL('../fixtures/cube/model/', import.meta.url)),
-          HEED_DOMAIN_OVERRIDES: overrides,
+          FOOTNOTE_DOMAIN_OVERRIDES: overrides,
         },
         timeout: 15_000,
       },

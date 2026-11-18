@@ -15,22 +15,22 @@ import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/editor'
 import { useSideChoice } from '@/lib/side-panel'
 import { useSend } from '@/lib/send'
-import { HeaderMore } from '@/components/heed/editor-header'
+import { HeaderMore } from '@/components/footnote/editor-header'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { plainText } from '@/lib/mentions'
-import { PersonAvatar } from '@/components/heed/bits'
+import { PersonAvatar } from '@/components/footnote/bits'
 import {
   ConflictNote,
   SynonymTags,
   TypeGlyph,
   TypeTile,
   WordNote,
-} from '@/components/heed/definition'
+} from '@/components/footnote/definition'
 import { openDock } from '@/lib/dock'
-import { DocFooter, Paper, SideSection } from '@/components/heed/doc'
+import { DocFooter, Paper, SideSection } from '@/components/footnote/doc'
 import {
   Ghost,
   PropertyGroup,
@@ -39,8 +39,8 @@ import {
   SearchSelectField,
   SelectField,
   StaticField,
-} from '@/components/heed/field-controls'
-import { DomainDot, TagChip } from '@/components/heed/tag-chip'
+} from '@/components/footnote/field-controls'
+import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { ResizableAside } from '@/components/resizable-aside'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -61,8 +61,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useWide } from '@/hooks/use-wide'
 import { Kbd } from '@/components/ui/kbd'
 import { usePrimaryKey } from '@/hooks/use-primary-key'
-import { DocumentEditorShell } from '@/components/heed/document-shell'
-import { Panel } from '@/components/heed/panel'
+import { DocumentEditorShell } from '@/components/footnote/document-shell'
+import { Panel } from '@/components/footnote/panel'
 
 // A term as a document, like any context item: the word as the heading, a few properties, and the
 // meaning as the text. No mode to pick. One optional property, Another name for, turns the word

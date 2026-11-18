@@ -33,7 +33,7 @@ vi.mock('sonner', () => {
 
 const { bindApi } = await import('@/api')
 const { TooltipProvider } = await import('@/components/ui/tooltip')
-const { ConflictView } = await import('@/components/heed/conflict-view')
+const { ConflictView } = await import('@/components/footnote/conflict-view')
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true

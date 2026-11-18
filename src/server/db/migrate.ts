@@ -52,6 +52,8 @@ export function renumberedMigrations(
 }
 
 export async function migrate(client: pg.Client, directory: URL = migrationDirectory) {
+  await client.query("select pg_advisory_lock(hashtextextended('footnote.migrations', 0))")
+  // And the key before the rename to Footnote, so a service of before it never migrates alongside.
   await client.query("select pg_advisory_lock(hashtextextended('heed.migrations', 0))")
   try {
     await client.query(`create table if not exists schema_migrations (
@@ -113,5 +115,6 @@ export async function migrate(client: pg.Client, directory: URL = migrationDirec
     return pending.length
   } finally {
     await client.query("select pg_advisory_unlock(hashtextextended('heed.migrations', 0))")
+    await client.query("select pg_advisory_unlock(hashtextextended('footnote.migrations', 0))")
   }
 }

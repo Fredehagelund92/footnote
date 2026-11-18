@@ -17,10 +17,10 @@ import {
 } from '@/components/icons'
 import { toast } from 'sonner'
 import { cn, midSentence } from '@/lib/utils'
-import { FieldDiff } from '@/components/heed/bits'
-import { Mark } from '@/components/heed/mark'
+import { FieldDiff } from '@/components/footnote/bits'
+import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { pairOfKey } from '@/model/conflicts'
 import { integrationHref, lookOf } from '@/model/integrations'
 import { askedWords, careLine, changeWords, gapRowWords, type Review } from '@/model/review'
@@ -33,8 +33,8 @@ import {
   PaneFoot,
   PaneHead,
   PrimaryAction,
-} from '@/components/heed/inbox-pane'
-import { Panel } from '@/components/heed/panel'
+} from '@/components/footnote/inbox-pane'
+import { Panel } from '@/components/footnote/panel'
 import { follows, paneState, primaryLabel } from '@/model/inbox-pane'
 import { TOUCH } from '@/lib/touch'
 import { SiteHeader } from '@/components/site-header'
@@ -59,7 +59,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Kbd } from '@/components/ui/kbd'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
-import { TextSwitch } from '@/components/heed/switches'
+import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { scopeText } from '@/model/ask'
 import type { InboxCard, Waiting } from '@/model/inbox'
@@ -85,7 +85,7 @@ import {
 } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { definitionsStep, setupSteps } from '@/lib/setup'
-import { ConflictPairCompact } from '@/components/heed/conflict-pair'
+import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
 import type { Outcome } from '@/model/inbox'
@@ -101,11 +101,11 @@ import {
   useInboxRows,
   type InboxRow,
 } from '@/lib/inbox-rows'
-import { suggestionIcon } from '@/components/heed/change-icons'
+import { suggestionIcon } from '@/components/footnote/change-icons'
 import type { Subject } from '@/model/comments'
-import { TruncatedText } from '@/components/heed/truncated'
-import { ListSkeleton, Loadable } from '@/components/heed/load-state'
-import { BulkBar, BulkButton } from '@/components/heed/bulk-bar'
+import { TruncatedText } from '@/components/footnote/truncated'
+import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
+import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
 import { useOnline } from '@/lib/send'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
@@ -848,9 +848,9 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
   )
 }
 
-const NamesReview = React.lazy(() => import('@/components/heed/names-review'))
+const NamesReview = React.lazy(() => import('@/components/footnote/names-review'))
 const NamesDialog = React.lazy(() =>
-  import('@/components/heed/names-review').then((m) => ({ default: m.NamesDialog })),
+  import('@/components/footnote/names-review').then((m) => ({ default: m.NamesDialog })),
 )
 
 const CommentBox = React.lazy(() =>

@@ -8,6 +8,7 @@ import { ApiError } from '@/api/errors'
 import { createQueryClient } from '@/api/query-client'
 import type { SignInChoice, SignInMethod } from '@/api/client'
 import { SignInPage } from '@/pages/signin'
+import { rememberSignedOut } from '@/lib/demo-profiles'
 
 // The picker on an install with its own data starts with the sample people of
 // db/seed/people.local.yml (snag 7 of the release judgement): the page says they are samples and
@@ -87,7 +88,7 @@ describe('the picker on an own-data install', () => {
 
   it('leaves the demo to its own note', async () => {
     // Signed out on purpose, the demo shows its picker rather than opening as its admin.
-    sessionStorage.setItem('heed.demo.signed-out', '1')
+    rememberSignedOut(true)
     const text = await show({ demo: true }, samples)
     expect(text).toContain('This is a demo. Pick who you are.')
     expect(text).not.toContain('sample people')

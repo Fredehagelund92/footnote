@@ -14,7 +14,7 @@ if (!/^[a-z0-9_.-]{1,40}$/.test(values.client))
     'A client label has 1 to 40 lowercase letters, digits, dots, dashes or underscores',
   )
 const key = await devKey(
-  process.env.MCP_DEV_KEY_FILE ?? '.heed-dev-key.pem',
+  process.env.MCP_DEV_KEY_FILE ?? '.footnote-dev-key.pem',
   process.env.NODE_ENV ?? 'development',
 )
 const token = await mintDevToken(key, process.env.MCP_RESOURCE_URL ?? 'http://localhost:3000/mcp', {

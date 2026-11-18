@@ -71,7 +71,9 @@ describe('ESLint guard rails of the web app', () => {
     const viewport = (messages: Awaited<ReturnType<typeof lintAs>>) =>
       messages.filter((message) => message.message.startsWith('Viewport variant'))
     expect(viewport(await lintAs('src/web/pages/context.tsx', source))).toEqual([])
-    expect(viewport(await lintAs('src/web/components/heed/fact-peek.tsx', source))).toHaveLength(1)
+    expect(
+      viewport(await lintAs('src/web/components/footnote/fact-peek.tsx', source)),
+    ).toHaveLength(1)
   })
 
   it('lets the icon module, and only it, import the icon library', async () => {

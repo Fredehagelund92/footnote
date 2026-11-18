@@ -3,7 +3,7 @@ name: Docs site
 # The public docs site (apps/docs/README.md): one built folder per minor release, /vMAJOR.MINOR/,
 # built at its tag when release.yml calls this workflow, and /next/, built from main, which search
 # engines are told to leave alone. A team without internet access gets the release's copy from its
-# GitHub Release: heed-docs-<version>.tar.gz, built to be served at the root of a host.
+# GitHub Release: footnote-docs-<version>.tar.gz, built to be served at the root of a host.
 #
 # Building changes nothing outside this run. Publishing pushes to the gh-pages branch and only runs
 # when the repository variable DOCS_PUBLISH is on: a maintainer's decision, not a merge's
@@ -37,6 +37,7 @@ defaults:
 # The host and the path under it. A custom domain changes these two lines and nothing else.
 env:
   DOCS_SITE: https://fredehagelund92.github.io
+  # Moves with the GitHub repository rename (docs/rename-checklist.md): Pages serves under the repository's name.
   DOCS_ROOT: /heed
 
 jobs:
@@ -91,12 +92,12 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           npm run build
-          tar -czf "$RUNNER_TEMP/heed-docs-$VERSION.tar.gz" --transform "s,^dist,heed-docs-$VERSION," dist
+          tar -czf "$RUNNER_TEMP/footnote-docs-$VERSION.tar.gz" --transform "s,^dist,footnote-docs-$VERSION," dist
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: inputs.version != ''
         with:
           name: docs-tarball
-          path: ${{ runner.temp }}/heed-docs-${{ inputs.version }}.tar.gz
+          path: ${{ runner.temp }}/footnote-docs-${{ inputs.version }}.tar.gz
           if-no-files-found: error
           retention-days: 1
 

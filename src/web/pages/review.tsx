@@ -2,12 +2,12 @@ import type * as React from 'react'
 import { ArrowRightIcon, CircleDashedIcon, TriangleAlertIcon } from '@/components/icons'
 import { cn, midSentence } from '@/lib/utils'
 import { DockFrame, DockMissing } from '@/components/dock'
-import { AgentAvatar, PersonAvatar } from '@/components/heed/bits'
-import { ChangeBlock, KindLabel } from '@/components/heed/review-parts'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { AgentAvatar, PersonAvatar } from '@/components/footnote/bits'
+import { ChangeBlock, KindLabel } from '@/components/footnote/review-parts'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { lookOf } from '@/model/integrations'
 import { careLine, countWord, type Review } from '@/model/review'
-import { Mark } from '@/components/heed/mark'
+import { Mark } from '@/components/footnote/mark'
 import { navigate } from '@/lib/router'
 import { useInbox, useReviews } from '@/api/queries'
 import {
@@ -17,7 +17,7 @@ import {
   PaneFoot,
   PaneHead,
   PrimaryAction,
-} from '@/components/heed/inbox-pane'
+} from '@/components/footnote/inbox-pane'
 import {
   answersOf,
   paneState,

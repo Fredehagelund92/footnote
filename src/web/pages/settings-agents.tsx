@@ -2,11 +2,11 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { KeyRoundIcon } from '@/components/icons'
 import { ConnectAgent } from '@/components/connect-agent'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { FoldTrigger } from '@/components/heed/fold'
+import { FoldTrigger } from '@/components/footnote/fold'
 import {
   Dialog,
   DialogClose,
@@ -26,8 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Frame, FrameRows, FrameSection } from '@/components/heed/frame'
-import { ShowMoreButton } from '@/components/heed/show-more'
+import { Frame, FrameRows, FrameSection } from '@/components/footnote/frame'
+import { ShowMoreButton } from '@/components/footnote/show-more'
 import { useShowMore } from '@/hooks/use-show-more'
 import { useQuery } from '@tanstack/react-query'
 import { toApiError } from '@/api/errors'

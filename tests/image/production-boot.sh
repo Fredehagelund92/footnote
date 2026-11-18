@@ -12,24 +12,24 @@
 #      starts, signs a person in and serves an agent's MCP call (tests/image/production-check.ts).
 #   3. Behind nginx, each caller before sign-in has a request limit of its own, and an address a
 #      caller makes up is dropped (tests/image/limit-probe.ts). The service trusts every private
-#      address (HEED_TRUSTED_PROXIES=uniquelocal, as compose.yaml does), so a made-up address that
+#      address (FOOTNOTE_TRUSTED_PROXIES=uniquelocal, as compose.yaml does), so a made-up address that
 #      nginx passed on would win and fail the probe.
 #
-# Everything it makes is named heed-boot-<pid> and removed at the end. HEED_SERVICE_IMAGE and
-# HEED_WEB_IMAGE name other images; HEED_BOOT_SUBNET (three octets) moves its private network.
+# Everything it makes is named footnote-boot-<pid> and removed at the end. FOOTNOTE_SERVICE_IMAGE and
+# FOOTNOTE_WEB_IMAGE name other images; FOOTNOTE_BOOT_SUBNET (three octets) moves its private network.
 set -euo pipefail
 
-service_image=${HEED_SERVICE_IMAGE:-heed-heed}
-web_image=${HEED_WEB_IMAGE:-heed-web}
-subnet=${HEED_BOOT_SUBNET:-172.31.213}
-run=heed-boot-$$
+service_image=${FOOTNOTE_SERVICE_IMAGE:-footnote-footnote}
+web_image=${FOOTNOTE_WEB_IMAGE:-footnote-web}
+subnet=${FOOTNOTE_BOOT_SUBNET:-172.31.213}
+run=footnote-boot-$$
 root=$(cd "$(dirname "$0")/../.." && pwd)
 web_ip=$subnet.10
 # The port the web image's nginx listens on, as its template says.
 web_port=$(docker run --rm --entrypoint sh "$web_image" -c \
   "sed -n 's/^ *listen \([0-9]*\);.*/\1/p' /etc/nginx/templates/default.conf.template | head -n 1")
 web_url=http://$web_ip:${web_port:?the web image names no port it listens on}
-public_origin=https://heed.example.test
+public_origin=https://footnote.example.test
 
 passed=false
 cleanup() {
@@ -51,7 +51,7 @@ fail() {
 }
 
 docker network create --subnet "$subnet.0/24" "$run" > /dev/null ||
-  fail "the private network $subnet.0/24 is made (HEED_BOOT_SUBNET moves it)"
+  fail "the private network $subnet.0/24 is made (FOOTNOTE_BOOT_SUBNET moves it)"
 docker run -d --name "$run-db" --network "$run" -e POSTGRES_HOST_AUTH_METHOD=trust \
   postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336 > /dev/null
 # Over TCP: the first-boot init server listens only on its socket, so a socket check can pass
@@ -66,8 +66,8 @@ docker exec "$run-db" pg_isready -h 127.0.0.1 -U postgres > /dev/null || fail 'P
 # the service takes its own role.
 database=(
   -e "DATABASE_URL_BOOTSTRAP=postgres://postgres@$run-db:5432/postgres"
-  -e "DATABASE_URL_MIGRATE=postgres://context_layer_owner@$run-db:5432/heed"
-  -e "DATABASE_URL=postgres://context_layer_api@$run-db:5432/heed"
+  -e "DATABASE_URL_MIGRATE=postgres://context_layer_owner@$run-db:5432/footnote"
+  -e "DATABASE_URL=postgres://context_layer_api@$run-db:5432/footnote"
 )
 
 # 1. No setting but the database: production mode, which refuses to start without sign-in.
@@ -83,7 +83,7 @@ fi
 if [ "$(docker inspect -f '{{.State.ExitCode}}' "$run-refuse")" = 0 ]; then
   fail "the image refuses to start without company sign-in"$'\n'"$output"
 fi
-grep -q 'HEED_OIDC_ISSUER: Required when HEED_AUTH=oidc' <<< "$output" ||
+grep -q 'FOOTNOTE_OIDC_ISSUER: Required when FOOTNOTE_AUTH=oidc' <<< "$output" ||
   fail "the refusal names the sign-in settings"$'\n'"$output"
 grep -q 'set NODE_ENV=development, as compose.yaml does' <<< "$output" ||
   fail "the refusal says how to get the demo instead"$'\n'"$output"
@@ -91,18 +91,18 @@ echo 'ok - with no settings the image starts in production mode and refuses to s
 
 # 2. Production with company sign-in. Production makes no key of its own.
 docker volume create "$run-keys" > /dev/null
-docker run --rm -v "$run-keys:/var/lib/heed" "$service_image" node src/server/create-keys.ts
+docker run --rm -v "$run-keys:/var/lib/footnote" "$service_image" node src/server/create-keys.ts
 docker run -d --name "$run-service" --network "$run" "${database[@]}" \
-  -v "$run-keys:/var/lib/heed" \
+  -v "$run-keys:/var/lib/footnote" \
   -e "MCP_RESOURCE_URL=$public_origin/mcp" \
-  -e "HEED_WEB_ORIGINS=$public_origin" \
-  -e HEED_OIDC_ISSUER=http://127.0.0.1:9400 \
-  -e HEED_OIDC_CLIENT_ID=heed-test \
-  -e HEED_OIDC_ADMIN_GROUPS=heed-admins \
-  -e HEED_TRUSTED_PROXIES=uniquelocal \
+  -e "FOOTNOTE_WEB_ORIGINS=$public_origin" \
+  -e FOOTNOTE_OIDC_ISSUER=http://127.0.0.1:9400 \
+  -e FOOTNOTE_OIDC_CLIENT_ID=footnote-test \
+  -e FOOTNOTE_OIDC_ADMIN_GROUPS=footnote-admins \
+  -e FOOTNOTE_TRUSTED_PROXIES=uniquelocal \
   "$service_image" > /dev/null
 docker run -d --name "$run-web" --network "$run" --ip "$web_ip" \
-  -e "HEED_API_URL=http://$run-service:3000" "$web_image" > /dev/null
+  -e "FOOTNOTE_API_URL=http://$run-service:3000" "$web_image" > /dev/null
 # The check shares the service's network, where the provider it starts is on 127.0.0.1 too.
 docker run --rm --network "container:$run-service" -v "$root/tests:/app/tests:ro" \
   -e "PUBLIC_ORIGIN=$public_origin" -e "WEB_URL=$web_url" -e ISSUER_PORT=9400 \

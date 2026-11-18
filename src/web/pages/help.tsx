@@ -9,8 +9,8 @@ import {
   SearchIcon,
   XIcon,
 } from '@/components/icons'
-import { StateLine } from '@/components/heed/bits'
-import { Frame, FrameFooter, FramePage, FrameSection } from '@/components/heed/frame'
+import { StateLine } from '@/components/footnote/bits'
+import { Frame, FrameFooter, FramePage, FrameSection } from '@/components/footnote/frame'
 import { Switch } from '@/components/ui/switch'
 import { hasSlowNetwork, setSlowNetwork, useSlowNetwork } from '@/lib/loading'
 import { Page } from '@/components/site-header'

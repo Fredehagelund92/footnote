@@ -44,7 +44,7 @@ import type { TransactionHooks } from './workspace.ts'
   integration's own (CON-406).
 
   The days apply to one of the view's dates: its only one, or, with several, the one the tool's
-  model names, else the one the server's figure settings name (`HEED_FIGURE_OVERRIDES`, a JSON file
+  model names, else the one the server's figure settings name (`FOOTNOTE_FIGURE_OVERRIDES`, a JSON file
   read when the service starts, by source and then by view or measure). With several and none
   named, there is no figure, and the answer lists the dates rather than pick one.
 
@@ -125,7 +125,7 @@ const figureSettingsSchema = z.strictObject({
 })
 
 /**
- * The server's figure settings (`HEED_FIGURE_OVERRIDES`): by source id, then by view (`orders`)
+ * The server's figure settings (`FOOTNOTE_FIGURE_OVERRIDES`): by source id, then by view (`orders`)
  * or measure (`orders.revenue`), what the tool's model leaves unsaid. A measure's own win.
  */
 export const figureOverridesSchema = z.record(
@@ -140,12 +140,12 @@ export async function readFigureOverrides(file: string): Promise<FigureOverrides
   try {
     parsed = JSON.parse(await readFile(file, 'utf8'))
   } catch {
-    throw new Error(`HEED_FIGURE_OVERRIDES: ${file} is not a JSON file that can be read.`)
+    throw new Error(`FOOTNOTE_FIGURE_OVERRIDES: ${file} is not a JSON file that can be read.`)
   }
   const checked = figureOverridesSchema.safeParse(parsed)
   if (!checked.success)
     throw new Error(
-      `HEED_FIGURE_OVERRIDES: ${file} is not by source, then by view or measure, of known settings.`,
+      `FOOTNOTE_FIGURE_OVERRIDES: ${file} is not by source, then by view or measure, of known settings.`,
     )
   return checked.data
 }

@@ -73,7 +73,7 @@ export async function openArm(
     wallClock: () => clock.now(),
   })
   const base = await app.listen({ host: '127.0.0.1', port: 0 })
-  const client = new Client({ name: 'heed-eval-runner', version: '1.0.0' })
+  const client = new Client({ name: 'footnote-eval-runner', version: '1.0.0' })
   try {
     const token = await mintDevToken(privateKey, resource, {
       client: evalClient,

@@ -67,7 +67,7 @@ describe('health', () => {
     const { instance } = app(reachable)
     const response = await instance.inject({ method: 'GET', url: '/health' })
     expect(response.statusCode).toBe(200)
-    expect(response.json()).toEqual({ status: 'ok', service: 'heed', version: footnoteVersion })
+    expect(response.json()).toEqual({ status: 'ok', service: 'footnote', version: footnoteVersion })
   })
 
   it('is ready when the database answers', async () => {
@@ -76,7 +76,7 @@ describe('health', () => {
     expect(response.statusCode).toBe(200)
     expect(response.json()).toEqual({
       status: 'ok',
-      service: 'heed',
+      service: 'footnote',
       version: footnoteVersion,
       checks: { database: 'ok' },
     })
@@ -91,7 +91,7 @@ describe('health', () => {
     expect(response.statusCode).toBe(503)
     expect(response.json()).toEqual({
       status: 'unavailable',
-      service: 'heed',
+      service: 'footnote',
       version: footnoteVersion,
       checks: { database: 'unavailable' },
     })
@@ -144,7 +144,7 @@ describe('request logs', () => {
     })
     const records = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
     expect(records).toContainEqual(
-      expect.objectContaining({ name: 'heed', req: { method: 'GET', path: '/health' } }),
+      expect.objectContaining({ name: 'footnote', req: { method: 'GET', path: '/health' } }),
     )
     expect(records).toContainEqual(expect.objectContaining({ res: { statusCode: 200 } }))
     const text = lines.join('\n')
@@ -160,7 +160,7 @@ describe('request logs', () => {
         headers: {
           authorization: 'Bearer secret-token',
           cookie: 'a=b',
-          'x-heed-csrf': 'secret-csrf',
+          'x-footnote-csrf': 'secret-csrf',
         },
       },
       'oops',

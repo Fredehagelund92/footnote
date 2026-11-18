@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { chmod, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { chmod, mkdtemp, writeFile, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,41 +26,67 @@ describe('creating the keys production needs', { timeout: 30_000 }, () => {
   it('creates each missing key owner-only, keeps one that exists, and prints no key', async () => {
     folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
     const env = {
-      HEED_OAUTH_SIGNING_KEY_FILE: join(folder, 'oauth-key.pem'),
-      HEED_MCP_STATE_KEY_FILE: join(folder, 'mcp-state.key'),
+      FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, 'oauth-key.pem'),
+      FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, 'mcp-state.key'),
     }
     const first = run(env)
     expect(first.status).toBe(0)
     expect(first.stdout).toBe(
-      `HEED_OAUTH_SIGNING_KEY_FILE: created ${env.HEED_OAUTH_SIGNING_KEY_FILE}\n` +
-        `HEED_MCP_STATE_KEY_FILE: created ${env.HEED_MCP_STATE_KEY_FILE}\n`,
+      `FOOTNOTE_OAUTH_SIGNING_KEY_FILE: created ${env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE}\n` +
+        `FOOTNOTE_MCP_STATE_KEY_FILE: created ${env.FOOTNOTE_MCP_STATE_KEY_FILE}\n`,
     )
     for (const file of Object.values(env)) expect((await stat(file)).mode & 0o777).toBe(0o600)
-    const signingKey = await readFile(env.HEED_OAUTH_SIGNING_KEY_FILE, 'utf8')
+    const signingKey = await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')
     expect(signingKey).toContain('BEGIN PRIVATE KEY')
-    const stateKey = await readFile(env.HEED_MCP_STATE_KEY_FILE, 'utf8')
+    const stateKey = await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')
 
     const second = run(env)
     expect(second.status).toBe(0)
     expect(second.stdout).toContain(
-      `HEED_OAUTH_SIGNING_KEY_FILE: kept ${env.HEED_OAUTH_SIGNING_KEY_FILE}`,
+      `FOOTNOTE_OAUTH_SIGNING_KEY_FILE: kept ${env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE}`,
     )
-    expect(second.stdout).toContain(`HEED_MCP_STATE_KEY_FILE: kept ${env.HEED_MCP_STATE_KEY_FILE}`)
-    expect(await readFile(env.HEED_OAUTH_SIGNING_KEY_FILE, 'utf8')).toBe(signingKey)
-    expect(await readFile(env.HEED_MCP_STATE_KEY_FILE, 'utf8')).toBe(stateKey)
+    expect(second.stdout).toContain(
+      `FOOTNOTE_MCP_STATE_KEY_FILE: kept ${env.FOOTNOTE_MCP_STATE_KEY_FILE}`,
+    )
+    expect(await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')).toBe(signingKey)
+    expect(await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')).toBe(stateKey)
     expect(second.stdout + second.stderr).not.toContain('PRIVATE KEY')
+  })
+
+  it('reports a key moved from its former default name as kept, never created', async () => {
+    folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
+    const env = {
+      FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, '.footnote-oauth-key.pem'),
+      FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, '.footnote-mcp-state.key'),
+    }
+    expect(run(env).status).toBe(0)
+    const signingKey = await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')
+    const stateKey = await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')
+    await rm(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE)
+    await rm(env.FOOTNOTE_MCP_STATE_KEY_FILE)
+    const formerSigning = join(folder, '.heed-oauth-key.pem')
+    const formerState = join(folder, '.heed-mcp-state.key')
+    await writeFile(formerSigning, signingKey, { mode: 0o600 })
+    await writeFile(formerState, stateKey, { mode: 0o600 })
+    const moved = run(env)
+    expect(moved.status).toBe(0)
+    expect(moved.stdout).toContain('FOOTNOTE_OAUTH_SIGNING_KEY_FILE: kept')
+    expect(moved.stdout).toContain('FOOTNOTE_MCP_STATE_KEY_FILE: kept')
+    expect(moved.stdout).not.toContain('created')
+    expect(await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')).toBe(signingKey)
   })
 
   it('refuses a key others can read, and says which file', async () => {
     folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
     const file = join(folder, 'oauth-key.pem')
     expect(
-      run({ HEED_OAUTH_SIGNING_KEY_FILE: file, HEED_MCP_STATE_KEY_FILE: join(folder, 's') }).status,
+      run({ FOOTNOTE_OAUTH_SIGNING_KEY_FILE: file, FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, 's') })
+        .status,
     ).toBe(0)
     await chmod(file, 0o644)
     const refused = run({
-      HEED_OAUTH_SIGNING_KEY_FILE: file,
-      HEED_MCP_STATE_KEY_FILE: join(folder, 's'),
+      FOOTNOTE_OAUTH_SIGNING_KEY_FILE: file,
+      FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, 's'),
     })
     expect(refused.status).toBe(1)
     expect(refused.stderr).toContain(`Keys not created: ${file} must be readable by its owner only`)

@@ -28,7 +28,7 @@ export interface ReadKind {
  * other here, and nothing else does. Held until the transaction ends.
  */
 export async function holdRead(tx: Queryable, sourceId: string): Promise<void> {
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.read:' || $1, 0))", [
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.read:' || $1, 0))", [
     sourceId,
   ])
 }

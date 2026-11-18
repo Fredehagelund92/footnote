@@ -12,7 +12,7 @@ import { startOidcProvider } from '../integration/oidc-provider.ts'
   prints one line; the first that fails stops the check with what it got.
 */
 
-const publicOrigin = process.env.PUBLIC_ORIGIN ?? 'https://heed.example.test'
+const publicOrigin = process.env.PUBLIC_ORIGIN ?? 'https://footnote.example.test'
 const serviceUrl = process.env.SERVICE_URL ?? 'http://127.0.0.1:3000'
 const webUrl = process.env.WEB_URL ?? 'http://127.0.0.1:8080'
 const issuerPort = Number(process.env.ISSUER_PORT ?? 9400)
@@ -117,7 +117,7 @@ try {
     email: 'rowan.tester@example.test',
     email_verified: true,
     name: 'Rowan Tester',
-    groups: ['heed-admins'],
+    groups: ['footnote-admins'],
   })
   await ready()
   check(true, 'the service in production mode is ready')
@@ -150,9 +150,9 @@ try {
   keepCookies(finished)
   check(
     finished.status === 302 &&
-      String(finished.headers.location).startsWith(publicOrigin) &&
+      new URL(String(finished.headers.location), publicOrigin).origin === publicOrigin &&
       !String(finished.headers.location).includes('error=') &&
-      jar.has('heed_session'),
+      jar.has('footnote_session'),
     'Footnote signs the person in and sends them to the web app',
     finished,
   )
@@ -174,7 +174,7 @@ try {
     headers: {
       cookie: cookie(),
       origin: publicOrigin,
-      'x-heed-csrf': csrfToken!,
+      'x-footnote-csrf': csrfToken!,
       'content-type': 'application/json',
     },
     body: JSON.stringify({ name: 'Production boot check' }),

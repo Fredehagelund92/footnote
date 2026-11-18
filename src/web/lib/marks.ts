@@ -1,4 +1,4 @@
-// Which rows of a list carry a mark (components/heed/mark.tsx draws it).
+// Which rows of a list carry a mark (components/footnote/mark.tsx draws it).
 
 /**
  * Whether a list marks its exceptions: when every row of two or more would carry the same mark,

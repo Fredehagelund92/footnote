@@ -295,7 +295,7 @@ export async function restoreDrill(options: DrillOptions): Promise<DrillReport> 
   })
   const source = new pg.Client({ connectionString: options.sourceUrl })
   const directory = await mkdtemp(join(tmpdir(), 'footnote-drill-'))
-  const dumpFile = join(directory, 'heed.dump')
+  const dumpFile = join(directory, 'footnote.dump')
   let created = false
   let restored: pg.Client | undefined
   try {

@@ -28,7 +28,7 @@ repository is a change of where it is loaded and how its messages travel, not of
 
 1. The operator installs the package with npm, with install scripts off.
 2. The operator names it in the server's configuration. Nothing is installed from the browser.
-3. At start, Footnote reads the manifest from the package's `heed.connector` field in
+3. At start, Footnote reads the manifest from the package's `footnote.connector` field in
    `package.json`, checks it like a built-in manifest, checks that the interface range is one this
    build supports, and checks the support level against what the operator allows.
 4. Footnote runs it out of process (T2 in [Security and egress](../contributing/connector-security.md#where-connector-code-runs)):
@@ -36,7 +36,7 @@ repository is a change of where it is loaded and how its messages travel, not of
    manifest's hosts and attaches credentials, and read access only to its own package.
 
 The operator may narrow the built-in connectors in the same configuration (for example
-`HEED_CONNECTORS=cube-files,git-markdown`).
+`FOOTNOTE_CONNECTORS=cube-files,git-markdown`).
 
 ## Support levels
 
@@ -51,8 +51,8 @@ run (T3).
 
 ## What gets published
 
-- `@heed/connector-kit`: the manifest schema, the runtime and message types, `ctx` and the
-  conformance kit (`@heed/connector-kit/testing`), versioned with the interface, not with Footnote.
+- `@footnote/connector-kit`: the manifest schema, the runtime and message types, `ctx` and the
+  conformance kit (`@footnote/connector-kit/testing`), versioned with the interface, not with Footnote.
 - A validator for CI that checks a package's manifest, README and kit run.
 - An interface changelog, with the date each major stops being supported (CON-109).
 

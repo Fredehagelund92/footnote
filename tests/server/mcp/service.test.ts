@@ -613,7 +613,7 @@ describe('what a model reads (FR-346)', () => {
 })
 
 describe('the page of each delivered item in Footnote (FR-347)', () => {
-  const web = 'https://heed.example.test'
+  const web = 'https://footnote.example.test'
   function linked(address: string | null) {
     const s = setup()
     // An item for the board only: an agent never gets it, so no link may name it.

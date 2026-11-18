@@ -2,7 +2,7 @@ import { useQueryErrorResetBoundary } from '@tanstack/react-query'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { toApiError } from '@/api/errors'
 import { CircleAlertIcon } from '@/components/icons'
-import { Logo } from '@/components/heed/logo'
+import { Logo } from '@/components/footnote/logo'
 import { Button } from '@/components/ui/button'
 import {
   Empty,

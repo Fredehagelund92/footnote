@@ -26,23 +26,23 @@ import {
 } from '@/components/icons'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { PersonAvatar } from '@/components/heed/bits'
-import { Mark } from '@/components/heed/mark'
+import { PersonAvatar } from '@/components/footnote/bits'
+import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { Page } from '@/components/site-header'
 import { CONNECTOR_REQUEST_URL } from '@domain/brand'
 import { fieldVisible, noSecretStoreHost, noSecretStorePlain } from '@domain/connector-config'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { FoldTrigger } from '@/components/heed/fold'
+import { FoldTrigger } from '@/components/footnote/fold'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { CopiedIcon, useCopied } from '@/components/heed/copied-icon'
+import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
 import { useShowMore } from '@/hooks/use-show-more'
-import { ShowMoreButton } from '@/components/heed/show-more'
+import { ShowMoreButton } from '@/components/footnote/show-more'
 import {
   Dialog,
   DialogContent,
@@ -124,11 +124,17 @@ import {
   useIntegrations,
   useWrite,
 } from '@/api/queries'
-import { Loadable, RowsSkeleton } from '@/components/heed/load-state'
+import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
 import { useDomainList, useDomains, usePeople } from '@/lib/workspace'
 import { useDefinitions } from '@/lib/definitions'
 import { SettingsCrumbs } from '@/pages/settings'
-import { Frame, FrameNumbers, FramePage, FrameScroll, FrameSection } from '@/components/heed/frame'
+import {
+  Frame,
+  FrameNumbers,
+  FramePage,
+  FrameScroll,
+  FrameSection,
+} from '@/components/footnote/frame'
 
 // Settings > Integrations: the tools Footnote reads. Connected tools as rows (is it healthy, when did
 // it last read, what is waiting), available tools as Efferd hairline cells below in two groups,
@@ -201,7 +207,7 @@ function ReadBadge({ read }: { read: 'queued' | 'reading' }) {
 
 const dotCls = { ok: 'bg-good', changed: 'bg-caution', failed: 'bg-destructive' }
 
-// The connector pages are built from the shared square frames (components/heed/frame.tsx).
+// The connector pages are built from the shared square frames (components/footnote/frame.tsx).
 const Panel = Frame
 function PanelSection(props: React.ComponentProps<typeof FrameSection>) {
   return <FrameSection level={3} {...props} />

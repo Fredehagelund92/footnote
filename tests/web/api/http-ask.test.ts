@@ -542,7 +542,7 @@ describe("the person's chats in the browser", () => {
 
   it('reads a shelf it cannot parse as no chats', () => {
     const shelf = memory()
-    shelf.set('heed.ask.chats.per_jon', '{not json')
+    shelf.set('footnote.ask.chats.per_jon', '{not json')
     expect(createChatShelf(shelf).list('per_jon')).toEqual([])
   })
 

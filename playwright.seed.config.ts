@@ -54,11 +54,11 @@ const config = defineConfig({
         ...(process.env.E2E_DATABASE_SERVE_URL
           ? { DATABASE_URL_SERVE: process.env.E2E_DATABASE_SERVE_URL }
           : {}),
-        HEED_WEB_ORIGINS: `http://localhost:${webPort}`,
+        FOOTNOTE_WEB_ORIGINS: `http://localhost:${webPort}`,
         MCP_RESOURCE_URL: `http://localhost:${apiPort}/mcp`,
         // As compose.yaml runs it: the demo Cube model, and the demo people's sign-in.
         CUBE_MODEL_DIR: 'db/seed/cube',
-        HEED_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
+        FOOTNOTE_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
       },
     },
     {
@@ -68,7 +68,7 @@ const config = defineConfig({
       url: `http://localhost:${webPort}`,
       reuseExistingServer: !ci,
       timeout: 180_000,
-      env: { VITE_API_MODE: 'http', HEED_API_URL: apiUrl },
+      env: { VITE_API_MODE: 'http', FOOTNOTE_API_URL: apiUrl },
     },
   ],
 })

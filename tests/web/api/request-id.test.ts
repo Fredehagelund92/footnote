@@ -28,7 +28,7 @@ const failure = (read: Promise<unknown>) =>
 
 describe('the request id of a failed read', () => {
   it('goes with the error the service answered', async () => {
-    const api = createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch: failing })
+    const api = createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch: failing })
     const error = await failure(api.getLibrary())
     expect(error).toBeInstanceOf(ApiError)
     expect(error.kind).toBe('failed')
@@ -37,7 +37,7 @@ describe('the request id of a failed read', () => {
 
   it('is missing when nothing answered', async () => {
     const offline: typeof globalThis.fetch = () => Promise.reject(new TypeError('Failed to fetch'))
-    const api = createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch: offline })
+    const api = createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch: offline })
     const error = await failure(api.getLibrary())
     expect(error.kind).toBe('unanswered')
     expect(error.requestId).toBeUndefined()

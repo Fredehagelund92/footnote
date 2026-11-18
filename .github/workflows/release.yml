@@ -108,7 +108,7 @@ jobs:
             description: The web app, served by nginx, which forwards /api/v1 to the service.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Named after the repository, ghcr.io/fredehagelund92/heed and heed-web here, so a fork
+      # Named after the repository, ghcr.io/fredehagelund92/footnote and footnote-web here, so a fork
       # never pushes to this repository's names.
       - name: Image name
         id: name
@@ -205,7 +205,7 @@ jobs:
           path: ${{ runner.temp }}/digests
           pattern: digest-${{ matrix.image }}-*
           merge-multiple: true
-      # The version, its minor line and latest: ghcr.io/fredehagelund92/heed:0.1.0, :0.1 and :latest.
+      # The version, its minor line and latest: ghcr.io/fredehagelund92/footnote:0.1.0, :0.1 and :latest.
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta
         env:
@@ -344,7 +344,7 @@ jobs:
     steps:
       - name: The docs build failed, so the release has no docs tarball
         if: ${{ needs.docs.result != 'success' }}
-        run: echo "::warning::The docs site build did not succeed, so heed-docs-${{ needs.check.outputs.version }}.tar.gz was not attached to the release. The release and the images are unaffected."
+        run: echo "::warning::The docs site build did not succeed, so footnote-docs-${{ needs.check.outputs.version }}.tar.gz was not attached to the release. The release and the images are unaffected."
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: ${{ needs.docs.result == 'success' }}
         with:
@@ -356,5 +356,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
         run: |
-          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/docs/heed-docs-$VERSION.tar.gz" \
+          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/docs/footnote-docs-$VERSION.tar.gz" \
             --repo "$GITHUB_REPOSITORY" --clobber

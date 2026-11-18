@@ -27,7 +27,7 @@ type Reply = {
   note: string
   instructions: string
   sentence: string
-  in_heed: string
+  in_footnote: string
   cut: boolean
   coverage: Line
   check_report: { statements: string[]; withheld: number }
@@ -115,7 +115,8 @@ describe('find_context (FR-338)', () => {
           definition: 'The value of paid orders, in euros.',
           origin: 'source',
           source: { tool: 'Cube', state: 'current' },
-          heed_adds: 'AI agents get 1 checked context item about Orders with their data: 1 event.',
+          footnote_adds:
+            'AI agents get 1 checked context item about Orders with their data: 1 event.',
         },
       ],
     })
@@ -139,7 +140,7 @@ describe('find_context (FR-338)', () => {
     })
     for (const input of [{ query: 'Orders' }, { query: 'Orders', domain: 'Finance' }]) {
       const { out } = await s.call('find_context', input)
-      expect(out.definitions[0]!.heed_adds).toBe(
+      expect(out.definitions[0]!.footnote_adds).toBe(
         'AI agents get 1 checked context item about Orders with their data: 1 event. The library holds 3 context items about Orders, the count its catalogue shows; AI agents get 1 of them, not the other 2 yet: they are high risk and wait for a check.',
       )
     }
@@ -505,7 +506,8 @@ describe('get_facts for a definition question (FR-338)', () => {
           definition: 'The value of paid orders, in euros.',
           origin: 'source',
           source: { tool: 'Cube', ref: 'cube:finance.orders', state: 'current' },
-          heed_adds: 'AI agents get 1 checked context item about Orders with their data: 1 event.',
+          footnote_adds:
+            'AI agents get 1 checked context item about Orders with their data: 1 event.',
         },
       ],
       items: [{ id: 'itm_norway01' }],

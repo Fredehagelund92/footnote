@@ -1,8 +1,8 @@
 # Test question template: copy this file, replace the three worked examples with your own
 # questions, then
 #
-#   npm run heed -- import-tests my-questions.yaml --as <your email>           # dry run
-#   npm run heed -- import-tests my-questions.yaml --apply --as <your email>   # saves them
+#   npm run footnote -- import-tests my-questions.yaml --as <your email>           # dry run
+#   npm run footnote -- import-tests my-questions.yaml --apply --as <your email>   # saves them
 #
 # or POST the file's text to /api/v1/evals/import as `{ "content": "...", "dryRun": false }`
 # (signed in, with the CSRF header and an Idempotency-Key, as every change). Nothing is saved

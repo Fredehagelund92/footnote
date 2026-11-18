@@ -2,9 +2,9 @@ import * as React from 'react'
 import { MailIcon, SearchIcon, UserPlusIcon } from '@/components/icons'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { PersonAvatar } from '@/components/heed/bits'
-import { Frame, FrameSection } from '@/components/heed/frame'
-import { DomainDot, TagChip } from '@/components/heed/tag-chip'
+import { PersonAvatar } from '@/components/footnote/bits'
+import { Frame, FrameSection } from '@/components/footnote/frame'
+import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

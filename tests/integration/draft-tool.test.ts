@@ -223,7 +223,7 @@ describe('an AI agent drafts context for the person it acts for', () => {
       headers: {
         origin: harness.web,
         'content-type': 'application/json',
-        'x-heed-csrf': await csrfOf(author),
+        'x-footnote-csrf': await csrfOf(author),
         'idempotency-key': randomUUID(),
       },
       body: JSON.stringify({

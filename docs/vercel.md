@@ -43,7 +43,7 @@ Create the Neon project in the same region as the function: AWS Europe Central 1
 
 ### Roles
 
-1. In the Neon console, create `context_layer_owner`, and a database `heed` that it owns.
+1. In the Neon console, create `context_layer_owner`, and a database `footnote` that it owns.
 2. Connect as `context_layer_owner` and create the three runtime roles, each with a long random password of its own:
 
    ```sql
@@ -63,11 +63,11 @@ The demo seed needs a superuser, and Neon has none. So seed it on a PostgreSQL 1
 ```sh
 # 1. Seed the demo in a scratch database and write it to a file (about 3 MB, a minute or two).
 DATABASE_URL_BOOTSTRAP=postgres://<superuser>@localhost:5432/postgres \
-  npm run db:snapshot -- take --file heed-demo.dump --model vercel-gateway:anthropic/claude-haiku-5.5
+  npm run db:snapshot -- take --file footnote-demo.dump --model vercel-gateway:anthropic/claude-haiku-5.5
 
 # 2. Restore it into the empty database on Neon, as the owner, on the direct address.
-DATABASE_URL_MIGRATE='postgres://context_layer_owner:<password>@<endpoint>.eu-central-1.aws.neon.tech/heed?sslmode=require' \
-  npm run db:snapshot -- restore --file heed-demo.dump
+DATABASE_URL_MIGRATE='postgres://context_layer_owner:<password>@<endpoint>.eu-central-1.aws.neon.tech/footnote?sslmode=require' \
+  npm run db:snapshot -- restore --file footnote-demo.dump
 ```
 
 - `--model` sets every model role but the judge to that provider and model, so the service can start with real models. Without it, the file keeps the defaults, which need `ANTHROPIC_API_KEY`.
@@ -79,7 +79,7 @@ DATABASE_URL_MIGRATE='postgres://context_layer_owner:<password>@<endpoint>.eu-ce
 This drops everything the owner owns in that database, including anything you added beside the demo, and restores the file. It refuses a database that holds anything but the demo.
 
 ```sh
-DATABASE_URL_MIGRATE='<the owner, on the direct address>' npm run db:snapshot -- reset --file heed-demo.dump
+DATABASE_URL_MIGRATE='<the owner, on the direct address>' npm run db:snapshot -- reset --file footnote-demo.dump
 ```
 
 With Neon branches, the reset can be Neon's own: restore the file into a branch `golden`, make the branch the function reads (`live`) its child, and reset `live` from its parent. The addresses stay the same.
@@ -90,25 +90,25 @@ The demo's story is told relative to the day it was seeded, and its partitions r
 
 Set these as the project's environment variables in Vercel. A key or password goes in only there.
 
-| Setting                     | Value                                                                                                                |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`              | `context_layer_api` on Neon's **pooled** address, with `?sslmode=require`                                            |
-| `DATABASE_URL_SERVE`        | `context_layer_serve` with its own password                                                                          |
-| `HEED_WEB_ORIGINS`          | The deployment's address, such as `https://heed-demo.vercel.app`. A preview address needs its own value              |
-| `MCP_RESOURCE_URL`          | `https://<the same address>/mcp`. No MCP server runs, but company sign-in's default return address is on this origin |
-| `NODE_ENV` and `HEED_AUTH`  | `development` and `demo` for the people picker. Or production with [company sign-in](company-sign-in.md)             |
-| `MODELS`                    | `live` for Ask's own words from a real model. Start-up refuses until each role's provider has its key                |
-| `VERCEL_AI_GATEWAY_API_KEY` | The key of the AI Gateway, with a budget on that key. Ask still answers without the model when the budget is spent   |
-| `HEED_FIXED_TODAY`          | The day the snapshot was taken, so the demo's today stays its own. Refused in production                             |
-| `LOG_LEVEL`                 | `info` unless set                                                                                                    |
+| Setting                        | Value                                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                 | `context_layer_api` on Neon's **pooled** address, with `?sslmode=require`                                            |
+| `DATABASE_URL_SERVE`           | `context_layer_serve` with its own password                                                                          |
+| `FOOTNOTE_WEB_ORIGINS`         | The deployment's address, such as `https://footnote-demo.vercel.app`. A preview address needs its own value          |
+| `MCP_RESOURCE_URL`             | `https://<the same address>/mcp`. No MCP server runs, but company sign-in's default return address is on this origin |
+| `NODE_ENV` and `FOOTNOTE_AUTH` | `development` and `demo` for the people picker. Or production with [company sign-in](company-sign-in.md)             |
+| `MODELS`                       | `live` for Ask's own words from a real model. Start-up refuses until each role's provider has its key                |
+| `VERCEL_AI_GATEWAY_API_KEY`    | The key of the AI Gateway, with a budget on that key. Ask still answers without the model when the budget is spent   |
+| `FOOTNOTE_FIXED_TODAY`         | The day the snapshot was taken, so the demo's today stays its own. Refused in production                             |
+| `LOG_LEVEL`                    | `info` unless set                                                                                                    |
 
-The function sets `HEED_TRUSTED_PROXIES=vercel` and `HEED_LOGIN_SERVER=off` unless you do.
+The function sets `FOOTNOTE_TRUSTED_PROXIES=vercel` and `FOOTNOTE_LOGIN_SERVER=off` unless you do.
 
-A preview address needs its own `HEED_WEB_ORIGINS`, because a change from any other address is refused.
+A preview address needs its own `FOOTNOTE_WEB_ORIGINS`, because a change from any other address is refused.
 
 ## Callers' addresses and request limits
 
-Every request reaches the function through Vercel's edge. `HEED_TRUSTED_PROXIES=vercel` believes that one hop and counts by the address the edge writes in `X-Forwarded-For`. So each visitor has a count of their own, and nobody can lock out sign-in for everyone else.
+Every request reaches the function through Vercel's edge. `FOOTNOTE_TRUSTED_PROXIES=vercel` believes that one hop and counts by the address the edge writes in `X-Forwarded-For`. So each visitor has a count of their own, and nobody can lock out sign-in for everyone else.
 
 - Setting it to an empty value overrides the default, and every caller then shares one count.
 - Never set `vercel` where anything but Vercel's edge connects. It believes whoever connects, so a caller could name any address and never be limited.

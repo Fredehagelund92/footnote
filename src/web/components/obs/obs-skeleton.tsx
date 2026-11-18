@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { Frame, FrameSection } from '@/components/heed/frame'
-import { ChartSkeleton, KpiSkeleton, RowsSkeleton } from '@/components/heed/load-state'
+import { Frame, FrameSection } from '@/components/footnote/frame'
+import { ChartSkeleton, KpiSkeleton, RowsSkeleton } from '@/components/footnote/load-state'
 import { OBS_PURPOSE, OBS_TITLES, type ObsSection } from '@/lib/obs'
 
 // Each Observability page while its counts load, in its own shape: the frame, its title and line

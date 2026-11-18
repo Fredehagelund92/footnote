@@ -508,14 +508,14 @@ async function sendSuggestions(databaseUrl: string): Promise<{
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${personId(name)}@example.test` },
     })
     if (response.statusCode !== 200) throw new Error(`${name} could not sign in: ${response.body}`)
     const headers = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
     sessions.set(name, headers)
     return headers

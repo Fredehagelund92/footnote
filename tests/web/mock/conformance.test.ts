@@ -1,7 +1,7 @@
 import { beforeEach, vi } from 'vitest'
 import { footnoteApiMethods, type FootnoteApi } from '@/api/client'
 import { createMockApi } from '@/api/mock'
-import { describeFootnoteApi } from '../conformance/heed-api'
+import { describeFootnoteApi } from '../conformance/footnote-api'
 
 // The mock binding answers every method. The same suite runs against the http binding in
 // tests/web/integration/http-api.test.ts.

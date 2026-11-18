@@ -72,7 +72,7 @@ import {
   writes everything else from what the tools returned: which context items the words cite, the
   answer state, the footer and what was read. Before its words are shown they pass the answer
   check (loop-check.ts): what fails is written once more out of sight, and what still fails says
-  so in a fixed sentence. HEED_ASK_LOOP=off answers with the router instead.
+  so in a fixed sentence. FOOTNOTE_ASK_LOOP=off answers with the router instead.
 
   - The chat. The browser sends each earlier turn with what Ask said and what it read, by tool and
     input (FR-719.1). Each read is made again, as the person, now, before the model sees its

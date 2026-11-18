@@ -9,7 +9,7 @@ tests that need PostgreSQL 18, against `TEST_DATABASE_URL` (default
 ## Tests
 
 - **Unit (Vitest).** The web app's own units in `tests/web`: the mock binding against the
-  `FootnoteApi` conformance suite (`tests/web/conformance/heed-api.ts`), the http binding's mapping of
+  `FootnoteApi` conformance suite (`tests/web/conformance/footnote-api.ts`), the http binding's mapping of
   the service's answers, the router, the theme bootstrap and the rules in `lib`. The pure domain
   in `tests/server/domain`.
 - **Service (Vitest).** Configuration, health checks, request logs without headers or query

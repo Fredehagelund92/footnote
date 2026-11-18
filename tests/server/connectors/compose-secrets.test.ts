@@ -20,9 +20,9 @@ const read = async (file: string) =>
   parse(await readFile(new URL(`../../../${file}`, import.meta.url), 'utf8')) as Compose
 
 const compose = await read('compose.yaml')
-const heed = compose.services['heed']!
-const secretsDir = heed.environment!['HEED_SECRETS_DIR']!
-const keysVolume = heed.volumes!.find((volume) => volume.startsWith('keys:'))!.split(':')[1]!
+const footnote = compose.services['footnote']!
+const secretsDir = footnote.environment!['FOOTNOTE_SECRETS_DIR']!
+const keysVolume = footnote.volumes!.find((volume) => volume.startsWith('keys:'))!.split(':')[1]!
 
 const temporary: string[] = []
 afterEach(async () => {
@@ -47,7 +47,7 @@ describe('the secret store in compose', () => {
 
   it('comes with the images form, which sets no environment of its own', async () => {
     const images = await read('compose.images.yaml')
-    expect(images.services['heed']).toEqual({ image: expect.any(String) as string })
+    expect(images.services['footnote']).toEqual({ image: expect.any(String) as string })
   })
 
   it('saves a secret and reads it back after the service starts again', async () => {

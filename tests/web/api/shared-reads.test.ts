@@ -12,7 +12,7 @@ function service(status = 200) {
   return { send, sent }
 }
 
-const at = (path: string) => `https://heed.example/api/v1${path}`
+const at = (path: string) => `https://footnote.example/api/v1${path}`
 
 describe('the http binding shares identical reads', () => {
   it('sends a read in flight once, and each caller reads its own copy', async () => {

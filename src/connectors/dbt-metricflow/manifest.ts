@@ -8,14 +8,14 @@ const inGit = { field: 'location', equals: 'git' }
  * dbt MetricFlow definitions (CON-701 to CON-708): the `semantic_manifest.json` a dbt project
  * writes, read from an https address, from an object in S3, an S3-compatible store, Google Cloud
  * Storage or Azure Blob, from a Git repository an admin names, or from the folder whoever runs the
- * server names (`HEED_SERVER_FOLDERS`). Its metrics and dimensions become the definitions Footnote
+ * server names (`FOOTNOTE_SERVER_FOLDERS`). Its metrics and dimensions become the definitions Footnote
  * checks context against. A read takes that one file: never dbt itself, dbt Cloud, a warehouse or
  * data, and it keeps no calculation and no value.
  */
 export const manifest = defineManifest({
   id: 'dbt-metricflow',
   version: '1.1.0',
-  heed: '^3.3',
+  footnote: '^3.3',
   kind: 'definitions',
   tool: 'dbt',
   title: 'dbt MetricFlow definitions',
@@ -79,7 +79,7 @@ git push`,
             serverOnly: true,
             recipe: {
               lead: 'Whoever runs the service sets this up, so there is nothing to fill in here. Copy target/semantic_manifest.json to a folder on that machine and name it in the service’s settings: it then shows here as one of the server’s own sources.',
-              code: `HEED_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'`,
+              code: `FOOTNOTE_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'`,
             },
           },
         ],

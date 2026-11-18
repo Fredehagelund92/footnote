@@ -39,7 +39,7 @@ beforeAll(async () => {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { host: 'localhost', origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+    headers: { host: 'localhost', origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'per_maria@example.test' },
   })
   expect(response.statusCode).toBe(200)
@@ -172,7 +172,7 @@ describe('the catalogue on PostgreSQL', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/v1/ask/lookup',
-        headers: { cookie, 'x-heed-csrf': csrf, host: 'localhost', origin: 'http://localhost' },
+        headers: { cookie, 'x-footnote-csrf': csrf, host: 'localhost', origin: 'http://localhost' },
         payload: { question },
       })
       expect(response.statusCode, response.body).toBe(200)

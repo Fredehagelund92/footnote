@@ -25,15 +25,15 @@ A private profile is how you try Footnote on your own company's data on your own
 Start every file in it with a line that holds the marker:
 
 ```text
-HEED-PRIVATE-PROFILE <the profile's name>
+FOOTNOTE-PRIVATE-PROFILE <the profile's name>
 ```
 
-In a file with comments, put the marker in a comment; in JSON Lines, in a field of the first line. gitleaks fails any commit that carries the marker, so a profile file, or something made from one, cannot reach the repository, a pull request or the demo.
+In a file with comments, put the marker in a comment; in JSON Lines, in a field of the first line. gitleaks fails any commit that carries the marker, so a profile file, or something made from one, cannot reach the repository, a pull request or the demo. A profile made before the rename to Footnote has `HEED-` in place of `FOOTNOTE-`, which counts as the marker too.
 
 Run the profile on its own database, with its own settings file:
 
-- `HEED_PROFILE_LABEL` names it in the header and on the sign-in page, so you always see which install you are in.
-- Leave `SEED_DEMO` off and `HEED_AUTH` at `dev`: the sign-in page then says nothing about the demo, which it does only for `HEED_AUTH=demo` or with the demo loaded.
+- `FOOTNOTE_PROFILE_LABEL` names it in the header and on the sign-in page, so you always see which install you are in.
+- Leave `SEED_DEMO` off and `FOOTNOTE_AUTH` at `dev`: the sign-in page then says nothing about the demo, which it does only for `FOOTNOTE_AUTH=demo` or with the demo loaded.
 
 ## The restore drill
 

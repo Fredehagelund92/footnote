@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { Principal } from '../../../contract/auth.ts'
 import type { Queryable } from '../../db/database.ts'
+import { cookieValue, formerCookieName } from './cookie-token.ts'
 import { toPerson } from './people.ts'
 
 /*
@@ -13,7 +14,7 @@ import { toPerson } from './people.ts'
 
 export type SessionMethod = 'dev' | 'demo' | 'oidc'
 
-/** HEED_SESSION_IDLE_HOURS and HEED_SESSION_MAX_DAYS. */
+/** FOOTNOTE_SESSION_IDLE_HOURS and FOOTNOTE_SESSION_MAX_DAYS. */
 export interface SessionLifetime {
   idleHours: number
   maxDays: number
@@ -25,22 +26,33 @@ export interface Session {
   csrfToken: string
 }
 
-export const SESSION_COOKIE = 'heed_session'
+export const SESSION_COOKIE = 'footnote_session'
 export function sessionToken(cookie: string | undefined): string | undefined {
-  const values =
-    cookie
-      ?.split(';')
-      .map((v) => v.trim())
-      .filter((v) => v.startsWith(`${SESSION_COOKIE}=`)) ?? []
-  if (values.length !== 1) return undefined
-  const token = values[0]!.slice(SESSION_COOKIE.length + 1)
-  return /^[a-f0-9]{64}$/.test(token) ? token : undefined
+  return cookieValue(cookie, SESSION_COOKIE)
 }
 const hash = (token: string) => createHash('sha256').update(token).digest('hex')
 
 /** The session cookie: HttpOnly, SameSite=Strict, kept by the browser until the absolute end. */
 export const sessionCookie = (token: string, secure: boolean, age: number) =>
   `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure ? '; Secure' : ''}`
+/**
+ * The session cookie to set, and when the browser still sends one under the name before the
+ * rename to Footnote (cookie-token.ts), that one cleared: signing in or out ends it, so a session
+ * from before the upgrade never comes back once the new cookie is gone.
+ */
+export function sessionCookies(
+  cookie: string | undefined,
+  token: string,
+  secure: boolean,
+  age: number,
+): string | string[] {
+  const set = sessionCookie(token, secure, age)
+  const former = formerCookieName(SESSION_COOKIE)
+  const sent = cookie?.split(';').some((v) => v.trim().startsWith(`${former}=`))
+  return sent
+    ? [set, `${former}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure ? '; Secure' : ''}`]
+    : set
+}
 export const cookieAge = (lifetime: SessionLifetime) => lifetime.maxDays * 86_400
 
 const live = 's.expires_at > now() and s.absolute_expires_at > now()'

@@ -96,7 +96,7 @@ async function call(
     url: `/api/v1${path}`,
     headers: {
       origin: ORIGIN,
-      ...(session ? { cookie: session.cookie, 'x-heed-csrf': session.csrf } : {}),
+      ...(session ? { cookie: session.cookie, 'x-footnote-csrf': session.csrf } : {}),
       ...headers,
     },
     ...(payload === undefined ? {} : { payload: payload as Record<string, unknown> }),
@@ -141,7 +141,7 @@ beforeAll(async () => {
     const signIn = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: ORIGIN, 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: ORIGIN, 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `per_${person}@example.test` },
     })
     if (signIn.statusCode !== 200) throw new Error(`Sign-in failed: ${signIn.body}`)

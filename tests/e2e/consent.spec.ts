@@ -286,7 +286,7 @@ test("an agent's suggestion links to where it waits, in the person's Inbox", asy
   }
   const saved = await page.request.post('/api/v1/proposals', {
     headers: {
-      'x-heed-csrf': csrfToken,
+      'x-footnote-csrf': csrfToken,
       'idempotency-key': randomUUID(),
       origin: new URL(page.url()).origin,
     },

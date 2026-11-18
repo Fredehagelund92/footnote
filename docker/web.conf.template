@@ -1,11 +1,11 @@
 # The web app (Dockerfile, `web`): the production build, with /api/v1 forwarded to the service
-# at ${HEED_API_URL}, as the Vite preview server does (vite.config.ts). nginx runs as its own
+# at ${FOOTNOTE_API_URL}, as the Vite preview server does (vite.config.ts). nginx runs as its own
 # unprivileged user, so it listens on 8080.
 
 # HSTS only when a proxy in front ends TLS and says so (docs/self-hosting.md, "Put it behind
 # HTTPS"). Over plain http it is never sent: a browser would ignore it, and on localhost it would
 # pin every other local app to https.
-map $http_x_forwarded_proto $heed_hsts {
+map $http_x_forwarded_proto $footnote_hsts {
     https "max-age=31536000";
     default "";
 }
@@ -32,18 +32,18 @@ server {
 
     location /api/v1/ {
         # The service sets its own security headers on what it answers (src/server/app.ts).
-        proxy_pass ${HEED_API_URL};
+        proxy_pass ${FOOTNOTE_API_URL};
         proxy_http_version 1.1;
         proxy_set_header Host $http_host;
         # The caller's own address, which the service counts request limits by when it trusts this
-        # proxy (HEED_TRUSTED_PROXIES). Set, never appended to: an address the caller sent is dropped.
+        # proxy (FOOTNOTE_TRUSTED_PROXIES). Set, never appended to: an address the caller sent is dropped.
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # File names carry their content's hash. One that is not there is missing, not a page.
     location /assets/ {
-        include /etc/nginx/heed/security-headers.conf;
+        include /etc/nginx/footnote/security-headers.conf;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
         try_files $uri =404;
     }
@@ -51,14 +51,14 @@ server {
     # A file at the top (robots.txt, llms.txt, favicon.svg) is served as it is, and one that is
     # not there is missing, not a page: no address of the app has a dot in its first part.
     location ~ ^/[^/]+\.[^/]+$ {
-        include /etc/nginx/heed/security-headers.conf;
+        include /etc/nginx/footnote/security-headers.conf;
         add_header Cache-Control "no-cache" always;
         try_files $uri =404;
     }
 
     # Every other address is a page of the app, which says itself when it does not know one.
     location / {
-        include /etc/nginx/heed/security-headers.conf;
+        include /etc/nginx/footnote/security-headers.conf;
         add_header Cache-Control "no-cache" always;
         try_files $uri /index.html;
     }

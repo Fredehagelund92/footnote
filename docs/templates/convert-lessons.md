@@ -11,7 +11,7 @@ read that text. Footnote never reads those files itself.
   for these members**, accepted (see [Use your own data](../../README.md#use-your-own-data)).
 - Give Claude Code three things: this file, [the item template](items.yaml), and the live term
   keys. Editions › **Export JSON** on the live edition holds every term with its key
-  (`metric:...`, `dim:...`, `val:<dimension>/<value>`); `npm run heed -- schema` prints every
+  (`metric:...`, `dim:...`, `val:<dimension>/<value>`); `npm run footnote -- schema` prints every
   field of an item.
 
 ## The prompt
@@ -48,6 +48,6 @@ Write the file as lessons.yaml. After it, list the lessons you left out, each wi
 
 1. Read the file. Fix any wording that is not yours, and remove anything the data rule forbids.
 2. Check it: Administration › Import facts, paste it and choose **Check the file** (or
-   `npm run heed -- import lessons.yaml --as <your email>`). Fix what it names.
+   `npm run footnote -- import lessons.yaml --as <your email>`). Fix what it names.
 3. **Make proposals** (or `--apply`). Each item waits for its domain's owner; nothing is
    accepted by an import.

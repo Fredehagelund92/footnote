@@ -129,7 +129,7 @@ export async function seedDemo(client: pg.Client) {
   const db = seedDatabase(client)
   await client.query('begin')
   try {
-    await client.query("select pg_advisory_xact_lock(hashtextextended('heed.bulk_seed',0))")
+    await client.query("select pg_advisory_xact_lock(hashtextextended('footnote.bulk_seed',0))")
     // The items the questions expect. One they forbid may be missing: a smaller library leaves
     // out a few, and a missing item is never delivered.
     const named = new Set(

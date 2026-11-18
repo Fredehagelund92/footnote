@@ -61,7 +61,7 @@ export type Session = {
   install: 'new' | 'normal'
   /** The mock's new install (`?demo=setup`): no demo context or cards, only what this visit adds. */
   fresh: boolean
-  /** The label naming this install (HEED_PROFILE_LABEL) for the header; null when none is set. */
+  /** The label naming this install (FOOTNOTE_PROFILE_LABEL) for the header; null when none is set. */
   profileLabel: string | null
   /**
    * Who answers in Ask: an AI model; the service's scripted reader (MODELS=mock), whose answers
@@ -320,7 +320,7 @@ export type BulkChange = {
  * How this workspace signs people in: the person picker (a demo, or development), or the company's
  * OpenID Connect provider, by its name, with the address that starts a sign-in. With it, what the
  * sign-in page says of the install: whether it is the invented demo, and the label naming it
- * (HEED_PROFILE_LABEL), null when none is set.
+ * (FOOTNOTE_PROFILE_LABEL), null when none is set.
  */
 export type SignInMethod = { demo: boolean; profileLabel: string | null } & (
   { kind: 'picker' } | { kind: 'oidc'; name: string; start: string }

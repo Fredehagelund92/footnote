@@ -42,7 +42,7 @@ describe("the web reads the service's day", () => {
         dimensions: [],
       })
     }
-    const api = createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch })
+    const api = createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch })
     expect(today()).toBe(DEMO_TODAY)
     await api.contextPage()
     expect(today()).toBe('2027-01-20')

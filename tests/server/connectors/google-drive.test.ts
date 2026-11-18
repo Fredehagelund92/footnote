@@ -66,7 +66,7 @@ afterAll(() => drive.close())
 describe('the service account key', () => {
   it('is read from the JSON key file only', () => {
     const parsed = parseServiceAccountKey(key)
-    expect(parsed?.clientEmail).toBe('heed-reader@drive-fake.example.test')
+    expect(parsed?.clientEmail).toBe('footnote-reader@drive-fake.example.test')
     expect(parseServiceAccountKey('not json')).toBeNull()
     expect(parseServiceAccountKey(JSON.stringify({ type: 'authorized_user' }))).toBeNull()
     const { private_key: _key, ...withoutKey } = JSON.parse(key) as Record<string, string>
@@ -98,7 +98,7 @@ describe('a check', () => {
       ['folders', 'ok'],
       ['documents', 'ok'],
     ])
-    expect(report.steps[0]!.detail).toContain('heed-reader@drive-fake.example.test')
+    expect(report.steps[0]!.detail).toContain('footnote-reader@drive-fake.example.test')
     expect(report.steps[1]!.detail).toBe('2 folders are shared with it.')
   })
 

@@ -14,11 +14,11 @@ import {
   MentionNode,
   MentionPicker,
   type PickerHandle,
-} from '@/components/heed/mention-picker'
+} from '@/components/footnote/mention-picker'
 import { SHORTCODE, emojiQuery, fromShortcode, rememberEmoji, type Emoji } from '@/lib/emoji'
 import type { MentionKind } from '@/lib/mentions'
 
-// The text box's two lists, one popover and one keyboard model (components/heed/suggest-list.tsx):
+// The text box's two lists, one popover and one keyboard model (components/footnote/suggest-list.tsx):
 // '@' with the shared picker for one place's kinds (the Ask composer, the document editors and the
 // comment box), and ':' for emoji, where people talk to each other (comments, a
 // returned suggestion's note, the Ask composer). Context and definitions take no emoji list: agents

@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto'
 import { readFile, stat, writeFile } from 'node:fs/promises'
+import { moveFormerKeyFile } from '../config/former-key-files.ts'
 
 /*
-  The key that seals `suggest_context`'s question rounds (HEED_MCP_STATE_KEY_FILE): an HMAC key of at
+  The key that seals `suggest_context`'s question rounds (FOOTNOTE_MCP_STATE_KEY_FILE): an HMAC key of at
   least 32 bytes, written as hex, readable by its owner only. Every instance must hold the same
   key, because the person's agent may send the answers to another one. Outside production a
   missing file is created; in production a missing file turns the questions in the agent off,
@@ -24,6 +25,7 @@ async function readKey(file: string): Promise<Uint8Array> {
 
 /** The state key, or null in production when its file does not exist. */
 export async function loadStateKey(file: string, nodeEnv: string): Promise<Uint8Array | null> {
+  await moveFormerKeyFile(file)
   try {
     return await readKey(file)
   } catch (error) {

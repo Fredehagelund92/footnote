@@ -52,7 +52,7 @@ so in its notes.
       before it has a tag, and stops on a critical or high vulnerability that a newer package
       fixes;
    4. it pushes them to the GitHub Container Registry with an SBOM and the build provenance, as
-      `ghcr.io/fredehagelund92/heed` (the service) and `ghcr.io/fredehagelund92/heed-web` (the web
+      `ghcr.io/fredehagelund92/footnote` (the service) and `ghcr.io/fredehagelund92/footnote-web` (the web
       app), each tagged `0.1.0`, `0.1` and `latest`;
    5. it signs the build provenance of both images with GitHub's artifact attestations, and checks
       that each platform has its SBOM and provenance and that the signature verifies;
@@ -68,7 +68,7 @@ so in its notes.
    9. it moves the release pull request's label from `autorelease: pending` to
       `autorelease: tagged`. release-please opens no new release pull request while a merged one
       is still pending;
-   10. a last job attaches the docs as `heed-docs-0.1.0.tar.gz` to the release, only if the docs
+   10. a last job attaches the docs as `footnote-docs-0.1.0.tar.gz` to the release, only if the docs
        build succeeded. If it failed, the run shows the failed docs job and a warning that the
        tarball was not attached; the release and images are intact.
 
@@ -137,7 +137,7 @@ new repository needs them again:
    pull request workflow fails on every merge to `main` with "GitHub Actions is not permitted to
    create or approve pull requests".
 2. **After the first release**, the two packages on ghcr.io are private, as every new package is.
-   On each package's page (**Packages**, `heed` and `heed-web`, **Package settings**), choose
+   On each package's page (**Packages**, `footnote` and `footnote-web`, **Package settings**), choose
    **Change visibility**, then **Public**, so `docker pull` works without signing in. Check that
    each shows this repository under **Repository source**.
 3. Optional: a tag ruleset (**Settings, Rules, Rulesets, New tag ruleset**, for `v*`) that lets only
@@ -152,7 +152,7 @@ its own version where these say `0.2.0`:
    **Actions, Release pull request, Run workflow** on `main`, or
 
    ```sh
-   gh workflow run release-please.yml --repo Fredehagelund92/heed --ref main
+   gh workflow run release-please.yml --repo Fredehagelund92/footnote --ref main
    ```
 
 2. Read the new `CHANGELOG.md` and check that `package.json`, `package-lock.json`,
@@ -164,22 +164,22 @@ its own version where these say `0.2.0`:
 
    ```sh
    git fetch origin
-   sha=$(gh pr view <release pull request number> --repo Fredehagelund92/heed --json mergeCommit --jq .mergeCommit.oid)
+   sha=$(gh pr view <release pull request number> --repo Fredehagelund92/footnote --json mergeCommit --jq .mergeCommit.oid)
    git tag -a v0.2.0 -m "Footnote 0.2.0" "$sha"
    git push origin v0.2.0
    ```
 
 5. Watch **Actions, Release**. It takes a few minutes. When it passes, the release is at
-   `https://github.com/Fredehagelund92/heed/releases/tag/v0.2.0`.
+   `https://github.com/Fredehagelund92/footnote/releases/tag/v0.2.0`.
 6. Check the images:
 
    ```sh
-   docker buildx imagetools inspect ghcr.io/fredehagelund92/heed:0.2.0     # linux/amd64 and linux/arm64
-   gh attestation verify oci://ghcr.io/fredehagelund92/heed:0.2.0 --repo Fredehagelund92/heed
-   gh attestation verify oci://ghcr.io/fredehagelund92/heed-web:0.2.0 --repo Fredehagelund92/heed
+   docker buildx imagetools inspect ghcr.io/fredehagelund92/footnote:0.2.0     # linux/amd64 and linux/arm64
+   gh attestation verify oci://ghcr.io/fredehagelund92/footnote:0.2.0 --repo Fredehagelund92/footnote
+   gh attestation verify oci://ghcr.io/fredehagelund92/footnote-web:0.2.0 --repo Fredehagelund92/footnote
    ```
 
-7. Check that the release has `heed-docs-0.2.0.tar.gz` among its files.
+7. Check that the release has `footnote-docs-0.2.0.tar.gz` among its files.
 
 ## When something goes wrong
 

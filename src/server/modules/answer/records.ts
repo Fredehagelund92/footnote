@@ -83,7 +83,7 @@ const wordsOnly = (input: LookupInput) =>
 
 /**
  * The service's own moment, and what moves a stamp to it: a demo or a test may pin the day
- * (`HEED_FIXED_TODAY`), and then every time the database stamped while it runs is moved by the same
+ * (`FOOTNOTE_FIXED_TODAY`), and then every time the database stamped while it runs is moved by the same
  * days, onto the day it keeps. A day pinned in the past is kept whole: its moment is the end of that
  * day, so all it holds has happened, at any hour it runs. A stamp already on or before that moment
  * is the day it says, as the Context list shows it: it is left alone.

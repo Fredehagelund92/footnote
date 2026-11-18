@@ -24,12 +24,12 @@ const restrict = (rules) => rules.map(({ pattern, message }) => ({ pattern, mess
 */
 const webFiles = ['src/web/**/*.{ts,tsx}']
 const webDockFiles = [
-  'src/web/components/heed/fact-peek.tsx',
-  'src/web/components/heed/definition-peek.tsx',
-  'src/web/components/heed/peek.tsx',
-  'src/web/components/heed/where-panel.tsx',
-  'src/web/components/heed/share-answer.tsx',
-  'src/web/components/heed/answer.tsx',
+  'src/web/components/footnote/fact-peek.tsx',
+  'src/web/components/footnote/definition-peek.tsx',
+  'src/web/components/footnote/peek.tsx',
+  'src/web/components/footnote/where-panel.tsx',
+  'src/web/components/footnote/share-answer.tsx',
+  'src/web/components/footnote/answer.tsx',
   'src/web/components/obs/answer-panel.tsx',
   'src/web/components/agent-preview.tsx',
 ]
@@ -104,9 +104,11 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    // vite.config.ts puts the storage key in place of THEME_KEY when it inlines the file.
+    // vite.config.ts puts the storage keys in place of THEME_KEY and STORAGE_PREFIX when it inlines the file.
     files: ['src/web/theme-bootstrap.js'],
-    languageOptions: { globals: { ...globals.browser, THEME_KEY: 'readonly' } },
+    languageOptions: {
+      globals: { ...globals.browser, THEME_KEY: 'readonly', STORAGE_PREFIX: 'readonly' },
+    },
   },
   {
     files: [

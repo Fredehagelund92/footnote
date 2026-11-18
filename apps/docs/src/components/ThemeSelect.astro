@@ -8,14 +8,14 @@ const { root, version } = readSettings(process.env)
 
 {
   version && (
-    <heed-version data-root={root} data-current={version} hidden>
+    <footnote-version data-root={root} data-current={version} hidden>
       <Select
         icon="open-book"
         label="Version"
         options={[{ label: version, value: version, selected: true }]}
         width="9em"
       />
-    </heed-version>
+    </footnote-version>
   )
 }
 <Default />
@@ -48,5 +48,5 @@ const { root, version } = readSettings(process.env)
       })
     }
   }
-  customElements.define('heed-version', FootnoteVersion)
+  customElements.define('footnote-version', FootnoteVersion)
 </script>

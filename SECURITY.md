@@ -8,7 +8,7 @@ may read each fact. If you find a way around that, please tell us privately firs
 Please don't open a public issue, pull request or discussion for a security problem.
 
 Open the repository's **Security** tab on GitHub and choose **Report a vulnerability**, or go
-straight to [the report form](https://github.com/Fredehagelund92/heed/security/advisories/new). This is
+straight to [the report form](https://github.com/Fredehagelund92/footnote/security/advisories/new). This is
 GitHub's private vulnerability reporting: only the maintainers see the report, and we talk it
 through with you there.
 
@@ -41,7 +41,7 @@ and "Out of scope") and `docs/contributing/connector-security.md`.
 
 ## Supported versions
 
-Footnote's releases are on [GitHub Releases](https://github.com/Fredehagelund92/heed/releases), and
+Footnote's releases are on [GitHub Releases](https://github.com/Fredehagelund92/footnote/releases), and
 each one names its version (`docs/releasing.md`). Before 1.0, a release is for trying Footnote on one
 computer, not for production use.
 

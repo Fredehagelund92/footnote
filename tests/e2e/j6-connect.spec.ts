@@ -274,7 +274,7 @@ test('object storage asks for each service what that service needs', async ({ pa
 test('a server folder explains itself, and nothing can be sent from here', async ({ page }) => {
   await atDbtConnect(page)
   await page.getByRole('radio', { name: /^Server folder/ }).click()
-  await expect(page.getByText('HEED_SERVER_FOLDERS', { exact: false })).toBeVisible()
+  await expect(page.getByText('FOOTNOTE_SERVER_FOLDERS', { exact: false })).toBeVisible()
   await expect(button(page, 'Test connection')).toBeHidden()
   await expect(button(page, 'Continue')).toBeDisabled()
   await expect(page.getByLabel('File address')).toBeHidden()

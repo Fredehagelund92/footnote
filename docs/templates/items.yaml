@@ -1,9 +1,9 @@
 # Item template: copy this file, replace the three worked examples with your own items, then
 #
-#   npm run heed -- import my-items.yaml --as <your email>           # dry run: checks only
-#   npm run heed -- import my-items.yaml --apply --as <your email>   # proposals, sent for review
+#   npm run footnote -- import my-items.yaml --as <your email>           # dry run: checks only
+#   npm run footnote -- import my-items.yaml --apply --as <your email>   # proposals, sent for review
 #
-# (`--drafts` with `--apply` keeps them as drafts.) `heed` talks to http://127.0.0.1:3000; name
+# (`--drafts` with `--apply` keeps them as drafts.) `footnote` talks to http://127.0.0.1:3000; name
 # another service with --url. An import never publishes anything: each item becomes a suggestion
 # that the domain's owner publishes in Footnote. The web app's editor and an agent's suggest_context
 # make the same suggestions. A law or a regulation has a template of its own:
@@ -20,7 +20,7 @@
 # looks like an email address, a phone number, a key or a password. Only write what a model could
 # not know from the data: definitions stay in Cube.
 #
-# Every field: `npm run heed -- schema`. The ones you need:
+# Every field: `npm run footnote -- schema`. The ones you need:
 #   title          what an agent reads first, up to 200 characters
 #   areaId         the domain's id; needed when the scope's metrics belong to no one domain
 #   kind           note (a standing caveat), issue (a problem with a window), event (something

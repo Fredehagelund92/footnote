@@ -35,7 +35,7 @@ function browser() {
         }),
       )
     if (request.method === 'POST') {
-      const sent = request.headers.get('x-heed-csrf')
+      const sent = request.headers.get('x-footnote-csrf')
       const ok = sent === state.token
       posts.push(`POST ${path} with ${sent} -> ${ok ? `200, as ${state.cookie}` : '403'}`)
       return Promise.resolve(
@@ -59,7 +59,7 @@ function browser() {
     state,
     posts,
     fetch,
-    api: createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch }),
+    api: createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch }),
   }
 }
 
@@ -172,7 +172,7 @@ describe('a change after another tab signed this browser in as someone else', ()
     const { state, fetch } = browser()
     const keys: string[] = []
     const api = createHttpApi({
-      baseUrl: 'https://heed.example/api/v1',
+      baseUrl: 'https://footnote.example/api/v1',
       fetch,
       shelf: { get: (key) => (keys.push(key), null), set: () => {} },
     })
@@ -184,13 +184,13 @@ describe('a change after another tab signed this browser in as someone else', ()
       queryFn: () => api.listChats(),
     }).subscribe(() => {})
     const shown = new QueryObserver(queryClient, session).subscribe(() => {})
-    await vi.waitFor(() => expect(keys).toEqual([`heed.ask.chats.${RAVI}`]))
+    await vi.waitFor(() => expect(keys).toEqual([`footnote.ask.chats.${RAVI}`]))
     state.cookie = 'Maria Lindqvist'
     state.token = 'csrf-maria'
     vi.setSystemTime(Date.now() + 60_000)
     await queryClient.refetchQueries({ queryKey: ['getSession'] })
     await afterSomeoneElse(queryClient)
-    await vi.waitFor(() => expect(keys.at(-1)).toBe(`heed.ask.chats.${MARIA}`))
+    await vi.waitFor(() => expect(keys.at(-1)).toBe(`footnote.ask.chats.${MARIA}`))
     watching()
     shown()
   })

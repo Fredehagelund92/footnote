@@ -19,7 +19,7 @@ import { foundation, people } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
-  S15 import and export over authenticated HTTP and through the `heed` command-line tool:
+  S15 import and export over authenticated HTTP and through the `footnote` command-line tool:
   a dry run changes nothing, an apply makes proposals only (all or none, in one batch), mentions
   are checked as on the write path, and an exported edition carries the digests it was sealed
   with, recomputes them from its content and reads back as an unchanged import.
@@ -98,13 +98,13 @@ function item(extra: Draft & { id?: string } = {}): Draft & { id?: string } {
 const terms = ['dim:market', 'metric:orders', 'val:market/norway', 'val:market/spain']
 let cliBase = ''
 let folder = ''
-async function heed(args: string[], who: Who | null = 'author') {
+async function footnote(args: string[], who: Who | null = 'author') {
   const out: string[] = []
   const err: string[] = []
   const code = await run(args, {
     stdout: (text) => out.push(text),
     stderr: (text) => err.push(text),
-    env: { HEED_URL: cliBase, ...(who ? { HEED_EMAIL: `${who}@example.test` } : {}) },
+    env: { FOOTNOTE_URL: cliBase, ...(who ? { FOOTNOTE_EMAIL: `${who}@example.test` } : {}) },
   })
   return { code, out: out.join(''), err: err.join('') }
 }
@@ -140,14 +140,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
   cliBase = await app.listen({ host: '127.0.0.1', port: 0 })
@@ -387,7 +387,7 @@ describe('edition export', () => {
   })
 })
 
-describe('heed, the command-line tool', () => {
+describe('footnote, the command-line tool', () => {
   it('validates and prints the schema with no service', async () => {
     const good = join(folder, 'good.yaml')
     await writeFile(good, stringify([item()]))
@@ -396,31 +396,31 @@ describe('heed, the command-line tool', () => {
       bad,
       JSON.stringify({ items: [item({ summaryMarkup: 'Broken @[x](group:y)' })] }),
     )
-    expect(await heed(['validate', good], null)).toMatchObject({
+    expect(await footnote(['validate', good], null)).toMatchObject({
       code: 0,
       out: expect.stringContaining('1 items, 0 with errors') as string,
     })
-    const failed = await heed(['validate', bad, '--json'], null)
+    const failed = await footnote(['validate', bad, '--json'], null)
     expect(failed.code).toBe(1)
     expect(JSON.parse(failed.out)).toMatchObject({ failed: 1 })
-    const schema = await heed(['schema'], null)
+    const schema = await footnote(['schema'], null)
     expect(JSON.parse(schema.out)).toHaveProperty('properties.mentions')
-    expect((await heed(['nonsense'], null)).code).toBe(2)
-    const missing = await heed(['validate', join(folder, 'missing.yaml')], null)
+    expect((await footnote(['nonsense'], null)).code).toBe(2)
+    const missing = await footnote(['validate', join(folder, 'missing.yaml')], null)
     expect(missing).toMatchObject({ code: 2, err: expect.stringContaining('ENOENT') as string })
-    expect((await heed([], null)).code).toBe(2)
-    expect((await heed(['--help'], null)).out).toContain('Usage: heed')
+    expect((await footnote([], null)).code).toBe(2)
+    expect((await footnote(['--help'], null)).out).toContain('Usage: footnote')
   })
 
   it('imports with a dry run first, then applies, as the signed-in person', async () => {
     const file = join(folder, 'items.yaml')
     await writeFile(file, stringify({ items: [item({ title: 'From the command line' })] }))
-    expect((await heed(['import', file], null)).code).toBe(2)
+    expect((await footnote(['import', file], null)).code).toBe(2)
     const before = await count('proposals')
-    const dry = await heed(['import', file])
+    const dry = await footnote(['import', file])
     expect(dry).toMatchObject({ code: 0, out: expect.stringContaining('Dry run: 1 new') as string })
     expect(await count('proposals')).toBe(before)
-    const applied = await heed(['import', file, '--apply', '--drafts', '--json'])
+    const applied = await footnote(['import', file, '--apply', '--drafts', '--json'])
     expect(applied.code, applied.err).toBe(0)
     const report = JSON.parse(applied.out) as ItemImportReport
     expect(report).toMatchObject({ applied: true, counts: { create: 1 } })
@@ -431,7 +431,7 @@ describe('heed, the command-line tool', () => {
       )
     ).rows
     expect(row).toEqual({ state: 'draft', channel: 'import', source_name: 'items.yaml' })
-    const refused = await heed(['import', join(folder, 'bad.json')])
+    const refused = await footnote(['import', join(folder, 'bad.json')])
     expect(refused.code).toBe(1)
     expect(refused.out).toContain('mention_syntax')
   })
@@ -440,9 +440,9 @@ describe('heed, the command-line tool', () => {
     const file = join(folder, 'draft.json')
     await writeFile(file, JSON.stringify(item({ title: 'Drafted by an agent' })))
     // A bare item, not a list, is not a file of items.
-    expect((await heed(['draft', file])).code).toBe(2)
+    expect((await footnote(['draft', file])).code).toBe(2)
     await writeFile(file, JSON.stringify([item({ title: 'Drafted by an agent' })]))
-    const drafted = await heed(['draft', file, '--submit', '--json'])
+    const drafted = await footnote(['draft', file, '--submit', '--json'])
     expect(drafted.code, drafted.err).toBe(0)
     const proposal = JSON.parse(drafted.out) as ProposalRecord
     expect(proposal).toMatchObject({ channel: 'command_line', state: 'submitted' })
@@ -451,24 +451,24 @@ describe('heed, the command-line tool', () => {
   it('exports the live edition, verifies it offline, and exports the history log', async () => {
     const out = join(folder, 'edition.json')
     // Editions are for owners, deputies and administrators (Quality design G13).
-    const contributor = await heed(['export', '--out', out])
+    const contributor = await footnote(['export', '--out', out])
     expect(contributor.code).toBe(1)
     expect(contributor.err).toContain('Editions are for owners, deputies and admins.')
-    const exported = await heed(['export', '--out', out], 'owner')
+    const exported = await footnote(['export', '--out', out], 'owner')
     expect(exported.code, exported.err).toBe(0)
     const text = await readFile(out, 'utf8')
     const document = JSON.parse(text) as EditionExport
     expect(text).toBe(canonicalJson(document) + '\n')
     expect(document.items).toHaveLength(1)
     // The test vocabulary's digests are placeholders, so verify reports exactly those.
-    const verified = await heed(['verify', out, '--json'], null)
+    const verified = await footnote(['verify', out, '--json'], null)
     expect(verified.code).toBe(1)
     expect(JSON.parse(verified.out)).toEqual({ edition: true, items: [], vocabulary: terms })
 
-    const refused = await heed(['audit'])
+    const refused = await footnote(['audit'])
     expect(refused.code).toBe(1)
     expect(refused.err).toContain('The history log is for admins.')
-    const audit = await heed(['audit', '--format', 'csv', '--action', 'import'], 'admin')
+    const audit = await footnote(['audit', '--format', 'csv', '--action', 'import'], 'admin')
     expect(audit.code, audit.err).toBe(0)
     const lines = audit.out.trimEnd().split('\r\n')
     expect(lines[0]).toMatch(/^seq,at,actorId/)
@@ -477,18 +477,18 @@ describe('heed, the command-line tool', () => {
   })
 
   it('says who may sign in, and refuses a change from an origin the service does not allow', async () => {
-    expect((await heed(['export'], null)).code).toBe(2)
+    expect((await footnote(['export'], null)).code).toBe(2)
     const unknown: string[] = []
     const code = await run(['export', '--as', 'nobody@example.test'], {
       stdout: () => {},
       stderr: (text) => unknown.push(text),
-      env: { HEED_URL: cliBase },
+      env: { FOOTNOTE_URL: cliBase },
     })
     expect(code).toBe(1)
     expect(unknown.join('')).toContain('dev people file')
     const file = join(folder, 'origin.yaml')
     await writeFile(file, stringify([item()]))
-    const elsewhere = await heed(['import', file, '--origin', 'https://elsewhere.example'])
+    const elsewhere = await footnote(['import', file, '--origin', 'https://elsewhere.example'])
     expect(elsewhere.code).toBe(1)
     expect(elsewhere.err).toContain("We can't take changes from this address.")
   })
@@ -497,7 +497,7 @@ describe('heed, the command-line tool', () => {
     const result = await run(['export'], {
       stdout: () => {},
       stderr: (text) => expect(text).toContain('Cannot reach the service'),
-      env: { HEED_URL: 'http://127.0.0.1:9', HEED_EMAIL: 'author@example.test' },
+      env: { FOOTNOTE_URL: 'http://127.0.0.1:9', FOOTNOTE_EMAIL: 'author@example.test' },
     })
     expect(result).toBe(1)
   })

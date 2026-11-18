@@ -71,7 +71,7 @@ html {
 }
 
 /* The header: the logo, a hairline, then "Docs". */
-.heed-title {
+.footnote-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -79,18 +79,18 @@ html {
   text-decoration: none;
 }
 
-.heed-title svg {
+.footnote-title svg {
   width: auto;
   height: 1.25rem;
 }
 
-.heed-title-rule {
+.footnote-title-rule {
   width: 1px;
   height: 1rem;
   background: var(--border);
 }
 
-.heed-title-docs {
+.footnote-title-docs {
   font-size: var(--sl-text-sm);
   font-weight: 500;
   color: color-mix(in oklab, var(--foreground) 75%, var(--background));
@@ -179,7 +179,7 @@ h1#_top {
 }
 
 .sl-markdown-content > p:first-child,
-.heed-lead {
+.footnote-lead {
   color: var(--muted-foreground);
   font-size: var(--sl-text-lg);
   text-wrap: pretty;
@@ -280,15 +280,15 @@ h1#_top {
     margin-top: 0.25rem;
   }
 
-  /* The heading row is gone, so each cell says its column (lib/remark-heed-docs.ts). */
+  /* The heading row is gone, so each cell says its column (lib/remark-footnote-docs.ts). */
   .sl-markdown-content td + td[data-label]::before {
     color: var(--muted-foreground);
     content: attr(data-label) ': ';
   }
 }
 
-/* A note: a quote whose first words are its title in bold (lib/remark-heed-docs.ts). */
-.heed-note {
+/* A note: a quote whose first words are its title in bold (lib/remark-footnote-docs.ts). */
+.footnote-note {
   border: 1px solid var(--border);
   background: var(--band);
   padding: 0.75rem 1rem;
@@ -296,7 +296,7 @@ h1#_top {
   line-height: 1.5rem;
 }
 
-.heed-note > * + * {
+.footnote-note > * + * {
   margin-top: 0.5rem;
 }
 
@@ -312,17 +312,17 @@ h1#_top {
 }
 
 /* The landing page: each group's pages with their one line. */
-.heed-group {
+.footnote-group {
   margin-top: 2rem;
 }
 
-.heed-group h2 {
+.footnote-group h2 {
   font-size: var(--sl-text-sm);
   font-weight: 500;
   letter-spacing: 0;
 }
 
-.heed-group ul {
+.footnote-group ul {
   display: grid;
   gap: 1px;
   margin-top: 0.5rem;
@@ -332,7 +332,7 @@ h1#_top {
   list-style: none;
 }
 
-.heed-group li {
+.footnote-group li {
   display: grid;
   gap: 0.125rem;
   margin: 0;
@@ -340,22 +340,22 @@ h1#_top {
   padding: 0.75rem 1rem;
 }
 
-.heed-group span {
+.footnote-group span {
   color: var(--muted-foreground);
   font-size: var(--sl-text-sm);
   line-height: 1.5rem;
 }
 
 @media (min-width: 40em) {
-  .heed-group ul {
+  .footnote-group ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .heed-group li:last-child:nth-child(odd) {
+  .footnote-group li:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
 }
 
-heed-version[hidden] {
+footnote-version[hidden] {
   display: none;
 }

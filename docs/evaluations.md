@@ -55,7 +55,7 @@ keep the levels 4 and 5 they recorded.
   needed, rubrics, risk, source, status and split, and optionally `as_of`, the day it is asked
   on (a golden case keeps its own): a run reads it at that day, so "this past week" means the week
   its expectations were written for, and one without keeps the run's day. `npm run eval` prints
-  the day each question was asked on. `heed import-tests` (`POST /evals/import`, API only) takes a
+  the day each question was asked on. `footnote import-tests` (`POST /evals/import`, API only) takes a
   YAML or JSON file (a dry run unless `dryRun: false`; nothing is saved unless every entry is
   valid); every save is a revision a run can name. Owners of the domain and administrators
   maintain them; held-out questions are hidden from everyone else.
@@ -368,7 +368,7 @@ SDK's shape.
 
 Ask answers with one model in a tool loop on these tools in place of its router, through the same
 endpoint (`ask.lookup`, `src/server/modules/answer/loop.ts`). It is on by default, and
-`HEED_ASK_LOOP=off` answers with the router. Its words pass the code's part of the answer check
+`FOOTNOTE_ASK_LOOP=off` answers with the router. Its words pass the code's part of the answer check
 of FR-720.10 before they are shown (below); the judges' part waits.
 
 - **One model, the whole chat.** The model of `models.assistant` gets a short prompt written once
@@ -480,13 +480,13 @@ and its TypeScript implementation by age's author (`age-encryption`) needs no na
 file also opens with the `age` command, so the key holder is not tied to these scripts.
 
 The key is never committed and never in a worker's, CI's or a coding agent's environment. A
-command gets it only from `HEED_HELDOUT_KEY_FILE` (a file holding it) or `HEED_HELDOUT_KEY` (the
+command gets it only from `FOOTNOTE_HELDOUT_KEY_FILE` (a file holding it) or `FOOTNOTE_HELDOUT_KEY` (the
 key), set for that one command; nothing looks for it anywhere else. Prefer the file: a key on
 the command line shows in the process list and the shell's history.
 
-- **With the key**, `HEED_HELDOUT_KEY_FILE=~/.heed/held-out.key npm run test:integration --
+- **With the key**, `FOOTNOTE_HELDOUT_KEY_FILE=~/.footnote/held-out.key npm run test:integration --
 golden-set` runs the held-out agent cases through the L1 pass too, and
-  `HEED_HELDOUT_KEY_FILE=... npm run held-out -- eval --area <id>
+  `FOOTNOTE_HELDOUT_KEY_FILE=... npm run held-out -- eval --area <id>
 [--real --max-cost-usd <dollars>]` runs the domain's held-out agent cases through the eval domain
   runner, in memory: each on its own as-of day, judged and scored as any domain run, with the
   estimate first and a ceiling for a real-model run. It keeps no cell, no transcript and no word
@@ -494,7 +494,7 @@ golden-set` runs the held-out agent cases through the L1 pass too, and
   type; a conversation case, which the test question format cannot hold, is counted as skipped.
   It reads the
   database and the model keys like `npm run eval` (`.env.local`, then the environment), but never
-  the held-out key from `.env.local`. `HEED_HELDOUT_KEY_FILE=... npm test` checks the whole set against the
+  the held-out key from `.env.local`. `FOOTNOTE_HELDOUT_KEY_FILE=... npm test` checks the whole set against the
   plan. Held-out results are only ever counts by
   type, such as `Held-out agent cases (L1): 21 passed, 0 failed of 21 (absence 1 passed, 0
 failed; ...)`: never a question, an expectation or a transcript. The code that runs them is
@@ -518,13 +518,13 @@ The key holder, in their own terminal (`scripts/held-out.ts`):
 
 ```sh
 npm run held-out -- keygen                    # makes the key: says where it saved it (default
-                                              # ~/.heed/held-out.key, yours only), never prints it
-HEED_HELDOUT_KEY_FILE=~/.heed/held-out.key npm run held-out -- count   # cases by type
-HEED_HELDOUT_KEY_FILE=~/.heed/held-out.key npm run held-out -- eval --area <domain id>
+                                              # ~/.footnote/held-out.key, yours only), never prints it
+FOOTNOTE_HELDOUT_KEY_FILE=~/.footnote/held-out.key npm run held-out -- count   # cases by type
+FOOTNOTE_HELDOUT_KEY_FILE=~/.footnote/held-out.key npm run held-out -- eval --area <domain id>
                                               # the domain's cases through the eval runner, counts
-HEED_HELDOUT_KEY_FILE=~/.heed/held-out.key npm run held-out -- edit    # add or change cases
-npm run held-out -- keygen --out ~/.heed/held-out-2.key                # a new key, then:
-HEED_HELDOUT_KEY_FILE=~/.heed/held-out.key npm run held-out -- rotate --new-key ~/.heed/held-out-2.key
+FOOTNOTE_HELDOUT_KEY_FILE=~/.footnote/held-out.key npm run held-out -- edit    # add or change cases
+npm run held-out -- keygen --out ~/.footnote/held-out-2.key                # a new key, then:
+FOOTNOTE_HELDOUT_KEY_FILE=~/.footnote/held-out.key npm run held-out -- rotate --new-key ~/.footnote/held-out-2.key
 ```
 
 `edit` decrypts the cases into a private temporary file (yours only), opens it in `$VISUAL` or
@@ -535,7 +535,7 @@ changed case a reason in its `notes`, as for a visible one. Commit only `db/seed
 in a pull request that changes nothing under `src/`. `rotate` seals the file with the new key, so
 the old one no longer opens it; delete the old key once that pull request is merged. Keep the key
 out of shell profiles and `.env` files: coding agents run as you, so give it per command, or keep
-it in a password manager and pass it as `HEED_HELDOUT_KEY="$(...)"`.
+it in a password manager and pass it as `FOOTNOTE_HELDOUT_KEY="$(...)"`.
 
 The first sealed cases were removed before the public repository was cut. Fresh ones, written
 under the seal with a new key, replace them; the output test plan then rotates 5 a quarter.

@@ -7,7 +7,7 @@ const context: LinkContext = {
     ['docs/connectors/cube.md', 'connectors/cube'],
     ['docs/help/privacy.md', 'privacy'],
   ]),
-  base: '/heed/v0.1',
+  base: '/footnote/v0.1',
   ref: 'v0.1.2',
   kind: (path) =>
     path === 'docs/templates'
@@ -20,25 +20,25 @@ const context: LinkContext = {
 describe('a link in a page', () => {
   it('opens another page of the site at its address, with its heading', () => {
     expect(resolveLink('operations.md#run-it', 'docs/reference.md', context)).toBe(
-      '/heed/v0.1/operations/#run-it',
+      '/footnote/v0.1/operations/#run-it',
     )
     expect(resolveLink('../operations.md', 'docs/connectors/cube.md', context)).toBe(
-      '/heed/v0.1/operations/',
+      '/footnote/v0.1/operations/',
     )
     expect(resolveLink('help/privacy.md', 'docs/ai-sign-in.md', context)).toBe(
-      '/heed/v0.1/privacy/',
+      '/footnote/v0.1/privacy/',
     )
   })
 
   it('opens any other file on GitHub at the build reference', () => {
     expect(resolveLink('../compose.yaml', 'docs/self-hosting.md', context)).toBe(
-      'https://github.com/Fredehagelund92/heed/blob/v0.1.2/compose.yaml',
+      'https://github.com/Fredehagelund92/footnote/blob/v0.1.2/compose.yaml',
     )
     expect(resolveLink('../README.md#quick-start', 'docs/operations.md', context)).toBe(
-      'https://github.com/Fredehagelund92/heed/blob/v0.1.2/README.md#quick-start',
+      'https://github.com/Fredehagelund92/footnote/blob/v0.1.2/README.md#quick-start',
     )
     expect(resolveLink('templates', 'docs/operations.md', context)).toBe(
-      'https://github.com/Fredehagelund92/heed/tree/v0.1.2/docs/templates',
+      'https://github.com/Fredehagelund92/footnote/tree/v0.1.2/docs/templates',
     )
   })
 
@@ -75,7 +75,7 @@ describe('a page read away from the site', () => {
     expect(withResolvedLinks(body, 'docs/connectors/cube.md', site).split('\n')[0]).toBe(
       'See [the page](https://docs.example.com/v0.1/operations/), ' +
         '[here](https://docs.example.com/v0.1/connectors/cube/#up) and ' +
-        '[Compose](https://github.com/Fredehagelund92/heed/blob/v0.1.2/compose.yaml).',
+        '[Compose](https://github.com/Fredehagelund92/footnote/blob/v0.1.2/compose.yaml).',
     )
     const written = withResolvedLinks(body, 'docs/connectors/cube.md', site)
     expect(written).toContain('`[not a link](operations.md)`')

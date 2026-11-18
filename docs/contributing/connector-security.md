@@ -42,7 +42,7 @@ link-local, shared or documentation network are refused. Development and tests m
 this machine.
 
 Whoever runs the server may let `ctx.fetch` reach hosts on a private network by name
-(`HEED_EGRESS_PRIVATE_HOSTS`, [Service settings](../configuration.md#connectors)), for an internal artifact server. It
+(`FOOTNOTE_EGRESS_PRIVATE_HOSTS`, [Service settings](../configuration.md#connectors)), for an internal artifact server. It
 is a list in the server's own settings, not in the app: an administrator in the app cannot
 open the private network, and Git and figures do not take it. An allowed host is still https only,
 and still has to be one the manifest declares. A settings address on such a host passes when the
@@ -126,12 +126,12 @@ failure code, never what the tool said.
 
 ### The secret store
 
-`HEED_SECRETS_DIR` names the local secret store: a folder outside the repository that only the
+`FOOTNOTE_SECRETS_DIR` names the local secret store: a folder outside the repository that only the
 server's user may open (mode 0700; the server refuses to start with a folder others may read). Each
 added source's secrets are one file in it (mode 0600), named by a random id the database keeps as
 `local:<id>`; a name that is not of that form never becomes a path. A replaced secret is written
 under a new name and the old file is removed once the change commits; a refused change removes the
-new one. `compose.yaml` sets it to `/var/lib/heed/secrets`, a folder of its own in the keys volume,
+new one. `compose.yaml` sets it to `/var/lib/footnote/secrets`, a folder of its own in the keys volume,
 because the volume's top may be read by others. Unset, the server keeps no secret: `sources.types`
 says so (`secretStore`), the form says it at its first step, and `sources.test` refuses a source
 that needs one, as `sources.add` does, so a test never passes for a source that cannot be added. A

@@ -23,8 +23,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { ShowMoreButton } from '@/components/heed/show-more'
-import { CountUp } from '@/components/heed/count-up'
+import { ShowMoreButton } from '@/components/footnote/show-more'
+import { CountUp } from '@/components/footnote/count-up'
 import { Swatch } from '@/components/obs/charts'
 import type { Field } from '@/components/obs/filter-bar'
 import { countOf } from '@/components/obs/filter-picker'

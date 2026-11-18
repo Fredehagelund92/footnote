@@ -20,7 +20,7 @@ What a Cube project needs for Footnote to read it:
 2. It compiles with the pinned Cube compiler, **1.7.39** (`@cubejs-backend/schema-compiler`).
 3. At least one **public view** (or public cube). Footnote lists public members only.
 4. Recommended: `title` and `description` on each public member, and `meta.domain:
-<heed_domain_id>` on each view, with a member's own `meta.domain` to override it. The value
+<footnote_domain_id>` on each view, with a member's own `meta.domain` to override it. The value
    must equal a Footnote domain id exactly.
 5. Optional: `meta.synonyms` on a member, a list of the other names people use for it
    (`[geo, market]`). A term proposed for the member takes them as other names, each for one
@@ -68,11 +68,11 @@ Whoever runs the server sets three environment variables; Integrations shows the
 same Cube connector reads the folder: the core hands it to the runtime as `ctx.folder`, and
 applies the domain names and the renames below to what it read.
 
-| Variable                | Setting         | Meaning                                                                                   |
-| ----------------------- | --------------- | ----------------------------------------------------------------------------------------- |
-| `CUBE_MODEL_DIR`        | Model folder    | The folder Footnote reads. Unset, the server reads the demo source.                       |
-| `HEED_DOMAIN_OVERRIDES` | Domain names    | A JSON file outside the model folder: view to domain, for views the model names none for. |
-| `CUBE_RENAMES_FILE`     | Renamed members | A JSON file: old id to new id.                                                            |
+| Variable                    | Setting         | Meaning                                                                                   |
+| --------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
+| `CUBE_MODEL_DIR`            | Model folder    | The folder Footnote reads. Unset, the server reads the demo source.                       |
+| `FOOTNOTE_DOMAIN_OVERRIDES` | Domain names    | A JSON file outside the model folder: view to domain, for views the model names none for. |
+| `CUBE_RENAMES_FILE`         | Renamed members | A JSON file: old id to new id.                                                            |
 
 An administrator sets one versioned setting on the source's page, `sources.cube_model_url` (Model
 folder address), described under "Links to model files". An old link to it on Limits opens it
@@ -101,7 +101,7 @@ source's health (last read and its warnings, current and missing definitions, do
 flagged items and stale links), its views, its renames, its recent reads and, for a source this
 server reads, its server settings. Integrations and the operations API show the same answer.
 
-`HEED_DOMAIN_OVERRIDES` optionally names a JSON file outside the model directory:
+`FOOTNOTE_DOMAIN_OVERRIDES` optionally names a JSON file outside the model directory:
 
 ```json
 { "sales_analytics": "finance", "campaign_analytics": "paid_media" }
@@ -231,7 +231,7 @@ seconds, and keeps it nowhere:
    member each market term names, with the market's name and its other names as the values. The
    core passes every date of the view; with several, Cube's reader takes the one
    `meta.default_time_dimension` names (the measure's, then its view's), else the server's figure
-   settings (`HEED_FIGURE_OVERRIDES`), and with none named fails with `several_dates`, which Ask
+   settings (`FOOTNOTE_FIGURE_OVERRIDES`), and with none named fails with `several_dates`, which Ask
    shows as no figure with the view's dates listed. Two GETs of `/v1/load`, the days and the days
    just before, after, once in ten minutes, `/v1/meta` for what the model says of the measure: how
    it is worked out (`aggType`), so the query in words can say "added up", and its `meta`.

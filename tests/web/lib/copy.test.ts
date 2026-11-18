@@ -157,7 +157,7 @@ describe('the words people read', () => {
   it("keep agents' names out of the review's own sentences", () => {
     // Where a suggestion came from is source data ("An agent in Cursor"); the review's own wording
     // never names a tool, and never builds a sentence around one.
-    const review = ['pages/review-page.tsx', 'components/heed/review-parts.tsx']
+    const review = ['pages/review-page.tsx', 'components/footnote/review-parts.tsx']
     expect(
       where(
         prose.filter(

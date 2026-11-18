@@ -222,7 +222,7 @@ async function removeArea(
   await lockReleases(tx)
   await adminOnly(tx)
   if (input.reason !== undefined) plainReason(input.reason)
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.areas',0))")
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.areas',0))")
   // Before the first history entry, as a role change takes it: areas, then roles, then the log.
   await lockRoles(tx)
   const area = await getArea(tx, input.id)
@@ -426,7 +426,7 @@ export async function deleteEmptyArea(
   // The locks deleting takes, in its order, before anything is read: nothing moves in meanwhile.
   await lockReleases(tx)
   await adminOnly(tx)
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.areas',0))")
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.areas',0))")
   const area = await getArea(tx, input.id)
   if (area.demo)
     throw new ORPCError('CONFLICT', {

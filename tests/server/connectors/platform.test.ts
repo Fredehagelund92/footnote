@@ -128,8 +128,8 @@ describe('the registry of connectors', () => {
       }
       return []
     }
-    expect(refused([{ ...list!, manifest: { ...list!.manifest, heed: '^4.0' } }])).toEqual([
-      'static-definitions heed',
+    expect(refused([{ ...list!, manifest: { ...list!.manifest, footnote: '^4.0' } }])).toEqual([
+      'static-definitions footnote',
     ])
     expect(refused([list!, list!])).toEqual(['static-definitions id'])
     expect(refused([{ ...list!, manifest: { ...list!.manifest, id: 'Bad_Id' } }])).toEqual([
@@ -554,8 +554,8 @@ describe('a folder on the server (CON-119)', () => {
     expect(others).toEqual([])
     expect(source).toMatchObject({ id: 'dbt-metricflow', type: 'dbt-metricflow' })
     expect(source!.serverSettings).toEqual([
-      { key: 'model_folder', variable: 'HEED_SERVER_FOLDERS', value: '/srv/dbt' },
-      { key: 'domain_overrides', variable: 'HEED_DOMAIN_OVERRIDES', value: null },
+      { key: 'model_folder', variable: 'FOOTNOTE_SERVER_FOLDERS', value: '/srv/dbt' },
+      { key: 'domain_overrides', variable: 'FOOTNOTE_DOMAIN_OVERRIDES', value: null },
     ])
   })
 
@@ -577,11 +577,13 @@ describe('a folder on the server (CON-119)', () => {
   it('stops the server for a name it cannot honour, saying which', () => {
     const named = (connector: string) => () =>
       createFolderSource({ connector, folder: '/srv/somewhere' })
-    expect(named('nothing')).toThrow('HEED_SERVER_FOLDERS: nothing is not a connector.')
+    expect(named('nothing')).toThrow('FOOTNOTE_SERVER_FOLDERS: nothing is not a connector.')
     expect(named('git-markdown')).toThrow(
-      'HEED_SERVER_FOLDERS: git-markdown cannot read a server folder.',
+      'FOOTNOTE_SERVER_FOLDERS: git-markdown cannot read a server folder.',
     )
     expect(named('static-definitions')).toThrow('cannot read a server folder')
-    expect(named('cube')).toThrow('HEED_SERVER_FOLDERS: cube has CUBE_MODEL_DIR for its folder.')
+    expect(named('cube')).toThrow(
+      'FOOTNOTE_SERVER_FOLDERS: cube has CUBE_MODEL_DIR for its folder.',
+    )
   })
 })

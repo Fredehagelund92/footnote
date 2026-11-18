@@ -48,7 +48,7 @@ describe('the service entry point', { timeout: 30_000 }, () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       status: 'ok',
-      service: 'heed',
+      service: 'footnote',
       version: footnoteVersion,
     })
 
@@ -56,13 +56,13 @@ describe('the service entry point', { timeout: 30_000 }, () => {
     expect(await server.exited).toBe(0)
     expect(server.output()).toContain('"msg":"stopped"')
     // The picker lets anyone in as anyone: the start says so.
-    expect(server.output()).toContain('Sign-in is the people picker (HEED_AUTH=dev)')
+    expect(server.output()).toContain('Sign-in is the people picker (FOOTNOTE_AUTH=dev)')
   })
 
   it('refuses to start with invalid configuration and says why', async () => {
     const server = start({ NODE_ENV: 'production', DATABASE_URL: 'postgres://localhost/x' })
     expect(await server.exited).toBe(1)
-    expect(server.output()).toContain('HEED_OIDC_ISSUER: Required when HEED_AUTH=oidc')
+    expect(server.output()).toContain('FOOTNOTE_OIDC_ISSUER: Required when FOOTNOTE_AUTH=oidc')
     expect(server.output()).toContain('set NODE_ENV=development, as compose.yaml does')
   })
 
@@ -76,17 +76,17 @@ describe('the service entry point', { timeout: 30_000 }, () => {
       await writeFile(signingKey, privateKey.export({ format: 'pem', type: 'pkcs8' }), {
         mode: 0o600,
       })
-      const resource = 'https://heed.example.test/mcp'
+      const resource = 'https://footnote.example.test/mcp'
       const booted = start({
         NODE_ENV: 'production',
         DATABASE_URL: 'postgres://127.0.0.1:1/context_layer_none',
         PORT: '0',
-        HEED_OIDC_ISSUER: 'http://127.0.0.1:1/realms/heed',
-        HEED_OIDC_CLIENT_ID: 'heed',
+        FOOTNOTE_OIDC_ISSUER: 'http://127.0.0.1:1/realms/footnote',
+        FOOTNOTE_OIDC_CLIENT_ID: 'footnote',
         MCP_RESOURCE_URL: resource,
-        HEED_WEB_ORIGINS: 'https://heed.example.test',
-        HEED_OAUTH_SIGNING_KEY_FILE: signingKey,
-        HEED_MCP_STATE_KEY_FILE: join(keys, 'state.key'),
+        FOOTNOTE_WEB_ORIGINS: 'https://footnote.example.test',
+        FOOTNOTE_OAUTH_SIGNING_KEY_FILE: signingKey,
+        FOOTNOTE_MCP_STATE_KEY_FILE: join(keys, 'state.key'),
         MCP_DEV_KEY_FILE: join(keys, 'dev-key.pem'),
       })
       server = booted
@@ -113,21 +113,21 @@ describe('the service entry point', { timeout: 30_000 }, () => {
           sent.end(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }))
         })
       // The MCP address's own host passes the host check and gets the sign-in challenge.
-      const anonymous = await mcp({ host: 'heed.example.test' })
+      const anonymous = await mcp({ host: 'footnote.example.test' })
       expect(anonymous.status).toBe(401)
       expect(anonymous.headers['www-authenticate']).toContain(
-        'resource_metadata="https://heed.example.test/.well-known/oauth-protected-resource/mcp"',
+        'resource_metadata="https://footnote.example.test/.well-known/oauth-protected-resource/mcp"',
       )
       expect((await mcp({ host: 'rebound.example' })).status).toBe(403)
       // Production holds no dev key, so a dev token names an issuer nobody configured.
       const devToken = await mintDevToken(generateKeyPairSync('ed25519').privateKey, resource)
       expect(
-        (await mcp({ host: 'heed.example.test', authorization: `Bearer ${devToken}` })).status,
+        (await mcp({ host: 'footnote.example.test', authorization: `Bearer ${devToken}` })).status,
       ).toBe(401)
       const metadata = await fetch(`${url}/.well-known/oauth-protected-resource/mcp`)
       expect(await metadata.json()).toMatchObject({
         resource,
-        authorization_servers: ['https://heed.example.test'],
+        authorization_servers: ['https://footnote.example.test'],
       })
 
       booted.child.kill('SIGTERM')

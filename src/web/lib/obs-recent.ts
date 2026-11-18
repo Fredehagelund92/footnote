@@ -5,7 +5,7 @@ import { isDim, type DimKey, type Filters } from '@/lib/obs-chips'
 // Kept in this browser alone and never sent anywhere: no record of who filtered by what is kept
 // (FR-613). A browser that keeps nothing has no recent ones.
 
-const KEY = 'heed.obs.recent-dimensions'
+const KEY = 'footnote.obs.recent-dimensions'
 /** How many the browser keeps; the picker lists 3 of them that are not pinned. */
 const KEEP = 5
 

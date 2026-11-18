@@ -60,14 +60,14 @@ beforeAll(async () => {
   const login = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'ops@example.test' },
   })
   expect(login.statusCode, login.body).toBe(200)
   auth = {
     cookie: login.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
     origin: 'http://localhost',
-    'x-heed-csrf': login.json<{ csrfToken: string }>().csrfToken,
+    'x-footnote-csrf': login.json<{ csrfToken: string }>().csrfToken,
   }
 }, 30_000)
 afterAll(async () => {
@@ -172,7 +172,7 @@ it('refreshes from the operations view and shows the health of the source', asyn
     server: {
       settings: [
         { key: 'model_folder', variable: 'CUBE_MODEL_DIR', value: modelDir },
-        { key: 'domain_overrides', variable: 'HEED_DOMAIN_OVERRIDES', value: null },
+        { key: 'domain_overrides', variable: 'FOOTNOTE_DOMAIN_OVERRIDES', value: null },
         { key: 'renames', variable: 'CUBE_RENAMES_FILE', value: null },
         { key: 'views', variable: 'CUBE_VIEWS_FILE', value: null },
       ],

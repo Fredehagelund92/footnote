@@ -37,7 +37,7 @@ const app = buildApp({
     roles: [],
   })),
 })
-type Headers = { cookie: string; origin: string; 'x-heed-csrf': string }
+type Headers = { cookie: string; origin: string; 'x-footnote-csrf': string }
 const headers: Record<string, Headers> = {}
 let acceptedItem: string
 beforeAll(async () => {
@@ -95,14 +95,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
 })
@@ -607,7 +607,7 @@ it('lists only readable proposals, paginates, and enforces sign-in and CSRF befo
       await app.inject({
         method: 'POST',
         url: `/api/v1/proposals/${p.id}/submit`,
-        headers: { ...headers.author, 'x-heed-csrf': 'wrong', 'idempotency-key': randomUUID() },
+        headers: { ...headers.author, 'x-footnote-csrf': 'wrong', 'idempotency-key': randomUUID() },
         payload: { revision: p.revision },
       })
     ).statusCode,

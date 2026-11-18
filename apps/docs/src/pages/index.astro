@@ -19,13 +19,13 @@ const line = 'How to write context, connect your agents, review suggestions and 
     pagefind: false,
   }}
 >
-  <p class="heed-lead">
+  <p class="footnote-lead">
     How to write context, connect your agents and review suggestions, how agents read what you
     wrote, and how to run the service and connect your tools.
   </p>
   {
     shownGroups(pages).map((group) => (
-      <section class="heed-group">
+      <section class="footnote-group">
         <h2>{group}</h2>
         <ul>
           {pages
@@ -40,7 +40,7 @@ const line = 'How to write context, connect your agents, review suggestions and 
       </section>
     ))
   }
-  <section class="heed-group">
+  <section class="footnote-group">
     <h2>Changes</h2>
     <ul>
       {

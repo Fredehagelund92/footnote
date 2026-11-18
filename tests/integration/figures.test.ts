@@ -210,14 +210,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
 }, 120_000)
@@ -338,7 +338,7 @@ describe('reading a figure (FR-716)', () => {
         'connection',
         'host',
       ])
-      expect(JSON.stringify(request.headers)).not.toMatch(/example\.test|heed_session/)
+      expect(JSON.stringify(request.headers)).not.toMatch(/example\.test|footnote_session/)
     }
     const [, days] = loadsAfter(0)
     expect(days!.query).toEqual({
@@ -761,7 +761,7 @@ describe('trying a figure', () => {
         ],
         filters: [],
       })
-      expect(JSON.stringify(load.headers)).not.toMatch(/example\.test|heed_session/)
+      expect(JSON.stringify(load.headers)).not.toMatch(/example\.test|footnote_session/)
     }
     expect((await client.query('select count(*)::int as n from audit_log')).rows).toEqual(
       before.rows,

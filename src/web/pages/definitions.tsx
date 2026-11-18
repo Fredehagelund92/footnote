@@ -13,12 +13,12 @@ import {
   EqualIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { ToolLogo } from '@/components/heed/tool-logo'
+import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
-import { PersonAvatar } from '@/components/heed/bits'
-import { AnotherNameFor, TypeGlyph, TypeTile } from '@/components/heed/definition'
-import { TagChip } from '@/components/heed/tag-chip'
+import { PersonAvatar } from '@/components/footnote/bits'
+import { AnotherNameFor, TypeGlyph, TypeTile } from '@/components/footnote/definition'
+import { TagChip } from '@/components/footnote/tag-chip'
 import {
   AddRow,
   BarSpacer,
@@ -36,10 +36,10 @@ import {
   SortTh,
   Th,
   thClass,
-} from '@/components/heed/list'
+} from '@/components/footnote/list'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection } from '@/hooks/use-selection'
-import { DefinitionsBulk } from '@/components/heed/definitions-bulk'
+import { DefinitionsBulk } from '@/components/footnote/definitions-bulk'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -71,13 +71,13 @@ import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
 import { href, navigate, useRoute } from '@/lib/router'
 import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
-import { TruncatedText } from '@/components/heed/truncated'
-import { TextSwitch } from '@/components/heed/switches'
+import { TruncatedText } from '@/components/footnote/truncated'
+import { TextSwitch } from '@/components/footnote/switches'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { byPointer, moveRows, type Press } from '@/lib/list-motion'
 import { plainText } from '@/lib/mentions'
-import { LoadError, RefreshError, useLoadPhase } from '@/components/heed/load-state'
-import { TableBodySkeleton } from '@/components/heed/list-skeleton'
+import { LoadError, RefreshError, useLoadPhase } from '@/components/footnote/load-state'
+import { TableBodySkeleton } from '@/components/footnote/list-skeleton'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
 import { useFigures } from '@/lib/figures'
 import { useLeavingRows } from '@/lib/presence'

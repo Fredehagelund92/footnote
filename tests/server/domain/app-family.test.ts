@@ -16,14 +16,20 @@ it('maps the names agents send to a family from the fixed list (FR-410)', () => 
     ['windsurf-client', 'windsurf'],
     ['gemini-cli-mcp-client', 'gemini_cli'],
     ['goose', 'goose'],
-    ['heed-eval-runner', 'heed'],
+    ['footnote-eval-runner', 'footnote'],
     ['  CLAUDE-CODE  ', 'claude_code'],
   ]
   for (const [name, family] of cases) expect(appFamilyOf(name), String(name)).toBe(family)
 })
 
 it('makes any other name another app, and a missing one unknown, so free text never passes', () => {
-  for (const name of ['Alice Smith private agent', 'claude-codex-clone', 'my claude', 'heed', 'x'])
+  for (const name of [
+    'Alice Smith private agent',
+    'claude-codex-clone',
+    'my claude',
+    'footnote',
+    'x',
+  ])
     expect(appFamilyOf(name), name).toBe('other')
   for (const name of [undefined, null, '', '   ', 42, { name: 'claude-code' }])
     expect(appFamilyOf(name)).toBe('unknown')

@@ -609,7 +609,7 @@
   transition-timing-function: var(--ease-move);
 }
 
-/* A number counting to its new value in 320ms (components/heed/count-up.tsx): --count is a
+/* A number counting to its new value in 320ms (components/footnote/count-up.tsx): --count is a
    registered integer, so it transitions; each digit is a counter of it, and a place the count is
    under takes no room. With reduced motion --dur-4 is 0 and the number is there at once. */
 @property --count {
