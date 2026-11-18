@@ -70,12 +70,17 @@ function FlaggedRow({
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
-  // The name the tool has for it, so two rows of one name can be told apart.
+  // The name the tool has for it, small after the plain name, so two rows of one name can be
+  // told apart.
   const member = memberOf(name.definitionRefs[0] ?? name.key)
   return (
     <li className="flex min-w-0 flex-col gap-2 border-t py-3 first:border-t-0">
       <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-        <span className="font-mono text-foreground">{member}</span>
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-medium text-foreground">{name.name}</span>
+          <span>{kindWord[name.kind]}</span>
+          <span className="font-mono">{member}</span>
+        </span>
         {name.flags.map((flag) => flag.message).join(' ')}
       </label>
       <div className="flex flex-wrap items-center gap-2">

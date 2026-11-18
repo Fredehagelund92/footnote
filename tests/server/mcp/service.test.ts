@@ -1045,7 +1045,7 @@ describe('a question without dates', () => {
       })
       expect(reply).not.toHaveProperty('assumed_date')
       expect(reply.say).toBe(
-        '1 context item applies to Orders in Norway from 1 to 7 October 2026 (the 7 days to today). Only that was checked.',
+        '1 context item applies to Orders in Norway from 1 to 7 October 2026 (the 7 days to today). Nothing else was looked up.',
       )
       expect(reply.check_report.statements).not.toContain(statement)
     }
@@ -1165,7 +1165,7 @@ describe('get_context', () => {
     ])
     expect(out).toMatchObject({
       status: 'matched',
-      say: 'Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+      say: 'Checked. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
       asked: 'Orders in Norway in August 2026',
     })
     // The reply id is the delivery's id, which report takes.

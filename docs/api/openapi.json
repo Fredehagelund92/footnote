@@ -61661,7 +61661,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The job runner isn't running. Ask the data team to start it."
+                          "default": "The job runner isn't running. Ask the person who hosts this app to start it."
                         },
                         "data": {}
                       },
@@ -86561,7 +86561,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "The job runner isn't running. Ask the data team to start it."
+                          "default": "The job runner isn't running. Ask the person who hosts this app to start it."
                         },
                         "data": {}
                       },

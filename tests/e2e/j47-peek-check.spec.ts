@@ -17,7 +17,7 @@ test('the warning is there at once, and its button waits for the item read', asy
   await go(page, `/context?dock=context.${holder}&state=loading`)
   await expect(peek(page).getByText(`Disagrees with “${other}”.`)).toBeVisible()
   await expect(compare(page)).toBeDisabled()
-  await expect(peek(page).getByText('Checking who can decide it.')).toBeAttached()
+  await expect(peek(page).getByText('Loading who can decide it.')).toBeAttached()
   // The read answers: the button says what this person can do, and nothing below it moved.
   const details = peek(page).getByRole('button', { name: /^Details/ })
   // Measured in the app's own font: the fallback's wider words would wrap the line differently.
@@ -30,7 +30,7 @@ test('the warning is there at once, and its button waits for the item read', asy
 
 test('a read that fails says so, and Try again checks again', async ({ page }) => {
   await go(page, `/context?dock=context.${holder}&state=failed`)
-  await expect(peek(page).getByText(/Not checked who can decide it/)).toBeVisible()
+  await expect(peek(page).getByText(/Who can decide it didn't load/)).toBeVisible()
   await expect(compare(page)).toHaveCount(0)
   await peek(page).getByRole('button', { name: 'Try again' }).click()
   await expect(peek(page).getByRole('button', { name: 'Compare and decide' })).toBeEnabled()
@@ -42,7 +42,7 @@ test('a read that takes too long says it is not checked', async ({ page }) => {
   await go(page, `/context?dock=context.${holder}&state=loading`)
   await expect(compare(page)).toBeDisabled()
   await page.clock.fastForward(8_000)
-  await expect(peek(page).getByText(/Not checked who can decide it/)).toBeVisible()
+  await expect(peek(page).getByText(/Who can decide it didn't load/)).toBeVisible()
   await expect(peek(page).getByRole('button', { name: 'Try again' })).toBeVisible()
 })
 
@@ -66,7 +66,7 @@ test('a reported item whose read fails says it is not checked, and Try again che
   test.skip(mode !== 'mock', 'Opens a mock item with the mock report beside it')
   await go(page, `/context?dock=context.${flagged}&flag=${card('flag-germany')}&state=failed`)
   await expect(peek(page).getByText(/Reported unclear/)).toBeVisible()
-  await expect(peek(page).getByText(/Not checked whether another item disagrees/)).toBeVisible()
+  await expect(peek(page).getByText(/isn't known yet whether one disagrees/)).toBeVisible()
   await expect(peek(page).getByRole('button', { name: 'Not a problem' })).toBeDisabled()
   await peek(page).getByRole('button', { name: 'Try again' }).click()
   await expect(peek(page).getByRole('button', { name: 'Not a problem' })).toBeEnabled()
@@ -79,7 +79,7 @@ test('a reported item whose read takes too long says it is not checked', async (
   await go(page, `/context?dock=context.${flagged}&flag=${card('flag-germany')}&state=loading`)
   await expect(peek(page).getByRole('button', { name: 'Not a problem' })).toBeDisabled()
   await page.clock.fastForward(8_000)
-  await expect(peek(page).getByText(/Not checked whether another item disagrees/)).toBeVisible()
+  await expect(peek(page).getByText(/isn't known yet whether one disagrees/)).toBeVisible()
   await expect(peek(page).getByRole('button', { name: 'Not a problem' })).toBeDisabled()
   await expect(peek(page).getByRole('button', { name: 'Try again' })).toBeVisible()
 })

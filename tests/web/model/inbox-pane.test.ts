@@ -52,7 +52,7 @@ describe('the state on the chip', () => {
 describe('the one button', () => {
   it('names the decision a review opens', () => {
     expect(pane('sug-ines').primary).toBe('Review')
-    expect(pane('sug-sofia-clash').primary).toBe('Decide how they relate')
+    expect(pane('sug-sofia-clash').primary).toBe("Compare with what's published")
     expect(pane('gap-spain').primary).toBe('Check the first version')
   })
 
@@ -68,9 +68,7 @@ describe('the one button', () => {
 describe('the words beside the button', () => {
   it('say what follows from it', () => {
     expect(pane('sug-ines').follows).toBe('12 questions a week would get the new answer')
-    expect(pane('sug-sofia-clash').follows).toBe(
-      'Overlaps are answered Unrelated unless you change them',
-    )
+    expect(pane('sug-sofia-clash').follows).toBe('Unless you choose, nothing published changes')
     expect(pane('gap-spain').follows).toBe('Compare the 2 details with the source, then publish')
     expect(pane('sug-agent').follows).toMatch(
       /^Compare the \d+ details with the source, then publish$/,

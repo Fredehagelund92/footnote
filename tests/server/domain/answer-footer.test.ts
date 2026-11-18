@@ -86,7 +86,9 @@ describe('the footer of a records answer', () => {
   })
 
   it('says drafts are not seen on a read of the context list', () => {
-    expect(footerOf(ask({ intent: 'count' })).notSeen).toMatch(/drafts and suggestions/)
+    expect(footerOf(ask({ intent: 'count' })).notSeen).toMatch(
+      /drafts and suggestions are left out until they are published/i,
+    )
   })
 
   it('says the days what agents asked was counted over, and a domain’s whole', () => {

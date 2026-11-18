@@ -38,7 +38,7 @@ export const wordsCases: WordsCase[] = [
     input: {
       question: 'Why did orders in Norway drop in August?',
       state: 'grounded',
-      say: '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+      say: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
       items: [
         event(
           'Online sales to Norway stopped on 4 August 2026',
@@ -114,7 +114,7 @@ export const wordsCases: WordsCase[] = [
     input: {
       question: 'What does units sold leave out?',
       state: 'grounded',
-      say: '1 context item applies to Units sold. Only that was checked.',
+      say: '1 context item applies to Units sold. Nothing else was looked up.',
       items: [
         event(
           'Units sold leaves out test accounts',

@@ -55,7 +55,7 @@ test('Delete names the drafts it removes, keeps published items, and Settings re
 
   await go(page, '/settings/advanced')
   await expect(
-    page.getByText('Black Friday 2026 orders land in two weeks', { exact: true }),
+    page.getByText('Black Friday 2026 orders are split over two weeks', { exact: true }),
   ).toBeVisible()
   // The History log has the change too.
   await expect(page.getByRole('table', { name: 'History log' })).toContainText(

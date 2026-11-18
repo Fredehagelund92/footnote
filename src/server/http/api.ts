@@ -1024,7 +1024,7 @@ export function createRouter({
         const result = await readNow(database, [input.id], () => runJob('connectors.sync'))
         if (result.outcome === 'unknown_job' || result.outcome === 'not_running')
           throw new ORPCError('SERVICE_UNAVAILABLE', {
-            message: "The job runner isn't running. Ask the data team to start it.",
+            message: "The job runner isn't running. Ask the person who hosts this app to start it.",
           })
         // Already waiting or running: the job's next turn reads it.
         return { id: input.id, status: 'queued' as const }
@@ -1260,7 +1260,8 @@ export function createRouter({
             })
           case 'not_running':
             throw new ORPCError('SERVICE_UNAVAILABLE', {
-              message: "The job runner isn't running. Ask the data team to start it.",
+              message:
+                "The job runner isn't running. Ask the person who hosts this app to start it.",
             })
         }
       }),

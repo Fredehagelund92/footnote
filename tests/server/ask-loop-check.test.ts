@@ -39,7 +39,7 @@ const found = {
   everyWord: 1,
   items: [germany],
   definitions: [],
-  outOf: { count: 21, of: 'published context items you may read' },
+  outOf: { count: 21, of: 'published context items you can see' },
   more: 0,
   ids: ['itm_germany01'],
 }

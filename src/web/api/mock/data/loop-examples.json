@@ -7,7 +7,7 @@
       "sources": ["itm_0tmqp7o1"],
       "state": "grounded",
       "footer": {
-        "denominator": "1 of 21 published context items you may read applies.",
+        "denominator": "1 of 21 published context items you can see applies.",
         "notSeen": null,
         "stale": null
       },
@@ -173,7 +173,7 @@
       "sources": [],
       "state": "missing",
       "footer": {
-        "denominator": "0 of 21 published context items you may read apply; a wider read found 7.",
+        "denominator": "0 of 21 published context items you can see apply; a wider read found 7.",
         "notSeen": null,
         "stale": null
       },
@@ -474,7 +474,7 @@
       "sources": ["itm_spainvatin", "itm_spainvatout"],
       "state": "conflict",
       "footer": {
-        "denominator": "2 of 21 published context items you may read apply.",
+        "denominator": "2 of 21 published context items you can see apply.",
         "notSeen": null,
         "stale": null
       },
@@ -644,7 +644,7 @@
       "sources": ["itm_pfet8zj3"],
       "state": "stale",
       "footer": {
-        "denominator": "Out of 21 published context items you may read.",
+        "denominator": "Out of 21 published context items you can see.",
         "notSeen": null,
         "stale": "“Regulator paused price promotions in Italy on 18 April 2026” may be out of date: its check date has passed."
       },
@@ -794,15 +794,15 @@
     "question": "List the events in Sales",
     "turn": {
       "kind": "answer",
-      "text": "Sales has 4 of 13 published context items in Sales you may read.\n\n- Online sales to Norway stopped on 4 August 2026 [1]\n- Payment provider switched in France on 12 May 2026 [2]\n- Payment provider switched in France on 12 May 2026 [3]\n- Payment provider switched in France on 21 May 2026 [4]",
+      "text": "Sales has 4 of 13 published context items in Sales you can see.\n\n- Online sales to Norway stopped on 4 August 2026 [1]\n- Payment provider switched in France on 12 May 2026 [2]\n- Payment provider switched in France on 12 May 2026 [3]\n- Payment provider switched in France on 21 May 2026 [4]",
       "sources": ["itm_norwaystop", "itm_franceswitch12", "itm_spe2w9kh", "itm_franceswitch21"],
       "state": null,
       "footer": {
-        "denominator": "Counted 4 of 13 published context items in Sales you may read.",
+        "denominator": "Counted 4 of 13 published context items in Sales you can see.",
         "notSeen": null,
         "stale": null
       },
-      "read": ["Counted 4 of 13 published context items in Sales you may read."],
+      "read": ["Counted 4 of 13 published context items in Sales you can see."],
       "subject": null,
       "nearby": [],
       "conflict": [],
@@ -847,7 +847,7 @@
             {
               "t": "count",
               "value": "13",
-              "of": "published context items in Sales you may read"
+              "of": "published context items in Sales you can see"
             },
             {
               "t": "text",
@@ -861,7 +861,7 @@
           "more": 0
         }
       ],
-      "said": "[@domain:area_sales] has 4 of 13 published context items in Sales you may read.\n\n- Online sales to Norway stopped on 4 August 2026 [itm_norwaystop]\n- Payment provider switched in France on 12 May 2026 [itm_franceswitch12]\n- Payment provider switched in France on 12 May 2026 [itm_spe2w9kh]\n- Payment provider switched in France on 21 May 2026 [itm_franceswitch21]",
+      "said": "[@domain:area_sales] has 4 of 13 published context items in Sales you can see.\n\n- Online sales to Norway stopped on 4 August 2026 [itm_norwaystop]\n- Payment provider switched in France on 12 May 2026 [itm_franceswitch12]\n- Payment provider switched in France on 12 May 2026 [itm_spe2w9kh]\n- Payment provider switched in France on 21 May 2026 [itm_franceswitch21]",
       "nouns": [
         {
           "id": "metric:orders",
@@ -960,7 +960,7 @@
       "sources": ["itm_norwaystop", "itm_giftcardonly", "itm_giftstorecredit"],
       "state": "conflict",
       "footer": {
-        "denominator": "3 of 21 published context items you may read apply.",
+        "denominator": "3 of 21 published context items you can see apply.",
         "notSeen": null,
         "stale": null
       },
@@ -1176,7 +1176,7 @@
     "question": "what do i need to handle?",
     "turn": {
       "kind": "answer",
-      "text": "20 cards wait on you in your Inbox, in 7 groups.\nNot found (1):\n- Orders in Spain, October 2026\nReported (1):\n- A report that an answer was wrong\nSaved questions (1):\n- 2 saved questions need a look\nAlerts (2):\n- Cube local model did not sync\n- Google Drive did not sync\nMentioned you (1):\n- Regulator paused price promotions in Norway on 9 May 2026 [1]\nDue for a check (3):\n- What to rule out before explaining a jump in Gross margin [2]\n- Returns changed definition on 28 April 2026 [3]\n- Regulator paused price promotions in Italy on 18 April 2026 [4]\nSuggestions (11):\n- Units sold excludes test accounts [5]\n- Online sales to Norway stopped on 4 August 2026 [6]\n- Returns changed definition on 28 April 2026 [3]\n- What to rule out before explaining a jump in Gross margin [2]\n- What to rule out before explaining a jump in Orders [7]\n- Payment provider switched in France on 12 May 2026 [8]\n- Payment provider delays order data in Poland\n- Norway orders leave out store credit from 1 November 2026\n- Data for Orders before 19 January 2026 is not reliable [9]\n- Orders in Germany include marketplace orders from 15 October 2026\n- Units sold counts a bundle as one unit",
+      "text": "20 cards wait on you in your Inbox, in 7 groups.\nNot found (1):\n- Orders in Spain, October 2026\nReported (1):\n- A report that an answer was wrong\nSaved questions (1):\n- 2 saved questions need a look\nAlerts (2):\n- Cube local model could not be read\n- Google Drive could not be read\nMentioned you (1):\n- Regulator paused price promotions in Norway on 9 May 2026 [1]\nDue for a check (3):\n- What to rule out before explaining a jump in Gross margin [2]\n- Returns changed definition on 28 April 2026 [3]\n- Regulator paused price promotions in Italy on 18 April 2026 [4]\nSuggestions (11):\n- Units sold excludes test accounts [5]\n- Online sales to Norway stopped on 4 August 2026 [6]\n- Returns changed definition on 28 April 2026 [3]\n- What to rule out before explaining a jump in Gross margin [2]\n- What to rule out before explaining a jump in Orders [7]\n- Payment provider switched in France on 12 May 2026 [8]\n- Payment provider delays order data in Poland\n- Norway orders leave out store credit from 1 November 2026\n- Data for Orders before 19 January 2026 is not reliable [9]\n- Orders in Germany include marketplace orders from 15 October 2026\n- Units sold counts a bundle as one unit",
       "sources": [
         "itm_za26xpzv",
         "itm_kcy22j54",
@@ -1505,7 +1505,7 @@
             "count": 2,
             "rows": [
               {
-                "title": "Cube local model did not sync",
+                "title": "Cube local model could not be read",
                 "item": null,
                 "about": [],
                 "domain": "domain:area_customer_value",
@@ -1514,7 +1514,7 @@
                 "card": "alert:01a1c09a-5241-75d0-a22d-37a78ee2e588"
               },
               {
-                "title": "Google Drive did not sync",
+                "title": "Google Drive could not be read",
                 "item": null,
                 "about": [],
                 "domain": null,
@@ -1694,7 +1694,7 @@
     "question": "What is out of date?",
     "turn": {
       "kind": "answer",
-      "text": "3 of 3 context items due for a check you may read, by domain.\nSales (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nMarketing (1):\n- Regulator paused price promotions in Italy on 18 April 2026 [3]",
+      "text": "3 of 3 context items due for a check you can see, by domain.\nSales (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nMarketing (1):\n- Regulator paused price promotions in Italy on 18 April 2026 [3]",
       "sources": ["itm_ra39ow6c", "itm_kcy22j54", "itm_pfet8zj3"],
       "state": null,
       "footer": {
@@ -1702,7 +1702,7 @@
         "notSeen": null,
         "stale": null
       },
-      "read": ["Counted 3 of 3 context items due for a check you may read."],
+      "read": ["Counted 3 of 3 context items due for a check you can see."],
       "subject": null,
       "nearby": [],
       "conflict": [],
@@ -1843,7 +1843,7 @@
           {
             "t": "count",
             "value": "3",
-            "of": "context items due for a check you may read"
+            "of": "context items due for a check you can see"
           },
           {
             "t": "text",
@@ -1906,7 +1906,7 @@
     "question": "How does Sales stand?",
     "turn": {
       "kind": "answer",
-      "text": "15 of 15 context items in Sales you may read, by status.\ndue for a check (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nlive (11):\n- Data for Orders before 19 January 2026 is not reliable [3]\n- Net revenue in Spain includes VAT [4]\n- Norway orders are card and cash payments only [5]\n- Norway orders count store credit [6]\n- Online sales to Norway stopped on 4 August 2026 [7]\n- Orders lags by one day in the source tool [8]\n- Payment provider switched in France on 12 May 2026 [9]\n- Payment provider switched in France on 12 May 2026 [10]\n- Payment provider switched in France on 21 May 2026 [11]\n- Units sold excludes test accounts [12]\n- What to rule out before explaining a jump in Orders [13]\narchived (2):\n- Orders lag by two days in the source tool [14]\n- Payment provider switched in Norway on 9 July 2025 [15]",
+      "text": "15 of 15 context items in Sales you can see, by status.\ndue for a check (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nlive (11):\n- Data for Orders before 19 January 2026 is not reliable [3]\n- Net revenue in Spain includes VAT [4]\n- Norway orders are card and cash payments only [5]\n- Norway orders count store credit [6]\n- Online sales to Norway stopped on 4 August 2026 [7]\n- Orders lags by one day in the source tool [8]\n- Payment provider switched in France on 12 May 2026 [9]\n- Payment provider switched in France on 12 May 2026 [10]\n- Payment provider switched in France on 21 May 2026 [11]\n- Units sold excludes test accounts [12]\n- What to rule out before explaining a jump in Orders [13]\narchived (2):\n- Orders lag by two days in the source tool [14]\n- Payment provider switched in Norway on 9 July 2025 [15]",
       "sources": [
         "itm_ra39ow6c",
         "itm_kcy22j54",
@@ -1927,10 +1927,10 @@
       "state": null,
       "footer": {
         "denominator": null,
-        "notSeen": "5 more items were found and not listed.",
+        "notSeen": "5 more items match and are not shown.",
         "stale": null
       },
-      "read": ["Counted 15 of 15 context items in Sales you may read."],
+      "read": ["Counted 15 of 15 context items in Sales you can see."],
       "subject": null,
       "nearby": [],
       "conflict": [],
@@ -2233,7 +2233,7 @@
           {
             "t": "count",
             "value": "15",
-            "of": "context items in Sales you may read"
+            "of": "context items in Sales you can see"
           },
           {
             "t": "text",
@@ -2530,7 +2530,7 @@
       "sources": ["itm_giftcardonly", "itm_giftstorecredit"],
       "state": "conflict",
       "footer": {
-        "denominator": "2 of 21 published context items you may read apply.",
+        "denominator": "2 of 21 published context items you can see apply.",
         "notSeen": null,
         "stale": null
       },
@@ -2711,7 +2711,7 @@
       "sources": ["itm_norwaystop"],
       "state": "conflict",
       "footer": {
-        "denominator": "3 of 21 published context items you may read apply.",
+        "denominator": "3 of 21 published context items you can see apply.",
         "notSeen": null,
         "stale": null
       },

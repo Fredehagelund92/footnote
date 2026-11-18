@@ -57,7 +57,7 @@ export const alertRules: readonly AlertRule[] = [
   {
     id: 'gap',
     name: 'Not found',
-    when: '{n} or more times in 7 days about the same thing, even across a month edge',
+    when: '{n} or more times in 7 days about the same thing, even across two months',
     then: 'A Not found card to the owners',
     audience: 'owners',
     threshold: {
@@ -112,7 +112,7 @@ export const alertRules: readonly AlertRule[] = [
   },
   {
     id: 'sync',
-    name: 'A connected tool did not sync',
+    name: 'A connected tool could not be read',
     when: 'A read failed or is overdue',
     then: 'A card to admins and the owners',
     audience: 'both',

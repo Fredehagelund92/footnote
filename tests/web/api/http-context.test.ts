@@ -552,8 +552,8 @@ describe('a draft, as the Context list and its page read it', () => {
         proposerId: 'per_jon',
         draft: {
           kind: 'event',
-          title: 'Black Friday 2026 orders land in two weeks',
-          summary: 'Its weekend orders land in week 48.',
+          title: 'Black Friday 2026 orders are split over two weeks',
+          summary: 'Its weekend orders are counted in week 48.',
           scope: {
             metrics: ['metric:orders'],
             dimensions: [],
@@ -566,7 +566,7 @@ describe('a draft, as the Context list and its page read it', () => {
       words,
     )
     expect(fact).toMatchObject({
-      title: 'Black Friday 2026 orders land in two weeks',
+      title: 'Black Friday 2026 orders are split over two weeks',
       domain: 'area_sales',
       kind: 'event',
       status: 'Draft',
