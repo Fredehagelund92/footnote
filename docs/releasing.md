@@ -28,7 +28,9 @@ so in its notes.
    pull request open, titled with the next version, such as `chore(main): release 0.2.0`, that:
    - writes the new section of `CHANGELOG.md` from the commit titles since the last release;
    - raises the version in `package.json`, `package-lock.json`, `.release-please-manifest.json`,
-     `docs/api/openapi.json` and the supported versions in `SECURITY.md`.
+     `docs/api/openapi.json`, the supported versions in `SECURITY.md`, and the two images
+     `compose.images.yaml` pulls, so the README's Quick start at a release's tag runs that
+     release's images.
 
    It makes the pull request again on top of `main` after every merge, even one that adds no line
    to the changelog, so the pull request is never behind `main`.
@@ -46,21 +48,29 @@ so in its notes.
       one that merged the release pull request into `main`, and that **CI gate** passed on it;
    2. it builds both images in the `Dockerfile`, the service and the web app, for `linux/amd64` and
       `linux/arm64`, each on a runner of that platform;
-   3. it pushes them to the GitHub Container Registry with an SBOM and the build provenance, as
+   3. it scans each image on each platform with [Trivy](https://trivy.dev), pushed by digest and
+      before it has a tag, and stops on a critical or high vulnerability that a newer package
+      fixes;
+   4. it pushes them to the GitHub Container Registry with an SBOM and the build provenance, as
       `ghcr.io/fredehagelund92/heed` (the service) and `ghcr.io/fredehagelund92/heed-web` (the web
       app), each tagged `0.1.0`, `0.1` and `latest`;
-   4. it signs the build provenance of both images with GitHub's artifact attestations, and checks
+   5. it signs the build provenance of both images with GitHub's artifact attestations, and checks
       that each platform has its SBOM and provenance and that the signature verifies;
-   5. it builds the docs site at the tag ([The docs site](#the-docs-site)), in parallel and apart
+   6. it checks that `compose.images.yaml` names exactly the images it pushed, then runs the
+      README's Quick start as written at the tag, without signing in to ghcr.io:
+      `docker compose -f compose.yaml -f compose.images.yaml up`. On that demo it runs the demo
+      journey and the eight demo questions in a browser (`.github/workflows/demo-images.yml`).
+      Until they pass, there is no GitHub Release;
+   7. it builds the docs site at the tag ([The docs site](#the-docs-site)), in parallel and apart
       from the release, so a failed docs build never stops it;
-   6. it creates the GitHub Release `Footnote 0.1.0`: its notes are the version's section of
+   8. it creates the GitHub Release `Footnote 0.1.0`: its notes are the version's section of
       `CHANGELOG.md` (`scripts/release-notes.ts`) and the two images with their digests;
-   7. it moves the release pull request's label from `autorelease: pending` to
+   9. it moves the release pull request's label from `autorelease: pending` to
       `autorelease: tagged`. release-please opens no new release pull request while a merged one
       is still pending;
-   8. a last job attaches the docs as `heed-docs-0.1.0.tar.gz` to the release, only if the docs
-      build succeeded. If it failed, the run shows the failed docs job and a warning that the
-      tarball was not attached; the release and images are intact.
+   10. a last job attaches the docs as `heed-docs-0.1.0.tar.gz` to the release, only if the docs
+       build succeeded. If it failed, the run shows the failed docs job and a warning that the
+       tarball was not attached; the release and images are intact.
 
 The workflows use only the workflow's own token, with the least each job needs. No secret is
 stored.
@@ -146,7 +156,8 @@ its own version where these say `0.2.0`:
    ```
 
 2. Read the new `CHANGELOG.md` and check that `package.json`, `package-lock.json`,
-   `.release-please-manifest.json`, `docs/api/openapi.json` and `SECURITY.md` say `0.2.0`. Check
+   `.release-please-manifest.json`, `docs/api/openapi.json`, `SECURITY.md` and
+   `compose.images.yaml` say `0.2.0`. Check
    **What's new**. Choose **Approve workflows to run**, and wait for **CI gate**.
 3. Merge it. Wait for **CI gate** to pass on the commit the merge made on `main`.
 4. Tag that commit and push the tag:
@@ -177,6 +188,13 @@ its own version where these say `0.2.0`:
   `git tag -d v0.1.0`) and tag the commit that merged the release pull request.
 - **CI gate has not passed on the tagged commit yet:** the first job stops. Once it has passed,
   open the run and choose **Re-run all jobs**.
+- **The scan found a critical or high vulnerability that has a fix:** nothing is tagged or
+  released. Its job names the package and the version that fixes it. Take the fix on `main` (a
+  newer base image or package) in a new release: move the merged release pull request's label
+  from `autorelease: pending` to `autorelease: tagged`, so release-please opens the next one.
+- **The demo from the published images failed:** read its Playwright report among the run's
+  files. If the images could not be pulled, the packages are not public yet
+  ([Set up once](#set-up-once), step 2): make them public and choose **Re-run failed jobs**.
 - **A build or the release failed half way:** choose **Re-run failed jobs**. Images are pushed by
   digest, and a release that was already made gets its notes written again.
 - **To take a release back:** delete the GitHub Release and the tag. Pushed images stay where they
