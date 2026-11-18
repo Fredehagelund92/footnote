@@ -3,7 +3,7 @@ title: Self-host Footnote on one computer
 line: Run it with docker compose on one computer, back it up, restore it, upgrade it and roll an upgrade back.
 group: Run the service
 order: 2
-reviewed: 2026-11-05
+reviewed: 2026-11-18
 ---
 
 Run it with `docker compose` on one computer, back it up, restore it, upgrade it and roll an upgrade back. To run it anywhere else, see [Where to run Footnote](where-to-run.md).
@@ -23,12 +23,37 @@ Then open http://localhost:8080. The first start builds both images and loads th
 
 To check it, `docker compose ps` shows each part `healthy`, and `docker compose logs heed` shows what the start did.
 
-| Setting          | Default | What it does                                                                                  |
-| ---------------- | ------- | --------------------------------------------------------------------------------------------- |
-| `HEED_WEB_PORT`  | `8080`  | The web app's port on this computer                                                           |
-| `HEED_PORT`      | `3000`  | The service's port on this computer, where agents connect (`/mcp`)                            |
-| `SEED_DEMO`      | `on`    | Loads the demo into a new, empty database                                                     |
-| `CUBE_MODEL_DIR` | Unset   | Your own Cube model's folder, read only ([Use your own data](../README.md#use-your-own-data)) |
+| Setting          | Default | What it does                                                                                       |
+| ---------------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `HEED_WEB_PORT`  | `8080`  | The web app's port on this computer                                                                |
+| `HEED_PORT`      | `3000`  | The service's port on this computer, where agents connect (`/mcp`)                                 |
+| `SEED_DEMO`      | `on`    | Loads the demo into a new, empty database                                                          |
+| `CUBE_MODEL_DIR` | Unset   | Your own Cube model's folder, read only ([Use your own data](../README.md#use-your-own-data))      |
+| `MODELS`         | Unset   | `live` answers Ask and the test runs on a real model ([Ask on a real model](#ask-on-a-real-model)) |
+
+When 8080 or 3000 is taken by another program, move them, as in `HEED_WEB_PORT=8081 HEED_PORT=3001 docker compose up`. Docker Desktop refuses a taken port with an error. Colima may say nothing, and the other program then answers on that port. An agent then connects to the new service port, such as `http://localhost:3001/mcp`.
+
+## Ask on a real model
+
+The demo answers Ask on scripted models: they list what is written, and nothing leaves this computer. To answer on Claude, start it with an [Anthropic API key](https://console.anthropic.com/settings/keys):
+
+```sh
+MODELS=live ANTHROPIC_API_KEY=sk-ant-... docker compose up
+```
+
+That is the only step. Ask and the test runs answer on Claude Sonnet 5.5, and the test runs are judged by Claude Opus 5.5. For Vercel's AI Gateway, set `VERCEL_AI_GATEWAY_API_KEY` instead, and an admin points each `models.*` setting at `vercel-gateway` ([Change a setting](administration.md#change-a-setting), [Model providers](evaluations.md#model-providers)).
+
+**What leaves this computer.** For each question, Ask sends Anthropic the chat so far, the text of the items it reads, their owners' names, and whether the person asking is an admin and which domains they own. It sends no e-mail address and not the asker's name. Test runs send their test questions and the items they read.
+
+Through the gateway, Vercel receives the same and passes it to Anthropic. Put no company data in until your company approves the provider.
+
+**What it costs.** On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs also start by themselves, such as soon after the first start and after a definition changes: two runs of the demo's tests cost USD 1.12. The service stops calling the model at these limits, which an admin can change:
+
+| Setting                              | Default                                        |
+| ------------------------------------ | ---------------------------------------------- |
+| `limits.llm_daily_micros_per_person` | USD 2 a person a day                           |
+| `limits.llm_feature_monthly_micros`  | USD 250 a month for Ask, and for the test runs |
+| `limits.llm_monthly_cap_micros`      | USD 500 a month in all                         |
 
 ## What runs
 
