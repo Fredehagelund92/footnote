@@ -31,7 +31,7 @@ import { goldenSetChecks } from './domain/golden-checks.ts'
   file, and runs only where it exists and the key holder gives the key.
 */
 
-const dir = mkdtempSync(join(tmpdir(), 'heed-held-out-test-'))
+const dir = mkdtempSync(join(tmpdir(), 'footnote-held-out-test-'))
 afterAll(() => rmSync(dir, { recursive: true, force: true }))
 let files = 0
 const file = (text: string, name = `file-${++files}`) => {
@@ -362,7 +362,7 @@ registerHooks({
     expect(() => statSync(buffer!)).toThrow()
     expect(
       readdirSync(tmpdir()).some(
-        (name) => buffer!.includes(name) && name.startsWith('heed-held-out-'),
+        (name) => buffer!.includes(name) && name.startsWith('footnote-held-out-'),
       ),
     ).toBe(false)
   })
