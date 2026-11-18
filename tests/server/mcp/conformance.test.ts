@@ -245,6 +245,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     expect(Object.keys(short).sort()).toEqual([
       'asked',
       'context',
+      'defined',
       'edition',
       'period_read',
       'reply_id',

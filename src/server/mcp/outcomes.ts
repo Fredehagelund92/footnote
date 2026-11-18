@@ -367,6 +367,18 @@ export function quoted(words: string): { text: string; shortened: boolean } {
 }
 
 /**
+ * What a metric is, as every get_context reply gives it (M9): the first sentence of its definition
+ * source's own words, so an agent never calls an amount a count. A metric its source does not
+ * describe has none.
+ */
+export function definitionLine(term: ServingTerm) {
+  const words = term.described?.description?.trim()
+  if (!words) return null
+  const first = words.split(/\n|(?<=[.!?])\s/)[0] ?? words
+  return { metric: term.name, definition: quoted(first).text, from: term.described!.tool }
+}
+
+/**
  * What the definition source says about a term, where that comes from, and what Footnote adds: the
  * items about it agents get, beside how many items are about it as the catalogue counts them
  * (`termItems`). The caller shows only a term an agent may see (`termShown`).

@@ -54,6 +54,7 @@ import { canRead, linkIndex, outgoing, related, termShown, type Link } from '../
 import type { AnonymousRecord, AnonymousStore } from './records.ts'
 import {
   askedDomains,
+  definitionLine,
   definitionOf,
   findContext,
   reviewedOutput,
@@ -878,6 +879,17 @@ export function createToolService(
                 .slice(0, 5)
             : []
         const definitions = defined.map((term) => definitionOf(bundle, term, today))
+        // M9: what each asked metric is, in the first sentence of its source's words, in every
+        // get_context reply, so the agent never calls an amount a count. A cut never takes it.
+        const meant = v1
+          ? metrics
+              .flatMap((key) => {
+                const term = bundle.terms.find((t) => t.key === key)
+                const line = term && termShown(bundle, term) ? definitionLine(term) : null
+                return line ? [line] : []
+              })
+              .slice(0, 5)
+          : []
         // D7: dates the strict reader refused come back with the reading a person would mean, as
         // a choice in options, when the caller gave neither window nor period words.
         const loose =
@@ -992,6 +1004,7 @@ export function createToolService(
             ...saidFields(said()),
             asked: askedWords,
             ...(period ? { period_read: period } : {}),
+            ...(meant.length ? { defined: meant } : {}),
           }
           return concise
             ? resultFor({

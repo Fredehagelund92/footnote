@@ -505,6 +505,12 @@ export const contextOutput = z
       .optional()
       .describe('What was looked up: the metrics, markets and dates, in words.'),
     period_read: periodRead.optional(),
+    defined: z
+      .array(z.object({ metric: z.string(), definition: z.string(), from: z.string() }))
+      .optional()
+      .describe(
+        'What each metric asked for is: the first sentence of its definition, in the words of the tool it comes from. Say a figure as this says it is, such as an amount or a count.',
+      ),
     context: z.array(contextEntry).optional(),
     terms,
     reply_id: z
