@@ -121,8 +121,9 @@ const SESSION_MESSAGES_PER_MINUTE = 120
 
 /**
  * The requests one caller address may have refused a minute before a token is accepted (S3): a
- * missing or invalid token, a wrong host or origin, a wrong method. Past them, a refusal is a 429
- * that writes no record and no log line, so a flood without a token reaches no database.
+ * missing or invalid token, a wrong host or origin, a wrong method. Past them, a refusal is answered
+ * the same, challenge included, but writes no record and no log line, so a flood without a token
+ * reaches no database while an agent behind the same address can still find where to sign in.
  */
 const REFUSALS_PER_MINUTE = 60
 
@@ -225,21 +226,12 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       status = recordStatus
       return reply.code(code).send({ error: message })
     }
-    // A refusal before a token is accepted spends the caller address's budget first, and past it is
-    // only a 429 (S3).
-    const refusedBefore = () => {
-      const retry = limit([{ key: `refused:${request.ip}`, limit: REFUSALS_PER_MINUTE }])
-      if (!retry) return null
-      unrecorded = true
-      reply.header('Retry-After', retry)
-      return deny(
-        429,
-        `Too many calls to ${productName} this minute. Wait ${retry} seconds, then try again.`,
-        'rate_limited',
-      )
+    // A refusal before a token is accepted spends the caller address's budget, and past it is
+    // neither recorded nor logged (S3).
+    const refuse = (code: number, message: string, recordStatus: RequestRecord['status']) => {
+      unrecorded = limit([{ key: `refused:${request.ip}`, limit: REFUSALS_PER_MINUTE }]) > 0
+      return deny(code, message, recordStatus)
     }
-    const refuse = (code: number, message: string, recordStatus: RequestRecord['status']) =>
-      refusedBefore() ?? deny(code, message, recordStatus)
     if (!['POST', 'GET', 'DELETE'].includes(request.method))
       return refuse(405, 'Method not allowed', 'error')
     try {
@@ -268,12 +260,12 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
         'WWW-Authenticate',
         `Bearer error="invalid_token", resource_metadata="${metadata}", scope="${challengeScope}"`,
       )
-      const limited = refusedBefore()
-      if (limited) return limited
+      const refused = refuse(401, 'Invalid token', 'unauthorized')
       // A reason code and the client label only (FR-411): never the token or anything in it.
       const refusal = error instanceof TokenError ? error : new TokenError('malformed')
-      app.log.warn({ reason: refusal.reason, client: refusal.client }, 'MCP token rejected')
-      return deny(401, 'Invalid token', 'unauthorized')
+      if (!unrecorded)
+        app.log.warn({ reason: refusal.reason, client: refusal.client }, 'MCP token rejected')
+      return refused
     }
     // A JSON-RPC batch carries many calls in one request, and every check below reads one call:
     // let through, it would be charged as one request and logged as one `protocol` call (FR-408,

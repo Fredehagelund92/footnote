@@ -997,7 +997,7 @@ it('counts each person and client apart, reopens after the minute, and records a
     expect(text).not.toContain(secret)
 })
 
-it('turns a flood without a token away before it writes anything, and never a valid token (S3)', async () => {
+it('writes nothing for a flood without a token, and still challenges it and answers a valid token (S3)', async () => {
   const start = new Date('2026-10-07T12:34:56Z')
   const clock = { now: start }
   const s = await server(clock)
@@ -1012,10 +1012,14 @@ it('turns a flood without a token away before it writes anything, and never a va
   expect((await status('garbage')).status).toBe(401)
   expect(warn).toHaveBeenCalledTimes(1)
   clock.now = new Date(start.getTime() + 20_000)
-  // Past them, no token, a failed token and a wrong origin are each only a 429 with a retry hint.
-  expect(await status('')).toEqual({ status: 429, retry: '40' })
-  expect(await status('garbage')).toEqual({ status: 429, retry: '40' })
-  expect((await status(s.token, { Origin: 'https://attacker.example' })).status).toBe(429)
+  // Past them, no token, a failed token and a wrong origin are refused as ever, the challenge
+  // included so an agent can still find where to sign in, but nothing is recorded or logged.
+  const challenged = await s.post(call, '')
+  await challenged.text()
+  expect(challenged.status).toBe(401)
+  expect(challenged.headers.get('www-authenticate')).toContain('resource_metadata=')
+  expect((await status('garbage')).status).toBe(401)
+  expect((await status(s.token, { Origin: 'https://attacker.example' })).status).toBe(403)
   // A valid token from the same address is answered as ever.
   expect((await status(s.token)).status).toBe(200)
   await s.gateway.flush()
