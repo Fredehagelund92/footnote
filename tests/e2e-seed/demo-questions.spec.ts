@@ -4,7 +4,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
   The eight demo questions: what a visitor to the demo is likely to ask Ask first, with no AI
   model connected, so the scripted reader answers. Each answer must be sensible: the right label,
   and the line that makes it right first or on the screen. Two of them are one chat, a question and
-  its follow-up. The nightly run asks them of main's images (.github/workflows/nightly.yml), and a
+  its follow-up. The nightly run asks them of main's images (.github/workflows/demo-images.yml), and a
   release asks them of the images it published (.github/workflows/release.yml).
 */
 
