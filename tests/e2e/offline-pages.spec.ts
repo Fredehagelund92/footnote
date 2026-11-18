@@ -31,7 +31,11 @@ for (const { name, from, to, shown } of pages) {
     page,
   }) => {
     await go(page, from)
-    // The pages' code is fetched once the first page is in; only their reads are left.
+    // The app fetches its pages' code once idle after the first page; only their reads are left.
+    await page.locator('html[data-ready]').waitFor({ state: 'attached' })
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestIdleCallback(() => resolve(), { timeout: 3000 })),
+    )
     await page.waitForLoadState('networkidle')
     await page.context().setOffline(true)
     await go(page, to)
