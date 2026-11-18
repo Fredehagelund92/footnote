@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cards } from '@/api/mock/data/inbox'
 import type { Inbox } from '@/api'
-import { groupOf, inboxRows, INBOX_GROUPS, startsFolded } from '@/lib/inbox-rows'
+import { dueScope, groupOf, inboxRows, INBOX_GROUPS, startsFolded } from '@/lib/inbox-rows'
 
 // The Inbox's order of need: what people wait on first (a mention of you, a suggestion), the
 // chores after, and a long run of checks folded until it is wanted.
@@ -44,5 +44,12 @@ describe('the groups that start folded', () => {
     expect(startsFolded('check', 10)).toBe(false)
     expect(startsFolded('suggestion', 200)).toBe(false)
     expect(startsFolded('gap', 200)).toBe(false)
+  })
+})
+
+describe('dueScope', () => {
+  it('names every domain for an admin and the owned ones for an owner', () => {
+    expect(dueScope({ admin: true })).toBe('in all domains')
+    expect(dueScope({ admin: false })).toBe('in your domains')
   })
 })

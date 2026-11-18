@@ -245,7 +245,7 @@ export function AppSidebar({
                         <span>{item.title}</span>
                       </SidebarMenuButton>
                       {item.badge && (
-                        <SidebarMenuBadge>
+                        <SidebarMenuBadge title="Cards waiting on you, with the checks due in your domains">
                           <Changed value={item.badge}>{item.badge}</Changed>
                         </SidebarMenuBadge>
                       )}

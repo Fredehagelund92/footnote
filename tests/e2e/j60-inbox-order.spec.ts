@@ -7,7 +7,7 @@ import type { Page } from '@playwright/test'
 
 const headers = (page: Page) => page.locator('li > button[aria-expanded]')
 const header = (page: Page, name: string) =>
-  page.getByRole('button', { name: new RegExp(`^${name} \\d+$`) })
+  page.getByRole('button', { name: new RegExp(`^${name} \\d+( in (all|your) domains)?$`) })
 
 test('suggestions come before the chores', async ({ page }) => {
   await go(page, '/inbox')

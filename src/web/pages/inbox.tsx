@@ -92,6 +92,7 @@ import type { Outcome } from '@/model/inbox'
 import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments'
 import {
   groupOf,
+  dueScope,
   INBOX_GROUPS,
   startsFolded,
   type InboxGroup,
@@ -270,6 +271,7 @@ function InboxList({
   list: React.RefObject<HTMLUListElement | null>
 }) {
   const { opened } = useInbox()
+  const me = useMe()
   const reviews = useReviews()
   const leaving = useLeavingRows()
   // Rows added after the list first shows open in; the first ones are simply there.
@@ -333,6 +335,7 @@ function InboxList({
                 >
                   {INBOX_GROUPS.find((g) => g.id === group)!.label}
                   <span className="font-normal tabular-nums">{inGroup}</span>
+                  {group === 'check' && <span className="font-normal">{dueScope(me)}</span>}
                   <ChevronDownIcon
                     aria-hidden
                     className={cn('size-3.5', folded.has(group) && '-rotate-90')}
