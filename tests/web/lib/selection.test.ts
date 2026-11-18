@@ -79,7 +79,7 @@ describe('select all and the count', () => {
   })
   it('says the count, and that it cleared', () => {
     expect(countLine(3)).toBe('3 selected')
-    expect(countLine(1209)).toBe(`${(1209).toLocaleString()} selected`)
+    expect(countLine(1209)).toBe('1,209 selected')
     expect(countLine(0)).toBe('Selection cleared')
   })
 })

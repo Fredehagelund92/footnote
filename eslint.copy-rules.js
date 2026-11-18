@@ -12,7 +12,8 @@ import {
   The rules that keep the shape of the copy, beside the glossary (docs/design/copy.md, "The
   voice"). The glossary check finds a banned word. These find what a list of words cannot: a
   sentence glued together in code, a sentence that runs on, a second word for one thing, an error
-  with no message, a fixed locale, a demo's name in code that every install runs.
+  with no message, a date in the browser's language, a demo's name in code that every install
+  runs.
 
   Each is a ratchet. scripts/check-plain-words.ts counts what they report in
   copy-checks.baseline.json and fails a change that adds to a count; a fall is only a note. So a
@@ -253,35 +254,41 @@ const errorsSayThreeThings = {
 const localeCalls = new Set(['toLocaleString', 'toLocaleDateString', 'toLocaleTimeString'])
 const monthName = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/
 
-// Dates and numbers come in the reader's own way.
-const noFixedLocale = {
+// Dates and numbers are written in British English, whatever the browser's language.
+const englishLocale = {
   meta: {
     type: 'suggestion',
-    docs: { description: 'Format dates and numbers with the reader’s locale, not a fixed one.' },
+    docs: { description: 'Format dates and numbers in British English, not the browser’s locale.' },
     schema: [],
     messages: {
       locale:
-        'A fixed locale ("{{locale}}"). Dates and numbers go through Intl with the browser’s locale (copy.md 2.11).',
+        "Formatted in {{locale}}. Dates and numbers are written in British English: pass 'en-GB' or LOCALE from @/lib/dates (copy.md 2.11).",
       months:
         'Month names typed in English. Format a date with Intl.DateTimeFormat (copy.md 2.11).',
     },
   },
   create(context) {
-    const fixed = (node, first) => {
-      if (isString(first))
-        context.report({ node, messageId: 'locale', data: { locale: first.value } })
+    const english = (node, first) => {
+      if (isString(first) && first.value === 'en-GB') return
+      if (first?.type === 'Identifier' && first.name === 'LOCALE') return
+      const locale = !first
+        ? 'the browser’s locale'
+        : isString(first)
+          ? `"${first.value}"`
+          : 'a locale read at run time'
+      context.report({ node, messageId: 'locale', data: { locale } })
     }
     return {
       CallExpression(node) {
         const { callee } = node
         if (callee.type !== 'MemberExpression') return
-        if (localeCalls.has(nameOf(callee.property) ?? '')) fixed(node, node.arguments[0])
-        else if (nameOf(callee.object) === 'Intl') fixed(node, node.arguments[0])
+        if (localeCalls.has(nameOf(callee.property) ?? '')) english(node, node.arguments[0])
+        else if (nameOf(callee.object) === 'Intl') english(node, node.arguments[0])
       },
       NewExpression(node) {
         const { callee } = node
         if (callee.type === 'MemberExpression' && nameOf(callee.object) === 'Intl')
-          fixed(node, node.arguments[0])
+          english(node, node.arguments[0])
       },
       ArrayExpression(node) {
         const names = node.elements.filter((e) => isString(e) && monthName.test(e.value))
@@ -340,7 +347,7 @@ const plugin = {
     'sentence-length': sentenceLength,
     'one-word-one-thing': oneWordOneThing,
     'errors-say-three-things': errorsSayThreeThings,
-    'no-fixed-locale': noFixedLocale,
+    'english-locale': englishLocale,
     'no-demo-in-shared-code': noDemoInSharedCode,
   },
 }
@@ -360,7 +367,7 @@ export const copyRuleConfigs = [
       'copy/sentence-length': 'warn',
       'copy/one-word-one-thing': 'warn',
       'copy/errors-say-three-things': 'warn',
-      'copy/no-fixed-locale': 'warn',
+      'copy/english-locale': 'warn',
     },
   },
   {
