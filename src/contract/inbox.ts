@@ -253,4 +253,11 @@ export type NamesDecision = z.infer<typeof decideNamesResultSchema>
 export const setupSchema = z.object({
   steps: z.array(z.object({ id: z.enum(setupSteps), done: z.boolean() })),
   done: z.boolean(),
+  /**
+   * The definitions the server's own configuration reads, such as a model folder: the source's id
+   * and whether a read of it has ended yet. Null when the server reads none, and the definitions
+   * step offers to connect a tool.
+   */
+  serverSource: z.nullable(z.object({ id: z.string(), read: z.boolean() })),
 })
+export type Setup = z.infer<typeof setupSchema>

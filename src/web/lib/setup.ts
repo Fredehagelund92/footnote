@@ -44,3 +44,39 @@ export const setupSteps: SetupStep[] = [
     action: 'Copy the prompt',
   },
 ]
+
+/** What the definitions step offers: to publish names waiting, a source's page, or to connect. */
+export type DefinitionsOpens = 'names' | 'source' | 'connect'
+
+/**
+ * The definitions step, for an install the server started on its own definitions, such as a model
+ * folder: until a read of them has ended it says one is on its way and offers nothing, and it never
+ * offers to connect another tool. Names waiting are published from here, whatever source read them.
+ * A read that left none waiting opens its source's page, which says what the read found.
+ */
+export function definitionsStep(
+  serverSource: { id: string; read: boolean } | null,
+  waiting: number,
+): { description: string; action: string | null; opens: DefinitionsOpens } {
+  const step = setupSteps.find((s) => s.id === 'definitions')!
+  if (waiting)
+    return {
+      description: step.description,
+      action: `Publish ${waiting === 1 ? '1 name' : `${waiting} names`}`,
+      opens: 'names',
+    }
+  if (!serverSource) return { description: step.description, action: step.action, opens: 'connect' }
+  if (!serverSource.read)
+    return {
+      description:
+        'Reading the definitions this server was started on. Their names show here when the read ends.',
+      action: null,
+      opens: 'source',
+    }
+  return {
+    description:
+      'The definitions this server was started on were read, and no names wait. Their page says what the read found.',
+    action: 'Open the read',
+    opens: 'source',
+  }
+}

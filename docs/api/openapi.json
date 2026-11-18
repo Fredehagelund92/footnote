@@ -77690,11 +77690,34 @@
                     },
                     "done": {
                       "type": "boolean"
+                    },
+                    "serverSource": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "read": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "read"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "steps",
-                    "done"
+                    "done",
+                    "serverSource"
                   ]
                 }
               }

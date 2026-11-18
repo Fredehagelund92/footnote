@@ -81,9 +81,10 @@ import {
   useSession,
   useWorkspace,
   useWrite,
+  workspaceQuery,
 } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
-import { setupSteps } from '@/lib/setup'
+import { definitionsStep, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/heed/conflict-pair'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
@@ -1015,7 +1016,7 @@ function whereContextGoes(me: Person, domains: Domain[]) {
 
 function Setup() {
   const {
-    setup: { done: setupDone },
+    setup: { done: setupDone, serverSource },
     domains: domainList,
   } = useWorkspace()
   const me = useMe()
@@ -1023,11 +1024,32 @@ function Setup() {
   // A read ends a moment after a tool is connected: its names show here by themselves. Any left
   // for a look stay on their step, as the Inbox's cards wait for the checklist to end.
   const canPublish = me.admin || me.owns.length > 0
-  const names = useQuery({
+  const namesRead = useQuery({
     ...namesQuery(),
     enabled: canPublish,
     refetchInterval: setupDone.definitions || !canPublish ? false : 3000,
-  }).data?.names.filter((name) => name.state !== 'left_out')
+  })
+  const names = namesRead.data?.names.filter((name) => name.state !== 'left_out')
+  // The server's own definitions are read by themselves too: the checklist asks until that read
+  // has ended, then counts it ended only once the names read after it are in, so the step goes
+  // from the read on its way straight to its names.
+  const reading = !!serverSource && !serverSource.read && !setupDone.definitions
+  const workspaceRead = useQuery({ ...workspaceQuery(), refetchInterval: reading ? 3000 : false })
+  const [sawReading, setSawReading] = React.useState(reading)
+  if (reading && !sawReading) setSawReading(true)
+  const { refetch: refetchNames } = namesRead
+  const ended = sawReading && serverSource?.read === true
+  React.useEffect(() => {
+    if (ended) void refetchNames()
+  }, [ended, refetchNames])
+  const namesBehind = ended && canPublish && namesRead.dataUpdatedAt < workspaceRead.dataUpdatedAt
+  // A step done says what it is, whatever read its names.
+  const definitions = definitionsStep(
+    setupDone.definitions || !serverSource
+      ? null
+      : { ...serverSource, read: serverSource.read && !namesBehind },
+    names?.length ?? 0,
+  )
   const [reviewing, setReviewing] = React.useState(false)
   const first = setupSteps.find((s) => !setupDone[s.id])
   // A question about the first item, from what it applies to or, if that is empty, its own words.
@@ -1045,7 +1067,9 @@ function Setup() {
     : 'What should I know about our numbers?'
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
   const go = (id: string) => {
-    if (id === 'definitions' && names?.length) setReviewing(true)
+    if (id === 'definitions' && definitions.opens === 'names') setReviewing(true)
+    else if (id === 'definitions' && definitions.opens === 'source' && serverSource)
+      navigate(`/settings/integrations/${serverSource.id}`)
     // The catalogue loads with the first page that needs it, never with the Inbox.
     else if (id === 'definitions')
       void import('@/model/catalogue').then(({ definitionsConnectHref }) =>
@@ -1095,6 +1119,8 @@ function Setup() {
                 <ol className="flex flex-col divide-y divide-border">
                   {setupSteps.map((step, i) => {
                     const isDone = setupDone[step.id]
+                    const own = step.id === 'definitions'
+                    const action = own ? definitions.action : step.action
                     return (
                       <li
                         key={step.id}
@@ -1115,19 +1141,20 @@ function Setup() {
                           >
                             {step.title}
                           </span>
-                          <span className="block text-xs text-muted-foreground">
-                            {step.description}
+                          <span
+                            className="block text-xs text-muted-foreground"
+                            aria-live={own ? 'polite' : undefined}
+                          >
+                            {own ? definitions.description : step.description}
                           </span>
                         </span>
                         {isDone && <span className="sr-only">Done</span>}
-                        {(!isDone || (step.id === 'definitions' && !!names?.length)) && (
+                        {action !== null && (!isDone || (own && definitions.opens === 'names')) && (
                           <Button
                             variant={first?.id === step.id ? 'default' : 'outline'}
                             onClick={() => go(step.id)}
                           >
-                            {step.id === 'definitions' && names?.length
-                              ? `Publish ${names.length === 1 ? '1 name' : `${names.length} names`}`
-                              : step.action}
+                            {action}
                           </Button>
                         )}
                       </li>

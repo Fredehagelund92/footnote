@@ -1164,7 +1164,9 @@ export function createRouter({
       ),
     },
     setup: {
-      state: authorized.setup.state.handler(({ context }) => context.cards.setup()),
+      state: authorized.setup.state.handler(({ context }) =>
+        context.cards.setup(sources?.list().map((source) => source.id)),
+      ),
     },
     evals: {
       questions: {

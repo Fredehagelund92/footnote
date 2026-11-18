@@ -468,7 +468,7 @@ export function createMockApi() {
         invites: workspace.invites(),
         about: state.about,
         aboutTemplate: ABOUT_BUSINESS,
-        setup: { done: state.setup },
+        setup: { done: state.setup, serverSource: null },
       })),
     getVocabulary: () => now(() => ({ metrics, dimensions, markets })),
     getActivity: ({ name }) => now(() => workspace.activityOf(name, seedFacts)),

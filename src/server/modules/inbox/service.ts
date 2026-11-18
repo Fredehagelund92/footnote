@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/client'
-import type { Card, Feed } from '../../../contract/inbox.ts'
+import type { Card, Feed, Setup } from '../../../contract/inbox.ts'
 import type { ReportOutcome } from '../../../contract/reports.ts'
 import {
   alertCardDays,
@@ -892,8 +892,12 @@ export function createInboxFeedService(
       throw new ORPCError('NOT_FOUND', { message: missing('this change') })
     },
 
-    /** A new workspace's setup checklist (FR-816), read from what exists. */
-    async setup(): Promise<{ steps: { id: SetupStep; done: boolean }[]; done: boolean }> {
+    /**
+     * A new workspace's setup checklist (FR-816), read from what exists, with the server's own
+     * definitions source (of `serverSources`, its ids) and whether a read of it has ended: the
+     * first one not read yet, else the first.
+     */
+    async setup(serverSources: readonly string[] = []): Promise<Setup> {
       const [row] = await tx.query<Record<SetupStep, boolean>>(
         `select coalesce(length(btrim((select value #>> '{}' from settings_current where key='business.about'))),0) > 0 as about,
                 exists(select 1 from areas where archived_at is null) as domain,
@@ -905,7 +909,20 @@ export function createInboxFeedService(
                  or exists(select 1 from auth.oauth_grants)) as agent`,
       )
       const steps = setupSteps.map((id) => ({ id, done: Boolean(row?.[id]) }))
-      return { steps, done: steps.every((s) => s.done) }
+      const read = new Set(
+        (
+          await tx.query<{ id: string }>(
+            'select distinct connector_id as id from connector_snapshots where connector_id = any($1)',
+            [serverSources],
+          )
+        ).map((r) => r.id),
+      )
+      const id = serverSources.find((source) => !read.has(source)) ?? serverSources[0]
+      return {
+        steps,
+        done: steps.every((s) => s.done),
+        serverSource: id === undefined ? null : { id, read: read.has(id) },
+      }
     },
 
     /** Ask was used: the checklist's step that leaves no other record (no words, nobody). */
