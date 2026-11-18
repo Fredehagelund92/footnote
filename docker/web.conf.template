@@ -10,8 +10,21 @@ map $http_x_forwarded_proto $footnote_hsts {
     default "";
 }
 
+# What nginx logs of each request, as the service logs its own (src/server/observability/logger.ts):
+# the method, the path and the status only. No query string, which carries search words and invite
+# tokens, and no caller's address or referring page: Footnote never records who asked. The path is
+# the one asked for, since $uri turns into /index.html for a page of the app.
+map $request_uri $footnote_path {
+    "~^(?<path>[^?]*)" $path;
+}
+log_format footnote '[$time_local] "$request_method $footnote_path" $status $body_bytes_sent';
+
 server {
     listen 8080;
+    access_log /var/log/nginx/access.log footnote;
+    # nginx's error line for a request names its whole request line, so when the service cannot be
+    # reached only the status says so in the log above (502 or 504). Starting up still logs.
+    error_log /var/log/nginx/error.log crit;
     root /usr/share/nginx/html;
     server_tokens off;
     charset utf-8;
