@@ -34,7 +34,7 @@ Both name the version that runs.
 
 Logs are JSON lines on stdout. Each line about a request carries its id (`reqId`), and the response returns the same id as `X-Request-Id`, so a person can quote it. A history log entry written by that request carries the id too.
 
-Logs never hold a header, a body, a query string, a credential or a person.
+Logs never hold a header, a body, a query string, a credential or a person. The web image's log holds the same: method, path and status, with no query string and no caller's address.
 
 ## Run the image in production mode
 
