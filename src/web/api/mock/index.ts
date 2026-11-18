@@ -450,7 +450,15 @@ export function createMockApi() {
     getSignInMethod: () =>
       now(() => ({ kind: 'picker' as const, demo: false, profileLabel: null })),
     readInvite: ({ token }) => now(() => workspace.readInvite(token)),
-    listSignInPeople: () => now(() => signInPeople),
+    // The mock's people are all invented, as the demo's are.
+    listSignInPeople: () =>
+      now(() =>
+        signInPeople.map((name) => ({
+          name,
+          admin: !!workspace.person(name)?.admin,
+          sample: true,
+        })),
+      ),
     signIn: ({ name }) => {
       if (!signInPeople.includes(name))
         return Promise.reject(new ApiError('not-found', `${name} can't sign in here.`))

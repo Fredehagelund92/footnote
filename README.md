@@ -138,10 +138,13 @@ CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
 ```
 
 This builds the images from this checkout, as the Quick start does. With your own model Footnote starts empty, with
-no demo data. Sign in as Ravi Kapoor, the administrator in `db/seed/people.local.yml`, and follow the setup
-checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context
-applies to those names. On a Mac the folder must be one Docker shares, or Footnote refuses to start and says so. See
-[the Cube connector](docs/connectors/cube.md).
+no demo data. The sign-in page offers the sample people of `db/seed/people.local.yml`: sign in as Ravi Kapoor,
+the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes,
+on one card. Your context applies to those names. On a Mac the folder must be one Docker shares, or Footnote
+refuses to start and says so. See [the Cube connector](docs/connectors/cube.md).
+
+To sign in as yourself, add your name and email to the top of `db/seed/people.local.yml` with
+`roles: [administrator]`, then start with `docker compose up --build`, so the image takes the file in.
 
 For dbt, Footnote reads the `semantic_manifest.json` that `dbt parse` writes, from a link, object storage, a Git
 repository or a folder: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md). Start Footnote
