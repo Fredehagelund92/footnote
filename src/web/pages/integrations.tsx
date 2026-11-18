@@ -936,7 +936,7 @@ function ConnectedRow({
   )
 }
 
-function AvailableCell({ c, connectable }: { c: Connector; connectable: boolean }) {
+function AvailableCell({ c }: { c: Connector }) {
   return (
     <div className="flex min-h-44 flex-col gap-2 border-r border-b bg-background p-4 md:p-5">
       <div className="flex items-start justify-between gap-2">
@@ -948,18 +948,12 @@ function AvailableCell({ c, connectable }: { c: Connector; connectable: boolean 
       <h4 className="mt-1 text-sm font-medium">{c.name}</h4>
       <p className="text-sm text-muted-foreground">{c.blurb}</p>
       <div className="mt-auto pt-2">
-        {c.soon || !connectable ? (
-          <Badge variant="outline" className="font-normal text-muted-foreground">
-            Soon
-          </Badge>
-        ) : (
-          <a
-            href={`/settings/integrations/${c.id}/connect`}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Connect <ArrowRightIcon className="size-3.5" aria-hidden />
-          </a>
-        )}
+        <a
+          href={`/settings/integrations/${c.id}/connect`}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Connect <ArrowRightIcon className="size-3.5" aria-hidden />
+        </a>
       </div>
     </div>
   )
@@ -1021,7 +1015,10 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
   const sources = [...view.sources].sort(catalogOrder)
   const connected = new Set(sources.map((s) => s.connector))
   const rows = sources.filter((s) => matches(connectorById(s.connector)!))
-  const cells = connectors.filter((c) => matches(c) && !connected.has(c.id))
+  // Available holds only what this install can connect.
+  const cells = connectors.filter(
+    (c) => matches(c) && !connected.has(c.id) && view.connectable.includes(c.id),
+  )
   const refused = sources.find((s) => sourceHealth(s.state) === 'reauth')
   const refusedTool = refused && connectorById(refused.connector)
   // Nothing connected starts with definitions: the first definitions tool that can be connected.
@@ -1119,7 +1116,7 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
           className="-mr-px -mb-px grid border-t @xl/main:grid-cols-2 @4xl/main:grid-cols-3"
         >
           {cells.map((c) => (
-            <AvailableCell key={c.id} c={c} connectable={view.connectable.includes(c.id)} />
+            <AvailableCell key={c.id} c={c} />
           ))}
           <div className="flex min-h-44 flex-col gap-2 border-r border-b bg-background p-4 md:p-5">
             <span className="grid size-8 place-items-center rounded-md border border-dashed text-muted-foreground">
@@ -1416,12 +1413,10 @@ function NotConnected({ id }: { id: string }) {
         {c ? `${c.name} isn't connected` : 'There is no such integration'}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
-        {c && !c.soon
-          ? 'Connect it to see what it reads.'
-          : 'See what can be connected in Integrations.'}
+        {c ? 'Connect it to see what it reads.' : 'See what can be connected in Integrations.'}
       </p>
       <div className="mt-4 flex justify-center gap-2">
-        {c && !c.soon && (
+        {c && (
           <Button onClick={() => navigate(`/settings/integrations/${c.id}/connect`)}>
             Connect {c.name}
           </Button>
@@ -2097,14 +2092,12 @@ function Recipe({ recipe }: { recipe: NonNullable<ConnectOption['recipe']> }) {
 function ServerSet({ c }: { c: Connector | undefined }) {
   const line = !c
     ? 'There is no such integration.'
-    : c.soon
-      ? `${c.name} isn't ready to connect yet.`
-      : `${c.name}'s settings are set by the person who hosts this app${c.serverSetting ? `, in ${c.serverSetting}` : ''}. They can't be changed here.`
+    : `${c.name}'s settings are set by the person who hosts this app${c.serverSetting ? `, in ${c.serverSetting}` : ''}. They can't be changed here.`
   return (
     <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
       <p>{line}</p>
       <div className="flex gap-2">
-        {c && !c.soon && (
+        {c && (
           <a href={`/settings/integrations/${c.id}`} className={buttonVariants()}>
             Back to {c.name}
           </a>
@@ -2132,7 +2125,7 @@ export function ConnectFlow({ id }: { id: string }) {
       }
     >
       <Loadable what="The connect form" skeleton={<RowsSkeleton rows={6} />} query={load}>
-        {form === null || (c && c.soon) ? (
+        {form === null ? (
           <ServerSet c={c} />
         ) : (
           form &&
