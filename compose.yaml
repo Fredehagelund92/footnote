@@ -61,13 +61,14 @@ services:
       # own in the keys volume, so they stay when the container is made again. The service makes
       # it, for its own user alone: it refuses a folder others may read, as the volume's top is.
       HEED_SECRETS_DIR: /var/lib/heed/secrets
-      # The models, and the key and address of each provider, when you name them; empty, the
-      # scripted models (docs/configuration.md, "Models").
-      MODELS: ${MODELS:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
-      VERCEL_AI_GATEWAY_API_KEY: ${VERCEL_AI_GATEWAY_API_KEY:-}
-      VERCEL_AI_GATEWAY_BASE_URL: ${VERCEL_AI_GATEWAY_BASE_URL:-}
+      # The models, and the key and address of each provider, from this computer's shell when it
+      # sets them; unset, the scripted models (docs/configuration.md, "Models"). No default is
+      # written: the provider packages fail on an empty address, so an unset one must stay unset.
+      MODELS:
+      ANTHROPIC_API_KEY:
+      ANTHROPIC_BASE_URL:
+      VERCEL_AI_GATEWAY_API_KEY:
+      VERCEL_AI_GATEWAY_BASE_URL:
     volumes:
       # Your own model's folder, or an empty volume nothing reads when you name none: the demo
       # never depends on a folder Docker shares from this computer.
