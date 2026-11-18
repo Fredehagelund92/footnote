@@ -134,7 +134,11 @@ What still works for this release:
 
 What changed outright:
 
-- **The image's key folder** is `/var/lib/footnote`, not `/var/lib/heed`. Mount the keys volume there, or the service refuses to start in production for want of its key.
+- **The image's key folder** is `/var/lib/footnote`, not `/var/lib/heed`. Mount the keys volume there, or the service refuses to start in production for want of its key. Settings of your own that still point into `/var/lib/heed` (`HEED_SECRETS_DIR`, `HEED_OAUTH_SIGNING_KEY_FILE`, `HEED_MCP_STATE_KEY_FILE`, `MCP_DEV_KEY_FILE`) win over the image's defaults, so repoint them too.
+- **The web image's address of the service** defaults to `http://footnote:3000`, not `http://heed:3000`. Outside this compose file (your own compose, Kubernetes, Swarm), with a service named `heed` and no API URL set, nginx stops with `host not found in upstream footnote`: set `FOOTNOTE_API_URL`, or name the service `footnote`.
+- **The service's locks** on the database (roles, domains, settings, sources) have new keys, so a 0.1 instance and a new one must not run against one database at the same time. Stop the old one, then start the new: there is no rolling upgrade.
+- **Dev tokens** from `npm run mcp:token` made before the upgrade are refused, since their issuer was `urn:heed:local` and is `urn:footnote:local`. Make a new one.
+- **A connector's manifest** names the interface range in the field `footnote`, not `heed`. A connector written to the 0.1 docs renames that field.
 - **Metrics** start `footnote_`, not `heed_`, so a dashboard or alert reads the new names, and each series starts again at the upgrade. The log's `name` is `footnote`.
 - **The command line** is `npm run footnote`, not `npm run heed`.
 - **An edition export** says `footnote.edition/1`. One from before still verifies and imports.

@@ -143,7 +143,15 @@ The service applies new migrations before it serves, each in a transaction of it
 
 Footnote was called Heed until 0.1. The compose project was `heed`, so its data is in the volumes `heed_db` and `heed_keys`, and the service was `heed`. The new version names them `footnote_db`, `footnote_keys` and `footnote`. Started as it comes, it would find empty volumes and load the demo, with your data left behind in the old ones.
 
-So copy the old volumes into the new ones once, before the first start. After step 2 of the upgrade, in place of step 3:
+So copy the old volumes into the new ones once, before the first start. Step 2 of the upgrade, backing up and the restore drill, runs on the old checkout, before `git checkout`, with the 0.1 names:
+
+```sh
+docker compose exec -T heed sh -c 'pg_dump --format=custom --dbname="$DATABASE_URL_MIGRATE"' > heed.dump
+docker compose exec -T heed tar -C /var/lib/heed -cf - . > heed-keys.tar
+docker compose exec heed npm run db:restore-drill
+```
+
+Then, in place of step 3:
 
 ```sh
 git fetch --tags && git checkout <new version>
@@ -157,7 +165,7 @@ docker compose up -d --wait
 
 On that start, `docker compose logs footnote` says `Renamed the database heed to footnote`, then how many migrations it applied. Your data is there. Whoever was signed in still is, and agents stay connected, because the keys came along.
 
-The old volumes are left as they were, so rolling back is checking out the old version and running `docker compose up -d`. Once you are happy with the new version, remove them with `docker volume rm heed_db heed_keys heed_no-model`.
+The old volumes are left as they were, so rolling back is checking out the old version and running `docker compose up -d`. Run `docker compose down` first, on the new version, since its project holds ports 3000 and 8080 and the old one would fail with `port is already allocated`. Anything written since the upgrade stays in the `footnote_*` volumes. Once you are happy with the new version, remove them with `docker volume rm heed_db heed_keys heed_no-model`.
 
 Other names changed with it. Each old one still works for this release, so nothing breaks at the upgrade. [Upgrade from Heed 0.1](operations.md#upgrade-from-heed-01) lists them.
 
