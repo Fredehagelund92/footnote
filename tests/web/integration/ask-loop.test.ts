@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { chatTurnOf, type Answer } from '@/model/ask'
+import { UNCHECKED } from '../../../src/server/modules/answer/loop-check.ts'
 import {
   scriptedLoopChoice,
   scriptedLoopModel,
@@ -86,16 +87,19 @@ describe("Ask's loop", () => {
     await audience(['finance_team'])
     try {
       let seen = ''
-      // A model that cites the item it saw last turn, by its id, whatever it is given now.
+      // A model that cites the item it saw last turn, by its id, whatever it is given now. Only
+      // the first prompt: the rewrite after the answer check quotes the failing sentence.
       decide = ({ prompt }) => {
-        seen = JSON.stringify(prompt)
+        seen ||= JSON.stringify(prompt)
         return { text: `As before [${AUDIENCE_ITEM}].` }
       }
       const again = await api.ask({ question: 'are you sure?', turns: [turnOf(first)] })
       expect(seen).not.toContain(AUDIENCE_ITEM)
       expect(seen).not.toContain(title)
       expect(again.sources).not.toContain(AUDIENCE_ITEM)
-      expect(JSON.stringify(again)).not.toContain(AUDIENCE_ITEM)
+      // The shown words: the check keeps the failed sentence with the turn, never shows it.
+      expect(again.text).not.toContain(AUDIENCE_ITEM)
+      expect(again.text).toBe(UNCHECKED)
       expect(JSON.stringify(again)).not.toContain(title)
     } finally {
       decide = null
@@ -117,7 +121,7 @@ describe("Ask's loop", () => {
     const api = await world.as(ML)
     let seen = ''
     decide = ({ prompt }) => {
-      seen = JSON.stringify(prompt)
+      seen ||= JSON.stringify(prompt)
       return { text: 'As before [itm_giftcardonly].' }
     }
     try {
@@ -137,7 +141,8 @@ describe("Ask's loop", () => {
       expect(seen).toContain('Here is what is written.')
       expect(seen).not.toContain('card and cash only')
       expect(a.sources).toEqual([])
-      expect(a.text).toBe('As before.')
+      // The cited item is no read of this chat: the sentence fails twice and is replaced.
+      expect(a.text).toBe(UNCHECKED)
     } finally {
       decide = null
     }
