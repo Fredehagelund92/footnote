@@ -63,6 +63,11 @@ export type Session = {
   fresh: boolean
   /** The label naming this install (HEED_PROFILE_LABEL) for the header; null when none is set. */
   profileLabel: string | null
+  /**
+   * Who answers in Ask: an AI model; the service's scripted reader (MODELS=mock), whose answers
+   * list what is written; or the mock build's own reader, a design preview of Ask.
+   */
+  answeredBy: 'model' | 'reader' | 'preview'
 }
 
 export type Workspace = {
@@ -321,6 +326,12 @@ export type SignInMethod = { demo: boolean; profileLabel: string | null } & (
   { kind: 'picker' } | { kind: 'oidc'; name: string; start: string }
 )
 
+/**
+ * Someone the picker offers: whether they are an admin, and whether they are a sample person, at an
+ * address in the reserved .test domain no real person has (db/seed/people.local.yml).
+ */
+export type SignInChoice = { name: string; admin: boolean; sample: boolean }
+
 /** What an open invite's link says on the sign-in screen: the domains by name, read signed out. */
 export type InviteNote = { email: string; admin: boolean; domains: string[] }
 
@@ -340,8 +351,8 @@ export interface FootnoteApi {
   getSignInMethod: () => Promise<SignInMethod>
   /** What an invite link's token opens, or null for a link that opens no invite. Needs no session. */
   readInvite: (input: { token: string }) => Promise<InviteNote | null>
-  /** The people the demo's sign-in offers, by name. Needs no session. */
-  listSignInPeople: () => Promise<string[]>
+  /** The people the picker offers, in its order. Needs no session. */
+  listSignInPeople: () => Promise<SignInChoice[]>
   /** Signs in as one of them. */
   signIn: (input: { name: string }) => Promise<Session>
   signOut: () => Promise<void>

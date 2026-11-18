@@ -443,6 +443,8 @@ export function createMockApi() {
         install: state.install,
         fresh: state.fresh,
         profileLabel: null,
+        // The mock's Ask is its own reader in the browser, a design preview of Ask.
+        answeredBy: 'preview',
       })),
     // The picker, with no label; an invite link opens the invite it names. Not the demo install
     // (demo: false), which lets a visitor in as its admin and has its own switch between people:
@@ -450,13 +452,27 @@ export function createMockApi() {
     getSignInMethod: () =>
       now(() => ({ kind: 'picker' as const, demo: false, profileLabel: null })),
     readInvite: ({ token }) => now(() => workspace.readInvite(token)),
-    listSignInPeople: () => now(() => signInPeople),
+    // The mock's people are all invented, as the demo's are.
+    listSignInPeople: () =>
+      now(() =>
+        signInPeople.map((name) => ({
+          name,
+          admin: !!workspace.person(name)?.admin,
+          sample: true,
+        })),
+      ),
     signIn: ({ name }) => {
       if (!signInPeople.includes(name))
         return Promise.reject(new ApiError('not-found', `${name} can't sign in here.`))
       return now(() => {
         dispatch({ type: 'signIn', name })
-        return { user: state.user, install: state.install, fresh: state.fresh, profileLabel: null }
+        return {
+          user: state.user,
+          install: state.install,
+          fresh: state.fresh,
+          profileLabel: null,
+          answeredBy: 'preview',
+        }
       })
     },
     signOut: () => now(() => dispatch({ type: 'signOut' })),

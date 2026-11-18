@@ -80,7 +80,7 @@ export function describeFootnoteApi(
     })
 
     it.skipIf(lacks('listSignInPeople'))('offers the person to sign in as', async () => {
-      expect(await api().listSignInPeople()).toContain(person)
+      expect((await api().listSignInPeople()).map((p) => p.name)).toContain(person)
     })
 
     it.skipIf(lacks('signIn', 'getSession', 'signOut'))(

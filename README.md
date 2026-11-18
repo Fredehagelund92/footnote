@@ -94,13 +94,11 @@ If port 8080 or 3000 is taken on this computer, move them: start with `HEED_WEB_
 front of `docker compose`, and connect agents to port 3001. Under Colima a taken port may fail without a word,
 and the other program answers there instead.
 
-Two other ways in:
+Another way in:
 
 - **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
   pulls them instead of building. They are release 0.1.0 of 2 November 2026, which is behind this page: it
   opens on a sign-in page that lists the demo people, with no **View as**. The next release replaces them.
-- **No Docker, under a minute.** With Node 26, `npm ci && npm run dev` opens the app on mock data at
-  <http://localhost:5173>. It has no database and no MCP server.
 
 To choose how to run Footnote for your own team, see [Where to run Footnote](docs/where-to-run.md). To keep it running
 here, back it up, upgrade it or roll an upgrade back, see [Self-host Footnote on one computer](docs/self-hosting.md).
@@ -138,10 +136,13 @@ CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
 ```
 
 This builds the images from this checkout, as the Quick start does. With your own model Footnote starts empty, with
-no demo data. Sign in as Ravi Kapoor, the administrator in `db/seed/people.local.yml`, and follow the setup
-checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context
-applies to those names. On a Mac the folder must be one Docker shares, or Footnote refuses to start and says so. See
-[the Cube connector](docs/connectors/cube.md).
+no demo data. The sign-in page offers the sample people of `db/seed/people.local.yml`: sign in as Ravi Kapoor,
+the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes,
+on one card. Your context applies to those names. On a Mac the folder must be one Docker shares, or Footnote
+refuses to start and says so. See [the Cube connector](docs/connectors/cube.md).
+
+To sign in as yourself, add your name and email to the top of `db/seed/people.local.yml` with
+`roles: [administrator]`, then start with `docker compose up --build`, so the image takes the file in.
 
 For dbt, Footnote reads the `semantic_manifest.json` that `dbt parse` writes, from a link, object storage, a Git
 repository or a folder: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md). Start Footnote

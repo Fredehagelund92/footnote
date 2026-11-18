@@ -29594,12 +29594,16 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "person",
                     "csrfToken",
-                    "profileLabel"
+                    "profileLabel",
+                    "modelConnected"
                   ]
                 }
               }
@@ -30203,12 +30207,16 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "person",
                     "csrfToken",
-                    "profileLabel"
+                    "profileLabel",
+                    "modelConnected"
                   ]
                 }
               }
