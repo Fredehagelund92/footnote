@@ -125,7 +125,7 @@ The product was called Heed until 0.1 and is called Footnote since. The names a 
 
 What still works for this release:
 
-- **Settings.** `HEED_AUTH` and every other `HEED_` setting is read when its `FOOTNOTE_` name is unset, with a warning: see [the next section](#settings-that-started-with-heed_). The compose file's `HEED_PORT` and `HEED_WEB_PORT` count too, and so does the web image's `HEED_API_URL`.
+- **Settings.** Every `HEED_` setting is read when its `FOOTNOTE_` name is unset, with a warning: see [the next section](#settings-that-started-with-heed_). The compose file's ports and the web image's address of the service count too: see the list below.
 - **Sign-in.** A browser signed in before the upgrade stays signed in: the service still reads the `heed_session` cookie, and the next sign-in replaces it. A web app or command line from before still sends `X-Heed-CSRF`, which the service still takes.
 - **The database `heed`.** When the database the service is set to (`footnote` in `compose.yaml`) is missing and `heed` is there, the start renames it, once.
 - **Key files.** A key under its old default name, `.heed-oauth-key.pem`, `.heed-mcp-state.key` or `.heed-dev-key.pem`, is moved to the new one, `.footnote-…`, the first time the service needs it. Agents stay connected.
@@ -134,8 +134,14 @@ What still works for this release:
 
 What changed outright:
 
-- **The image's key folder** is `/var/lib/footnote`, not `/var/lib/heed`. Mount the keys volume there, or the service refuses to start in production for want of its key. Settings of your own that still point into `/var/lib/heed` (`HEED_SECRETS_DIR`, `HEED_OAUTH_SIGNING_KEY_FILE`, `HEED_MCP_STATE_KEY_FILE`, `MCP_DEV_KEY_FILE`) win over the image's defaults, so repoint them too.
-- **The web image's address of the service** defaults to `http://footnote:3000`, not `http://heed:3000`. Outside this compose file (your own compose, Kubernetes, Swarm), with a service named `heed` and no API URL set, nginx stops with `host not found in upstream footnote`: set `FOOTNOTE_API_URL`, or name the service `footnote`.
+- **The image's key folder** is `/var/lib/footnote`, not `/var/lib/heed`. Mount the keys volume there, or the service refuses to start in production without its key.
+  Settings of your own that still point into the old folder win over the image's defaults, so repoint them too:
+  - `HEED_SECRETS_DIR`
+  - `HEED_OAUTH_SIGNING_KEY_FILE`
+  - `HEED_MCP_STATE_KEY_FILE`
+  - `MCP_DEV_KEY_FILE`
+- **The web image's address of the service** defaults to `http://footnote:3000`, not `http://heed:3000`. Outside this compose file (your own compose, Kubernetes, Swarm), with a service named `heed` and no API URL set, nginx stops with a host not found error.
+  Set `FOOTNOTE_API_URL`, or name the service `footnote`.
 - **The service's locks** on the database (roles, domains, settings, sources) have new keys, so a 0.1 instance and a new one must not run against one database at the same time. Stop the old one, then start the new: there is no rolling upgrade.
 - **Dev tokens** from `npm run mcp:token` made before the upgrade are refused, since their issuer was `urn:heed:local` and is `urn:footnote:local`. Make a new one.
 - **A connector's manifest** names the interface range in the field `footnote`, not `heed`. A connector written to the 0.1 docs renames that field.
@@ -146,7 +152,9 @@ What changed outright:
 
 ## Settings that started with HEED_
 
-Every setting that now starts with `FOOTNOTE_` used to start with `HEED_`, and the rest of its name is the same: `HEED_AUTH` is now `FOOTNOTE_AUTH`. The image's shipped defaults are `FOOTNOTE_DEFAULT_` now too.
+Every setting that now starts with `FOOTNOTE_` used to start with `HEED_`, and the rest of its name is the same: `HEED_AUTH` is now `FOOTNOTE_AUTH`.
+
+The image's shipped defaults are `FOOTNOTE_DEFAULT_` now too.
 
 This version still reads an old name when the new one is unset or empty, and a new name that is set always wins. Each process that reads an old name prints one warning at start, with the old settings in use and their new names, never their values.
 

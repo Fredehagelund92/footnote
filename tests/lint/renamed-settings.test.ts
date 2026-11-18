@@ -20,6 +20,9 @@ const allowedFiles = new Set([
   'tests/server/renamed-settings.test.ts',
   'tests/integration/old-settings-boot.test.ts',
   'tests/lint/renamed-settings.test.ts',
+  // The held-out key's former variables: only the seal's own files may name them, so this test may not.
+  'db/seed/held-out.ts',
+  'scripts/check-held-out-seal.ts',
   'docs/rename-checklist.md',
   'CHANGELOG.md',
 ])
@@ -33,15 +36,12 @@ const upgradeNotes = [
 ]
 /**
  * Old names read outside the table, each beside its new one for the same release: the compose
- * file's ports, the web image's address of the service, and the held-out key, whose variables only
- * the seal's own files may name (scripts/check-held-out-seal.ts).
+ * file's ports and the web image's address of the service.
  */
 const readBeside: Record<string, readonly string[]> = {
   'compose.yaml': ['HEED_PORT', 'HEED_WEB_PORT'],
   '.github/workflows/ci.yml': ['HEED_PORT', 'HEED_WEB_PORT'],
   'docker/16-api-url.envsh': ['HEED_API_URL'],
-  'db/seed/held-out.ts': ['HEED_HELDOUT_KEY', 'HEED_HELDOUT_KEY_FILE'],
-  'scripts/check-held-out-seal.ts': ['HEED_HELDOUT_KEY'],
 }
 /** Retired before 0.1.0 and read by nothing: named only to say it no longer works. */
 const retired = new Set(['CL_DEV_PERSON'])
