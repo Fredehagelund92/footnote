@@ -66,3 +66,22 @@ test('an owner leaves one ready name out, and can still edit and publish it from
   await row.locator('xpath=ancestor::li').getByRole('button', { name: 'Publish' }).click()
   await expect(page.getByText('Finished orders is published')).toBeVisible()
 })
+
+test('from the setup checklist, Enter publishes every ready name and leaves none out', async ({
+  page,
+}) => {
+  // A new install whose read has made names: the checklist's step opens them in a dialog.
+  await go(page, '/inbox?demo=names')
+  await go(page, '/inbox?demo=setup')
+  await page.getByRole('button', { name: 'Publish 5 names' }).click()
+  const review = page.getByRole('dialog', { name: 'The names from your definitions' })
+  const ready = review.getByRole('region', { name: 'Ready to publish' })
+  await expect(ready.getByRole('listitem')).toHaveCount(2)
+
+  // Focus starts on Publish all, not on a row's Leave out, so the Enter it shows publishes.
+  await expect(review.getByRole('button', { name: 'Publish all' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('2 names are published')).toBeVisible()
+  await expect(ready).toBeHidden()
+  await expect(review.getByRole('button', { name: /Left out/ })).toContainText('1 name')
+})
