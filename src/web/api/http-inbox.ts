@@ -834,6 +834,14 @@ export function reviewOf(
           },
         }
       : {}),
+    ...(sheet.instructionLike.length
+      ? {
+          instructionLike: sheet.instructionLike.map((f) => ({
+            field: fieldOf(f.field),
+            words: f.words,
+          })),
+        }
+      : {}),
     // Every live item it overlaps, each answered on its own, with the answer it already has.
     ...(sheet.clashes.length
       ? {

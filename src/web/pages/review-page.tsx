@@ -22,7 +22,7 @@ import { ownersOf } from '@/model/people'
 import type { Fact } from '@/model/items'
 import { PersonAvatar, StateLine } from '@/components/footnote/bits'
 import { KindLabel } from '@/components/footnote/review-parts'
-import { ClaimCheck } from '@/components/footnote/review-page-parts'
+import { ClaimCheck, InstructionWarning } from '@/components/footnote/review-page-parts'
 import { ItemDocument } from '@/components/footnote/item-document'
 import { Canvas, Paper } from '@/components/footnote/doc'
 import { useQuery } from '@tanstack/react-query'
@@ -618,7 +618,7 @@ function Preview({ r }: { r: Review }) {
 
 /**
  * The change: first what must be known, the same in every view (a withdrawal, the item to
- * archive, where a synced suggestion came from, the claim check), then the source or its preview,
+ * archive, words that read like orders, where a synced suggestion came from, the claim check), then the source or its preview,
  * then the live items it overlaps. No view can hide the claim check or the overlaps.
  */
 function TheChange({
@@ -683,6 +683,7 @@ function TheChange({
           </p>
         </section>
       )}
+      {r.instructionLike && <InstructionWarning found={r.instructionLike} />}
       {r.synced && <SyncedFrom r={r} />}
       {r.claims && <ClaimCheck claims={r.claims} from={r.from} drafted={!!r.drafted} />}
       <div className={cn((gate || r.retire) && 'mt-6 border-t pt-4')}>

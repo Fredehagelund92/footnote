@@ -199,6 +199,11 @@ export type Review = {
     toCheck?: number
   }
   /**
+   * Words of the suggestion that read like orders to an AI agent, by the field they are in
+   * (NFR-024): the review warns of them. Absent when there are none.
+   */
+  instructionLike?: { field: string; words: string[] }[]
+  /**
    * The clash with live context: the suggestion's words once, and each live item it overlaps, which the
    * owner answers on its own. Publish sends each answer for its own item.
    */

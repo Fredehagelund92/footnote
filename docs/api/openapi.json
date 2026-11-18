@@ -10528,6 +10528,33 @@
                         }
                       ]
                     },
+                    "instructionLike": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "enum": [
+                              "title",
+                              "text",
+                              "notToConclude",
+                              "quote"
+                            ],
+                            "type": "string"
+                          },
+                          "words": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "words"
+                        ]
+                      }
+                    },
                     "clashes": {
                       "type": "array",
                       "items": {
@@ -11037,6 +11064,7 @@
                     "fields",
                     "source",
                     "claims",
+                    "instructionLike",
                     "clashes",
                     "overlaps",
                     "readiness",
@@ -13982,6 +14010,33 @@
                               }
                             ]
                           },
+                          "instructionLike": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "enum": [
+                                    "title",
+                                    "text",
+                                    "notToConclude",
+                                    "quote"
+                                  ],
+                                  "type": "string"
+                                },
+                                "words": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "words"
+                              ]
+                            }
+                          },
                           "clashes": {
                             "type": "array",
                             "items": {
@@ -14491,6 +14546,7 @@
                           "fields",
                           "source",
                           "claims",
+                          "instructionLike",
                           "clashes",
                           "overlaps",
                           "readiness",

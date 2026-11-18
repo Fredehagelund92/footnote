@@ -267,6 +267,12 @@ export const reviewSheetSchema = z.object({
   source: z.object({ before: z.string(), after: z.string(), rows: z.array(sourceRowSchema) }),
   /** The claims against the sentence copied from the source, when an agent or the assistant wrote it. */
   claims: z.nullable(z.object({ sentence: z.string(), rows: z.array(claimRowSchema) })),
+  /**
+   * The words of the suggested version that read like orders to a language model (NFR-024), by
+   * the field they are in: the reviewer is warned of them, and nothing acts on them. Empty when
+   * there are none, and for an archive.
+   */
+  instructionLike: z.array(z.object({ field: textField, words: z.array(z.string()) })),
   clashes: z.array(clashSchema),
   /** Live items whose scope and dates overlap, for information; only a clash holds Publish. */
   overlaps: z.array(z.object({ id: z.string(), title: z.string(), kind: z.enum(itemKinds) })),
