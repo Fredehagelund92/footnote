@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { anchorFields } from '@domain/comments'
 import { fieldKeys } from '@/model/review-fields'
 import { onVersions, placeFromKey, placeKey, placeLabel, placeOf } from '@/model/source-places'
-import { threadCount } from '@/components/heed/source-threads'
+import { threadCount } from '@/components/footnote/source-threads'
 
 // Where a thread hangs on a review's source: a field of the Fields table, or a line of the text
 // on the side it was read on, against the two versions the review compares.

@@ -42,7 +42,7 @@ const app = buildApp({
   })),
 })
 type Who = keyof typeof people
-type Headers = { cookie: string; origin: string; 'x-heed-csrf': string }
+type Headers = { cookie: string; origin: string; 'x-footnote-csrf': string }
 const headers = {} as Record<Who, Headers>
 
 beforeAll(async () => {
@@ -85,14 +85,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
   relay.start()
@@ -237,7 +237,7 @@ describe('the outbox relay', () => {
     const listeners = async () =>
       (
         await client.query<{ pid: number }>(
-          "select pid from pg_stat_activity where application_name = 'heed-relay' and datname = current_database()",
+          "select pid from pg_stat_activity where application_name = 'footnote-relay' and datname = current_database()",
         )
       ).rows.map((row) => row.pid)
     await expect.poll(listeners).toHaveLength(1)
@@ -245,7 +245,7 @@ describe('the outbox relay', () => {
     await client.query('reset role')
     try {
       await client.query(
-        "select pg_terminate_backend(pid) from pg_stat_activity where application_name = 'heed-relay' and datname = current_database()",
+        "select pg_terminate_backend(pid) from pg_stat_activity where application_name = 'footnote-relay' and datname = current_database()",
       )
     } finally {
       await client.query(`set role ${localRoles.owner}`)

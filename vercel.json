@@ -6,12 +6,12 @@
   "outputDirectory": "dist/web",
   "regions": ["fra1"],
   "functions": {
-    "api/heed.js": { "maxDuration": 60 }
+    "api/footnote.js": { "maxDuration": 60 }
   },
   "rewrites": [
-    { "source": "/api/v1/(.*)", "destination": "/api/heed" },
-    { "source": "/health", "destination": "/api/heed" },
-    { "source": "/health/(.*)", "destination": "/api/heed" },
+    { "source": "/api/v1/(.*)", "destination": "/api/footnote" },
+    { "source": "/health", "destination": "/api/footnote" },
+    { "source": "/health/(.*)", "destination": "/api/footnote" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [

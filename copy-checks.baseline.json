@@ -71,13 +71,13 @@
     "src/web/api/mock/integrations.ts": {
       "plural": 5
     },
-    "src/web/components/heed/answer.tsx": {
+    "src/web/components/footnote/answer.tsx": {
       "plural": 1
     },
-    "src/web/components/heed/conflict-view.tsx": {
+    "src/web/components/footnote/conflict-view.tsx": {
       "plural": 1
     },
-    "src/web/components/heed/review-parts.tsx": {
+    "src/web/components/footnote/review-parts.tsx": {
       "plural": 1
     },
     "src/web/components/obs/filter-picker.tsx": {
@@ -138,37 +138,37 @@
     "src/web/components/error-boundary.tsx": {
       "dev server": 1
     },
-    "src/web/components/heed/answer.tsx": {
+    "src/web/components/footnote/answer.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/definition-peek.tsx": {
+    "src/web/components/footnote/definition-peek.tsx": {
       "read-only": 1
     },
-    "src/web/components/heed/definition.tsx": {
+    "src/web/components/footnote/definition.tsx": {
       "read-only": 3
     },
-    "src/web/components/heed/field-controls.tsx": {
+    "src/web/components/footnote/field-controls.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/fold.tsx": {
+    "src/web/components/footnote/fold.tsx": {
       "gap": 2
     },
-    "src/web/components/heed/frame.tsx": {
+    "src/web/components/footnote/frame.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/load-state.tsx": {
+    "src/web/components/footnote/load-state.tsx": {
       "retry": 1
     },
-    "src/web/components/heed/loop-nouns.tsx": {
+    "src/web/components/footnote/loop-nouns.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/mention-chip.tsx": {
+    "src/web/components/footnote/mention-chip.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/scope-field.tsx": {
+    "src/web/components/footnote/scope-field.tsx": {
       "gap": 1
     },
-    "src/web/components/heed/source-review.tsx": {
+    "src/web/components/footnote/source-review.tsx": {
       "gap": 1
     },
     "src/web/components/obs/filter-bar.tsx": {
@@ -217,16 +217,16 @@
     "src/web/api/mock/obs-engine.ts": {
       "locale": 3
     },
-    "src/web/components/heed/answer.tsx": {
+    "src/web/components/footnote/answer.tsx": {
       "locale": 1
     },
-    "src/web/components/heed/count-up.tsx": {
+    "src/web/components/footnote/count-up.tsx": {
       "locale": 1
     },
-    "src/web/components/heed/loop-answer.tsx": {
+    "src/web/components/footnote/loop-answer.tsx": {
       "locale": 4
     },
-    "src/web/components/heed/scope-field.tsx": {
+    "src/web/components/footnote/scope-field.tsx": {
       "locale": 1
     },
     "src/web/components/obs/charts.tsx": {

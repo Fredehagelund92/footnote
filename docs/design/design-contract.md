@@ -170,7 +170,7 @@ The chart tokens are the same in light and dark. One value differs from the mock
 - The logo, the chrome's surfaces, counts and badges never take the accent. Nor does a state: a Checked answer is green in its chip, its bars and their legend, a card not opened yet has a dot in the ink, and a domain's dot and a metric chip keep 35 degrees of hue away from Footnote blue (`lib/tones.ts`). A done step and a settled value are marked with a green check, never a blue one.
 - Kinds have no hue. A kind shows as a neutral icon.
 - Charts: green for checked context, amber for what to look at, greys for the rest, a hatch for Not found, so every state also differs by shape.
-- Marked text uses one component (`components/heed/mark.tsx`) and four roles. The colour rides on the ink, the weight and an underline, never on a fill:
+- Marked text uses one component (`components/footnote/mark.tsx`) and four roles. The colour rides on the ink, the weight and an underline, never on a fill:
 
   | Role               | Used for                                  | Looks                                                   |
   | ------------------ | ----------------------------------------- | ------------------------------------------------------- |
@@ -295,7 +295,7 @@ One density. Rows are 36 px, the table header band is 36 px and sticky. There is
 
 ### 3.8 The five layouts
 
-1. **Frame.** An 80rem square frame with a 24 px gutter, a header row per section divided by hairlines, and tables edge to edge with the thin header band. Settings, Integrations, the Inbox list and Observability use it (`components/heed/frame.tsx`).
+1. **Frame.** An 80rem square frame with a 24 px gutter, a header row per section divided by hairlines, and tables edge to edge with the thin header band. Settings, Integrations, the Inbox list and Observability use it (`components/footnote/frame.tsx`).
 2. **Document editor shell.** The page header, the formatting toolbar as a fixed 40 px row, the tinted canvas with the 56rem sheet as the only scroller, an optional side panel, and one footer bar. The context editor, the term editor, About our business and a domain all use it (`document-shell.tsx`).
 3. **Inbox mail layout.** A list in the middle and a detail pane at the right, resizable. The dock takes the pane's place.
 4. **Ask thread.** A 44rem thread with history on the left (a sheet on a phone) and the composer docked under a hairline, on the empty thread too. The composer is one surface: the words, then a 44 px row with @ on the left and a 28 px Send on the right, with no hairline between and no keys written in it (they are in Send's tooltip). Stop takes Send's place until the last word of an answer shows. Under each answer, its sources are numbered chips with what was looked up beside them, then one row of icons (Copy, Good, Bad, Ask again on the last answer, and More with Something wrong?, Save question and Share), always on the last answer and on hover or focus for the earlier ones. Suggestion chips show only on the empty thread, before the first message; once a message is sent, nothing in the thread suggests a question to ask.
@@ -307,7 +307,7 @@ One density. Rows are 36 px, the table header band is 36 px and sticky. There is
 
 - Reuse before you build. Name what you reused in the pull request. A new part goes into the inventory first.
 - shadcn parts stay as shadcn ships them. They live in `components/ui` and the shared lint skips them.
-- Only the product's own parts (`components/heed`, `components/obs`) are held to the copy rules.
+- Only the product's own parts (`components/footnote`, `components/obs`) are held to the copy rules.
 - Lucide icons are imported only in the icon module.
 - A second component base (`@radix-ui/*`), `vaul`, `framer-motion` and decorative animated sets are not used.
 
@@ -315,7 +315,7 @@ One density. Rows are 36 px, the table header band is 36 px and sticky. There is
 
 **The chip.** One chip for everything that names a thing: 24 px high, a 6 px radius, the type's icon, tinted by what it names. A metric, a dimension, a market, a term and each domain has its own hue (the hues are in `lib/tones.ts` and the `--chip-h-*` tokens). Colour is never alone: the icon and the words stay. A mention chip never breaks across lines. A dashed chip means its target is gone (archived or deleted) and keeps the author's words. A synonym shows as a tag. A domain shows as a dot plus its name. Tags in the editor, Details, the list's Scope column, filters and mentions all use the same chip.
 
-**The fold.** The section folds, Details, the panels' groups and the inline toggles open from one trigger (`components/heed/fold.tsx`). Three folds still have their own toggle: the list's group header rows, Overview's month rows in the topic table, and an integration's More settings. A section's fold is a full-width row at least 44 px tall, inside its heading where it has one: what it holds in 14 px at weight 500, a muted summary only while it is closed, and the chevron at the end, pointing down and turning half a turn as it opens. Hover is `bg-band` and the focus ring is drawn inside the row. A toggle in a line of text (Ask's look-up, a figure's query, the Text diff's unchanged lines) keeps its size, with the same chevron and a 44 px area under a finger. A section header's fold is its chevron, with the whole header row as its target.
+**The fold.** The section folds, Details, the panels' groups and the inline toggles open from one trigger (`components/footnote/fold.tsx`). Three folds still have their own toggle: the list's group header rows, Overview's month rows in the topic table, and an integration's More settings. A section's fold is a full-width row at least 44 px tall, inside its heading where it has one: what it holds in 14 px at weight 500, a muted summary only while it is closed, and the chevron at the end, pointing down and turning half a turn as it opens. Hover is `bg-band` and the focus ring is drawn inside the row. A toggle in a line of text (Ask's look-up, a figure's query, the Text diff's unchanged lines) keeps its size, with the same chevron and a 44 px area under a finger. A section header's fold is its chevron, with the whole header row as its target.
 
 ## 5. Patterns
 
@@ -392,7 +392,7 @@ A thread under each suggestion in the review and inside each context item's page
 
 ### 5.9 Switches: no tabs
 
-One shared component per job (`components/heed/switches.tsx`):
+One shared component per job (`components/footnote/switches.tsx`):
 
 | Component     | Job                                                                                                                                                         |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

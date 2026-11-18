@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Page } from '@/components/site-header'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
-import { FramePage } from '@/components/heed/frame'
+import { FramePage } from '@/components/footnote/frame'
 import { OBS_TITLES, obsHref, obsSectionOf, seesObservability, type ObsSection } from '@/lib/obs'
 import { SettingsCrumbs } from '@/pages/settings'
 import { useMe } from '@/lib/workspace'

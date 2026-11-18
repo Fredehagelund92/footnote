@@ -11,7 +11,7 @@ import { defineManifest } from '../../domain/define-manifest.ts'
 export const manifest = defineManifest({
   id: 'cube',
   version: '2.2.0',
-  heed: '^3.0',
+  footnote: '^3.0',
   kind: 'definitions',
   tool: 'Cube',
   title: 'Cube model in a Git repository',

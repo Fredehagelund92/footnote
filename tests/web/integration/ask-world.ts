@@ -15,7 +15,7 @@ import { devPeople, seedDemoWeek, TODAY } from '../http/demo-week.ts'
   sign-in, row security and the browser's own binding (createHttpApi), one session for each person
   a test asks as. `models` is the mock's scripted planner unless a run passes real ones, and
   `askTrace` hears or replaces what the planner, the words and the loop do. `askLoop` runs Ask's
-  loop in place of its router (HEED_ASK_LOOP). `withTools` runs Ask's tools as a
+  loop in place of its router (FOOTNOTE_ASK_LOOP). `withTools` runs Ask's tools as a
   person, in a transaction of their own with the services a request of theirs has.
 */
 

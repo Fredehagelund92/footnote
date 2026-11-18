@@ -40,7 +40,7 @@ the settings, [the database guide](../db/README.md) says how to set up the roles
 
 ### The proxy in front
 
-`HEED_TRUSTED_PROXIES` is the setting people trip on. It names the addresses the proxy connects
+`FOOTNOTE_TRUSTED_PROXIES` is the setting people trip on. It names the addresses the proxy connects
 from, comma-separated. Your host's documentation says which ones apply. Each entry is one of:
 
 - an address;

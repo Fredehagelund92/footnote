@@ -1,5 +1,5 @@
 /**
- * `heed`: the command-line tool for engineers and coding agents (FR-120). It writes through the
+ * `footnote`: the command-line tool for engineers and coding agents (FR-120). It writes through the
  * same API as the web form, so drafts and imports become suggestions in the same review queue, and
  * it checks item files and edition exports offline.
  */
@@ -25,7 +25,7 @@ export type Io = {
   fetch?: typeof globalThis.fetch
 }
 
-export const usage = `Usage: heed <command> [options]
+export const usage = `Usage: footnote <command> [options]
 
 Commands that need no service:
   validate <file>     Check an item file (YAML or JSON): format, mention syntax and rows,
@@ -54,10 +54,10 @@ Commands that use the service:
                       --request <id> (the request id its log lines carry)
 
 Options:
-  --url <url>         The service (HEED_URL, else http://127.0.0.1:3000)
-  --as <email>        Sign in as this person from the dev people file (HEED_EMAIL)
-  --origin <origin>   The origin to present for changes (HEED_ORIGIN, else the first
-                      of HEED_WEB_ORIGINS, else the service's default, ${DEFAULT_WEB_ORIGINS[0]})
+  --url <url>         The service (FOOTNOTE_URL, else http://127.0.0.1:3000)
+  --as <email>        Sign in as this person from the dev people file (FOOTNOTE_EMAIL)
+  --origin <origin>   The origin to present for changes (FOOTNOTE_ORIGIN, else the first
+                      of FOOTNOTE_WEB_ORIGINS, else the service's default, ${DEFAULT_WEB_ORIGINS[0]})
   --out <file>        Write the result to a file instead of standard output
   --json              Print the result as JSON, for scripts and agents
   --help              Show this help
@@ -222,14 +222,14 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     return 2
   } catch (error) {
     if (error instanceof UsageError) {
-      io.stderr(`${error.message}\n\nRun heed --help for the commands.\n`)
+      io.stderr(`${error.message}\n\nRun footnote --help for the commands.\n`)
       return 2
     }
     if (error instanceof ORPCError) {
       const findings = (error.data as { findings?: FormatFinding[] } | undefined)?.findings
       const hint =
         error.code === 'UNAUTHORIZED'
-          ? "Sign in as a person in the service's dev people file (--as, HEED_EMAIL)."
+          ? "Sign in as a person in the service's dev people file (--as, FOOTNOTE_EMAIL)."
           : error.code === 'FORBIDDEN' && command === 'audit'
             ? 'The history log is for admins.'
             : error.code === 'FORBIDDEN' && command === 'export'
@@ -255,18 +255,18 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
 }
 
 const serviceUrl = (values: Values, io: Io) =>
-  values.url ?? io.env.HEED_URL ?? 'http://127.0.0.1:3000'
+  values.url ?? io.env.FOOTNOTE_URL ?? 'http://127.0.0.1:3000'
 
 async function connect(values: Values, io: Io): Promise<FootnoteClient> {
   const url = serviceUrl(values, io)
   if (!URL.canParse(url)) throw new UsageError(`Not a URL: ${url}`)
-  const email = values.as ?? io.env.HEED_EMAIL
-  if (!email) throw new UsageError('Say who you are: --as <email> or HEED_EMAIL')
-  // The service checks the origin of every change, as for a browser (HEED_WEB_ORIGINS).
+  const email = values.as ?? io.env.FOOTNOTE_EMAIL
+  if (!email) throw new UsageError('Say who you are: --as <email> or FOOTNOTE_EMAIL')
+  // The service checks the origin of every change, as for a browser (FOOTNOTE_WEB_ORIGINS).
   const origin =
     values.origin ??
-    io.env.HEED_ORIGIN ??
-    io.env.HEED_WEB_ORIGINS?.split(',')[0]?.trim() ??
+    io.env.FOOTNOTE_ORIGIN ??
+    io.env.FOOTNOTE_WEB_ORIGINS?.split(',')[0]?.trim() ??
     DEFAULT_WEB_ORIGINS[0]
   const connection = createClient({ url, origin, ...(io.fetch ? { fetch: io.fetch } : {}) })
   await connection.signIn(email)
@@ -441,7 +441,7 @@ async function invite(
       "Set DATABASE_URL_MIGRATE to the database owner's address (db/README.md): an invite from here is made in the database.",
     )
   const webOrigin =
-    values.origin ?? io.env.HEED_WEB_ORIGINS?.split(',')[0]?.trim() ?? DEFAULT_WEB_ORIGINS[0]
+    values.origin ?? io.env.FOOTNOTE_WEB_ORIGINS?.split(',')[0]?.trim() ?? DEFAULT_WEB_ORIGINS[0]
   const result = await operatorInvite({
     databaseUrl,
     webOrigin,

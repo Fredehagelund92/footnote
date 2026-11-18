@@ -59,7 +59,7 @@ export async function stopService() {
 /**
  * A fresh copy of a workspace, and the service on it: the demo week, or with `empty` a new
  * install. A service still running stops first. With `askLoop`, Ask answers with its loop and the
- * scripted reader, as `HEED_ASK_LOOP=on` with `MODELS=mock` does.
+ * scripted reader, as `FOOTNOTE_ASK_LOOP=on` with `MODELS=mock` does.
  */
 export async function freshService(
   workspace: 'week' | 'empty' = 'week',

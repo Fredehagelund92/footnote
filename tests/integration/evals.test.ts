@@ -68,7 +68,7 @@ const work = (port: ModelPort = models) =>
     { deadline: Date.now() + 30_000, signal: new AbortController().signal, logger },
   )
 
-type Headers = { cookie: string; origin: string; 'x-heed-csrf': string }
+type Headers = { cookie: string; origin: string; 'x-footnote-csrf': string }
 const headers: Record<string, Headers> = {}
 type Who = keyof typeof people
 const call = (method: 'GET' | 'POST' | 'PUT', path: string, who: Who, payload?: object) =>
@@ -172,7 +172,7 @@ function question(id: string, caveat: string, extra: Partial<GoldenQuestionInput
     ...extra,
   }
 }
-/** Saves test questions as the command line's import does (`heed evals import`). */
+/** Saves test questions as the command line's import does (`footnote evals import`). */
 async function save(...questions: object[]) {
   const response = await call('POST', '/evals/import', 'owner', {
     content: JSON.stringify({ questions }),
@@ -234,14 +234,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
   // The closure is accepted before any test question exists: nothing to test, so level 4 passes.
@@ -674,7 +674,7 @@ describe('runs that stop before every answer is made (R4, R6)', () => {
         env: {
           ...process.env,
           DATABASE_URL: url,
-          HEED_FIXED_TODAY: '2026-10-08',
+          FOOTNOTE_FIXED_TODAY: '2026-10-08',
           LOG_LEVEL: 'silent',
         },
         timeout: 240_000,
@@ -788,7 +788,7 @@ describe('runs that stop before every answer is made (R4, R6)', () => {
         env: {
           ...process.env,
           DATABASE_URL: url,
-          HEED_FIXED_TODAY: '2026-10-08',
+          FOOTNOTE_FIXED_TODAY: '2026-10-08',
           LOG_LEVEL: 'silent',
         },
         timeout: 240_000,
@@ -1140,7 +1140,7 @@ describe('npm run eval', () => {
       env: {
         ...process.env,
         DATABASE_URL: url,
-        HEED_FIXED_TODAY: '2026-10-08',
+        FOOTNOTE_FIXED_TODAY: '2026-10-08',
         LOG_LEVEL: 'silent',
       },
       timeout: 240_000,
@@ -1152,7 +1152,7 @@ describe('npm run eval', () => {
     expect(result.stdout).toMatch(/^Judge errors: 0 of \d+ judged answers \(0\.0%\)\.$/m)
     // The day the questions were asked on: none of these has its own, so the run's pinned day.
     expect(result.stdout).toMatch(
-      /^Asked as of 2026-10-08: \d+ questions without an as-of day, on the run's day \(HEED_FIXED_TODAY\)\.$/m,
+      /^Asked as of 2026-10-08: \d+ questions without an as-of day, on the run's day \(FOOTNOTE_FIXED_TODAY\)\.$/m,
     )
   }, 300_000)
 })
@@ -1160,7 +1160,7 @@ describe('npm run eval', () => {
 describe('the day a question is asked on (round 6)', () => {
   it("reads a dateless question at its own as-of day, and one without at the run's day", async () => {
     // A golden question is dated (7 October 2026); without its day a run read "this past week"
-    // at the machine's real today, unless HEED_FIXED_TODAY was pinned by hand for every run.
+    // at the machine's real today, unless FOOTNOTE_FIXED_TODAY was pinned by hand for every run.
     const dateless = (id: string, extra: Partial<GoldenQuestionInput> = {}) =>
       question(id, 'Online sales to Norway stopped on 4 August', {
         wordings: [

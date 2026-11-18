@@ -12,15 +12,15 @@ Everything the web app does goes through the same HTTP API, under `/api/v1`. Thi
 
 The API uses the web app's session. Sign in as a person, then send with each change:
 
-| What          | Why                                                |
-| ------------- | -------------------------------------------------- |
-| The cookie    | The session, for every call                        |
-| `Origin`      | One of the allowed web origins, `HEED_WEB_ORIGINS` |
-| `x-heed-csrf` | The session's token, on every change               |
+| What              | Why                                                    |
+| ----------------- | ------------------------------------------------------ |
+| The cookie        | The session, for every call                            |
+| `Origin`          | One of the allowed web origins, `FOOTNOTE_WEB_ORIGINS` |
+| `x-footnote-csrf` | The session's token, on every change                   |
 
-To script against it with the dev or demo sign-in, use the [`heed` command](../administration.md#the-heed-command), which handles all three. It cannot sign in through company sign-in.
+To script against it with the dev or demo sign-in, use the [`footnote` command](../administration.md#the-footnote-command), which handles all three. It cannot sign in through company sign-in.
 
-`GET /api/v1/auth/methods` says how this install signs people in, whether it is the demo, and the label naming it (`HEED_PROFILE_LABEL`).
+`GET /api/v1/auth/methods` says how this install signs people in, whether it is the demo, and the label naming it (`FOOTNOTE_PROFILE_LABEL`).
 
 ## Safe retries
 

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { BotIcon } from '@/components/icons'
-import { StateLine } from '@/components/heed/bits'
+import { StateLine } from '@/components/footnote/bits'
 import {
   Sheet,
   SheetContent,

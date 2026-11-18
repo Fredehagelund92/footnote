@@ -139,14 +139,14 @@ async function openApi(seedUrl: string) {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `per_${who}@example.test` },
     })
     if (response.statusCode !== 200) throw new Error(`${who} could not sign in: ${response.body}`)
     const headers = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
     sessions.set(who, headers)
     return headers

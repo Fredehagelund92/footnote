@@ -210,7 +210,7 @@ export class ConnectorRegistry {
 
 /**
  * The definition sources the configuration selects: the Cube model folder, and each folder
- * `HEED_SERVER_FOLDERS` names for a connector. The demo is read only when it names neither.
+ * `FOOTNOTE_SERVER_FOLDERS` names for a connector. The demo is read only when it names neither.
  */
 export function configuredSources(
   config: Pick<Config, 'cubeModelDir' | 'domainOverridesFile' | 'renamesFile'> &

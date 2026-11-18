@@ -11,9 +11,9 @@ import {
 } from '@/components/icons'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { PersonAvatar } from '@/components/heed/bits'
+import { PersonAvatar } from '@/components/footnote/bits'
 import { StaticRenderer } from '@/components/static-renderer'
-import { MentionChip } from '@/components/heed/mention-chip'
+import { MentionChip } from '@/components/footnote/mention-chip'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

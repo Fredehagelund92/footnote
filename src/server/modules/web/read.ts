@@ -65,7 +65,7 @@ export type PageReaderOptions = {
   /**
    * Also reads plain http on this machine (127.0.0.1, ::1, localhost): the tests and the
    * end-to-end suite serve their pages there. Never another private address. Refused in
-   * production by the configuration (HEED_WEB_READ_LOOPBACK).
+   * production by the configuration (FOOTNOTE_WEB_READ_LOOPBACK).
    */
   loopback?: boolean
 }
@@ -80,7 +80,7 @@ const MAX_REDIRECTS = 5
 /** Said plainly to every site Footnote reads, so its owner can tell what reads it. */
 const headers = {
   // eslint-disable-next-line brand/no-product-name -- the user agent sites see, a technical name (docs/rename-checklist.md)
-  'user-agent': 'Mozilla/5.0 (compatible; Heed/1.0; reads a page a person linked)',
+  'user-agent': 'Mozilla/5.0 (compatible; Footnote/1.0; reads a page a person linked)',
   accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5',
   'accept-language': 'en;q=0.9, pt;q=0.8, es;q=0.8, *;q=0.5',
   'accept-encoding': 'gzip, deflate, br',

@@ -54,12 +54,12 @@ export default defineConfig({
         ...(process.env.E2E_DATABASE_SERVE_URL
           ? { DATABASE_URL_SERVE: process.env.E2E_DATABASE_SERVE_URL }
           : {}),
-        HEED_WEB_ORIGINS: `http://localhost:${webPort}`,
+        FOOTNOTE_WEB_ORIGINS: `http://localhost:${webPort}`,
         MCP_RESOURCE_URL: `http://localhost:${apiPort}/mcp`,
-        HEED_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
+        FOOTNOTE_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
         // Named, as a person who runs this beside the demo would name it.
-        HEED_PROFILE_LABEL: 'Own data trial',
-        HEED_SECRETS_DIR: join(mkdtempSync(join(tmpdir(), 'heed-own-data-')), 'secrets'),
+        FOOTNOTE_PROFILE_LABEL: 'Own data trial',
+        FOOTNOTE_SECRETS_DIR: join(mkdtempSync(join(tmpdir(), 'footnote-own-data-')), 'secrets'),
       },
     },
     {
@@ -69,7 +69,7 @@ export default defineConfig({
       url: `http://localhost:${webPort}`,
       reuseExistingServer: !ci,
       timeout: 180_000,
-      env: { VITE_API_MODE: 'http', HEED_API_URL: apiUrl },
+      env: { VITE_API_MODE: 'http', FOOTNOTE_API_URL: apiUrl },
     },
   ],
 })

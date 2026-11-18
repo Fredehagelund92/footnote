@@ -31,7 +31,7 @@ const images = parse(read('compose.images.yaml')) as { services: Record<string, 
 
 describe("the README's Quick start", () => {
   it('builds both images from this checkout, as plain docker compose up does', () => {
-    for (const name of ['heed', 'web']) {
+    for (const name of ['footnote', 'web']) {
       expect(compose.services[name]?.build?.context, `compose.yaml builds ${name} here`).toBe('.')
       expect(
         compose.services[name]?.image,
@@ -44,7 +44,7 @@ describe("the README's Quick start", () => {
     expect(joined(quickStart), 'the Quick start names no release by hand').not.toMatch(
       /release \d+\.\d+\.\d+/,
     )
-    for (const [name, repo] of Object.entries({ heed: 'heed', web: 'heed-web' })) {
+    for (const [name, repo] of Object.entries({ footnote: 'footnote', web: 'footnote-web' })) {
       expect(images.services[name]?.image, `compose.images.yaml pins ${name} to a version`).toMatch(
         new RegExp(`^ghcr\\.io/fredehagelund92/${repo}:\\d+\\.\\d+\\.\\d+$`),
       )

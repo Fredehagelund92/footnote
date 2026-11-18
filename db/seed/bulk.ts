@@ -320,7 +320,7 @@ export async function bulkSeed(
   ]
   await client.query('begin')
   try {
-    await client.query("select pg_advisory_xact_lock(hashtextextended('heed.bulk_seed',0))")
+    await client.query("select pg_advisory_xact_lock(hashtextextended('footnote.bulk_seed',0))")
     const existing = await client.query(
       'select 1 from items union all select 1 from people union all select 1 from editions limit 1',
     )

@@ -535,7 +535,7 @@ export function browserShelf(): Shelf {
  */
 export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
   const undos = new Map<string, () => void>()
-  const keyOf = (person: string) => `heed.ask.chats.${person}`
+  const keyOf = (person: string) => `footnote.ask.chats.${person}`
   const read = (person: string): StoredChat[] => {
     try {
       const parsed: unknown = JSON.parse(shelf.get(keyOf(person)) ?? '[]')

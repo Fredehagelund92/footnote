@@ -10,12 +10,12 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { ToolLogo } from '@/components/heed/tool-logo'
-import { FrameSection } from '@/components/heed/frame'
+import { ToolLogo } from '@/components/footnote/tool-logo'
+import { FrameSection } from '@/components/footnote/frame'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { FoldTrigger } from '@/components/heed/fold'
-import { CopiedIcon, useCopied } from '@/components/heed/copied-icon'
+import { FoldTrigger } from '@/components/footnote/fold'
+import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import {
   Dialog,
   DialogContent,

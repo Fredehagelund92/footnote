@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons'
-import { ConflictView } from '@/components/heed/conflict-view'
+import { ConflictView } from '@/components/footnote/conflict-view'
 import { DockFrame, PeekBar } from '@/components/dock'
 import { Page } from '@/components/site-header'
 import {

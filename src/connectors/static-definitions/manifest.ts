@@ -9,7 +9,7 @@ import { defineManifest } from '../../domain/define-manifest.ts'
 export const manifest = defineManifest({
   id: 'static-definitions',
   version: '1.0.0',
-  heed: '^3.0',
+  footnote: '^3.0',
   kind: 'definitions',
   tool: 'Static list',
   title: 'Static list of definitions',

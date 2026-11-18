@@ -85,7 +85,7 @@ export function tokensCss(source: string): string {
   ].join('\n')
 }
 
-const id = 'virtual:heed-tokens.css'
+const id = 'virtual:footnote-tokens.css'
 
 /** Serves the tokens as a stylesheet of their own, in `npm run dev` and in the build. */
 export function footnoteTokens(): Plugin {

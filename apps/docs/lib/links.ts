@@ -14,7 +14,7 @@ import { repoRoot, type SitePage } from './pages.ts'
   files of that release. A link to a file that does not exist stops the build.
 */
 
-const repository = 'https://github.com/Fredehagelund92/heed'
+const repository = 'https://github.com/Fredehagelund92/footnote'
 
 export type LinkContext = {
   /** Each page's address by its path in the repository. */

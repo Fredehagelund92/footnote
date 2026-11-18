@@ -20,8 +20,8 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { buttonVariants } from '@/components/ui/button'
-import { Frame, FrameSection } from '@/components/heed/frame'
-import { Loadable } from '@/components/heed/load-state'
+import { Frame, FrameSection } from '@/components/footnote/frame'
+import { Loadable } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { LineChart } from '@/components/obs/charts'
 import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'

@@ -247,9 +247,9 @@ export function supportAt(email: string | null) {
   }
 }
 
-/** HEED_SUPPORT_EMAIL, read when the app is built. */
-const configured = (import.meta as { env?: { HEED_SUPPORT_EMAIL?: string } }).env
-  ?.HEED_SUPPORT_EMAIL
+/** FOOTNOTE_SUPPORT_EMAIL, read when the app is built. */
+const configured = (import.meta as { env?: { FOOTNOTE_SUPPORT_EMAIL?: string } }).env
+  ?.FOOTNOTE_SUPPORT_EMAIL
 export const { supportByMail, supportTarget, supportHref, reportHref } = supportAt(
   configured?.trim() || null,
 )

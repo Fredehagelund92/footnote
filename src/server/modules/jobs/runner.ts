@@ -135,7 +135,7 @@ export function createJobRunner(options: JobRunnerOptions): JobRunner {
   async function startOnce(): Promise<void> {
     const instance = new PgBoss({
       connectionString: options.connectionString,
-      application_name: 'heed-jobs',
+      application_name: 'footnote-jobs',
       max: 4,
       connectionTimeoutMillis: 2_000,
       schema: 'pgboss',

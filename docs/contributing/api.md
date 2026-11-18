@@ -7,12 +7,12 @@ How agents connect over MCP and what they get, and the HTTP API for definition s
 ## Connect Claude Code to Footnote
 
 On `docker compose up`, Claude Code signs in through the web app's consent page, with no token:
-`claude mcp add --transport http heed http://localhost:3000/mcp`, then `/mcp` and Authenticate in
+`claude mcp add --transport http footnote http://localhost:3000/mcp`, then `/mcp` and Authenticate in
 Claude Code. The token below is for the dev service, without sign-in: get the local database ready
 as in [Run the service locally](../operations.md#run-the-service-locally), start `npm run dev:server`, and add the local endpoint with a dev token:
 
 ```sh
-claude mcp add --transport http heed http://localhost:3000/mcp \
+claude mcp add --transport http footnote http://localhost:3000/mcp \
   --header "Authorization: Bearer $(npm run --silent token:dev)"
 ```
 
@@ -125,7 +125,7 @@ links (FR-326, FR-331), `scope_used`, `dates_read` and `assumed_date`, the domai
 about with what their owners wrote (FR-813), `options`, `check_report` and `instructions`. Every
 item carries `url`, its page in Footnote, and the result's text has a line per item,
 `Open in Footnote - <title>: <url>`, with who checked it, so the reader of an answer can check a cited
-item in one click (FR-347). The address is the first of `HEED_WEB_ORIGINS`; the eval runner and the previews run
+item in one click (FR-347). The address is the first of `FOOTNOTE_WEB_ORIGINS`; the eval runner and the previews run
 without one and give the path (`/context/itm_...`). A link holds only the item's id: the page
 applies the audience rules to whoever opens it. Metric and dimension names may be the member names
 the agent just queried in Cube (`orders.returns`, or `cube:orders.returns`): Footnote resolves them
@@ -215,7 +215,7 @@ questions there before it saves anything: the domain, the kind when the agent's 
 words disagree, the term an ambiguous name means, the first day, whether an issue is still going
 on, and the source link and sentence, as one form of flat fields with closed choices where there
 are any. The app retries the call with the answers and the request state the tool returned. That
-state is signed with `HEED_MCP_STATE_KEY_FILE` (HMAC-SHA256, through the SDK's request state
+state is signed with `FOOTNOTE_MCP_STATE_KEY_FILE` (HMAC-SHA256, through the SDK's request state
 codec), bound to the tool, the person and the app, carries a digest of the call's arguments, expires after
 ten minutes, and saves at most one draft (`proposals.answers_round` is unique). A changed,
 foreign, expired or reused state saves nothing and is refused with a `reason`. Answers are read as
@@ -228,7 +228,7 @@ shows only links) gets the link and the question list exactly as before. Which a
 shared with the form: `src/domain/proposal-attributes.ts` (CONTRIBUTING.md, "Proposal
 attributes").
 
-`token:dev` creates a reusable Ed25519 key in `.heed-dev-key.pem` with owner-only permissions.
+`token:dev` creates a reusable Ed25519 key in `.footnote-dev-key.pem` with owner-only permissions.
 The file is ignored by Git. Tokens expire after eight hours; mint a new one and update the
 client header when it expires. Tokens contain a client label and scopes, never a person or
 group. `--client <label>` mints for another client label, which the endpoint serves once an
@@ -260,7 +260,7 @@ dev token: the app reads `/.well-known/oauth-protected-resource/mcp`, the person
 allows it on the consent page (`/connect/approve` on the web app), and the app gets ten-minute
 access tokens and rotating refresh tokens. Settings, under Agents and access, lists the agents
 connected and revokes them. Dynamic client registration, which Claude Code uses, is on
-outside production and needs `HEED_OAUTH_DYNAMIC_REGISTRATION=on` in production. How it works, the settings, key rotation and the threat notes
+outside production and needs `FOOTNOTE_OAUTH_DYNAMIC_REGISTRATION=on` in production. How it works, the settings, key rotation and the threat notes
 are in [Agent and company sign-in](sign-in.md).
 
 Structured question dates are inclusive (`window.from` and `window.to`); returned validity and
@@ -275,7 +275,7 @@ flush in bounded batches after the response; write failures increment a logged d
 counter without failing the answer. Shutdown drains the queue. A process crash can lose queued
 records. Questions, bearer tokens, addresses and incoming RPC ids never enter these records.
 Tool descriptions, schemas and annotations have a snapshot and SHA-256 digest, exposed in
-`X-Heed-Tool-Digest` and each tool result's `_meta` and stored with deliveries. What serves a cache
+`X-Footnote-Tool-Digest` and each tool result's `_meta` and stored with deliveries. What serves a cache
 or an audit stays out of what a model reads (FR-346): `tool_schema_digest`, `overlay` and, on
 paged replies (`read_context`, `get_related`), `ttlMs: 0` and `cacheScope:
 "private"` travel in `_meta`, which clients keep from the model (ChatGPT documents it as hidden).
@@ -335,7 +335,7 @@ A scope can name a dimension with any value (FR-126); see `docs/api/openapi.json
 ## Proposal write API
 
 The proposal write API adds `/api/v1/proposals` to the session-authenticated contract. Use the sign-in cookie,
-allowed `Origin`, and session `x-heed-csrf` header for writes. Create and submit also require an
+allowed `Origin`, and session `x-footnote-csrf` header for writes. Create and submit also require an
 `Idempotency-Key` header (8-128 printable characters). The key belongs to the acting
 person for 24 hours: an identical request replays its response, different content returns 422,
 and a concurrent request using the same key returns 409. A rolled-back request can be retried.
@@ -388,7 +388,7 @@ resubmission, mention parser parity, Cube metadata and disclosure boundaries.
 
 The review and release API adds check levels 2 and 3, gates, publishing, rollback, suggestions to
 archive and the stop switch to the same contract. A person decides a suggestion through the
-review path below. Writes need the session cookie, `Origin` and `x-heed-csrf`; a suggestion to
+review path below. Writes need the session cookie, `Origin` and `x-footnote-csrf`; a suggestion to
 archive and a rollback also take an `Idempotency-Key`.
 
 - Level 2 probes the item's own scope with the resolver: inside it and on its first day it must
@@ -423,7 +423,7 @@ archive and a rollback also take an `Idempotency-Key`.
 
 Footnote v1's one review screen and its Inbox (docs/product.md, sections 4 and 5) read and decide
 through these operations, typed in `src/contract/review-path.ts` and `src/contract/inbox.ts`.
-Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A decision
+Writes need the session cookie, `Origin`, `x-footnote-csrf` and an `Idempotency-Key`. A decision
 that can be taken back answers with `undo: { token, until }`: the token for `POST /decisions/undo`,
 and when the service stops taking it (`cl_undo_until`; null when it is taken at any time).
 
@@ -443,7 +443,7 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
 - `POST /review/sheets` takes `{ ids }` (at most 100) and gives the same read for many
   suggestions at once, in the order asked, leaving out one that went or that the reader may not
   see: the Inbox reads every suggestion it lists in one call. It changes nothing; as a POST it
-  needs `Origin` and `x-heed-csrf`.
+  needs `Origin` and `x-footnote-csrf`.
 - A clash (FR-225) is a live item an agent would get in the same answer as the suggestion,
   except the item it changes and those it already names as replaced or conflicting. An edit
   whose difference is only formatting, only order or only a change of dates has no clash; an edit
@@ -518,7 +518,7 @@ from it.
   or `answer`; texts up to 2,000 characters) and answers `{ id, at }` only, so the answer a retry
   replays never holds the words. An item the person may not read is not found. A person's reports
   share the per-minute limit of their gap reports (FR-408). Writes need the session cookie,
-  `Origin`, `x-heed-csrf` and an `Idempotency-Key`.
+  `Origin`, `x-footnote-csrf` and an `Idempotency-Key`.
 - `GET /reports/mine` lists the person's own reports of the last 90 days, newest first, each with
   its question and `outcome`: null while nobody has acted on it, else the first of what the owners
   did after it, `not_a_problem` (its card closed), `checked`, `changed` or `archived` (its item),
@@ -531,7 +531,7 @@ section 4), through these operations, typed in `src/contract/comments.ts`. A thr
 the app names it: `review:<suggestion id>` or `context:<item id>`. Anyone who may read the
 suggestion or the item reads its thread and writes in it; people edit and delete only their own
 words. Agents never read any of it: the serving role has no grant on these tables, and nothing an
-edition holds is built from them. Writes need the session cookie, `Origin`, `x-heed-csrf` and an
+edition holds is built from them. Writes need the session cookie, `Origin`, `x-footnote-csrf` and an
 `Idempotency-Key`.
 
 - A comment is the comment box's small document (Tiptap's JSON): paragraphs, bullet and numbered
@@ -570,7 +570,7 @@ edition holds is built from them. Writes need the session cookie, `Origin`, `x-h
 
 Footnote v1's Context list, a context item's page, the editor and Settings, Advanced (docs/product.md,
 section 3) read and change items through these operations, typed in `src/contract/context.ts`.
-Writes need the session cookie, `Origin`, `x-heed-csrf` and an `Idempotency-Key`. A change that
+Writes need the session cookie, `Origin`, `x-footnote-csrf` and an `Idempotency-Key`. A change that
 can be taken back answers with `undo: { token, until }`, as a decision does.
 
 - `GET /items/{id}/page` is a context item's page: the item as published, what its list row
@@ -664,7 +664,7 @@ is in `src/contract/conflicts.ts`, the rules in `src/domain/conflicts.ts`.
 
 Definitions (docs/product.md, section 3) keeps the words people write beside the metrics and
 dimensions the definitions source syncs, which stay read only (FR-138). These operations are typed
-in `src/contract/terms.ts`. Writes need the session cookie, `Origin`, `x-heed-csrf` and an
+in `src/contract/terms.ts`. Writes need the session cookie, `Origin`, `x-footnote-csrf` and an
 `Idempotency-Key`. A term is a word with its own `meaning`; a synonym is another name for a metric,
 a dimension or a term (`sameAs`: `metric:<id>`, `dim:<id>` or `term:<id>`), and a synonym of a
 synonym means what that one means.

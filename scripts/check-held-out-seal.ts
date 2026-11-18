@@ -44,6 +44,7 @@ export const sealFiles = [
 /** What opens the sealed cases or reads the key, in code. */
 const opening = [
   'golden-held-out',
+  'FOOTNOTE_HELDOUT_KEY',
   'HEED_HELDOUT_KEY',
   'age-encryption',
   'readHeldOut',

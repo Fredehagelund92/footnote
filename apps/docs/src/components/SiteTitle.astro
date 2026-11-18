@@ -1,5 +1,5 @@
 ---
-import lockup from '../../../../src/web/public/heed-lockup.svg?raw'
+import lockup from '../../../../src/web/public/footnote-lockup.svg?raw'
 import { DEFAULT_PRODUCT_NAME } from '../../../../src/domain/brand.ts'
 import { readSettings } from '../../lib/settings.ts'
 
@@ -7,8 +7,8 @@ import { readSettings } from '../../lib/settings.ts'
 const { product } = readSettings(process.env)
 ---
 
-<a href={Astro.locals.starlightRoute.siteTitleHref} class="heed-title">
+<a href={Astro.locals.starlightRoute.siteTitleHref} class="footnote-title">
   {product === DEFAULT_PRODUCT_NAME ? <Fragment set:html={lockup} /> : <span>{product}</span>}
-  <span class="heed-title-rule" aria-hidden="true"></span>
-  <span class="heed-title-docs">Docs</span>
+  <span class="footnote-title-rule" aria-hidden="true"></span>
+  <span class="footnote-title-docs">Docs</span>
 </a>

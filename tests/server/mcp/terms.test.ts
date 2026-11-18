@@ -71,7 +71,7 @@ function setup(data: ServingBundle) {
     memory.store,
     () => new Date('2026-10-07T12:34:56Z'),
     undefined,
-    'https://heed.example',
+    'https://footnote.example',
   )
   return (name: ServedToolName, input: unknown) =>
     execute(
@@ -102,7 +102,7 @@ const peakEntry = {
   meaning: 'The weeks from 1 November to 24 December, when **online sales** double.',
   domain: 'Finance',
   written: { role: 'the owner of Finance', date: '2026-10-20' },
-  url: 'https://heed.example/definitions/Peak%20season',
+  url: 'https://footnote.example/definitions/Peak%20season',
 }
 
 it('names the terms of the question, and answers as the same question does without them', async () => {
@@ -121,7 +121,7 @@ it('names the terms of the question, and answers as the same question does witho
     )
     // The reply's text says where a person reads it, and who wrote it.
     expect(after.content.at(-1)!.text).toContain(
-      'Open in Footnote - Peak season: https://heed.example/definitions/Peak%20season - Written 20 Oct 2026 by the owner of Finance, in Definitions.',
+      'Open in Footnote - Peak season: https://footnote.example/definitions/Peak%20season - Written 20 Oct 2026 by the owner of Finance, in Definitions.',
     )
   }
 })
@@ -144,7 +144,7 @@ it('reads a synonym of a metric as that metric, and a synonym of a term as the t
       synonym: true,
       domain: 'Finance',
       written: { role: 'an admin', date: '2026-10-22' },
-      url: 'https://heed.example/definitions/Orders',
+      url: 'https://footnote.example/definitions/Orders',
     },
     { ...peakEntry, word: 'busy season', synonym: true },
   ])

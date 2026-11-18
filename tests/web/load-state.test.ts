@@ -3,8 +3,12 @@ import * as React from 'react'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { allLoaded, Loadable, type LoadState } from '@/components/heed/load-state'
-import { DEFINITIONS_LEAD, TableBodySkeleton, TableSkeleton } from '@/components/heed/list-skeleton'
+import { allLoaded, Loadable, type LoadState } from '@/components/footnote/load-state'
+import {
+  DEFINITIONS_LEAD,
+  TableBodySkeleton,
+  TableSkeleton,
+} from '@/components/footnote/list-skeleton'
 
 // The loading states a list shares: the table's skeleton at the table's own heights, the same rows
 // inside a table body, Loadable's timing (nothing under 150ms, then the skeleton, then the content,

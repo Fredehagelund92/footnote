@@ -41,12 +41,12 @@ const app = buildApp({
   },
 })
 const origin = 'http://localhost'
-type Auth = { cookie: string; 'x-heed-csrf': string; origin: string }
+type Auth = { cookie: string; 'x-footnote-csrf': string; origin: string }
 async function login(name: string, cookie?: string) {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in', ...(cookie ? { cookie } : {}) },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in', ...(cookie ? { cookie } : {}) },
     payload: { email: `${name}@example.test` },
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -54,7 +54,7 @@ async function login(name: string, cookie?: string) {
     response,
     headers: {
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
       origin,
     },
   }
@@ -96,9 +96,9 @@ describe('dev sessions over HTTP', () => {
     for (const headers of [
       {},
       { origin },
-      { origin: 'http://evil.test', 'x-heed-csrf': 'dev-sign-in' },
-      { origin: 'https://localhost', 'x-heed-csrf': 'dev-sign-in' },
-      { origin: 'null', 'x-heed-csrf': 'dev-sign-in' },
+      { origin: 'http://evil.test', 'x-footnote-csrf': 'dev-sign-in' },
+      { origin: 'https://localhost', 'x-footnote-csrf': 'dev-sign-in' },
+      { origin: 'null', 'x-footnote-csrf': 'dev-sign-in' },
     ]) {
       expect(
         (
@@ -116,7 +116,7 @@ describe('dev sessions over HTTP', () => {
         await app.inject({
           method: 'POST',
           url: '/api/v1/auth/sign-in',
-          headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+          headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
           payload: { email: 'unknown@example.test' },
         })
       ).statusCode,
@@ -183,7 +183,7 @@ describe('dev sessions over HTTP', () => {
 describe('roles, assignments and operations', () => {
   it('refuses anonymous and non-admin callers before reading operations or queuing work', async () => {
     for (const name of [null, 'author', 'owner', 'approver', 'stranger', 'admin']) {
-      const headers = name ? (await login(name)).headers : { origin, 'x-heed-csrf': 'garbage' }
+      const headers = name ? (await login(name)).headers : { origin, 'x-footnote-csrf': 'garbage' }
       const allowed = name === 'admin'
       const before = runs
       expect((await app.inject({ url: '/api/v1/operations', headers })).statusCode).toBe(
@@ -223,7 +223,7 @@ describe('roles, assignments and operations', () => {
     const { headers } = await login('admin')
     for (const invalid of [
       { ...headers, origin: 'https://evil.test' },
-      { ...headers, 'x-heed-csrf': 'wrong' },
+      { ...headers, 'x-footnote-csrf': 'wrong' },
     ]) {
       expect(
         (
@@ -325,7 +325,7 @@ describe('roles, assignments and operations', () => {
     const request = {
       method: 'POST' as const,
       url: '/api/v1/auth/sign-in',
-      headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: 'bootstrap@example.test' },
     }
     try {

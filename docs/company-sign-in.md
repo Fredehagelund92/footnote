@@ -21,47 +21,47 @@ SAML providers work through an OIDC broker, such as Keycloak, Dex or the provide
 
    Add the provider's groups scope to map groups. A public client (PKCE, no secret) and a confidential one with a secret both work.
 
-2. Set the three settings below. `HEED_AUTH=oidc` is the default in production.
+2. Set the three settings below. `FOOTNOTE_AUTH=oidc` is the default in production.
 
    ```sh
-   HEED_AUTH=oidc
-   HEED_OIDC_ISSUER=https://login.example.com
-   HEED_OIDC_CLIENT_ID=<the client id>
+   FOOTNOTE_AUTH=oidc
+   FOOTNOTE_OIDC_ISSUER=https://login.example.com
+   FOOTNOTE_OIDC_CLIENT_ID=<the client id>
    ```
 
 3. For a confidential client, write the secret to a file only the service's user may read, and name that file. The service refuses a file others may read, and never reads the secret from a setting.
 
    ```sh
    printf %s "$SECRET" > oidc-secret && chmod 600 oidc-secret
-   HEED_OIDC_CLIENT_SECRET_FILE=oidc-secret
+   FOOTNOTE_OIDC_CLIENT_SECRET_FILE=oidc-secret
    ```
 
 4. Invite the first admin, after the service has started once and applied the schema. This prints a link that works for a week:
 
    ```sh
-   HEED_WEB_ORIGINS=<your public origin> DATABASE_URL_MIGRATE=<the owner's address> npm run heed -- invite you@company.example --admin
+   FOOTNOTE_WEB_ORIGINS=<your public origin> DATABASE_URL_MIGRATE=<the owner's address> npm run footnote -- invite you@company.example --admin
    ```
 
-   Or name an admin group in `HEED_OIDC_ADMIN_GROUPS`. After that, admins invite everyone else in Settings, People.
+   Or name an admin group in `FOOTNOTE_OIDC_ADMIN_GROUPS`. After that, admins invite everyone else in Settings, People.
 
 5. Serve the web app and the service on the same host. One origin behind your proxy is simplest, because the session cookie belongs to that host.
 
 ## The settings
 
-| Setting                        | Default                                                  | What it does                                                                                 |
-| ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `HEED_AUTH`                    | `oidc` in production, `dev` elsewhere                    | `oidc`, or a people picker: `dev` locally, `demo` for demos. Production refuses both pickers |
-| `HEED_OIDC_ISSUER`             | None, required                                           | The provider's issuer, exactly as its discovery document names it                            |
-| `HEED_OIDC_CLIENT_ID`          | None, required                                           | This app's client id at the provider                                                         |
-| `HEED_OIDC_CLIENT_SECRET_FILE` | None: a public client                                    | An owner-only file (mode 0600) with a confidential client's secret                           |
-| `HEED_OIDC_REDIRECT_URL`       | `/api/v1/auth/oidc/callback` on the MCP address's origin | The redirect address registered at the provider                                              |
-| `HEED_OIDC_SCOPES`             | `openid email profile`                                   | What to ask for. `openid` is required                                                        |
-| `HEED_OIDC_GROUPS_CLAIM`       | `groups`                                                 | The ID token claim that lists the person's groups                                            |
-| `HEED_OIDC_ADMIN_GROUPS`       | None                                                     | Groups whose members may sign in without an invite, as an Admin. Comma-separated             |
-| `HEED_OIDC_MEMBER_GROUPS`      | None                                                     | Groups whose members may sign in without an invite, as a Member. Comma-separated             |
-| `HEED_OIDC_NAME`               | "your company account"                                   | The provider's name on the sign-in button, such as Okta                                      |
-| `HEED_SESSION_IDLE_HOURS`      | `12`                                                     | A browser session ends after this many hours unused                                          |
-| `HEED_SESSION_MAX_DAYS`        | `7`                                                      | A browser session ends this many days after sign-in, used or not                             |
+| Setting                            | Default                                                  | What it does                                                                                 |
+| ---------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `FOOTNOTE_AUTH`                    | `oidc` in production, `dev` elsewhere                    | `oidc`, or a people picker: `dev` locally, `demo` for demos. Production refuses both pickers |
+| `FOOTNOTE_OIDC_ISSUER`             | None, required                                           | The provider's issuer, exactly as its discovery document names it                            |
+| `FOOTNOTE_OIDC_CLIENT_ID`          | None, required                                           | This app's client id at the provider                                                         |
+| `FOOTNOTE_OIDC_CLIENT_SECRET_FILE` | None: a public client                                    | An owner-only file (mode 0600) with a confidential client's secret                           |
+| `FOOTNOTE_OIDC_REDIRECT_URL`       | `/api/v1/auth/oidc/callback` on the MCP address's origin | The redirect address registered at the provider                                              |
+| `FOOTNOTE_OIDC_SCOPES`             | `openid email profile`                                   | What to ask for. `openid` is required                                                        |
+| `FOOTNOTE_OIDC_GROUPS_CLAIM`       | `groups`                                                 | The ID token claim that lists the person's groups                                            |
+| `FOOTNOTE_OIDC_ADMIN_GROUPS`       | None                                                     | Groups whose members may sign in without an invite, as an Admin. Comma-separated             |
+| `FOOTNOTE_OIDC_MEMBER_GROUPS`      | None                                                     | Groups whose members may sign in without an invite, as a Member. Comma-separated             |
+| `FOOTNOTE_OIDC_NAME`               | "your company account"                                   | The provider's name on the sign-in button, such as Okta                                      |
+| `FOOTNOTE_SESSION_IDLE_HOURS`      | `12`                                                     | A browser session ends after this many hours unused                                          |
+| `FOOTNOTE_SESSION_MAX_DAYS`        | `7`                                                      | A browser session ends this many days after sign-in, used or not                             |
 
 ## Who may sign in
 

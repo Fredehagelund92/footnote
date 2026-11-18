@@ -20,7 +20,9 @@ export function checkMutation(
         "We can't take changes from this address. Open the app at its usual address, then try again.",
     })
   }
-  const csrf = request.headers['x-heed-csrf']
+  // The header was X-Heed-CSRF until the rename to Footnote: a web app or command line of before
+  // it still sends that one for a release (docs/operations.md, "Upgrade from Heed 0.1").
+  const csrf = request.headers['x-footnote-csrf'] ?? request.headers['x-heed-csrf']
   if (csrf !== (login ? 'dev-sign-in' : session?.csrfToken) || typeof csrf !== 'string') {
     throw new ORPCError('FORBIDDEN', { message: refusals.csrf })
   }

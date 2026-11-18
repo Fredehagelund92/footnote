@@ -107,7 +107,7 @@ describe('the held-out seal', () => {
   it('fails code outside the seal that opens the sealed cases or reads their key', () => {
     const opens = [
       "import { readHeldOut } from '../../db/seed/held-out.ts'",
-      'const key = process.env.HEED_HELDOUT_KEY_FILE',
+      'const key = process.env.FOOTNOTE_HELDOUT_KEY_FILE',
       "readFileSync('db/seed/golden-held-out.age')",
       "import { Decrypter } from 'age-encryption'",
       'await runHeldOut((held) => held.cases, run)',
@@ -144,7 +144,7 @@ describe('the held-out seal', () => {
     for (const path of ['.github/workflows/ci.yml', 'package.json'])
       expect(
         sealProblems(
-          input({ changes: modified(path), added: { [path]: ['  HEED_HELDOUT_KEY: x'] } }),
+          input({ changes: modified(path), added: { [path]: ['  FOOTNOTE_HELDOUT_KEY: x'] } }),
         ),
       ).toHaveLength(1)
   })
@@ -177,7 +177,7 @@ describe('the held-out seal', () => {
             'tests/integration/golden-set.test.ts': counts,
             'db/seed/held-out.ts': ['const decrypter = new Decrypter() // age-encryption'],
             'README.md': [
-              'Set HEED_HELDOUT_KEY_FILE for one command; it opens golden-held-out.age.',
+              'Set FOOTNOTE_HELDOUT_KEY_FILE for one command; it opens golden-held-out.age.',
             ],
           },
         }),

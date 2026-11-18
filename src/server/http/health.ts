@@ -9,17 +9,22 @@ import { footnoteVersion } from '../version.ts'
  * operator can tell which release answers.
  */
 export function registerHealthRoutes(app: FastifyInstance, database: Database): void {
-  app.get('/health', () => ({ status: 'ok', service: 'heed', version: footnoteVersion }))
+  app.get('/health', () => ({ status: 'ok', service: 'footnote', version: footnoteVersion }))
 
   app.get('/health/ready', async (request, reply) => {
     try {
       await database.ping()
-      return { status: 'ok', service: 'heed', version: footnoteVersion, checks: { database: 'ok' } }
+      return {
+        status: 'ok',
+        service: 'footnote',
+        version: footnoteVersion,
+        checks: { database: 'ok' },
+      }
     } catch (error) {
       request.log.error({ err: error }, 'readiness check: database unreachable')
       return reply.code(503).send({
         status: 'unavailable',
-        service: 'heed',
+        service: 'footnote',
         version: footnoteVersion,
         checks: { database: 'unavailable' },
       })

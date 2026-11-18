@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Changed } from '@/components/heed/changed'
+import { Changed } from '@/components/footnote/changed'
 import { cn } from '@/lib/utils'
 import {
   ActivityIcon,
@@ -10,7 +10,7 @@ import {
   SearchIcon,
   SettingsIcon,
 } from '@/components/icons'
-import { Logo, LogoSymbol } from '@/components/heed/logo'
+import { Logo, LogoSymbol } from '@/components/footnote/logo'
 import { NavUser } from '@/components/nav-user'
 import { SettingsNav } from '@/components/settings-nav'
 import { landingOf } from '@/lib/settings-access'

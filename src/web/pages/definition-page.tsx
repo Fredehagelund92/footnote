@@ -1,6 +1,6 @@
 import { BookAIcon, ExternalLinkIcon, NotebookPenIcon, PencilIcon } from '@/components/icons'
-import { DefinitionDetails, TypeTile } from '@/components/heed/definition'
-import { Canvas, Paper } from '@/components/heed/doc'
+import { DefinitionDetails, TypeTile } from '@/components/footnote/definition'
+import { Canvas, Paper } from '@/components/footnote/doc'
 import { SiteHeader } from '@/components/site-header'
 import { useSidebar } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
@@ -9,8 +9,8 @@ import { useQuery } from '@tanstack/react-query'
 import { definitionPageQuery } from '@/api/queries'
 import { kindName, sourceUrl, useGlossary } from '@/lib/definitions'
 import { href, navigate } from '@/lib/router'
-import { Loadable, PageSkeleton } from '@/components/heed/load-state'
-import { NotFound } from '@/components/heed/not-found'
+import { Loadable, PageSkeleton } from '@/components/footnote/load-state'
+import { NotFound } from '@/components/footnote/not-found'
 
 // A definition's own page, read-only like its peek, on the same paper sheet as a context item's
 // page. A synced metric or dimension can't be edited here at all: its page says where to change it.

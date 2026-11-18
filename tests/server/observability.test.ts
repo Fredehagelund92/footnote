@@ -194,16 +194,20 @@ describe('/metrics', () => {
     expect(response.headers['content-type']).toBe('text/plain; version=0.0.4; charset=utf-8')
     expect(response.headers['cache-control']).toBe('no-store')
     const text = response.body
-    expect(text).toContain('heed_http_requests_total{method="GET",route="/health",status="200"} 1')
-    expect(text).toContain('heed_http_requests_total{method="GET",route="me.get",status="401"} 1')
     expect(text).toContain(
-      'heed_http_requests_total{method="GET",route="items.page",status="401"} 1',
+      'footnote_http_requests_total{method="GET",route="/health",status="200"} 1',
     )
     expect(text).toContain(
-      'heed_http_requests_total{method="GET",route="unmatched",status="404"} 2',
+      'footnote_http_requests_total{method="GET",route="me.get",status="401"} 1',
+    )
+    expect(text).toContain(
+      'footnote_http_requests_total{method="GET",route="items.page",status="401"} 1',
+    )
+    expect(text).toContain(
+      'footnote_http_requests_total{method="GET",route="unmatched",status="404"} 2',
     )
     expect(text).toMatch(
-      /heed_http_request_duration_seconds_bucket\{le="0\.3",method="GET",route="\/health"\} 1/,
+      /footnote_http_request_duration_seconds_bucket\{le="0\.3",method="GET",route="\/health"\} 1/,
     )
     for (const raw of ['who-asked', 'itm_marker0001', 'no-such-marker', 'person-marker', maria.id])
       expect(text).not.toContain(raw)
@@ -214,19 +218,19 @@ describe('/metrics', () => {
     const { instance } = app({ metricsToken: token })
     const text = (await scrape(instance)).body
     for (const line of [
-      'heed_job_last_success_age_seconds{job="retention.run"} 3600',
-      'heed_job_overdue{job="retention.run"} 1',
-      'heed_job_runs_total{job="retention.run",outcome="failed"} 1',
-      'heed_job_queue{job="retention.run",state="queued"} 1',
-      'heed_connector_age_seconds{connector="cube"} NaN',
-      'heed_connector_stale{connector="cube"} 1',
-      'heed_model_spend_usd{period="today"} 0.125',
-      'heed_model_spend_usd{period="month"} 2.5',
-      'heed_model_spend_month_cap_usd 50',
-      'heed_live_edition_age_seconds 90',
-      'heed_db_pool_connections{state="idle"} 2',
-      'heed_mcp_records_dropped_total 0',
-      'heed_metrics_sources_up 1',
+      'footnote_job_last_success_age_seconds{job="retention.run"} 3600',
+      'footnote_job_overdue{job="retention.run"} 1',
+      'footnote_job_runs_total{job="retention.run",outcome="failed"} 1',
+      'footnote_job_queue{job="retention.run",state="queued"} 1',
+      'footnote_connector_age_seconds{connector="cube"} NaN',
+      'footnote_connector_stale{connector="cube"} 1',
+      'footnote_model_spend_usd{period="today"} 0.125',
+      'footnote_model_spend_usd{period="month"} 2.5',
+      'footnote_model_spend_month_cap_usd 50',
+      'footnote_live_edition_age_seconds 90',
+      'footnote_db_pool_connections{state="idle"} 2',
+      'footnote_mcp_records_dropped_total 0',
+      'footnote_metrics_sources_up 1',
     ])
       expect(text).toContain(line)
   })
@@ -238,8 +242,8 @@ describe('/metrics', () => {
     })
     const response = await scrape(instance)
     expect(response.statusCode).toBe(200)
-    expect(response.body).toContain('heed_metrics_sources_up 0')
-    expect(response.body).not.toContain('heed_job_overdue')
+    expect(response.body).toContain('footnote_metrics_sources_up 0')
+    expect(response.body).not.toContain('footnote_job_overdue')
   })
 
   it('writes valid exposition lines: HELP and TYPE once per metric, then samples', async () => {
@@ -258,7 +262,7 @@ describe('/metrics', () => {
         continue
       }
       expect(line).toMatch(
-        /^heed_[a-z0-9_]+(\{[a-z_]+="[^"\\\n]*"(,[a-z_]+="[^"\\\n]*")*\})? (-?[0-9.e+-]+|NaN|\+Inf)$/,
+        /^footnote_[a-z0-9_]+(\{[a-z_]+="[^"\\\n]*"(,[a-z_]+="[^"\\\n]*")*\})? (-?[0-9.e+-]+|NaN|\+Inf)$/,
       )
     }
     expect(declared.size).toBeGreaterThan(15)

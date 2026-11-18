@@ -187,7 +187,7 @@ async function lookups(page: Page) {
 const keptInBrowser = (page: Page) =>
   page.evaluate(() =>
     Object.keys(localStorage).some(
-      (k) => k.startsWith('heed.ask.chats.') && localStorage.getItem(k)!.includes('"answers"'),
+      (k) => k.startsWith('footnote.ask.chats.') && localStorage.getItem(k)!.includes('"answers"'),
     ),
   )
 
@@ -233,7 +233,7 @@ test('a four-turn chat opens again after a reload on all four turns and asks not
   await expect.poll(() => keptInBrowser(page)).toBe(true)
   const kept = () =>
     page.evaluate(() => {
-      const key = Object.keys(localStorage).find((k) => k.startsWith('heed.ask.chats.'))!
+      const key = Object.keys(localStorage).find((k) => k.startsWith('footnote.ask.chats.'))!
       const chats = JSON.parse(localStorage.getItem(key)!) as { answers?: unknown[] }[]
       return chats[0]?.answers?.length ?? 0
     })

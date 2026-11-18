@@ -102,7 +102,7 @@ export function createRelay({
     while (!stopping.signal.aborted) {
       const client = new pg.Client({
         connectionString,
-        application_name: 'heed-relay',
+        application_name: 'footnote-relay',
         connectionTimeoutMillis: 2_000,
       })
       const lost = new Promise<void>((resolve) => {

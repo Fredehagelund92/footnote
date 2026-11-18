@@ -116,7 +116,7 @@ export type Answer = {
   question: string
   /**
    * Ask's loop (FR-718 to FR-720): the turn as the service wrote it, which the loop's own answer
-   * draws (src/web/components/heed/loop-answer.tsx); the fields below are read from it.
+   * draws (src/web/components/footnote/loop-answer.tsx); the fields below are read from it.
    */
   loop?: LoopTurn
   metric: string

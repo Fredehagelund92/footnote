@@ -142,7 +142,7 @@ describe('footnote/plain-words in the web app (glossary v2)', () => {
 
   it('maps each place to its files', () => {
     expect(webPlacesOf('src/web/pages/settings.tsx')).toEqual(['the web app', 'Settings'])
-    expect(webPlacesOf('src/web/components/heed/review-parts.tsx')).toEqual([
+    expect(webPlacesOf('src/web/components/footnote/review-parts.tsx')).toEqual([
       'the web app',
       'the review',
     ])

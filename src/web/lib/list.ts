@@ -7,7 +7,7 @@ import * as React from 'react'
  * stops; when a peek is open, moving the cursor opens the next row in it, as in a mail list. Picking
  * rows (X, Shift and an arrow) is the selection's, in hooks/use-selection.ts, and runs first.
  *
- * A list that draws only the rows in view (components/heed/window-rows.tsx) passes `rows`: its
+ * A list that draws only the rows in view (components/footnote/window-rows.tsx) passes `rows`: its
  * whole order and how to bring a row into view, so the keys move through every row, drawn or not.
  */
 export function useRowKeys({

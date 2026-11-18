@@ -12,7 +12,7 @@ first build, which runs on one computer (FR-413).
 
 1. In the agent, add an MCP server with the address `http://localhost:3000/mcp` (the
    `MCP_RESOURCE_URL` of the service). For Claude Code:
-   `claude mcp add --transport http heed http://localhost:3000/mcp`, then `/mcp` and
+   `claude mcp add --transport http footnote http://localhost:3000/mcp`, then `/mcp` and
    Authenticate (Claude Code registers itself, so it needs dynamic registration on).
 2. The app opens a browser at Footnote. Sign in (locally: choose who you are from the dev people),
    read which app asks and what it may do, and choose **Allow** or **Deny**.
@@ -157,7 +157,7 @@ AI agent                Footnote MCP server         Footnote login server       
   a registered one exactly; only a loopback address may change its port (RFC 8252). An unknown
   client or address gets a page, never a redirect.
 - **Consent.** The authorize request is stored for ten minutes and tied to the browser that made
-  it by a cookie (`heed_oauth_browser`, HttpOnly, SameSite=Lax); the consent page lives on the web
+  it by a cookie (`footnote_oauth_browser`, HttpOnly, SameSite=Lax); the consent page lives on the web
   app (`/connect/approve`), answers only to that browser, needs the person's session, the page
   origin and the session's CSRF token, and is answered once. It names the app as it names
   itself, where it is described or registered from, where it sends the person back, and each
@@ -182,7 +182,7 @@ AI agent                Footnote MCP server         Footnote login server       
 - **Records and logs.** Every app a person signs in with shares the client label `signed-in` in
   the MCP request log, deliveries and client policies (FR-410): never the person. The request log
   also keeps the app's family from a fixed list (`claude_code`, `claude_ai`, `chatgpt`, `codex`,
-  `cursor`, `vscode_copilot`, `windsurf`, `gemini_cli`, `goose`, `heed`, else `other`, or
+  `cursor`, `vscode_copilot`, `windsurf`, `gemini_cli`, `goose`, `footnote`, else `other`, or
   `unknown` when it names none), mapped from the name it sends; that name and its version are
   never kept. Health counts the families by the week, small counts hidden. An administrator can switch it off or give it a rate on the MCP and gateway page. The
   per-person rate (FR-408) counts by person across their apps and refreshed tokens. Sign-in lines
@@ -199,7 +199,7 @@ AI agent                Footnote MCP server         Footnote login server       
   person's draft. It is the only MCP call that names the person, as the proposer, on the proposal and its history; the
   request log still keeps only `signed-in`. A dev token names no person, so it is refused. When the
   app can show forms, the tool asks its open questions there first, in a request state bound to the
-  tool, the person and the app (`HEED_MCP_STATE_KEY_FILE`, below).
+  tool, the person and the app (`FOOTNOTE_MCP_STATE_KEY_FILE`, below).
 - **Rates.** Per caller address and minute: discovery 120, registration 10, authorize 30, token
   60, revocation 30; the web API's own limits cover the consent operations. Failed token requests
   count per client and caller address, 30 a minute; successful code exchanges and refreshes never
@@ -306,7 +306,7 @@ address that matches links their account.
 
 `GET /api/v1/auth/oidc/start?returnTo=<path>` reads the provider's discovery document (kept an
 hour), stores the sign-in for ten minutes (the SHA-256 of a random `state`, a random `nonce`, a
-PKCE verifier, the path to go back to) tied to this browser by the cookie `heed_oidc_browser`
+PKCE verifier, the path to go back to) tied to this browser by the cookie `footnote_oidc_browser`
 (HttpOnly, SameSite=Lax, on the callback's path, ten minutes), and sends the browser to the
 provider with `S256` as the PKCE method. The callback takes the stored sign-in by its state and
 deletes it whatever happens next, checks the browser cookie, the provider's `iss` (RFC 9207),
@@ -315,7 +315,7 @@ confidential client), and checks the ID token: its signature by the provider's p
 (RSA, RSA-PSS, ECDSA or EdDSA; never `none` or a shared-secret algorithm), the issuer, the audience
 (this client), the authorized party when there are several audiences, the expiry and issue time
 (a minute of clock skew), and the nonce. It then makes a new session, ends the one the browser had,
-and sends the browser to the path it started from on the first `HEED_WEB_ORIGINS` origin, or to
+and sends the browser to the path it started from on the first `FOOTNOTE_WEB_ORIGINS` origin, or to
 `/#/signin?error=<reason>` with `cancelled`, `expired`, `unavailable`, `failed`,
 `email_unverified` or `not_allowed`.
 

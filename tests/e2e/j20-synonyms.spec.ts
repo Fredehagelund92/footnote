@@ -52,7 +52,7 @@ test('a word taken after the page opened shows the refusal, and offers no Retry'
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Heed-CSRF': session.csrfToken,
+        'X-Footnote-CSRF': session.csrfToken,
         'Idempotency-Key': crypto.randomUUID(),
       },
       body: JSON.stringify({ name: 'Bookings', sameAs: 'metric:net_revenue' }),

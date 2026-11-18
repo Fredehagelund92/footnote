@@ -3,7 +3,7 @@ import { momentOf } from '../../src/server/modules/answer/records.ts'
 import type { Clock } from '../../src/server/clock.ts'
 
 /*
-  The records' moment on a pinned day (HEED_FIXED_TODAY): a day pinned in the past is kept whole,
+  The records' moment on a pinned day (FOOTNOTE_FIXED_TODAY): a day pinned in the past is kept whole,
   so a stamp on it stays the day it says, as the Context list shows it, and has happened by the
   moment, at any hour the service runs; a stamp the database made while it runs moves back onto it.
 */

@@ -26,8 +26,8 @@ import { apiDatabase, testDatabase, transaction } from './support.ts'
 const { client, url } = testDatabase()
 const database = apiDatabase(url)
 const provider = await startOidcProvider()
-const web = 'https://heed.example'
-const redirectUrl = 'https://heed.example/api/v1/auth/oidc/callback'
+const web = 'https://footnote.example'
+const redirectUrl = 'https://footnote.example/api/v1/auth/oidc/callback'
 const lifetime: SessionLifetime = { idleHours: 12, maxDays: 7 }
 const logs: string[] = []
 const settings: OidcSettings = {
@@ -37,8 +37,8 @@ const settings: OidcSettings = {
   redirectUrl,
   scopes: 'openid email profile',
   groupsClaim: 'groups',
-  adminGroups: ['heed-admins'],
-  memberGroups: ['heed-people'],
+  adminGroups: ['footnote-admins'],
+  memberGroups: ['footnote-people'],
   name: 'Test provider',
 }
 const app = buildApp({
@@ -146,10 +146,10 @@ describe('signing in with the company provider', () => {
     expect(location).toBe(`${web}/#/inbox`)
     const cookies = [response.headers['set-cookie']].flat().join('\n')
     expect(cookies).toMatch(
-      /heed_session=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Strict; Max-Age=604800; Secure/,
+      /footnote_session=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Strict; Max-Age=604800; Secure/,
     )
     expect(cookies).toMatch(
-      /heed_oidc_browser=; Path=\/api\/v1\/auth\/oidc; HttpOnly; SameSite=Lax; Max-Age=0; Secure/,
+      /footnote_oidc_browser=; Path=\/api\/v1\/auth\/oidc; HttpOnly; SameSite=Lax; Max-Age=0; Secure/,
     )
     const who = await me(person)
     expect(who).toMatchObject({ name: 'First Admin', permissions: { roles: ['administrator'] } })
@@ -195,16 +195,16 @@ describe('signing in with the company provider', () => {
 
   it('makes a new session at every sign-in, so a planted session is worth nothing', async () => {
     const person = browser()
-    person.jar.set('heed_session', 'a'.repeat(64))
+    person.jar.set('footnote_session', 'a'.repeat(64))
     await signIn({ sub: 'acct-author' }, {}, person)
-    const first = person.jar.get('heed_session')!
+    const first = person.jar.get('footnote_session')!
     expect(first).not.toBe('a'.repeat(64))
     await signIn({ sub: 'acct-author' }, {}, person)
-    const second = person.jar.get('heed_session')!
+    const second = person.jar.get('footnote_session')!
     expect(second).not.toBe(first)
     // The session the browser had before ends with the new sign-in.
     const stale = browser()
-    stale.jar.set('heed_session', first)
+    stale.jar.set('footnote_session', first)
     expect(await me(stale)).toBeNull()
     expect(await me(person)).not.toBeNull()
   })
@@ -242,7 +242,7 @@ describe('who may sign in', () => {
     ]) {
       const { location, person } = await signIn(account)
       answers.add(location)
-      expect(person.jar.has('heed_session')).toBe(false)
+      expect(person.jar.has('footnote_session')).toBe(false)
     }
     expect([...answers]).toEqual([refusedWith('not_allowed')])
     expect((await client.query('select count(*)::int as n from people')).rows).toEqual(before)
@@ -257,7 +257,7 @@ describe('who may sign in', () => {
     await client.query('update people set deactivated_at=now() where id=$1', [id])
     const refused = await signIn(account)
     expect(refused.location).toBe(refusedWith('not_allowed'))
-    expect(refused.person.jar.has('heed_session')).toBe(false)
+    expect(refused.person.jar.has('footnote_session')).toBe(false)
     expect((await invite(email)).outcome).toBe('invited')
     const back = await signIn(account)
     expect((await me(back.person))?.id).toBe(id)
@@ -288,7 +288,7 @@ describe('who may sign in', () => {
       sub: 'acct-g1',
       email: 'g1@larchwood.example',
       email_verified: true,
-      groups: ['heed-people'],
+      groups: ['footnote-people'],
     })
     expect((await me(member.person))?.permissions.roles).toEqual([])
     const admin = await signIn({
@@ -296,12 +296,12 @@ describe('who may sign in', () => {
       email: 'g2@larchwood.example',
       email_verified: true,
       name: 'Gee Two',
-      groups: ['heed-admins'],
+      groups: ['footnote-admins'],
     })
     const who = await me(admin.person)
     expect(who).toMatchObject({ name: 'Gee Two', permissions: { roles: ['administrator'] } })
     // Out of the admin group, the Admin role the group gave ends at the next sign-in.
-    const later = await signIn({ sub: 'acct-g2', groups: ['heed-people'] })
+    const later = await signIn({ sub: 'acct-g2', groups: ['footnote-people'] })
     expect((await me(later.person))?.permissions.roles).toEqual([])
     // An Admin role given any other way is not the group's to end.
     await client.query(
@@ -317,7 +317,7 @@ describe('who may sign in', () => {
           sub: 'acct-x7',
           email: 'gone@example.test',
           email_verified: true,
-          groups: ['heed-admins'],
+          groups: ['footnote-admins'],
         })
       ).location,
     ).toBe(refusedWith('not_allowed'))
@@ -346,7 +346,7 @@ describe('the checks on the provider’s answer', () => {
     [
       'several audiences without this client as the authorized party',
       { sub: 'acct-author' },
-      { claims: { aud: ['heed-test', 'other'], azp: 'other' } },
+      { claims: { aud: ['footnote-test', 'other'], azp: 'other' } },
       'failed',
     ],
     [
@@ -365,7 +365,7 @@ describe('the checks on the provider’s answer', () => {
   it.each(cases)('refuses %s, and signs nobody in', async (_name, account, tweaks, reason) => {
     const { location, person } = await signIn(account, tweaks)
     expect(location).toBe(refusedWith(reason))
-    expect(person.jar.has('heed_session')).toBe(false)
+    expect(person.jar.has('footnote_session')).toBe(false)
   })
 
   it('ties a sign-in to the browser that started it, and uses it once', async () => {
@@ -381,7 +381,10 @@ describe('the checks on the provider’s answer', () => {
     const fresh = browser()
     const done = await atProvider(await start(fresh))
     expect((await callback(fresh, done)).headers.location).toBe(`${web}/#/inbox`)
-    fresh.jar.set('heed_oidc_browser', starter.jar.get('heed_oidc_browser') ?? 'b'.repeat(64))
+    fresh.jar.set(
+      'footnote_oidc_browser',
+      starter.jar.get('footnote_oidc_browser') ?? 'b'.repeat(64),
+    )
     expect((await callback(fresh, done)).headers.location).toBe(refusedWith('expired'))
     // No state, or one never given, is refused.
     for (const query of ['?code=x', '?code=x&state=' + 'y'.repeat(43)])
@@ -402,7 +405,7 @@ describe('the checks on the provider’s answer', () => {
 describe('sessions', () => {
   it('end after the idle limit, slide while used, and never pass the absolute end', async () => {
     const { person } = await signIn({ sub: 'acct-author' })
-    const token = person.jar.get('heed_session')!
+    const token = person.jar.get('footnote_session')!
     const row = () =>
       client.query<{ idle: number; absolute: number }>(
         `select extract(epoch from expires_at - now())::int as idle,
@@ -456,7 +459,7 @@ describe('the sign-in screen', () => {
     const picked = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: web, 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: web, 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: 'admin@example.test' },
     })
     expect(picked.statusCode).toBe(401)
@@ -535,7 +538,7 @@ describe('a public client', () => {
         headers: { cookie: String(started.headers['set-cookie']).split(';')[0]! },
       })
       expect(done.headers.location).toBe(`${web}/`)
-      expect(String(done.headers['set-cookie'])).toMatch(/heed_session=[a-f0-9]{64}/)
+      expect(String(done.headers['set-cookie'])).toMatch(/footnote_session=[a-f0-9]{64}/)
       expect(open.tokenRequests.at(-1)).toMatchObject({ secret: false })
       expect(open.tokenRequests.at(-1)!.form.get('code_verifier')).toMatch(/^[A-Za-z0-9_-]{43}$/)
     } finally {
@@ -545,14 +548,14 @@ describe('a public client', () => {
   })
 })
 
-describe('the operator invite (heed invite)', () => {
+describe('the operator invite (footnote invite)', () => {
   const cli = async (args: string[], env: Record<string, string | undefined> = {}) => {
     let stdout = ''
     let stderr = ''
     const code = await run(args, {
       stdout: (text) => void (stdout += text),
       stderr: (text) => void (stderr += text),
-      env: { DATABASE_URL_MIGRATE: url, HEED_WEB_ORIGINS: web, ...env },
+      env: { DATABASE_URL_MIGRATE: url, FOOTNOTE_WEB_ORIGINS: web, ...env },
     })
     return { code, stdout, stderr }
   }
@@ -560,7 +563,9 @@ describe('the operator invite (heed invite)', () => {
   it('prints a link that lets the first admin in, and keeps only its hash', async () => {
     const made = await cli(['invite', 'boss@larchwood.example', '--admin', '--domain', 'marketing'])
     expect(made.code, made.stderr).toBe(0)
-    const link = /https:\/\/heed\.example\/#\/signin\?invite=([A-Za-z0-9_-]{43})/.exec(made.stdout)
+    const link = /https:\/\/footnote\.example\/#\/signin\?invite=([A-Za-z0-9_-]{43})/.exec(
+      made.stdout,
+    )
     expect(link, made.stdout).not.toBeNull()
     expect(
       (await client.query('select 1 from invites where token_hash=$1', [link![1]])).rowCount,

@@ -81,7 +81,7 @@ async function signIn(email: string) {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email },
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -315,7 +315,7 @@ it(
     })
     expect(metrics.statusCode).toBe(200)
     expect(metrics.body).toContain(
-      'heed_mcp_requests_total{app_family="other",status="ok",tool="get_context"} 1000',
+      'footnote_mcp_requests_total{app_family="other",status="ok",tool="get_context"} 1000',
     )
     exported.push(metrics.body)
     for (const gap of gaps)

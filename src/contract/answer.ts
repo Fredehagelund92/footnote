@@ -549,7 +549,7 @@ export type LookupInput = z.infer<typeof lookupInputSchema>
  * question back, the sentence for a question off topic, or the sentence for a message that asks
  * nothing, with nothing looked up and no state.
  *
- * When the service runs Ask's loop instead (FR-718 to FR-720, `HEED_ASK_LOOP`), a `progress` line
+ * When the service runs Ask's loop instead (FR-718 to FR-720, `FOOTNOTE_ASK_LOOP`), a `progress` line
  * comes as each read starts, written by code from what it reads, then one `turn`. While the model
  * writes, `words` comes each time one more of its sentences is final and has passed the check: the
  * answer so far, drawn as the turn draws it (decision 5). Null takes back what was shown: the

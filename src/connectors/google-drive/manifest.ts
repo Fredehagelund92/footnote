@@ -10,7 +10,7 @@ import { defineManifest } from '../../domain/define-manifest.ts'
 export const manifest = defineManifest({
   id: 'google-drive',
   version: '1.0.0',
-  heed: '^3.0',
+  footnote: '^3.0',
   kind: 'content',
   tool: 'Google Drive',
   title: 'Google Drive',

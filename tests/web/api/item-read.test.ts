@@ -17,7 +17,7 @@ describe("an item's own read", () => {
       if (!path.endsWith('/page')) await names
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
     }
-    const api = createHttpApi({ baseUrl: 'https://heed.example/api/v1', fetch })
+    const api = createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch })
     const read = api.itemPage({ id: 'itm_norway01' }).catch(() => null)
     await vi.waitFor(() => expect(sent).toContain('/api/v1/items/itm_norway01/page'))
     expect(sent).toEqual(expect.arrayContaining(['/api/v1/people', '/api/v1/areas']))

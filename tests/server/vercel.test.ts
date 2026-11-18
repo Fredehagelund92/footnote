@@ -43,7 +43,7 @@ describe('the Vercel function', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       status: 'ok',
-      service: 'heed',
+      service: 'footnote',
       version: footnoteVersion,
     })
     await fetch(`${base}/health`)
@@ -77,7 +77,7 @@ describe('the Vercel function', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const environment: Record<string, string | undefined> = {
       DATABASE_URL: unreachable,
-      HEED_TRUSTED_PROXIES: 'vercel,10.0.0.0/8',
+      FOOTNOTE_TRUSTED_PROXIES: 'vercel,10.0.0.0/8',
     }
     const { base } = await serve(environment)
     const refused = await fetch(`${base}/health`)
@@ -88,9 +88,9 @@ describe('the Vercel function', () => {
     })
     // The log names the setting, never a value of another.
     expect(String(errors.mock.calls[0]![0])).toContain(
-      'HEED_TRUSTED_PROXIES: Expected vercel alone',
+      'FOOTNOTE_TRUSTED_PROXIES: Expected vercel alone',
     )
-    environment.HEED_TRUSTED_PROXIES = 'vercel'
+    environment.FOOTNOTE_TRUSTED_PROXIES = 'vercel'
     expect((await fetch(`${base}/health`)).status).toBe(200)
   })
 })

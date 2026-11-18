@@ -10,7 +10,7 @@ import { apiDatabase, testDatabase } from './support.ts'
   What the reads the app already makes say of the install, so knowing it costs no call of its own.
   auth.methods, which the sign-in page reads first, says whether this is the demo, so the page says
   its company is invented only on the demo's picker or with the demo loaded, and the label
-  HEED_PROFILE_LABEL names it by. auth.session, which every signed-in page reads first, carries the
+  FOOTNOTE_PROFILE_LABEL names it by. auth.session, which every signed-in page reads first, carries the
   label for the header, and whether an AI model is connected, so Ask says when none answers. An
   install on the dev picker with its own data, a private profile say, is not the demo.
 */
@@ -63,7 +63,7 @@ describe('what the session says of the install', () => {
       const signedIn = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/sign-in',
-        headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+        headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
         payload: { email: person.email },
       })
       expect(signedIn.statusCode, signedIn.body).toBe(200)

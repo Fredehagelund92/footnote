@@ -465,7 +465,7 @@ export function definitionOf(
         }
       : {}),
     ...(!words && notes.length ? { library: notes } : {}),
-    heed_adds: adds + counted,
+    footnote_adds: adds + counted,
   }
 }
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { DockFrame, DockMissing } from '@/components/dock'
-import { LoadError, SideSkeleton } from '@/components/heed/load-state'
+import { LoadError, SideSkeleton } from '@/components/footnote/load-state'
 import { useDelayedBusy } from '@/lib/loading'
 import type { Read } from '@/lib/read'
 

@@ -63,14 +63,14 @@ async function adminOf(app: ReturnType<typeof buildApp>) {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'admin@example.test' },
   })
   expect(response.statusCode, response.body).toBe(200)
   const headers = {
     origin: 'http://localhost',
     cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-    'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+    'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
   }
   return (method: 'GET' | 'POST' | 'PUT', path: string, payload?: object) =>
     app.inject({
@@ -154,7 +154,7 @@ describe('a server with no secret store', () => {
     const response = await call('POST', '/sources/test', addressRoute())
     expect(response.statusCode, response.body).toBe(422)
     expect(response.json<{ message: string }>().message).toBe(
-      "There's no secret store, so we can't keep a secret. Ask the person who hosts this app to set one up. For the host: set HEED_SECRETS_DIR.",
+      "There's no secret store, so we can't keep a secret. Ask the person who hosts this app to set one up. For the host: set FOOTNOTE_SECRETS_DIR.",
     )
     expect(objects.requests.length).toBe(reads)
   })
@@ -171,7 +171,7 @@ describe('a server with no secret store', () => {
         secrets,
       })
       expect(response.statusCode, response.body).toBe(422)
-      expect(response.body).toContain('HEED_SECRETS_DIR')
+      expect(response.body).toContain('FOOTNOTE_SECRETS_DIR')
       expect(response.body).not.toContain('y'.repeat(10))
     }
   })
@@ -186,7 +186,7 @@ describe('a server with no secret store', () => {
       reason: 'Our pipeline uploads the file',
     })
     expect(response.statusCode, response.body).toBe(422)
-    expect(response.body).toContain('HEED_SECRETS_DIR')
+    expect(response.body).toContain('FOOTNOTE_SECRETS_DIR')
     expect(response.body).not.toContain('Give the')
   })
 
@@ -227,6 +227,6 @@ describe('a server with no secret store', () => {
     })
     // The test runs, and says what it found at that address: nothing of the store.
     expect(response.statusCode, response.body).toBe(200)
-    expect(response.body).not.toContain('HEED_SECRETS_DIR')
+    expect(response.body).not.toContain('FOOTNOTE_SECRETS_DIR')
   })
 })

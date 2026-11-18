@@ -172,28 +172,29 @@ describe('the hosts the MCP server answers', () => {
     })
 
   it("answers its own address's host and this computer, and refuses another host or origin", async () => {
-    const s = await server(undefined, { resource: 'https://heed.example.test/mcp' })
+    const s = await server(undefined, { resource: 'https://footnote.example.test/mcp' })
     for (const host of [
-      'heed.example.test',
-      'heed.example.test:3000',
+      'footnote.example.test',
+      'footnote.example.test:3000',
       'localhost:3000',
       '127.0.0.1',
     ])
       expect((await ask(s, { host })).statusCode, host).toBe(200)
     expect(
-      (await ask(s, { host: 'heed.example.test', origin: 'https://heed.example.test' })).statusCode,
+      (await ask(s, { host: 'footnote.example.test', origin: 'https://footnote.example.test' }))
+        .statusCode,
     ).toBe(200)
-    for (const host of ['rebound.example', 'heed.example.test.evil.example'])
+    for (const host of ['rebound.example', 'footnote.example.test.evil.example'])
       expect((await ask(s, { host })).json(), host).toEqual({ error: 'Invalid host' })
     expect(
-      (await ask(s, { host: 'heed.example.test', origin: 'https://evil.example' })).json(),
+      (await ask(s, { host: 'footnote.example.test', origin: 'https://evil.example' })).json(),
     ).toEqual({ error: 'Invalid origin' })
   })
 
   it('answers only this computer while its address is on this computer', async () => {
     const s = await server()
     expect((await ask(s, { host: 'localhost:3000' })).statusCode).toBe(200)
-    expect((await ask(s, { host: 'heed.example.test' })).statusCode).toBe(403)
+    expect((await ask(s, { host: 'footnote.example.test' })).statusCode).toBe(403)
   })
 })
 
@@ -203,7 +204,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
       await readFile(new URL('../../../package.json', import.meta.url), 'utf8'),
     ) as { version: string }
     const client = await (await server()).connect(mode)
-    expect(client.getServerVersion()).toMatchObject({ name: 'heed', version })
+    expect(client.getServerVersion()).toMatchObject({ name: 'footnote', version })
   })
 
   it('discovers, delivers the short reply with sources, reads an item and takes a report', async () => {
@@ -365,7 +366,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     })
   })
   it('no longer offers the tools that left the list (FR-307, FR-339, FR-340, FR-348)', async () => {
-    const s = await server(undefined, { web: 'https://heed.example' }),
+    const s = await server(undefined, { web: 'https://footnote.example' }),
       client = await s.connect(mode)
     const names = (await client.listTools()).tools.map((t) => t.name)
     for (const gone of ['improve_question', 'domain_overview', 'what_changed', 'search_help']) {

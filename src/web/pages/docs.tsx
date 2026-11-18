@@ -14,9 +14,9 @@ import {
   PenLineIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { StateLine } from '@/components/heed/state-line'
-import { Logo } from '@/components/heed/logo'
-import { CopiedIcon, useCopied } from '@/components/heed/copied-icon'
+import { StateLine } from '@/components/footnote/state-line'
+import { Logo } from '@/components/footnote/logo'
+import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Command,
@@ -45,7 +45,7 @@ import {
   searchDocs,
   type DocPage,
 } from '@/lib/docs'
-import { NotFound } from '@/components/heed/not-found'
+import { NotFound } from '@/components/footnote/not-found'
 import { wordOf } from '@/lib/docs-includes'
 import type { DocBlock, DocInline, DocTarget } from '@domain/docs'
 

@@ -21,10 +21,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Frame, FrameSection } from '@/components/heed/frame'
-import { Loadable } from '@/components/heed/load-state'
-import { SortMenu } from '@/components/heed/list'
-import { CountUp } from '@/components/heed/count-up'
+import { Frame, FrameSection } from '@/components/footnote/frame'
+import { Loadable } from '@/components/footnote/load-state'
+import { SortMenu } from '@/components/footnote/list'
+import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { Legend, StackedBars, type SpanStep } from '@/components/obs/charts'
 import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'
@@ -731,7 +731,7 @@ function facetsOf(
 
 /** The facets beside the topics from this width of the frame; under it they open in a sheet. */
 const FACETS_FROM = 896
-const FACETS_KEY = 'heed.obs.facets'
+const FACETS_KEY = 'footnote.obs.facets'
 const readFacets = () => {
   try {
     return localStorage.getItem(FACETS_KEY) !== 'off'

@@ -216,7 +216,7 @@ describe('client registration', () => {
   })
 
   it('reads a client ID metadata document and checks that it names itself', async () => {
-    const id = 'https://app.example/heed-client.json'
+    const id = 'https://app.example/footnote-client.json'
     harness.documents.set(id, {
       client_id: id,
       client_name: 'Example app',
@@ -275,7 +275,7 @@ describe('the consent answer', () => {
     )
     const id = new URL(response.headers.get('location')!).searchParams.get('request')!
     expect(response.headers.getSetCookie().join()).toMatch(
-      /heed_oauth_browser=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Lax; Max-Age=600/,
+      /footnote_oauth_browser=[a-f0-9]{64}; Path=\/; HttpOnly; SameSite=Lax; Max-Age=600/,
     )
     return { person, id, proof }
   }
@@ -287,21 +287,21 @@ describe('the consent answer', () => {
     expect((await other.api(`/connections/request?id=${id}`)).status).toBe(404)
     expect((await other.api('/connections/request/decision', { id, allow: true })).status).toBe(404)
     // The other browser copies a sign-in cookie of its own: still not this sign-in.
-    other.jar.set('heed_oauth_browser', 'f'.repeat(64))
+    other.jar.set('footnote_oauth_browser', 'f'.repeat(64))
     expect((await other.api('/connections/request/decision', { id, allow: true })).status).toBe(404)
   })
 
   it('needs a signed-in person, the page origin and the session token', async () => {
     const { person, id } = await started(await registered())
     const anonymous = browser()
-    anonymous.jar.set('heed_oauth_browser', person.jar.get('heed_oauth_browser')!)
+    anonymous.jar.set('footnote_oauth_browser', person.jar.get('footnote_oauth_browser')!)
     expect((await anonymous.api(`/connections/request?id=${id}`)).status).toBe(401)
     expect(
       (
         await person.api(
           '/connections/request/decision',
           { id, allow: true },
-          { 'x-heed-csrf': 'x' },
+          { 'x-footnote-csrf': 'x' },
         )
       ).status,
     ).toBe(403)

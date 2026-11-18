@@ -11,8 +11,8 @@ import { idleJobs } from '../server/idle-jobs.ts'
 import { apiDatabase, testDatabase } from './support.ts'
 
 /*
-  The templates' import commands on the demo data, as `heed` runs them against a service: the
-  item template's examples pass the dry run, and `heed import-tests` checks and saves questions
+  The templates' import commands on the demo data, as `footnote` runs them against a service: the
+  item template's examples pass the dry run, and `footnote import-tests` checks and saves questions
   only for the domains the person owns.
 */
 
@@ -35,13 +35,13 @@ const app = buildApp({
 let base = ''
 let folder = ''
 
-async function heed(args: string[], email: string) {
+async function footnote(args: string[], email: string) {
   const out: string[] = []
   const err: string[] = []
   const code = await run(args, {
     stdout: (text) => out.push(text),
     stderr: (text) => err.push(text),
-    env: { HEED_URL: base, HEED_EMAIL: email, HEED_ORIGIN: ORIGIN },
+    env: { FOOTNOTE_URL: base, FOOTNOTE_EMAIL: email, FOOTNOTE_ORIGIN: ORIGIN },
   })
   return { code, out: out.join(''), err: err.join('') }
 }
@@ -58,14 +58,14 @@ afterAll(async () => {
 describe('the import commands of the templates', () => {
   it('passes the item template through the dry run, changing nothing', async () => {
     const proposals = await client.query('select count(*) from proposals')
-    const dry = await heed(['import', 'docs/templates/items.yaml'], 'per_maria@example.test')
+    const dry = await footnote(['import', 'docs/templates/items.yaml'], 'per_maria@example.test')
     expect(dry.code, dry.out + dry.err).toBe(0)
     expect(dry.out).toContain('Dry run: 3 new, 0 changed, 0 unchanged')
     expect((await client.query('select count(*) from proposals')).rows).toEqual(proposals.rows)
   })
 
   it('checks test questions with import-tests, and saves them only with --apply', async () => {
-    const template = await heed(
+    const template = await footnote(
       ['import-tests', 'docs/templates/test-questions.yaml'],
       'per_jon@example.test',
     )
@@ -100,20 +100,20 @@ describe('the import commands of the templates', () => {
     const before = await client.query<{ n: number }>(
       'select count(*)::int as n from golden_questions',
     )
-    const dry = await heed(['import-tests', file], 'per_jon@example.test')
+    const dry = await footnote(['import-tests', file], 'per_jon@example.test')
     expect(dry.code, dry.out + dry.err).toBe(0)
     expect(dry.out).toContain('Dry run: 1 new, 0 changed, 0 unchanged')
     expect(
       (await client.query<{ n: number }>('select count(*)::int as n from golden_questions')).rows,
     ).toEqual(before.rows)
 
-    const applied = await heed(['import-tests', file, '--apply'], 'per_jon@example.test')
+    const applied = await footnote(['import-tests', file, '--apply'], 'per_jon@example.test')
     expect(applied.code, applied.out + applied.err).toBe(0)
     expect(applied.out).toContain('Saved: 1 new, 0 changed, 0 unchanged')
-    const again = await heed(['import-tests', file, '--apply'], 'per_jon@example.test')
+    const again = await footnote(['import-tests', file, '--apply'], 'per_jon@example.test')
     expect(again.out).toContain('Saved: 0 new, 0 changed, 1 unchanged')
 
-    const stranger = await heed(['import-tests', file], 'per_maria@example.test')
+    const stranger = await footnote(['import-tests', file], 'per_maria@example.test')
     expect(stranger.code).toBe(1)
     expect(stranger.err).toContain('Test questions are kept by owners, deputies and admins')
   })

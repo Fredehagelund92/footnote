@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test'
 import { card, expect, go, onMockOnly, test } from './go.ts'
 
-// J35, marked text: colour that means something, and only that (components/heed/mark.tsx). The
+// J35, marked text: colour that means something, and only that (components/footnote/mark.tsx). The
 // Inbox marks what a suggestion needs on its row, once; a review's clash says what to do; Ask sets
 // the sentences from the items that disagree apart under a line, unmarked; Quality marks the words that changed; Related marks
 // an item that disagrees; Integrations marks a failed read and a refused key, never a healthy tool.

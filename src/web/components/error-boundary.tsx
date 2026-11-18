@@ -29,7 +29,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(error: Error) {
-    console.error('[heed] a screen failed:', error)
+    console.error('[footnote] a screen failed:', error)
   }
 
   override render() {

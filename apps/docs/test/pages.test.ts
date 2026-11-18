@@ -57,7 +57,7 @@ describe('the pages of the site', () => {
   it('open a page that is not published on GitHub, at the build reference', () => {
     const context = linkContext(pages, '/v0.1', 'v0.1.1')
     expect(resolveLink('../contributing/api.md#alerts', 'docs/help/tools.md', context)).toBe(
-      'https://github.com/Fredehagelund92/heed/blob/v0.1.1/docs/contributing/api.md#alerts',
+      'https://github.com/Fredehagelund92/footnote/blob/v0.1.1/docs/contributing/api.md#alerts',
     )
     expect(resolveLink('privacy.md', 'docs/help/tools.md', context)).toBe('/v0.1/privacy/')
   })

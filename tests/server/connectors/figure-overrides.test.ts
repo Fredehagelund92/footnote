@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { readFigureOverrides } from '../../../src/server/modules/connectors/figures.ts'
 
-// The server's figure settings (HEED_FIGURE_OVERRIDES): read when the service starts, so a file
+// The server's figure settings (FOOTNOTE_FIGURE_OVERRIDES): read when the service starts, so a file
 // that is not one stops the start and names the setting, never a figure read later.
 
 const folder = await mkdtemp(join(tmpdir(), 'footnote-figure-overrides-'))
@@ -40,6 +40,6 @@ describe('the figure settings file', () => {
       await file('currency.json', JSON.stringify({ cube: { orders: { currency: 'euro' } } })),
       await file('format.json', JSON.stringify({ cube: { orders: { format: 'money' } } })),
     ])
-      await expect(readFigureOverrides(path)).rejects.toThrow(/^HEED_FIGURE_OVERRIDES: /)
+      await expect(readFigureOverrides(path)).rejects.toThrow(/^FOOTNOTE_FIGURE_OVERRIDES: /)
   })
 })

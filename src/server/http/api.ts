@@ -125,7 +125,7 @@ import {
   setOwners,
   changeGrant,
   cookieAge,
-  sessionCookie,
+  sessionCookies,
   createPeopleService,
   type SignIn,
 } from '../modules/auth/index.ts'
@@ -177,7 +177,7 @@ export interface ApiServices {
   workspaceSources?: WorkspaceSources
   /** Opens a web page a link in a draft points at; the public web only by default. */
   readPage?: PageReader
-  /** HEED_PROFILE_LABEL: the name the header and the sign-in page show; none by default. */
+  /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; none by default. */
   profileLabel?: string | null
 }
 type RequestContext = { request: FastifyRequest; reply: FastifyReply }
@@ -624,7 +624,8 @@ export function createRouter({
           })
         context.reply.header(
           'set-cookie',
-          sessionCookie(
+          sessionCookies(
+            context.request.headers.cookie,
             login.token,
             context.request.protocol === 'https',
             cookieAge(signIn.lifetime),
@@ -636,7 +637,12 @@ export function createRouter({
         await signIn.signOut(context.tx, context.request.headers.cookie)
         context.reply.header(
           'set-cookie',
-          sessionCookie('', context.request.protocol === 'https', 0),
+          sessionCookies(
+            context.request.headers.cookie,
+            '',
+            context.request.protocol === 'https',
+            0,
+          ),
         )
         return { signedOut: true }
       }),
@@ -1561,7 +1567,7 @@ export function openApiDocument() {
 }
 
 /** The header on every API answer that names the contract the service speaks (`apiVersion`). */
-export const API_VERSION_HEADER = 'x-heed-api'
+export const API_VERSION_HEADER = 'x-footnote-api'
 
 let version: Promise<string> | undefined
 /**

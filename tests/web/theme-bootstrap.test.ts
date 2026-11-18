@@ -10,20 +10,26 @@ async function run({
   saved,
   search = '',
   systemDark = false,
+  before = () => {},
 }: {
   saved?: string
   search?: string
   systemDark?: boolean
+  /** What the browser held before the page loaded. */
+  before?: () => void
 }) {
   document.documentElement.className = ''
   window.localStorage.clear()
+  window.sessionStorage.clear()
   if (saved) window.localStorage.setItem(storageKey('theme'), saved)
+  before()
   window.history.replaceState(null, '', `/inbox${search}`)
   window.matchMedia = ((query: string) => ({
     matches: query.includes('dark') && systemDark,
     media: query,
   })) as unknown as typeof window.matchMedia
   vi.stubGlobal('THEME_KEY', storageKey('theme'))
+  vi.stubGlobal('STORAGE_PREFIX', storageKey(''))
   // The bootstrap is an inline <head> script with side effects, so import a fresh copy each time.
   vi.resetModules()
   await import('@/theme-bootstrap.js')
@@ -32,6 +38,7 @@ async function run({
 
 afterEach(() => {
   window.localStorage.clear()
+  window.sessionStorage.clear()
   vi.unstubAllGlobals()
 })
 
@@ -48,6 +55,28 @@ describe('the theme bootstrap', () => {
     expect(await run({ saved: 'light', search: '?theme=dark' })).toBe(true)
     expect(await run({ saved: 'dark', search: '?theme=light' })).toBe(false)
     expect(await run({ saved: 'dark', search: '?theme=sepia' })).toBe(true)
+  })
+
+  it('moves what the browser kept before the rename to Footnote, once', async () => {
+    const dark = await run({
+      before: () => {
+        window.localStorage.setItem('heed-theme', 'dark')
+        window.localStorage.setItem('heed.ask.chats.per_jon', '[{"id":"c1"}]')
+        window.sessionStorage.setItem('heed-pane:inbox', '420')
+        window.localStorage.setItem('heed-emoji-recent', '["old"]')
+        window.localStorage.setItem(storageKey('emoji-recent'), '["new"]')
+      },
+    })
+    expect(dark).toBe(true)
+    expect(window.localStorage.getItem(storageKey('theme'))).toBe('dark')
+    expect(window.localStorage.getItem('footnote.ask.chats.per_jon')).toBe('[{"id":"c1"}]')
+    expect(window.sessionStorage.getItem(`${storageKey('pane')}:inbox`)).toBe('420')
+    // A key saved under the new name already wins; the old one goes either way.
+    expect(window.localStorage.getItem(storageKey('emoji-recent'))).toBe('["new"]')
+    const left = [window.localStorage, window.sessionStorage].flatMap((store) =>
+      Array.from({ length: store.length }, (_, i) => store.key(i)),
+    )
+    expect(left.filter((key) => key?.startsWith('heed'))).toEqual([])
   })
 
   it("keeps the key in the product's name, as every key the app stores", () => {

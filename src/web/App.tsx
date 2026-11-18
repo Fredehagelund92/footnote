@@ -21,13 +21,13 @@ import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { DockLeaving, pictureOf, setLeavingDock, useLeavingDock } from '@/components/dock-leaving'
 import { useAfter } from '@/lib/loading'
-import { DefinitionPeek } from '@/components/heed/definition-peek'
+import { DefinitionPeek } from '@/components/footnote/definition-peek'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { useBulkBarShown } from '@/lib/bulk-bar-presence'
-import { SharePanel } from '@/components/heed/share-answer'
-import { WherePanel } from '@/components/heed/where-panel'
+import { SharePanel } from '@/components/footnote/share-answer'
+import { WherePanel } from '@/components/footnote/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { onOpen, open } from '@/lib/events'
@@ -38,11 +38,11 @@ import { ThemeProvider } from '@/lib/theme'
 import { AskDock, TryIt } from '@/pages/ask'
 import { ReviewSheet } from '@/pages/review'
 import { SignInPage } from '@/pages/signin'
-import type { Shape } from '@/components/heed/app-skeleton'
+import type { Shape } from '@/components/footnote/app-skeleton'
 
-// The skeletons' shapes come with their own code (components/heed/app-skeleton.tsx), fetched as
+// The skeletons' shapes come with their own code (components/footnote/app-skeleton.tsx), fetched as
 // the app starts: they show only after 150ms, by which time it is in.
-const skeletons = import('@/components/heed/app-skeleton')
+const skeletons = import('@/components/footnote/app-skeleton')
 const PageShape = React.lazy(() => skeletons.then((m) => ({ default: m.PageShape })))
 const ShellShape = React.lazy(() => skeletons.then((m) => ({ default: m.ShellShape })))
 
@@ -99,7 +99,7 @@ const ConflictDock = React.lazy(() =>
 // A context item's quick view opens from a click, so its code is not on the first load: it is
 // fetched once the browser is idle after the first page (main.tsx), before anything is clicked.
 const FactPeek = React.lazy(() =>
-  import('@/components/heed/fact-peek').then((m) => ({ default: m.FactPeek })),
+  import('@/components/footnote/fact-peek').then((m) => ({ default: m.FactPeek })),
 )
 
 // Connect an agent is asked for now and then, so its dialog is not on the first load: its code is

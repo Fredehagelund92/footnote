@@ -58,7 +58,7 @@ export interface Service {
 export interface ServiceOptions {
   /** The MCP server and its serving pool. Off where /mcp is not served. Default on. */
   mcp?: boolean
-  /** The picker's people, when they are not read from HEED_DEV_PEOPLE_FILE. */
+  /** The picker's people, when they are not read from FOOTNOTE_DEV_PEOPLE_FILE. */
   devPeople?: readonly DevPerson[]
   /** The application pool's size, and a hook that is handed the pool once it exists. */
   pool?: { max?: number; attach?: (pool: pg.Pool) => void }
@@ -92,7 +92,7 @@ export function logConfiguration(config: Config, logger: Logger): void {
   // The pickers let anyone who reaches the service in as anyone, administrators included.
   if (config.auth !== 'oidc')
     logger.warn(
-      `Sign-in is the people picker (HEED_AUTH=${config.auth}): anyone who can reach this service can sign in as any person, an administrator included. Only for trying it out on this computer; for real people, set NODE_ENV=production and sign people in with your OpenID Connect provider (docs/operations.md).`,
+      `Sign-in is the people picker (FOOTNOTE_AUTH=${config.auth}): anyone who can reach this service can sign in as any person, an administrator included. Only for trying it out on this computer; for real people, set NODE_ENV=production and sign people in with your OpenID Connect provider (docs/operations.md).`,
     )
 }
 
@@ -157,7 +157,7 @@ async function compose(
       )
     }
   }
-  // How people sign in (HEED_AUTH): the picker from a local file, or the company's OIDC provider.
+  // How people sign in (FOOTNOTE_AUTH): the picker from a local file, or the company's OIDC provider.
   let signIn: SignIn
   if (config.oidc) {
     let clientSecret: string | null = null
@@ -205,7 +205,7 @@ async function compose(
     try {
       figureOverrides = await readFigureOverrides(config.figureOverridesFile)
     } catch (error) {
-      throw new ServiceError(error instanceof Error ? error.message : 'HEED_FIGURE_OVERRIDES')
+      throw new ServiceError(error instanceof Error ? error.message : 'FOOTNOTE_FIGURE_OVERRIDES')
     }
   }
   const workspaceSources = createWorkspaceSources({

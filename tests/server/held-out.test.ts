@@ -65,22 +65,24 @@ describe('the held-out key', () => {
     const identity = await key()
     expect(heldOutKeyGiven({})).toBe(false)
     expect(await readHeldOutKey({})).toBeNull()
-    expect(await readHeldOutKey({ HEED_HELDOUT_KEY: identity })).toBe(identity)
-    expect(await readHeldOutKey({ HEED_HELDOUT_KEY_FILE: await keyFile(identity) })).toBe(identity)
-    expect(heldOutKeyGiven({ HEED_HELDOUT_KEY_FILE: 'x' })).toBe(true)
+    expect(await readHeldOutKey({ FOOTNOTE_HELDOUT_KEY: identity })).toBe(identity)
+    expect(await readHeldOutKey({ FOOTNOTE_HELDOUT_KEY_FILE: await keyFile(identity) })).toBe(
+      identity,
+    )
+    expect(heldOutKeyGiven({ FOOTNOTE_HELDOUT_KEY_FILE: 'x' })).toBe(true)
   })
 
   it('refuses both at once, a key that is not one and a missing file, without echoing them', async () => {
     const identity = await key()
     await expect(
-      readHeldOutKey({ HEED_HELDOUT_KEY: identity, HEED_HELDOUT_KEY_FILE: 'x' }),
+      readHeldOutKey({ FOOTNOTE_HELDOUT_KEY: identity, FOOTNOTE_HELDOUT_KEY_FILE: 'x' }),
     ).rejects.toThrow(/not both/)
     const wrong = `${identity.slice(0, -4)}oops`
-    const refused = await readHeldOutKey({ HEED_HELDOUT_KEY: wrong }).catch((e: Error) => e)
+    const refused = await readHeldOutKey({ FOOTNOTE_HELDOUT_KEY: wrong }).catch((e: Error) => e)
     expect(refused).toBeInstanceOf(Error)
     expect((refused as Error).message).toMatch(/not an age secret key/)
     expect((refused as Error).message).not.toContain(wrong.slice(15))
-    await expect(readHeldOutKey({ HEED_HELDOUT_KEY_FILE: join(dir, 'none') })).rejects.toThrow(
+    await expect(readHeldOutKey({ FOOTNOTE_HELDOUT_KEY_FILE: join(dir, 'none') })).rejects.toThrow(
       /names no readable file/,
     )
   })
@@ -125,7 +127,7 @@ describe('a held-out run', () => {
   const sealedWith = async () => {
     const identity = await key()
     return {
-      env: { HEED_HELDOUT_KEY: identity },
+      env: { FOOTNOTE_HELDOUT_KEY: identity },
       path: file(await seal(heldText, identity)),
     }
   }
@@ -141,7 +143,7 @@ describe('a held-out run', () => {
   })
 
   it('runs nothing without a sealed file, even with a key, and fails nothing', async () => {
-    const env = { HEED_HELDOUT_KEY: await key() }
+    const env = { FOOTNOTE_HELDOUT_KEY: await key() }
     const absent = join(dir, 'no-sealed-file.age')
     const run = vi.fn()
     const result = await runHeldOut((held) => held.cases, run, env, absent)
@@ -248,8 +250,8 @@ describe("the key holder's commands (npm run held-out)", () => {
   const script = fileURLToPath(new URL('../../scripts/held-out.ts', import.meta.url))
   const cleanEnv = () => {
     const env = { ...process.env }
-    delete env.HEED_HELDOUT_KEY
-    delete env.HEED_HELDOUT_KEY_FILE
+    delete env.FOOTNOTE_HELDOUT_KEY
+    delete env.FOOTNOTE_HELDOUT_KEY_FILE
     return env
   }
   const cli = (args: string[], env: NodeJS.ProcessEnv) =>
@@ -259,7 +261,7 @@ describe("the key holder's commands (npm run held-out)", () => {
   const editor = file(
     `import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 const [mode, log, buffer] = process.argv.slice(2)
-const keyed = Boolean(process.env.HEED_HELDOUT_KEY || process.env.HEED_HELDOUT_KEY_FILE)
+const keyed = Boolean(process.env.FOOTNOTE_HELDOUT_KEY || process.env.FOOTNOTE_HELDOUT_KEY_FILE)
 appendFileSync(log, [buffer, (statSync(buffer).mode & 0o777).toString(8), keyed].join(' ') + '\\n')
 const text = readFileSync(buffer, 'utf8')
 if (mode === 'retitle') writeFileSync(buffer, text.replaceAll('${canary}', 'EDITED'))
@@ -327,7 +329,7 @@ registerHooks({
       expect(made.stdout + made.stderr).not.toContain(identity)
       expect(made.stdout + made.stderr).not.toMatch(/AGE-SECRET-KEY/)
       expect(statSync(out).mode & 0o777).toBe(0o600)
-      expect(await readHeldOutKey({ HEED_HELDOUT_KEY_FILE: out })).toBe(identity)
+      expect(await readHeldOutKey({ FOOTNOTE_HELDOUT_KEY_FILE: out })).toBe(identity)
       const again = cli(['keygen', '--out', out], cleanEnv())
       expect(again.status).toBe(1)
       expect(again.stderr).toMatch(/exists already; it is never overwritten/)
@@ -417,7 +419,7 @@ registerHooks({
       const identity = await key()
       const current = await keyFile(identity)
       const sealed = file(await seal(heldText, identity))
-      const env = { ...cleanEnv(), HEED_HELDOUT_KEY_FILE: current }
+      const env = { ...cleanEnv(), FOOTNOTE_HELDOUT_KEY_FILE: current }
       const counted = cli(['count', '--file', sealed], env)
       expect(counted.stdout.trim()).toBe(countLine(heldText))
       expect(counted.stdout).toMatch(/^2 agent cases \(.*\) are sealed\.$/m)
@@ -442,7 +444,7 @@ registerHooks({
       const rotated = cli(['rotate', '--new-key', next, '--file', sealed], env)
       expect(rotated.status, rotated.stderr).toBe(0)
       expect(
-        cli(['count', '--file', sealed], { ...cleanEnv(), HEED_HELDOUT_KEY_FILE: next }).status,
+        cli(['count', '--file', sealed], { ...cleanEnv(), FOOTNOTE_HELDOUT_KEY_FILE: next }).status,
       ).toBe(0)
       expect(cli(['count', '--file', sealed], env).stderr).toMatch(/does not open the sealed file/)
     },

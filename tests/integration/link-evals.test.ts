@@ -53,7 +53,7 @@ const wordings = [
   { text: 'Orders from 2026-08-01 to 2026-08-31', kind: 'precise' },
 ]
 const scope = { metrics: ['metric:orders'], window: { from: '2026-08-01', to: '2026-08-31' } }
-/** Imports test questions as the command line does (`heed evals import`). */
+/** Imports test questions as the command line does (`footnote evals import`). */
 const importQuestions = (questions: object[], dryRun = false) =>
   call('POST', '/evals/import', 'owner', { content: JSON.stringify({ questions }), dryRun })
 
@@ -119,14 +119,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `${name}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[name] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
   const saved = await importQuestions(

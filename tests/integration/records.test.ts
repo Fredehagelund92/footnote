@@ -53,7 +53,7 @@ async function signIn(name: string): Promise<Session> {
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin, 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin, 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: `${name}@example.test` },
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -70,7 +70,7 @@ async function ask(who: string, payload: object): Promise<{ events: LookupEvent[
   const response = await app.inject({
     method: 'POST',
     url: '/api/v1/ask/lookup',
-    headers: { cookie: session.cookie, 'x-heed-csrf': session.csrf, origin },
+    headers: { cookie: session.cookie, 'x-footnote-csrf': session.csrf, origin },
     payload,
   })
   expect(response.statusCode, response.body).toBe(200)
@@ -204,7 +204,7 @@ describe('records answers on PostgreSQL', () => {
       const library = await app.inject({
         method: 'GET',
         url: '/api/v1/library',
-        headers: { cookie: session.cookie, 'x-heed-csrf': session.csrf, origin },
+        headers: { cookie: session.cookie, 'x-footnote-csrf': session.csrf, origin },
       })
       expect(library.statusCode, library.body).toBe(200)
       const listed = library.json<{ items: { id: string; kind: string }[] }>().items

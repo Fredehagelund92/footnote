@@ -63,7 +63,7 @@ jobs:
           WEB: ${{ inputs.web }}
         run: |
           named=$(docker compose -f compose.yaml -f compose.images.yaml config --format json)
-          for pair in "heed=${SERVICE#*=}" "web=${WEB#*=}"; do
+          for pair in "footnote=${SERVICE#*=}" "web=${WEB#*=}"; do
             service=${pair%%=*}
             published=${pair#*=}
             image=$(jq -r --arg service "$service" '.services[$service].image' <<< "$named")
@@ -80,14 +80,14 @@ jobs:
           done
       - name: Pull the published images, without signing in
         if: ${{ inputs.version }}
-        run: docker compose -f compose.yaml -f compose.images.yaml pull heed web
+        run: docker compose -f compose.yaml -f compose.images.yaml pull footnote web
       - name: Start the demo
         env:
           FILES: ${{ inputs.version && '-f compose.yaml -f compose.images.yaml' || '-f compose.yaml' }}
         run: |
           # shellcheck disable=SC2086 # the files are several arguments
           docker compose $FILES up --no-build --detach --wait --wait-timeout 300
-          docker compose logs heed | grep 'Loaded the demo' > /dev/null
+          docker compose logs footnote | grep 'Loaded the demo' > /dev/null
       - name: The demo journey and the eight demo questions
         env:
           PW_SEED_BASE_URL: http://localhost:8080

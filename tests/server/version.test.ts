@@ -54,8 +54,8 @@ describe("Footnote's version", () => {
   it('names the images compose.images.yaml pulls, on lines the release pull request writes', async () => {
     const file = await readFile(new URL('../../compose.images.yaml', import.meta.url), 'utf8')
     const { services } = parse(file) as { services: Record<string, { image: string }> }
-    expect(services.heed?.image).toBe(`ghcr.io/fredehagelund92/heed:${version}`)
-    expect(services.web?.image).toBe(`ghcr.io/fredehagelund92/heed-web:${version}`)
+    expect(services.footnote?.image).toBe(`ghcr.io/fredehagelund92/footnote:${version}`)
+    expect(services.web?.image).toBe(`ghcr.io/fredehagelund92/footnote-web:${version}`)
     for (const line of file.split('\n').filter((line) => line.includes(' image: ')))
       expect(line).toMatch(/ # x-release-please-version$/)
     const config = await readJson<{ packages: Record<string, { 'extra-files': unknown[] }> }>(

@@ -21,7 +21,10 @@ import {
   service with VITE_API_MODE=http.
 */
 
-const apiProxy = { '/api/v1': process.env.HEED_API_URL ?? 'http://127.0.0.1:3000' }
+const apiProxy = {
+  '/api/v1':
+    withRenamedSettings(process.env).environment.FOOTNOTE_API_URL ?? 'http://127.0.0.1:3000',
+}
 
 const HTML_ENTITIES: Record<string, string> = {
   '&': '&amp;',
@@ -31,12 +34,12 @@ const HTML_ENTITIES: Record<string, string> = {
 }
 
 /** The settings the web build reads, besides VITE_ ones. */
-const webSettings: readonly string[] = ['HEED_PRODUCT_NAME', 'HEED_SUPPORT_EMAIL']
+const webSettings: readonly string[] = ['FOOTNOTE_PRODUCT_NAME', 'FOOTNOTE_SUPPORT_EMAIL']
 let warnedOfOldNames = false
 
 /**
- * The web build's settings under their old CL_ names (src/domain/renamed-settings.ts): read as
- * their HEED_ names when only the old one is set, from the environment or an env file, with one
+ * The web build's settings under their old HEED_ names (src/domain/renamed-settings.ts): read as
+ * their FOOTNOTE_ names when only the old one is set, from the environment or an env file, with one
  * warning per process. Vite reads the environment after this hook, and it wins over the files.
  */
 export function renamedWebSettings(): Plugin {
@@ -57,14 +60,16 @@ export function renamedWebSettings(): Plugin {
 
 /**
  * The product's name in the page title before the app runs (src/web/lib/brand.ts): the same
- * `HEED_PRODUCT_NAME` the app and the service read, so the tab does not flash another name.
+ * `FOOTNOTE_PRODUCT_NAME` the app and the service read, so the tab does not flash another name.
  */
 export function productTitle(): Plugin {
   let name = productNameFrom(undefined)
   return {
     name: 'footnote-web:product-title',
     configResolved(config) {
-      name = productNameFrom((config.env as Record<string, string | undefined>).HEED_PRODUCT_NAME)
+      name = productNameFrom(
+        (config.env as Record<string, string | undefined>).FOOTNOTE_PRODUCT_NAME,
+      )
     },
     transformIndexHtml: (html) =>
       html.replace('%PRODUCT_NAME%', () =>
@@ -78,7 +83,7 @@ const webRoot = fileURLToPath(new URL('./src/web', import.meta.url))
 const bootstrapPath = fileURLToPath(new URL('./src/web/theme-bootstrap.js', import.meta.url))
 
 /**
- * Inlines theme-bootstrap.js into <head>, with the storage key from lib/brand.ts, so the theme is
+ * Inlines theme-bootstrap.js into <head>, with the storage keys from lib/brand.ts, so the theme is
  * applied before first paint. tests/web/theme-bootstrap.test.ts runs the same file.
  */
 export function themeBootstrap(): Plugin {
@@ -92,7 +97,8 @@ export function themeBootstrap(): Plugin {
           // Drop full-line comments: the file is documented for people, not for the wire.
           children: readFileSync(bootstrapPath, 'utf8')
             .replace(/^\s*\/\/.*\n/gm, '')
-            .replaceAll('THEME_KEY', JSON.stringify(storageKey('theme'))),
+            .replaceAll('THEME_KEY', JSON.stringify(storageKey('theme')))
+            .replaceAll('STORAGE_PREFIX', JSON.stringify(storageKey(''))),
           injectTo: 'head-prepend',
         },
       ],
@@ -132,7 +138,7 @@ export default defineConfig(({ mode }) => ({
   envDir: root,
   // VITE_ variables, the product's name the service reads too (src/web/lib/brand.ts), and the
   // support address Contact support and Report a problem write to (src/web/lib/help-content.ts).
-  envPrefix: ['VITE_', 'HEED_PRODUCT_NAME', 'HEED_SUPPORT_EMAIL'],
+  envPrefix: ['VITE_', 'FOOTNOTE_PRODUCT_NAME', 'FOOTNOTE_SUPPORT_EMAIL'],
   resolve: {
     tsconfigPaths: true,
     // The binding the app talks to (src/web/api/binding.ts): the mock, unless VITE_API_MODE=http

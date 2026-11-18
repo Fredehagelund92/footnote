@@ -50,7 +50,7 @@ export async function gitHost({ token }: { token: string | null }) {
         CONTENT_TYPE: request.headers['content-type'] ?? '',
         HTTP_CONTENT_ENCODING: request.headers['content-encoding'] ?? '',
         HTTP_GIT_PROTOCOL: (request.headers['git-protocol'] as string | undefined) ?? '',
-        REMOTE_USER: 'heed',
+        REMOTE_USER: 'footnote',
         REMOTE_ADDR: '127.0.0.1',
       },
     })

@@ -22,7 +22,7 @@ type Compose = { services: Record<string, { environment?: Record<string, string 
 const compose = parse(
   await readFile(new URL('../../compose.yaml', import.meta.url), 'utf8'),
 ) as Compose
-const environment = compose.services['heed']!.environment!
+const environment = compose.services['footnote']!.environment!
 const passed = ['MODELS', ...modelProviders.flatMap((p) => [p.apiKeyEnv, p.baseUrlEnv])]
 
 /** The service's model environment, as compose writes it from the shell's: set names only. */

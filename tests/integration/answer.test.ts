@@ -152,14 +152,14 @@ beforeAll(async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: `per_${who}@example.test` },
     })
     expect(response.statusCode, response.body).toBe(200)
     headers[who] = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   }
   live = await loadServingBundle(tx, (await heads())[0]!)
@@ -427,13 +427,13 @@ describe('Ask with a real model (FR-701)', () => {
     const response = await withModel.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: 'per_maria@example.test' },
     })
     signedIn = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   })
   afterAll(() => withModel.close())
@@ -648,13 +648,13 @@ describe('Ask with its planner (FR-719)', () => {
     const response = await planned.inject({
       method: 'POST',
       url: '/api/v1/auth/sign-in',
-      headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+      headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
       payload: { email: 'per_maria@example.test' },
     })
     signedIn = {
       origin: 'http://localhost',
       cookie: response.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-      'x-heed-csrf': response.json<{ csrfToken: string }>().csrfToken,
+      'x-footnote-csrf': response.json<{ csrfToken: string }>().csrfToken,
     }
   })
   afterAll(() => planned.close())

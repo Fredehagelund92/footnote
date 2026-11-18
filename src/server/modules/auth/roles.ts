@@ -160,7 +160,7 @@ async function recordChanges(
  * in opposite orders would deadlock. Where the areas lock is also taken, it comes first.
  */
 export async function lockRoles(tx: Queryable) {
-  await tx.query("select pg_advisory_xact_lock(hashtextextended('heed.roles',0))")
+  await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.roles',0))")
 }
 
 /**

@@ -5,44 +5,61 @@ import { describe, expect, it } from 'vitest'
 import { renamedSettings } from '../../src/domain/renamed-settings.ts'
 
 /*
-  The settings were named CL_ before 0.1.0 and are HEED_ since. The fallback table
-  (src/domain/renamed-settings.ts) is the one place that names an old setting, so a new setting
-  cannot be added under the old prefix and an old name cannot creep back into the code, the
-  configuration or the docs. The guard is shown failing on each, then run on the repository.
+  The settings were named CL_ before 0.1.0, HEED_ until the product was renamed Footnote, and are
+  FOOTNOTE_ since. The fallback table (src/domain/renamed-settings.ts) is the one place that names
+  an old setting, so a new setting cannot be added under an old prefix and an old name cannot creep
+  back into the code, the configuration or the docs. The guard is shown failing on each, then run
+  on the repository.
 */
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 
-/** The files that may name an old setting: the table, and the tests of the fallback. */
+/** The files that may name an old setting: the table, the tests of the fallback and the rename's plan. */
 const allowedFiles = new Set([
   'src/domain/renamed-settings.ts',
   'tests/server/renamed-settings.test.ts',
   'tests/lint/renamed-settings.test.ts',
+  'docs/rename-checklist.md',
+  'CHANGELOG.md',
 ])
 /** An applied migration is never changed (db/README.md), so its comments keep the old names. */
 const migration = /^db\/migrations\/.+\.sql$/
-/** The upgrade note in docs/contributing/internals.md lists the old names. */
-const upgradeNote = {
-  file: 'docs/contributing/internals.md',
-  heading: '## Settings named CL_ before 0.1.0',
+/** The upgrade notes list the old names: the developers' page and the operators' page. */
+const upgradeNotes = [
+  { file: 'docs/contributing/internals.md', heading: '## Settings named HEED_ before the rename' },
+  { file: 'docs/operations.md', heading: '## Upgrade from Heed 0.1' },
+  { file: 'docs/operations.md', heading: '## Settings that started with HEED_' },
+]
+/**
+ * Old names read outside the table, each beside its new one for the same release: the compose
+ * file's ports, the web image's address of the service, and the held-out key, whose variables only
+ * the seal's own files may name (scripts/check-held-out-seal.ts).
+ */
+const readBeside: Record<string, readonly string[]> = {
+  'compose.yaml': ['HEED_PORT', 'HEED_WEB_PORT'],
+  'docker/16-api-url.envsh': ['HEED_API_URL'],
+  'db/seed/held-out.ts': ['HEED_HELDOUT_KEY', 'HEED_HELDOUT_KEY_FILE'],
+  'scripts/check-held-out-seal.ts': ['HEED_HELDOUT_KEY'],
 }
-/** Retired before the rename and read by nothing: named only to say it no longer works. */
+/** Retired before 0.1.0 and read by nothing: named only to say it no longer works. */
 const retired = new Set(['CL_DEV_PERSON'])
 
-/** The upgrade note's section of its page, up to the next heading of its level. */
-function noteSection(text: string): string {
-  const start = text.indexOf(`${upgradeNote.heading}\n`)
+/** An upgrade note's section of its page, up to the next heading of its level. */
+function noteSection(text: string, heading: string): string {
+  const start = text.indexOf(`${heading}\n`)
   if (start < 0) return ''
-  const end = text.indexOf('\n## ', start + upgradeNote.heading.length)
+  const end = text.indexOf('\n## ', start + heading.length)
   return text.slice(start, end < 0 ? undefined : end)
 }
 
 /** The old setting names a file may not name. */
 function oldSettingNames(path: string, text: string): string[] {
   if (allowedFiles.has(path)) return []
-  const checked = path === upgradeNote.file ? text.replace(noteSection(text), '') : text
-  return (checked.match(/\bCL_[A-Z][A-Z0-9_]*/g) ?? []).filter(
-    (name) => !retired.has(name) && !(migration.test(path) && name in renamedSettings),
+  const checked = upgradeNotes
+    .filter((note) => note.file === path)
+    .reduce((rest, note) => rest.replace(noteSection(rest, note.heading), ''), text)
+  return (checked.match(/\b(?:CL|HEED)_[A-Z][A-Z0-9_]*/g) ?? []).filter(
+    (name) => !retired.has(name) && !migration.test(path) && !readBeside[path]?.includes(name),
   )
 }
 
@@ -63,38 +80,40 @@ function repositoryFiles(): { path: string; text: string }[] {
     .filter(({ text }) => !text.includes('\0'))
 }
 
-describe('the old CL_ setting names', () => {
-  it('fails a new setting with the old prefix, in code, configuration or docs', () => {
-    expect(oldSettingNames('src/server/config/env.ts', 'CL_NEW_THING: z.string()')).toEqual([
-      'CL_NEW_THING',
+describe('the old CL_ and HEED_ setting names', () => {
+  it('fails a new setting with an old prefix, in code, configuration or docs', () => {
+    expect(oldSettingNames('src/server/config/env.ts', 'HEED_NEW_THING: z.string()')).toEqual([
+      'HEED_NEW_THING',
     ])
     expect(oldSettingNames('compose.yaml', '      CL_NEW_THING: on')).toEqual(['CL_NEW_THING'])
-    expect(oldSettingNames('docs/self-hosting.md', 'Set `CL_NEW_THING`.')).toEqual(['CL_NEW_THING'])
-    expect(oldSettingNames('db/migrations/0099_new.sql', '-- see CL_NEW_THING')).toEqual([
-      'CL_NEW_THING',
+    expect(oldSettingNames('docs/self-hosting.md', 'Set `HEED_NEW_THING`.')).toEqual([
+      'HEED_NEW_THING',
     ])
   })
 
   it('fails an old name outside the table, even one the table pairs', () => {
-    expect(oldSettingNames('src/server/brand.ts', 'process.env.CL_PRODUCT_NAME')).toEqual([
-      'CL_PRODUCT_NAME',
+    expect(oldSettingNames('src/server/brand.ts', 'process.env.HEED_PRODUCT_NAME')).toEqual([
+      'HEED_PRODUCT_NAME',
     ])
-    expect(oldSettingNames('.env.example', 'CL_AUTH=dev')).toEqual(['CL_AUTH'])
-    const doc = `# Run\n\nSet \`CL_AUTH\`.\n\n${upgradeNote.heading}\n\n\`CL_AUTH\` is now \`HEED_AUTH\`.\n\n## Next\n\n\`CL_WEB_ORIGINS\`\n`
-    expect(oldSettingNames(upgradeNote.file, doc)).toEqual(['CL_AUTH', 'CL_WEB_ORIGINS'])
+    expect(oldSettingNames('.env.example', 'HEED_AUTH=dev')).toEqual(['HEED_AUTH'])
+    const [note] = upgradeNotes
+    const doc = `# Run\n\nSet \`HEED_AUTH\`.\n\n${note!.heading}\n\n\`HEED_AUTH\` is now \`FOOTNOTE_AUTH\`.\n\n## Next\n\n\`HEED_WEB_ORIGINS\`\n`
+    expect(oldSettingNames(note!.file, doc)).toEqual(['HEED_AUTH', 'HEED_WEB_ORIGINS'])
   })
 
-  it('passes the table, an applied migration and the upgrade note', () => {
-    expect(oldSettingNames('src/domain/renamed-settings.ts', "CL_AUTH: 'HEED_AUTH'")).toEqual([])
+  it('passes the table, an applied migration, the upgrade notes and a name read beside its new one', () => {
+    expect(oldSettingNames('compose.yaml', '# HEED_PORT still counts')).toEqual([])
+    expect(oldSettingNames('compose.yaml', 'HEED_AUTH: dev')).toEqual(['HEED_AUTH'])
+    expect(oldSettingNames('src/domain/renamed-settings.ts', "HEED_AUTH: 'FOOTNOTE_AUTH'")).toEqual(
+      [],
+    )
     expect(
       oldSettingNames('db/migrations/0014_oidc_sign_in.sql', '-- CL_OIDC_ADMIN_GROUPS'),
     ).toEqual([])
-    expect(
-      oldSettingNames(
-        upgradeNote.file,
-        `${upgradeNote.heading}\n\n\`CL_AUTH\` is now \`HEED_AUTH\`.\n`,
-      ),
-    ).toEqual([])
+    for (const { file, heading } of upgradeNotes)
+      expect(
+        oldSettingNames(file, `${heading}\n\n\`HEED_AUTH\` is now \`FOOTNOTE_AUTH\`.\n`),
+      ).toEqual([])
   })
 
   it('names no old setting anywhere in the repository but those places', () => {
@@ -104,8 +123,9 @@ describe('the old CL_ setting names', () => {
     expect(found).toEqual([])
   })
 
-  it('lists every old name in the upgrade note', () => {
-    const note = noteSection(readFileSync(`${root}${upgradeNote.file}`, 'utf8'))
+  it('lists every old name in the developers’ upgrade note', () => {
+    const [{ file, heading }] = upgradeNotes as [(typeof upgradeNotes)[number]]
+    const note = noteSection(readFileSync(`${root}${file}`, 'utf8'), heading)
     expect(note).not.toBe('')
     for (const oldName of Object.keys(renamedSettings)) expect(note).toContain(`\`${oldName}\``)
   })

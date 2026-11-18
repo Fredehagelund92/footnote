@@ -9,7 +9,9 @@ describe('the build settings', () => {
   })
 
   it('put a version in its folder under the root', () => {
-    expect(basePath(readSettings({ DOCS_ROOT: '/heed/', DOCS_VERSION: 'v0.1' }))).toBe('/heed/v0.1')
+    expect(basePath(readSettings({ DOCS_ROOT: '/footnote/', DOCS_VERSION: 'v0.1' }))).toBe(
+      '/footnote/v0.1',
+    )
     expect(basePath(readSettings({ DOCS_VERSION: 'next' }))).toBe('/next')
   })
 

@@ -319,7 +319,7 @@ export async function driveHost({
     /** The access tokens it gave, which must show nowhere either. */
     issued: () => [...tokens],
     /** A key of a service account this Drive knows. */
-    key: (name = 'heed-reader') => newKey(name, true),
+    key: (name = 'footnote-reader') => newKey(name, true),
     /** A key in the right form that this Drive refuses, as Google refuses a deleted key. */
     strangerKey: () => newKey('stranger', false),
     /** A folder; a shared one is shared with the service accounts. */

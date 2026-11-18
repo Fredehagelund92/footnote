@@ -8,7 +8,7 @@
 # (release-please-config.json), so at a release's tag this file names that release's images.
 
 services:
-  heed:
-    image: ghcr.io/fredehagelund92/heed:0.1.0 # x-release-please-version
+  footnote:
+    image: ghcr.io/fredehagelund92/footnote:0.1.0 # x-release-please-version
   web:
-    image: ghcr.io/fredehagelund92/heed-web:0.1.0 # x-release-please-version
+    image: ghcr.io/fredehagelund92/footnote-web:0.1.0 # x-release-please-version

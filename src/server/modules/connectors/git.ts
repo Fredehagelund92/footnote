@@ -4,6 +4,7 @@ import { mkdtemp, realpath, rm, stat } from 'node:fs/promises'
 import { BlockList, isIP } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
+import { withRenamedSettings } from '../../../domain/renamed-settings.ts'
 
 /**
  * Reads one commit of a Git repository into a folder of its own, for a connector to read and
@@ -105,13 +106,13 @@ export const reachesLocal = () => process.env.NODE_ENV !== 'production'
 
 /**
  * The hosts whoever runs the server lets `ctx.fetch` reach on this machine or a private network
- * (`HEED_EGRESS_PRIVATE_HOSTS`), as a name or an IP address: an internal artifact server. It is
+ * (`FOOTNOTE_EGRESS_PRIVATE_HOSTS`), as a name or an IP address: an internal artifact server. It is
  * theirs to name, never an administrator's in the app, who could otherwise point a source at any
  * service inside the network. Git and figures take none of them.
  */
 export const egressPrivateHosts = (): ReadonlySet<string> =>
   new Set(
-    (process.env.HEED_EGRESS_PRIVATE_HOSTS ?? '')
+    (withRenamedSettings(process.env).environment.FOOTNOTE_EGRESS_PRIVATE_HOSTS ?? '')
       .split(',')
       .map((host) => host.trim().toLowerCase())
       .filter(Boolean),

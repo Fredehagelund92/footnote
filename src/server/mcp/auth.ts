@@ -8,6 +8,7 @@ import {
 import { readFile, writeFile } from 'node:fs/promises'
 import { SignJWT, decodeJwt, errors, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'
 import type { AgentKind, AgentToolName } from '../../domain/agents.ts'
+import { moveFormerKeyFile } from '../config/former-key-files.ts'
 
 export type Principal = {
   client: string
@@ -38,7 +39,7 @@ export type Principal = {
 export interface TokenVerifier {
   verify(token: string): Promise<Principal>
 }
-export const devIssuer = 'urn:heed:local'
+export const devIssuer = 'urn:footnote:local'
 
 /** Why a token was refused, as a closed set of reason codes for the log (FR-411). */
 export type TokenFailure =
@@ -205,6 +206,7 @@ export function createIssuerVerifier(byIssuer: ReadonlyMap<string, TokenVerifier
 
 export async function devKey(path: string, nodeEnv: string): Promise<KeyObject> {
   if (nodeEnv === 'production') throw new Error('Dev MCP tokens are refused in production')
+  await moveFormerKeyFile(path)
   try {
     return createPrivateKey(await readFile(path))
   } catch (error) {

@@ -525,7 +525,7 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
     'orders in plain words',
     'discount cost in campaigns',
     'orders in footnote',
-    'orders in heed',
+    'orders in footnote',
     'orders in stores',
     'orders in black friday week',
     'orders in other markets',

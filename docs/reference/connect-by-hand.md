@@ -19,7 +19,7 @@ Settings, Agents and access, shows the address of your workspace.
 For Claude Code:
 
 ```sh
-claude mcp add --transport http heed http://localhost:3000/mcp
+claude mcp add --transport http footnote http://localhost:3000/mcp
 ```
 
 Then run `/mcp` in Claude Code and choose Authenticate. The agent signs in as you, with no token: see [Sign in your own agent](../ai-sign-in.md).
@@ -43,13 +43,13 @@ A key can read and send reports. It names no person, so it never sends a suggest
 Running the service from source with `npm run dev:server`, you can skip sign-in with a dev token:
 
 ```sh
-claude mcp add --transport http heed http://localhost:3000/mcp \
+claude mcp add --transport http footnote http://localhost:3000/mcp \
   --header "Authorization: Bearer $(npm run --silent token:dev)"
 ```
 
 - A token lasts eight hours. Make a new one when it ends.
 - `--client <label>` makes one for another client label, which works once an admin has added and enabled that label.
-- The first run makes a signing key, `.heed-dev-key.pem`, which git ignores.
+- The first run makes a signing key, `.footnote-dev-key.pem`, which git ignores.
 - Production refuses dev tokens.
 
 ## What a request needs

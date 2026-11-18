@@ -33,7 +33,7 @@ import { createAnonymousStore } from './store.ts'
 export async function createMcpDependencies(config: Config, logger: Logger, login?: LoginServer) {
   const pool = new pg.Pool({
     connectionString: config.databaseServeUrl,
-    application_name: 'heed-serve',
+    application_name: 'footnote-serve',
     connectionTimeoutMillis: 2000,
     statement_timeout: 5000,
     types: calendarDateTypes,
@@ -73,7 +73,7 @@ export async function createMcpDependencies(config: Config, logger: Logger, logi
   const stateKey = await loadStateKey(config.mcpStateKeyFile, config.nodeEnv)
   if (!stateKey)
     logger.warn(
-      'HEED_MCP_STATE_KEY_FILE does not exist: suggest_context lists its questions instead of asking them in the agent',
+      'FOOTNOTE_MCP_STATE_KEY_FILE does not exist: suggest_context lists its questions instead of asking them in the agent',
     )
   return {
     ...(stateKey ? { stateKey } : {}),

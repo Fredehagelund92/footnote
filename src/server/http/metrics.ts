@@ -6,7 +6,7 @@ import type { Metrics, Sample } from '../observability/metrics.ts'
 
 export interface MetricsSources {
   metrics: Metrics
-  /** `HEED_METRICS_TOKEN`. Without one the endpoint is off and answers 404. */
+  /** `FOOTNOTE_METRICS_TOKEN`. Without one the endpoint is off and answers 404. */
   token: string | undefined
   database: Database
   jobs: Pick<JobRunner, 'overview'>
@@ -16,7 +16,7 @@ const queueStates = ['queued', 'active', 'deferred', 'failed'] as const
 const digest = (text: string) => createHash('sha256').update(text).digest()
 
 /**
- * `GET /metrics` for a scraper that presents `Authorization: Bearer <HEED_METRICS_TOKEN>`. The
+ * `GET /metrics` for a scraper that presents `Authorization: Bearer <FOOTNOTE_METRICS_TOKEN>`. The
  * counters live in the process; the job, connector, spend, edition and pool numbers are read at
  * scrape time from the same sources as the operations view, summed over people.
  */
@@ -44,7 +44,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
   const pool = database.stats?.()
   if (pool)
     samples.push({
-      name: 'heed_db_pool_connections',
+      name: 'footnote_db_pool_connections',
       help: 'Connections in the application pool, by state.',
       type: 'gauge',
       values: [
@@ -60,7 +60,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
        from live_edition l`,
     )
     samples.push({
-      name: 'heed_live_edition_age_seconds',
+      name: 'footnote_live_edition_age_seconds',
       help: 'Seconds since the live edition was set; NaN before the first edition.',
       type: 'gauge',
       values: [{ value: live ? live.age : NaN }],
@@ -73,7 +73,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
     const now = overview.checkedAt
     samples.push(
       {
-        name: 'heed_job_last_success_age_seconds',
+        name: 'footnote_job_last_success_age_seconds',
         help: 'Seconds since each scheduled job last succeeded; NaN when it never has.',
         type: 'gauge',
         values: overview.jobs.map((job) => ({
@@ -82,7 +82,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         })),
       },
       {
-        name: 'heed_job_overdue',
+        name: 'footnote_job_overdue',
         help: 'Whether a scheduled job missed its expected run (1) or not (0) (NFR-073).',
         type: 'gauge',
         values: overview.jobs.map((job) => ({
@@ -91,7 +91,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         })),
       },
       {
-        name: 'heed_job_runs_total',
+        name: 'footnote_job_runs_total',
         help: 'Finished runs of each scheduled job, by outcome.',
         type: 'counter',
         values: overview.jobs.flatMap((job) => [
@@ -100,7 +100,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         ]),
       },
       {
-        name: 'heed_job_queue',
+        name: 'footnote_job_queue',
         help: 'Jobs in the queue, by job and state; absent while the runner is stopped.',
         type: 'gauge',
         values: overview.jobs.flatMap((job) =>
@@ -113,7 +113,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         ),
       },
       {
-        name: 'heed_connector_age_seconds',
+        name: 'footnote_connector_age_seconds',
         help: 'Age of the data from each connector; NaN before its first good read.',
         type: 'gauge',
         values: overview.connectors.map((connector) => ({
@@ -122,7 +122,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         })),
       },
       {
-        name: 'heed_connector_stale',
+        name: 'footnote_connector_stale',
         help: 'Whether a connector is out of date (1) or not (0).',
         type: 'gauge',
         values: overview.connectors.map((connector) => ({
@@ -131,7 +131,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         })),
       },
       {
-        name: 'heed_model_spend_usd',
+        name: 'footnote_model_spend_usd',
         help: 'Model spending summed over people: today and the current UTC month.',
         type: 'gauge',
         values: [
@@ -140,7 +140,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
         ],
       },
       {
-        name: 'heed_model_spend_month_cap_usd',
+        name: 'footnote_model_spend_month_cap_usd',
         help: 'The monthly model spending cap; NaN when none is set.',
         type: 'gauge',
         values: [
@@ -155,7 +155,7 @@ async function collect({ database, jobs }: MetricsSources): Promise<Sample[]> {
     up = 0
   }
   samples.push({
-    name: 'heed_metrics_sources_up',
+    name: 'footnote_metrics_sources_up',
     help: 'Whether every scrape-time source answered (1) or one failed (0).',
     type: 'gauge',
     values: [{ value: up }],

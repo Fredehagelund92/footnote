@@ -1,12 +1,12 @@
 ---
 title: Administer the service
-line: Change settings, read the history log, import items, export an edition and use the heed command.
+line: Change settings, read the history log, import items, export an edition and use the footnote command.
 group: Run the service
 order: 6
 reviewed: 2026-11-05
 ---
 
-Change settings, read the history log, and move items in and out. Most of this is for admins, through the API under `/api/v1` or the `heed` command. For how to call the API, see the [HTTP API overview](reference/http-api.md).
+Change settings, read the history log, and move items in and out. Most of this is for admins, through the API under `/api/v1` or the `footnote` command. For how to call the API, see the [HTTP API overview](reference/http-api.md).
 
 ## Change a setting
 
@@ -88,31 +88,31 @@ The [templates](templates) have an item file and a test question file to start f
 
 `GET /editions/{label}/export` gives the edition as one document, for owners and admins: every served item with its digest, the vocabulary, the domains, and the digest it was sealed with.
 
-An item the reader may not see is listed by id and digest only, so the edition's digest still checks. `heed verify` recomputes every digest offline. An export reads back as an import.
+An item the reader may not see is listed by id and digest only, so the edition's digest still checks. `footnote verify` recomputes every digest offline. An export reads back as an import.
 
 ## Read the item format
 
 `GET /schema/item` publishes the JSON Schema of the item format. It needs no sign-in.
 
-## The heed command
+## The footnote command
 
-`heed` talks to the service and signs in as a person from the dev people file, so it works with the dev or demo sign-in and not with company sign-in.
+`footnote` talks to the service and signs in as a person from the dev people file, so it works with the dev or demo sign-in and not with company sign-in.
 
 ```sh
-npm run heed -- validate lessons.yaml                                     # no service needed
-npm run heed -- import lessons.yaml --as per_maria@example.test           # dry run
-npm run heed -- import lessons.yaml --apply --as per_maria@example.test   # suggestions, for review
-npm run heed -- draft item.yaml --as per_maria@example.test               # one draft
-npm run heed -- import-tests questions.yaml --as per_maria@example.test   # test questions, dry run
-npm run heed -- export --out edition.json --as per_maria@example.test     # the live edition
-npm run heed -- verify edition.json                                       # recompute the digests
-npm run heed -- audit --format csv --as per_ravi@example.test
+npm run footnote -- validate lessons.yaml                                     # no service needed
+npm run footnote -- import lessons.yaml --as per_maria@example.test           # dry run
+npm run footnote -- import lessons.yaml --apply --as per_maria@example.test   # suggestions, for review
+npm run footnote -- draft item.yaml --as per_maria@example.test               # one draft
+npm run footnote -- import-tests questions.yaml --as per_maria@example.test   # test questions, dry run
+npm run footnote -- export --out edition.json --as per_maria@example.test     # the live edition
+npm run footnote -- verify edition.json                                       # recompute the digests
+npm run footnote -- audit --format csv --as per_ravi@example.test
 ```
 
-| Option     | Setting       | Default                                                     |
-| ---------- | ------------- | ----------------------------------------------------------- |
-| `--as`     | `HEED_EMAIL`  | None                                                        |
-| `--url`    | `HEED_URL`    | `http://127.0.0.1:3000`                                     |
-| `--origin` | `HEED_ORIGIN` | The first of `HEED_WEB_ORIGINS`, else the service's default |
+| Option     | Setting           | Default                                                         |
+| ---------- | ----------------- | --------------------------------------------------------------- |
+| `--as`     | `FOOTNOTE_EMAIL`  | None                                                            |
+| `--url`    | `FOOTNOTE_URL`    | `http://127.0.0.1:3000`                                         |
+| `--origin` | `FOOTNOTE_ORIGIN` | The first of `FOOTNOTE_WEB_ORIGINS`, else the service's default |
 
 `--json` prints the result as JSON, for scripts and coding agents. The exit status is 0 when done, 1 when the file has problems or the service refused, and 2 for wrong usage.

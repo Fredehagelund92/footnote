@@ -22,9 +22,9 @@ import { createService, logConfiguration, ServiceError, type Service } from './s
 /** What this entry sets when the environment does not. */
 export const vercelDefaults = {
   // Vercel's edge writes X-Forwarded-For itself, so each caller counts against a limit of its own.
-  HEED_TRUSTED_PROXIES: 'vercel',
+  FOOTNOTE_TRUSTED_PROXIES: 'vercel',
   // Agents sign in to the MCP server, which is not served here.
-  HEED_LOGIN_SERVER: 'off',
+  FOOTNOTE_LOGIN_SERVER: 'off',
 }
 
 /**

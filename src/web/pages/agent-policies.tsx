@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Loadable } from '@/components/heed/load-state'
-import { StaticField } from '@/components/heed/field-controls'
+import { Loadable } from '@/components/footnote/load-state'
+import { StaticField } from '@/components/footnote/field-controls'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

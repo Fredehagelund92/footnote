@@ -150,7 +150,7 @@ async function startService(page: Page, on: 'week' | 'empty', askLoop = loopOn) 
   loopOn = askLoop
   workspace = on
   const signedIn = await page.request.post('/api/v1/auth/sign-in', {
-    headers: { 'x-heed-csrf': 'dev-sign-in', origin },
+    headers: { 'x-footnote-csrf': 'dev-sign-in', origin },
     data: { email: 'per_jon@example.test' },
   })
   if (!signedIn.ok()) throw new Error(`Jon could not sign in: ${await signedIn.text()}`)
@@ -388,7 +388,7 @@ export async function agentSignsIn(
   // The login server's address, the issuer: on the web app's host (http/harness.ts).
   const service = `http://localhost:${process.env.GOLDEN_API_PORT}`
   const redirect = 'http://127.0.0.1:43123/callback'
-  const session = (await page.context().cookies()).find((c) => c.name === 'heed_session')
+  const session = (await page.context().cookies()).find((c) => c.name === 'footnote_session')
   if (!session) throw new Error('Nobody is signed in to answer the consent page')
   const registered = await fetch(`${service}/oauth/register`, {
     method: 'POST',
@@ -425,13 +425,13 @@ export async function agentSignsIn(
     .getSetCookie()
     .map((c) => c.split(';')[0])
     .join('; ')
-  const cookie = `heed_session=${session.value}; ${browserCookie}`
+  const cookie = `footnote_session=${session.value}; ${browserCookie}`
   const { csrfToken } = (await (
     await fetch(`${service}/api/v1/auth/session`, { headers: { cookie } })
   ).json()) as { csrfToken: string }
   const decided = await fetch(`${service}/api/v1/connections/request/decision`, {
     method: 'POST',
-    headers: { cookie, origin, 'x-heed-csrf': csrfToken, 'content-type': 'application/json' },
+    headers: { cookie, origin, 'x-footnote-csrf': csrfToken, 'content-type': 'application/json' },
     body: JSON.stringify({ id: new URL(consent).searchParams.get('request'), allow }),
   })
   if (!decided.ok) throw new Error(`The consent answer was refused: ${await decided.text()}`)
@@ -491,7 +491,7 @@ async function followLinks(page: Page, on: boolean) {
   const session = await page.request.get('/api/v1/auth/session')
   const { csrfToken } = (await session.json()) as { csrfToken: string }
   const set = await page.request.post('/api/v1/tools/get_related', {
-    headers: { 'x-heed-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
+    headers: { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
     data: { enabled: on, reason: 'Changed in Settings, Agents and access.' },
   })
   if (!set.ok()) throw new Error(`Following links could not be switched: ${await set.text()}`)
@@ -503,7 +503,7 @@ async function asJon(page: Page, method: 'POST' | 'PUT', path: string, data: obj
   const { csrfToken } = (await session.json()) as { csrfToken: string }
   const response = await page.request.fetch(`/api/v1${path}`, {
     method,
-    headers: { 'x-heed-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
+    headers: { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
     data,
   })
   if (!response.ok()) throw new Error(`${method} ${path} was refused: ${await response.text()}`)
@@ -616,7 +616,7 @@ async function decideAllBut(page: Page, keep: string) {
   const session = await page.request.get('/api/v1/auth/session')
   const { csrfToken } = (await session.json()) as { csrfToken: string }
   for (const id of queue()) {
-    const headers = { 'x-heed-csrf': csrfToken, origin, 'idempotency-key': randomUUID() }
+    const headers = { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() }
     const cardId = card(id)
     if (cardId === keep) continue
     const proposal = cardId.replace(/^proposal:/, '')

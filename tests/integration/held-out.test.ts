@@ -52,7 +52,7 @@ let env: NodeJS.ProcessEnv
 
 beforeAll(async () => {
   const identity = await generateIdentity()
-  env = { HEED_HELDOUT_KEY: identity }
+  env = { FOOTNOTE_HELDOUT_KEY: identity }
   areaFile = join(dir, 'golden-held-out-area.age')
   writeFileSync(areaFile, await seal(stringify({ cases: agentCases }), identity))
 })
@@ -133,13 +133,13 @@ const withoutDatabase = () => {
 /** The environment of this process without a held-out key. */
 const withoutKey = () => {
   const own = { ...process.env }
-  delete own.HEED_HELDOUT_KEY
-  delete own.HEED_HELDOUT_KEY_FILE
+  delete own.FOOTNOTE_HELDOUT_KEY
+  delete own.FOOTNOTE_HELDOUT_KEY_FILE
   return own
 }
 
 it("prints counts by type only from the key holder's command (npm run held-out -- eval)", () => {
-  const keyLine = `HEED_HELDOUT_KEY=${env.HEED_HELDOUT_KEY!}`
+  const keyLine = `FOOTNOTE_HELDOUT_KEY=${env.FOOTNOTE_HELDOUT_KEY!}`
   const command = (key: NodeJS.ProcessEnv) =>
     spawnSync(
       process.execPath,
@@ -150,7 +150,7 @@ it("prints counts by type only from the key holder's command (npm run held-out -
           ...process.env,
           ...key,
           DATABASE_URL: url,
-          HEED_FIXED_TODAY: '2026-10-08',
+          FOOTNOTE_FIXED_TODAY: '2026-10-08',
           LOG_LEVEL: 'silent',
         },
         timeout: 240_000,
@@ -184,14 +184,14 @@ it("prints counts by type only from the key holder's command (npm run held-out -
     {
       encoding: 'utf8',
       cwd: local,
-      env: { ...withoutDatabase(), HEED_FIXED_TODAY: '2026-10-08', LOG_LEVEL: 'silent' },
+      env: { ...withoutDatabase(), FOOTNOTE_FIXED_TODAY: '2026-10-08', LOG_LEVEL: 'silent' },
       timeout: 240_000,
     },
   )
   expect(fromFile.stdout).toMatch(
     /^Held-out area cases \(area_commercial\): not run\. No held-out key was given/m,
   )
-  const none = command({ HEED_HELDOUT_KEY: '', HEED_HELDOUT_KEY_FILE: '' })
+  const none = command({ FOOTNOTE_HELDOUT_KEY: '', FOOTNOTE_HELDOUT_KEY_FILE: '' })
   expect(none.stdout).toMatch(
     /^Held-out area cases \(area_commercial\): not run\. No held-out key was given/m,
   )

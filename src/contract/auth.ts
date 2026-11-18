@@ -10,7 +10,7 @@ export const permissionsSchema = z.object({
 })
 export const meSchema = z.extend(personSchema, { permissions: permissionsSchema })
 /**
- * The signed-in person's session, with the label naming this install (HEED_PROFILE_LABEL) for
+ * The signed-in person's session, with the label naming this install (FOOTNOTE_PROFILE_LABEL) for
  * the header, null when none is set, and whether an AI model is connected: without one
  * (MODELS=mock), Ask's answers list what is written, and Ask says so.
  */
@@ -91,11 +91,11 @@ export type AssignmentInput = z.infer<typeof assignmentInputSchema>
 export type GrantChange = z.infer<typeof grantChangeSchema>
 export type GrantsApplied = z.infer<typeof grantsAppliedSchema>
 /**
- * How this workspace signs people in (HEED_AUTH, FR-416): with the company's OpenID Connect
+ * How this workspace signs people in (FOOTNOTE_AUTH, FR-416): with the company's OpenID Connect
  * provider, or the picker (`dev` locally, `demo` for demos). For `oidc`, the provider's name for
  * the button and the address that starts a sign-in (add `returnTo` with a path of the web app).
  * The sign-in page reads it first, so it also says whether this install is the invented demo
- * (`demo` sign-in, or the demo loaded) and the label naming it (HEED_PROFILE_LABEL), null when none
+ * (`demo` sign-in, or the demo loaded) and the label naming it (FOOTNOTE_PROFILE_LABEL), null when none
  * is set.
  */
 export const signInMethodSchema = z.object({

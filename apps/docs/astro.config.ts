@@ -3,7 +3,7 @@ import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import { linkContext } from './lib/links.ts'
 import { repoRoot, sidebar, sitePages } from './lib/pages.ts'
-import { remarkFootnoteDocs } from './lib/remark-heed-docs.ts'
+import { remarkFootnoteDocs } from './lib/remark-footnote-docs.ts'
 import { basePath, readSettings } from './lib/settings.ts'
 import { footnoteTokens } from './lib/tokens.ts'
 
@@ -38,12 +38,12 @@ export default defineConfig({
       favicon: '/favicon.svg',
       customCss: [
         '@fontsource-variable/nunito-sans',
-        'virtual:heed-tokens.css',
+        'virtual:footnote-tokens.css',
         './src/styles/theme.css',
       ],
       sidebar: sidebar(pages),
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/Fredehagelund92/heed' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/Fredehagelund92/footnote' },
       ],
       // The code block is dark in both themes (design contract), so one theme is enough.
       expressiveCode: {

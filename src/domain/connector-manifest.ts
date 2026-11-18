@@ -87,7 +87,7 @@ export const manifestFieldSchema = z.strictObject({
           /** What to do outside Footnote for this choice: a line, and the commands to run. */
           recipe: z.optional(z.strictObject({ lead: words(300), code: words(2_000) })),
           /**
-           * Whoever runs the server sets this choice up, not this form (`HEED_SERVER_FOLDERS`): it
+           * Whoever runs the server sets this choice up, not this form (`FOOTNOTE_SERVER_FOLDERS`): it
            * explains itself, and a source cannot be added with it.
            */
           serverOnly: z.optional(z.boolean()),
@@ -139,7 +139,7 @@ export const connectorManifestSchema = z.strictObject({
   /** The connector's own version (semver), stored with its sources. */
   version: z.string().check(z.regex(semver)),
   /** The interface range it implements, such as `^3.0` (CON-109). */
-  heed: words(40),
+  footnote: words(40),
   kind: z.enum(connectorKinds),
   /** The tool it reads, as people say it. Every screen word that names the tool comes from here. */
   tool: words(60),
@@ -203,7 +203,7 @@ export const connectorManifestSchema = z.strictObject({
     mergeDimensions: z.optional(z.enum(['by-name', 'never'])),
     /**
      * Definitions: it can read a folder on the server, as `ctx.folder`, with no settings at all.
-     * Whoever runs the server names the folder (`HEED_SERVER_FOLDERS`); the core hands one only
+     * Whoever runs the server names the folder (`FOOTNOTE_SERVER_FOLDERS`); the core hands one only
      * to a connector that declares this.
      */
     serverFolder: z.optional(z.boolean()),
@@ -383,10 +383,10 @@ export function checkManifest(
   const problems: ManifestProblem[] = []
   const problem = (path: string, message: string) => problems.push({ path, message })
 
-  if (!satisfiesInterface(manifest.heed, interfaceVersion))
+  if (!satisfiesInterface(manifest.footnote, interfaceVersion))
     problem(
-      'heed',
-      `This build speaks interface ${interfaceVersion}, which ${manifest.heed} does not include. Write a range such as ^${parseVersion(interfaceVersion)?.[0] ?? 3}.0.`,
+      'footnote',
+      `This build speaks interface ${interfaceVersion}, which ${manifest.footnote} does not include. Write a range such as ^${parseVersion(interfaceVersion)?.[0] ?? 3}.0.`,
     )
 
   const { fields, groups = [] } = manifest.config

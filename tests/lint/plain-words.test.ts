@@ -95,7 +95,7 @@ describe('footnote/plain-words leaves code alone', () => {
       `export const a = 'Use fact_id, getFact or --proposal with /facts.'`,
     ],
     ['an address', `export const a = 'Open https://example.com/facts or /library/facts'`],
-    ['a code span', 'export const a = "Run `heed fact list` first."'],
+    ['a code span', 'export const a = "Run `footnote fact list` first."'],
     ['class names', `export const a = <p className="facts-center gap-2 group/fact">x</p>`],
     ['a class list', `export const a = cn('facts-start', true && 'the proposal bar')`],
     [
@@ -105,7 +105,7 @@ describe('footnote/plain-words leaves code alone', () => {
     ['a link target', `export const a = <a href="/library/facts" rel="fact">Open</a>`],
     ['a code element', `export const a = <code>proposal: fact</code>`],
     ['a code sample', `export const a = '{"type": "fact", "proposal": "all"}'`],
-    ['a command line', `export const a = 'npx heed fact list --administrator me'`],
+    ['a command line', `export const a = 'npx footnote fact list --administrator me'`],
     ['a log', `console.warn('administrator missing for the fact')`],
     ['an error for developers', `throw new Error('The fact has no proposal')`],
     ['a directive', `'use client'`],

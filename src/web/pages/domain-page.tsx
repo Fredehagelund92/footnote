@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { GuideLink } from '@/components/heed/guide-link'
+import { GuideLink } from '@/components/footnote/guide-link'
 import { useEditor } from '@tiptap/react'
 import {
   CircleCheckIcon,
@@ -17,18 +17,18 @@ import {
 } from '@/components/icons'
 import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/editor'
-import { DocumentEditorShell } from '@/components/heed/document-shell'
-import { DocFooter, Paper } from '@/components/heed/doc'
-import { HeaderMore, SaveStatus } from '@/components/heed/editor-header'
+import { DocumentEditorShell } from '@/components/footnote/document-shell'
+import { DocFooter, Paper } from '@/components/footnote/doc'
+import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
 import {
   PeopleField,
   PropertyGroup,
   PropertyList,
   PropertyRow,
   StaticField,
-} from '@/components/heed/field-controls'
-import { Panel } from '@/components/heed/panel'
-import { DomainDot } from '@/components/heed/tag-chip'
+} from '@/components/footnote/field-controls'
+import { Panel } from '@/components/footnote/panel'
+import { DomainDot } from '@/components/footnote/tag-chip'
 import { ResizableAside } from '@/components/resizable-aside'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { NotFound } from '@/components/heed/not-found'
+import { NotFound } from '@/components/footnote/not-found'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Kbd } from '@/components/ui/kbd'
 import { servedToAgents } from '@/model/items'

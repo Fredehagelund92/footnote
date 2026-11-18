@@ -2,7 +2,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { PlusIcon } from '@/components/icons'
 import { toast } from 'sonner'
-import { PersonAvatar } from '@/components/heed/bits'
+import { PersonAvatar } from '@/components/footnote/bits'
 import { Page } from '@/components/site-header'
 import {
   Breadcrumb,
@@ -14,21 +14,21 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { FoldTrigger } from '@/components/heed/fold'
+import { FoldTrigger } from '@/components/footnote/fold'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { GuideLink } from '@/components/heed/guide-link'
+import { GuideLink } from '@/components/footnote/guide-link'
 import { servedToAgents } from '@/model/items'
 import { useQuery } from '@tanstack/react-query'
 import type { Advanced as AdvancedPage, Exported } from '@/api/client'
 import { toApiError } from '@/api/errors'
 import { advancedPageQuery, useWrite } from '@/api/queries'
-import { Loadable, RowsSkeleton } from '@/components/heed/load-state'
+import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
 import { useFacts, useMe, usePeople } from '@/lib/workspace'
 import { listOf } from '@/model/people'
 import { useDomainList, useDomains } from '@/lib/workspace'
 import { useDefinitions } from '@/lib/definitions'
-import { DomainDot } from '@/components/heed/tag-chip'
+import { DomainDot } from '@/components/footnote/tag-chip'
 import { IntegrationsRoute } from '@/pages/integrations'
 import {
   Frame,
@@ -38,7 +38,7 @@ import {
   FrameSection,
   FrameTable,
   type FrameColumn,
-} from '@/components/heed/frame'
+} from '@/components/footnote/frame'
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'

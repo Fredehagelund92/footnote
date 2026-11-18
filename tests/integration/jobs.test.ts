@@ -87,14 +87,14 @@ beforeAll(async () => {
   const login = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/sign-in',
-    headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+    headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
     payload: { email: 'jobs-admin@example.test' },
   })
   expect(login.statusCode).toBe(200)
   authHeaders = {
     cookie: login.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
     origin: 'http://localhost',
-    'x-heed-csrf': login.json<{ csrfToken: string }>().csrfToken,
+    'x-footnote-csrf': login.json<{ csrfToken: string }>().csrfToken,
   }
 }, 30_000)
 afterAll(async () => {
