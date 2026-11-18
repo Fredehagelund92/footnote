@@ -98,7 +98,7 @@ npm run connectors:sync
 
 To read every source, an admin sends `POST /api/v1/operations/jobs/connectors.sync/run`.
 
-The job looks for due sources every five minutes. After a failure that clears by itself, such as a timeout, a source tries again after one minute, then two, four and so on. It waits at most half of its out-of-date time, and never less than the tool asked.
+The job looks for due sources as the service starts and every five minutes after, so a model folder the server was started on is read at once. After a failure that clears by itself, such as a timeout, a source tries again after one minute, then two, four and so on. It waits at most half of its out-of-date time, and never less than the tool asked.
 
 ## Disconnect one
 

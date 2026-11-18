@@ -294,6 +294,52 @@ export function stateProblems(reply: Reply, ctx: Pick<GradeContext, 'readable'>)
   }
 }
 
+/** Words that need words after them: two in a row, or one before a stop, is a reference lost between. */
+const LOST_BETWEEN = [
+  /\b(?:from|between)\s+(?:to|and)\b/i,
+  /\b(?:the|a|an)\s+(?:of|to|and|or|from|in)\b/,
+  /\b(?:the|a|an|of|from|between|than|and|or)\s*[.,;:!?)]/,
+]
+/** A typed mention, a number reference or a list as the model writes it, not drawn as words. */
+const MARKUP = /\[(?:@[a-z]+:|#r\d|list:r\d)/
+
+/** Words that join two of a kind, so a thing may be named again after them. */
+const JOINS = new Set(['and', 'or', 'nor', 'than', 'vs', 'versus'])
+
+/** Whether some words say the same three words or more again within two words of the first time. */
+function stutters(words: readonly string[]): boolean {
+  for (let i = 0; i + 3 <= words.length; i++)
+    for (let gap = 0; gap <= 2; gap++) {
+      const j = i + 3 + gap
+      if (j + 3 > words.length) break
+      if (words.slice(i + 3, j).some((w) => JOINS.has(w))) break
+      if (words.slice(i, i + 3).join(' ') === words.slice(j, j + 3).join(' ')) return true
+    }
+  return false
+}
+
+/**
+ * Each sentence with a hole: words a reference was lost between ("from to:", "the of"), empty
+ * brackets, markup left as it was written, or the same three words or more said again in one
+ * clause, as when code says again what a count is out of ("… you may read you may read").
+ */
+export function holesIn(text: string): string[] {
+  const found: string[] = []
+  for (const s of sentencesOf(text)) {
+    // Citation marks in a row stand where a word would: "from [1], which" leads into a source.
+    const plain = s.replace(new RegExp(`${MARK.source}(?:\\s*${MARK.source})*`, 'g'), ' source ')
+    const clauses = plain.split(/[.,;:!?|()[\]"“”]+/)
+    if (
+      clauses.some((c) => stutters(c.toLowerCase().match(/[\p{L}\p{N}'’]+/gu) ?? [])) ||
+      LOST_BETWEEN.some((p) => p.test(plain)) ||
+      /\(\s*\)|\[\s*\]/.test(s) ||
+      MARKUP.test(s)
+    )
+      found.push(`"${s.slice(0, 120)}"`)
+  }
+  return found
+}
+
 /** One turn graded by code: each promise it broke, and what it missed of its case. */
 export function gradeTurn(turn: EvalTurn, reply: Reply, ctx: GradeContext): TurnGrade {
   const text = rendered(reply, ctx)
@@ -313,6 +359,7 @@ export function gradeTurn(turn: EvalTurn, reply: Reply, ctx: GradeContext): Turn
     adviceIn(reply, ctx).map((s) => `"${s.slice(0, 120)}"`),
   )
   add('state', stateProblems(reply, ctx))
+  add('whole', holesIn(reply.text))
   add(
     'never',
     (e.never ?? []).filter((p) => matches(text, p)).map((p) => `says ${String(p)}`),
