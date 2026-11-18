@@ -732,6 +732,9 @@ describe('a tool whose file lives in a place you choose', () => {
     expect(failedWith('timed_out')).toBe("It couldn't be read: it took too long.")
     expect(failedWith('unreadable_file')).toBe("It couldn't be read: it is too large, or not text.")
     expect(failedWith('fetch_failed')).toBe("It couldn't be read: the host would not hand it over.")
+    expect(failedWith('git_missing')).toBe(
+      "It couldn't be read: the server has no git program to read a repository with.",
+    )
     expect(failedWith('something_new')).toBe("It couldn't be read.")
   })
 
