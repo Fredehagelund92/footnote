@@ -268,8 +268,7 @@ export function AskedAbout({ scope, times }: { scope: string[]; times: number | 
       </span>
       {times !== 0 && (
         <span className="text-xs text-muted-foreground tabular-nums @pane-split:ml-auto">
-          {times === null ? 'fewer than 5 times' : times === 1 ? '1 time' : `${times} times`} this
-          week
+          {times ?? 'fewer than 5'} {times === 1 ? 'time' : 'times'} this week
         </span>
       )}
     </>

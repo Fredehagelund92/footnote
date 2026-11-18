@@ -73,8 +73,8 @@ export function changeWords(counts: readonly { kind: ChangeKind; n: number }[]) 
 }
 
 /** How often agents asked: "Agents asked about this 12 times this week." */
-export function askedWords(times: number) {
-  return `Agents asked about this ${times === 1 ? 'once' : `${times} times`} this week.`
+export function askedWords(times: number | null) {
+  return `Agents asked about this ${times === 1 ? 'once' : `${times ?? 'fewer than 5'} times`} this week.`
 }
 
 /**
@@ -92,13 +92,11 @@ export function gapRowWords(gap: { times: number | null; told?: number; acrossMo
     : ''
   // A count under the minimum is hidden, never none: what agents asked raised the card.
   const agents =
-    gap.times === null
-      ? `Agents found nothing, fewer than 5 times this week.${toldToo}`
-      : gap.times === 0
-        ? told
-          ? people
-          : 'Agents found nothing, and did not ask this week.'
-        : `${askedWords(gap.times)} They found nothing.${toldToo}`
+    gap.times === 0
+      ? told
+        ? people
+        : 'Agents found nothing, and did not ask this week.'
+      : `${askedWords(gap.times)} They found nothing.${toldToo}`
   return `${agents}${gap.acrossMonths ? ' Counted across two months.' : ''}`
 }
 

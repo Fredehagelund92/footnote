@@ -334,8 +334,10 @@ function InboxList({
                   className="flex h-8 w-full items-end gap-1.5 px-4 pb-1.5 text-left text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
                 >
                   {INBOX_GROUPS.find((g) => g.id === group)!.label}
-                  <span className="font-normal tabular-nums">{inGroup}</span>
-                  {group === 'check' && <span className="font-normal">{dueScope(me)}</span>}
+                  <span className="font-normal tabular-nums">
+                    {inGroup}
+                    {group === 'check' && ` ${dueScope(me)}`}
+                  </span>
                   <ChevronDownIcon
                     aria-hidden
                     className={cn('size-3.5', folded.has(group) && '-rotate-90')}
