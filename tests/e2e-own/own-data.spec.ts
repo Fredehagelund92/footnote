@@ -128,7 +128,9 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(flagged.getByRole('listitem').first()).toContainText(
     'Another definition is called “Revenue”',
   )
-  await review.getByRole('button', { name: /^Publish all/ }).click()
+  // Focus starts on Publish all, so the Enter it shows publishes every ready name.
+  await expect(review.getByRole('button', { name: /^Publish all/ })).toBeFocused()
+  await page.keyboard.press('Enter')
   await expect(page.getByText('2 of 6 done')).toBeVisible()
   await expect(review.getByRole('button', { name: /^Publish all/ })).toBeHidden()
   await shot('12-names-flagged')

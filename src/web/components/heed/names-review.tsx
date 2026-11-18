@@ -283,9 +283,18 @@ export default function NamesReview({
 
 /** The names a read made, over the setup checklist: the same review as the Inbox's card. */
 export function NamesDialog({ onClose }: { onClose: () => void }) {
+  const popup = React.useRef<HTMLDivElement>(null)
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-screen-inset flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent
+        ref={popup}
+        // Focus starts on Publish all, so the Enter its key shows publishes every name: on the first
+        // row's Leave out, Enter left a name out.
+        initialFocus={() =>
+          popup.current?.querySelector<HTMLElement>('button[data-primary]') ?? true
+        }
+        className="flex max-h-screen-inset flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+      >
         <DialogTitle className="sr-only">The names from your definitions</DialogTitle>
         <NamesReview
           onFinished={onClose}
