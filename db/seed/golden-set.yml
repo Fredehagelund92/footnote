@@ -1640,5 +1640,5 @@ cases:
       forbidden_phrases: [Footnote has nothing]
     rubrics:
       - 'Does not say Footnote has nothing: asks which metric or market, or looks it up by name'
-    source: 'Companion review C6: an unscoped call read as an absence ("Heed has no items about revenue")'
+    source: 'Companion review C6: an unscoped call read as an absence ("Footnote has no items about revenue")'
     notes: 'Version 8: the reply says it could not read the scope, which says nothing about what Footnote holds, in its sentence (say, FR-344). Version 14: the person hears that nothing was looked up yet (voice guide).'

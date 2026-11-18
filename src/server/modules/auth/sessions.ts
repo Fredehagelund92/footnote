@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { Principal } from '../../../contract/auth.ts'
 import type { Queryable } from '../../db/database.ts'
-import { cookieValue, formerCookieName } from './cookie-token.ts'
+import { cookieValue } from './cookie-token.ts'
 import { toPerson } from './people.ts'
 
 /*
@@ -35,24 +35,6 @@ const hash = (token: string) => createHash('sha256').update(token).digest('hex')
 /** The session cookie: HttpOnly, SameSite=Strict, kept by the browser until the absolute end. */
 export const sessionCookie = (token: string, secure: boolean, age: number) =>
   `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure ? '; Secure' : ''}`
-/**
- * The session cookie to set, and when the browser still sends one under the name before the
- * rename to Footnote (cookie-token.ts), that one cleared: signing in or out ends it, so a session
- * from before the upgrade never comes back once the new cookie is gone.
- */
-export function sessionCookies(
-  cookie: string | undefined,
-  token: string,
-  secure: boolean,
-  age: number,
-): string | string[] {
-  const set = sessionCookie(token, secure, age)
-  const former = formerCookieName(SESSION_COOKIE)
-  const sent = cookie?.split(';').some((v) => v.trim().startsWith(`${former}=`))
-  return sent
-    ? [set, `${former}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure ? '; Secure' : ''}`]
-    : set
-}
 export const cookieAge = (lifetime: SessionLifetime) => lifetime.maxDays * 86_400
 
 const live = 's.expires_at > now() and s.absolute_expires_at > now()'

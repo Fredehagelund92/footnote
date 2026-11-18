@@ -408,8 +408,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       () => {
         const server = new McpServer(
           // The id is fixed, not the product's name, since AI agents may register the server by it;
-          // the title follows the name. It was `heed` until the rename to Footnote. An agent keeps
-          // its own name for the server, so one added as `heed` still works (docs/rename-checklist.md).
+          // the title follows the name (docs/product-name.md).
           { name: 'footnote', title: productName, version: footnoteVersion },
           {
             instructions,
@@ -510,7 +509,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
         reply.header(key, value)
       })
       reply.header('Cache-Control', 'no-store')
-      // eslint-disable-next-line brand/no-product-name -- an HTTP header name, a technical name (docs/rename-checklist.md)
+      // eslint-disable-next-line brand/no-product-name -- an HTTP header name, a technical name (docs/product-name.md)
       reply.header('X-Footnote-Tool-Digest', toolSchemaDigest)
       if (!name) status = response.ok ? 'ok' : 'error'
       // The SDK's legacy stateless transport uses SSE. Forward its stream without buffering subscriptions.

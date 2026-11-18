@@ -28,7 +28,7 @@ Start every file in it with a line that holds the marker:
 FOOTNOTE-PRIVATE-PROFILE <the profile's name>
 ```
 
-In a file with comments, put the marker in a comment; in JSON Lines, in a field of the first line. gitleaks fails any commit that carries the marker, so a profile file, or something made from one, cannot reach the repository, a pull request or the demo. A profile made before the rename to Footnote has `HEED-` in place of `FOOTNOTE-`, which counts as the marker too.
+In a file with comments, put the marker in a comment; in JSON Lines, in a field of the first line. gitleaks fails any commit that carries the marker, so a profile file, or something made from one, cannot reach the repository, a pull request or the demo.
 
 Run the profile on its own database, with its own settings file:
 

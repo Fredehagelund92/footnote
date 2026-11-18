@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { helpDocs } from './scripts/docs-plugin.ts'
-import { productTitle, renamedWebSettings, themeBootstrap } from './vite.config.ts'
+import { productTitle, themeBootstrap } from './vite.config.ts'
 
 /*
   The static docs site (npm run docs:build): the documentation's pages (docs/help) in the web app's
@@ -31,14 +31,7 @@ export default defineConfig({
     // The site talks to no service, so it carries neither binding nor the demo week.
     alias: [{ find: /^@\/api$/, replacement: `${webRoot}/docs/no-api.ts` }],
   },
-  plugins: [
-    renamedWebSettings(),
-    react(),
-    tailwindcss(),
-    themeBootstrap(),
-    productTitle(),
-    helpDocs(),
-  ],
+  plugins: [react(), tailwindcss(), themeBootstrap(), productTitle(), helpDocs()],
   // Each page is a file of its own (privacy.html opens at /docs/privacy); no address falls back to another.
   appType: 'mpa',
   preview: { port: 4176, strictPort: true },

@@ -5,6 +5,7 @@
   "initial-version": "0.1.0",
   "bump-minor-pre-major": true,
   "always-update": true,
+  "last-release-sha": "68bfde1c2735dabf2e289261a3d054931a47e498",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Fixes" },
@@ -21,6 +22,7 @@
   "packages": {
     ".": {
       "package-name": "footnote",
+      "release-as": "0.1.0",
       "extra-files": [
         { "type": "json", "path": "docs/api/openapi.json", "jsonpath": "$.info.version" },
         { "type": "generic", "path": "SECURITY.md" },

@@ -4,7 +4,6 @@ export {
   cookieAge,
   principalFor,
   sessionCookie,
-  sessionCookies,
   sessionPersonId,
   type Session,
   type SessionLifetime,

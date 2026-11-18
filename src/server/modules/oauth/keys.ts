@@ -1,7 +1,6 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from 'node:crypto'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { calculateJwkThumbprint, createLocalJWKSet, exportJWK, type JWK } from 'jose'
-import { moveFormerKeyFile } from '../../config/former-key-files.ts'
 
 /**
  * The login server's signing keys (docs/ai-sign-in.md, "Rotate the signing key"). One Ed25519 key
@@ -30,7 +29,6 @@ async function readPrivateKey(file: string): Promise<KeyObject> {
 
 /** Creates the key outside production when it does not exist yet, with owner-only permissions. */
 async function activeKey(file: string, nodeEnv: string): Promise<KeyObject> {
-  await moveFormerKeyFile(file)
   try {
     return await readPrivateKey(file)
   } catch (error) {

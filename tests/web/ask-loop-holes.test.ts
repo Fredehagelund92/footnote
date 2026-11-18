@@ -126,7 +126,7 @@ const replies: {
     id: 'C4',
     question: 'What is our NPS in Norway?',
     words:
-      'Nothing written covers NPS in [@value:market/norway]: Heed has no definition for NPS, and none of the [#r1.outOf] published items you may read mention it.',
+      'Nothing written covers NPS in [@value:market/norway]: Footnote has no definition for NPS, and none of the [#r1.outOf] published items you may read mention it.',
     made: [lookup('r1', 'NPS in Norway', [], 1209)],
     broken: [
       'none of the 1,209 published context items you may read published items you may read mention it.',

@@ -734,7 +734,7 @@ export const contract = {
         method: 'GET',
         path: '/connections',
         tags: ['session'],
-        // eslint-disable-next-line brand/no-product-name -- API documentation for developers (docs/rename-checklist.md)
+        // eslint-disable-next-line brand/no-product-name -- API documentation for developers (docs/product-name.md)
         summary: 'The agents connected to Footnote as the signed-in person',
       })
       .output(z.array(connectionSchema)),

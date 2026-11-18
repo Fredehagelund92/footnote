@@ -125,7 +125,7 @@ import {
   setOwners,
   changeGrant,
   cookieAge,
-  sessionCookies,
+  sessionCookie,
   createPeopleService,
   type SignIn,
 } from '../modules/auth/index.ts'
@@ -624,8 +624,7 @@ export function createRouter({
           })
         context.reply.header(
           'set-cookie',
-          sessionCookies(
-            context.request.headers.cookie,
+          sessionCookie(
             login.token,
             context.request.protocol === 'https',
             cookieAge(signIn.lifetime),
@@ -637,12 +636,7 @@ export function createRouter({
         await signIn.signOut(context.tx, context.request.headers.cookie)
         context.reply.header(
           'set-cookie',
-          sessionCookies(
-            context.request.headers.cookie,
-            '',
-            context.request.protocol === 'https',
-            0,
-          ),
+          sessionCookie('', context.request.protocol === 'https', 0),
         )
         return { signedOut: true }
       }),

@@ -55,13 +55,11 @@ jobs:
           probe="$RUNNER_TEMP/profile-probe"
           mkdir -p "$probe/marked" "$probe/plain"
           printf 'FOOTNOTE-PRIVATE-%s demo\nSEED_DEMO=off\n' PROFILE > "$probe/marked/profile.env"
-          # A profile from before the rename to Footnote, with the marker under the former name.
-          printf 'HEED-PRIVATE-%s demo\nSEED_DEMO=off\n' PROFILE > "$probe/marked/older.env"
           printf 'An ordinary file about a private profile.\n' > "$probe/plain/notes.md"
           status=0
           ./gitleaks dir --config .gitleaks.toml --redact --no-banner --exit-code 3 \
             --report-format json --report-path "$probe/found.json" "$probe/marked" || status=$?
-          if [ "$status" -ne 3 ] || [ "$(grep -c '"RuleID": "footnote-private-profile"' "$probe/found.json")" -ne 2 ]; then
+          if [ "$status" -ne 3 ] || [ "$(grep -c '"RuleID": "footnote-private-profile"' "$probe/found.json")" -ne 1 ]; then
             echo "::error::gitleaks did not find the private-profile marker (exit $status)"
             exit 1
           fi

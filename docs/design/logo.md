@@ -1,15 +1,12 @@
 # The Footnote logo
 
-Footnote is the product's name. The product was called Heed until 18 November 2026, when the
-captain chose Footnote and asked for a full rename, which the
-[rename checklist](../rename-checklist.md) records.
+Footnote is the product's name. The captain chose it on 18 November 2026, and the
+[product name page](../product-name.md) says where the name appears.
 
 **The final mark is pending.** The owner is having logo options drawn separately. Until one is
-chosen, the logo is a placeholder: the name set in type, with no drawn symbol. It replaces the
-Heed logo (the captain's design of 12 October 2026: two blades around an oval, and `heed` in
-Outfit 500), so nothing of the old name shows. When the final mark arrives, it replaces the paths
-of the files below, which keep their names for that: the app shows them by reference, so the
-files alone change it.
+chosen, the logo is a placeholder: the name set in type, with no drawn symbol. When the final
+mark arrives, it replaces the paths of the files below, which keep their names for that: the app
+shows them by reference, so the files alone change it.
 
 ## The placeholder wordmark
 
@@ -44,9 +41,7 @@ it; on its own, `Logo` is one image named "Footnote".
 
 ## Files
 
-The files keep their names and their sizes, so the final mark can replace them one for one. They
-were named `heed-` until step 6 of the [rename checklist](../rename-checklist.md), and the old
-`heed-mark.svg`, a copy of the symbol kept for old links, went with it.
+The files keep their names and their sizes, so the final mark can replace them one for one.
 
 | File                                                                 | Use                                                                                                |
 | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |

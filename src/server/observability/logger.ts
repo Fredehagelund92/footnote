@@ -33,12 +33,10 @@ export function createLogger(options: {
         'req.headers.authorization',
         'req.headers.cookie',
         'req.headers["x-footnote-csrf"]',
-        'req.headers["x-heed-csrf"]',
         'res.headers["set-cookie"]',
         'headers.authorization',
         'headers.cookie',
         'headers["x-footnote-csrf"]',
-        'headers["x-heed-csrf"]',
         // The model provider key (plan section 3.3): never logged, even inside a config or error.
         'headers["x-api-key"]',
         'apiKey',

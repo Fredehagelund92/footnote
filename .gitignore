@@ -12,13 +12,10 @@ test-results/
 # What `vercel link` and `vercel build` write (docs/vercel.md).
 .vercel/
 
-.footnote-dev-key.pem
-.footnote-oauth-key*.pem
-.footnote-mcp-state.key
-# The same keys under their names before the rename to Footnote, until the service moves them.
-.heed-dev-key.pem
-.heed-oauth-key*.pem
-.heed-mcp-state.key
+# The keys the service makes outside production (.footnote-dev-key.pem and the rest), and any
+# other key file, whatever its name, are never committed.
+*.pem
+*.key
 
 # A held-out key (npm run held-out -- keygen) is never committed.
 *held-out*.key

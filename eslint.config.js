@@ -104,11 +104,9 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    // vite.config.ts puts the storage keys in place of THEME_KEY and STORAGE_PREFIX when it inlines the file.
+    // vite.config.ts puts the storage key in place of THEME_KEY when it inlines the file.
     files: ['src/web/theme-bootstrap.js'],
-    languageOptions: {
-      globals: { ...globals.browser, THEME_KEY: 'readonly', STORAGE_PREFIX: 'readonly' },
-    },
+    languageOptions: { globals: { ...globals.browser, THEME_KEY: 'readonly' } },
   },
   {
     files: [
@@ -224,7 +222,7 @@ export default tseslint.config(
     },
   },
   {
-    // The product's name comes from one setting (docs/rename-checklist.md).
+    // The product's name comes from one setting (docs/product-name.md).
     files: [
       ...['web', 'domain', 'contract', 'server', 'cli', 'connectors'].map(
         (dir) => `src/${dir}/**/*.{ts,tsx}`,
