@@ -5,7 +5,7 @@ import { createLimiter } from '../../http/rate-limit.ts'
 import type { LoginServerConfig } from '../../config/env.ts'
 import { createPersonVerifier, personScopes, signedInClient } from '../../mcp/auth.ts'
 import { toolsFor } from '../../../domain/agents.ts'
-import { cookieValue, initialsOf, principalFor } from '../auth/index.ts'
+import { initialsOf, principalFor } from '../auth/index.ts'
 import {
   fetchMetadataDocument,
   isMetadataDocumentId,
@@ -32,6 +32,8 @@ const requestSeconds = 600
 const unconnectedRegistrationDays = 1
 const unusedRegistrationDays = 30
 export const browserCookie = 'footnote_oauth_browser'
+/** The browser cookie's name before the rename to Footnote, read for one release. */
+const formerBrowserCookie = 'heed_oauth_browser'
 /**
  * What a sign-in grants when the agent asks for nothing in particular: read, report and suggest,
  * so suggest_context is on with the scope granted at consent (FR-121 as changed). The consent
@@ -247,7 +249,15 @@ type RevokeReason =
 
 /** The browser's sign-in cookie, when it holds exactly one well-formed value. */
 export function browserToken(cookie: string | undefined): string | undefined {
-  return cookieValue(cookie, browserCookie)
+  const pairs = cookie?.split(';').map((v) => v.trim()) ?? []
+  for (const name of [browserCookie, formerBrowserCookie]) {
+    const values = pairs.filter((v) => v.startsWith(`${name}=`))
+    if (!values.length) continue
+    if (values.length !== 1) return undefined
+    const value = values[0]!.slice(name.length + 1)
+    return /^[a-f0-9]{64}$/.test(value) ? value : undefined
+  }
+  return undefined
 }
 
 const scopeList = (value: string | undefined): PersonScope[] | null => {
