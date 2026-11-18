@@ -28,7 +28,7 @@ A short reply looks like this, cut down here to the main fields:
 ```json
 {
   "status": "matched",
-  "say": "Checked. 1 context item applies to Orders in Norway in August 2026. Only that was checked.",
+  "say": "Checked. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.",
   "asked": "Orders in Norway in August 2026",
   "context": [
     {

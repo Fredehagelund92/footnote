@@ -175,11 +175,11 @@ export function readinessWords(
       }
     case 'clash':
       return {
-        title: 'Check how they relate',
+        title: "Compare it with what's published",
         text:
           (context.clashes ?? 1) > 1
-            ? `It overlaps ${context.clashes} live items, each answered Unrelated unless you change it.`
-            : 'It overlaps a live item, answered Unrelated unless you change it.',
+            ? `It is about the same thing as ${context.clashes} published items. Unless you choose, they stay as they are.`
+            : 'It is about the same thing as a published item. Unless you choose, that item stays as it is.',
       }
     case 'related':
       return { title: 'Ready', text: relationWords[r.relation!].hint }

@@ -471,7 +471,7 @@ describe('how a source is connected', () => {
         when: 'Today',
         tone: 'ok',
         what: 'Connected',
-        detail: 'First read queued. Nothing is published by a read.',
+        detail: 'First read queued. Reading publishes nothing.',
       },
     ])
   })
@@ -731,7 +731,9 @@ describe('a tool whose file lives in a place you choose', () => {
     )
     expect(failedWith('timed_out')).toBe("It couldn't be read: it took too long.")
     expect(failedWith('unreadable_file')).toBe("It couldn't be read: it is too large, or not text.")
-    expect(failedWith('fetch_failed')).toBe("It couldn't be read: the host would not hand it over.")
+    expect(failedWith('fetch_failed')).toBe(
+      "It couldn't be read: the site that keeps it did not send it.",
+    )
     expect(failedWith('git_missing')).toBe(
       "It couldn't be read: the server has no git program to read a repository with.",
     )

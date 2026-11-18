@@ -499,19 +499,19 @@ function Rows({
 }
 
 /**
- * How fresh the items used are, in a few words: "all Live, checked 21 Aug to 3 Nov 2026". An item
- * that needs a look says so on its own pinned row, so only the rest are counted, "4 Live"; the
- * days are the first and last any of them was checked.
+ * How fresh the items used are, in a few words: "all published, checked 21 Aug to 3 Nov 2026".
+ * An item that needs a look says so on its own pinned row, so only the rest are counted, "4
+ * published"; the days are the first and last any of them was checked.
  */
 function freshness(items: readonly LoopItem[], rest: readonly LoopItem[]) {
   const said =
     rest.length < items.length
       ? rest.length
-        ? `${rest.length} Live`
+        ? `${rest.length} published`
         : null
       : items.length > 1
-        ? 'all Live'
-        : 'Live'
+        ? 'all published'
+        : 'published'
   const days = items.flatMap((i) => (i.checked ? [i.checked] : [])).sort()
   const first = days[0]
   const last = days.at(-1)

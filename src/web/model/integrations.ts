@@ -6,7 +6,6 @@ import cube from '@/assets/logos/cube.svg'
 import dbt from '@/assets/logos/dbt.svg'
 import googledrive from '@/assets/logos/googledrive.svg'
 import markdown from '@/assets/logos/markdown.svg'
-import notion from '@/assets/logos/notion.svg'
 
 import type { DomainId } from './items'
 
@@ -39,8 +38,6 @@ export type Connector = {
   icon?: ConnectorIcon
   /** One line on the catalog cell. */
   blurb: string
-  /** Shown as Soon: designed, not connectable yet. */
-  soon?: boolean
   /**
    * It can also read a figure for Ask, through a second connection of its own: a data endpoint and
    * a token (opt-in, off until an admin switches it on).
@@ -79,7 +76,6 @@ export const logos: Record<string, string> = {
   'dbt-metricflow': dbt,
   'google-drive': googledrive,
   'git-markdown': markdown,
-  notion,
 }
 
 /** How a tool is drawn, by its connector's id: its logo, or a document's picture. */

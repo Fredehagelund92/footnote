@@ -73,7 +73,7 @@ const result = (patch: Partial<AnswerResult> = {}): AnswerResult => ({
   leftOutMore: 0,
   forAnotherGroup: 0,
   uncovered: { metrics: [], values: [] },
-  say: '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+  say: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
   next: null,
   steps: [],
   ms: 1,
@@ -100,7 +100,7 @@ describe("Ask's answer from the engine", () => {
       dates: '1 to 31 Aug 2026',
       state: 'grounded',
       sources: ['itm_a'],
-      said: '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+      said: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
       cited: {
         itm_a: {
           quote: 'Held at the border from 4 August 2026.',

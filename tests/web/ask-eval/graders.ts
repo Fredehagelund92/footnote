@@ -321,7 +321,7 @@ function stutters(words: readonly string[]): boolean {
 /**
  * Each sentence with a hole: words a reference was lost between ("from to:", "the of"), empty
  * brackets, markup left as it was written, or the same three words or more said again in one
- * clause, as when code says again what a count is out of ("… you may read you may read").
+ * clause, as when code says again what a count is out of ("… you can see you can see").
  */
 export function holesIn(text: string): string[] {
   const found: string[] = []

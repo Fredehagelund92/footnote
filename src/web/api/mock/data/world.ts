@@ -577,9 +577,9 @@ const stored: StoredFact[] = [
   },
   {
     id: 'itm_draft_black_friday',
-    title: 'Black Friday 2026 orders land in two weeks',
+    title: 'Black Friday 2026 orders are split over two weeks',
     summary:
-      'Black Friday is 27 November 2026. Its weekend orders land in week 48 and week 49 of the weekly reports.',
+      'Black Friday is 27 November 2026. Its weekend orders are counted in week 48 and week 49 of the weekly reports.',
     domain: 'sales',
     kind: 'event',
     where: ['Orders'],

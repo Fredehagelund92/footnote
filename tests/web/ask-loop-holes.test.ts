@@ -30,7 +30,7 @@ const item = (id: string, title: string) => ({
   checked: { role: 'the owner of Sales', date: '2026-11-17' },
   outOfDate: null,
 })
-const outOf = (count: number, of = 'published context items you may read') => ({ count, of })
+const outOf = (count: number, of = 'published context items you can see') => ({ count, of })
 /** A look-up as get_context gives it: what applies, how it read the words, what it is out of. */
 const lookup = (
   ref: string,
@@ -111,7 +111,7 @@ const replies: {
         1292,
         { from: '2026-01-01', to: '2026-11-17' },
       ),
-      records('r2', 2, 1292, 'context items you may read'),
+      records('r2', 2, 1292, 'context items you can see'),
     ],
     broken: [
       'Two written items cover changes for Orders in Sweden from to:',
@@ -126,21 +126,21 @@ const replies: {
     id: 'C4',
     question: 'What is our NPS in Norway?',
     words:
-      'Nothing written covers NPS in [@value:market/norway]: Heed has no definition for NPS, and none of the [#r1.outOf] published items you may read mention it.',
+      'Nothing written covers NPS in [@value:market/norway]: Heed has no definition for NPS, and none of the [#r1.outOf] published items you can see mention it.',
     made: [lookup('r1', 'NPS in Norway', [], 1209)],
     broken: [
-      'none of the 1,209 published context items you may read published items you may read mention it.',
+      'none of the 1,209 published context items you can see published items you can see mention it.',
     ],
-    whole: ['none of the 1,209 published context items you may read mention it.'],
+    whole: ['none of the 1,209 published context items you can see mention it.'],
   },
   {
     id: 'V5',
     question: 'anything new?',
     words:
-      'Yes, [#r1.count] of [#r1.outOf] context items you may read changed in the last week (10 to 17 November 2026), all published today.',
-    made: [records('r1', 3, 1292, 'context items you may read')],
-    broken: ['Yes, 3 of 1,292 context items you may read you may read changed in the last week'],
-    whole: ['Yes, 3 of 1,292 context items you may read changed in the last week'],
+      'Yes, [#r1.count] of [#r1.outOf] context items you can see changed in the last week (10 to 17 November 2026), all published today.',
+    made: [records('r1', 3, 1292, 'context items you can see')],
+    broken: ['Yes, 3 of 1,292 context items you can see you can see changed in the last week'],
+    whole: ['Yes, 3 of 1,292 context items you can see changed in the last week'],
   },
   {
     id: 'R2',
@@ -196,7 +196,7 @@ const replies: {
     id: 'T7',
     question: 'What is written about orders in Poland?',
     words:
-      '[@metric:orders] in [@value:market/poland] has [#r1.count] items written that apply, out of [#r1.outOf] published items you may read. Two are warnings about late data.',
+      '[@metric:orders] in [@value:market/poland] has [#r1.count] items written that apply, out of [#r1.outOf] published items you can see. Two are warnings about late data.',
     made: [
       lookup(
         'r1',
@@ -206,10 +206,10 @@ const replies: {
       ),
     ],
     broken: [
-      'has items written that apply, out of 1,210 published context items you may read published items you may read.',
+      'has items written that apply, out of 1,210 published context items you can see published items you can see.',
     ],
     whole: [
-      'Orders in Poland has 2 items written that apply, out of 1,210 published context items you may read.',
+      'Orders in Poland has 2 items written that apply, out of 1,210 published context items you can see.',
     ],
   },
 ]
@@ -225,8 +225,8 @@ describe('the six replies with a hole in a sentence (release judgement, A2)', ()
 
   it('keeps a count after a word that leads into it, though an earlier sentence has the same number', () => {
     const made = [
-      records('r1', 3, 1292, 'context items you may read'),
-      records('r2', 3, 1292, 'context items you may read'),
+      records('r1', 3, 1292, 'context items you can see'),
+      records('r2', 3, 1292, 'context items you can see'),
     ]
     const text = turnOf('Sweden has [#r1.count] items. Norway has [#r2.count].', made, []).text
     expect(text).toBe('Sweden has 3 items. Norway has 3.')

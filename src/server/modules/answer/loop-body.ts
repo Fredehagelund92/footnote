@@ -375,8 +375,8 @@ function pushRun(runs: LoopRun[], run: LoopRun) {
  * How many characters at the start of `after` repeat what a count is out of, which its run
  * already says: the words right after it that its `of` gives, in its order, up to the last one,
  * when they name its noun ("[#r1.outOf] context items changed": "23 published context items you
- * may read" then "changed"; "[#r1.outOf] published items you may read mention it": "… you may
- * read" then "mention it").
+ * can see" then "changed"; "[#r1.outOf] published items you can see mention it": "… you can
+ * see" then "mention it").
  */
 function ownNoun(run: LoopRun, after: string): number {
   if (run.t !== 'count' || !run.of) return 0
