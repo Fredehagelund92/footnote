@@ -32,12 +32,6 @@ import {
 } from '@/model/integrations'
 import { connectorById, connectors } from '@/model/catalogue'
 
-/** A connector the catalogue has a cell for, and can connect: one with a manifest, not Soon. */
-const inCatalog = (type: string) => {
-  const connector = connectorById(type)
-  return connector && !connector.soon ? connector : undefined
-}
-
 const twoDigits = (n: number) => String(n).padStart(2, '0')
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
@@ -151,7 +145,7 @@ function statusOf(state: SourceRow['state'], now: Date): Source['state'] {
 
 /** A source as the integrations' rows show it; null for a tool the app has no cell for. */
 export function sourceOf(row: SourceRow, now: Date): Source | null {
-  const connector = inCatalog(row.type)?.id
+  const connector = connectorById(row.type)?.id
   if (!connector) return null
   const last = row.lastRead
   const failed = last?.status === 'failed'
@@ -224,7 +218,7 @@ export function integrationsOf(
       return source ? [source] : []
     }),
     // What the service offers and the form can take, in the catalogue's order.
-    connectable: connectors.flatMap((c) => (offered.has(c.id) && !c.soon ? [c.id] : [])),
+    connectable: connectors.flatMap((c) => (offered.has(c.id) ? [c.id] : [])),
   }
 }
 
@@ -462,7 +456,7 @@ export function connectFormOf(
   settings: SourceSettings | null,
   secretStore = true,
 ): ConnectForm | null {
-  const connector = inCatalog(manifest.id)?.id
+  const connector = connectorById(manifest.id)?.id
   if (!connector || !formTakes(manifest)) return null
   const fields = manifest.config.fields.flatMap((field): ConnectField[] => {
     if (!formKinds.includes(field.kind)) return []

@@ -216,7 +216,7 @@ export function connectFormFor(
   kept?: Kept,
 ): ConnectForm | null {
   const tool = connectorById(id)
-  const manifest = tool && !tool.soon ? manifestOf(tool.id) : undefined
+  const manifest = tool ? manifestOf(tool.id) : undefined
   if (!tool || !manifest) return null
   const demo = demoTools[tool.id]
   const live = connected.includes(tool.id)
@@ -534,7 +534,7 @@ export function createIntegrations(
               return page ? [page.source] : []
             }),
         connectable: connectors.flatMap((c) => {
-          const manifest = c.soon ? undefined : manifestOf(c.id)
+          const manifest = manifestOf(c.id)
           return manifest && formTakes(manifest) ? [c.id] : []
         }),
       }

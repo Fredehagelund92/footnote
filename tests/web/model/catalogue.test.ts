@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { manifest } from '../../../src/connectors/dbt-metricflow/manifest'
+import { builtInManifests } from '../../../src/connectors/manifests'
 import { connectFormFor, testFor } from '../../../src/web/api/mock/integrations'
 import { connectorById, connectors, connectorByTool } from '../../../src/web/model/catalogue'
 import { logos } from '../../../src/web/model/integrations'
 
-/* The dbt cell of the catalogue, drawn from its connector's manifest and no longer Soon. */
+/* The catalogue's cells, each drawn from a connector's manifest, and its dbt cell. */
+
+describe('the catalogue', () => {
+  it('draws only the tools built in, so no cell promises one that is not', () => {
+    expect(connectors.map((c) => c.id).sort()).toEqual(builtInManifests.map((m) => m.id).sort())
+    expect(connectorById('notion')).toBeUndefined()
+  })
+})
 
 describe('the dbt cell', () => {
   it('comes from the manifest, with its logo, and can be connected', () => {
@@ -17,14 +25,12 @@ describe('the dbt cell', () => {
       places: true,
       domainField: 'meta.domain',
     })
-    expect(connectorById('dbt-metricflow')?.soon).toBeUndefined()
     expect(connectorByTool('dbt')?.id).toBe('dbt-metricflow')
   })
 
-  it('is the only dbt in the catalogue, and Notion stays Soon', () => {
+  it('is the only dbt in the catalogue', () => {
     expect(connectors.filter((connector) => connector.name === 'dbt')).toHaveLength(1)
     expect(connectorById('dbt')).toBeUndefined()
-    expect(connectorById('notion')?.soon).toBe(true)
   })
 
   it('never promises a link to a file its definitions do not name', () => {

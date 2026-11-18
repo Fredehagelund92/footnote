@@ -523,17 +523,9 @@ test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, 
   await expect(
     page.getByText('After a publish, an archive, a restore, a sync, or a check date passing'),
   ).toBeVisible()
-  // Your own rules are not built yet: the button says so, looks off, and the reason is text.
-  const add = page.getByRole('button', { name: 'Add a rule Coming soon' })
-  await expect(add).toHaveAttribute('aria-disabled', 'true')
-  await expect(add).toHaveCSS('opacity', '1')
-  await expect(add).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-  await expect(add).toHaveAccessibleDescription(
-    'The eight rules are fixed for now. Your own rules, and email and chat, come later.',
-  )
-  await expect(
-    page.getByText('The eight rules are fixed for now. Your own rules, and email and chat'),
-  ).toBeVisible()
+  // Nothing on the page promises what is not built: no Add a rule, no "Coming soon".
+  await expect(page.getByRole('button', { name: /Add a rule/ })).toHaveCount(0)
+  await expect(page.getByText(/\bsoon\b|come later/i)).toHaveCount(0)
   // An admin changes a threshold inside the sentence.
   await page.getByRole('combobox', { name: 'Not found: level', exact: true }).click()
   await page.getByRole('option', { name: '10' }).click()
