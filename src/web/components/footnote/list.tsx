@@ -433,6 +433,36 @@ export function Th({ className, ...th }: React.ComponentProps<'th'>) {
   return <th {...th} className={cn(thClass, className)} />
 }
 
+/**
+ * How many columns a table draws now, for the rows that span them all (a group, Add, the skeleton).
+ * Its header cells come and go with its width, and a cell spanning more columns than are drawn makes
+ * empty ones, which a fixed layout gives the room its named columns need: on a phone the names got
+ * none. The ref it gives the table also sets `tableRef`.
+ */
+export function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all: number) {
+  const [shown, setShown] = React.useState(all)
+  const ref = React.useCallback(
+    (t: HTMLTableElement | null) => {
+      tableRef.current = t
+      const cells = [...(t?.tHead?.rows[0]?.cells ?? [])]
+      const count = () =>
+        setShown(
+          cells.reduce((n, c) => n + (getComputedStyle(c).display === 'none' ? 0 : c.colSpan), 0),
+        )
+      count()
+      // A cell that hides or shows changes size, so watching the cells sees every change.
+      const watch = new ResizeObserver(count)
+      for (const c of cells) watch.observe(c)
+      return () => {
+        watch.disconnect()
+        tableRef.current = null
+      }
+    },
+    [tableRef],
+  )
+  return [shown, ref] as const
+}
+
 const DirArrow = ({ dir, className }: { dir: Dir; className?: string }) => {
   const Arrow = dir === 'asc' ? ArrowUpIcon : ArrowDownIcon
   return <Arrow aria-hidden className={cn('size-3', className)} />

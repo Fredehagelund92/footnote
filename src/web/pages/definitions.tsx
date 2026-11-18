@@ -36,6 +36,7 @@ import {
   SortTh,
   Th,
   thClass,
+  useShownColumns,
 } from '@/components/footnote/list'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection } from '@/hooks/use-selection'
@@ -242,6 +243,7 @@ export function DefinitionsPage() {
   usePublishOrder('definitions', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
+  const [cols, tableRef] = useShownColumns(table, COLS)
 
   const peeked = dock?.kind === 'def' ? dock.id : undefined
   // What can have context of its own: metrics and terms with their own meaning.
@@ -725,7 +727,7 @@ export function DefinitionsPage() {
               </p>
             )}
             <div className="min-w-0 shrink-0">
-              <table ref={table} className="w-full table-fixed border-collapse">
+              <table ref={tableRef} className="w-full table-fixed border-collapse">
                 <thead className="sticky top-0 z-raised">
                   <tr>
                     <th
@@ -783,11 +785,11 @@ export function DefinitionsPage() {
                 >
                   {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
                   {(phase === 'skeleton' || (ready && !showRows)) && (
-                    <TableBodySkeleton colSpan={COLS} />
+                    <TableBodySkeleton colSpan={cols} />
                   )}
                   {rowsShown && shown.length === 0 && (
                     <tr>
-                      <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
+                      <td colSpan={cols} className="px-6 py-10 text-center text-sm">
                         <p className="font-medium">No definitions match</p>
                         <p className="mt-1 text-muted-foreground">
                           {[
@@ -820,7 +822,7 @@ export function DefinitionsPage() {
                             label={g.key}
                             detail={mix(g.rows)}
                             open={open}
-                            colSpan={COLS}
+                            colSpan={cols}
                             onToggle={() => setFolded((x) => toggle(x, g.key))}
                           />
                         ) : null,
@@ -830,7 +832,7 @@ export function DefinitionsPage() {
                   {rowsShown && (
                     <AddRow
                       label="New term"
-                      colSpan={COLS}
+                      colSpan={cols}
                       onClick={() => navigate('/definitions/new')}
                     />
                   )}
