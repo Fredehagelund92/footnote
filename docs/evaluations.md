@@ -283,6 +283,11 @@ service runs it.
   answerer reads which of them failed or tunes on them. Each answerer's mocked suite holds how
   many pass (`heldPassingToday`), and no merge may lower it: CI's "Held-back count" step
   (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
+  The harness holds 28 held-back cases (the 40 of `held-back.ts` are the router's split of its own
+  demo cases). On 18 November 2026 Ask's loop passes 9 of the 28 and the router 19. 26 of the
+  loop's 28 keep every promise; they fail on what they must say, which the answer check does not
+  change. Raising the loop's count to 14 waits for the Ask slices that change its answers (H11 to
+  H16 of the hardening plan) and a recording made after them.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                       |
