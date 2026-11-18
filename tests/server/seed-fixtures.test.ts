@@ -115,6 +115,19 @@ describe('item fixtures', () => {
     expect(generateItems(50)).toHaveLength(50)
   })
 
+  it('names in a title only the metrics the item applies to', () => {
+    // "What explains the movement of Active customers in June 2026?" once also applied to Net
+    // revenue, so a question about Net revenue listed it first (B3).
+    for (const item of items) {
+      const named = vocabulary.metrics.filter((metric) => item.title.includes(metric.name))
+      if (named.length === 0) continue
+      expect(item.scope.metrics, `${item.id}: ${item.title}`).toEqual(
+        expect.arrayContaining(named.map((metric) => metric.id)),
+      )
+      expect(item.scope.metrics.length, `${item.id}: ${item.title}`).toBe(named.length)
+    }
+  })
+
   it('never repeats a sentence within a summary', () => {
     for (const item of items) {
       const sentences = item.summary.split(/(?<=[.?!])\s/)
