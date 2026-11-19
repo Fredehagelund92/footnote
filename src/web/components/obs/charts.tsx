@@ -195,7 +195,7 @@ function ChartTip({
       top = Math.max(0, Math.min(py - h / 2, box.clientHeight - h))
     } else {
       left = Math.max(0, Math.min(px - w / 2, box.clientWidth - w))
-      top = py - 12 - h >= 0 ? py - 12 - h : py + 12
+      top = py - 12 - h
     }
     setPlace((p) => (p && p.left === left && p.top === top ? p : { left, top }))
     // Its words as well: another point's may be wider.

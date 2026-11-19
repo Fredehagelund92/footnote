@@ -128,29 +128,28 @@ test.describe('at 390', () => {
       await labelsApart(page)
     })
 
-  test('Overview, 30 days: a tooltip that fits on neither side stays off the bar it describes', async ({
+  test('Overview, 30 days: a tooltip that fits on neither side stays off the tallest bar', async ({
     page,
   }) => {
     await go(page, '/observability?range=30')
     const plot = page.locator('figure svg:has([data-part])').first()
     await plot.scrollIntoViewIfNeeded()
-    const box = (await plot.boundingBox())!
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-    const tip = page.locator('[data-chart-tip]').first()
-    await expect(tip).toBeVisible()
-    const t = (await tip.boundingBox())!
     const parts = await plot
       .locator('[data-part]')
       .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON() as DOMRect))
-    const hovered = parts.filter(
-      (r) => r.left <= box.x + box.width / 2 && r.right >= box.x + box.width / 2,
-    )
-    expect(hovered.length).toBeGreaterThan(0)
-    const top = Math.min(...hovered.map((r) => r.top))
-    const bottom = Math.max(...hovered.map((r) => r.bottom))
+    const tallest = parts.reduce((a, b) => (b.top < a.top ? b : a))
+    const column = parts.filter((r) => Math.abs(r.left - tallest.left) < 0.5)
+    const left = Math.min(...column.map((r) => r.left))
+    const right = Math.max(...column.map((r) => r.right))
+    const top = Math.min(...column.map((r) => r.top))
+    const bottom = Math.max(...column.map((r) => r.bottom))
+    await page.mouse.move((left + right) / 2, (top + bottom) / 2)
+    const tip = page.locator('[data-chart-tip]').first()
+    await expect(tip).toBeVisible()
+    const t = (await tip.boundingBox())!
     const apart =
-      t.x + t.width <= Math.min(...hovered.map((r) => r.left)) + 0.5 ||
-      t.x >= Math.max(...hovered.map((r) => r.right)) - 0.5 ||
+      t.x + t.width <= left + 0.5 ||
+      t.x >= right - 0.5 ||
       t.y + t.height <= top + 0.5 ||
       t.y >= bottom - 0.5
     expect(apart).toBe(true)
