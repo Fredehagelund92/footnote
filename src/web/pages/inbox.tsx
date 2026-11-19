@@ -83,6 +83,7 @@ import {
   useWrite,
   workspaceQuery,
 } from '@/api/queries'
+import type { UndoOffer } from '@/api/client'
 import { useUndo } from '@/lib/undo'
 import { definitionsStep, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
@@ -1377,6 +1378,7 @@ export function InboxPage() {
   const decide = (card: InboxCard, d: Decision) => {
     let undone = false
     let gone = false
+    let saved: UndoOffer | undefined
     next()
     const said = toast(d.message, {
       description: d.description,
@@ -1384,7 +1386,10 @@ export function InboxPage() {
       action: {
         label: 'Undo',
         onClick: () => {
+          // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
+          // back now when the answer is in, else when it comes.
           undone = true
+          if (saved) void undo.takeBack(saved)
         },
       },
       onDismiss: () => {
@@ -1400,6 +1405,7 @@ export function InboxPage() {
             outcome: d.outcome,
             patch: d.patch,
           })
+          saved = decided.undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
           if (undone) await undo.takeBack(decided.undo)
           else if (!gone)

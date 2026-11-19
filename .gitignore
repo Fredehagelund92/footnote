@@ -9,6 +9,8 @@ test-results/
 .env.*
 !.env.example
 .tanstack/
+# A Postgres a test run makes for itself (tests/lint/scratch-databases.test.ts).
+.tmp-pg/
 # What `vercel link` and `vercel build` write (docs/vercel.md).
 .vercel/
 
