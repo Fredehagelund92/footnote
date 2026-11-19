@@ -19,7 +19,7 @@ export const REPOSITORY_URL = 'https://github.com/Fredehagelund92/footnote'
  */
 export const DOCS_URL = 'https://getfootnote.vercel.app/docs'
 
-/** Where to ask for a connector:the issue template for one (.github/ISSUE_TEMPLATE/connector.yml). */
+/** Where to ask for a connector: the issue template for one (.github/ISSUE_TEMPLATE/connector.yml). */
 export const CONNECTOR_REQUEST_URL = `${REPOSITORY_URL}/issues/new?template=connector.yml`
 
 /** The name when `FOOTNOTE_PRODUCT_NAME` is not set. */

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readmeQuestion } from './readme-question.ts'
 
 /*
   What a person meets after `docker compose up`, on the demo's own data (playwright.seed.config.ts):
@@ -87,7 +88,7 @@ test('a new install of the demo: sign in, and every main screen draws on its dat
   await drawn(page, 'Ask')
   const box = page.getByRole('textbox', { name: 'Ask a question' })
   await box.click()
-  await box.pressSequentially('How did orders in Norway change in October 2026?')
+  await box.pressSequentially(readmeQuestion)
   await box.press('Enter')
   // The README's answer: Checked, with the stop on 4 August 2026 first.
   await expect(

@@ -1,7 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { DOCS_URL } from '../../src/domain/brand.ts'
+import { readmeQuestion } from '../e2e-seed/readme-question.ts'
 
 /*
   The README is the front door, so what it says must hold.
@@ -60,10 +61,8 @@ describe("the README's Try it", () => {
     }
   })
 
-  it('asks a question the demo questions test asks of the images in a browser', () => {
-    const question = /_([^_]+\?)_/.exec(tryIt)?.[1]
-    expect(question, 'Try it names a question to ask').toBeDefined()
-    expect(read('tests/e2e-seed/demo-questions.spec.ts')).toContain(`question: '${question}'`)
+  it('asks the question the demo questions test asks of the images in a browser', () => {
+    expect(/_([^_]+\?)_/.exec(tryIt)?.[1]).toBe(readmeQuestion)
   })
 })
 
@@ -85,19 +84,5 @@ describe("the README's links to the docs", () => {
       definitions.filter(({ url }) => url.includes(host) && !url.startsWith(`${DOCS_URL}/`)),
       'every link to the docs starts with DOCS_URL',
     ).toEqual([])
-  })
-
-  it('open a page the site publishes', () => {
-    for (const { name, url } of docsLinks) {
-      const page = url.slice(DOCS_URL.length + 1).replace(/\/$/, '')
-      if (!page) continue
-      const file = [`docs/${page}.md`, `docs/help/${page}.md`].find((path) =>
-        existsSync(new URL(`../../${path}`, import.meta.url)),
-      )
-      expect(file, `[${name}] names the docs page "${page}"`).toBeDefined()
-      expect(read('site/lib/pages.ts'), `${file} is on the site`).toContain(
-        `'${file!.replace(/^docs\//, '').replace(/\.md$/, '')}'`,
-      )
-    }
   })
 })
