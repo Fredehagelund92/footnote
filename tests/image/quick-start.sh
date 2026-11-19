@@ -1,23 +1,28 @@
 #!/usr/bin/env bash
-# The README's Quick start, typed as written, on a computer with Docker and nothing else running
-# Footnote (the CI job "The README's Quick start on Linux, as written"). Run it from a checkout,
+# The README's "Try it" commands, typed as written, on a computer with Docker and nothing else
+# running Footnote (the CI job "The README's Quick start on Linux, as written"). Run it from a checkout,
 # after npm ci and npx playwright install chromium:
 #
 #   bash tests/image/quick-start.sh
 #
-# It reads the commands from the README's first sh block under "## Quick start" and checks, in
-# this order:
+# It reads the commands from the README's first sh block under "## Try it" (indented, inside a
+# numbered list) and checks, in this order:
 #   1. The clone address answers, and the clone makes the folder the README changes into. The
 #      clone is of this checkout, so it runs the code under test.
 #   2. `docker compose up`, in the foreground, builds the images and loads the demo; it then
-#      answers on http://localhost:8080. The time it took is printed: the README says "several
-#      minutes".
-#   3. In a browser: it opens as Ravi Kapoor, View as switches to Jon Abara and Maria Lindqvist,
+#      answers on http://localhost:8080. The time it took is printed: the README says it can take
+#      ten minutes.
+#   3. In a browser: it opens as Ravi Kapoor (the README says "You are Ravi Kapoor"), Ask answers
+#      Checked with the customs rule first, View as switches to Jon Abara and Maria Lindqvist,
 #      and Sign out shows every demo person (tests/e2e-seed/demo.spec.ts). Then the first page,
 #      the Context list and a scripted answer are timed (scripts/time-demo.ts).
 #   4. The MCP address the README connects Claude Code to asks for sign-in.
-#   5. Ctrl+C stops it, and `docker compose down --volumes` removes the data.
+#   5. Ctrl+C stops it (the README says so), and `docker compose down --volumes` removes the data.
 #   6. FOOTNOTE_WEB_PORT=8081 FOOTNOTE_PORT=3001 in front of docker compose moves both ports.
+#
+# View as, Sign out, `docker compose down --volumes`, the moved ports and the MCP address are not
+# in the "Try it" steps: docs/self-hosting.md and the old Quick start promised them, and this
+# script keeps checking them.
 #
 # It uses the ports 8080, 3000, 8081 and 3001, and the compose project footnote: stop anything else
 # there first. Everything it makes is removed at the end, the images included.
@@ -31,14 +36,14 @@ fail() {
   exit 1
 }
 
-# The README's first sh block under "## Quick start".
+# The README's first sh block under "## Try it", without the indent of the list it sits in.
 block=$(awk '
-  /^## / { inside = ($0 == "## Quick start") }
-  inside && /^```sh$/ { reading = 1; next }
-  reading && /^```$/ { exit }
-  reading { print }
+  /^## / { inside = ($0 == "## Try it") }
+  inside && /^ *```sh$/ { reading = 1; next }
+  reading && /^ *```$/ { exit }
+  reading { sub(/^ +/, ""); print }
 ' "$root/README.md")
-[ "$(wc -l <<< "$block")" -eq 2 ] || fail "the Quick start is two commands"$'\n'"$block"
+[ "$(wc -l <<< "$block")" -eq 2 ] || fail "the Try it block is two commands"$'\n'"$block"
 clone=$(sed -n 1p <<< "$block")
 up=$(sed -n 2p <<< "$block")
 [[ $clone =~ ^git\ clone\ ([^ ]+)\ \&\&\ cd\ ([^ ]+)$ ]] ||
