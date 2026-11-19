@@ -46,6 +46,7 @@ export function ground({ areas, every, strength }: GroundOptions) {
   let count = 0
   let frame = 0
   let timer = 0
+  let off = false
   const marks: Mark[] = []
 
   function size() {
@@ -139,6 +140,7 @@ export function ground({ areas, every, strength }: GroundOptions) {
   }
 
   function later(wait = every[0] + Math.random() * (every[1] - every[0])) {
+    if (off) return
     clearTimeout(timer)
     timer = window.setTimeout(land, wait)
   }
@@ -157,6 +159,7 @@ export function ground({ areas, every, strength }: GroundOptions) {
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : later()))
   still.addEventListener('change', () => {
     if (!still.matches) return
+    off = true
     stop()
     canvas.remove()
   })
