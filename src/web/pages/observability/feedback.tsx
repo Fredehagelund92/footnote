@@ -1,6 +1,13 @@
 import * as React from 'react'
 import { useDomains } from '@/lib/workspace'
-import { useObservability, useObsPageQuery } from '@/lib/obs'
+import {
+  OBS_PURPOSE,
+  ObsDrawn,
+  rangeLabel,
+  useKeptObsPage,
+  useObservability,
+  useObsView,
+} from '@/lib/obs'
 import {
   ArrowUpRightIcon,
   BotIcon,
@@ -15,13 +22,13 @@ import { cn } from '@/lib/utils'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
+import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { Bars } from '@/components/obs/charts'
 import { countChange } from '@domain/observability'
 import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'
-import { REPORT_WORDS, shownCount, type ReportState } from '@/model/observability'
-import { OBS_PURPOSE, useObsView } from '@/lib/obs'
+import { HIDE_UNDER, REPORT_WORDS, shownCount, type ReportState } from '@/model/observability'
 import { ObsPage } from '@/pages/observability'
 
 // Feedback: what people and agents said about answers. A thumbs up or down under an answer in Ask
@@ -36,7 +43,9 @@ const STATE_ICON: Record<ReportState, typeof FlagIcon> = {
 }
 
 export function FeedbackPage() {
-  const load = useObsPageQuery('feedback')
+  // Another range keeps this view until the next has loaded: the numbers count to the new ones and
+  // the bars move, instead of a skeleton.
+  const { load, drawn, busy } = useKeptObsPage('feedback')
   return (
     <ObsPage section="feedback">
       <Loadable
@@ -44,13 +53,19 @@ export function FeedbackPage() {
         what="the feedback"
         skeleton={<ObsSkeleton section="feedback" kpis={4} body="split" />}
       >
-        <Feedback />
+        <ObsDrawn.Provider value={drawn}>
+          <Feedback busy={busy} />
+        </ObsDrawn.Provider>
       </Loadable>
     </ObsPage>
   )
 }
 
-function Feedback() {
+/** A count as a number cell says it: counting to its new value, or "Fewer than 5". */
+const figure = (n: number | null) =>
+  n === null || (n > 0 && n < HIDE_UNDER) ? shownCount(n) : <CountUp value={n} />
+
+function Feedback({ busy }: { busy: boolean }) {
   const domains = useDomains()
   const obs = useObservability()
   const view = useObsView()
@@ -59,7 +74,9 @@ function Feedback() {
   // The binding gives the reports of the domains the person sees.
   const reports = view.state === 'empty' || !feedback ? [] : feedback.reports
   const shown = reports.filter((r) => tab === 'all' || r.state === tab)
-  const weeks = view.range === 90 ? 13 : 8
+  // The range drawn: while another loads, the one on screen.
+  const range = obs.data.range
+  const weeks = range === 90 ? 13 : 8
   const good = feedback?.week.good ?? null
   const wrong = feedback?.week.wrong ?? null
   const goodBefore = feedback?.week.goodBefore ?? null
@@ -84,7 +101,7 @@ function Feedback() {
       </Frame>
     )
   return (
-    <Frame>
+    <Frame aria-busy={busy || undefined}>
       <FrameSection
         title="Feedback"
         description={OBS_PURPOSE.feedback}
@@ -94,13 +111,13 @@ function Feedback() {
         <Kpi
           icon={<ThumbsUpIcon />}
           label="Good answer"
-          value={shownCount(good)}
+          value={figure(good)}
           change={
             good !== null && goodBefore !== null
               ? kpiChange(countChange(good, goodBefore), moreOrFewer, 'up')
               : undefined
           }
-          sub={`${view.label}, in Ask`}
+          sub={`${rangeLabel(range)}, in Ask`}
         />
         <Kpi
           icon={<ThumbsDownIcon />}
@@ -109,31 +126,32 @@ function Feedback() {
             wrong === null || (wrong > 0 && wrong < 5) ? (
               <span className="text-xl">Fewer than 5</span>
             ) : (
-              wrong
+              <CountUp value={wrong} />
             )
           }
           sub={
             wrong === null || (wrong > 0 && wrong < 5)
               ? 'a count under 5 is hidden'
-              : `${view.label}, in Ask`
+              : `${rangeLabel(range)}, in Ask`
           }
         />
         {/* Reports are sent on purpose and carry a name, so their count hides nobody: it shows as it is. */}
         <Kpi
           icon={<FlagIcon />}
           label="Reports"
-          value={people}
+          value={<CountUp value={people} />}
           sub="sent on purpose, with a name"
         />
         <Kpi
           icon={<BotIcon />}
           label="From agents"
-          value={agents}
+          value={<CountUp value={agents} />}
+          href={agents ? '#reports' : undefined}
           sub="reported a Not found or gave feedback"
         />
       </div>
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-3-2)">
-        <div>
+        <div id="reports" className="scroll-mt-16">
           <div
             role="tablist"
             aria-label="Reports"

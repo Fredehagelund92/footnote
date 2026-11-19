@@ -56,10 +56,8 @@ import { usePublishOrder, useRowKeys } from '@/lib/list'
 import {
   OBS_PURPOSE,
   ObsDrawn,
-  obsPageInput,
-  useObsAddress,
+  useKeptObsPage,
   useObservability,
-  useObsPageQuery,
   useObsView,
   type ObsView,
 } from '@/lib/obs'
@@ -119,11 +117,7 @@ const HIDDEN = 'hidden, to protect small counts'
 export function OverviewPage() {
   // Another range, domain or agent keeps this view until the next has loaded: the numbers count
   // to the new ones and the bars move, instead of a skeleton.
-  const load = useObsPageQuery('overview', true)
-  const input = obsPageInput('overview', useObsAddress())
-  const [drawn, setDrawn] = React.useState(input)
-  if (load.data && !load.isPlaceholderData && JSON.stringify(drawn) !== JSON.stringify(input))
-    setDrawn(input)
+  const { load, drawn, busy } = useKeptObsPage('overview')
   return (
     <ObsPage section="overview">
       <Loadable
@@ -132,7 +126,7 @@ export function OverviewPage() {
         skeleton={<ObsSkeleton section="overview" kpis={4} body="overview" />}
       >
         <ObsDrawn.Provider value={drawn}>
-          <OverviewOf busy={load.isPlaceholderData} />
+          <OverviewOf busy={busy} />
         </ObsDrawn.Provider>
       </Loadable>
     </ObsPage>

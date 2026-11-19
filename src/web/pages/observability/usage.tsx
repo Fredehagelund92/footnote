@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react'
-import { useObservability, useObsPageQuery } from '@/lib/obs'
 import type { UsageData } from '@/model/observability'
 import {
   ArrowUpRightIcon,
@@ -11,6 +10,7 @@ import {
   WrenchIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
+import { href } from '@/lib/router'
 import {
   Empty,
   EmptyContent,
@@ -22,12 +22,13 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
+import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { LineChart } from '@/components/obs/charts'
 import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'
 import { AGENT_TOOLS } from '@/lib/agents'
 import { askedChange, HIDE_UNDER, money, shownCount } from '@/model/observability'
-import { OBS_PURPOSE, useObsView } from '@/lib/obs'
+import { OBS_PURPOSE, ObsDrawn, useKeptObsPage, useObservability, useObsView } from '@/lib/obs'
 import { ObsPage } from '@/pages/observability'
 
 // Usage, for admins: how agents call the tools, how fast they get a reply, which kinds of agent
@@ -38,7 +39,9 @@ import { ObsPage } from '@/pages/observability'
 const SPEND_FILL = ['var(--primary)', 'var(--chart-3)', 'var(--chart-2)']
 
 export function UsagePage() {
-  const load = useObsPageQuery('usage')
+  // Another range keeps this view until the next has loaded: the numbers count to the new ones and
+  // the lines move, instead of a skeleton.
+  const { load, drawn, busy } = useKeptObsPage('usage')
   return (
     <ObsPage section="usage">
       <Loadable
@@ -46,13 +49,15 @@ export function UsagePage() {
         what="the usage"
         skeleton={<ObsSkeleton section="usage" kpis={4} body="table" />}
       >
-        <Usage />
+        <ObsDrawn.Provider value={drawn}>
+          <Usage busy={busy} />
+        </ObsDrawn.Provider>
       </Loadable>
     </ObsPage>
   )
 }
 
-function Usage() {
+function Usage({ busy }: { busy: boolean }) {
   const obs = useObservability()
   const view = useObsView()
   if (view.state === 'empty')
@@ -87,11 +92,13 @@ function Usage() {
   const speed = usage.speed
   const median = middle(speed.median)
   const p95 = middle(speed.p95)
+  // Overview over the same days, from a row: its agents and its Not found answers.
+  const inRange = view.range === 7 ? {} : { range: String(view.range) }
   // More calls is neither good nor bad: an arrow, never a colour.
   const change = usage.before !== null ? askedChange(calls, usage.before) : null
 
   return (
-    <Frame>
+    <Frame aria-busy={busy || undefined}>
       <FrameSection
         title="Usage"
         description={OBS_PURPOSE.usage}
@@ -101,7 +108,7 @@ function Usage() {
         <Kpi
           icon={<WrenchIcon />}
           label="Tool calls"
-          value={calls.toLocaleString('en-GB')}
+          value={<CountUp value={calls} />}
           change={kpiChange(change, (c) =>
             change?.percent != null
               ? `${change.percent > 0 ? '+' : ''}${change.percent}%`
@@ -112,7 +119,7 @@ function Usage() {
         <Kpi
           icon={<TimerIcon />}
           label="Typical reply (median)"
-          value={median ?? '-'}
+          value={median === null ? '-' : <CountUp value={median} />}
           unit={median === null ? undefined : 'ms'}
           sub={p95 === null ? 'no replies timed' : `95 of 100 under ${p95} ms (milliseconds)`}
         />
@@ -138,7 +145,7 @@ function Usage() {
         title="Tools"
         description="Each call an agent made, by tool. Answering needs no model."
       >
-        <Tools tools={tools} />
+        <Tools tools={tools} notFound={href('/observability', { answer: 'missing', ...inRange })} />
       </FrameSection>
 
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-2">
@@ -195,7 +202,12 @@ function Usage() {
                     <td className="h-11 px-4 md:pl-5">
                       <span className="flex items-center gap-2">
                         <BotIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        {a.name}
+                        <a
+                          href={href('/observability', { agent: a.name, ...inRange })}
+                          className="underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          {a.name}
+                        </a>
                       </span>
                     </td>
                     <td className="h-11 px-4 text-right tabular-nums">{shownCount(a.calls)}</td>
@@ -260,7 +272,7 @@ function SeriesLegend({ items }: { items: { name: string; color: string }[] }) {
 }
 
 /** The tools, one row each. On a narrow page the four results fold into one line under the name. */
-function Tools({ tools }: { tools: UsageData['tools'] }) {
+function Tools({ tools, notFound }: { tools: UsageData['tools']; notFound: string }) {
   const what = (name: string) =>
     AGENT_TOOLS.find((t) => t.name === name)
       ?.what.replace(/\.$/, '')
@@ -311,7 +323,19 @@ function Tools({ tools }: { tools: UsageData['tools'] }) {
               {cell(t.answered)}
             </td>
             <td className="px-4 text-right tabular-nums @max-2xl/main:hidden">{cell(t.detail)}</td>
-            <td className="px-4 text-right tabular-nums @max-2xl/main:hidden">{cell(t.nothing)}</td>
+            <td className="px-4 text-right tabular-nums @max-2xl/main:hidden">
+              {t.nothing ? (
+                <a
+                  href={notFound}
+                  aria-label={`${t.nothing.toLocaleString('en-GB')} not found: look at the Not found answers on Overview`}
+                  className="underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {t.nothing.toLocaleString('en-GB')}
+                </a>
+              ) : (
+                cell(0)
+              )}
+            </td>
             <td className="px-4 text-right tabular-nums md:pr-5 @max-2xl/main:hidden">
               {cell(t.failed, true)}
             </td>
