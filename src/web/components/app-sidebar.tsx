@@ -191,8 +191,10 @@ export function AppSidebar({
           <SidebarHeader className="h-bar justify-center px-2 shadow-hairline-bottom">
             <SidebarMenu>
               <SidebarMenuItem>
+                {/* No padding in the rail, so the 20 pixel symbol centres on the 16 pixel icons. */}
                 <SidebarMenuButton
                   render={<a href="/inbox" aria-label={PRODUCT} onClick={close} />}
+                  className="group-data-[collapsible=icon]:p-0!"
                 >
                   <Logo className="h-5! w-auto! group-data-[collapsible=icon]:hidden" aria-hidden />
                   <LogoSymbol className="mx-auto hidden h-5! w-auto! group-data-[collapsible=icon]:block" />
