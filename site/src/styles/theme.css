@@ -563,3 +563,8 @@ h1#_top {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* The shortcut's keys on their chip, dark enough to read in both themes. */
+site-search kbd {
+  color: var(--ink-2);
+}

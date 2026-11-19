@@ -5,9 +5,13 @@ import Default from '@astrojs/starlight/components/Search.astro'
 <Default />
 
 <script>
-  // The button's name holds the words it shows, shortcut included, as a spoken name has to. On a
-  // phone it shows only an icon and keeps Starlight's name.
+  // The button's name holds the words it shows, shortcut included, as a spoken name has to. Starlight
+  // sets the word and the keys in boxes with nothing between them, which a checker reads as one
+  // run of letters; a space between them changes nothing on the screen. On a phone the button shows
+  // only an icon and keeps Starlight's name.
   const button = document.querySelector<HTMLButtonElement>('button[data-open-modal]')
+  button?.querySelector('span')?.after(' ')
+  button?.querySelector('kbd kbd')?.after(' ')
   const shown = button?.innerText.replace(/\s+/g, ' ').trim()
   if (shown) button?.setAttribute('aria-label', shown)
 
