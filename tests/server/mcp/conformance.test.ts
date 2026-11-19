@@ -1111,7 +1111,7 @@ it("counts the eval runner's token against its client only, since it is no perso
 
 it('keeps get_related out of the tool list while it is switched off, and follows links when on', async () => {
   const s = await server()
-  // get_related is on by default (migration 0004, FR-332 as changed), and has its own switch.
+  // get_related is on by default (FR-332), and has its own switch.
   s.policy.tools = toolNames.filter((name) => name !== 'get_related')
   const client = await s.connect('auto')
   expect((await client.listTools()).tools.map((t) => t.name)).not.toContain('get_related')

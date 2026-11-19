@@ -46,8 +46,7 @@ provider of each kind).
 The evaluation runner scores the live library: the weekly runs, the runs an owner starts, the
 link runs and the runs a change outside the review sets off. It no longer gates a suggestion:
 every proposal needs levels 1 to 3 only, at every risk level (FR-513), and the free check of
-saved questions follows each publish instead (FR-526). The runs of proposals made before Footnote v1
-keep the levels 4 and 5 they recorded.
+saved questions follows each publish instead (FR-526).
 
 - **Golden questions** (FR-501, FR-504): an id, a domain, a natural and a precise wording, the
   scope in `get_context`'s input form, the items that must and must not be delivered, an optional
@@ -59,11 +58,8 @@ keep the levels 4 and 5 they recorded.
   YAML or JSON file (a dry run unless `dryRun: false`; nothing is saved unless every entry is
   valid); every save is a revision a run can name. Owners of the domain and administrators
   maintain them; held-out questions are hidden from everyone else.
-- **Runs**: a run of a domain answers its active questions on the live edition. A run of a
-  proposed version, made before Footnote v1, compared the live edition with the live edition plus the
-  version on its impact set (FR-511: every active question whose delivery changes, or that names
-  the item) and replayed the stored agent deliveries by topic (FR-512); such runs still finish and
-  read as they were, and none is queued any more. Each question's wordings
+- **Runs**: a run of a domain answers its active questions on the live edition. Each question's
+  wordings
   are answered by the model through a real MCP client against a loopback copy of the MCP server,
   with the production tool descriptions, on both sides, three tries each; a question that flips
   is repeated to seven tries and the majority decides (FR-515). Every run records the tool
@@ -107,14 +103,13 @@ keep the levels 4 and 5 they recorded.
   answer starts only while what was spent, plus 1.5 times an answer's estimate for each answer in
   flight, stays within it.
 - **One worker per run**: a worker holds a lease on the run it works and renews it; the
-  every-minute job never works a run the command line holds (it used to, and the ledger counted
-  such a run twice). A lease that runs out (a stopped process) lets another worker take over.
+  every-minute job never works a run the command line holds. A lease that runs out (a stopped process) lets another worker take over.
 - **Calls a provider refuses** (output test plan R4 to R6): `models.call_limits` sets how many
   calls run at once per provider and, optionally, requests and tokens a minute per provider and
   model (a free gateway key: concurrency 1, 5 a minute). A call refused for a rate limit (429) or
   failed on the provider's side (5xx, a dropped connection) is tried again after `Retry-After` or
   a jittered backoff, up to 5 tries or 3 minutes. An answer still not made is `throttled` or
-  `provider` (`judge` on runs from before judge errors were kept on the answer); one whose tool call the run's
+  `provider`; one whose tool call the run's
   tool server refused (its request limits count real minutes, though answers are as of the run's
   day) is `tool`: never a quality result. Such a
   run, or one stopped by a cap, its ceiling or Ctrl-C, ends `incomplete` with what is missing;
@@ -153,9 +148,7 @@ keep the levels 4 and 5 they recorded.
 - **Who** (Quality design G13): test results and editions are for the owners of a domain and for
   administrators (the data platform team in the first release), each narrowed to the domains they
   maintain. Importing test questions, listing runs and the editions reads refuse anyone else.
-  A proposal's own runs stay readable by whoever may read the proposal, so its review screen works
-  for the proposer and the approvers, and its test questions keep their wording there (held-out
-  ones hidden); any run is also readable by the person who started it. A gap (`GET /gaps/{id}`)
+  Any run is also readable by the person who started it. A gap (`GET /gaps/{id}`)
   stays readable by everyone signed in (FR-616).
 - **Models**: `MODELS=mock` (the default, and in every test) is a scripted model: it asks
   `get_context` with the question and answers with the delivered ids, titles and summaries and the

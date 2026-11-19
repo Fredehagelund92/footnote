@@ -3,8 +3,8 @@ import { appFamilies } from '../../src/domain/app-family.ts'
 import { testDatabase } from './support.ts'
 
 /*
-  What the database names after the product (docs/product-name.md): migration 0058 gives the
-  functions' lock keys and the agent family of the built-in test runs the name Footnote.
+  What the database names after the product (docs/product-name.md): the functions' lock keys
+  and the agent family of the built-in test runs carry the name Footnote.
 */
 
 const { client } = testDatabase()
@@ -13,7 +13,7 @@ const { client } = testDatabase()
 const lockKeys = (definition: string) =>
   [...definition.matchAll(/hashtextextended\('([^']+)'/g)].map((match) => match[1])
 
-describe('migration 0058', () => {
+describe('the names the database gives', () => {
   it('has the four functions take the locks the service takes, named after Footnote', async () => {
     const { rows } = await client.query<{ name: string; definition: string }>(
       `select p.oid::regprocedure::text as name, pg_get_functiondef(p.oid) as definition

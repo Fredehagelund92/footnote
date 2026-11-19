@@ -129,9 +129,8 @@ sign-in has no groups; company sign-in with OpenID Connect (`FOOTNOTE_OIDC_*`, w
 
 Administrators use `POST /roles/grant`, `POST /roles/revoke`, `POST /assignments/grant` and
 `POST /assignments/revoke` (all under `/api/v1`; API only, with no screen in the web app). Role bodies are
-`{ personId, role }`; assignment bodies also include `areaId`. Global roles are `administrator`
-and `auditor`; domain roles are `owner` and `approver` (the deputy role went on 16 October 2026; every deputy became an
-owner of the same domain, and `deputy` is no longer accepted as a role). A domain may have several owners (giving the owner
+`{ personId, role }`; assignment bodies also include `areaId`. The global role is `administrator`;
+the domain role is `owner`. A domain may have several owners (giving the owner
 role to one more person adds an owner beside the others) and a person may own several domains;
 a domain keeps at least one owner, so the last one cannot be revoked. Changes retain their validity history and write
 an attributed audit entry atomically. The people file bootstraps global roles once per person,

@@ -232,7 +232,7 @@ describe('the catalogue on PostgreSQL', () => {
          (select id from vocab_term_versions where term_key = 'metric:units_sold')`,
     )
     await client.query('alter table vocab_term_refs enable trigger user')
-    // An edition pins no source domain for a term without a definition (0054).
+    // An edition pins no source domain for a term without a definition.
     await client.query('alter table source_domain_service disable trigger user')
     await client.query("delete from source_domain_service where term_key = 'metric:units_sold'")
     await client.query('alter table source_domain_service enable trigger user')

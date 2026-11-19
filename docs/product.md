@@ -258,7 +258,7 @@ There are two roles.
 
 Removing a person from the workspace waits until no domain has them as its only owner. Anyone signed in can comment. People edit and delete their own comments.
 
-An earlier model had more roles (auditor, approver) and risk levels. v1 has neither: every item uses the same three checks.
+Every item uses the same three checks, whatever its risk.
 
 ## 12. Integrations
 

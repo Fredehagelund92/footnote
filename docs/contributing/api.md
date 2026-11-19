@@ -399,9 +399,8 @@ archive and a rollback also take an `Idempotency-Key`.
   runs the candidate through `get_facts`'s code: its probe delivers it, replaced items are
   absent, the reply fits, and no active test question of the domain turns from pass to fail. Both
   look at the item as delivered once nothing stops it.
-- No answer test gates a proposal (FR-513): levels 4 and 5 (`answer_impact`, `answer_full`) are
-  history, kept on the versions whose runs recorded them before Footnote v1. A failed level 1 to 3
-  blocks acceptance, with no override (FR-514).
+- No answer test gates a proposal (FR-513). A failed level 1 to 3 blocks acceptance, with no
+  override (FR-514).
 - `POST /items/{id}/retire-proposals` (API only, with no screen in the web app) lets anyone
   suggest archiving an item, with a reason; one can be open per item. Its owners review it like
   any suggestion, and publishing it archives the item.
@@ -625,7 +624,7 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   single link points to, with no model. It fills the words, a kind and dates by rule and where
   it applies by the vocabulary's names, and lists in `unsure` what it guessed.
 
-A context item's kind belongs to each version (migration 0008), so Change kind keeps its id,
+A context item's kind belongs to each version, so Change kind keeps its id,
 history and links. In a change to many items, an owner of a draft's domain may delete it, and
 Mark as checked records a check even when nothing else moved, for an owner of the domain or an
 admin.
@@ -704,7 +703,7 @@ synonym means what that one means.
   (`metric:orders`, `dim:market`), in the shape of `GET /items/{id}/related`: the items that
   mention it or apply to it. A key agents do not read is not found.
 
-Agents read the live terms and synonyms through `serving_terms()` (migration 0011), which names
+Agents read the live terms and synonyms through `serving_terms()`, which names
 no person; the serving role has no grant on the terms tables. What they get is in the agent tools
 above (`terms`).
 
@@ -889,7 +888,7 @@ source keeps them, so a new publish or stop switch is read at once.
 What agents asked and what they got (FR-620), as topics and counts: never the words of a question
 and never who asked (FR-602, FR-613). Each `get_context` call keeps, with its topic, the answer
 state its reply gave (FR-349; none when the question could not be read) and the kind of agent
-that called, from FR-410's fixed list, never the name it gave itself (migration 0015).
+that called, from FR-410's fixed list, never the name it gave itself.
 Administrators read every domain and the calls with no domain; an owner reads the domains they
 own, and Usage is for administrators only. Every read is in `src/contract/observability.ts`.
 
@@ -1067,8 +1066,8 @@ Footnote v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read an
 - `POST /access-keys` (administrators) takes `{ name }` and creates an access key for a bot or a
   scheduled job: it reads context and gives feedback, names no person, and lasts until revoked.
   The key is in this answer only.
-- `GET /agent-connections` and `POST /agent-connections/{id}/disconnect` (administrators, formerly
-  `/ai-connections`): every person's agents, and ending one, with a reason the history log keeps
+- `GET /agent-connections` and `POST /agent-connections/{id}/disconnect` (administrators): every
+  person's agents, and ending one, with a reason the history log keeps
   (docs/ai-sign-in.md).
 - `GET /agents`, `POST /agents/{id}/name`, `POST /agents/{id}/tools` and
   `POST /agents/{id}/revoke`: every agent by name, with its kind, each tool it may call and where it
@@ -1155,7 +1154,7 @@ administrator turns a rule on or off for everyone and picks its threshold from t
 offers; the Not found threshold is the gap detection's own setting, `gaps.no_item_threshold`, so
 changing it there writes a new version of that setting. An owner mutes a rule for a domain they
 own: its cards stop reaching them there and still reach the domain's other owners and the
-administrators. The tables are `alert_rules`, `alert_mutes` and `alert_raises` (migration 0022);
+administrators. The tables are `alert_rules`, `alert_mutes` and `alert_raises`;
 the contract is in `src/contract/alerts.ts`.
 
 - The `alerts.raise` job runs every 15 minutes, beside `gaps.detect`. Each rule that is on reads

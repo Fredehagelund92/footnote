@@ -32,15 +32,15 @@ import { getArea } from './settings.ts'
   it happens whole or not at all: its open proposals are withdrawn, its drafts stay with their
   authors, its team's roles end, and one history log record names everything it did. A domain that
   nothing names is deleted for good; one that history names is archived, which people read as
-  deleted (`archivedAreas`). What a deletion did is stored with it (0076).
+  deleted (`archivedAreas`). What a deletion did is stored with it.
 */
 
 type TermKind = Term['kind']
 type Role = 'owner'
 
 /**
- * What deleting a domain would do, as the database reads it as the owner (0076). An item or a
- * proposal the audience rule hides is `withheld`, without a title (0083): it moves with the
+ * What deleting a domain would do, as the database reads it as the owner. An item or a
+ * proposal the audience rule hides is `withheld`, without a title: it moves with the
  * domain, but nothing here names it.
  */
 type Plan = {
@@ -77,7 +77,7 @@ type Plan = {
   history: boolean
 }
 
-/** What a deletion did, stored with it (0076). */
+/** What a deletion did, stored with it. */
 type Contents = {
   items: { id: string; versionId: string; title: string | null }[]
   terms: { key: string; versionId: string; fate: 'retired' | 'kept'; keptVersionId?: string }[]
@@ -124,7 +124,7 @@ const named = <T extends { title: string | null; withheld: boolean }>(entries: r
 /**
  * A term another domain still uses stays in service, without a domain: a new version of it, made
  * by the administrator as an accepted vocabulary proposal with its decision, so the serving guard
- * (0006) reads the same trail as for any other term. Returns each new version's id by key.
+ * reads the same trail as for any other term. Returns each new version's id by key.
  */
 async function keepWithoutDomain(
   tx: Queryable,
@@ -255,7 +255,7 @@ async function removeArea(
   const fates = fatesOf(plan)
   const retired = plan.terms.filter((term) => fates.get(term.key) === 'retired')
   const kept = plan.terms.filter((term) => fates.get(term.key) === 'kept')
-  // A retire decision by the administrator for each item agents get: the closing guard (0006).
+  // A retire decision by the administrator for each item agents get: the closing guard.
   if (plan.items.length)
     await tx.query(
       `insert into decisions(item_version_id,area_id,decided_by,capacity,outcome,reason)
@@ -304,7 +304,7 @@ async function removeArea(
   )
   // One edition for everything agents get: the items close, the terms retire or lose the domain,
   // and a term whose domain only the source gave loses it, as the archived domain is no longer
-  // one the source can give (0076).
+  // one the source can give.
   const edition: Edition | null =
     plan.items.length || plan.terms.length || plan.sourceTerms.length
       ? await publishEdition(

@@ -32,7 +32,7 @@ import { sourceVocabulary } from './vocabulary.ts'
   worked out from the stored definitions and the live vocabulary each time they are asked for, so
   one can never disagree with the source or with what is live now: a read that adds a metric adds
   its name, one that drops it drops the name, and a domain added later counts at once. The only
-  thing kept is which members an owner left out (0042).
+  thing kept is which members an owner left out.
 
   Accepting goes the way every vocabulary change goes: a term version, an accepted proposal, a
   decision by an owner of its domain or an administrator, which the database checks, and an edition,

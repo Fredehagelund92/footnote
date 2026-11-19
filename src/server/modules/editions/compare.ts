@@ -89,7 +89,7 @@ function rangeChanges(a: string, b: string, item?: string): string {
 }
 
 /**
- * Vocabulary terms whose served version, or the domain the source gives them (0054), differs
+ * Vocabulary terms whose served version, or the domain the source gives them, differs
  * between `a` and `b`, counted the same way.
  */
 function vocabularyChanges(a: string, b: string): string {

@@ -133,7 +133,7 @@ function toGap(row: GapRow): Gap {
   }
 }
 
-/** The migration's default (0040), for a database that has lost the setting. */
+/** The baseline's default, for a database that has lost the setting. */
 const DEFAULT_GAP_REPORTS_PER_MINUTE = 5
 
 /** A person's gap reports per minute (`limits.gap_reports_per_minute`, FR-408). */

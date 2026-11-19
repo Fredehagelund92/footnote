@@ -91,7 +91,7 @@ export function changeReason(text: string | null | undefined, action: ProposalRe
 /**
  * The Bin record of a rescue (FR-814): an administrator restored an item of a deleted domain into
  * another domain, and this proposal opened there. Null for any other proposal. A restored record
- * is history that everyone who reads the item reads (0067).
+ * is history that everyone who reads the item reads.
  */
 async function rescueOf(tx: Queryable, proposalId: string) {
   const [row] = await tx.query<{

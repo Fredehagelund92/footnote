@@ -78,8 +78,7 @@ business never name it, so a new name is one search away.
 | Paid media (`area_paid_media`)         | Priya Nair               | violet |
 | Sandbox (`area_sandbox`)               | Jon Abara                | gray   |
 
-The second approver for high-risk facts is Lars Dahl, on Sales. Ravi Kapoor is the admin and Ella
-Voss the auditor.
+Ravi Kapoor is the admin.
 
 The summaries and descriptions (`db/seed/fixtures/reference-data.ts`, and the seeds that copy them):
 

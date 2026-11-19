@@ -345,7 +345,8 @@ export async function bulkSeed(
         [t.id, t.name, t.meaning, t.areaId, t.by, t.at],
       )
     // Roles hold from the first day of the history, so its decisions were made by people who held
-    // them then (0006 checks the role at the decision's time). Former roles end the day after it.
+    // them then (the database checks the role at the decision's time). Former owners end the day
+    // after it.
     const days = items
       .flatMap((i) => [
         ...versionDays(i).flatMap((v) => [v.proposed, v.accepted]),
@@ -460,7 +461,7 @@ export async function bulkSeed(
       'insert into vocab_term_service select term_key,id,int8range($1,null) from vocab_term_versions where not term_key = any($2::text[])',
       [bootstrap, [...imported]],
     )
-    // The domains the demo Cube model gives its members, as the edition carries them (0054).
+    // The domains the demo Cube model gives its members, as the edition carries them.
     await client.query(
       `insert into source_domain_service (term_key,area_id,editions)
        select term_key,area_id,int8range($1,null) from cl_source_domains_now($1)`,

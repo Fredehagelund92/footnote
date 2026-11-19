@@ -475,7 +475,7 @@ export function definitionRefOf(term: { key: string; group?: string }): string {
 
 /**
  * The definitions each term named before a term could name several: its first view's member
- * only (the `term-in-one-view` mock scenario, and a database from before 0070).
+ * only (the `term-in-one-view` mock scenario).
  */
 export const firstViewRefs = (term: { key: string; group?: string }): string[] => [
   definitionRefOf(term),

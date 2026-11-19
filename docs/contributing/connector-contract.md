@@ -90,12 +90,10 @@ snapshot and of a source the definitions pipeline reads. A source says the inter
 connector was written to (`interfaceVersion`: 3, or 2 for the demo); the registry refuses any
 other version, a duplicate id and an id outside `^[a-z][a-z0-9_-]{1,39}$`.
 
-What changed from version 1: a read is handed the cursor of the newest good read and may return
-one (`read(context)`, `cursor`); the core tests settings with one read it keeps nowhere; and a
-member another source already reads is left with that source (`taken`) instead of failing the
-read. Interface 2 also let a type declare how an administrator adds a source of it, and Cube did,
-through an adapter to interface 3; every connector an administrator adds is now written to
-interface 3, and the adapter is gone.
+A read is handed the cursor of the newest good read and may return one (`read(context)`,
+`cursor`); the core tests settings with one read it keeps nowhere; and a member another source
+already reads is left with that source (`taken`) instead of failing the read. Every connector an
+administrator adds is written to interface 3.
 
 ### The server's own sources
 
@@ -280,7 +278,7 @@ their settings are whoever runs the server's.
 **Disconnect** (CON-118, `sources.remove`) ends a source an admin added: it is switched off for
 good, its secrets (and its figures' token) leave the store once the change commits, and it leaves
 Integrations; settings, reads, Read again, Pause and a second Disconnect find nothing (404). Its row
-stays (`connectors.removed_at`, `removed_by`, migration 0027), since its reads, suggestions and
+stays (`connectors.removed_at`, `removed_by`), since its reads, suggestions and
 definitions name it. A content source's open suggestions are withdrawn as the source, in a
 transaction of its own after the change commits (the job finishes any it could not); what owners
 published stays. A definitions source's definitions stay as they were, unflagged, and its refs
@@ -575,11 +573,7 @@ capabilities a manifest declares:
 
 ### Versions
 
-- **Interface version**, a semver: 3.3 today (3.1 added `capabilities.mergeDimensions` and a
-  secret's `file`, 3.2 `capabilities.serverFolder`, and 3.3 a host from a secret
-  (`egress.hosts[].fromSecret`), a secret's `visibleIf`, a list in `visibleIf`, an option's `recipe`
-  and `serverOnly`, `maxBytes` on `ctx.fetch` and `end.unchanged`, so a connector that uses them
-  says that version). A minor version only adds; a
+- **Interface version**, a semver: 3.3 today. A minor version only adds; a
   major one may break. Footnote runs the current and the previous major for at least 12 months or two
   releases, whichever is longer, and warns on a source's page when its connector uses a major that
   will stop being supported (CON-109). Experimental parts are open to built-in connectors only.
@@ -690,17 +684,15 @@ Where the build differs from the decided text above:
   for the server's own model folder (`CUBE_MODEL_DIR`), which its runtime reads as `ctx.folder`;
   the core applies the server's domain names (`FOOTNOTE_DOMAIN_OVERRIDES`) and renames
   (`CUBE_RENAMES_FILE`) to that folder's reads (`server-source.ts`), and `npm run
-connectors:sync` reads each of the server's own sources. Its settings, its refs and the sources
-  administrators added on interface 2 are as they were. Its warnings are the core's codes it
-  always had (`unsupported_file`, `compile_error` and the rest), since stored reads name them.
+connectors:sync` reads each of the server's own sources. Its warnings are the core's codes
+  (`unsupported_file`, `compile_error` and the rest).
 - **A folder on the server**, for any other definitions connector that declares
   `capabilities.serverFolder` (CON-119): `FOOTNOTE_SERVER_FOLDERS` maps connector ids to folders, each
   read as `ctx.folder` by a source of the server's own, with the server's domain names. The core
   hands no folder to a connector that does not declare it, and a name it cannot honour stops the
   server. With a folder named and no `CUBE_MODEL_DIR`, the demo is not read.
 - **What is stored**: a source's `connectors.type` is its connector's id and `interface_version`
-  is the interface the connector was written to (3, or 2 for the demo; migration 0020 moved the
-  Cube sources added on interface 2 to 3). The history log's `source.added`
+  is the interface the connector was written to (3, or 2 for the demo). The history log's `source.added`
   records the connector's version, and every read of a content source keeps it too
   (`connector_snapshots.connector_version`).
 
@@ -738,7 +730,7 @@ A definitions connector may declare `capabilities.figures` (CON-612, FR-716): it
 for Ask from the tool's data endpoint. The registry refuses a manifest that declares it without a
 runtime `figure`, and a content connector that declares it. Cube is the first.
 
-- **Settings** live on the source (`connectors.capabilities.figures`, migration 0025): the switch
+- **Settings** live on the source (`connectors.capabilities.figures`): the switch
   Show figures in Ask, off by default; the data endpoint; and the name of its token in the secret
   store. The data contact is `connectors.data_contact_id`. An administrator changes them with
   `figures.set`; switching on needs the endpoint, its token and a data contact. The token is sent
@@ -753,8 +745,8 @@ fetch, signal, now }`; the runtime answers `{ value, asOf, format, aggregation? 
   keeps the result a minute in memory, and stores nothing. A failure is a code only.
 - **No figure** when no integration defines the metric, more than one does, its view has no single
   date or can't be split by a value the question names, or the tool has no value: Ask says which.
-- **Side by side**: a named report can say a figure doesn't fit a context item (`part: 'figure'`,
-  migration 0025). It reaches the item's owners, the data contact, or both, and while it is open
+- **Side by side**: a named report can say a figure doesn't fit a context item (`part: 'figure'`).
+  It reaches the item's owners, the data contact, or both, and while it is open
   `figures.read` names the item, which Ask shows beside the figure with no verdict.
 - **Conformance**: the kit reads a figure through the core from the fixture's endpoint, and checks
   that a refused token, a figure out of time and an endpoint Footnote may not fetch each fail with

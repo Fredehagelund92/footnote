@@ -229,7 +229,7 @@ describe('a semantic manifest in Git', () => {
     await transaction(client, async () => {
       await client.query(`insert into vocab_terms(key,kind) values
         ('metric:revenue','metric'),('metric:gross_margin','metric')`)
-      // The first edition is a bootstrap: its vocabulary needs no decision (0006).
+      // The first edition is a bootstrap: its vocabulary needs no decision.
       const [{ seq }] = (
         await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")
       ).rows as [{ seq: string }]

@@ -317,7 +317,7 @@ it('keeps the job queue to the API role, without DDL', async () => {
     ).rejects.toMatchObject({ code: '42501' })
 })
 
-describe('attached tests (0043)', () => {
+describe('attached tests', () => {
   let draft: string
   let submitted: string
   beforeAll(async () => {

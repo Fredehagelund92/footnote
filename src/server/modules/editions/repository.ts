@@ -75,7 +75,7 @@ export async function enabledTools(tx: Queryable): Promise<string[]> {
   return rows.map((row) => row.tool)
 }
 
-/** The migration's defaults (0034), for a database that has lost the setting. */
+/** The baseline's defaults, for a database that has lost the setting. */
 export const DEFAULT_MCP_RATES: McpRates = { person: 30, client: 120 }
 
 /**

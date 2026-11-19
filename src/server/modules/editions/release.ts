@@ -21,7 +21,7 @@ export type EditionChange = {
   serve?: readonly string[]
   close?: readonly string[]
   vocabulary?: readonly string[]
-  /** Terms to retire, by key: only deleting a domain retires one (0076). */
+  /** Terms to retire, by key: only deleting a domain retires one. */
   retire?: readonly string[]
 }
 
@@ -197,7 +197,7 @@ export async function rollbackTo(tx: Queryable, label: string, note: string): Pr
 }
 
 /**
- * A rollback serves exactly the edition it goes back to. An item in the Bin (0067) that it serves
+ * A rollback serves exactly the edition it goes back to. An item in the Bin that it serves
  * again leaves the Bin with it, so no item is both served and out of the library.
  */
 async function leaveBin(tx: Queryable, edition: Edition) {
@@ -211,7 +211,7 @@ async function leaveBin(tx: Queryable, edition: Edition) {
       where b.restored_at is null
         and exists (select 1 from item_version_service s where s.item_id=b.item_id and s.editions @> $1::bigint)
       returning b.item_id as "itemId",b.area_id as "areaId",b.version_id::text as "versionId",
-        -- The history log names no item the audience rule hides (0083).
+        -- The history log names no item the audience rule hides.
         (select v.title from item_versions v where v.id=b.version_id and cl_version_open(v.id)) as title`,
     [edition.seq],
   )

@@ -41,7 +41,7 @@ export interface LibraryService {
 /**
  * The library index's items, for everyone, in id order: one expression, so the catalogue reads
  * them in the same statement as its terms. v_item_index builds only the index's fields, not each
- * item's whole document (0057).
+ * item's whole document.
  */
 export const libraryIndexItems = `(select coalesce(jsonb_agg(entry order by id collate "C"), '[]')
   from v_item_index where cl_audience_allows(audience_groups))`

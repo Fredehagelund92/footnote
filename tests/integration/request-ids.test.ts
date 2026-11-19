@@ -8,7 +8,7 @@ import { foundation, people } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
-  A history entry names the request that wrote it (0029): the id in `x-request-id` and in every
+  A history entry names the request that wrote it: the id in `x-request-id` and in every
   log line of that request. Work outside a request, such as a scheduled job, writes no id.
 */
 
