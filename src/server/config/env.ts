@@ -2,7 +2,13 @@ import { isIP } from 'node:net'
 import * as z from 'zod'
 import { DEFAULT_WEB_ORIGINS } from '../../contract/limits.ts'
 import { productNameProblem } from '../../domain/brand.ts'
-import { providerEnvNames } from '../modules/models/index.ts'
+import { settingSchemas } from '../../contract/admin.ts'
+import {
+  modelProviders,
+  providerEnvNames,
+  type ModelRef,
+  type StartModels,
+} from '../modules/models/index.ts'
 
 /**
  * The service's configuration, read once from the environment at start-up. Anything invalid
@@ -15,6 +21,33 @@ const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']
 const PROFILE_LABEL_MAX = 40
 
 const serverFoldersSchema = z.record(z.string(), z.string().min(1))
+
+/**
+ * `<provider>:<model>`, split at the first colon: Ollama's model names hold colons, as in
+ * `openai:gpt-oss:20b`.
+ */
+const modelName = z.string().transform((text, context) => {
+  const at = text.indexOf(':')
+  const ref = { provider: text.slice(0, at), model: text.slice(at + 1) }
+  if (at > 0 && settingSchemas['models.assistant'].safeParse(ref).success) return ref
+  context.addIssue({
+    code: 'custom',
+    message: 'Expected <provider>:<model>, such as openai:gpt-oss:20b',
+  })
+  return z.NEVER
+})
+
+/** `<input>,<output>`: US dollars per million tokens, 0 for a model that costs nothing. */
+const modelPrices = z
+  .string()
+  .regex(
+    /^\d+(\.\d+)?,\d+(\.\d+)?$/,
+    'Expected <input>,<output> in US dollars per million tokens, such as 0.5,2',
+  )
+  .transform((text) => {
+    const [input, output] = text.split(',').map(Number) as [number, number]
+    return { input, output }
+  })
 
 /** The value of a variable that holds JSON; undefined when it is not JSON. */
 function parsedJson(text: string): unknown {
@@ -139,6 +172,13 @@ const envSchema = z
     // (FR-718 to FR-720), in place of its fixed rules and planner. On by default; off answers with
     // the router.
     FOOTNOTE_ASK_LOOP: z.enum(['on', 'off']).default('on'),
+    // The one-line start: every role's model, and the judge's, at start-up, for each role whose
+    // setting is still the one it was installed with. A model its provider does not list needs
+    // its prices. An admin's change of the setting always wins.
+    FOOTNOTE_MODEL: modelName.optional(),
+    FOOTNOTE_MODEL_PRICES: modelPrices.optional(),
+    FOOTNOTE_JUDGE_MODEL: modelName.optional(),
+    FOOTNOTE_JUDGE_MODEL_PRICES: modelPrices.optional(),
     // A folder of Cube model files, read offline. Unset selects the demo connector.
     CUBE_MODEL_DIR: z.string().optional(),
     // Folders on the server, by connector id: a JSON object each connector named reads as
@@ -231,6 +271,23 @@ const envSchema = z
         path: ['FOOTNOTE_SESSION_IDLE_HOURS'],
         message: 'Expected no more hours than FOOTNOTE_SESSION_MAX_DAYS allows',
       })
+    for (const [name, model, prices] of [
+      ['FOOTNOTE_MODEL', env.FOOTNOTE_MODEL, env.FOOTNOTE_MODEL_PRICES],
+      ['FOOTNOTE_JUDGE_MODEL', env.FOOTNOTE_JUDGE_MODEL, env.FOOTNOTE_JUDGE_MODEL_PRICES],
+    ] as const) {
+      if (prices && !model)
+        context.addIssue({
+          code: 'custom',
+          path: [`${name}_PRICES`],
+          message: `Expected ${name} too: these are its prices`,
+        })
+      if (model && !prices && unlistedModel(model))
+        context.addIssue({
+          code: 'custom',
+          path: [name],
+          message: `Provider ${model.provider} does not list ${model.model}: set ${name}_PRICES to <input>,<output> in US dollars per million tokens, 0,0 for a model that costs nothing`,
+        })
+    }
     if (env.NODE_ENV === 'production' && env.FOOTNOTE_WEB_READ_LOOPBACK === 'on') {
       context.addIssue({
         code: 'custom',
@@ -339,6 +396,8 @@ export interface Config {
   askLoop: boolean
   /** The registry's key, bearer token and base URL variables that are set, by name. Never logged. */
   modelEnv: Record<string, string>
+  /** FOOTNOTE_MODEL and FOOTNOTE_JUDGE_MODEL, with their prices: the one-line start. */
+  startModels: StartModels
   cubeModelDir: string | undefined
   /** The folders on the server, by connector id (`FOOTNOTE_SERVER_FOLDERS`). */
   serverFolders: Readonly<Record<string, string>>
@@ -358,6 +417,16 @@ export interface Config {
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; unset shows none. */
   profileLabel: string | undefined
 }
+
+/** A model its provider does not list; a provider the registry lacks is refused at start-up. */
+function unlistedModel(ref: ModelRef): boolean {
+  const entry = modelProviders.find((p) => p.name === ref.provider)
+  return entry !== undefined && !Object.hasOwn(entry.models, ref.model)
+}
+
+/** A one-line start's model with its prices, when it has them. */
+const withPrices = (model: ModelRef | undefined, prices: ModelRef['prices']) =>
+  model && prices ? { ...model, prices } : model
 
 /** What a refusal adds when production has no sign-in configured. */
 export const productionSignInHint =
@@ -415,6 +484,10 @@ export function loadConfig(environment: Record<string, string | undefined>): Con
         present[name] === undefined ? [] : [[name, present[name]]],
       ),
     ),
+    startModels: {
+      model: withPrices(env.FOOTNOTE_MODEL, env.FOOTNOTE_MODEL_PRICES),
+      judge: withPrices(env.FOOTNOTE_JUDGE_MODEL, env.FOOTNOTE_JUDGE_MODEL_PRICES),
+    },
     cubeModelDir: env.CUBE_MODEL_DIR,
     serverFolders: env.FOOTNOTE_SERVER_FOLDERS ?? {},
     domainOverridesFile: env.FOOTNOTE_DOMAIN_OVERRIDES,

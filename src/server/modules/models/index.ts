@@ -28,11 +28,13 @@ export {
   checkModelSetting,
   checkModelSettings,
   differentFamily,
+  fillModelSettings,
   parseModelSetting,
   readModelSettings,
   settingPrices,
   type JudgeSetting,
   type ModelSettings,
+  type StartModels,
 } from './settings.ts'
 export { gradingTag, mentions, type GradingInput } from './mock.ts'
 export { fixedWordsModel, scriptedWordsModel } from './words-mock.ts'

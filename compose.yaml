@@ -72,6 +72,10 @@ services:
       VERCEL_AI_GATEWAY_BASE_URL:
       OPENAI_API_KEY:
       OPENAI_BASE_URL:
+      FOOTNOTE_MODEL:
+      FOOTNOTE_MODEL_PRICES:
+      FOOTNOTE_JUDGE_MODEL:
+      FOOTNOTE_JUDGE_MODEL_PRICES:
     volumes:
       # Your own model's folder, or an empty volume nothing reads when you name none: the demo
       # never depends on a folder Docker shares from this computer.

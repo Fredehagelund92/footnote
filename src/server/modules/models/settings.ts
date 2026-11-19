@@ -73,6 +73,39 @@ export function settingPrices(
   })
 }
 
+/** The one-line start's models (FOOTNOTE_MODEL, FOOTNOTE_JUDGE_MODEL): every role's, and the judge's. */
+export type StartModels = { model: ModelRef | undefined; judge: ModelRef | undefined }
+
+/**
+ * Sets each role whose setting is still the one it was installed with (its first version, no
+ * person's change) to the one-line start's model, and the judge to its own; a setting anyone
+ * changed is kept. Each model is checked first, by the variable that names it. Returns the
+ * settings it set. Two services starting at once write each setting once.
+ */
+export async function fillModelSettings(
+  tx: Queryable,
+  port: ModelPort,
+  start: StartModels,
+): Promise<string[]> {
+  const filled: string[] = []
+  for (const role of modelRoles) {
+    const [name, ref] =
+      role === 'judge' ? ['FOOTNOTE_JUDGE_MODEL', start.judge] : ['FOOTNOTE_MODEL', start.model]
+    if (!ref) continue
+    port.check(name, ref)
+    const rows = await tx.query<{ key: string }>(
+      `insert into settings_versions(key,version,value,reason)
+       select key, 2, $2, $3 from settings_versions where key = $1
+        group by key having max(version) = 1 and bool_and(changed_by is null)
+       on conflict do nothing
+       returning key`,
+      [`models.${role}`, JSON.stringify(ref), `${name} at start-up`],
+    )
+    filled.push(...rows.map((row) => row.key))
+  }
+  return filled
+}
+
 /** Checks a new value of a `models.<role>` setting before it is saved; other keys pass. */
 export function checkModelSetting(port: ModelPort, key: string, value: unknown): void {
   const role = modelRoles.find((r) => key === `models.${r}`)

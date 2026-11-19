@@ -53,6 +53,9 @@ The login server's own settings are on [Sign in your own agent](ai-sign-in.md#th
 | `VERCEL_AI_GATEWAY_API_KEY` | None      | The key for the `vercel-gateway` provider                     |
 | `OPENAI_API_KEY`            | None      | The key for the `openai` provider; a local server needs none  |
 | `OPENAI_BASE_URL`           | OpenAI    | Any server that speaks OpenAI's Chat Completions API          |
+| `FOOTNOTE_MODEL`            | None      | `<provider>:<model>` for every role no one has changed yet    |
+| `FOOTNOTE_MODEL_PRICES`     | None      | Its `<input>,<output>` price, needed for an unlisted model    |
+| `FOOTNOTE_JUDGE_MODEL`      | None      | The test runs' judge, the same way, with `_PRICES` as well    |
 | `FOOTNOTE_ASK_LOOP`         | `on`      | `off` answers Ask with its fixed rules and planner instead    |
 
 With `live`, each role's provider and model come from the `models.*` settings, and the service refuses to start when a provider, a model or a key is missing, or the provider does not list the model and its setting gives no prices.
