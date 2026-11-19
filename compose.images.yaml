@@ -1,5 +1,5 @@
-# The demo from the published images, instead of building them on this computer (README, "Quick
-# start"). Everything else comes from compose.yaml:
+# The demo from the published images, instead of building them on this computer (docs/self-hosting.md,
+# "From the published images"). Everything else comes from compose.yaml:
 #
 #   docker compose -f compose.yaml -f compose.images.yaml up
 #

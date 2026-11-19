@@ -387,7 +387,7 @@ jobs:
     # http build behind nginx. The web image is started on its own and checked as a browser meets
     # it (scripts/check-web-image.ts). The service image boots as it ships, in production mode, behind
     # the web image, against a stand-in OpenID Connect provider (tests/image/production-boot.sh); then
-    # docker compose up starts the demo, as the README's Quick start does.
+    # docker compose up starts the demo, as the README's Try it does.
     name: 'Docker images: build, and boot the service in production mode'
     needs: scope
     if: needs.scope.outputs.code == 'true'

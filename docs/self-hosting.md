@@ -28,10 +28,54 @@ To check it, `docker compose ps` shows each part `healthy`, and `docker compose 
 | `FOOTNOTE_WEB_PORT` | `8080`  | The web app's port on this computer                                                                |
 | `FOOTNOTE_PORT`     | `3000`  | The service's port on this computer, where agents connect (`/mcp`)                                 |
 | `SEED_DEMO`         | `on`    | Loads the demo into a new, empty database                                                          |
-| `CUBE_MODEL_DIR`    | Unset   | Your own Cube model's folder, read only ([Use your own data](../README.md#use-your-own-data))      |
+| `CUBE_MODEL_DIR`    | Unset   | Your own Cube model's folder, read only ([Use your own data](#use-your-own-data))                  |
 | `MODELS`            | Unset   | `live` answers Ask and the test runs on a real model ([Ask on a real model](#ask-on-a-real-model)) |
 
 When 8080 or 3000 is taken by another program, move them, as in `FOOTNOTE_WEB_PORT=8081 FOOTNOTE_PORT=3001 docker compose up`. Docker Desktop refuses a taken port with an error. Colima may say nothing, and the other program then answers on that port. An agent then connects to the new service port, such as `http://localhost:3001/mcp`.
+
+## The demo
+
+The demo is an invented outdoor-gear retailer that sells in twelve countries: its people, domains and context items with their history, suggestions waiting for review, and the questions agents asked over the past weeks. Nothing leaves this computer, and no AI service is called.
+
+It opens as Ravi Kapoor, the admin. **View as**, in the top right corner, shows the same company as Jon Abara, who owns Sales, or as Maria Lindqvist, who can read and suggest. Sign out to pick any other demo person.
+
+Ctrl+C stops it. `docker compose down --volumes` also removes its data, so the next start loads the demo again.
+
+`compose.yaml` runs the service in development mode for the demo's people picker, where anyone can sign in as anyone. The service image on its own starts in production mode, with company sign-in: see [Run the image in production mode](operations.md#run-the-image-in-production-mode).
+
+### Connect Claude Code to the demo
+
+With the demo running:
+
+```sh
+claude mcp add --transport http footnote http://localhost:3000/mcp
+```
+
+Then run `/mcp` in Claude Code, choose **footnote**, and choose **Authenticate**. Your browser opens Footnote: choose a demo person and **Allow**. Ask it how orders in Norway changed in October 2026. Other agents are in [Connect an agent](help/connect-an-agent.md).
+
+### From the published images
+
+```sh
+docker compose -f compose.yaml -f compose.images.yaml up
+```
+
+This pulls the images of the latest release instead of building them, which takes about two minutes. They can be behind the code you cloned, and they exist from the first release on. Until then, `docker compose up` builds them.
+
+## Use your own data
+
+Footnote reads metric and dimension names from your semantic layer, and never writes to it. For a [Cube](https://cube.dev) model, name its folder:
+
+```sh
+CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
+```
+
+With your own model Footnote starts empty, with no demo data. The sign-in page offers the sample people of [the local people file](../db/seed/people.local.yml). Sign in as Ravi Kapoor, the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context applies to those names.
+
+On a Mac the folder must be one Docker shares, or Footnote refuses to start and says so. See [the Cube connector](connectors/cube.md).
+
+To sign in as yourself, add your name and email to the top of [the local people file](../db/seed/people.local.yml) with `roles: [administrator]`, then start with `docker compose up --build`, so the image takes the file in.
+
+For dbt, Footnote reads the semantic manifest that `dbt parse` writes, from a link, object storage, a Git repository or a folder: see [the dbt MetricFlow connector](../src/connectors/dbt-metricflow/README.md). Tokens and signed links stay in a secret store in Docker's `footnote_keys` volume.
 
 ## Ask on a real model
 

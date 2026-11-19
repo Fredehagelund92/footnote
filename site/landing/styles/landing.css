@@ -2158,7 +2158,7 @@ h3 {
   color: var(--ink-2);
 }
 
-/* Claude Code, drawn after the real capture in the repository (docs/images/claude-code.png). */
+/* Claude Code, drawn after a real session on the demo. */
 .cc {
   border-radius: 12px;
   overflow: hidden;
