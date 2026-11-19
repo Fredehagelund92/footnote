@@ -65,7 +65,7 @@ function mount(getRaised: FootnoteApi['getRaised'], domain?: DomainId) {
         React.createElement(
           QueryClientProvider,
           { client },
-          React.createElement(RaisedLately, { key: d ?? 'all', first, empty: false, domain: d }),
+          React.createElement(RaisedLately, { first, empty: false, domain: d }),
         ),
       ),
     )

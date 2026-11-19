@@ -109,12 +109,7 @@ function Alerts() {
         )}
       </section>
 
-      <RaisedLately
-        key={choice.asked ?? 'all'}
-        first={raised}
-        empty={view.state === 'empty'}
-        domain={choice.asked}
-      />
+      <RaisedLately first={raised} empty={view.state === 'empty'} domain={choice.asked} />
       <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
         <UsersIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         Owners see and mute alerts for their own domains. Admins turn rules off and change the
@@ -171,7 +166,14 @@ export function RaisedLately({
   domain: DomainId | undefined
 }) {
   const domains = useDomains()
-  const [rule, setRule] = React.useState<RuleId | null>(null)
+  const [chosen, setChosen] = React.useState<{ rule: RuleId | null; domain: DomainId | undefined }>(
+    {
+      rule: null,
+      domain,
+    },
+  )
+  const rule = chosen.domain === domain ? chosen.rule : null
+  const setRule = (r: RuleId | null) => setChosen({ rule: r, domain })
   const pages = useRaisedPages(rule, domain, first)
   const loading = !empty && !pages.data && !pages.isError
   const counts = pages.data?.pages[0] ?? (domain ? { ...first, total: 0, byRule: [] } : first)
