@@ -167,6 +167,24 @@ describe('the answer check, by code', () => {
     expect(answerCheck(withUnchecked(text, failed), ctx())).toEqual([])
   })
 
+  it('holds the words to one voice, and keeps a sentence that only breaks the voice', () => {
+    const text = [
+      'I read what is written about Germany [itm_germany01].',
+      'Footnote does not record who wrote the item.',
+      'Footnote keeps no order figures.',
+    ].join(' ')
+    const failed = answerCheck(text, ctx())
+    expect(failed.map((f) => f.kind)).toEqual(['voice', 'claim'])
+    // A sentence in Ask's own voice that is true is shown as written again; a claim no read
+    // returned is not.
+    expect(withUnchecked(text, failed)).toBe(
+      `${text.split('. ')[0]}. ${UNCHECKED} Footnote keeps no order figures.`,
+    )
+    expect(
+      answerCheck('Germany covers 1 Apr to 30 Jun 2026 (1 April to 30 June 2026).', ctx()),
+    ).toContainEqual(expect.objectContaining({ kind: 'period' }))
+  })
+
   it('shows only the start of the words before the first sentence that fails', () => {
     expect(checkedStart('Germany lags [itm_germany01]. It lags by 47 hours. Fine.', ctx())).toBe(
       'Germany lags [itm_germany01].',
