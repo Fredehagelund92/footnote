@@ -33,6 +33,13 @@ const labels = ['Wed 11', 'Thu 12', 'Fri 13', 'Sat 14', 'Sun 15', 'Mon 16', 'Tue
 const median = [12, 13, 14, 11, null, 15, 12]
 const p95 = [49, 60, 153, 54, null, 158, 103]
 
+/** Every point of every drawn line, as "x,y". */
+function linePoints(svg: SVGElement) {
+  return [...svg.querySelectorAll('path[fill="none"]')].flatMap((p) =>
+    p.getAttribute('d')!.slice(2).split(' L '),
+  )
+}
+
 function draw(values: { median: (number | null)[]; p95: (number | null)[] } = { median, p95 }) {
   host = document.createElement('div')
   document.body.append(host)
@@ -61,12 +68,7 @@ it('draws every point inside the plot when a day takes 158 ms', () => {
   const top = Math.min(...lines)
   const bottom = Math.max(...lines)
   const ys = [
-    ...[...svg.querySelectorAll('polyline')].flatMap((p) =>
-      p
-        .getAttribute('points')!
-        .split(' ')
-        .map((pt) => Number(pt.split(',')[1])),
-    ),
+    ...linePoints(svg).map((pt) => Number(pt.split(',')[1])),
     ...[...svg.querySelectorAll('circle')].map((c) => Number(c.getAttribute('cy'))),
   ]
   expect(ys.length).toBeGreaterThan(0)
@@ -75,20 +77,18 @@ it('draws every point inside the plot when a day takes 158 ms', () => {
     expect(y).toBeLessThanOrEqual(bottom)
   }
   // The axis is round, in four steps, up to the first round number over the slowest day.
-  const ticks = [...svg.querySelectorAll('text')].map((t) => t.textContent).slice(0, 5)
+  const ticks = [...svg.querySelectorAll('text:not([data-x-label])')].map((t) => t.textContent)
   expect(ticks).toEqual(['0 ms', '50 ms', '100 ms', '150 ms', '200 ms'])
 })
 
 it('leaves a gap for a day with no reply timed, never a point at 0 ms', () => {
   const svg = draw()
   // Each series breaks at Sun 15: two runs of shown days, and no point on the floor.
-  expect(svg.querySelectorAll('polyline')).toHaveLength(4)
+  expect(svg.querySelectorAll('path[fill="none"]')).toHaveLength(4)
   const floor = Math.max(
     ...[...svg.querySelectorAll('line')].map((l) => Number(l.getAttribute('y1'))),
   )
-  const points = [...svg.querySelectorAll('polyline')].flatMap((p) =>
-    p.getAttribute('points')!.split(' '),
-  )
+  const points = linePoints(svg)
   expect(points.some((pt) => Number(pt.split(',')[1]) === floor)).toBe(false)
   const sunday = [...host!.querySelectorAll('tbody tr')].find((r) =>
     r.textContent?.startsWith('Sun 15'),
@@ -98,6 +98,6 @@ it('leaves a gap for a day with no reply timed, never a point at 0 ms', () => {
 
 it('labels whole numbers on every gridline when the slowest day is just under 10 ms', () => {
   const svg = draw({ median: [3, 4, 5, 4, 3, 4, 5], p95: [6, 7, 9, 8, 7, 9, 8] })
-  const ticks = [...svg.querySelectorAll('text')].map((t) => t.textContent).slice(0, 5)
-  expect(ticks).toEqual(['0 ms', '3 ms', '6 ms', '9 ms', '12 ms'])
+  const ticks = [...svg.querySelectorAll('text:not([data-x-label])')].map((t) => t.textContent)
+  expect(ticks).toEqual(['0 ms', '5 ms', '10 ms'])
 })
