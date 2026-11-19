@@ -11,7 +11,10 @@ import { toolSchemaDigest } from '../../mcp/tools.ts'
 import { enabledTools, loadServingBundle, type ServingBundle } from '../editions/index.ts'
 import {
   differentFamily,
+  testRunRefusal,
+  withJsonText,
   type JudgeSetting,
+  type ModelChecks,
   type ModelChoice,
   type ModelPort,
 } from '../models/index.ts'
@@ -36,7 +39,11 @@ import { readEvalSettings, type EvalSettings } from './settings.ts'
  * FR-518). No suggestion waits for answer tests: every item passes levels 1 to 3 only (FR-513).
  */
 
-export type EvalDeps = { port: ModelPort; clock: Clock }
+/**
+ * `checks`: the model check (models/capability.ts), with real models. A run then answers only on a
+ * model that calls tools, and its judge asks for JSON text when it cannot keep to a JSON schema.
+ */
+export type EvalDeps = { port: ModelPort; clock: Clock; checks?: ModelChecks }
 /** `held_out`: the sealed held-out questions of an area, run with nothing of them kept. */
 export type RunKind = 'full' | 'scheduled' | 'links' | 'held_out'
 export type RunState =
@@ -180,6 +187,28 @@ export const runColumns = `id::text,kind::text,state::text,area_id,
 export function modelsFor(port: ModelPort, settings: EvalSettings): Models {
   const answer = port.choose('eval_answer', settings.models.eval_answer)
   return { answer, judge: judgeFor(port, answer, settings.models.judge) }
+}
+
+/** A test run that cannot start on its answering model; its message says why. */
+export class TestRunRefused extends Error {
+  override name = 'TestRunRefused'
+}
+
+/**
+ * The models a run is worked with, checked first where the service keeps model checks: a run whose
+ * answering model failed the tool call is refused (`TestRunRefused`), and a judge that failed the
+ * JSON schema asks for JSON text.
+ */
+export async function checkedModelsFor(deps: EvalDeps, settings: EvalSettings): Promise<Models> {
+  const models = modelsFor(deps.port, settings)
+  if (!deps.checks) return models
+  const [answer, judge] = await Promise.all([
+    deps.checks.of(models.answer, 'eval_answer'),
+    deps.checks.of(models.judge, 'judge'),
+  ])
+  const refusal = testRunRefusal(answer)
+  if (refusal) throw new TestRunRefused(refusal)
+  return { answer: models.answer, judge: withJsonText(models.judge, judge) }
 }
 
 function judgeFor(port: ModelPort, answer: ModelChoice, setting: JudgeSetting): ModelChoice {

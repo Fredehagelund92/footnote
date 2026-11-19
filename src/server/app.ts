@@ -29,7 +29,7 @@ import {
 } from './modules/connectors/index.ts'
 import type { JobRunner } from './modules/jobs/index.ts'
 import type { AskTrace } from './modules/answer/index.ts'
-import { createModelPort, type ModelPort } from './modules/models/index.ts'
+import { createModelPort, type ModelChecks, type ModelPort } from './modules/models/index.ts'
 import { registerLoginRoutes, type LoginServer } from './modules/oauth/index.ts'
 import type { PageReader } from './modules/web/index.ts'
 import { createMetrics, operationOf, type Metrics } from './observability/metrics.ts'
@@ -87,6 +87,11 @@ export interface AppDependencies {
   askTrace?: AskTrace
   /** FOOTNOTE_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). The service sets it from the config (on by default); a bare app answers with its router. */
   askLoop?: boolean
+  /**
+   * The model check (`models/capability.ts`), with real models: Ask answers with its router while
+   * its model failed the tool call. A bare app keeps none.
+   */
+  modelChecks?: ModelChecks
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show. None by default. */
   profileLabel?: string | undefined
 }
@@ -126,6 +131,7 @@ export function buildApp({
   trustedProxies = [],
   askTrace,
   askLoop = false,
+  modelChecks,
   profileLabel,
 }: AppDependencies): FastifyInstance {
   const app = Fastify({
@@ -204,6 +210,7 @@ export function buildApp({
     ...(readPage ? { readPage } : {}),
     ...(askTrace ? { askTrace } : {}),
     askLoop,
+    ...(modelChecks ? { modelChecks } : {}),
     profileLabel: profileLabel ?? null,
   })
 

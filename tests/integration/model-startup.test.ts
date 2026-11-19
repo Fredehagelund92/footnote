@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { createServer as createHttpServer } from 'node:http'
 import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -6,7 +7,9 @@ import { testDatabase } from './support.ts'
 
 /*
   With real models the service checks every role's provider and model before it listens, against
-  the settings in its database, and names the setting that cannot be served. No model is called.
+  the settings in its database, and names the setting that cannot be served. No model is called
+  before it listens; once it does, it makes the model check of each role (P5), here against a
+  stub model server.
 */
 
 const { client, url } = testDatabase()
@@ -111,4 +114,85 @@ describe('the model settings at start-up', () => {
       await server.exited
     }
   }, 60_000)
+
+  it('checks each role’s model once it listens, and warns of a model that cannot call tools', async () => {
+    // A local model server that turns away every request with tools, as Ollama does for a model
+    // without tool support, and answers the rest.
+    const bodies: Record<string, unknown>[] = []
+    const stub = createHttpServer((request, response) => {
+      let text = ''
+      request.on('data', (chunk: Buffer) => (text += chunk.toString()))
+      request.on('end', () => {
+        const body = JSON.parse(text) as Record<string, unknown>
+        bodies.push(body)
+        response.setHeader('content-type', 'application/json')
+        if (body.tools) {
+          response.statusCode = 400
+          response.end(JSON.stringify({ error: { message: 'model does not support tools' } }))
+          return
+        }
+        response.end(
+          JSON.stringify({
+            id: 'chatcmpl-1',
+            object: 'chat.completion',
+            created: 1_791_500_000,
+            model: 'gpt-oss:20b',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: '{"city":"Oslo","count":3}' },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: { prompt_tokens: 60, completion_tokens: 12, total_tokens: 72 },
+          }),
+        )
+      })
+    })
+    await new Promise<void>((resolve) => stub.listen(0, '127.0.0.1', resolve))
+    const { port: stubPort } = stub.address() as { port: number }
+    const port = await freePort()
+    // The settings the test before filled: every role on gpt-oss:20b, the judge another line.
+    const server = start({
+      MODELS: 'live',
+      PORT: String(port),
+      OPENAI_BASE_URL: `http://127.0.0.1:${stubPort}/v1`,
+    })
+    try {
+      expect(await healthy(port, Date.now() + 50_000), server.output()).toBe(true)
+      const deadline = Date.now() + 30_000
+      while (Date.now() < deadline && !server.output().includes('"setting":"models.judge"'))
+        await new Promise((resolve) => setTimeout(resolve, 200))
+      const lines = server
+        .output()
+        .split('\n')
+        .filter((line) => line.includes('model check:'))
+        .map((line) => JSON.parse(line) as Record<string, unknown>)
+      expect(lines.map((l) => [l.setting, l.level, l.msg])).toEqual([
+        ['models.assistant', 40, 'model check: Can’t call tools, so Ask answers without them'],
+        [
+          'models.eval_answer',
+          40,
+          'model check: Can’t call tools, so answer tests refuse to start',
+        ],
+        ['models.judge', 30, 'model check: Keeps to a JSON schema, as judging needs'],
+      ])
+      expect(lines[0]).toMatchObject({
+        model: 'openai/gpt-oss:20b',
+        tools: 'fail',
+        noTools: 'fail',
+        json: 'pass',
+        notes: [
+          'tools: HTTP 400: model does not support tools',
+          'noTools: HTTP 400: model does not support tools',
+        ],
+      })
+      // One model serves every role: it was checked once, in three calls and a plain one.
+      expect(bodies).toHaveLength(4)
+    } finally {
+      server.child.kill('SIGTERM')
+      await server.exited
+      await new Promise((resolve) => stub.close(resolve))
+    }
+  }, 90_000)
 })

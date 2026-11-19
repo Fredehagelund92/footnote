@@ -218,6 +218,14 @@ describe('the judge (native structured output, one retry, then JSON text)', () =
     const broken = scripted([reply('a'), reply('b'), reply('c')])
     await expect(judgeAnswer(broken, question, 'answer')).rejects.toThrow(/no readable verdict/)
   })
+  it('asks a judge that failed the model check’s JSON schema for JSON text at once (P5)', async () => {
+    const choice = scripted([reply(`Here: ${JSON.stringify(verdict)}`)])
+    const result = await judgeAnswer({ ...choice, jsonSchema: false }, question, 'answer')
+    expect(result).toEqual({ kind: 'verdict', verdict })
+    expect(choice.calls).toHaveLength(1)
+    expect(choice.calls[0]!.responseFormat).toBeUndefined()
+    expect(JSON.stringify(choice.calls[0]!.prompt)).toContain('Reply with one JSON object')
+  })
   it("grades each rubric by its id, and offers the model only the question's ids", async () => {
     const choice = scripted([reply(JSON.stringify(verdict))])
     await judgeAnswer(choice, question, 'Online sales stopped in Norway.')

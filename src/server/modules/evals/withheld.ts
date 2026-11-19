@@ -24,7 +24,15 @@ import {
 import { tryQuestion } from './answer.ts'
 import { openArm, ToolCallRefused, type Arm } from './arm.ts'
 import { cellEstimateMicros } from './plan.ts'
-import { armTools, insertRun, liveHead, modelsFor, sidesFor, type EvalDeps } from './runs.ts'
+import {
+  armTools,
+  checkedModelsFor,
+  insertRun,
+  liveHead,
+  modelsFor,
+  sidesFor,
+  type EvalDeps,
+} from './runs.ts'
 import { readEvalSettings } from './settings.ts'
 import { capReached, formatUsd } from './spend.ts'
 import { CEILING_MARGIN, HEARTBEAT_MS, LEASE } from './worker.ts'
@@ -101,11 +109,13 @@ export async function runWithheld(
   const { questions, person, signal } = options
   const worker = randomUUID()
   const rule = options.passRule ?? 'majority'
+  // The models are checked before the run is made, outside its transaction: a run on a model
+  // that cannot call tools is refused (`TestRunRefused`) and none is made.
+  const settings = await database.transaction(person, (tx) => readEvalSettings(tx))
+  const models = await checkedModelsFor(deps, settings)
   const prepared = await database.transaction(person, async (tx) => {
     const head = await liveHead(tx)
     if (!head) throw new Error('There is no live edition yet')
-    const settings = await readEvalSettings(tx)
-    const models = modelsFor(deps.port, settings)
     const tools = await armTools(tx, 'full')
     const bundle = (await sidesFor(tx, head)).baseline!
     const cells = questions.reduce((n, q) => n + q.wordings.length * settings.tries, 0)
@@ -134,9 +144,9 @@ export async function runWithheld(
       `update eval_runs set started_at=now(),worker=$2,lease_until=now()+interval '${LEASE}' where id=$1`,
       [run.id, worker],
     )
-    return { run, settings, models, tools, bundle }
+    return { run, tools, bundle }
   })
-  const { run, settings, models, tools, bundle } = prepared
+  const { run, tools, bundle } = prepared
   const limits = await readCallLimits(database)
   const ceiling = options.ceilingMicros
   const estimate = cellEstimateMicros(models)

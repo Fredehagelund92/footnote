@@ -26,7 +26,7 @@ const serverFoldersSchema = z.record(z.string(), z.string().min(1))
  * `<provider>:<model>`, split at the first colon: Ollama's model names hold colons, as in
  * `openai:gpt-oss:20b`.
  */
-const modelName = z.string().transform((text, context) => {
+export const modelName = z.string().transform((text, context) => {
   const at = text.indexOf(':')
   const ref = { provider: text.slice(0, at), model: text.slice(at + 1) }
   if (at > 0 && settingSchemas['models.assistant'].safeParse(ref).success) return ref
@@ -38,7 +38,7 @@ const modelName = z.string().transform((text, context) => {
 })
 
 /** `<input>,<output>`: US dollars per million tokens, 0 for a model that costs nothing. */
-const modelPrices = z
+export const modelPrices = z
   .string()
   .regex(
     /^\d+(\.\d+)?,\d+(\.\d+)?$/,
@@ -419,7 +419,7 @@ export interface Config {
 }
 
 /** A model its provider does not list; a provider the registry lacks is refused at start-up. */
-function unlistedModel(ref: ModelRef): boolean {
+export function unlistedModel(ref: ModelRef): boolean {
   const entry = modelProviders.find((p) => p.name === ref.provider)
   return entry !== undefined && !Object.hasOwn(entry.models, ref.model)
 }

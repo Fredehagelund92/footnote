@@ -62,6 +62,10 @@ MODELS=live ANTHROPIC_BASE_URL=http://host.docker.internal:4000/v1 \
 
 The line sets only the roles no one has changed. After that, an admin's `models.*` settings decide ([Change a setting](administration.md#change-a-setting), [Model providers](evaluations.md#model-providers)). With one model, the test runs' judge is that same model. Name another with `FOOTNOTE_JUDGE_MODEL` and `FOOTNOTE_JUDGE_MODEL_PRICES`. Models other than Claude work, but their answers are less complete.
 
+**The model check.** Once it starts, the service makes three tiny calls on each role's model: a tool call, a call told to use no tool, and an answer in a set JSON shape. A model that cannot call tools still answers Ask, without its tools, and test runs refuse to start on it.
+
+The log, and Settings, Advanced under Models, say what each check found. `docker compose exec footnote npm run models:check` makes it again.
+
 **What leaves this computer.** For each question, Ask sends Anthropic the chat so far, the text of the items it reads, their owners' names, and whether the person asking is an admin and which domains they own. It sends no e-mail address and not the asker's name. Test runs send their test questions and the items they read.
 
 On another provider, that provider receives the same, and the model's vendor too when the provider passes it on. A model server on this computer sends nothing out. Put no company data in until your company approves the provider.

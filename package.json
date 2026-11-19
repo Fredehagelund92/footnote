@@ -151,6 +151,7 @@
     "eval:ask-gate": "node --env-file-if-exists=.env.local src/server/run-ask-plan-cases.ts --gate",
     "eval:ask-harness": "node --env-file-if-exists=.env.local scripts/ask-eval.ts",
     "eval:drafts": "node scripts/draft-eval.ts",
+    "models:check": "node --env-file-if-exists=.env.local src/server/run-models-check.ts",
     "held-out": "node scripts/held-out.ts",
     "footnote": "node --env-file-if-exists=.env.local src/cli/main.ts",
     "api:generate": "node scripts/generate-api.ts",

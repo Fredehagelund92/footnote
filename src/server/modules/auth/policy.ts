@@ -140,6 +140,7 @@ export const policies = {
   'workspace.get': 'read',
   'settings.list': 'admin',
   'settings.set': 'admin',
+  'models.checks': 'admin',
   'tools.set': 'admin',
   'clients.list': 'admin',
   'clients.save': 'admin',

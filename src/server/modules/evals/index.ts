@@ -11,12 +11,14 @@ export { deliver, deliveredIds, runRetrievalPass, workRetrieval } from './retrie
 export { queueTriggeredRuns } from './triggers.ts'
 export {
   canResume,
+  checkedModelsFor,
   commandKinds,
   liveHead,
   modelsFor,
   queueAreaRun,
   resumeRun,
   stopRun,
+  TestRunRefused,
   type EvalDeps,
   type RunSummary,
 } from './runs.ts'

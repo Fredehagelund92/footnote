@@ -7,15 +7,18 @@ import { createDatabase, type Queryable } from './db/database.ts'
 import {
   CEILING_MARGIN,
   canResume,
+  checkedModelsFor,
   createEvalsService,
   modelsFor,
   queueAreaRun,
   readEvalSettings,
   resumeRun,
+  TestRunRefused,
   workEvaluations,
 } from './modules/evals/index.ts'
 import {
   checkModelSettings,
+  createModelChecks,
   createModelPort,
   ModelConfigError,
   readModelSettings,
@@ -87,15 +90,17 @@ async function main() {
     const deps = {
       port: createModelPort({ mode: config.models, env: config.modelEnv }),
       clock: systemClock(config.fixedToday),
+      // A real run first checks its models: three tiny calls each (models:check).
+      ...(values.real ? { checks: createModelChecks({ database }) } : {}),
     }
     let recipients, providers
     try {
       checkModelSettings(deps.port, await readModelSettings(database))
-      const models = modelsFor(deps.port, await readEvalSettings(database))
+      const models = await checkedModelsFor(deps, await readEvalSettings(database))
       recipients = [...new Set([models.answer.recipients, models.judge.recipients])].join('; ')
       providers = [models.answer.provider, models.judge.provider]
     } catch (error) {
-      if (!(error instanceof ModelConfigError)) throw error
+      if (!(error instanceof ModelConfigError || error instanceof TestRunRefused)) throw error
       console.error(error.message)
       return 1
     }

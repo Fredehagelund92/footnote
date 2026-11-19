@@ -47,6 +47,23 @@ from a base URL that is not the operator's own, for `ANTHROPIC_BASE_URL` too: "t
 loopback address, "your network (10.0.0.12)" for a private one, and "the host at openrouter.ai"
 otherwise, with the model's vendor when its name gives one, such as `anthropic/claude-sonnet-5.5`.
 
+**The model check** (`src/server/modules/models/capability.ts`). With `MODELS=live`, the service
+checks each role's model once it listens, with three tiny calls metered like any other: a forced
+call of a tool with a strict two-field input, a call with the tool named and `toolChoice: 'none'`,
+and an answer against a JSON schema. Each is `pass`, `fail`, or `unknown` when the provider failed,
+throttled or refused the key, which changes nothing and is checked again five minutes later.
+
+- A `models.assistant` model that fails the tool call answers Ask with its router, which needs only
+  words, as `FOOTNOTE_ASK_LOOP=off` does.
+- A test run whose `models.eval_answer` model fails it is refused before any answer, and says why.
+- A judge that fails the JSON schema is asked for JSON text at once.
+
+A change to a `models.*` setting checks again. `GET /models/checks` and Settings, Advanced show
+what each check found. `npm run models:check` makes the checks now and prints them, and
+`-- --model <provider>:<model> [--prices <input>,<output>]` checks a model before any setting
+names it. It exits 1 when a role's model cannot do what the role needs, and 2 when a check could
+not tell.
+
 **Data leaves the company.** With `MODELS=live`, questions, test questions, item text and answers go
 to the provider's operator and the model's vendor (the table's last column): a Gemini model sends
 them to Vercel and Google. Use real company data
