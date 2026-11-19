@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { marksExceptions } from '@/lib/marks'
 import { AnswerFooter } from '@/components/footnote/answer-footer'
+import type { RatingChain, Verdict } from '@/components/footnote/answer-rating'
 import { TypeGlyph } from '@/components/footnote/definition'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
@@ -1778,11 +1779,6 @@ function ContextAnswerBody({
   )
 }
 
-/** The metrics an answer read, for its rating's domain: the engine's keys, or the loop's subject. */
-const ratedMetrics = (answer: Answer) =>
-  answer.keys?.metrics ??
-  (answer.loop?.subject?.about ?? []).filter((id) => id.startsWith('metric:'))
-
 /**
  * Good and Bad answer (FR-712): a click counts the verdict, a second click on the same one takes
  * it back, and the other one takes it back and counts its own. The service keeps only the verdict,
@@ -1790,47 +1786,15 @@ const ratedMetrics = (answer: Answer) =>
  */
 function useRating(answer: Answer) {
   const write = useWrite()
-  type Counted = { id: string; verdict: 'helpful' | 'wrong' } | null
-  const [rated, setRated] = React.useState<'helpful' | 'wrong' | null>(null)
-  // The rating counted now, once the service answers: one chain, so clicks apply in order, and the
-  // pressed button follows what the chain holds once nothing later is queued.
-  const counted = React.useRef<Promise<Counted>>(Promise.resolve(null))
-  const queued = React.useRef(0)
-  const wish = React.useRef(rated)
-  const rate = (verdict: 'helpful' | 'wrong') => {
-    const next = wish.current === verdict ? null : verdict
-    wish.current = next
-    setRated(next)
-    queued.current += 1
-    counted.current = counted.current.then(async (held) => {
-      let now = held
-      if (held)
-        try {
-          await write('takeBackRating', { id: held.id })
-          now = null
-        } catch {
-          toast.error("Your rating wasn't taken back", {
-            description: 'It still counts. Click it again in a moment.',
-          })
-        }
-      if (!now && next)
-        try {
-          now = {
-            id: (await write('rateAnswer', { verdict: next, metrics: ratedMetrics(answer) })).id,
-            verdict: next,
-          }
-        } catch {
-          toast.error('Your rating may not have counted', {
-            description: 'Click it again in a moment to be sure.',
-          })
-        }
-      queued.current -= 1
-      if (queued.current === 0) {
-        wish.current = now?.verdict ?? null
-        setRated(wish.current)
-      }
-      return now
-    })
+  const [rated, setRated] = React.useState<Verdict | null>(null)
+  const chain = React.useRef<RatingChain | null>(null)
+  // The chain loads with the first click: most answers are never rated.
+  const rate = (verdict: Verdict) => {
+    void import('@/components/footnote/answer-rating').then((m) =>
+      m.rate((chain.current ??= m.newChain()), verdict, answer, write, setRated, (t, d) =>
+        toast.error(t, { description: d }),
+      ),
+    )
   }
   return { rated, rate }
 }

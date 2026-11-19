@@ -2336,10 +2336,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     },
 
     // A rating names no one (FR-712): the service keeps no retry record of it.
-    rateAnswer: ({ verdict, metrics }) => {
-      const input = { verdict, ...(metrics.length ? { metrics: metrics.slice(0, 10) } : {}) }
-      return write('ask.rate', input, (o) => client.ask.rate(input, o))
-    },
+    rateAnswer: (input) => write('ask.rate', input, (o) => client.ask.rate(input, o)),
     takeBackRating: ({ id }) =>
       write('ask.takeBack', { id }, (o) => client.ask.takeBack({ id }, o)),
 

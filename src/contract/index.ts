@@ -2119,7 +2119,7 @@ export const contract = {
         path: '/ask/ratings',
         tags: ['assistant'],
         summary:
-          "Mark an answer of Ask good or wrong (FR-712): counts the verdict in the domain of the answer's metrics and the hour, with a random id only the page that rated holds; no person, question or answer is kept",
+          'Mark an answer of Ask good or wrong (FR-712): counts the verdict by domain and hour, never who rated',
       })
       .input(rateAnswerSchema)
       .output(ratingSchema),
@@ -2129,7 +2129,7 @@ export const contract = {
         path: '/ask/ratings/take-back',
         tags: ['assistant'],
         summary:
-          'Take a rating of Ask back (FR-712): removes the one rating with the id the page that rated holds, and says whether it was still there',
+          'Take a rating of Ask back (FR-712) by its id',
       })
       .input(takeBackRatingSchema)
       .output(takenBackSchema),
@@ -2392,7 +2392,7 @@ export const contract = {
         path: '/alerts/raised',
         tags: ['quality'],
         summary:
-          'What the alert rules raised, newest first, a page at a time, of one rule or of all, each with whom its Inbox card reached, and how many raised in all and by each rule: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)',
+          'What the alert rules raised, newest first, a page at a time, with the counts in all and by rule: every raise for an administrator, those about their own domains for an owner (FR-614)',
       })
       .input(alertRaisedInputSchema)
       .output(alertRaisedSchema),
