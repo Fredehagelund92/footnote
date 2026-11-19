@@ -11,8 +11,7 @@ import type { Card, Feed } from '@contract/inbox'
 import type { ReviewSheet } from '@contract/review-path'
 import type { Area } from '@domain/item'
 import type { ClashRelation } from '@domain/clash-relations'
-import { alertCardWords, alertRule, lookTitle } from '@domain/alerts'
-import { hrefOf } from './http-alerts'
+import { alertCardWords, alertRule, lookTitle, type RaiseSubject } from '@domain/alerts'
 import { parseMentions } from '@domain/mentions'
 import { answerText, savedWhy } from '@domain/saved-check'
 import { staleWords } from '@domain/suggestion-standing'
@@ -30,6 +29,15 @@ import { dateLabel, whenLabel } from '@/model/validity'
 /* ---------- words for times ---------- */
 
 const twoDigits = (n: number) => String(n).padStart(2, '0')
+
+/** Where a raise sends people in the app: its card in the Inbox, or the page it is about. */
+export function hrefOf(subject: RaiseSubject): string {
+  if ('card' in subject) return `/inbox?card=${subject.card}`
+  if ('topic' in subject) return `/observability?dock=topic.${subject.topic}`
+  if ('connector' in subject) return `/settings/integrations/${subject.connector}`
+  // Overview is Observability's own address.
+  return subject.page === 'overview' ? '/observability' : `/observability/${subject.page}`
+}
 
 /** "Today, 09:12", "Yesterday, 16:40" or "20 Oct": when something happened, as the Inbox says it. */
 export function whenWords(at: string, now: Date): string {

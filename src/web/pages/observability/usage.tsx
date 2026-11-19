@@ -90,8 +90,7 @@ function Usage({ busy }: { busy: boolean }) {
   const unread = usage.couldNotRead
   const agents = usage.agents
   const speed = usage.speed
-  const median = middle(speed.median)
-  const p95 = middle(speed.p95)
+  const { median, p95 } = usage.reply
   // Overview over the same days, from a row: its agents and its Not found answers.
   const inRange = view.range === 7 ? {} : { range: String(view.range) }
   // More calls is neither good nor bad: an arrow, never a colour.
@@ -162,22 +161,14 @@ function Usage({ busy }: { busy: boolean }) {
             />
             <LineChart
               series={[
-                // A day or week with no reply timed draws at zero.
-                {
-                  name: 'Median',
-                  values: speed.median.map((v) => v ?? 0),
-                  color: 'var(--primary)',
-                },
-                {
-                  name: '95 of 100',
-                  values: speed.p95.map((v) => v ?? 0),
-                  color: 'var(--chart-2)',
-                },
+                // A day or week with no reply timed is a gap in the line, never 0 ms.
+                { name: 'Median', values: speed.median, color: 'var(--primary)' },
+                { name: '95 of 100', values: speed.p95, color: 'var(--chart-2)' },
               ]}
               labels={speed.labels}
-              max={150}
               height={210}
               format={(v) => `${v} ms`}
+              missing="No reply timed"
               caption={`How long a reply took, by ${speed.per}, in milliseconds`}
             />
           </div>
@@ -233,12 +224,6 @@ function Usage({ busy }: { busy: boolean }) {
       </section>
     </Frame>
   )
-}
-
-/** The middle value of a few: the median of the days' medians; null when none was timed. */
-function middle(values: (number | null)[]) {
-  const v = values.filter((x): x is number => x !== null).sort((a, b) => a - b)
-  return v.length ? v[Math.floor(v.length / 2)]! : null
 }
 
 /** A link out of the page, quiet, at a section's right end. */
@@ -390,9 +375,7 @@ function Spend() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Answering agents costs nothing. Answer tests ran once, from the command line.
-        </p>
+        <p className="mt-3 text-xs text-muted-foreground">Answering agents costs nothing.</p>
       </div>
       <table className="w-full self-start text-sm @4xl/main:border-l" aria-label="Spend limits">
         <thead>

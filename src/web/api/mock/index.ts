@@ -412,6 +412,7 @@ export function createMockApi() {
 
   /** The reports the person sent from Ask this visit, newest first. */
   const reports: { id: string; question: string; at: Date }[] = []
+  const ratings = new Map<string, 'helpful' | 'wrong'>()
 
   /** Who sets and turns off a policy to publish without review, by name; the review flag first. */
   const policyReader = () => {
@@ -427,6 +428,11 @@ export function createMockApi() {
   const obsReader = () => {
     const person = workspace.people().find((p) => p.name === me())
     return { admin: !!person?.admin, owns: person?.owns ?? [] }
+  }
+  /** The domains a reader's raises are narrowed to, as row security does: null for an admin. */
+  const ownedOf = () => {
+    const reader = obsReader()
+    return reader.admin ? null : reader.owns
   }
   const copy = <T>(value: T): T => (value === undefined ? value : structuredClone(value))
   const read = <T>(method: FootnoteApiMethod, key: string, run: () => T) =>
@@ -988,6 +994,14 @@ export function createMockApi() {
       now(() =>
         reports.map((r) => ({ id: r.id, question: r.question, on: reportedOn(r.at, new Date()) })),
       ),
+    // A rating waits in this visit's memory with only its verdict, as the service keeps it.
+    rateAnswer: ({ verdict }) =>
+      now(() => {
+        const id = globalThis.crypto.randomUUID()
+        ratings.set(id, verdict)
+        return { id }
+      }),
+    takeBackRating: ({ id }) => now(() => ({ taken: ratings.delete(id) })),
 
     // Observability
     observabilityPage: ({ section, ...view }) =>
@@ -1034,7 +1048,8 @@ export function createMockApi() {
       }),
 
     // Alerts
-    getAlerts: () => now(() => alerts.read()),
+    getAlerts: () => now(() => alerts.read(ownedOf())),
+    getRaised: (input) => now(() => alerts.raised(ownedOf(), input)),
     setAlertRule: ({ id, on }) => now(() => alerts.setOn(id, on)),
     muteAlert: ({ id, domains, muted }) => now(() => alerts.setMuted(id, domains, muted)),
     setAlertThreshold: ({ id, value }) => now(() => alerts.setThreshold(id, value)),

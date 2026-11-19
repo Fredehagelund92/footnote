@@ -339,6 +339,15 @@ const SPEED_WEEKS = {
   median: [52, 50, 49, 47, 47, 45, 44, 43, 42, 41, 40, 39, 38],
   p95: [151, 146, 140, 139, 133, 128, 126, 121, 119, 117, 115, 113, 112],
 }
+/**
+ * The same over each whole range, as one percentile over every reply: never the middle of the
+ * days', so the slow days count for what they weigh.
+ */
+const SPEED_RANGES: Record<number, { median: number; p95: number }> = {
+  7: { median: 38, p95: 119 },
+  30: { median: 40, p95: 116 },
+  90: { median: 44, p95: 137 },
+}
 
 /**
  * Model spend this month, from the ledger. Answering agents needs no model: the spend is Ask's
@@ -378,6 +387,7 @@ export function obsData(state: ObsState): ObsData {
     agentCalls: AGENT_CALLS,
     speedDays: SPEED_DAYS,
     speedWeeks: SPEED_WEEKS,
+    speedRanges: SPEED_RANGES,
     spend: SPEND,
   }
 }

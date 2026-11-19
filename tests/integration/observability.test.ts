@@ -429,6 +429,8 @@ describe('Usage (obs.usage)', () => {
     ])
     expect(usage.speed).toHaveLength(7)
     expect(usage.speed.find((s) => s.start === '2026-10-20')!.median).toBeGreaterThan(30)
+    // The range's own percentiles, over its 43 timed calls.
+    expect(usage.reply).toEqual({ median: 50, p95: 68 })
     expect(usage.spend).toMatchObject({
       month: '2026-10-01',
       totalMicros: 17_300_000,
@@ -437,6 +439,23 @@ describe('Usage (obs.usage)', () => {
     expect((await ok<ObsUsage>('admin', '/observability/usage?range=30')).speed).toHaveLength(5)
     expect((await ok<ObsUsage>('admin', '/observability/usage?range=90')).speed).toHaveLength(13)
     expect((await api('owner', 'GET', '/observability/usage')).statusCode).toBe(403)
+  })
+
+  it("takes the median and 95 of 100 over every call of the range, never the middle of the days'", async () => {
+    // A slow Sunday with many calls: the middle of the three days' p95s would say 68 ms.
+    await client.query(
+      `insert into mcp_requests (hour, client_label, app_family, tool, status, result_status, duration_ms)
+       select '2026-10-18T10:00:00Z', 'slow-sunday', 'claude_code', 'get_context', 'ok', 'matched', 150
+         from generate_series(1, 20)`,
+    )
+    try {
+      const usage = await ok<ObsUsage>('admin', '/observability/usage?range=7')
+      const days = usage.speed.flatMap((s) => (s.p95 === null ? [] : [s.p95])).sort((a, b) => a - b)
+      expect(days).toEqual([50, 68, 150])
+      expect(usage.reply).toEqual({ median: 59, p95: 150 })
+    } finally {
+      await client.query(`delete from mcp_requests where client_label = 'slow-sunday'`)
+    }
   })
 })
 

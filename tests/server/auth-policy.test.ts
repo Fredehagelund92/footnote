@@ -221,6 +221,9 @@ const readOperations = [
   'reports.mine',
   'ask.lookup',
   'ask.asked',
+  // A person's rating of an answer, and taking it back (FR-712).
+  'ask.rate',
+  'ask.takeBack',
   // Saved questions and how far a check got: anyone signed in reads, and someone who manages no
   // domain gets none (row security).
   'savedQuestions.list',

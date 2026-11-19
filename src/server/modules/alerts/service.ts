@@ -1,5 +1,10 @@
 import { ORPCError } from '@orpc/client'
-import type { AlertRaise, AlertRuleRecord, AlertRules } from '../../../contract/alerts.ts'
+import type {
+  AlertRaise,
+  AlertRaised,
+  AlertRuleRecord,
+  AlertRules,
+} from '../../../contract/alerts.ts'
 import {
   alertRule,
   alertRuleIds,
@@ -175,13 +180,37 @@ export function createAlertsService(tx: Queryable) {
       return one(input.rule)
     },
 
-    async raised({ limit = 20 }: { limit?: number | undefined }): Promise<AlertRaise[]> {
-      return withReached(
-        await tx.query<Omit<AlertRaise, 'reached'>>(
-          `select ${raiseFields} from alert_raises r order by r.raised_at desc, r.id desc limit $1`,
-          [limit],
-        ),
+    /**
+     * One page of what the rules raised, newest first, of one rule or of all, after a raise when
+     * one is given; and how many the person may read in all and by each rule, whatever the page.
+     */
+    async raised({
+      limit = 20,
+      rule,
+      after,
+    }: {
+      limit?: number | undefined
+      rule?: AlertRuleId | undefined
+      after?: string | undefined
+    }): Promise<AlertRaised> {
+      const rows = await tx.query<Omit<AlertRaise, 'reached'>>(
+        `select ${raiseFields} from alert_raises r
+          where ($2::text is null or r.rule = $2)
+            and ($3::uuid is null or (r.raised_at, r.id) <
+                 (select a.raised_at, a.id from alert_raises a where a.id = $3))
+          order by r.raised_at desc, r.id desc limit $1 + 1`,
+        [limit, rule ?? null, after ?? null],
       )
+      const counts = await tx.query<{ rule: AlertRuleId; count: number }>(
+        `select r.rule, count(*)::int as count from alert_raises r group by r.rule
+          order by count(*) desc, r.rule`,
+      )
+      return {
+        total: counts.reduce((n, c) => n + c.count, 0),
+        rules: counts,
+        raises: await withReached(rows.slice(0, limit)),
+        more: rows.length > limit,
+      }
     },
   }
 }

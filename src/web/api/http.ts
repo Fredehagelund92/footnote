@@ -91,18 +91,7 @@ import {
 import { inboxOf, refOf, reviewOf, workspaceOf, type SheetRef } from './http-inbox'
 import { peopleOf } from './http-people'
 import { savedCheckOf, savedQuestionOf } from './http-saved'
-import { alertsOf } from './http-alerts'
-import {
-  emptyObs,
-  familyOf,
-  obsAgentsOf,
-  obsViewInput,
-  obsFeedbackOf,
-  obsUsageOf,
-  replayOf,
-  savedViewOf,
-  type ReplayTopic,
-} from './http-obs'
+import type { ReplayTopic } from './http-obs'
 import {
   bodyToService,
   commentsOf,
@@ -120,6 +109,10 @@ import {
  * when an integrations page or the connect flow asks, so the first load carries no manifest.
  */
 const integrationWords = () => import('./http-integrations')
+
+/** The Alerts page's words and the Observability pages' words, loaded when one of them is read. */
+const alertWords = () => import('./http-alerts')
+const obsWords = () => import('./http-obs')
 
 export type HttpApiOptions = {
   /** Absolute URL of the API, with its version prefix: `https://host/api/v1`. */
@@ -261,6 +254,8 @@ export const wiredMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'rateAnswer',
+  'takeBackRating',
   'tellOwner',
   'observabilityPage',
   'obsDimensions',
@@ -277,6 +272,7 @@ export const wiredMethods = [
   'removeSavedQuestion',
   'keepNewAnswer',
   'getAlerts',
+  'getRaised',
   'setAlertRule',
   'muteAlert',
   'setAlertThreshold',
@@ -2332,11 +2328,17 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }))
     },
 
+    // A rating names no one (FR-712): the service keeps no retry record of it.
+    rateAnswer: (input) => write('ask.rate', input, (o) => client.ask.rate(input, o)),
+    takeBackRating: ({ id }) =>
+      write('ask.takeBack', { id }, (o) => client.ask.takeBack({ id }, o)),
+
     // Observability: the service discloses every count (FR-614); this binding only names things.
     // Quality and Alerts read their own lists (saved questions, alerts); Alerts with nothing ever
     // raised that the person may read is a page with nothing yet.
     observabilityPage: async ({ section, range, domain, agent }) => {
       const now = new Date()
+      const { emptyObs, familyOf, obsAgentsOf, obsFeedbackOf, obsUsageOf } = await obsWords()
       if (section === 'overview' || section === 'questions') {
         const family = agent ? familyOf(agent) : undefined
         const view = await read(() =>
@@ -2363,11 +2365,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         return obsUsageOf(await read(() => client.obs.usage({ range })), range, now)
       if (section === 'alerts') {
         const raised = await read(() => client.alerts.raised({ limit: 1 }))
-        return emptyObs(range, raised.length ? 'normal' : 'empty')
+        return emptyObs(range, raised.total ? 'normal' : 'empty')
       }
       return emptyObs(range)
     },
     obsDimensions: async (input) => {
+      const { obsViewInput } = await obsWords()
       const view = await read(() => client.obs.dimensions(obsViewInput(input)))
       return { state: view.state, dimensions: view.dimensions, pinned: view.pinned }
     },
@@ -2379,6 +2382,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     obsValues: async ({ dimension, q, cursor, sort, ...input }) => {
+      const { obsViewInput } = await obsWords()
       const view = await read(() =>
         client.obs.values({
           ...obsViewInput(input),
@@ -2396,6 +2400,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
     },
     replayTopic: async ({ topic, when }) => {
+      const { replayOf } = await obsWords()
       const named = listedTopics.get(topic)
       if (!named || !isUuid(topic)) return null
       const run = async (at: 'now' | 'before') => {
@@ -2413,7 +2418,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const shown = when === 'before' ? (before ?? now!) : now!
       return replayOf(shown, named, when === 'before' ? now : before, now!.answer.edition)
     },
-    getSavedViews: async () => (await read(() => client.obs.views.list())).map(savedViewOf),
+    getSavedViews: async () => {
+      const { savedViewOf } = await obsWords()
+      return (await read(() => client.obs.views.list())).map(savedViewOf)
+    },
     saveView: async ({ name, filters }) => {
       const input = { name, filters: { chips: filters } }
       const saved = await write('obs.views.save', input, (o) => client.obs.views.save(input, o))
@@ -2463,8 +2471,15 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         read(() => client.alerts.rules()),
         read(() => client.alerts.raised({})),
       ])
-      return alertsOf(rules, raised, new Date())
+      return (await alertWords()).alertsOf(rules, raised, new Date())
     },
+    getRaised: async ({ rule, after }) =>
+      (await alertWords()).raisedPageOf(
+        await read(() =>
+          client.alerts.raised({ ...(rule ? { rule } : {}), ...(after ? { after } : {}) }),
+        ),
+        new Date(),
+      ),
     setAlertRule: async ({ id, on }) => {
       const input = { rule: id, enabled: on }
       await write('alerts.setRule', input, (o) => client.alerts.setRule(input, o))

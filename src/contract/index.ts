@@ -97,7 +97,7 @@ import {
 import {
   alertMuteInputSchema,
   alertRaisedInputSchema,
-  alertRaiseSchema,
+  alertRaisedSchema,
   alertRuleRecordSchema,
   alertRulesSchema,
   alertSetRuleInputSchema,
@@ -216,7 +216,15 @@ import {
   toggleReactionSchema,
   withdrawCommentSchema,
 } from './comments.ts'
-import { createReportSchema, myReportsSchema, sentReportSchema } from './reports.ts'
+import {
+  createReportSchema,
+  myReportsSchema,
+  rateAnswerSchema,
+  ratingSchema,
+  sentReportSchema,
+  takeBackRatingSchema,
+  takenBackSchema,
+} from './reports.ts'
 import {
   figureReadSchema,
   figureSourceSchema,
@@ -2098,6 +2106,32 @@ export const contract = {
           'Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614)',
       })
       .output(askedSchema),
+    rate: read
+      .errors({
+        TOO_MANY_REQUESTS: {
+          status: 429,
+          message: "You've sent a lot of ratings. Try again in a minute.",
+          data: z.object({ retryAfterSeconds: z.number() }),
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/ask/ratings',
+        tags: ['assistant'],
+        summary:
+          'Mark an answer of Ask good or wrong (FR-712): counts the verdict by domain and hour, never who rated',
+      })
+      .input(rateAnswerSchema)
+      .output(ratingSchema),
+    takeBack: read
+      .route({
+        method: 'POST',
+        path: '/ask/ratings/take-back',
+        tags: ['assistant'],
+        summary: 'Take a rating of Ask back (FR-712) by its id',
+      })
+      .input(takeBackRatingSchema)
+      .output(takenBackSchema),
   },
   obs: {
     agents: maintainRead
@@ -2357,10 +2391,10 @@ export const contract = {
         path: '/alerts/raised',
         tags: ['quality'],
         summary:
-          'What the alert rules raised lately, newest first, each with whom its Inbox card reached: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)',
+          'What the alert rules raised, newest first, a page at a time, with the counts in all and by rule: every raise for an administrator, those about their own domains for an owner (FR-614)',
       })
       .input(alertRaisedInputSchema)
-      .output(z.array(alertRaiseSchema)),
+      .output(alertRaisedSchema),
   },
   schema: {
     item: publicRoute

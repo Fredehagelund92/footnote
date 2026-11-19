@@ -226,6 +226,7 @@ export function obsUsageOf(u: ObsUsage, range: Range, now: Date): ObsData {
         calls: a.calls,
         last: last(a.lastAt),
       })),
+      reply: u.reply,
       speed: {
         median: u.speed.map((s) => s.median),
         p95: u.speed.map((s) => s.p95),

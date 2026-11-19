@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AlertRaise, AlertRuleRecord } from '@contract/alerts'
-import { alertsOf, hrefOf, raisedWhen } from '@/api/http-alerts'
+import { alertsOf, raisedPageOf, raisedWhen } from '@/api/http-alerts'
+import { hrefOf } from '@/api/http-inbox'
 import { lastOf, rulesFor, thresholdOf } from '@/model/alerts'
 import { RULES } from '@/api/mock/data/alerts'
 
@@ -28,12 +29,14 @@ const record = (rule: AlertRuleRecord['rule'], patch: Partial<AlertRuleRecord> =
   ...patch,
 })
 const all = RULES.map((r) => record(r.id))
+/** One page of raises as the service sends it: all there are, by rule. */
+const page = (raises: AlertRaise[]) => ({ total: raises.length, rules: [], raises, more: false })
 
 describe('the rules from the service', () => {
   it('say the same sentences as the mock, with the threshold the service fires at', () => {
     const { rules } = alertsOf(
       { rules: all.map((r) => (r.rule === 'share' ? { ...r, threshold: 30 } : r)) },
-      [],
+      page([]),
       now,
     )
     for (const [i, r] of rules.entries()) {
@@ -64,7 +67,7 @@ describe('the rules from the service', () => {
               : r,
         ),
       },
-      [],
+      page([]),
       now,
     )
     expect(settings).toEqual({ off: ['spend'], muted: { due: ['area_marketing'] }, thresholds: {} })
@@ -86,8 +89,8 @@ describe('the rules from the service', () => {
 
 describe('what the rules raised', () => {
   it('reads as Raised lately: whom it reached, when, its domain and where it goes', () => {
-    const { raised } = alertsOf({ rules: all }, [raise()], now)
-    expect(raised).toEqual([
+    const { raised } = alertsOf({ rules: all }, page([raise()]), now)
+    expect(raised.raised).toEqual([
       {
         id: 'r1',
         rule: 'saved',
@@ -103,13 +106,13 @@ describe('what the rules raised', () => {
   it('names the reminder, the Not found card and a raise not yet delivered in their own words', () => {
     const lines = alertsOf(
       { rules: all },
-      [
+      page([
         raise({ id: 'a', rule: 'due', reached: ['Tomas Eriksen'] }),
         raise({ id: 'b', rule: 'gap', reached: ['Jon Abara', 'Sofia Brandt', 'Ines Duarte'] }),
         raise({ id: 'c', rule: 'spend', areaIds: [], reached: [], subject: { page: 'usage' } }),
-      ],
+      ]),
       now,
-    ).raised
+    ).raised.raised
     expect(lines.map((r) => r.line)).toEqual([
       'A reminder went to Tomas Eriksen.',
       'A Not found card went to Ines Duarte, Jon Abara and Sofia Brandt.',
@@ -121,7 +124,7 @@ describe('what the rules raised', () => {
   it('links a raise of a rule with an Alert card to that card while it is in the Inbox', () => {
     const [fresh, old] = alertsOf(
       { rules: all },
-      [
+      page([
         raise({ id: 'a', rule: 'sync', areaIds: [], subject: { connector: 'cube' } }),
         raise({
           id: 'b',
@@ -130,12 +133,26 @@ describe('what the rules raised', () => {
           subject: { connector: 'cube' },
           raisedAt: new Date(2026, 9, 9, 6, 0).toISOString(),
         }),
-      ],
+      ]),
       now,
-    ).raised
+    ).raised.raised
     expect(fresh!.href).toBe('/inbox?card=alert:a')
     // A week on, the card has left the Inbox: the raise goes to what it is about.
     expect(old!.href).toBe('/settings/integrations/cube')
+  })
+
+  it('says how many raised in all and by rule, and reads the next page after its last raise', () => {
+    const raises = [raise({ id: 'a', rule: 'gap' }), raise({ id: 'b', rule: 'gap' })]
+    const rules = [
+      { rule: 'due' as const, count: 188 },
+      { rule: 'gap' as const, count: 9 },
+    ]
+    expect(raisedPageOf({ total: 197, rules, raises, more: true }, now)).toMatchObject({
+      total: 197,
+      byRule: rules,
+      next: 'b',
+    })
+    expect(raisedPageOf({ total: 2, rules, raises, more: false }, now).next).toBeNull()
   })
 
   it('goes to its card, or to the page it is about', () => {

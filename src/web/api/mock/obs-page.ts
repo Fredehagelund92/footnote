@@ -272,6 +272,7 @@ export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
           agents: fixture.agentCalls
             .map((a, i) => ({ name: a.name, calls: callsShown[i] ?? null, last: a.last }))
             .filter((_, i) => calls[i]! > 0),
+          reply: speed.reply,
           speed: {
             median: speed.median,
             p95: speed.p95,

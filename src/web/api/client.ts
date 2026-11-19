@@ -27,7 +27,7 @@ import type { Version } from '@/model/history'
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import type { Conflict, ConflictDecision, ConflictRow, SettleConflict } from '@/model/conflicts'
 import type { InboxCard, Outcome, Waiting } from '@/model/inbox'
-import type { Alerts, RuleId } from '@/model/alerts'
+import type { Alerts, RaisedPage, RuleId } from '@/model/alerts'
 import type { FigureAsk, FigureReport, FigureTry, FigureView } from '@/model/figures'
 import type {
   ConnectChoice,
@@ -619,6 +619,17 @@ export interface FootnoteApi {
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
   /**
+   * Marks an answer of Ask good or wrong (FR-712), with the metrics it read, for its domain: only
+   * the verdict, the domain and the hour are kept, never who rated. The id it gives back is the
+   * only way to that rating: the page holds it, in memory, to take the rating back.
+   */
+  rateAnswer: (input: {
+    verdict: 'helpful' | 'wrong'
+    metrics: string[]
+  }) => Promise<{ id: string }>
+  /** Takes back the rating with this id; false when it is already gone. */
+  takeBackRating: (input: { id: string }) => Promise<{ taken: boolean }>
+  /**
    * Tells the owners that nothing is written about what an answer of Ask was about (decision 7 of
    * the chat audit): the report of kind missing agents file, as a gap on the subject's topic, with
    * its metrics and values by id (`metric:orders`, `value:market/poland`) and its days. It names
@@ -658,6 +669,11 @@ export interface FootnoteApi {
 
   // Alerts: rules that raise Inbox cards
   getAlerts: () => Promise<Alerts>
+  /**
+   * What the rules raised, a page at a time, newest first: of one rule, or of all, after the raise
+   * `after` names (a page's `next`). Each page says how many raised in all and by each rule.
+   */
+  getRaised: (input: { rule?: RuleId; after?: string }) => Promise<RaisedPage>
   /** An admin turns a rule on or off for everyone. */
   setAlertRule: (input: { id: RuleId; on: boolean }) => Promise<void>
   /** An owner mutes a rule for their domains: its cards stop reaching them, not anyone else. */
@@ -937,6 +953,8 @@ export const footnoteApiMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'rateAnswer',
+  'takeBackRating',
   'tellOwner',
   'observabilityPage',
   'obsDimensions',
@@ -947,6 +965,7 @@ export const footnoteApiMethods = [
   'saveView',
   'removeView',
   'getAlerts',
+  'getRaised',
   'setAlertRule',
   'muteAlert',
   'setAlertThreshold',
@@ -1035,6 +1054,7 @@ export const readMethods = [
   'getSavedQuestions',
   'getSavedCheck',
   'getAlerts',
+  'getRaised',
   'getSavedViews',
   'readQuestion',
   'ask',

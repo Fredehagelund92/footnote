@@ -51,7 +51,20 @@ export type AlertSettings = {
 }
 
 /** The rules, what they raised lately, and what people changed. */
-export type Alerts = { rules: Rule[]; raised: Raised[]; settings: AlertSettings }
+/**
+ * A page of what the rules raised, newest first, of one rule or of all, and how many raised in all
+ * and by each rule that raised any (the counts never depend on the page). `next` reads the page
+ * after it; null when none is older.
+ */
+export type RaisedPage = {
+  total: number
+  byRule: { rule: RuleId; count: number }[]
+  raised: Raised[]
+  next: string | null
+}
+
+/** The rules, what people changed, and the first page of what was raised, of every rule. */
+export type Alerts = { rules: Rule[]; raised: RaisedPage; settings: AlertSettings }
 
 /** A rule's last raise as someone sees it: an owner sees only their own domains'. */
 export function lastOf(r: Rule, owned: DomainId[] | null) {

@@ -173,6 +173,22 @@ describe('the http binding', () => {
     expect(sent.join('\n')).not.toContain('Quillfeather')
   })
 
+  it("says Usage's median and 95 of 100 as one percentile over the range's calls", async () => {
+    await api!.signIn({ name: OWNER.name })
+    const { reply } = (await api!.observabilityPage({ section: 'usage', range: 7 })).usage!
+    const [range] = (
+      await client.query<{ median: number; p95: number }>(
+        `select percentile_disc(0.5) within group (order by duration_ms) as median,
+                percentile_disc(0.95) within group (order by duration_ms) as p95
+           from mcp_requests
+          where tool <> 'protocol' and duration_ms is not null
+            and hour >= $1::date - 7 and hour < $1::date`,
+        [TODAY],
+      )
+    ).rows
+    expect(reply).toEqual(range)
+  })
+
   it('answers every method of the interface on the service: none says not available', () => {
     const unwired = footnoteApiMethods.filter(
       (m) => !(wiredMethods as readonly string[]).includes(m),

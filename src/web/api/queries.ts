@@ -476,6 +476,7 @@ export const useInbox = () => useSuspenseQuery(useSharedRead(inboxQuery())).data
 export const useReviews = () => useSuspenseQuery(useSharedRead(reviewsQuery())).data
 export const useSavedQuestions = () => useSuspenseQuery(useSharedRead(savedQuestionsQuery())).data
 export const useAlerts = () => useSuspenseQuery(useSharedRead(alertsQuery())).data
+
 export const useSavedViews = () => useSuspenseQuery(useSharedRead(savedViewsQuery())).data
 export const useAskExamples = () => useSuspenseQuery(useSharedRead(askExamplesQuery())).data
 export const useChats = () => useSuspenseQuery(useSharedRead(chatsQuery())).data
@@ -612,6 +613,9 @@ export const invalidations: {
   saveView: () => [queryKeys.savedViews],
   saveChat: () => [queryKeys.chats],
   reportAnswer: () => [queryKeys.myReports, ...inbox],
+  // Feedback counts the ratings.
+  rateAnswer: () => [queryKeys.observabilityPages],
+  takeBackRating: () => [queryKeys.observabilityPages],
   tellOwner: () => inbox,
   // Related says whether agents follow links.
   setLinks: () => [queryKeys.settings, queryKeys.relateds],

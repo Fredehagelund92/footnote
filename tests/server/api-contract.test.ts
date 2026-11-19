@@ -279,6 +279,8 @@ describe('the API over HTTP', () => {
       '/areas/{id}/description',
       '/ask/asked',
       '/ask/lookup',
+      '/ask/ratings',
+      '/ask/ratings/take-back',
       '/assignments/grant',
       '/assignments/revoke',
       '/audit',

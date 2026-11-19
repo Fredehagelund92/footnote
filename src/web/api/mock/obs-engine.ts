@@ -142,6 +142,7 @@ export type ObsData = {
   agentCalls: { name: string; calls: number; last: string }[]
   speedDays: { median: number[]; p95: number[] }
   speedWeeks: { median: number[]; p95: number[] }
+  speedRanges: Record<number, { median: number; p95: number }>
   spend: {
     total: number
     cap: number
@@ -223,6 +224,7 @@ export function observability(data: ObsData) {
     markets,
     speedDays: SPEED_DAYS,
     speedWeeks: SPEED_WEEKS,
+    speedRanges: SPEED_RANGES,
   } = data
 
   const topicName = (t: Pick<Topic, 'metric' | 'where'> & Partial<Pick<Topic, 'named'>>) =>
@@ -449,11 +451,13 @@ export function observability(data: ObsData) {
 
   /** The days or weeks the speed chart draws for a range, with their labels. */
   function speedOf(range: number) {
+    const reply = SPEED_RANGES[range] ?? { median: null, p95: null }
     if (range === 7)
-      return { ...SPEED_DAYS, labels: DAYS.slice(-7).map((d) => d.label), per: 'day' }
+      return { ...SPEED_DAYS, reply, labels: DAYS.slice(-7).map((d) => d.label), per: 'day' }
     const n = range === 30 ? 5 : 13
     const starts = DAYS.filter((_, i) => (DAYS.length - 1 - i) % 7 === 6).slice(-n)
     return {
+      reply,
       median: SPEED_WEEKS.median.slice(-n),
       p95: SPEED_WEEKS.p95.slice(-n),
       labels: starts.map((d) => dateLabel(d.at)),
