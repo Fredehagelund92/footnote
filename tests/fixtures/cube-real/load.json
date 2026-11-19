@@ -1,0 +1,54 @@
+{
+  "query": {
+    "measures": ["shop_sales.order_total"],
+    "dimensions": [],
+    "timeDimensions": [
+      {
+        "dimension": "shop_sales.ordered_at",
+        "dateRange": ["2026-10-01T00:00:00.000", "2026-10-31T23:59:59.999"]
+      }
+    ],
+    "limit": 10000,
+    "timezone": "UTC",
+    "filters": [
+      {
+        "member": "shop_sales.store_name",
+        "operator": "equals",
+        "values": ["Philadelphia"]
+      }
+    ],
+    "rowLimit": 10000
+  },
+  "lastRefreshTime": "2026-11-19T19:13:31.568Z",
+  "annotation": {
+    "measures": {
+      "shop_sales.order_total": {
+        "title": "Shop sales Order total",
+        "shortTitle": "Order total",
+        "description": "What customers paid for their orders, tax included, in US dollars.",
+        "type": "number",
+        "format": "currency",
+        "meta": {
+          "currency": "USD"
+        },
+        "drillMembers": [],
+        "drillMembersGrouped": {
+          "measures": [],
+          "dimensions": []
+        }
+      }
+    },
+    "dimensions": {},
+    "timeDimensions": {},
+    "segments": {}
+  },
+  "dataSource": "default",
+  "dbType": "duckdb",
+  "external": false,
+  "slowQuery": false,
+  "data": [
+    {
+      "shop_sales.order_total": "46149.83000000001"
+    }
+  ]
+}

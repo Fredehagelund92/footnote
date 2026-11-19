@@ -136,10 +136,13 @@ export const guidesFor = (address = ADDRESS): AgentGuide[] => [
     name: 'Codex',
     logo: openai,
     steps: [
-      { what: 'Run this in a terminal:', copy: `codex mcp add ${SLUG} --url ${address}` },
+      {
+        what: 'Run this in a terminal, and approve the connection in the browser it opens:',
+        copy: `codex mcp add ${SLUG} --url ${address}`,
+      },
       instructions('AGENTS.md'),
       {
-        what: 'Run this, and approve the connection in the browser:',
+        what: 'If the browser did not open, run this and approve the connection in the browser:',
         copy: `codex mcp login ${SLUG}`,
       },
     ],
@@ -256,7 +259,7 @@ export const WAIT_HINT: Record<Via, string> = {
   'claude-app': 'In Claude, add a custom connector with the address, then press Connect.',
   cursor: 'Install it in Cursor, then approve the connection in the browser.',
   vscode: 'Install it in VS Code, then approve the connection in the browser.',
-  codex: 'Run the two commands in a terminal, then approve the connection in the browser.',
+  codex: 'Run the command in a terminal, then approve the connection in the browser it opens.',
   chatgpt: 'Add the address in ChatGPT as a connector, then approve the connection in the browser.',
   other: 'Add the address to your agent, then approve the connection in the browser.',
 }
