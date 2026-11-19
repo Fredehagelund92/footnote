@@ -2128,8 +2128,7 @@ export const contract = {
         method: 'POST',
         path: '/ask/ratings/take-back',
         tags: ['assistant'],
-        summary:
-          'Take a rating of Ask back (FR-712) by its id',
+        summary: 'Take a rating of Ask back (FR-712) by its id',
       })
       .input(takeBackRatingSchema)
       .output(takenBackSchema),
