@@ -2,9 +2,11 @@
 import '../../shared/fonts.css'
 import '../../shared/tokens.css'
 import '../../shared/chrome.css'
+import '../../shared/ground.css'
 import '../styles/landing.css'
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
+import Ground from '../../shared/Ground.astro'
 import SiteFooter from '../../shared/SiteFooter.astro'
 import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
@@ -34,5 +36,6 @@ const { docs, home } = siteLinks(readSettings(process.env))
         <SiteFooter home={home} docs={docs()} />
       </div>
     </main>
+    <Ground where="landing" />
   </body>
 </html>

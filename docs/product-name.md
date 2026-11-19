@@ -65,8 +65,9 @@ does them:
 
 - **Rename the GitHub repository** to `footnote`. The code already links to
   `Fredehagelund92/footnote`; until the rename those links lead nowhere. GitHub then forwards the
-  old address. The public site (`SITE_URL` in `.github/workflows/site.yml`) and the clone in
-  `tests/image/git-markdown.sh` follow the repository's name on their own.
+  old address. The clone in `tests/image/git-markdown.sh` follows the repository's name on its
+  own, and so does the public site on Vercel, which takes the repository from Vercel's Git
+  settings (`site/scripts/vercel-build.ts`).
 - **Rename before the first release.** A release pushes its images under the repository's name
   (`.github/workflows/release.yml`), so a release made before the rename would push them where
   `compose.images.yaml` does not look, and its demo job (`demo-images.yml`) would fail.

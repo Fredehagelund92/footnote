@@ -7,7 +7,7 @@
 import { DEFAULT_PRODUCT_NAME } from '../../src/domain/brand.ts'
 
 export type Settings = {
-  /** The host, `https://fredehagelund92.github.io`. Empty: no canonical addresses and no sitemap. */
+  /** The host, `https://footnote.vercel.app`. Empty: no canonical addresses and no sitemap. */
   site: string
   /** The path the whole site sits under, `/footnote`. Empty at the root of a host. */
   root: string

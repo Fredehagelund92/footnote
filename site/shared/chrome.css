@@ -3,15 +3,26 @@
   classes, so nothing here reaches the docs' own pages.
 */
 
-/* Header */
+/* Header: clear over the top of the page, then the sheet's colour and a hairline once the page
+   scrolls (shared/Scrolled.astro). */
 .top {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--sheet) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(12px);
-  -webkit-backdrop-filter: saturate(1.4) blur(12px);
-  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+:root[data-scrolled] .top {
+  background: var(--sheet);
+  border-bottom-color: var(--rule);
+}
+@media (prefers-reduced-motion: reduce) {
+  .top {
+    transition: none;
+  }
 }
 .top .wrap {
   max-width: 1200px;

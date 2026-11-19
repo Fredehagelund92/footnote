@@ -2,19 +2,18 @@ import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } fro
 import { join, posix, relative } from 'node:path'
 
 /*
-  Puts one build of the site into the folder that holds the published site (the gh-pages branch,
-  in .github/scripts/publish-site.sh), and writes what sits above the versions:
+  Puts the builds of the site together into the one folder that is published
+  (scripts/vercel-build.ts): this commit's build, then each release's, and writes what sits above
+  the versions:
 
-  - the docs of the build go to docs/<version>/. Only that folder changes, so an older version is
-    never built again: a patch release overwrites its minor, and an upgrade of the framework cannot
-    break what was published;
-  - the landing page and the 404 page at the root come from the build of main (next), so the root
-    follows main. A release brings them only while the root has none yet;
+  - the docs of each build go to docs/<version>/, and nothing else of a release's build is used,
+    so a release's docs are what its own tag builds;
+  - the landing page and the 404 page at the root come from the build of the commit (next), so the
+    root follows main. A release brings them only while the root has none yet;
   - docs/versions.json lists the versions for the switcher, and docs/ forwards to the newest
     release, or to next until there is one. So does every page of the docs without a version,
     /docs/privacy/, which is how the landing page links to them, and docs/llms.txt is the newest
-    release's own;
-  - a CNAME file a maintainer added at the root, for a custom domain, is kept.
+    release's own.
 
   node scripts/collect.ts <the published site> <the built site> <MAJOR.MINOR or next>
 */
@@ -60,11 +59,10 @@ function pagesOf(folder: string, at = ''): string[] {
   })
 }
 
-/** The root of the site, from one build: everything but its docs, and the CNAME and docs kept. */
+/** The root of the site, from one build: everything but its docs. */
 function replaceRoot(site: string, built: string) {
   for (const entry of entries(site))
-    if (!['docs', 'CNAME', '.git'].includes(entry.name))
-      rmSync(join(site, entry.name), { recursive: true, force: true })
+    if (entry.name !== 'docs') rmSync(join(site, entry.name), { recursive: true, force: true })
   for (const entry of entries(built))
     if (entry.name !== 'docs')
       cpSync(join(built, entry.name), join(site, entry.name), { recursive: true })
@@ -106,8 +104,6 @@ export function collect(site: string, built: string, folder: string) {
   }
   for (const file of ['llms.txt', 'llms-full.txt'])
     if (existsSync(join(docs, latest, file))) cpSync(join(docs, latest, file), join(docs, file))
-  // Without this GitHub Pages runs Jekyll, which leaves out folders that start with _.
-  writeFileSync(join(site, '.nojekyll'), '')
 }
 
 if (import.meta.main) {

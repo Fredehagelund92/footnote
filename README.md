@@ -222,8 +222,8 @@ source, and its owner checks it. It doesn't watch people: it counts questions by
 |                                                         | [Set up company sign-in](docs/company-sign-in.md): OpenID Connect, and who may sign in           |
 |                                                         | [Administer the service](docs/administration.md): settings, the history log, import and export   |
 
-<!-- The public site: when it is published, add this line:
-Read these as a site at [fredehagelund92.github.io/footnote/docs](https://fredehagelund92.github.io/footnote/docs/). -->
+<!-- The public site: when it is published on Vercel, add this line with its address:
+Read these as a site at [<the vercel.app address>/docs](https://<the vercel.app address>/docs/). -->
 
 The help pages are also the app's own Docs, at `/docs`, and the docs of [the public site](site/README.md), with
 its landing page, which isn't published yet: `npm run site:build` builds it on your computer. [Requirements](docs/requirements.md) says what Footnote must
