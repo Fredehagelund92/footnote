@@ -66,7 +66,11 @@ The line sets only the roles no one has changed. After that, an admin's `models.
 
 On another provider, that provider receives the same, and the model's vendor too when the provider passes it on. A model server on this computer sends nothing out. Put no company data in until your company approves the provider.
 
-**What it costs.** On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs start only when an admin starts one. An admin can let them run on their own, every Monday and after a change agents may notice, in Settings, Advanced, Answer tests, which first shows what a run is estimated to cost: two runs of the demo's tests cost USD 1.12. The service stops calling the model at these limits, which an admin can change:
+**What it costs.** On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs start only when an admin starts one.
+
+An admin can let them run on their own, every Monday and after a change agents may notice, in Settings, Advanced, Answer tests, which first shows what a run is estimated to cost: two runs of the demo's tests cost USD 1.12.
+
+The service stops calling the model at these limits, which an admin can change:
 
 | Setting                              | Default                                        |
 | ------------------------------------ | ---------------------------------------------- |

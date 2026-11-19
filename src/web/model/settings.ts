@@ -365,7 +365,7 @@ export function answerTestWords(t: AnswerTestRuns): {
   estimate: string[]
 } {
   const runs =
-    'They start every Monday, and after a change agents may notice, such as a sync that changed a definition.'
+    'They start every Monday, and after a change agents may notice, such as a source read that changed a definition.'
   const estimate = !t.live
     ? ['No real AI model is connected, so these runs cost nothing here.', runs]
     : !t.questions

@@ -38,7 +38,7 @@ describe('answer tests that run on their own (decision 6)', () => {
     expect(words.estimate).toEqual([
       'One run of every domain is estimated at $0.42, for 14 test questions in 3 domains.',
       'anthropic/claude-sonnet-5-5 answers them, and anthropic/claude-opus-5-5 judges the answers.',
-      'They start every Monday, and after a change agents may notice, such as a sync that changed a definition. So each week costs at least that much.',
+      'They start every Monday, and after a change agents may notice, such as a source read that changed a definition. So each week costs at least that much.',
       'A run estimated above $2 still waits for an Admin.',
     ])
   })
