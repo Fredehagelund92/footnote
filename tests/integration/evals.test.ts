@@ -800,11 +800,8 @@ describe('weekly scorecard and baseline', () => {
     const read = await call('GET', '/evals/automatic', 'admin')
     expect(read.statusCode, read.body).toBe(200)
     const automatic = read.json<AutomaticRuns>()
-    expect(automatic).toMatchObject({
-      on: false,
-      live: false,
-      modelId: expect.stringMatching(/^mock\//),
-    })
+    expect(automatic).toMatchObject({ on: false, live: false })
+    expect(automatic.modelId).toMatch(/^mock\//)
     expect(automatic.domains).toBeGreaterThan(0)
     expect(automatic.questions).toBeGreaterThanOrEqual(automatic.domains)
     // Answers the earlier runs made are reused from the cell cache, so they cost nothing again.
