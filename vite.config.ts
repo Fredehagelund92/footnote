@@ -102,6 +102,53 @@ export function crawlerFiles(): Plugin {
   }
 }
 
+/**
+ * The web app manifest at /site.webmanifest: the product's name and the logo's tiles
+ * (docs/design/logo.md), for a phone's home screen and a browser's app list. Written here rather
+ * than kept in public/, so a renamed build names itself.
+ */
+export function webManifest(): Plugin {
+  let name = productNameFrom(undefined)
+  const manifest = () =>
+    JSON.stringify(
+      {
+        name,
+        short_name: name,
+        start_url: '/',
+        icons: [
+          { src: '/favicon.svg', type: 'image/svg+xml', sizes: 'any' },
+          { src: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+          { src: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+          {
+            src: '/icon-maskable-512.png',
+            type: 'image/png',
+            sizes: '512x512',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      null,
+      2,
+    ) + '\n'
+  return {
+    name: 'footnote-web:web-manifest',
+    configResolved(config) {
+      name = productNameFrom(
+        (config.env as Record<string, string | undefined>).FOOTNOTE_PRODUCT_NAME,
+      )
+    },
+    configureServer(server) {
+      server.middlewares.use('/site.webmanifest', (_req, res) => {
+        res.setHeader('Content-Type', 'application/manifest+json')
+        res.end(manifest())
+      })
+    },
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'site.webmanifest', source: manifest() })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => ({
   root: webRoot,
   envDir: root,
@@ -134,6 +181,7 @@ export default defineConfig(({ mode }) => ({
     helpDocs(),
     themeBootstrap(),
     productTitle(),
+    webManifest(),
     crawlerFiles(),
   ],
   // With VITE_API_MODE=http the app calls the Footnote service at /api/v1 on its own origin; these
