@@ -36,6 +36,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends postgresql-client-18 git \
     && apt-get purge -y --auto-remove postgresql-common \
     && rm -rf /var/lib/apt/lists/*
+# The npm the people's commands in docs/self-hosting.md run (npm run db:restore-drill): a newer
+# one than the base image carries, whose own packages have no known high finding.
+RUN npm install --global npm@11.21.3 && npm cache clean --force
 WORKDIR /app
 COPY --from=service-deps /app/node_modules node_modules
 # What the service runs: its code, the migrations, the seed and the demo model, which the demo
@@ -66,7 +69,7 @@ HEALTHCHECK --start-period=5m --start-interval=2s --interval=30s --timeout=5s --
 # CUBE_MODEL_DIR names another folder, so the demo needs no folder shared from the host.
 CMD ["sh", "-c", "[ \"$NODE_ENV\" = production ] || export CUBE_MODEL_DIR=\"${CUBE_MODEL_DIR:-/app/db/seed/cube}\"; node db/prepare.ts && exec node src/server/main.ts"]
 
-FROM nginx:1.31-alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606 AS web
+FROM nginx:1.31-alpine@sha256:0563c36f94a6d3ec3584161b77859f740f7e20b4853f52c796a864ce6908e8ea AS web
 # nginx as its own user, not root: no `user` line (that needs root), its pid file and the
 # config the entrypoint writes from the template in places that user owns.
 RUN sed -i '/^user /d; s,^pid .*,pid /tmp/nginx.pid;,' /etc/nginx/nginx.conf \

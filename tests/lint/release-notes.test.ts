@@ -67,6 +67,11 @@ describe('the CHANGELOG.md section of a version', () => {
     expect(changelogSection(changelog, '0.1.1')).toBeUndefined()
     expect(changelogSection(changelog, '0.1.10')).toBe('### Fixes\n\n* a fix in 0.1.10')
     expect(changelogSection(changelog.replace('0.1.0 (', '0x1y0 ('), '0.1.0')).toBeUndefined()
+    // Every other character the pattern language reads is plain text too.
+    expect(changelogSection(changelog.replace('0.1.0 (', '0.1.0-rc+1 ('), '0.1.0-rc+1')).toBe(
+      '### Features\n\n* the first release',
+    )
+    expect(changelogSection(changelog, '0.1.(0|10)')).toBeUndefined()
   })
 })
 

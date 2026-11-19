@@ -368,6 +368,17 @@ jobs:
           node-version-file: .nvmrc
       - name: Build the service and web images
         run: docker compose build
+      # Both images as someone who scans before running sees them: no critical or high finding
+      # that a newer package already fixes. One without a fix is reported, not failed.
+      - name: Neither image has a critical or high finding with a fix (Trivy)
+        run: |
+          curl -fsSL -o trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.tar.gz
+          echo "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf  trivy.tar.gz" | sha256sum -c -
+          tar -xzf trivy.tar.gz trivy
+          for image in footnote-footnote footnote-web; do
+            ./trivy image --quiet --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image"
+          done
+          rm trivy trivy.tar.gz
       - name: The web image is healthy, not root, and serves gzip, its headers and real 404s
         run: |
           # No service behind it: "footnote" only has to resolve for nginx to start.

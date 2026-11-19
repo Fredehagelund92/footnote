@@ -124,6 +124,36 @@ const COLS = 8
 
 const NO_DEFINITIONS: Definition[] = []
 
+/**
+ * How many columns a table draws now, for the rows that span them all (a group, Add, the skeleton).
+ * Its header cells come and go with its width, and a cell spanning more columns than are drawn makes
+ * empty ones, which a fixed layout gives the room its named columns need: on a phone the names got
+ * none. The ref it gives the table also sets `tableRef`.
+ */
+function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all: number) {
+  const [shown, setShown] = React.useState(all)
+  const ref = React.useCallback(
+    (t: HTMLTableElement | null) => {
+      tableRef.current = t
+      const cells = [...(t?.tHead?.rows[0]?.cells ?? [])]
+      const count = () =>
+        setShown(
+          cells.reduce((n, c) => n + (getComputedStyle(c).display === 'none' ? 0 : c.colSpan), 0),
+        )
+      count()
+      // A cell that hides or shows changes size, so watching the cells sees every change.
+      const watch = new ResizeObserver(count)
+      for (const c of cells) watch.observe(c)
+      return () => {
+        watch.disconnect()
+        tableRef.current = null
+      }
+    },
+    [tableRef],
+  )
+  return [shown, ref] as const
+}
+
 export function DefinitionsPage() {
   // The shell's shared read holds these rows, so a first visit draws them and reads again behind them.
   const load = useQuery({ ...definitionsPageQuery(), placeholderData: heldRows(useDefinitions()) })
@@ -242,6 +272,7 @@ export function DefinitionsPage() {
   usePublishOrder('definitions', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
+  const [cols, tableRef] = useShownColumns(table, COLS)
 
   const peeked = dock?.kind === 'def' ? dock.id : undefined
   // What can have context of its own: metrics and terms with their own meaning.
@@ -725,7 +756,7 @@ export function DefinitionsPage() {
               </p>
             )}
             <div className="min-w-0 shrink-0">
-              <table ref={table} className="w-full table-fixed border-collapse">
+              <table ref={tableRef} className="w-full table-fixed border-collapse">
                 <thead className="sticky top-0 z-raised">
                   <tr>
                     <th
@@ -783,11 +814,11 @@ export function DefinitionsPage() {
                 >
                   {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
                   {(phase === 'skeleton' || (ready && !showRows)) && (
-                    <TableBodySkeleton colSpan={COLS} />
+                    <TableBodySkeleton colSpan={cols} />
                   )}
                   {rowsShown && shown.length === 0 && (
                     <tr>
-                      <td colSpan={COLS} className="px-6 py-10 text-center text-sm">
+                      <td colSpan={cols} className="px-6 py-10 text-center text-sm">
                         <p className="font-medium">No definitions match</p>
                         <p className="mt-1 text-muted-foreground">
                           {[
@@ -820,7 +851,7 @@ export function DefinitionsPage() {
                             label={g.key}
                             detail={mix(g.rows)}
                             open={open}
-                            colSpan={COLS}
+                            colSpan={cols}
                             onToggle={() => setFolded((x) => toggle(x, g.key))}
                           />
                         ) : null,
@@ -830,7 +861,7 @@ export function DefinitionsPage() {
                   {rowsShown && (
                     <AddRow
                       label="New term"
-                      colSpan={COLS}
+                      colSpan={cols}
                       onClick={() => navigate('/definitions/new')}
                     />
                   )}
