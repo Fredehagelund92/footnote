@@ -10,7 +10,9 @@ import type { ModelChoice } from '../../../src/server/modules/models/index.ts'
   results, and whether it could read), and holds what it said, its words and its reads with their
   call ids. A build that sends the same thing gets the same step; a step no run recorded is the
   scripted reader's. Provider options are left out of the key: the real run and the build send
-  the same chat under different providers.
+  the same chat under different providers. So are the ids a database makes afresh each run (a
+  person's, a term's, an Inbox card's): each is known by its place among the ids the model was
+  sent, in the key and in the step kept, and a build puts its own ids back in those places.
 */
 
 /** A step as recorded: the model's words, and the reads it asked for with their call ids. */
@@ -27,12 +29,40 @@ const withoutOptions = (value: unknown): unknown =>
         )
       : value
 
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g
+
+/** The ids made afresh each run in what the model was sent, each by its place: `<id 1>`, `<id 2>`. */
+function freshIds(sent: string): Map<string, string> {
+  const places = new Map<string, string>()
+  for (const [id] of sent.matchAll(UUID))
+    if (!places.has(id)) places.set(id, `<id ${places.size + 1}>`)
+  return places
+}
+
+/** Some words with each id made afresh each run written as its place, or back the other way. */
+const byPlace = (text: string, places: ReadonlyMap<string, string>) =>
+  text.replace(UUID, (id) => places.get(id) ?? id)
+const fromPlace = (text: string, places: ReadonlyMap<string, string>) => {
+  const ids = new Map([...places].map(([id, place]) => [place, id]))
+  return text.replace(/<id \d+>/g, (place) => ids.get(place) ?? place)
+}
+
+/** What the model was sent, as one text, and the places of the ids in it made afresh each run. */
+function sentOf(params: LanguageModelV4CallOptions) {
+  const sent = JSON.stringify([withoutOptions(params.prompt), params.toolChoice ?? null])
+  const places = freshIds(sent)
+  return { sent: byPlace(sent, places), places }
+}
+
 /** What a step is known by: what the model was sent, and whether it could read. */
 export const stepKey = (params: LanguageModelV4CallOptions) =>
-  createHash('sha256')
-    .update(JSON.stringify([withoutOptions(params.prompt), params.toolChoice ?? null]))
-    .digest('hex')
-    .slice(0, 32)
+  createHash('sha256').update(sentOf(params).sent).digest('hex').slice(0, 32)
+
+/** A step with its words and reads written the way `write` says. */
+const stepWith = (step: Step, write: (text: string) => string): Step => ({
+  text: write(step.text),
+  calls: step.calls.map((c) => ({ ...c, input: write(c.input) })),
+})
 
 /** The real model, every step it takes kept in `written` by its key, the first of each. */
 export function recordingModel(choice: ModelChoice, written: Record<string, string>): ModelChoice {
@@ -43,13 +73,15 @@ export function recordingModel(choice: ModelChoice, written: Record<string, stri
         const result = await doStream()
         const step: Step = { text: '', calls: [] }
         const key = stepKey(params)
+        const { places } = sentOf(params)
         const stream = result.stream.pipeThrough(
           new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>({
             transform(part, controller) {
               if (part.type === 'text-delta') step.text += part.delta
               else if (part.type === 'tool-call')
                 step.calls.push({ id: part.toolCallId, toolName: part.toolName, input: part.input })
-              else if (part.type === 'finish') written[key] ??= JSON.stringify(step)
+              else if (part.type === 'finish')
+                written[key] ??= JSON.stringify(stepWith(step, (t) => byPlace(t, places)))
               controller.enqueue(part)
             },
           }),
@@ -77,7 +109,8 @@ export function replayingModel(
         missed.steps++
         return (fallback.model as MockLanguageModelV4).doStream(params)
       }
-      const step = JSON.parse(found) as Step
+      const { places } = sentOf(params)
+      const step = stepWith(JSON.parse(found) as Step, (t) => fromPlace(t, places))
       const parts: LanguageModelV4StreamPart[] = [
         { type: 'stream-start', warnings: [] },
         ...(step.text

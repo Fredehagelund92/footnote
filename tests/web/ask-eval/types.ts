@@ -88,7 +88,7 @@ export type EvalCase = {
 
 /**
  * The promises every turn is held to (requirements section 1.8 and FR-720), each zero tolerance:
- * code grades the first six; on a real run a judge may also fail advice, a verdict or an
+ * code grades the first seven; on a real run a judge may also fail advice, a verdict or an
  * unsupported sentence. `never` is a case's own must-not.
  */
 export const PROMISES = [
@@ -98,6 +98,7 @@ export const PROMISES = [
   'advice',
   'state',
   'whole',
+  'voice',
   'stored',
   'verdict',
   'unsupported',
@@ -112,6 +113,7 @@ export const promiseNames: Record<AskPromise, string> = {
   advice: "no advice in Ask's own voice",
   state: 'the state matches the items found',
   whole: 'no sentence with a hole',
+  voice: 'one voice: no I, no telling of reads, each period once, no claim about the product',
   stored: 'no question stored',
   verdict: 'no side taken between items',
   unsupported: 'no unsupported sentence',

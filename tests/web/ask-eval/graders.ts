@@ -1,5 +1,7 @@
 import { domains } from '@/api/mock/data/world'
 import type { Fact } from '@/model/items'
+import { voiceBreak } from '../../../src/domain/answer-voice.ts'
+import { productNameFrom } from '../../../src/domain/brand.ts'
 import type { EvalTurn, Pattern, Reply, TurnGrade } from './types.ts'
 
 /*
@@ -249,7 +251,7 @@ export function hiddenShown(reply: Reply, ctx: GradeContext): string[] {
 
 /** Imperatives a sentence may lead with that tell the person what to do. */
 const IMPERATIVE =
-  /^(?:Check|Confirm|Verify|Make sure|Ensure|Consider|Compare|Avoid|Ask (?!(?:does|did|could|can|cannot|can't|answers|knows|read|reads|found|finds|has|had|is|was|keeps|looked|will|would|only)\b)|Talk to|Speak to|Reach out|Contact|Review|Treat|Wait|Hold off|Flag|Exclude|Include|Look (?:at|into|for)|Don't|Do not|Never|Be careful|Keep in mind|Remember|Start with|Focus on|Use|Rely on|Double-check|Adjust|Plan)\b/
+  /^(?:Check|Confirm|Verify|Make sure|Ensure|Consider|Compare|Avoid|Ask (?!(?:does|did|could|can|cannot|can't|answers|knows|read|reads|found|finds|has|had|is|was|keeps|looked|will|would|only|doesn't|gives|states|holds|counts|chooses|says|lists|shows|sees|covers|names|takes|leaves)\b)|Talk to|Speak to|Reach out|Contact|Review|Treat|Wait|Hold off|Flag|Exclude|Include|Look (?:at|into|for)|Don't|Do not|Never|Be careful|Keep in mind|Remember|Start with|Focus on|Use|Rely on|Double-check|Adjust|Plan)\b/
 /** Advice anywhere in a sentence, in a voice of its own. */
 const OWN_VOICE =
   /\b(?:you should|you shouldn't|you'd want|you may want|you might want|you'll want|you need to|I recommend|I suggest|I'd (?:recommend|suggest|check|start|look)|I would (?:recommend|suggest|check|start|look)|we recommend|it(?:'s| is) (?:best|wise|safer|worth (?:checking|confirming|asking))|best to|(?:should|must) be (?:checked|confirmed|verified|treated|excluded|adjusted))\b/i
@@ -340,6 +342,19 @@ export function holesIn(text: string): string[] {
   return found
 }
 
+const product = productNameFrom(process.env.FOOTNOTE_PRODUCT_NAME)
+
+/**
+ * Each sentence that breaks Ask's one voice: it speaks as I or tells of the reads, gives the same
+ * days twice, or says what the product does not record that no read returned.
+ */
+export function voiceIn(text: string): string[] {
+  return sentencesOf(text).flatMap((s) => {
+    const broken = voiceBreak(s, product)
+    return broken ? [`${broken}: "${s.slice(0, 120)}"`] : []
+  })
+}
+
 /** One turn graded by code: each promise it broke, and what it missed of its case. */
 export function gradeTurn(turn: EvalTurn, reply: Reply, ctx: GradeContext): TurnGrade {
   const text = rendered(reply, ctx)
@@ -360,6 +375,7 @@ export function gradeTurn(turn: EvalTurn, reply: Reply, ctx: GradeContext): Turn
   )
   add('state', stateProblems(reply, ctx))
   add('whole', holesIn(reply.text))
+  add('voice', voiceIn(reply.text))
   add(
     'never',
     (e.never ?? []).filter((p) => matches(text, p)).map((p) => `says ${String(p)}`),
