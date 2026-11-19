@@ -12,8 +12,9 @@ import {
   holesIn,
   numbersIn,
   stateProblems,
-  ungroundedNumbers,
   type GradeContext,
+  ungroundedNumbers,
+  voiceIn,
 } from './ask-eval/graders.ts'
 import { heldOf } from './ask-eval/held.ts'
 import {
@@ -180,8 +181,19 @@ describe('the code graders', () => {
       advice('Leave out the last day when you compare Germany weeks.', { sources: ['itm_a'] }),
     ).toEqual([])
     expect(advice("Ask does not answer questions about one person's work.")).toEqual([])
+    // Ask speaking of itself, as one voice has it, is no instruction to ask.
+    expect(advice('Ask gives both sides and does not choose between them.')).toEqual([])
+    expect(advice("Ask doesn't tell you what to do; that call is yours.")).toEqual([])
     expect(advice('Open your Inbox to see them.')).toEqual([])
     expect(advice('Ask the owners, Jon Abara and Sofia Brandt.')).toHaveLength(1)
+  })
+
+  it('fail a sentence that breaks the one voice, and let Ask speak of itself', () => {
+    expect(voiceIn("These two disagree, and I can't say which one applies.")).toHaveLength(1)
+    expect(voiceIn('The wider search found items about Gross margin in Spain.')).toHaveLength(1)
+    expect(voiceIn('Read for 1 Apr to 30 Jun 2026 (1 April to 30 June 2026).')).toHaveLength(1)
+    expect(voiceIn('Footnote does not record who wrote the item.')).toHaveLength(1)
+    expect(voiceIn('These two disagree, and Ask cannot say which one applies.')).toEqual([])
   })
 
   it('fail a state that does not match the items found', () => {

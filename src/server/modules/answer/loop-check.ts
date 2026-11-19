@@ -1,3 +1,5 @@
+import { voiceBreak, type VoiceBreak } from '../../../domain/answer-voice.ts'
+import { productName } from '../../brand.ts'
 import { SENTENCE_END } from './loop-body.ts'
 import { askToolDefinitions } from './tools.ts'
 
@@ -7,9 +9,12 @@ import { askToolDefinitions } from './tools.ts'
   of its own that no read returned, the person did not write and no tool says of itself ("the last
   7 full days") (FR-720.3), cites an item no read
   returned (FR-720.2), or gives a count of what agents asked that the reader may not see: a floor
-  ("13+") as an exact count, or any count of a topic the reader sees none of (FR-614). An answer
-  that fails is written again once, out of the person's sight, and a sentence that still fails is
-  replaced by a fixed sentence that says so, never left out without a word (loop.ts).
+  ("13+") as an exact count, or any count of a topic the reader sees none of (FR-614). It fails
+  too when it breaks Ask's one voice (src/domain/answer-voice.ts): it speaks as I or tells of the
+  reads, gives the same days twice, or says what the product does not record that no read
+  returned. An answer that fails is written again once, out of the person's sight, and a sentence
+  that still fails is replaced by a fixed sentence that says so, never left out without a word
+  (loop.ts); one that still breaks only the voice or the period says something true, and stays.
 
   The judges of FR-720.2, FR-720.6 and FR-720.7 do not read the answer here yet: a judge may gate
   only once it is measured on at least 60 answers labelled by hand, and the harness's labelled set
@@ -18,7 +23,7 @@ import { askToolDefinitions } from './tools.ts'
 
 /** One sentence that failed, and why, in words the model reads when it writes the answer again. */
 export type CheckFinding = {
-  kind: 'number' | 'citation' | 'hidden'
+  kind: 'number' | 'citation' | 'hidden' | VoiceBreak
   sentence: string
   why: string
 }
@@ -169,6 +174,8 @@ export function answerCheck(text: string, ctx: CheckContext): CheckFinding[] {
         sentence,
         why: `it gives ${own.join(', ')} in digits of its own, which no read returned and the person did not write`,
       })
+    const voice = voiceBreak(plain, productName)
+    if (voice) findings.push({ kind: voice, sentence, why: VOICE[voice] })
     const lower = sentence.toLowerCase()
     const counts = [
       ...plain
@@ -197,12 +204,20 @@ export function answerCheck(text: string, ctx: CheckContext): CheckFinding[] {
   return findings
 }
 
+/** Why a sentence breaks the voice, as the model is told when it writes the answer again. */
+const VOICE: Record<VoiceBreak, string> = {
+  voice:
+    'it speaks as I or me, or tells of the reads made; speak of yourself as Ask, and state what is written',
+  period: 'it gives the same days twice; give them once',
+  claim: `it says what ${productName} does not record or hold, which no read returned; say only what a read returned`,
+}
+
 /** What the model is told when its answer failed the check: each sentence, why, and what to do. */
 export function checkRequest(findings: readonly CheckFinding[]): string {
   return [
     CHECK_REQUEST,
     ...new Set(findings.map((f) => `- "${f.sentence}": ${f.why}.`)),
-    'Write the whole answer again, under the same rules. Write every number a read returned as a reference to it, cite only ids a read returned, and give a count of what agents asked only as the read gives it. Leave out what no read supports. Keep the other sentences as they were.',
+    'Write the whole answer again, under the same rules. Write every number a read returned as a reference to it, cite only ids a read returned, and give a count of what agents asked only as the read gives it. Speak as Ask, never as I, and say nothing of the reads. Leave out what no read supports. Keep the other sentences as they were.',
   ].join('\n')
 }
 
@@ -210,12 +225,15 @@ export function checkRequest(findings: readonly CheckFinding[]): string {
 export const CHECK_REQUEST =
   'Ask checked your answer against what was read before showing it, and these sentences failed:'
 
+/** Failures whose sentence is still true, so it is shown as written the second time. */
+const KEPT: ReadonlySet<CheckFinding['kind']> = new Set(['voice', 'period'])
+
 /**
  * The words with each sentence that failed replaced by the fixed sentence, once for sentences that
  * follow one another, so the answer says where a part is missing (FR-720.10).
  */
 export function withUnchecked(text: string, findings: readonly CheckFinding[]): string {
-  const failed = new Set(findings.map((f) => f.sentence))
+  const failed = new Set(findings.filter((f) => !KEPT.has(f.kind)).map((f) => f.sentence))
   if (!failed.size) return text
   return text
     .replace(/\r\n?/g, '\n')
