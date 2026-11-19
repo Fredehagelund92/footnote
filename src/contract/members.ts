@@ -3,8 +3,7 @@ import * as z from 'zod/mini'
 /**
  * The people of a workspace as Footnote v1 has them (docs/product.md, section 11; FR-804, FR-417): two
  * roles, Admin and Member, and ownership on each domain, as Settings, People and a domain's page
- * change them. An administrator grant is Admin; everyone else is a Member. The earlier roles
- * (auditor, approver) stay in the data for history and are not offered here.
+ * change them. An administrator grant is Admin; everyone else is a Member.
  */
 export const memberRoleSchema = z.enum(['admin', 'member'])
 

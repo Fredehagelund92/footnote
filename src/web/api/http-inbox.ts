@@ -727,7 +727,7 @@ function fieldSideOf(f: ReviewSheet['fields']['before']): FieldSide | null {
   if (!f) return null
   return {
     title: f.title,
-    kind: f.kind === 'example' ? 'Example' : kindLabel[f.kind],
+    kind: kindLabel[f.kind],
     domain: f.domain.name,
     owner: f.owner ? (f.owner.name ?? 'Someone no longer here') : 'Not set',
     scope: f.scope,

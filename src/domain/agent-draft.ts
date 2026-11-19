@@ -158,7 +158,7 @@ export function kindByRule(text: string): { kind: ItemKind; reason: string } {
   const first = text.split(/\n|(?<=[.!?])\s/)[0] ?? text
   const lower = first.toLowerCase()
   if (/\?\.?$/.test(first.trim()))
-    return { kind: 'example', reason: 'It reads as a question with a checked answer.' }
+    return { kind: 'guide', reason: 'It reads as a question and what a good answer to it holds.' }
   if (/^(?:how to|how do|checklist|comparing|what to rule out|steps? to|before you)\b/.test(lower))
     return { kind: 'guide', reason: 'It reads as a way to investigate.' }
   const dated = /\b(?:on|from) (?:\d{1,2} [a-z]+|[a-z]+ \d{1,2}|\d{4}-\d{2}-\d{2})/.test(lower)

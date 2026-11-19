@@ -6,7 +6,7 @@ import type { ScheduledJob } from '../jobs/index.ts'
 
 /**
  * The outbox relay. Every write puts its event in `outbox_events` in the same transaction; the
- * relay then writes the inbox items (`cl_outbox_relay`, migration 0020). Delivery is at least once and every consumer is keyed on
+ * relay then writes the inbox items (`cl_outbox_relay`). Delivery is at least once and every consumer is keyed on
  * the event, so a repeated relay adds nothing.
  *
  * In the service the relay runs on the insert trigger's NOTIFY (`cl_events`) and every five

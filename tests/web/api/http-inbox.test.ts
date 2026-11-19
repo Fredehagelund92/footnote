@@ -1044,7 +1044,7 @@ describe('the review', () => {
         {
           mode: 'new',
           gapId: 'g1',
-          writtenBy: 'assistant',
+          writtenBy: 'agent',
           from: { personId: 'p_maria', name: 'Maria Lindqvist' },
           tryIt: {
             question: 'Orders in Spain',
@@ -1074,9 +1074,7 @@ describe('the review', () => {
       from: 'the page at status.payments.example',
     })
     // Without the card's count, how many questions reach it this week.
-    expect(reviewOf(sheet({ gapId: 'g1', writtenBy: 'assistant' }), 'p9').drafted?.questions).toBe(
-      12,
-    )
+    expect(reviewOf(sheet({ gapId: 'g1', writtenBy: 'agent' }), 'p9').drafted?.questions).toBe(12)
   })
 
   it('warns of words that read like orders, by the field they are in, and of none when there are none', () => {

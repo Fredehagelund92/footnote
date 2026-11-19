@@ -358,12 +358,9 @@ export type { OperationsOverviewView } from './operations.ts'
 export type { ConnectInfo, TryItReading, TryItReadInput } from './connect.ts'
 export type { HeldRole, PeopleRoleFilter, PeopleSignInFilter, PersonStatus } from './people.ts'
 
-/**
- * What an operation needs from its caller. Reading needs a signed-in person (FR-128); `audit`
- * needs an administrator or an auditor (FR-808).
- */
+/** What an operation needs from its caller. Reading needs a signed-in person (FR-128). */
 export type OperationMeta = {
-  scope: 'public' | 'read' | 'feedback' | 'propose' | 'maintain' | 'admin' | 'audit'
+  scope: 'public' | 'read' | 'feedback' | 'propose' | 'maintain' | 'admin'
 }
 
 const read = oc.$meta<OperationMeta>({ scope: 'read' }).errors({
@@ -425,7 +422,6 @@ const settings = admin.errors({
     message: "This setting can't take that value. Check it, then try again.",
   },
 })
-const auditor = read.meta({ scope: 'audit' })
 /** An administrator ends a person's agent connection: the reason must hold no sensitive text. */
 const agentDisconnect = admin.errors({
   UNPROCESSABLE_CONTENT: {
@@ -1191,7 +1187,7 @@ export const contract = {
         path: '/areas',
         tags: ['admin'],
         summary:
-          'Create a domain with a reason (FR-801), and its owners and approvers in the same step; the team is given as one grants.apply batch with the same reason',
+          'Create a domain with a reason (FR-801), and its owners in the same step; the team is given as one grants.apply batch with the same reason',
       })
       .input(createAreaSchema)
       .output(areaDetailSchema),
@@ -1884,7 +1880,7 @@ export const contract = {
       .output(runJobSchema),
   },
   audit: {
-    search: auditor
+    search: admin
       .route({
         method: 'GET',
         path: '/audit',
@@ -1893,7 +1889,7 @@ export const contract = {
       })
       .input(auditSearchSchema)
       .output(auditPageSchema),
-    export: auditor
+    export: admin
       .route({
         method: 'GET',
         path: '/audit/export',
@@ -1902,7 +1898,7 @@ export const contract = {
       })
       .input(auditExportInputSchema)
       .output(auditExportSchema),
-    verify: auditor
+    verify: admin
       .route({
         method: 'GET',
         path: '/audit/verify',

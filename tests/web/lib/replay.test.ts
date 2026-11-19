@@ -97,11 +97,5 @@ describe("Overview's views and filters", () => {
     // As the address keeps them: a filter that is off has no key at all.
     const kept = Object.entries(chipsTo(f)).filter((e): e is [string, string] => !!e[1]!)
     expect(chipsFrom(new URLSearchParams(kept))).toEqual(f)
-    expect(chipsFrom(new URLSearchParams('answer=found'))[0]!.values).toEqual([
-      'grounded',
-      'partial',
-      'conflict',
-      'stale',
-    ])
   })
 })

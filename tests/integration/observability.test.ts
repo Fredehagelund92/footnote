@@ -499,14 +499,18 @@ describe('saved views (obs.views)', () => {
   it('keeps a view for everyone in the workspace; only its saver or an administrator removes it', async () => {
     const saved = await api('owner', 'POST', '/observability/views', {
       name: 'Found nothing',
-      filters: { answer: ['missing'] },
+      filters: { chips: [{ key: 'answer', values: ['missing'] }] },
     })
     expect(saved.statusCode, saved.body).toBe(200)
     const view = saved.json<ObsView>()
     expect(view).toMatchObject({ name: 'Found nothing', by: 'owner', mine: true })
     expect(
-      (await api('admin', 'POST', '/observability/views', { name: ' found NOTHING', filters: {} }))
-        .statusCode,
+      (
+        await api('admin', 'POST', '/observability/views', {
+          name: ' found NOTHING',
+          filters: { chips: [] },
+        })
+      ).statusCode,
     ).toBe(409)
     const listed = await ok<ObsView[]>('stranger', '/observability/views')
     expect(listed).toEqual([{ ...view, mine: false }])

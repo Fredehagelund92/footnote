@@ -48,9 +48,7 @@ export const behaviours = ['answer', 'clarify', 'no_context', 'decline'] as cons
 
 /**
  * get_context's statuses a case can expect: the answer states (src/domain/answer-state.ts) but
- * Not checked, and need_more_detail. `area_not_live` is no reply any more (every domain is served
- * since 14 Oct 2026); it stays only so a sealed case that still expects it reads, and fails until
- * its holder edits it.
+ * Not checked, and need_more_detail.
  */
 export const replyStatuses = [
   'matched',
@@ -59,7 +57,6 @@ export const replyStatuses = [
   'conflict',
   'no_match',
   'need_more_detail',
-  'area_not_live',
 ] as const
 
 const date = z.string().check(z.refine(isCalendarDate, 'Expected a calendar date'))
@@ -184,13 +181,9 @@ export const goldenCaseSchema = z
     /**
      * L1 checks that fail today because of a known product gap (named in `notes`), as
      * `served/check` (`served/source_refs`). The pass fails when one of them starts to hold, so
-     * the case is updated when the product is. `as_if_live/check` names the second pass that ran
-     * while domains could be not live; it never matches now, and stays only so a sealed case that
-     * still names it reads, and fails until its holder edits it.
+     * the case is updated when the product is.
      */
-    known_failures: z.optional(
-      z.array(z.string().check(z.regex(/^(served|as_if_live)\/[a-z_]+$/))),
-    ),
+    known_failures: z.optional(z.array(z.string().check(z.regex(/^served\/[a-z_]+$/)))),
   })
   .check(
     z.refine(

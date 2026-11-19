@@ -10,8 +10,7 @@ import { effectsOf, isLive, outcomeOf, type Turn } from './ask-turn'
 //   fresh   an empty thread: nothing is answered yet
 //   example an example, opened on its own answer; it is in the history already
 //   history a chat opened from the history, a reload, Back or Forward: its kept answers, or else
-//           (a chat kept before its answers were, or one past the newest kept) its first question
-//           asked again
+//           (one past the newest kept) its first question asked again
 //   live    a thread in which a turn was answered: the thread shows itself, nothing is read for it
 
 /** Where the address points: an example, a chat, or neither (a new chat). */

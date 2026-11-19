@@ -44,7 +44,6 @@ const kindCounts = z.object({
   note: z.number(),
   event: z.number(),
   guide: z.number(),
-  example: z.number(),
   issue: z.number(),
 } satisfies Record<ItemKind, unknown>)
 

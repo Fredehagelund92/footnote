@@ -22,8 +22,8 @@ export type SummaryFacts = {
   notCompared: 'started' | 'not_kept' | null
   open: { total: number }
   changes: { total: Shown }
-  /** What was caught besides the answers with a warning; none in a snapshot taken before it was counted. */
-  caught?: CaughtView | undefined
+  /** What was caught besides the answers with a warning. */
+  caught: CaughtView
 }
 
 /** A count under this reads "Fewer than 5" (FR-614). */
@@ -154,8 +154,8 @@ export function summaryNumbers(data: SummaryFacts) {
 
 /* ---------- the sentences ---------- */
 
-/** A line of "What we caught": a sentence over a count, or a thing not measured yet. */
-export type CaughtLine = { key: string; title: string; text: string; measured: boolean }
+/** A line of "What we caught": a sentence over a count. */
+export type CaughtLine = { key: string; title: string; text: string }
 
 /** A change after which Footnote checks the saved questions again, as a line says it. */
 const TRIGGER_WORDS: Record<CaughtTrigger, string> = {
@@ -255,8 +255,7 @@ export function summarySentences(data: SummaryFacts): string[] {
 /**
  * What was caught, as three separate lines that are never added up, and never "prevented": what
  * went out with a warning, the saved questions that changed after a change, and the alerts that
- * asked an owner for a decision and were acted on. A Summary counted before the last two were has
- * them as not measured.
+ * asked an owner for a decision and were acted on.
  */
 export function caughtLines(data: SummaryFacts): CaughtLine[] {
   const { warned } = data.numbers
@@ -264,7 +263,6 @@ export function caughtLines(data: SummaryFacts): CaughtLine[] {
     {
       key: 'warned',
       title: 'Answered with a warning',
-      measured: true,
       text:
         warned === null
           ? 'Hidden this period, so it cannot give a count under 5 away.'
@@ -272,32 +270,8 @@ export function caughtLines(data: SummaryFacts): CaughtLine[] {
             ? 'No answer went out with a warning.'
             : `${countWords(warned)} answers went out with a warning: only part of the question was covered, two items disagreed, or an item was past its check date. The agent was told each time.`,
     },
-    data.caught
-      ? {
-          key: 'saved',
-          title: 'Saved questions that changed',
-          measured: true,
-          text: savedText(data.caught.saved),
-        }
-      : {
-          key: 'saved',
-          title: 'Saved questions that changed after a publish',
-          measured: false,
-          text: 'Not measured yet. Quality shows what each saved question says now.',
-        },
-    data.caught
-      ? {
-          key: 'alerts',
-          title: 'Alerts that owners acted on',
-          measured: true,
-          text: alertsText(data.caught.alerts),
-        }
-      : {
-          key: 'alerts',
-          title: 'Alerts that owners acted on',
-          measured: false,
-          text: 'Not measured yet. Alerts shows what raises a card in the Inbox.',
-        },
+    { key: 'saved', title: 'Saved questions that changed', text: savedText(data.caught.saved) },
+    { key: 'alerts', title: 'Alerts that owners acted on', text: alertsText(data.caught.alerts) },
   ]
 }
 
@@ -309,7 +283,6 @@ export function caughtLines(data: SummaryFacts): CaughtLine[] {
  */
 export function caughtSentence(data: SummaryFacts): string | null {
   const caught = data.caught
-  if (!caught) return null
   const { total, triggers } = caught.saved
   const { raised, acted } = caught.alerts
   const { warned } = data.numbers

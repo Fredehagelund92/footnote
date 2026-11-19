@@ -9,7 +9,7 @@ import { appFamilies, appFamilyNames, type AppFamily } from '@domain/app-family'
 import type { ObsFilterView } from './client'
 import type { Answer } from '@/model/ask'
 import { stateLabel } from '@/model/ask'
-import type { FilterKey, Filters, SavedView } from '@/lib/obs-views'
+import type { FilterKey, SavedView } from '@/lib/obs-views'
 import {
   ALL_VALUES,
   dateLabel,
@@ -263,32 +263,18 @@ export function obsUsageOf(u: ObsUsage, range: Range, now: Date): ObsData {
   }
 }
 
-/**
- * A view saved on Overview, as the views read it: its chips in order, or for a view saved before
- * chips, its fields as chips.
- */
-export const savedViewOf = (v: ObsView): SavedView => {
-  const f = v.filters
-  const legacy: Filters = [
-    ...(f.answer?.length ? [{ key: 'answer' as const, values: f.answer }] : []),
-    ...(f.domain ? [{ key: 'domain' as const, values: [f.domain] }] : []),
-    ...(f.agent ? [{ key: 'agent' as const, values: [f.agent] }] : []),
-    ...(f.gap?.length ? [{ key: 'gap' as const, values: f.gap }] : []),
-    ...(f.month ? [{ key: 'month' as const, values: [f.month] }] : []),
-  ]
-  return {
-    id: v.id,
-    name: v.name,
-    filters:
-      f.chips?.map((c) => ({
-        key: c.key as FilterKey,
-        ...(c.not ? { not: true } : {}),
-        values: c.values,
-      })) ?? legacy,
-    by: v.by,
-    custom: true,
-  }
-}
+/** A view saved on Overview, as the views read it: its chips in order. */
+export const savedViewOf = (v: ObsView): SavedView => ({
+  id: v.id,
+  name: v.name,
+  filters: v.filters.chips.map((c) => ({
+    key: c.key as FilterKey,
+    ...(c.not ? { not: true } : {}),
+    values: c.values,
+  })),
+  by: v.by,
+  custom: true,
+})
 
 const why: Record<string, string> = {
   source_visibility: 'is not shared with agents',

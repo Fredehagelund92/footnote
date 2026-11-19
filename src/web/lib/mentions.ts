@@ -12,8 +12,8 @@ import { storageKey } from '@/lib/brand'
 // ("context:itm_norway_stop", "Online sales to Norway stopped..."). In markdown it is the editor's
 // own token, [@ id="..." label="..."]. A mention is navigation only: agents read the label as
 // plain words and never follow it, and it never changes who can see what. A dimension's value is
-// named by its vocabulary key ("value:market/norway"), so values of two dimensions never mix;
-// older text names a market by its word ("market:Norway").
+// named by its vocabulary key ("value:market/norway"), so values of two dimensions never mix; a
+// market can also be named by its word ("market:Norway"), as the @ picker's Markets do.
 
 export type MentionKind =
   'domain' | 'metric' | 'dimension' | 'value' | 'term' | 'context' | 'market' | 'person'

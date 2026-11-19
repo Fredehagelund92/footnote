@@ -56,7 +56,7 @@ it('serializes concurrent migrations, rolls back failures and refuses altered hi
     await rm(join(directory, '0002_other.sql'))
     await rm(join(directory, '0003_fail.sql'))
     await writeFile(join(directory, '0002_fail.sql'), 'insert into proof values (2);')
-    // A database made by other migrations, such as those the baseline replaced, is refused.
+    // A database made by other migrations is refused.
     await writeFile(join(directory, '0001_other.sql'), 'select 1;')
     await rm(join(directory, '0001_test.sql'))
     await rm(join(directory, '0002_fail.sql'))

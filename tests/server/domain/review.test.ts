@@ -3,11 +3,7 @@ import {
   addWorkingDays,
   matchingCheck,
   matchingProbes,
-  noneWorseWords,
-  testChange,
-  testChangeWords,
   versionDiff,
-  vocabularyChangeOf,
 } from '../../../src/domain/review.ts'
 import { bundle, event, terms, version } from './fixtures.ts'
 
@@ -142,36 +138,6 @@ describe('matching probes (level 2)', () => {
   })
 })
 
-describe('vocabularyChangeOf', () => {
-  it('reads a draft stored before a term could name several definitions', () => {
-    const draft = {
-      key: 'dim:market',
-      kind: 'dimension' as const,
-      parentKey: null,
-      name: 'Market',
-      aliases: [],
-      areaId: null,
-      definitionRef: 'cube:payments.market',
-      base: null,
-    }
-    expect(vocabularyChangeOf(draft)).toEqual({
-      key: 'dim:market',
-      kind: 'dimension',
-      parentKey: null,
-      name: 'Market',
-      aliases: [],
-      areaId: null,
-      definitionRefs: ['cube:payments.market'],
-      base: null,
-    })
-    expect(vocabularyChangeOf({ ...draft, definitionRef: null }).definitionRefs).toEqual([])
-    const { definitionRef: _old, ...current } = draft
-    expect(
-      vocabularyChangeOf({ ...current, definitionRefs: ['cube:a.market', 'cube:b.market'] }),
-    ).toMatchObject({ definitionRefs: ['cube:a.market', 'cube:b.market'] })
-  })
-})
-
 describe('addWorkingDays', () => {
   it('skips Saturdays and Sundays in UTC', () => {
     expect(addWorkingDays('2026-10-09T15:00:00.000Z', 2)).toBe('2026-10-13T15:00:00.000Z')
@@ -179,41 +145,5 @@ describe('addWorkingDays', () => {
     expect(addWorkingDays('2026-10-08T00:00:00.000Z', 0)).toBe('2026-10-08T00:00:00.000Z')
     expect(() => addWorkingDays('not a date', 1)).toThrow()
     expect(() => addWorkingDays('2026-10-08T00:00:00.000Z', -1)).toThrow()
-  })
-})
-
-describe('testChange (FR-524)', () => {
-  it('names what an attached test says about a change, and nothing when a side is unknown', () => {
-    expect(testChange(false, true)).toBe('fixed')
-    expect(testChange(false, false)).toBe('still_fails')
-    expect(testChange(true, true)).toBe('still_passes')
-    expect(testChange(true, false)).toBe('broken')
-    expect(testChange(null, true)).toBeNull()
-    expect(testChange(true, null)).toBeNull()
-    expect(testChangeWords.fixed).toBe('passes with this change')
-    expect(testChangeWords.still_fails).toBe('still fails')
-  })
-})
-
-describe('noneWorseWords', () => {
-  it('says only that none got worse when every affected question passes', () => {
-    expect(noneWorseWords(2)).toBe('2 test questions could change. None got worse.')
-    expect(noneWorseWords(1)).toBe("1 test question could change. It didn't get worse.")
-  })
-  it('says plainly when questions were already failing and still fail', () => {
-    expect(noneWorseWords(3, { alreadyFailing: 1 })).toBe(
-      '3 test questions could change. None got worse. 1 was already failing and still fails.',
-    )
-    expect(noneWorseWords(3, { alreadyFailing: 2 })).toBe(
-      '3 test questions could change. None got worse. 2 were already failing and still fail.',
-    )
-  })
-  it('says plainly when questions went from failing to passing', () => {
-    expect(noneWorseWords(2, { nowPassing: 1 })).toBe(
-      '2 test questions could change. None got worse. 1 went from failing to passing.',
-    )
-    expect(noneWorseWords(3, { alreadyFailing: 1, nowPassing: 2 })).toBe(
-      '3 test questions could change. None got worse. 1 was already failing and still fails. 2 went from failing to passing.',
-    )
   })
 })

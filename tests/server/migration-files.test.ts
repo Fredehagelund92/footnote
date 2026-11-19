@@ -28,7 +28,7 @@ it('names the last migration in db/migrations/latest.txt (run `npm run db:renumb
 })
 
 it('starts from the baseline', async () => {
-  expect((await files())[0]).toBe('0001_baseline.sql')
+  expect((await files())[0]).toBe('0001_schema.sql')
 })
 
 it('refuses a shared, skipped or missing first number', () => {

@@ -15,7 +15,6 @@ const pages = [
   '/definitions',
   '/ask',
   '/observability',
-  '/observability/questions',
   '/settings/people',
   '/settings/agents',
   '/settings/integrations',

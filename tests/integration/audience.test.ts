@@ -28,7 +28,7 @@ import {
   item for some groups only, and the accepted proposal that made it, reach nobody outside its
   audience. Groups are parked, so nobody is in the item's group: every person, whatever their
   roles, and every agent, whatever groups its token claims, is outside it. Only the review
-  exception of row security stays: the proposal's author, its domain's owners and approvers and
+  exception of row security stays: the proposal's author, its domain's owners and
   administrators read the proposal they decide. A visible item that mentions the hidden one, and
   conflicts with it, shows the mention as its words only.
 
@@ -64,20 +64,18 @@ const linking = {
 
 const members = {
   ...people,
-  auditor: '00000000-0000-4000-8000-0000000000a1',
   reader: '00000000-0000-4000-8000-0000000000b1',
 }
 /**
  * Who reads, and whether the review exception lets them read the hidden item's proposal: its
- * author, the owners and approvers of its domain, and administrators. Nobody reads the item.
+ * author, the owners of its domain, and administrators. Nobody reads the item.
  */
 const readers = {
   author: { name: 'author', reviews: true },
   owner: { name: 'owner', reviews: true },
-  approver: { name: 'approver', reviews: true },
   administrator: { name: 'admin', reviews: true },
   otherOwner: { name: 'stranger', reviews: false },
-  auditor: { name: 'auditor', reviews: false },
+  member: { name: 'member', reviews: false },
   reader: { name: 'reader', reviews: false },
 } as const
 type Reader = keyof typeof readers
@@ -138,13 +136,9 @@ beforeAll(async () => {
   await transaction(client, async () => {
     await foundation(client)
     await client.query(
-      `insert into people (id,email,display_name) values
-         ($1,'auditor@example.test','auditor'),($2,'reader@example.test','reader')`,
-      [members.auditor, members.reader],
+      `insert into people (id,email,display_name) values ($1,'reader@example.test','reader')`,
+      [members.reader],
     )
-    await client.query("insert into global_role_grants (person_id,role) values ($1,'auditor')", [
-      members.auditor,
-    ])
     await client.query(
       "insert into area_assignments (area_id,person_id,role) values ('marketing',$1,'owner')",
       [people.stranger],
@@ -518,10 +512,8 @@ describe('the audience rule on every read path', () => {
     const exported = await footnote(['export', liveLabel, '--json'], 'owner')
     expect(exported.code, exported.text).toBe(0)
     expect(leaks(scanned('editions.export', exported.text))).toEqual([])
-    for (const who of ['auditor', 'admin']) {
-      const audit = await footnote(['audit', '--format', 'jsonl'], who)
-      expect(audit.code, audit.text).toBe(0)
-      expect(leaks(audit.text), who).toEqual([])
-    }
+    const audit = await footnote(['audit', '--format', 'jsonl'], 'admin')
+    expect(audit.code, audit.text).toBe(0)
+    expect(leaks(audit.text)).toEqual([])
   })
 })

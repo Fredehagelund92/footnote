@@ -63,13 +63,6 @@ test('Conflicts filters the one Context table to the items in a conflict, in the
   await expect(rowOf(page, 'Online sales to Norway stopped on 4 August 2026')).toBeVisible()
 })
 
-test('the old Conflicts list lands on the Context list filtered to conflicts', async ({ page }) => {
-  await go(page, '/context/conflicts?whose=all')
-  await expect(page).toHaveURL(/\/context\?show=conflicts$/)
-  await expect(page.getByRole('radio', { name: /^Conflicts/ })).toBeChecked()
-  await expect(chipWith(page, 'Norway orders count store credit')).toBeVisible()
-})
-
 test("a row's Conflict chip and its Compare and decide open the pair in the dock", async ({
   page,
 }) => {

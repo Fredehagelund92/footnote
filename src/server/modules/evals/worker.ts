@@ -24,11 +24,9 @@ import {
   type CallLimits,
   type Sleep,
 } from '../models/index.ts'
-import { readVersion } from '../proposals/index.ts'
 import { tryQuestion } from './answer.ts'
 import { openArm, ToolCallRefused, type Arm } from './arm.ts'
 import { cellEstimateMicros, cellKey, loadRevisions, type ArmName, type Models } from './plan.ts'
-import { replayDeliveries } from './replay.ts'
 import {
   commandKinds,
   failRun,
@@ -214,22 +212,10 @@ async function workRun(
         `The run was planned for ${run.model_id} judged by ${run.judge_model_id ?? 'unknown'}; this service now uses ${models.answer.id} judged by ${models.judge.id}. Resume it with those models, or restore the settings.`,
       )
     const { bodies, sides } = await database.transaction(person, async (tx) => {
-      const version = run.item_version_id ? await readVersion(tx, run.item_version_id) : null
-      if (run.item_version_id && !version)
-        throw new Error('The run cannot read the version it checks')
       const sides = sidesOfRun(
         run.kind,
-        await sidesFor(tx, await headAt(tx, run.baseline_edition_seq!), version),
+        await sidesFor(tx, await headAt(tx, run.baseline_edition_seq!)),
       )
-      // FR-512: how many stored deliveries the change would alter, by topic, without a model.
-      if (version && sides.candidate && !run.summary.replay) {
-        const replay = await replayDeliveries(tx, sides.baseline!, sides.candidate)
-        await tx.query(
-          "update eval_runs set summary=summary||jsonb_build_object('replay',$2::jsonb) where id=$1",
-          [run.id, JSON.stringify(replay)],
-        )
-        run.summary.replay = replay
-      }
       return { bodies: await loadRevisions(tx, run.summary.plan.questions), sides }
     })
     const paired = sides.candidate !== undefined
@@ -255,7 +241,7 @@ async function workRun(
         let arm = arms.get(key)
         if (!arm) {
           const clock = day ? onDay(deps.clock, day) : deps.clock
-          arm = openArm(sides[name]!, database, clock, run.summary.tools?.[name])
+          arm = openArm(sides[name]!, database, clock, run.summary.tools[name])
           arms.set(key, arm)
         }
         return arm
@@ -295,8 +281,6 @@ async function workRun(
       const layers = (arm: ArmName) => questionLayers(tries(q.id, arm), rule)
       return {
         id: q.id,
-        impact: q.impact,
-        ...(q.attached ? { attached: true as const } : {}),
         baseline: r.baseline,
         candidate: paired ? r.candidate : null,
         flip: paired ? flipOf(r.baseline, r.candidate) : null,
@@ -307,7 +291,7 @@ async function workRun(
     const agreement = (arm: ArmName) =>
       agreementOf(
         results.flatMap((q) => {
-          const layers = q.layers?.[arm]
+          const layers = q.layers[arm]
           return layers ? [{ id: q.id, layers }] : []
         }),
         run.summary.plan.questions.flatMap((q) => tries(q.id, arm).flat()),

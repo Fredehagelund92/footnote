@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
   The product had another name before it was called Footnote, and nothing reads or says the former
   name any more: no setting, cookie, header, file, code name, test or page (docs/product-name.md).
   This fails on the name in any file git tracks, or would track, and in any path, outside the
-  historical records below, which are never rewritten. It is shown failing, then run on the
+  historical record below, which is never rewritten. It is shown failing, then run on the
   repository. The name is spelled by its letters' codes, so this file does not say it either.
 */
 
@@ -16,34 +16,9 @@ const word = String.fromCharCode(104, 101, 101, 100)
 const Word = `${word[0]!.toUpperCase()}${word.slice(1)}`
 const formerName = new RegExp(word, 'i')
 
-/**
- * The migrations, applied before the rename, that say the former name. An applied migration is
- * never edited (db/README.md): the runner refuses a database whose applied file changed, so
- * taking the name out of these would mean making every existing database again. A new migration
- * is checked like any other file.
- */
-const appliedMigrations = [
-  '0001_baseline',
-  '0004_agent_contract',
-  '0005_review_path',
-  '0010_about_starts_empty',
-  '0012_people_and_invites',
-  '0014_oidc_sign_in',
-  '0015_observability',
-  '0033_obs_caught',
-  '0043_ask_loop_limits',
-  '0051_gap_states',
-  '0053_invite_standing',
-  '0058_footnote_names',
-]
-
 /** The records that keep the former name, since they say what happened under it. */
 const historical: readonly { path: string; why: string }[] = [
   { path: 'CHANGELOG.md', why: 'written by release-please from the commits' },
-  ...appliedMigrations.map((name) => ({
-    path: `db/migrations/${name}.sql`,
-    why: 'an applied migration is never edited',
-  })),
 ]
 
 /** Where the former name appears in one file: its path, then each line that says it. */
@@ -94,13 +69,11 @@ describe("the product's former name", () => {
 
   it('passes the historical records and a file that does not say it', () => {
     expect(formerNames('CHANGELOG.md', `* add the ${Word}Api seam`)).toEqual([])
-    expect(formerNames('db/migrations/0058_footnote_names.sql', `-- '${word}.roles'`)).toEqual([])
     expect(formerNames('docs/README.md', 'Footnote, take note.')).toEqual([])
-    // Only those migrations: a new one, or a file beside them, is checked.
-    expect(formerNames('db/migrations/0059_next.sql', `-- ${Word}`)).toEqual([
-      'db/migrations/0059_next.sql:1',
+    // A migration is checked like any other file.
+    expect(formerNames('db/migrations/0001_schema.sql', `-- '${word}.roles'`)).toEqual([
+      'db/migrations/0001_schema.sql:1',
     ])
-    expect(formerNames('db/migrations/latest.txt', word)).toEqual(['db/migrations/latest.txt:1'])
   })
 
   it('appears nowhere in the repository but those records', () => {

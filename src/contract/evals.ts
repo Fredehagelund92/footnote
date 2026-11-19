@@ -32,36 +32,30 @@ export const runStates = [
 export const runSchema = z.object({
   id: z.string(),
   kind: z.enum([
-    'impact',
     'full',
     'scheduled',
     'links',
-    'assistant_mock',
-    'assistant_real',
-    'replay',
     // The sealed held-out questions of an area, run with none of their words kept (FR-525).
     'held_out',
   ]),
   state: z.enum(runStates),
   areaId: z.nullable(z.string()),
-  proposalId: z.nullable(z.string()),
-  itemVersionId: z.nullable(z.string()),
   edition: z.string(),
   modelId: z.string(),
   judgeModelId: z.nullable(z.string()),
-  /** The provider that served each model, such as `anthropic` or `vercel-gateway`; null on older runs. */
-  modelProvider: z.nullable(z.string()),
-  judgeProvider: z.nullable(z.string()),
-  /** Vendor and model line, such as `anthropic/claude-sonnet`, whichever provider served it; null on older runs. */
-  modelFamily: z.nullable(z.string()),
-  judgeFamily: z.nullable(z.string()),
-  /** The judge is the answering model's own line, which may favour its answers; null when unknown. */
-  judgeSameFamily: z.nullable(z.boolean()),
-  /** The company whose model it is, such as `anthropic`; null on older runs. */
-  modelVendor: z.nullable(z.string()),
-  judgeVendor: z.nullable(z.string()),
+  /** The provider that served each model, such as `anthropic` or `vercel-gateway`. */
+  modelProvider: z.string(),
+  judgeProvider: z.string(),
+  /** Vendor and model line, such as `anthropic/claude-sonnet`, whichever provider served it. */
+  modelFamily: z.string(),
+  judgeFamily: z.string(),
+  /** The judge is the answering model's own line, which may favour its answers. */
+  judgeSameFamily: z.boolean(),
+  /** The company whose model it is, such as `anthropic`. */
+  modelVendor: z.string(),
+  judgeVendor: z.string(),
   /** A different model line is not a different company: true when one vendor served both. */
-  judgeSameVendor: z.nullable(z.boolean()),
+  judgeSameVendor: z.boolean(),
   /** Why a full run started without a person: a change the review gate does not see. */
   trigger: z.nullable(z.enum(['source_sync', 'tool_descriptions', 'date_expiry'])),
   toolSchemaDigest: z.string(),
@@ -114,15 +108,9 @@ export const agreementSchema = z.object({
 })
 /**
  * Why an answer could not be made: never a quality result (R6). `tool`: the tool server refused
- * one of the answer's tool calls. `judge` is kept for runs made before a judge error was recorded
- * on the answer it could not grade (`judging`).
+ * one of the answer's tool calls.
  */
-export const failureKinds = ['throttled', 'provider', 'judge', 'tool', 'error'] as const
-
-const levelOutcome = z.object({
-  outcome: z.enum(['passed', 'failed', 'error']),
-  message: z.string(),
-})
+export const failureKinds = ['throttled', 'provider', 'tool', 'error'] as const
 export const scorecardSchema = z.object({
   edition: z.string(),
   questions: z.number(),
@@ -142,11 +130,11 @@ export const scorecardSchema = z.object({
     acceptable: z.number(),
     meetsTargets: z.boolean(),
   }),
-  /** Questions passing and failing per layer; null on runs scored before layers were kept. */
-  layers: z.nullable(z.object({ code: layerCount, judge: layerCount })),
-  /** How many questions each check failed; null on older runs. */
-  failedChecks: z.nullable(z.record(z.string(), z.number())),
-  /** Judge against code; null on older runs. */
+  /** Questions passing and failing per layer. */
+  layers: z.object({ code: layerCount, judge: layerCount }),
+  /** How many questions each check failed. */
+  failedChecks: z.record(z.string(), z.number()),
+  /** Judge against code; null on a run with no questions. */
   agreement: z.nullable(agreementSchema),
 })
 const armSummary = z.object({
@@ -172,31 +160,19 @@ export const runDetailSchema = z.object({
   results: z.array(
     z.object({
       id: z.string(),
-      impact: z.boolean(),
       baseline: verdictSchema,
       candidate: verdictSchema,
       flip: z.nullable(z.enum(['pass_to_fail', 'fail_to_pass'])),
-      /** Null on runs scored before layers were kept. */
-      layers: z.nullable(
-        z.object({ baseline: questionLayersSchema, candidate: z.nullable(questionLayersSchema) }),
-      ),
+      layers: z.object({
+        baseline: questionLayersSchema,
+        candidate: z.nullable(questionLayersSchema),
+      }),
     }),
   ),
   flips: z.array(z.object({ id: z.string(), flip: z.enum(['pass_to_fail', 'fail_to_pass']) })),
-  levels: z.record(z.string(), levelOutcome),
   scorecard: z.nullable(scorecardSchema),
   links: z.nullable(linkResultSchema),
-  replay: z.nullable(
-    z.object({
-      deliveries: z.number(),
-      changed: z.number(),
-      topics: z.array(
-        z.object({ topic: z.string(), area: z.nullable(z.string()), changed: z.number() }),
-      ),
-      otherChanged: z.number(),
-    }),
-  ),
-  /** Judge against code, per side; null on older runs and runs that did not finish. */
+  /** Judge against code, per side; null on runs that did not finish or had no questions. */
   agreement: z.nullable(
     z.object({ baseline: agreementSchema, candidate: z.nullable(agreementSchema) }),
   ),
@@ -235,7 +211,6 @@ export const runDetailSchema = z.object({
 })
 export const runListSchema = z.object({
   area: z.optional(areaId),
-  proposal: z.optional(uuid),
   limit: z.optional(z.number().check(z.int(), z.minimum(1), z.maximum(100))),
 })
 export const runIdSchema = z.object({ id: uuid })

@@ -123,11 +123,8 @@ describe('reading the library index', () => {
     expect(fact!.owners).toEqual(['Maria Lindqvist'])
   })
 
-  it('leaves out the kind the app does not offer, and says nothing for an item never checked', () => {
-    const facts = factsOf(
-      [row({ kind: 'example' }), row({ id: 'itm_b', lastChecked: null })],
-      names,
-    )
+  it('says nothing for an item never checked', () => {
+    const facts = factsOf([row({ id: 'itm_b', lastChecked: null })], names)
     expect(facts.map((f) => f.id)).toEqual(['itm_b'])
     expect(facts[0]).toMatchObject({ checkedBy: '', checkedOn: '' })
   })
@@ -200,7 +197,7 @@ describe('reading the catalogue', () => {
 })
 
 describe('reading search everywhere', () => {
-  it('keeps the groups, without the kind the app does not offer', () => {
+  it('keeps the groups', () => {
     expect(
       hitsOf({
         items: [
@@ -210,14 +207,6 @@ describe('reading search everywhere', () => {
             areaId: 'area_sales',
             status: 'accepted',
             title: 'A',
-            summary: '',
-          },
-          {
-            id: 'itm_b',
-            kind: 'example',
-            areaId: 'area_sales',
-            status: 'accepted',
-            title: 'B',
             summary: '',
           },
         ],

@@ -10,11 +10,11 @@ import * as z from 'zod/mini'
 import { limits } from './proposal-rules.ts'
 
 /**
- * The five kinds of item (requirements, section 2.1 "Kind"). An `event` is a standing fact: it
+ * The four kinds of item (requirements, section 2.1 "Kind"). An `event` is a standing fact: it
  * starts on a date and usually has no end. An `issue` is temporary: while it lasts it is a live
  * warning, and once it ends it is history, delivered only for questions about its own period.
  */
-export const itemKinds = ['note', 'event', 'guide', 'example', 'issue'] as const
+export const itemKinds = ['note', 'event', 'guide', 'issue'] as const
 export type ItemKind = (typeof itemKinds)[number]
 
 /**
@@ -48,20 +48,11 @@ export const claimLevels = ['fact_only', 'effect_stated'] as const
 export type ClaimLevel = (typeof claimLevels)[number]
 
 /** How an item version was created (FR-103). `source`: a content source's read, not a person (CON-603). */
-export const creationChannels = [
-  'form',
-  'assistant',
-  'chat',
-  'command_line',
-  'mcp',
-  'import',
-  'source',
-] as const
+export const creationChannels = ['form', 'chat', 'command_line', 'mcp', 'import', 'source'] as const
 export type CreationChannel = (typeof creationChannels)[number]
 /** The channels a person writes through: every one but a content source's read. */
 export const personChannels = [
   'form',
-  'assistant',
   'chat',
   'command_line',
   'mcp',
@@ -79,13 +70,6 @@ export type ItemStatus = (typeof itemStatuses)[number]
  */
 export const checkFlags = ['needs_check', 'source_missing'] as const
 export type CheckFlag = (typeof checkFlags)[number]
-
-/**
- * The states a domain had in editions sealed before every domain was served (14 Oct 2026). Domains
- * no longer have one; these stay only because those editions' digests and exports name them.
- */
-export const areaStates = ['not_started', 'starting', 'live', 'paused'] as const
-export type AreaState = (typeof areaStates)[number]
 
 /** The most characters of a domain's summary line, shown in lists and pickers. */
 export const AREA_SUMMARY_MAX = 160

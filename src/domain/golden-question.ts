@@ -49,7 +49,8 @@ export const questionScopeSchema = z.object({
  * get_context, or find_context, which replies in the same shape.
  * A link-follow question (FR-523) names the items whose context the answer must reach through a
  * link (`read_context` or `get_related`), and the stale or hidden link targets it must neither read
- * nor cite. Both are optional, so earlier questions keep their exact text and cache keys.
+ * nor cite. Both are optional: a question about no link names neither, and its cache key leaves
+ * them out.
  */
 const expectedSchema = z.object({
   must_deliver: z._default(z.array(itemId).check(z.maxLength(20)), []),

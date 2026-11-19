@@ -391,11 +391,6 @@ describe("a context item's page", () => {
     expect(factOfPage(page(), names, words)).not.toHaveProperty('outOfDate')
   })
 
-  it('leaves out an item of the kind the app does not offer', () => {
-    expect(factOfPage(page({ kind: 'example' }), names, words)).toBeNull()
-    expect(itemPageOf(page({ kind: 'example' }), names, words, 0)).toBeNull()
-  })
-
   it('carries what the warning says of its conflict, so the warning needs no read of the pair', () => {
     const pair = { key: 'itm_giftcardonly.itm_norway_stop', canSettle: true, asked: 31 }
     const read = itemPageOf(
@@ -593,7 +588,7 @@ describe('a draft, as the Context list and its page read it', () => {
 })
 
 describe("the editor's item, as the draft the service publishes", () => {
-  const before: Fact = factOfPage(page(), names, words)!
+  const before: Fact = factOfPage(page(), names, words)
 
   it('names only what an edit changes', () => {
     expect(

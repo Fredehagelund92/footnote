@@ -106,7 +106,7 @@ const adminOperations = [
   'sources.activity',
   'sources.pause',
 ]
-/** FR-808: the history log is for administrators and auditors, and so is finding people for its filter. */
+/** FR-808: the history log is for administrators, and so is finding people for its filter. */
 const auditOperations = ['audit.search', 'audit.export', 'audit.verify']
 const readOperations = [
   // A person's own agents: every signed-in person answers their own sign-ins and lists and
@@ -238,7 +238,7 @@ describe('policy matrix', () => {
       ].sort(),
     ).toEqual(Object.keys(policies).sort())
   })
-  it.each(['anonymous', 'contributor', 'owner', 'approver', 'auditor', 'administrator'])(
+  it.each(['anonymous', 'contributor', 'owner', 'administrator'])(
     'evaluates every operation for %s',
     (role) => {
       const principal: Principal | null =
@@ -249,9 +249,8 @@ describe('policy matrix', () => {
               name: 'Person',
               initials: 'P',
               permissions: {
-                roles: role === 'administrator' || role === 'auditor' ? [role] : [],
-                assignments:
-                  role === 'owner' || role === 'approver' ? [{ areaId: 'finance', role }] : [],
+                roles: role === 'administrator' ? [role] : [],
+                assignments: role === 'owner' ? [{ areaId: 'finance', role }] : [],
               },
             }
       for (const operation of publicOperations)
@@ -261,9 +260,7 @@ describe('policy matrix', () => {
       for (const operation of adminOperations)
         expect(can(principal, operation), operation).toBe(role === 'administrator')
       for (const operation of auditOperations)
-        expect(can(principal, operation), operation).toBe(
-          role === 'administrator' || role === 'auditor',
-        )
+        expect(can(principal, operation), operation).toBe(role === 'administrator')
       for (const operation of maintainOperations)
         expect(can(principal, operation), operation).toBe(['administrator', 'owner'].includes(role))
       expect(can(principal, 'unregistered.operation')).toBe(false)

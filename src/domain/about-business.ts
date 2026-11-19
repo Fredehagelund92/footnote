@@ -12,7 +12,7 @@ export const ABOUT_BUSINESS_MAX = 1200
 /**
  * The worked example of the text, an outdoor-gear retailer: what the guide offers to start from
  * (Start from the guide) and what Administration's reset puts back. A new install starts with no
- * text (db/migrations/0010_about_starts_empty.sql); the demo seeds write this one. Neutral on
+ * text (db/migrations/0001_schema.sql); the demo seeds write this one. Neutral on
  * purpose: no company's name, figures or deals, and no legal or regulatory conclusion.
  */
 export const ABOUT_BUSINESS_STARTER = [

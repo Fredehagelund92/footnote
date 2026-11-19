@@ -390,7 +390,7 @@ const span = z.object({ start: day, end: day })
 
 /**
  * What was caught in the period besides the answers with a warning (`numbers.warned`), each a line
- * of its own and never added up (db/migrations/0033_obs_caught.sql): how many times a saved
+ * of its own and never added up (db/migrations/0001_schema.sql): how many times a saved
  * question's answer changed after a change, in all and by kind of change; and the alerts that
  * asked an owner for a decision, and how many an owner acted on within 14 days.
  */
@@ -484,17 +484,14 @@ export const obsSnapshotSummarySchema = z.extend(
   {
     open: z.object({ total: z.number() }),
     changes: z.object({ total: shown, before: shown }),
-    /** What was caught; a snapshot taken before it was counted has none. */
-    caught: z.optional(caughtSchema),
+    caught: caughtSchema,
   },
 )
 
 /** The sentences a snapshot keeps, said by fixed templates over its counts when it was taken. */
 export const obsSnapshotWordsSchema = z.object({
   sentences: z.array(z.string()),
-  caught: z.array(
-    z.object({ key: z.string(), title: z.string(), text: z.string(), measured: z.boolean() }),
-  ),
+  caught: z.array(z.object({ key: z.string(), title: z.string(), text: z.string() })),
   notes: z.array(z.string()),
 })
 
@@ -532,33 +529,17 @@ export const obsSnapshotTakeSchema = z.object({
 /**
  * A filter of a saved view, as Overview's filter bar draws it: a field or a dimension
  * (`dim:store`, with its values' keys or `*`), whether it leaves its values out, and the values,
- * in the order the chips were put in. `market` is the old "Value" field, by name. Never a question's words: a
- * topic's are the words a reader searched its name for.
+ * in the order the chips were put in. Never a question's words: a topic's are the words a reader
+ * searched its name for.
  */
 const viewChip = z
   .object({
     key: z.union([
-      z.enum([
-        'answer',
-        'domain',
-        'agent',
-        'market',
-        'metric',
-        'month',
-        'gap',
-        'reported',
-        'topic',
-      ]),
+      z.enum(['answer', 'domain', 'agent', 'metric', 'month', 'gap', 'reported', 'topic']),
       dimensionKey,
     ]),
     not: z.optional(z.boolean()),
     values: z.array(z.string().check(z.minLength(1), z.maxLength(200))).check(z.maxLength(50)),
-    /**
-     * Why an old Value chip was not moved to its dimension's (migration 0046): a name of two
-     * values or of two dimensions (`shared`), of none (`unknown`), or a dimension the view filters
-     * already (`taken`).
-     */
-    flag: z.optional(z.enum(['shared', 'unknown', 'taken'])),
   })
   .check(
     z.refine(
@@ -568,21 +549,14 @@ const viewChip = z
   )
 
 const viewFilters = z.object({
-  /** The chips, in order; a view saved before them keeps the fields below. */
-  chips: z.optional(
-    z.array(viewChip).check(
-      z.maxLength(20),
-      z.refine(
-        (list) => new Set(list.map((c) => c.key)).size === list.length,
-        'Each field or dimension is a chip once.',
-      ),
+  /** The chips, in order. */
+  chips: z.array(viewChip).check(
+    z.maxLength(20),
+    z.refine(
+      (list) => new Set(list.map((c) => c.key)).size === list.length,
+      'Each field or dimension is a chip once.',
     ),
   ),
-  answer: z.optional(z.array(z.enum(shownStates))),
-  domain: z.optional(areaId),
-  agent: z.optional(z.string().check(z.maxLength(40))),
-  gap: z.optional(z.array(z.enum(['draft', 'suggestion', 'none']))),
-  month: z.optional(z.string().check(z.regex(/^\d{4}-\d{2}$/))),
 })
 
 export const obsViewSchema = z.object({

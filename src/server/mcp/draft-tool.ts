@@ -28,10 +28,9 @@ import { productName } from '../brand.ts'
   `suggest_context` (FR-121, changed for the agent contract): after the person says yes, an agent
   sends a suggestion, as the person it acts for, to the owner of its domain. The agent's model
   writes the words; Footnote calls no model here. It derives what it can derive exactly, marks every
-  field, lists what only the person can answer, saves through the same write path as the
-  assistant's drafts (saveAgentDraft), and then sends it for review through the same path as the
-  person's own Send for review (proposals.submit), so it waits in the owner's queue with every
-  field marked. If the review checks refuse it, it stays the person's draft and the reply says why.
+  field, lists what only the person can answer, saves through saveAgentDraft, and then sends it for
+  review through the same path as the person's own Send for review (proposals.submit), so it waits
+  in the owner's queue with every field marked. If the review checks refuse it, it stays the person's draft and the reply says why.
   Nothing here accepts or publishes on its own: an owner does, in the review, or in advance with a
   policy for this agent and domain (FR-421, agents/policies.ts). Under a policy that covers it, the
   suggestion is published in the same transaction, as that owner's decision; otherwise it waits.
@@ -309,7 +308,6 @@ export function createDraftTool(options: {
         const saved = await saveAgentDraft(tx, clock, personId, {
           draft: derived.draft,
           ...(args.item_id ? { itemId: args.item_id } : {}),
-          channel: 'mcp',
           marks: derived.marks,
           ...(args.window?.uncertain ? { datesUncertain: true } : {}),
           ...(answering ? { answersRound: answering.round } : {}),

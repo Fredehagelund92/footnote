@@ -209,7 +209,7 @@ describe('records answers on PostgreSQL', () => {
       expect(library.statusCode, library.body).toBe(200)
       const listed = library.json<{ items: { id: string; kind: string }[] }>().items
       const count = await counted(who, 'how many context items are there?')
-      expect(count.total, who).toBe(listed.filter((i) => i.kind !== 'example').length)
+      expect(count.total, who).toBe(listed.length)
       expect(count.total, who).toBe(5)
       expect((await counted(who, 'what is archived?')).rows).toEqual([
         expect.objectContaining({ type: 'item', id: archived.id, title: archived.title }),

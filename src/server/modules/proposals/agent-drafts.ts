@@ -1,12 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import type { Draft } from '../../../domain/draft.ts'
-import {
-  provenanceOf,
-  type ExternalSource,
-  type FieldMark,
-  type MarkedField,
-} from '../../../domain/provenance.ts'
+import { provenanceOf, type FieldMark, type MarkedField } from '../../../domain/provenance.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { retryWrite } from './retry.ts'
@@ -14,23 +9,16 @@ import { createProposalsService } from './service.ts'
 import { productName } from '../../brand.ts'
 
 /*
-  The one write path for a draft that someone other than the person wrote for them: an AI agent
-  through the MCP tool `suggest_context` (FR-121) and the built-in assistant's `create_draft`
-  (FR-707). Both save a draft owned by the person through proposals.create, with a mark on
-  every field. `suggest_context` saves it here and draft-tool.ts then submits it for review; the
-  assistant's `create_draft` never submits (FR-102, FR-122).
+  The one write path for a draft that an AI agent wrote for the person, through the MCP tool
+  `suggest_context` (FR-121): it saves a draft owned by the person through proposals.create, with
+  a mark on every field, and draft-tool.ts then submits it for review (FR-102, FR-122).
 */
 
 export type AgentDraftRequest = {
   draft: Draft
   itemId?: string
-  channel: 'mcp' | 'assistant'
   /** The mark of each field as the writer filled it; a field absent from the draft loses it. */
   marks: Partial<Record<MarkedField, FieldMark>>
-  /** The assistant's own source words per field, kept on the draft's history (FR-707). */
-  sources?: Record<string, string>
-  /** Evidence the assistant took from web pages Footnote read, with the automatic quote match. */
-  external?: readonly ExternalSource[]
   /** The person was unsure of the dates, or gave none: the draft's dates are flagged. */
   datesUncertain?: boolean
   /** A resent request with the same key returns the same draft instead of a second one. */
@@ -40,7 +28,7 @@ export type AgentDraftRequest = {
    * saves one draft: a second save with it, a replayed request state, is refused.
    */
   answersRound?: string
-  /** The agent that sent it, for an MCP draft (FR-420): named on the proposal. */
+  /** The agent that sent it (FR-420): named on the proposal. */
   agentId?: string
 }
 
@@ -86,7 +74,7 @@ export async function saveAgentDraft(
   personId: string,
   request: AgentDraftRequest,
 ): Promise<ProposalRecord> {
-  if (request.channel === 'mcp') await checkLimits(tx)
+  await checkLimits(tx)
   // Under the person's agent-draft lock taken above; the unique column backs it up.
   if (request.answersRound) {
     const [used] = await tx.query('select 1 from proposals where answers_round=$1', [
@@ -101,24 +89,15 @@ export async function saveAgentDraft(
   const input = {
     draft: request.draft,
     ...(request.itemId ? { itemId: request.itemId } : {}),
-    channel: request.channel,
+    channel: 'mcp' as const,
   }
-  const by = request.channel === 'mcp' ? 'agent' : 'assistant'
   const create = () =>
     proposals.create(input, {
-      ...(request.sources ? { assisted: request.sources } : {}),
-      provenance: (draft) =>
-        provenanceOf(by, request.marks, draft, request.external, request.datesUncertain),
+      provenance: (draft) => provenanceOf('agent', request.marks, draft, request.datesUncertain),
       ...(request.answersRound ? { answersRound: request.answersRound } : {}),
-      ...(request.channel === 'mcp' && request.agentId ? { agentId: request.agentId } : {}),
+      ...(request.agentId ? { agentId: request.agentId } : {}),
     })
   return request.retryKey
-    ? retryWrite(
-        tx,
-        request.retryKey,
-        request.channel === 'mcp' ? 'mcp.suggest_context' : 'assistant.create_draft',
-        input,
-        create,
-      )
+    ? retryWrite(tx, request.retryKey, 'mcp.suggest_context', input, create)
     : create()
 }

@@ -263,14 +263,14 @@ describe('the review sheet (FR-224)', () => {
 
   it('gives every field of both versions, so a new owner shows where the difference has none', async () => {
     // A second owner of Finance for a moment, to hand the item to.
-    const grant = [people.approver]
+    const grant = [people.member]
     await client.query(
       "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'owner')",
       grant,
     )
     const itemId = await live({ ...inMarket('slovakia'), ownerId: people.owner })
     const change = await submitted(
-      { ...inMarket('slovakia'), ownerId: people.approver },
+      { ...inMarket('slovakia'), ownerId: people.member },
       'author',
       itemId,
     )
@@ -294,7 +294,7 @@ describe('the review sheet (FR-224)', () => {
     })
     expect(s.fields.after).toEqual({
       ...s.fields.before,
-      owner: { id: people.approver, name: 'approver' },
+      owner: { id: people.member, name: 'member' },
     })
     // A new item has only an after, with its title, kind and check date; an archive only a before.
     const fresh = await sheet(
@@ -1202,9 +1202,9 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     expect(await served(dueItem)).toBe(1)
   })
 
-  it('makes a Due for a check card of each item Context counts as due, and of no example', async () => {
-    const example = await liveOn('2026-01-15', {
-      kind: 'example',
+  it('makes a Due for a check card of each item Context counts as due', async () => {
+    const guide = await liveOn('2026-01-15', {
+      kind: 'guide',
       title: 'Orders in Cyprus in January',
       ...inMarket('cyprus'),
       validity: { start: '2026-01-01', end: null },
@@ -1213,15 +1213,10 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     const { items } = await ok<{
       items: { id: string; kind: string; areaId: string; status: string; trust: string }[]
     }>(call('GET', '/library', 'owner'))
-    // Context's list leaves the example kind out, and counts what is due of the rest.
     const due = items.filter(
-      (i) =>
-        i.kind !== 'example' &&
-        i.areaId === 'finance' &&
-        i.status !== 'retired' &&
-        i.trust === 'needs_check',
+      (i) => i.areaId === 'finance' && i.status !== 'retired' && i.trust === 'needs_check',
     )
-    expect(items.find((i) => i.id === example)).toMatchObject({ trust: 'needs_check' })
+    expect(items.find((i) => i.id === guide)).toMatchObject({ trust: 'needs_check' })
     const f = await feed()
     const checks = f.cards.flatMap((c) => (c.group === 'check' ? [c.itemId] : []))
     expect(checks.sort()).toEqual(due.map((i) => i.id).sort())

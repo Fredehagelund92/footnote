@@ -8,7 +8,7 @@ import { foundation, people, version } from './fixtures.ts'
 
 const { client, url } = testDatabase()
 const database = apiDatabase(url)
-const devPeople: DevPerson[] = ['author', 'owner', 'approver', 'admin', 'stranger'].map((name) => ({
+const devPeople: DevPerson[] = ['author', 'owner', 'member', 'admin', 'stranger'].map((name) => ({
   email: `${name}@example.test`,
   name,
   roles: [],
@@ -86,7 +86,7 @@ describe('the sign-in list', () => {
     expect(by('owner').assignments).toMatchObject([
       { role: 'owner', area: { id: 'finance', name: 'Finance' } },
     ])
-    expect(by('approver').assignments.map((a) => a.role)).toEqual(['approver'])
+    expect(by('member')).toMatchObject({ roles: [], assignments: [] })
     expect(by('admin')).toMatchObject({ roles: ['administrator'], assignments: [] })
   })
 })
@@ -182,7 +182,7 @@ describe('dev sessions over HTTP', () => {
 
 describe('roles, assignments and operations', () => {
   it('refuses anonymous and non-admin callers before reading operations or queuing work', async () => {
-    for (const name of [null, 'author', 'owner', 'approver', 'stranger', 'admin']) {
+    for (const name of [null, 'author', 'owner', 'member', 'stranger', 'admin']) {
       const headers = name ? (await login(name)).headers : { origin, 'x-footnote-csrf': 'garbage' }
       const allowed = name === 'admin'
       const before = runs
@@ -213,8 +213,8 @@ describe('roles, assignments and operations', () => {
               url: '/api/v1' + path,
               headers,
               payload: path.startsWith('/roles')
-                ? { personId: people.stranger, role: 'auditor' }
-                : { personId: people.stranger, role: 'approver', areaId: 'finance' },
+                ? { personId: people.stranger, role: 'administrator' }
+                : { personId: people.stranger, role: 'owner', areaId: 'finance' },
             })
           ).statusCode,
         ).toBe(name ? 403 : 401)
@@ -239,11 +239,11 @@ describe('roles, assignments and operations', () => {
   it('grants and revokes temporal permissions without caching them in sessions, with attributed audit history', async () => {
     const admin = (await login('admin')).headers
     const author = (await login('author')).headers
-    const input = { personId: people.author, role: 'auditor' }
+    const input = { personId: people.author, role: 'administrator' }
     expect((await post('/roles/grant', admin, input)).json()).toEqual({ changed: true })
     expect((await post('/roles/grant', admin, input)).json()).toEqual({ changed: false })
     expect((await app.inject({ url: '/api/v1/me', headers: author })).json()).toMatchObject({
-      permissions: { roles: ['auditor'] },
+      permissions: { roles: ['administrator'] },
     })
     expect((await post('/roles/revoke', admin, input)).json()).toEqual({ changed: true })
     expect((await app.inject({ url: '/api/v1/me', headers: author })).json()).toMatchObject({
@@ -275,19 +275,16 @@ describe('roles, assignments and operations', () => {
       ).rows,
     ).toEqual([{ n: 1 }])
   })
-  it.each(['administrator', 'auditor', 'owner', 'approver'] as const)(
-    'gives and removes the %s role',
-    async (role) => {
-      const admin = (await login('admin')).headers
-      const area = role !== 'administrator' && role !== 'auditor'
-      // Finance has an owner already, so removing the one given leaves it one (FR-804).
-      const areaId = role === 'owner' ? 'finance' : 'marketing'
-      const input = { personId: people.stranger, role, ...(area ? { areaId } : {}) }
-      const path = area ? '/assignments' : '/roles'
-      expect((await post(`${path}/grant`, admin, input)).json()).toEqual({ changed: true })
-      expect((await post(`${path}/revoke`, admin, input)).json()).toEqual({ changed: true })
-    },
-  )
+  it.each(['administrator', 'owner'] as const)('gives and removes the %s role', async (role) => {
+    const admin = (await login('admin')).headers
+    const area = role === 'owner'
+    // Finance has an owner already, so removing the one given leaves it one (FR-804).
+    const areaId = 'finance'
+    const input = { personId: people.stranger, role, ...(area ? { areaId } : {}) }
+    const path = area ? '/assignments' : '/roles'
+    expect((await post(`${path}/grant`, admin, input)).json()).toEqual({ changed: true })
+    expect((await post(`${path}/revoke`, admin, input)).json()).toEqual({ changed: true })
+  })
   it('refuses to revoke the last active administrator, ignoring deactivated and erased people', async () => {
     const admin = (await login('admin')).headers
     const input = { personId: people.admin, role: 'administrator' }
@@ -354,13 +351,13 @@ describe('roles, assignments and operations', () => {
     )
     try {
       expect(
-        (await post('/roles/grant', headers, { personId: people.author, role: 'auditor' }))
+        (await post('/roles/grant', headers, { personId: people.author, role: 'administrator' }))
           .statusCode,
       ).toBe(500)
       expect(
         (
           await client.query(
-            "select 1 from global_role_grants where person_id=$1 and role='auditor' and valid_at @> now()",
+            "select 1 from global_role_grants where person_id=$1 and role='administrator' and valid_at @> now()",
             [people.author],
           )
         ).rows,

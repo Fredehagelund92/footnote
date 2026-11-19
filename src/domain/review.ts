@@ -202,23 +202,6 @@ export type VocabularyChange = {
   /** The source members it names: one at most, or for a dimension one per view (CON-208). */
   definitionRefs: string[]
 }
-/**
- * The term a vocabulary proposal holds, as its draft stored it. A proposal made before a term could
- * name several definitions stored one, as `definitionRef`.
- */
-export function vocabularyChangeOf<T extends object>(
-  draft: T,
-): Omit<T, 'definitionRef'> & VocabularyChange {
-  const { definitionRef, definitionRefs, ...rest } = draft as T & {
-    definitionRef?: string | null
-    definitionRefs?: string[]
-  }
-  return {
-    ...rest,
-    definitionRefs: definitionRefs ?? (definitionRef ? [definitionRef] : []),
-  } as Omit<T, 'definitionRef'> & VocabularyChange
-}
-
 /** The review due time: `days` working days (Monday to Friday, UTC) after `from` (FR-212). */
 export function addWorkingDays(from: string, days: number): string {
   const due = new Date(from)
@@ -229,51 +212,4 @@ export function addWorkingDays(from: string, days: number): string {
     if (![0, 6].includes(due.getUTCDay())) counted++
   }
   return due.toISOString()
-}
-
-/**
- * The answer tests on the questions a change could affect, when none got worse: "2 test questions
- * could change. None got worse." Questions that were already failing, or went from failing to
- * passing, are named plainly, since "still pass" would not be true of them.
- */
-export function noneWorseWords(
-  count: number,
-  { alreadyFailing = 0, nowPassing = 0 }: { alreadyFailing?: number; nowPassing?: number } = {},
-): string {
-  const head =
-    count === 1
-      ? "1 test question could change. It didn't get worse."
-      : `${count.toLocaleString('en')} test questions could change. None got worse.`
-  const failing =
-    alreadyFailing === 1
-      ? ' 1 was already failing and still fails.'
-      : alreadyFailing > 1
-        ? ` ${alreadyFailing.toLocaleString('en')} were already failing and still fail.`
-        : ''
-  const fixed =
-    nowPassing === 1
-      ? ' 1 went from failing to passing.'
-      : nowPassing > 1
-        ? ` ${nowPassing.toLocaleString('en')} went from failing to passing.`
-        : ''
-  return head + failing + fixed
-}
-
-/** What a test attached to a proposal says about its change (FR-524). */
-export type TestChange = 'fixed' | 'still_fails' | 'still_passes' | 'broken'
-export const testChangeWords: Record<TestChange, string> = {
-  fixed: 'passes with this change',
-  still_fails: 'still fails',
-  still_passes: 'still passes',
-  broken: 'fails with this change',
-}
-
-/**
- * An attached test's change, from whether it passes without and with the change; null when either
- * side is unknown. It is reported only: it never decides a check (FR-524, FR-514).
- */
-export function testChange(before: boolean | null, after: boolean | null): TestChange | null {
-  if (before === null || after === null) return null
-  if (after) return before ? 'still_passes' : 'fixed'
-  return before ? 'broken' : 'still_fails'
 }

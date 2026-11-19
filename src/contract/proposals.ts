@@ -124,8 +124,8 @@ export const overlapSchema = z.object({
   /** The person's own open proposals. */
   ownProposals: z.array(overlappingProposalSchema),
   /**
-   * Other people's open proposals that the person reviews: an owner, deputy or approver of
-   * their area, or an administrator. Empty for anyone else, who gets only `otherProposalExists`.
+   * Other people's open proposals that the person reviews: an owner of their area, or an
+   * administrator. Empty for anyone else, who gets only `otherProposalExists`.
    */
   otherProposals: z.array(overlappingProposalSchema),
   /** Whether anyone else has an open proposal that overlaps, including ones not listed. */

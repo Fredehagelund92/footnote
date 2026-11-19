@@ -9,8 +9,8 @@ import { concepts } from './words.ts'
   (design contract 7.2, `ReviewStamp`).
 */
 
-/** The capacity an acceptance was decided in. An approver's decision is a second key, never the acceptance. */
-export type AcceptedAs = 'owner' | 'deputy' | 'administrator'
+/** The capacity an acceptance was decided in. */
+export type AcceptedAs = 'owner' | 'administrator'
 
 /** How a served item version was accepted: the decision's day, capacity and domain, and the edition that first served it. */
 export type ServedReview = {
@@ -30,7 +30,7 @@ export const previewItemId = (proposal: { id: string; itemId?: string | null }) 
 /** Who looks after a domain's items, as a role: "the owner of Sales". */
 export const ownerRole = (domain: string) => `the ${concepts.owner.name} of ${domain}`
 
-/** The role that accepted a version, as agents read it: the owner of the domain (a deputy decided as one), or an admin. */
+/** The role that accepted a version, as agents read it: the owner of the domain, or an admin. */
 export const acceptedByRole = (as: AcceptedAs, domain: string) =>
   as === 'administrator' ? `an admin` : ownerRole(domain)
 

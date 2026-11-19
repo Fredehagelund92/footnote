@@ -1,4 +1,4 @@
--- 0001_baseline: Heed's whole schema as one migration, the starting point of every installation.
+-- 0001_schema: Footnote's whole schema as one migration, the starting point of every installation.
 -- Later changes are new migrations, numbered from 0002 (db/README.md).
 --
 -- It has four parts, in the order they run:
@@ -508,15 +508,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
 CREATE TYPE public.area_role AS ENUM (
-    'owner',
-    'approver'
-);
-
-CREATE TYPE public.area_state AS ENUM (
-    'not_started',
-    'starting',
-    'live',
-    'paused'
+    'owner'
 );
 
 CREATE TYPE public.caller_kind AS ENUM (
@@ -529,9 +521,7 @@ CREATE TYPE public.caller_kind AS ENUM (
 CREATE TYPE public.check_level AS ENUM (
     'format',
     'matching',
-    'delivery',
-    'answer_impact',
-    'answer_full'
+    'delivery'
 );
 
 CREATE TYPE public.check_outcome AS ENUM (
@@ -554,17 +544,15 @@ CREATE TYPE public.connector_kind AS ENUM (
 
 CREATE TYPE public.creation_channel AS ENUM (
     'form',
-    'assistant',
     'chat',
     'command_line',
     'mcp',
-    'import'
+    'import',
+    'source'
 );
 
 CREATE TYPE public.decision_capacity AS ENUM (
     'owner',
-    'deputy',
-    'approver',
     'administrator'
 );
 
@@ -585,7 +573,6 @@ CREATE TYPE public.delivery_status AS ENUM (
     'matched',
     'conflict',
     'no_match',
-    'area_not_live',
     'need_more_detail',
     'check_failed'
 );
@@ -595,13 +582,12 @@ CREATE TYPE public.edition_reason AS ENUM (
     'proposal_accepted',
     'item_retired',
     'vocabulary_changed',
-    'area_state_changed',
     'area_map_changed',
     'source_rechecked',
     'rollback',
     'item_restored',
     'area_deleted',
-    'area_restored'
+    'decision_undone'
 );
 
 CREATE TYPE public.eval_arm AS ENUM (
@@ -610,18 +596,13 @@ CREATE TYPE public.eval_arm AS ENUM (
 );
 
 CREATE TYPE public.eval_kind AS ENUM (
-    'impact',
     'full',
     'scheduled',
-    'assistant_mock',
-    'assistant_real',
-    'replay',
     'links',
     'held_out'
 );
 
 CREATE TYPE public.eval_state AS ENUM (
-    'estimated',
     'awaiting_approval',
     'queued',
     'running',
@@ -640,7 +621,6 @@ CREATE TYPE public.feedback_verdict AS ENUM (
 
 CREATE TYPE public.gap_status AS ENUM (
     'open',
-    'proposal_made',
     'wont_fix',
     'resolved'
 );
@@ -658,15 +638,13 @@ CREATE TYPE public.gap_type AS ENUM (
 );
 
 CREATE TYPE public.global_role AS ENUM (
-    'administrator',
-    'auditor'
+    'administrator'
 );
 
 CREATE TYPE public.item_kind AS ENUM (
     'note',
     'event',
     'guide',
-    'example',
     'issue'
 );
 
@@ -680,6 +658,12 @@ CREATE TYPE public.proposal_action AS ENUM (
     'change',
     'retire',
     'recheck'
+);
+
+CREATE TYPE public.proposal_relation AS ENUM (
+    'replaces',
+    'disagrees',
+    'unrelated'
 );
 
 CREATE TYPE public.proposal_state AS ENUM (
@@ -737,13 +721,62 @@ CREATE TYPE public.term_kind AS ENUM (
     'dimension_value'
 );
 
+CREATE FUNCTION auth.accept_invite(p_email text, p_name text) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  invite invites;
+  standing record;
+  person uuid;
+  area text;
+  sender_kind text;
+  name text := nullif(btrim(p_name), '');
+begin
+  perform pg_advisory_xact_lock(hashtextextended('footnote.roles', 0));
+  select * into invite from invites
+   where email = lower(btrim(p_email)) and accepted_at is null and revoked_at is null
+   for update;
+  if invite.id is null then return null; end if;
+  select * into standing from invite_standing(invite);
+  if standing.standing <> 'open' then return null; end if;
+  sender_kind := case when invite.invited_by is null then 'service' else 'person' end;
+  select id into person from people where email = invite.email;
+  if person is null then
+    insert into people(email, display_name) values (invite.email, coalesce(name, invite.email))
+      returning id into person;
+  else
+    update people set deactivated_at = null where id = person and deactivated_at is not null;
+  end if;
+  update invites set accepted_at = now(), accepted_by = person where id = invite.id;
+  insert into audit_log(actor_id, actor_kind, action, subject_type, subject_id, details, source)
+    values (person, 'person', 'invite.accepted', 'invite', invite.id::text,
+            jsonb_build_object('person', person, 'role', invite.role, 'areas', to_jsonb(invite.area_ids)), 'named');
+  if invite.role = 'admin' and not exists (select 1 from global_role_grants g
+       where g.person_id = person and g.role = 'administrator' and g.valid_at @> now()) then
+    insert into global_role_grants(person_id, role, granted_by) values (person, 'administrator', invite.invited_by);
+    insert into audit_log(actor_id, actor_kind, action, subject_type, subject_id, details, reason, source)
+      values (invite.invited_by, sender_kind, 'role.granted', 'person', person::text,
+              jsonb_build_object('role', 'administrator'), 'Invited', 'named');
+  end if;
+  foreach area in array standing.area_ids loop
+    if not cl_has_area_role(person, area, 'owner', now()) then
+      insert into area_assignments(area_id, person_id, role, granted_by) values (area, person, 'owner', invite.invited_by);
+      insert into audit_log(actor_id, actor_kind, action, area_id, subject_type, subject_id, details, reason, source)
+        values (invite.invited_by, sender_kind, 'assignment.granted', area, 'person', person::text,
+                jsonb_build_object('role', 'owner'), 'Invited', 'named');
+    end if;
+  end loop;
+  return person;
+end $$;
+
 CREATE FUNCTION auth.bootstrap_person(p_email text, p_name text, p_roles public.global_role[]) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
 declare person uuid;
 begin
-  perform pg_advisory_xact_lock(hashtextextended('heed.dev_people', 0));
+  perform pg_advisory_xact_lock(hashtextextended('footnote.dev_people', 0));
   insert into people(email, display_name) values(p_email,p_name) on conflict(email) do nothing;
   select id into person from people where email=p_email and deactivated_at is null and erased_at is null;
   if person is null then return; end if;
@@ -755,14 +788,102 @@ begin
   end if;
 end $$;
 
-CREATE FUNCTION public.area_deletions_guard_update() RETURNS trigger
+CREATE FUNCTION auth.invite_by_token(p_token_hash text) RETURNS TABLE(email text, role text, areas jsonb, expires_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select i.email, i.role,
+         coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'name', a.name) order by a.name, a.id)
+                     from areas a where a.id = any(s.area_ids)), '[]'::jsonb),
+         i.expires_at
+    from invites i cross join lateral invite_standing(i) s
+   where i.token_hash = p_token_hash and s.standing = 'open' $$;
+
+CREATE FUNCTION auth.join_by_group(p_email text, p_name text) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  person uuid;
+  active boolean;
+  address text := lower(btrim(p_email));
+begin
+  perform pg_advisory_xact_lock(hashtextextended('footnote.roles', 0));
+  select id, deactivated_at is null and erased_at is null into person, active from people where email = address;
+  if person is not null then
+    if active then return person; end if;
+    return null;
+  end if;
+  insert into people(email, display_name) values (address, coalesce(nullif(btrim(p_name), ''), address))
+    returning id into person;
+  insert into audit_log(actor_id, actor_kind, action, subject_type, subject_id, details, source)
+    values (person, 'person', 'person.joined', 'person', person::text, jsonb_build_object('by', 'group'), 'named');
+  return person;
+end $$;
+
+CREATE FUNCTION auth.sync_group_admin(p_person uuid, p_in_group boolean) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  held boolean;
+  marked boolean;
+begin
+  perform pg_advisory_xact_lock(hashtextextended('footnote.roles', 0));
+  held := cl_is_admin(p_person, now());
+  marked := exists (select 1 from auth.group_admins where person_id = p_person);
+  if p_in_group then
+    if not held then
+      insert into global_role_grants(person_id, role) values (p_person, 'administrator');
+      insert into auth.group_admins(person_id) values (p_person) on conflict do nothing;
+      insert into audit_log(actor_kind, action, subject_type, subject_id, details, reason, source)
+        values ('service', 'role.granted', 'person', p_person::text,
+                jsonb_build_object('role', 'administrator'), 'In the admin group at sign-in', 'named');
+    end if;
+    return true;
+  end if;
+  if not marked then return held; end if;
+  if held then
+    if not exists (select 1 from global_role_grants g join people p on p.id = g.person_id
+                    where g.role = 'administrator' and g.valid_at @> now() and g.person_id <> p_person
+                      and p.deactivated_at is null and p.erased_at is null) then
+      return true;
+    end if;
+    update global_role_grants set valid_at = tstzrange(lower(valid_at), now(), '[)')
+     where person_id = p_person and role = 'administrator' and valid_at @> now();
+    insert into audit_log(actor_kind, action, subject_type, subject_id, details, reason, source)
+      values ('service', 'role.revoked', 'person', p_person::text,
+              jsonb_build_object('role', 'administrator'), 'No longer in the admin group at sign-in', 'named');
+  end if;
+  delete from auth.group_admins where person_id = p_person;
+  return false;
+end $$;
+
+CREATE FUNCTION public.agent_policies_guard() RETURNS trigger
     LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
     AS $$
 begin
-  if old.restored_at is not null
-     or (to_jsonb(new) - 'restored_by' - 'restored_at' - 'restored_edition')
-        <> (to_jsonb(old) - 'restored_by' - 'restored_at' - 'restored_edition') then
-    raise exception 'a domain deletion may only be restored, once' using errcode = 'restrict_violation'; end if;
+  if tg_op = 'INSERT' then
+    if new.ended_at is not null then
+      raise exception 'A policy starts open' using errcode = 'check_violation';
+    end if;
+    if not exists (select 1 from auth.agents a where a.id = new.agent_id and a.kind = 'app') then
+      raise exception 'Only an app a person signed in with can have a policy' using errcode = 'check_violation';
+    end if;
+    if not cl_auto_publish_on() then
+      raise exception 'Publishing without review is off for the workspace' using errcode = 'check_violation';
+    end if;
+    if not cl_has_area_role(new.set_by, new.area_id, 'owner', now()) then
+      raise exception 'Only an owner of the domain sets a policy' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if old.ended_at is not null
+     or (new.id, new.agent_id, new.area_id, new.per_day, new.set_by, new.set_at, new.reason)
+        is distinct from (old.id, old.agent_id, old.area_id, old.per_day, old.set_by, old.set_at, old.reason) then
+    raise exception 'A policy is never changed: turn it off and set a new one' using errcode = '42501';
+  end if;
   return new;
 end $$;
 
@@ -795,6 +916,44 @@ CREATE FUNCTION public.audit_verify() RETURNS TABLE(first_bad_seq bigint)
                 case when coalesce(a.batch_id::text, a.reason, a.source) is not null
                      then jsonb_build_object('batch', a.batch_id, 'reason', a.reason, 'source', a.source)::text end), 'UTF8'))
    order by a.seq limit 1 $$;
+
+CREATE FUNCTION public.cl_alert_raise(p_rule text, p_key text, p_areas text[], p_title text, p_subject jsonb) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare v_id uuid; v_seq bigint;
+begin
+  if cl_person() is not null or cl_source() is not null then
+    raise exception 'Only the alert job raises alerts' using errcode = 'insufficient_privilege';
+  end if;
+  if not coalesce((select enabled from alert_rules where rule = p_rule), false) then
+    return null;
+  end if;
+  insert into alert_raises (rule, key, area_ids, title, subject)
+  values (p_rule, p_key, coalesce(p_areas, '{}'), p_title, p_subject)
+  on conflict (rule, key) do nothing
+  returning id into v_id;
+  if v_id is null then return null; end if;
+  insert into outbox_events (topic, area_id, aggregate_type, aggregate_id, payload, actor_id)
+  values ('alert.raised', case when cardinality(p_areas) = 1 then p_areas[1] end, 'alert', v_id::text,
+          jsonb_build_object('rule', p_rule, 'areas', to_jsonb(coalesce(p_areas, '{}'))), null)
+  returning seq into v_seq;
+  update alert_raises set event_seq = v_seq where id = v_id;
+  return v_id;
+end $$;
+
+CREATE FUNCTION public.cl_alert_reached(p_raises uuid[]) RETURNS TABLE(raise_id uuid, names text[])
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select r.id, coalesce(array_agg(p.display_name order by p.display_name)
+                          filter (where p.display_name is not null), '{}')
+    from alert_raises r
+    left join inbox_items i on i.event_seq = r.event_seq
+    left join people p on p.id = i.person_id and p.erased_at is null
+   where r.id = any(p_raises)
+     and (cl_is_admin_now() or exists (select 1 from unnest(r.area_ids) a where cl_is_owner_now(a)))
+   group by r.id $$;
 
 CREATE FUNCTION public.cl_area_delete(p_area text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
@@ -843,10 +1002,10 @@ begin
     'items', coalesce((
       select jsonb_agg(jsonb_build_object('id', s.item_id, 'versionId', v.id,
                                           'title', case when cl_audience_allows(v.audience_groups) then v.title end,
-                                          'withheld', not cl_audience_allows(v.audience_groups), 'kind', i.kind,
+                                          'withheld', not cl_audience_allows(v.audience_groups), 'kind', v.kind,
                                           'proposerId', v.proposer_id)
                        order by not cl_audience_allows(v.audience_groups), v.title, s.item_id)
-        from item_version_service s join item_versions v on v.id = s.version_id join items i on i.id = s.item_id
+        from item_version_service s join item_versions v on v.id = s.version_id
        where s.editions @> v_live and v.area_id = p_area), '[]'::jsonb),
     'terms', coalesce((
       select jsonb_agg(jsonb_build_object('key', t.key, 'versionId', t.version_id, 'name', t.name, 'kind', t.kind,
@@ -940,6 +1099,53 @@ CREATE FUNCTION public.cl_audience_allows(p_audience text[]) RETURNS boolean
     LANGUAGE sql IMMUTABLE PARALLEL SAFE
     AS $$ select p_audience is null $$;
 
+CREATE FUNCTION public.cl_auto_publish_on() RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select coalesce((select value = 'true'::jsonb from settings_current where key = 'agents.auto_publish'), false) $$;
+
+CREATE FUNCTION public.cl_closes_figure_report(p_card text) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select exists (
+    select 1 from reports r join connectors c on c.id = r.figure_source
+     where 'report:' || r.id::text = p_card and r.figure_route in ('contact', 'both')
+       and c.data_contact_id = cl_person()) $$;
+
+CREATE FUNCTION public.cl_comment_subject_open(p_item text, p_proposal uuid) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select case
+    when p_item is not null then exists (select 1 from item_versions v where v.item_id = p_item)
+    when p_proposal is not null then exists (select 1 from proposals p where p.id = p_proposal)
+    else false end $$;
+
+CREATE FUNCTION public.cl_conflicts_kept() RETURNS TABLE(holder_item_id text, other_item_id text, holder_version integer, other_version integer)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select distinct on (least(d.holder_item_id, d.other_item_id), greatest(d.holder_item_id, d.other_item_id))
+         d.holder_item_id, d.other_item_id, d.holder_version, d.other_version
+    from conflict_decisions d
+   where d.undone_at is null and d.outcome = 'kept_both'
+   order by least(d.holder_item_id, d.other_item_id), greatest(d.holder_item_id, d.other_item_id),
+            d.decided_at desc, d.id desc
+$$;
+
+CREATE FUNCTION public.cl_connector_domains(p_connector text) RETURNS text[]
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select coalesce(array_agg(distinct v.area_id order by v.area_id), '{}')
+    from item_version_service s
+    join item_versions v on v.id = s.version_id
+    join item_version_refs r on r.version_id = v.id
+    join definitions d on d.ref = r.definition_ref
+   where upper_inf(s.editions) and d.connector_id = p_connector $$;
+
 CREATE FUNCTION public.cl_count_delivery() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -1008,18 +1214,6 @@ begin
   return n;
 end $$;
 
-CREATE FUNCTION public.cl_eval_versions_due() RETURNS TABLE(version_id uuid, proposer_id uuid)
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  select v.id, v.proposer_id from proposals p join item_versions v on v.id = p.item_version_id
-   where p.subject = 'item' and p.action in ('create', 'change', 'recheck') and p.state in ('submitted', 'in_review')
-     and v.risk in ('normal', 'high') and v.audience_groups is null
-     and exists (select 1 from live_edition)
-     and not exists (select 1 from eval_runs r where r.item_version_id = v.id
-                       and r.baseline_edition_seq = (select seq from live_edition))
-   order by p.submitted_at, v.id limit 50 $$;
-
 CREATE FUNCTION public.cl_feedback_area() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -1034,6 +1228,24 @@ begin
   return new;
 end $$;
 
+CREATE FUNCTION public.cl_figure_disputes(p_source text, p_metric text, p_values text[], p_from date, p_to date) RETURNS TABLE(item_id text, reported_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select r.item_id, max(r.created_at) from reports r
+   where r.part = 'figure' and r.figure_source = p_source and r.figure_metric = p_metric
+     and r.figure_values = p_values and r.figure_from <= p_to and r.figure_to >= p_from
+     and r.created_at > now() - interval '90 days'
+     and cl_item_open(r.item_id)
+     and not exists (select 1 from card_states c where c.card = 'report:' || r.id::text)
+     and not exists (
+       select 1 from item_versions v join decisions d on d.item_version_id = v.id
+        where v.item_id = r.item_id and d.outcome in ('accept', 'retire')
+          and d.decided_at > r.created_at
+          and not exists (select 1 from decision_undos u where u.decision_id = d.id))
+   group by r.item_id
+   order by max(r.created_at) desc $$;
+
 CREATE FUNCTION public.cl_forbid_mutation() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -1041,22 +1253,6 @@ begin
   raise exception '% on % is not allowed (append-only)', tg_op, tg_table_name
     using errcode = 'restrict_violation';
 end $$;
-
-CREATE FUNCTION public.cl_gap_draft_tests(p_proposal uuid) RETURNS SETOF text
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  insert into proposal_tests (proposal_id, question_id)
-  select p.id, x.question_id
-    from proposals p
-    join gap_tests x on x.gap_id = p.source_gap_id
-    join golden_questions q on q.id = x.question_id
-   where p.id = p_proposal and p.proposer_id = cl_person() and p.state = 'draft' and p.discarded_at is null
-     and q.split = 'development' and q.status = 'active' and q.area_id = p.area_id
-   order by x.question_id
-  on conflict do nothing
-  returning question_id
-$$;
 
 CREATE FUNCTION public.cl_gap_history(p_gap uuid) RETURNS TABLE(action text, hour timestamp with time zone, details jsonb)
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -1067,47 +1263,6 @@ CREATE FUNCTION public.cl_gap_history(p_gap uuid) RETURNS TABLE(action text, hou
     join audit_log a on a.subject_type = 'gap' and a.subject_id = g.ref
    where g.id = p_gap and cl_manages_topic(t.area_id, t.metric_keys)
    order by a.seq
-$$;
-
-CREATE FUNCTION public.cl_gap_record_pass(p_run uuid, p_gap uuid, p_question text) RETURNS timestamp with time zone
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare v_hour timestamptz;
-begin
-  update gap_tests x
-     set passed_run = r.id,
-         passed_edition_seq = r.baseline_edition_seq,
-         passed_revision = (select (p->>'revision')::int from jsonb_array_elements(r.summary->'plan'->'questions') p
-                             where p->>'id' = x.question_id limit 1),
-         passed_hour = date_trunc('hour', r.finished_at, 'UTC')
-    from eval_runs r, gaps g, topics t
-   where r.id = p_run and x.gap_id = p_gap and x.question_id = p_question and x.passed_run is null
-     and g.id = x.gap_id and t.id = g.topic_id and r.area_id = any(cl_topic_domains(t.area_id, t.metric_keys))
-     and r.state = 'finished' and r.kind in ('scheduled', 'full') and r.proposal_id is null and r.item_version_id is null
-     and g.status = 'resolved' and r.baseline_edition_seq >= g.resolved_edition_seq
-     and exists (select 1 from jsonb_array_elements(r.summary->'result'->'questions') v
-                  where v->>'id' = x.question_id and v->>'baseline' = 'pass')
-  returning x.passed_hour into v_hour;
-  return v_hour;
-end $$;
-
-CREATE FUNCTION public.cl_gap_run_tests(p_run uuid) RETURNS TABLE(gap uuid, ref text, resolved_seq bigint, verified boolean, question text, active boolean, passed_seq bigint, passed_hour timestamp with time zone)
-    LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  select g.id, g.ref, g.resolved_edition_seq, g.verified_at is not null, x.question_id, q.status = 'active',
-         x.passed_edition_seq, x.passed_hour
-    from eval_runs r
-    join topics t on r.area_id = any(cl_topic_domains(t.area_id, t.metric_keys))
-    join gaps g on g.topic_id = t.id
-    join gap_tests x on x.gap_id = g.id
-    join golden_questions q on q.id = x.question_id
-   where r.id = p_run and r.state = 'finished' and r.kind in ('scheduled', 'full')
-     and r.proposal_id is null and r.item_version_id is null
-     and g.status = 'resolved' and g.resolved_edition_seq is not null
-   order by g.id, x.question_id
-     for no key update of g
 $$;
 
 CREATE FUNCTION public.cl_gap_touch(p_topic uuid, p_type public.gap_type, p_case smallint, p_seen timestamp with time zone, p_first timestamp with time zone DEFAULT NULL::timestamp with time zone, p_reports integer DEFAULT 0, p_note text DEFAULT NULL::text, p_note_source text DEFAULT NULL::text) RETURNS uuid
@@ -1121,7 +1276,7 @@ declare
 begin
   perform pg_advisory_xact_lock(hashtextextended('cl.gap:' || p_topic || ':' || p_type, 0));
   select * into g from gaps where topic_id = p_topic and type = p_type
-   order by status in ('open', 'proposal_made') desc, status = 'wont_fix' desc, status_since desc, created_at desc
+   order by status = 'open' desc, status = 'wont_fix' desc, status_since desc, created_at desc
    limit 1;
   if not found or (g.status = 'resolved' and p_seen > g.status_since) then
     insert into gaps (topic_id, type, opened_by_case, first_seen, last_seen)
@@ -1151,26 +1306,39 @@ declare
   v_calls int := (v_rule ->> 'calls')::int;
   v_days int := (v_rule ->> 'days')::int;
   v_kept int := (select (value #>> '{}')::int from settings_current where key = 'retention.delivery_days');
-  r record; k bigint; g uuid;
+  r record; k bigint; g uuid; v_topic uuid;
 begin
   if v_calls is null or v_days is null or v_kept is null or least(v_calls, v_days, v_kept) < 1 then
     raise exception 'gaps.no_item_threshold and retention.delivery_days must be set and at least one' using errcode = '22023';
   end if;
 
-  -- Case 1: enough agent calls about one topic found nothing within the period. A check failure
-  -- is not a gap (FR-319), and calls from before a resolution do not count again.
+  -- Case 1: enough agent calls about one scope found nothing within the period, whatever month
+  -- their dates start in. A check failure is not a gap (FR-319), and calls from before that scope
+  -- was covered do not count again.
   k := 0;
   for r in
-    select d.topic_id, min(d.delivered_hour) as first_hour, max(d.delivered_hour) as last_hour
-      from deliveries d
-     where d.caller = 'agent' and d.status = 'no_match' and d.topic_id is not null
+    select t.area_id, t.metric_keys, t.value_keys, t.dimension_keys,
+           min(d.delivered_hour) as first_hour, max(d.delivered_hour) as last_hour,
+           (array_agg(d.topic_id order by d.delivered_hour desc, t.month desc, d.topic_id))[1] as latest
+      from deliveries d join topics t on t.id = d.topic_id
+     where d.caller = 'agent' and d.status = 'no_match'
        and d.delivered_hour >= date_trunc('hour', now(), 'UTC') - make_interval(days => v_days)
-       and d.delivered_hour > coalesce((select max(x.status_since) from gaps x
-             where x.topic_id = d.topic_id and x.type = 'missing' and x.status = 'resolved'), '-infinity')
-     group by d.topic_id
+       and d.delivered_hour > coalesce((
+             select max(x.status_since) from gaps x join topics xt on xt.id = x.topic_id
+              where xt.area_id is not distinct from t.area_id and xt.metric_keys = t.metric_keys
+                and xt.value_keys = t.value_keys and xt.dimension_keys = t.dimension_keys
+                and x.type = 'missing' and x.status = 'resolved'), '-infinity')
+     group by t.area_id, t.metric_keys, t.value_keys, t.dimension_keys
     having count(*) >= v_calls
   loop
-    perform cl_gap_touch(r.topic_id, 'missing', 1::smallint, r.last_hour, r.first_hour);
+    select x.topic_id into v_topic
+      from gaps x join topics xt on xt.id = x.topic_id
+     where xt.area_id is not distinct from r.area_id and xt.metric_keys = r.metric_keys
+       and xt.value_keys = r.value_keys and xt.dimension_keys = r.dimension_keys
+       and x.type = 'missing' and x.status in ('open', 'wont_fix')
+     order by x.status_since desc, x.created_at desc
+     limit 1;
+    perform cl_gap_touch(coalesce(v_topic, r.latest), 'missing', 1::smallint, r.last_hour, r.first_hour);
     k := k + 1;
   end loop;
   return query select 'case_1_no_item_topics', k;
@@ -1214,11 +1382,16 @@ begin
   end loop;
   return query select 'case_4_definition_topics', k;
 
-  -- Weekly no-item calls of every gap still in play, from the topic's counts since it was seen.
+  -- Weekly no-item calls of every gap still in play, from the counts of every month of its scope
+  -- since it was seen.
   insert into gap_weekly_counts (gap_id, week, no_item_calls)
   select x.id, c.week, sum(c.no_item_calls)
-    from gaps x join topic_week_counts c on c.topic_id = x.topic_id and c.status = 'no_match'
-   where x.type = 'missing' and x.status in ('open', 'proposal_made', 'wont_fix')
+    from gaps x
+    join topics xt on xt.id = x.topic_id
+    join topics t on t.area_id is not distinct from xt.area_id and t.metric_keys = xt.metric_keys
+                 and t.value_keys = xt.value_keys and t.dimension_keys = xt.dimension_keys
+    join topic_week_counts c on c.topic_id = t.id and c.status = 'no_match'
+   where x.type = 'missing' and x.status in ('open', 'wont_fix')
      and c.week >= date_trunc('week', x.first_seen)::date
    group by x.id, c.week
   having sum(c.no_item_calls) > 0
@@ -1256,8 +1429,26 @@ CREATE FUNCTION public.cl_inbox_recipients(e public.outbox_events) RETURNS SETOF
     LANGUAGE plpgsql STABLE
     SET search_path TO 'public', 'pg_temp'
     AS $$
-declare p proposals; reviewers uuid[]; owners uuid[]; discussing uuid[];
+declare p proposals; reviewers uuid[]; owners uuid[]; discussing uuid[]; v_audience text; v_areas text[];
 begin
+  if e.topic = 'alert.raised' then
+    v_audience := (select audience from alert_rules where rule = e.payload->>'rule');
+    v_areas := array(select jsonb_array_elements_text(coalesce(e.payload->'areas', '[]'::jsonb)));
+    return query
+      select distinct r from (
+        select g.person_id as r from global_role_grants g
+         where v_audience in ('admins', 'both') and g.role = 'administrator' and g.valid_at @> now()
+        union
+        select a.person_id from area_assignments a
+         where v_audience in ('owners', 'both') and a.area_id = any(v_areas) and a.role = 'owner'
+           and a.valid_at @> now()
+           and not exists (select 1 from alert_mutes m
+                            where m.person_id = a.person_id and m.area_id = a.area_id
+                              and m.rule = e.payload->>'rule')) x
+      join people x2 on x2.id = x.r
+     where x2.deactivated_at is null and x2.erased_at is null;
+    return;
+  end if;
   if e.topic = 'area.deleted' then
     return query
       select distinct r from area_deletions d cross join unnest(d.recipients) r join people x on x.id = r
@@ -1265,7 +1456,8 @@ begin
          and x.deactivated_at is null and x.erased_at is null and r is distinct from e.actor_id;
     return;
   end if;
-  if e.topic in ('item.flagged', 'item.links_stale', 'vocabulary.domain_changed', 'gap.verified') then
+  if e.topic in ('item.flagged', 'item.links_stale', 'vocabulary.domain_changed', 'gap.verified',
+                 'source.suggested', 'source.document_gone') then
     owners := case when e.area_id is null then array(
         select g.person_id from global_role_grants g where g.role = 'administrator' and g.valid_at @> now())
       else array(
@@ -1307,21 +1499,16 @@ CREATE FUNCTION public.cl_is_admin_now() RETURNS boolean
     SET search_path TO 'public', 'pg_temp'
     AS $$ select cl_person() is not null and cl_is_admin(cl_person(), now()) $$;
 
-CREATE FUNCTION public.cl_is_auditor_now() RETURNS boolean
+CREATE FUNCTION public.cl_is_figure_contact(p_source text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
-    AS $$ select cl_person() is not null and exists (select 1 from global_role_grants g where g.person_id = cl_person() and g.role in ('auditor','administrator') and g.valid_at @> now()) $$;
+    AS $$
+  select exists (select 1 from connectors where id = p_source and data_contact_id = cl_person()) $$;
 
 CREATE FUNCTION public.cl_is_owner_now(p_area text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$ select cl_person() is not null and cl_has_area_role(cl_person(), p_area, 'owner', now()) $$;
-
-CREATE FUNCTION public.cl_is_reviewer_now(p_area text) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$ select cl_person() is not null and (cl_has_area_role(cl_person(), p_area, 'owner', now())
-       or cl_has_area_role(cl_person(), p_area, 'approver', now())) $$;
 
 CREATE FUNCTION public.cl_item_open(p_item text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -1353,15 +1540,18 @@ CREATE FUNCTION public.cl_item_version_kept(p_version uuid) RETURNS jsonb
                    from item_version_replaces x where x.version_id = v.id),
     'conflicts', (select coalesce(jsonb_agg(c.other_item_id order by c.other_item_id), '[]')
                     from item_version_conflicts c where c.version_id = v.id),
-    'mentions', (select coalesce(jsonb_agg(jsonb_build_array(n.field, n.position, n.label, n.term_key, n.item_id, n.area_id)
-                                           order by n.field, n.position), '[]')
+    'mentions', (select coalesce(jsonb_agg(
+                     case when n.term_id is null
+                          then jsonb_build_array(n.field, n.position, n.label, n.term_key, n.item_id, n.area_id)
+                          else jsonb_build_array(n.field, n.position, n.label, n.term_key, n.item_id, n.area_id, n.term_id) end
+                     order by n.field, n.position), '[]')
                    from item_version_mentions n where n.version_id = v.id))
   from item_versions v where v.id = p_version $$;
 
 CREATE FUNCTION public.cl_item_version_problem(p_version uuid) RETURNS text
     LANGUAGE plpgsql STABLE
     AS $$
-declare v item_versions; prev item_versions; owner_ok boolean; approver_ok boolean; waive boolean := false;
+declare v item_versions; prev item_versions; owner_ok boolean; waive boolean := false;
 begin
   select * into v from item_versions where id = p_version;
   if not found then return 'version does not exist'; end if;
@@ -1372,18 +1562,11 @@ begin
   end if;
   select exists (select 1 from decisions d
     where d.item_version_id = v.id and d.outcome = 'accept' and d.area_id = v.area_id
-      and ((d.capacity in ('owner', 'deputy') and cl_has_area_role(d.decided_by, v.area_id, 'owner', d.decided_at))
+      and ((d.capacity = 'owner' and cl_has_area_role(d.decided_by, v.area_id, 'owner', d.decided_at))
         or (d.capacity = 'administrator' and cl_is_admin(d.decided_by, d.decided_at)))
-      and (waive or v.risk = 'low' or d.decided_by <> v.proposer_id
+      and (waive or d.decided_by is distinct from v.proposer_id
            or cl_decides_own(d.decided_by, v.area_id, d.decided_at))) into owner_ok;          -- FR-202, FR-206
   if not owner_ok then return 'no accept decision by an owner of the domain or an administrator'; end if;
-  if v.risk = 'high' then                                                                           -- FR-207
-    select exists (select 1 from decisions d
-      where d.item_version_id = v.id and d.outcome = 'accept' and d.capacity = 'approver'
-        and cl_has_area_role(d.decided_by, v.area_id, 'approver', d.decided_at)
-        and (d.decided_by <> v.proposer_id or cl_decides_own(d.decided_by, v.area_id, d.decided_at))) into approver_ok;
-    if not approver_ok then return 'high risk needs an accept decision by a named approver'; end if;
-  end if;
   if not cl_version_gate_ok(v.id) then return 'a required check has not passed'; end if;          -- FR-205
   return null;
 end $$;
@@ -1430,9 +1613,210 @@ CREATE FUNCTION public.cl_next_item_version(p_item text) RETURNS integer
     SET search_path TO 'public', 'pg_temp'
     AS $$
 begin
-  if cl_person() is null then raise exception 'Sign in required' using errcode='insufficient_privilege'; end if;
+  if cl_person() is null and cl_source() is null then
+    raise exception 'Sign in required' using errcode='insufficient_privilege';
+  end if;
   perform 1 from items where id=p_item for update;
   return (select coalesce(max(version_no),0)+1 from item_versions where item_id=p_item);
+end $$;
+
+CREATE FUNCTION public.cl_obs_caught(p_from date, p_to date) RETURNS TABLE(area_id text, line text, kind text, count integer, acted integer)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  with saved as (
+    select q.area_id, c.trigger as kind
+      from saved_question_results r
+      join check_runs c on c.id = r.run_id
+      join saved_questions q on q.id = r.question_id
+     where c.trigger in ('publish', 'archive', 'restore', 'sync', 'check_date')
+       and r.result in ('changed', 'look')
+       and r.checked_at >= p_from::timestamp at time zone 'UTC'
+       and r.checked_at < p_to::timestamp at time zone 'UTC'
+       and (select x.result from saved_question_results x
+             where x.question_id = r.question_id
+               and (x.checked_at < r.checked_at or (x.checked_at = r.checked_at and x.run_id < r.run_id))
+             order by x.checked_at desc, x.run_id desc limit 1) = 'same'
+  ),
+  alerts as (
+    select case when cardinality(a.area_ids) = 1 then a.area_ids[1] end as area_id, a.rule as kind,
+           case a.rule
+             when 'gap' then exists (
+               select 1 from gaps g
+                where g.id::text = a.key
+                  and (exists (select 1 from audit_log l
+                                where l.action = 'gap.status_changed' and l.subject_type = 'gap'
+                                  and l.subject_id = g.ref and l.actor_kind = 'person'
+                                  and l.at > a.raised_at and l.at <= a.raised_at + interval '14 days')
+                       or exists (select 1 from proposals p
+                                   where p.source_gap_id = g.id
+                                     and p.created_at > a.raised_at
+                                     and p.created_at <= a.raised_at + interval '14 days'
+                                     and cl_obs_managed_at(p.proposer_id, a.area_ids, p.created_at))))
+             when 'saved' then exists (
+               select 1 from saved_question_baselines b join saved_questions q on q.id = b.question_id
+                where q.area_id = any(a.area_ids) and b.why in ('kept', 'published')
+                  and b.kept_at > a.raised_at and b.kept_at <= a.raised_at + interval '14 days')
+               or exists (
+               select 1 from saved_questions q
+                where q.area_id = any(a.area_ids)
+                  and q.removed_at > a.raised_at and q.removed_at <= a.raised_at + interval '14 days')
+             when 'due' then exists (
+               select 1 from decisions d join item_versions v on v.id = d.item_version_id
+                where v.item_id = substr(a.subject->>'card', length('check:') + 1)
+                  and d.outcome in ('accept', 'retire')
+                  and d.decided_at > a.raised_at and d.decided_at <= a.raised_at + interval '14 days'
+                  and not exists (select 1 from decision_undos u where u.decision_id = d.id))
+             else false
+           end as acted
+      from alert_raises a
+     where a.raised_at >= p_from::timestamp at time zone 'UTC'
+       and a.raised_at < p_to::timestamp at time zone 'UTC'
+  )
+  select s.area_id, 'saved', s.kind, count(*)::int, 0 from saved s group by s.area_id, s.kind
+  union all
+  select a.area_id, 'alert', a.kind, count(*)::int, (count(*) filter (where a.acted))::int
+    from alerts a group by a.area_id, a.kind $$;
+
+CREATE FUNCTION public.cl_obs_caught_rollup(p_week date) RETURNS bigint
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare k bigint;
+begin
+  if p_week is null or p_week <> (date_trunc('week', p_week::timestamp))::date then
+    raise exception 'a week starts on a Monday' using errcode = '22023';
+  end if;
+  delete from obs_caught_weekly where week = p_week;
+  insert into obs_caught_weekly (week, area_id, line, kind, count, acted)
+  select p_week, c.area_id, c.line, c.kind, c.count, c.acted from cl_obs_caught(p_week, p_week + 7) c;
+  get diagnostics k = row_count;
+  return k;
+end $$;
+
+CREATE FUNCTION public.cl_obs_caught_rollup_due(p_today date) RETURNS TABLE(week date, kept bigint)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_to date := (date_trunc('week', p_today::timestamp))::date;
+  v_first date := (date_trunc('week', least(
+    (select min(r.checked_at) from saved_question_results r) at time zone 'UTC',
+    (select min(a.raised_at) from alert_raises a) at time zone 'UTC')))::date;
+  v_latest date := (select max(o.week) from obs_caught_weekly o);
+  v_from date;
+  w date;
+begin
+  if p_today is null then
+    raise exception 'today must be given' using errcode = '22023';
+  end if;
+  if v_first is null then
+    return;
+  end if;
+  v_from := greatest(v_first, least(coalesce(v_latest + 7, v_first), v_to - 28));
+  for w in select g::date from generate_series(v_from, v_to - 7, interval '1 week') g loop
+    week := w;
+    kept := cl_obs_caught_rollup(w);
+    return next;
+  end loop;
+end $$;
+
+CREATE FUNCTION public.cl_obs_changes(p_areas text[], p_from date, p_to date) RETURNS integer
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select count(*)::int
+    from editions e
+    join lateral (
+      select s.version_id from item_version_service s
+       where lower(s.editions) = e.seq order by s.item_id limit 1) s on true
+    join item_versions v on v.id = s.version_id
+   where e.reason = 'proposal_accepted'
+     and e.created_at >= p_from::timestamp at time zone 'UTC'
+     and e.created_at < p_to::timestamp at time zone 'UTC'
+     and (p_areas is null or v.area_id = any(p_areas)) $$;
+
+CREATE FUNCTION public.cl_obs_managed_at(p_person uuid, p_areas text[], p_at timestamp with time zone) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select exists (select 1 from global_role_grants g
+                  where g.person_id = p_person and g.role = 'administrator' and g.valid_at @> p_at)
+      or exists (select 1 from area_assignments a
+                  where a.person_id = p_person and a.area_id = any(p_areas) and a.role = 'owner'
+                    and a.valid_at @> p_at) $$;
+
+CREATE FUNCTION public.cl_obs_week_kept(p_week date) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_kept int := (select (value #>> '{}')::int from settings_current where key = 'retention.delivery_days');
+  v_start timestamptz := p_week::timestamp at time zone 'UTC';
+  v_oldest timestamptz;
+begin
+  if v_kept is null or v_kept < 1 then
+    raise exception 'retention.delivery_days must be set and at least one' using errcode = '22023';
+  end if;
+  select min((regexp_match(pg_get_expr(c.relpartbound, c.oid), 'FROM \(''([^'']+)''\)'))[1]::timestamptz)
+    into v_oldest
+    from pg_inherits i join pg_class c on c.oid = i.inhrelid
+   where i.inhparent = 'public.deliveries'::regclass;
+  return coalesce(
+    v_start >= now() - make_interval(days => v_kept)
+      or (v_oldest is not null and v_start >= v_oldest),
+    false);
+end $$;
+
+CREATE FUNCTION public.cl_obs_weekly_rollup(p_week date) RETURNS bigint
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare k bigint;
+begin
+  if p_week is null or p_week <> (date_trunc('week', p_week::timestamp))::date then
+    raise exception 'a week starts on a Monday' using errcode = '22023';
+  end if;
+  if not cl_obs_week_kept(p_week) then
+    return null;
+  end if;
+  delete from obs_weekly where week = p_week;
+  insert into obs_weekly (week, area_id, answer_state, calls)
+  select p_week, t.area_id, d.answer_state, count(*)
+    from deliveries d join topics t on t.id = d.topic_id
+   where d.caller = 'agent' and d.answer_state in ('grounded', 'partial', 'conflict', 'stale', 'missing')
+     and d.delivered_hour >= p_week::timestamp at time zone 'UTC'
+     and d.delivered_hour < (p_week + 7)::timestamp at time zone 'UTC'
+   group by t.area_id, d.answer_state;
+  get diagnostics k = row_count;
+  return k;
+end $$;
+
+CREATE FUNCTION public.cl_obs_weekly_rollup_due(p_today date) RETURNS TABLE(week date, kept bigint)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_from date := coalesce(
+    (select max(o.week) from obs_weekly o),
+    (select (date_trunc('week', min(d.delivered_hour) at time zone 'UTC'))::date from deliveries d));
+  v_to date := (date_trunc('week', p_today::timestamp))::date;
+  w date; n bigint;
+begin
+  if p_today is null then
+    raise exception 'today must be given' using errcode = '22023';
+  end if;
+  if v_from is null then
+    return;
+  end if;
+  for w in select g::date from generate_series(v_from, v_to - 7, interval '1 week') g loop
+    n := cl_obs_weekly_rollup(w);
+    if n is not null then
+      week := w;
+      kept := n;
+      return next;
+    end if;
+  end loop;
 end $$;
 
 CREATE FUNCTION public.cl_other_proposal_overlap(p_id uuid) RETURNS boolean
@@ -1469,6 +1853,13 @@ begin
   return query select v_relayed, v_delivered, v_head;
 end $$;
 
+CREATE FUNCTION public.cl_owns_all(p_areas text[]) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select cl_person() is not null
+     and not exists (select 1 from unnest(p_areas) a where not cl_has_area_role(cl_person(), a, 'owner', now())) $$;
+
 CREATE FUNCTION public.cl_parse_mention_text(t text) RETURNS jsonb
     LANGUAGE plpgsql IMMUTABLE
     AS $$
@@ -1479,7 +1870,7 @@ begin
       plain := plain || substr(t,i+1,1); i := i+2;
     elsif substr(t,i,2) = '@[' then
       rest := substr(t,i);
-      m := regexp_match(rest, '^@\[([^\]\r\n]+)\]\(((?:metric|dim):[a-z0-9_]+|val:[a-z0-9_]+/[a-z0-9_]+|item:itm_[a-z0-9]{8,16}|area:[a-z][a-z0-9_-]*)\)');
+      m := regexp_match(rest, '^@\[([^\]\r\n]+)\]\(((?:metric|dim):[a-z0-9_]+|val:[a-z0-9_]+/[a-z0-9_]+|item:itm_[a-z0-9]{8,16}|area:[a-z][a-z0-9_-]*|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\)');
       if m is null then raise exception 'Invalid mention syntax' using errcode='check_violation'; end if;
       plain := plain || m[1];
       tokens := tokens || jsonb_build_array(jsonb_build_object('position',jsonb_array_length(tokens),'label',m[1],'target',m[2]));
@@ -1489,6 +1880,84 @@ begin
   end loop;
   return jsonb_build_object('text',plain,'mentions',tokens);
 end $$;
+
+CREATE TABLE public.decisions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    proposal_id uuid,
+    item_version_id uuid,
+    vocab_version_id uuid,
+    area_id text,
+    decided_by uuid NOT NULL,
+    capacity public.decision_capacity NOT NULL,
+    outcome public.decision_outcome NOT NULL,
+    reason text NOT NULL,
+    decided_at timestamp with time zone DEFAULT now() NOT NULL,
+    round smallint DEFAULT 0 NOT NULL,
+    auto_policy_id uuid,
+    CONSTRAINT decisions_check CHECK (((item_version_id IS NULL) <> (vocab_version_id IS NULL))),
+    CONSTRAINT decisions_check1 CHECK (((outcome = 'retire'::public.decision_outcome) OR (proposal_id IS NOT NULL))),
+    CONSTRAINT decisions_check2 CHECK (((item_version_id IS NULL) OR (area_id IS NOT NULL))),
+    CONSTRAINT decisions_reason_check CHECK (((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500))),
+    CONSTRAINT decisions_round_check CHECK ((round >= 0))
+);
+
+CREATE FUNCTION public.cl_policy_decision_problem(d public.decisions) RETURNS text
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  pol agent_policies;
+  p proposals;
+  v item_versions;
+  used integer;
+begin
+  select * into pol from agent_policies where id = d.auto_policy_id for update;
+  if not found or pol.ended_at is not null then return 'the policy is off'; end if;
+  if not cl_auto_publish_on() then return 'publishing without review is off for the workspace'; end if;
+  if d.outcome <> 'accept' or d.proposal_id is null or d.item_version_id is null then
+    return 'a policy only publishes a suggestion';
+  end if;
+  if d.decided_by <> pol.set_by or d.decided_by is distinct from cl_person() then
+    return 'the decision is not by the person who set the policy';
+  end if;
+  if d.area_id is distinct from pol.area_id then return 'the policy is for another domain'; end if;
+  if d.capacity::text <> 'owner' or not cl_has_area_role(d.decided_by, pol.area_id, 'owner', now()) then
+    return 'the person who set the policy is no longer an owner of the domain';
+  end if;
+  select * into p from proposals where id = d.proposal_id;
+  if p.agent_id is distinct from pol.agent_id or p.channel <> 'mcp' then
+    return 'the suggestion is not from the agent of the policy';
+  end if;
+  if p.action <> 'create' then return 'a policy only publishes new items'; end if;
+  select * into v from item_versions where id = d.item_version_id;
+  if v.area_id <> pol.area_id or p.area_id is distinct from pol.area_id then
+    return 'the policy is for another domain';
+  end if;
+  if v.risk <> 'low' then return 'a policy only publishes low-risk items'; end if;
+  if not exists (select 1 from auth.agents a where a.id = pol.agent_id and a.kind = 'app'
+                    and 'suggest_context' = any (a.tools)) then
+    return 'suggest_context is off for the agent';
+  end if;
+  if not coalesce((select enabled from tool_config where tool = 'suggest_context'), false) then
+    return 'suggest_context is off for the workspace';
+  end if;
+  select count(*) into used from decisions
+   where auto_policy_id = pol.id and decided_at > now() - interval '24 hours';
+  if used >= pol.per_day then return 'the policy published its most for today'; end if;
+  return null;
+end $$;
+
+CREATE FUNCTION public.cl_proposal_base(p_version uuid) RETURNS uuid
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  with recursive chain(id, supersedes, depth) as (
+    select id, supersedes_version_id, 0 from item_versions where id = p_version
+    union all
+    select v.id, v.supersedes_version_id, c.depth + 1 from item_versions v join chain c on v.id = c.supersedes)
+  select c.id from chain c
+   where c.depth > 0 and exists (select 1 from item_version_service s where s.version_id = c.id)
+   order by c.depth limit 1 $$;
 
 CREATE FUNCTION public.cl_proposal_tests_follow_area() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
@@ -1521,8 +1990,8 @@ begin
     raise exception 'The test question % is attached to an open proposal; detach it before holding it out', new.id
       using errcode = '23514';
   end if;
-  if new.area_id <> old.area_id and (attached or exists (select 1 from gap_tests where question_id = new.id)) then
-    raise exception 'The test question % is linked to a gap or attached to an open proposal; remove those before moving it', new.id
+  if new.area_id <> old.area_id and attached then
+    raise exception 'The test question % is attached to an open proposal; detach it before moving it', new.id
       using errcode = '23514';
   end if;
   return new;
@@ -1577,12 +2046,34 @@ begin
   return g;
 end $$;
 
+CREATE FUNCTION public.cl_report_outcome(p_report uuid) RETURNS TABLE(outcome text, decided_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  with r as (
+    select * from reports
+     where id = p_report
+       and (person_id = cl_person() or cl_is_admin_now() or cl_is_owner_now(area_id)
+            or (figure_route in ('contact', 'both') and cl_is_figure_contact(figure_source)))
+  )
+  select x.outcome, x.at from (
+    select 'not_a_problem'::text as outcome, c.decided_at as at
+      from r join card_states c on c.card = 'report:' || r.id::text
+    union all
+    select case when d.outcome = 'retire' then 'archived'
+                when v.is_recheck then 'checked'
+                else 'changed' end,
+           d.decided_at
+      from r join item_versions v on v.item_id = r.item_id
+             join decisions d on d.item_version_id = v.id
+     where d.outcome in ('accept', 'retire') and d.decided_at > r.created_at
+       and not exists (select 1 from decision_undos u where u.decision_id = d.id)
+  ) x
+  order by x.at limit 1 $$;
+
 CREATE FUNCTION public.cl_required_levels(r public.risk_level) RETURNS public.check_level[]
     LANGUAGE sql IMMUTABLE
-    AS $$
-  select case r when 'low'    then array['format','matching','delivery']::check_level[]
-                when 'normal' then array['format','matching','delivery','answer_impact']::check_level[]
-                else               array['format','matching','delivery','answer_impact','answer_full']::check_level[] end $$;
+    AS $$ select array['format','matching','delivery']::check_level[] $$;
 
 CREATE FUNCTION public.cl_retention_run() RETURNS TABLE(what text, n bigint)
     LANGUAGE plpgsql SECURITY DEFINER
@@ -1603,7 +2094,7 @@ begin
   update feedback set note = null where note is not null and created_hour < now() - make_interval(days => v_notes); get diagnostics k = row_count; return query select 'feedback_notes', k;
   delete from idempotency_keys where expires_at < now();                 get diagnostics k = row_count; return query select 'idempotency_keys', k;
   delete from llm_spend_daily where expires_at < now();                  get diagnostics k = row_count; return query select 'llm_spend_daily', k;
-  delete from inbox_items where archived_at < now() - interval '90 days'; get diagnostics k = row_count; return query select 'inbox_items', k;
+  delete from inbox_items where created_at < now() - interval '90 days'; get diagnostics k = row_count; return query select 'inbox_items', k;
   delete from outbox_events where relayed_at < now() - make_interval(days => v_outbox); get diagnostics k = row_count; return query select 'outbox_events', k;
   for part in select c.relname, p.relname as parent, pg_get_expr(c.relpartbound, c.oid) as bound
                 from pg_inherits i join pg_class c on c.oid = i.inhrelid join pg_class p on p.oid = i.inhparent
@@ -1616,6 +2107,37 @@ begin
   end loop;
   return query select 'partitions_dropped', dropped;
 end $$;
+
+CREATE FUNCTION public.cl_saved_looks() RETURNS TABLE(area_id text, question_id uuid, since timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select q.area_id, q.id,
+         (select min(x.checked_at) from saved_question_results x
+           where x.question_id = q.id
+             and x.checked_at > coalesce((select max(y.checked_at) from saved_question_results y
+                                           where y.question_id = q.id and y.result <> 'look'),
+                                         '-infinity'::timestamptz))
+    from saved_questions q
+    join lateral (select x.result from saved_question_results x where x.question_id = q.id
+                   order by x.checked_at desc, x.run_id desc limit 1) r on true
+   where q.removed_at is null and r.result = 'look'
+     and ((cl_person() is null and cl_source() is null) or cl_is_admin_now() or cl_is_owner_now(q.area_id))
+   order by q.area_id, q.created_at, q.id $$;
+
+CREATE FUNCTION public.cl_saved_questions_to_check(p_area text DEFAULT NULL::text) RETURNS TABLE(id uuid, area_id text, question text, expect_items text[], baseline_id uuid, answer jsonb, created_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select q.id, q.area_id, q.question, q.expect_items, b.id, b.answer, q.created_at
+    from saved_questions q
+    join lateral (select x.id, x.answer from saved_question_baselines x
+                   where x.question_id = q.id and x.undone_at is null
+                   order by x.kept_at desc, x.id desc limit 1) b on true
+   where q.removed_at is null
+     and (p_area is null or q.area_id = p_area)
+     and ((cl_person() is null and cl_source() is null) or cl_is_admin_now() or cl_is_owner_now(q.area_id))
+   order by q.created_at, q.id $$;
 
 CREATE FUNCTION public.cl_scopes_overlap(a jsonb, b jsonb) RETURNS boolean
     LANGUAGE sql STABLE
@@ -1685,6 +2207,10 @@ CREATE FUNCTION public.cl_similar_items(p_title text, p_summary text) RETURNS TA
    limit 20
 $$;
 
+CREATE FUNCTION public.cl_source() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$ select nullif(current_setting('cl.source_id', true), '') $$;
+
 CREATE FUNCTION public.cl_source_domains_behind() RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -1714,6 +2240,89 @@ CREATE FUNCTION public.cl_strip_mentions(t text) RETURNS text
     AS $$
   select cl_parse_mention_text(t)->>'text' $$;
 
+CREATE FUNCTION public.cl_term_target_area(p_key text, p_term uuid) RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select case when p_term is not null then (select area_id from terms where id = p_term)
+    else (select coalesce(v.area_id, d.area_id)
+            from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
+            left join source_domain_service d on d.term_key = s.term_key
+                  and d.editions @> (select seq from live_edition)
+           where s.term_key = p_key and s.editions @> (select seq from live_edition)
+           limit 1)
+  end $$;
+
+CREATE FUNCTION public.cl_term_word(p_name text) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select btrim(regexp_replace(
+           replace(replace(replace(replace(
+             lower(regexp_replace(normalize(p_name, nfkd),
+             '[\u0300-\u036f\u0483-\u0489\u0591-\u05bd\u05bf\u05c1-\u05c2\u05c4-\u05c5\u05c7'
+             '\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06dc\u06df-\u06e4\u06e7-\u06e8\u06ea-\u06ed'
+             '\u0711\u0730-\u074a\u07a6-\u07b0\u07eb-\u07f3\u07fd\u0816-\u0819\u081b-\u0823'
+             '\u0825-\u0827\u0829-\u082d\u0859-\u085b\u0897-\u089f\u08ca-\u08e1\u08e3-\u0903'
+             '\u093a-\u093c\u093e-\u094f\u0951-\u0957\u0962-\u0963\u0981-\u0983\u09bc\u09be-\u09c4'
+             '\u09c7-\u09c8\u09cb-\u09cd\u09d7\u09e2-\u09e3\u09fe\u0a01-\u0a03\u0a3c\u0a3e-\u0a42'
+             '\u0a47-\u0a48\u0a4b-\u0a4d\u0a51\u0a70-\u0a71\u0a75\u0a81-\u0a83\u0abc\u0abe-\u0ac5'
+             '\u0ac7-\u0ac9\u0acb-\u0acd\u0ae2-\u0ae3\u0afa-\u0aff\u0b01-\u0b03\u0b3c\u0b3e-\u0b44'
+             '\u0b47-\u0b48\u0b4b-\u0b4d\u0b55-\u0b57\u0b62-\u0b63\u0b82\u0bbe-\u0bc2\u0bc6-\u0bc8'
+             '\u0bca-\u0bcd\u0bd7\u0c00-\u0c04\u0c3c\u0c3e-\u0c44\u0c46-\u0c48\u0c4a-\u0c4d'
+             '\u0c55-\u0c56\u0c62-\u0c63\u0c81-\u0c83\u0cbc\u0cbe-\u0cc4\u0cc6-\u0cc8\u0cca-\u0ccd'
+             '\u0cd5-\u0cd6\u0ce2-\u0ce3\u0cf3\u0d00-\u0d03\u0d3b-\u0d3c\u0d3e-\u0d44\u0d46-\u0d48'
+             '\u0d4a-\u0d4d\u0d57\u0d62-\u0d63\u0d81-\u0d83\u0dca\u0dcf-\u0dd4\u0dd6\u0dd8-\u0ddf'
+             '\u0df2-\u0df3\u0e31\u0e34-\u0e3a\u0e47-\u0e4e\u0eb1\u0eb4-\u0ebc\u0ec8-\u0ece'
+             '\u0f18-\u0f19\u0f35\u0f37\u0f39\u0f3e-\u0f3f\u0f71-\u0f84\u0f86-\u0f87\u0f8d-\u0f97'
+             '\u0f99-\u0fbc\u0fc6\u102b-\u103e\u1056-\u1059\u105e-\u1060\u1062-\u1064\u1067-\u106d'
+             '\u1071-\u1074\u1082-\u108d\u108f\u109a-\u109d\u135d-\u135f\u1712-\u1715\u1732-\u1734'
+             '\u1752-\u1753\u1772-\u1773\u17b4-\u17d3\u17dd\u180b-\u180d\u180f\u1885-\u1886\u18a9'
+             '\u1920-\u192b\u1930-\u193b\u1a17-\u1a1b\u1a55-\u1a5e\u1a60-\u1a7c\u1a7f\u1ab0-\u1add'
+             '\u1ae0-\u1aeb\u1b00-\u1b04\u1b34-\u1b44\u1b6b-\u1b73\u1b80-\u1b82\u1ba1-\u1bad'
+             '\u1be6-\u1bf3\u1c24-\u1c37\u1cd0-\u1cd2\u1cd4-\u1ce8\u1ced\u1cf4\u1cf7-\u1cf9'
+             '\u1dc0-\u1dff\u20d0-\u20f0\u2cef-\u2cf1\u2d7f\u2de0-\u2dff\u302a-\u302f\u3099-\u309a'
+             '\ua66f-\ua672\ua674-\ua67d\ua69e-\ua69f\ua6f0-\ua6f1\ua802\ua806\ua80b\ua823-\ua827'
+             '\ua82c\ua880-\ua881\ua8b4-\ua8c5\ua8e0-\ua8f1\ua8ff\ua926-\ua92d\ua947-\ua953'
+             '\ua980-\ua983\ua9b3-\ua9c0\ua9e5\uaa29-\uaa36\uaa43\uaa4c-\uaa4d\uaa7b-\uaa7d\uaab0'
+             '\uaab2-\uaab4\uaab7-\uaab8\uaabe-\uaabf\uaac1\uaaeb-\uaaef\uaaf5-\uaaf6\uabe3-\uabea'
+             '\uabec-\uabed\ufb1e\ufe00-\ufe0f\ufe20-\ufe2f\U000101fd\U000102e0\U00010376-\U0001037a'
+             '\U00010a01-\U00010a03\U00010a05-\U00010a06\U00010a0c-\U00010a0f\U00010a38-\U00010a3a'
+             '\U00010a3f\U00010ae5-\U00010ae6\U00010d24-\U00010d27\U00010d69-\U00010d6d'
+             '\U00010eab-\U00010eac\U00010efa-\U00010eff\U00010f46-\U00010f50\U00010f82-\U00010f85'
+             '\U00011000-\U00011002\U00011038-\U00011046\U00011070\U00011073-\U00011074'
+             '\U0001107f-\U00011082\U000110b0-\U000110ba\U000110c2\U00011100-\U00011102'
+             '\U00011127-\U00011134\U00011145-\U00011146\U00011173\U00011180-\U00011182'
+             '\U000111b3-\U000111c0\U000111c9-\U000111cc\U000111ce-\U000111cf\U0001122c-\U00011237'
+             '\U0001123e\U00011241\U000112df-\U000112ea\U00011300-\U00011303\U0001133b-\U0001133c'
+             '\U0001133e-\U00011344\U00011347-\U00011348\U0001134b-\U0001134d\U00011357'
+             '\U00011362-\U00011363\U00011366-\U0001136c\U00011370-\U00011374\U000113b8-\U000113c0'
+             '\U000113c2\U000113c5\U000113c7-\U000113ca\U000113cc-\U000113d0\U000113d2'
+             '\U000113e1-\U000113e2\U00011435-\U00011446\U0001145e\U000114b0-\U000114c3'
+             '\U000115af-\U000115b5\U000115b8-\U000115c0\U000115dc-\U000115dd\U00011630-\U00011640'
+             '\U000116ab-\U000116b7\U0001171d-\U0001172b\U0001182c-\U0001183a\U00011930-\U00011935'
+             '\U00011937-\U00011938\U0001193b-\U0001193e\U00011940\U00011942-\U00011943'
+             '\U000119d1-\U000119d7\U000119da-\U000119e0\U000119e4\U00011a01-\U00011a0a'
+             '\U00011a33-\U00011a39\U00011a3b-\U00011a3e\U00011a47\U00011a51-\U00011a5b'
+             '\U00011a8a-\U00011a99\U00011b60-\U00011b67\U00011c2f-\U00011c36\U00011c38-\U00011c3f'
+             '\U00011c92-\U00011ca7\U00011ca9-\U00011cb6\U00011d31-\U00011d36\U00011d3a'
+             '\U00011d3c-\U00011d3d\U00011d3f-\U00011d45\U00011d47\U00011d8a-\U00011d8e'
+             '\U00011d90-\U00011d91\U00011d93-\U00011d97\U00011ef3-\U00011ef6\U00011f00-\U00011f01'
+             '\U00011f03\U00011f34-\U00011f3a\U00011f3e-\U00011f42\U00011f5a\U00013440'
+             '\U00013447-\U00013455\U0001611e-\U0001612f\U00016af0-\U00016af4\U00016b30-\U00016b36'
+             '\U00016f4f\U00016f51-\U00016f87\U00016f8f-\U00016f92\U00016fe4\U00016ff0-\U00016ff1'
+             '\U0001bc9d-\U0001bc9e\U0001cf00-\U0001cf2d\U0001cf30-\U0001cf46\U0001d165-\U0001d169'
+             '\U0001d16d-\U0001d172\U0001d17b-\U0001d182\U0001d185-\U0001d18b\U0001d1aa-\U0001d1ad'
+             '\U0001d242-\U0001d244\U0001da00-\U0001da36\U0001da3b-\U0001da6c\U0001da75\U0001da84'
+             '\U0001da9b-\U0001da9f\U0001daa1-\U0001daaf\U0001e000-\U0001e006\U0001e008-\U0001e018'
+             '\U0001e01b-\U0001e021\U0001e023-\U0001e024\U0001e026-\U0001e02a\U0001e08f'
+             '\U0001e130-\U0001e136\U0001e2ae\U0001e2ec-\U0001e2ef\U0001e4ec-\U0001e4ef'
+             '\U0001e5ee-\U0001e5ef\U0001e6e3\U0001e6e6\U0001e6ee-\U0001e6ef\U0001e6f5'
+             '\U0001e8d0-\U0001e8d6\U0001e944-\U0001e94a\U000e0100-\U000e01ef]',
+                   '', 'g') collate pg_unicode_fast),
+             'æ', 'ae'), 'ø', 'o'), 'ß', 'ss'), 'ς', 'σ'),
+           '[\u0009-\u000d\u0020\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+', ' ', 'g')) $$;
+
 CREATE FUNCTION public.cl_test_link_check() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -1723,18 +2332,12 @@ declare
   v_ok boolean;
 begin
   select * into strict q from golden_questions where id = new.question_id for share;
-  if tg_table_name = 'gap_tests' then
-    select q.area_id = any(cl_topic_domains(t.area_id, t.metric_keys)) into v_ok
-      from gaps g join topics t on t.id = g.topic_id where g.id = new.gap_id;
-  else
-    if q.split = 'held_out' then
-      raise exception 'A held-out test question cannot be attached to a proposal' using errcode = '23514';
-    end if;
-    select area_id is not distinct from q.area_id into v_ok from proposals where id = new.proposal_id;
+  if q.split = 'held_out' then
+    raise exception 'A held-out test question cannot be attached to a proposal' using errcode = '23514';
   end if;
+  select area_id is not distinct from q.area_id into v_ok from proposals where id = new.proposal_id;
   if not coalesce(v_ok, false) then
-    raise exception 'The test question % is not in the area of this %', q.id,
-      case tg_table_name when 'gap_tests' then 'gap' else 'proposal' end using errcode = '23514';
+    raise exception 'The test question % is not in the area of this proposal', q.id using errcode = '23514';
   end if;
   return null;
 end $$;
@@ -1783,6 +2386,14 @@ begin
   return new;
 end $$;
 
+CREATE FUNCTION public.cl_undo_until(at timestamp with time zone) RETURNS timestamp with time zone
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select at + make_interval(secs => coalesce(
+           (select (value #>> '{}')::int from settings_current where key = 'limits.undo_seconds'), 15))
+$$;
+
 CREATE FUNCTION public.cl_version_child_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -1827,7 +2438,7 @@ CREATE FUNCTION public.cl_version_review(p_version uuid) RETURNS TABLE(accepted_
   select (d.decided_at at time zone 'UTC')::date, d.capacity, d.area_id, d.decided_by, f.label
     from (select 1) one
     left join lateral (select x.decided_at, x.capacity, x.area_id, x.decided_by from decisions x
-       where x.item_version_id = p_version and x.outcome = 'accept' and x.capacity <> 'approver'
+       where x.item_version_id = p_version and x.outcome = 'accept'
        order by x.decided_at desc, x.id desc limit 1) d on true
     left join lateral (select e.label from item_version_service o join editions e on e.seq = lower(o.editions)
        where o.version_id = p_version order by lower(o.editions) limit 1) f on true $$;
@@ -1837,6 +2448,144 @@ CREATE FUNCTION public.cl_version_stamp() RETURNS trigger
     AS $$
 begin
   new.created_xact := pg_current_xact_id();
+  return new;
+end $$;
+
+CREATE FUNCTION public.cl_vocabulary_words() RETURNS TABLE(word text, origin text, key text, name text, connector_id text)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  with live as (
+    select s.term_key, v.id as version_id, v.name, v.aliases
+      from vocab_term_service s
+      join vocab_term_versions v on v.id = s.version_id
+      join vocab_terms t on t.key = s.term_key
+     where s.editions @> (select seq from live_edition) and t.kind in ('metric', 'dimension'))
+  select cl_term_word(w), 'vocabulary', l.term_key, l.name, null::text
+    from live l, unnest(array[l.name] || l.aliases) w
+  union all
+  select cl_term_word(w), 'source', l.term_key, l.name, d.connector_id
+    from live l
+    join vocab_term_refs r on r.version_id = l.version_id
+    join definitions d on d.ref = r.definition_ref and d.missing_since_snapshot is null,
+    unnest(array[d.name, d.title] || d.synonyms) w
+   where w is not null and btrim(w) <> '' $$;
+
+CREATE FUNCTION public.comments_clear_reactions() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  delete from reactions where comment_id = new.id;
+  delete from comment_mentions where comment_id = new.id;
+  return null;
+end $$;
+
+CREATE FUNCTION public.comments_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare parent comments;
+declare resolution_only boolean;
+begin
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    new.edited_at := null;
+    new.deleted_at := null;
+    new.withdrew_at := null;
+    new.resolved_at := null;
+    new.resolved_by := null;
+    new.reopened_at := null;
+    new.reopened_by := null;
+    if new.parent_id is not null then
+      select * into parent from comments where id = new.parent_id;
+      if parent.id is null or parent.parent_id is not null or parent.deleted_at is not null
+         or parent.item_id is distinct from new.item_id or parent.proposal_id is distinct from new.proposal_id
+         or new.kind <> 'comment' then
+        raise exception 'comment % answers no comment of its own on the same subject', new.id
+          using errcode = 'check_violation';
+      end if;
+    end if;
+    if exists (select 1 from unnest(array[new.anchor_before, new.anchor_after]) a(version)
+                where a.version is not null
+                  and not exists (select 1 from item_versions v join proposals p on p.item_id = v.item_id
+                                   where v.id = a.version and p.id = new.proposal_id)) then
+      raise exception 'comment % is anchored to a version of another item', new.id
+        using errcode = 'check_violation';
+    end if;
+    return new;
+  end if;
+  if (new.id, new.item_id, new.proposal_id, new.parent_id, new.author_id, new.kind, new.decision_id, new.created_at,
+      new.anchor_before, new.anchor_after, new.anchor_field, new.anchor_side, new.anchor_line)
+     is distinct from (old.id, old.item_id, old.proposal_id, old.parent_id, old.author_id, old.kind, old.decision_id, old.created_at,
+      old.anchor_before, old.anchor_after, old.anchor_field, old.anchor_side, old.anchor_line) then
+    raise exception 'comment % keeps what it hangs on, its author and its time', old.id
+      using errcode = 'check_violation';
+  end if;
+  resolution_only := (new.body, new.edited_at, new.deleted_at, new.withdrew_at)
+                     is not distinct from (old.body, old.edited_at, old.deleted_at, old.withdrew_at);
+  if (old.deleted_at is not null or old.author_id is distinct from cl_person()) and not resolution_only then
+    if old.deleted_at is not null then
+      raise exception 'comment % was deleted', old.id using errcode = 'check_violation';
+    end if;
+    raise exception 'comment % changes only by its author, but for its resolved state', old.id
+      using errcode = 'check_violation';
+  end if;
+  if (new.resolved_at is null) is distinct from (old.resolved_at is null) then
+    if new.resolved_at is null then
+      new.resolved_by := null;
+      new.reopened_at := now();
+      new.reopened_by := cl_person();
+    else
+      new.resolved_at := now();
+      new.resolved_by := cl_person();
+      new.reopened_at := old.reopened_at;
+      new.reopened_by := old.reopened_by;
+    end if;
+  else
+    new.resolved_at := old.resolved_at;
+    new.resolved_by := old.resolved_by;
+    new.reopened_at := old.reopened_at;
+    new.reopened_by := old.reopened_by;
+  end if;
+  if resolution_only then
+    return new;
+  end if;
+  if new.deleted_at is not null then
+    new.deleted_at := now();
+    new.edited_at := old.edited_at;
+    new.withdrew_at := null;
+    return new;
+  end if;
+  if (new.withdrew_at is null) is distinct from (old.withdrew_at is null) then
+    if not exists (select 1 from proposals p
+                    where p.id = new.proposal_id and p.proposer_id = new.author_id
+                      and p.action = 'retire' and p.state in ('submitted', 'in_review')) then
+      raise exception 'comment % takes back only its writer''s suggestion to archive, while it waits', old.id
+        using errcode = 'check_violation';
+    end if;
+    new.withdrew_at := case when new.withdrew_at is null then null else now() end;
+  else
+    new.withdrew_at := old.withdrew_at;
+  end if;
+  if new.body is distinct from old.body then
+    new.edited_at := now();
+  else
+    new.edited_at := old.edited_at;
+  end if;
+  return new;
+end $$;
+
+CREATE FUNCTION public.decisions_policy_guard() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare problem text;
+begin
+  problem := cl_policy_decision_problem(new);
+  if problem is not null then
+    raise exception 'Not published under the policy: %', problem using errcode = 'check_violation';
+  end if;
   return new;
 end $$;
 
@@ -1864,14 +2613,12 @@ end $$;
 CREATE FUNCTION public.edition_content_digest(p_seq bigint) RETURNS bytea
     LANGUAGE sql STABLE
     AS $$
-  select sha256(convert_to(coalesce(string_agg(line, E'\n' order by line), ''), 'UTF8')) from (
+  select sha256(convert_to(coalesce(string_agg(line, E'\n' order by line collate "C"), ''), 'UTF8')) from (
     select 'item:'  || s.item_id  || ':' || encode(v.content_digest, 'hex') as line
       from item_version_service s join item_versions v on v.id = s.version_id where s.editions @> p_seq
     union all
     select 'vocab:' || s.term_key || ':' || encode(v.content_digest, 'hex')
       from vocab_term_service s join vocab_term_versions v on v.id = s.version_id where s.editions @> p_seq
-    union all
-    select 'area:'  || area_id || ':' || state::text from area_state_service where editions @> p_seq
     union all
     select 'domain:' || term_key || ':' || area_id from source_domain_service where editions @> p_seq) x $$;
 
@@ -1944,11 +2691,6 @@ begin
   insert into vocab_term_service (term_key, version_id, editions)
     select t.term_key, t.version_id, int8range(v_seq, null) from vocab_term_service t
      where t.editions @> p_target and not exists (select 1 from vocab_term_service s where s.term_key = t.term_key and s.version_id = t.version_id and upper_inf(s.editions));
-  update area_state_service s set editions = int8range(lower(s.editions), v_seq)
-   where upper_inf(s.editions) and not exists (select 1 from area_state_service t where t.area_id = s.area_id and t.state = s.state and t.editions @> p_target);
-  insert into area_state_service (area_id, state, editions)
-    select t.area_id, t.state, int8range(v_seq, null) from area_state_service t
-     where t.editions @> p_target and not exists (select 1 from area_state_service s where s.area_id = t.area_id and s.state = t.state and upper_inf(s.editions));
   update source_domain_service s set editions = int8range(lower(s.editions), v_seq)
    where upper_inf(s.editions) and not exists (select 1 from source_domain_service t where t.term_key = s.term_key and t.area_id = s.area_id and t.editions @> p_target);
   insert into source_domain_service (term_key, area_id, editions)
@@ -2011,6 +2753,104 @@ begin
   return new;
 end $$;
 
+CREATE FUNCTION public.eval_runs_guard_state() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if new.state is distinct from old.state
+     and not exists (select 1 from eval_run_transitions t where t.from_state = old.state and t.to_state = new.state) then
+    raise exception 'evaluation run % cannot move from % to %', old.id, old.state, new.state using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+CREATE FUNCTION public.gaps_guard_status() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if new.status is distinct from old.status
+     and not exists (select 1 from public.gap_transitions t where t.from_status = old.status and t.to_status = new.status) then
+    raise exception 'gap % cannot move from % to %', old.id, old.status, new.status using errcode = 'check_violation';
+  end if;
+  return new;
+end $$;
+
+CREATE TABLE public.invites (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    email text NOT NULL,
+    role text NOT NULL,
+    area_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    invited_by uuid,
+    token_hash text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    sent_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    accepted_at timestamp with time zone,
+    accepted_by uuid,
+    revoked_at timestamp with time zone,
+    revoked_by uuid,
+    CONSTRAINT invites_accepted_check CHECK (((accepted_at IS NULL) = (accepted_by IS NULL))),
+    CONSTRAINT invites_areas_check CHECK (((cardinality(area_ids) <= 50) AND (array_position(area_ids, NULL::text) IS NULL))),
+    CONSTRAINT invites_closed_once_check CHECK (((accepted_at IS NULL) OR (revoked_at IS NULL))),
+    CONSTRAINT invites_email_check CHECK (((email = lower(btrim(email))) AND ((char_length(email) >= 3) AND (char_length(email) <= 320)) AND (email ~ '^[^@\s]+@[^@\s]+$'::text))),
+    CONSTRAINT invites_expiry_check CHECK ((expires_at > sent_at)),
+    CONSTRAINT invites_revoked_check CHECK (((revoked_by IS NULL) OR (revoked_at IS NOT NULL))),
+    CONSTRAINT invites_role_check CHECK ((role = ANY (ARRAY['admin'::text, 'member'::text]))),
+    CONSTRAINT invites_token_hash_check CHECK ((token_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+CREATE FUNCTION public.invite_standing(p_invite public.invites, OUT standing text, OUT why text, OUT area_ids text[]) RETURNS record
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  sender_admin boolean := p_invite.invited_by is null or cl_is_admin(p_invite.invited_by, now());
+  person people;
+begin
+  select coalesce(array_agg(a.id order by a.id), '{}') into area_ids from areas a
+   where a.id = any(p_invite.area_ids) and a.archived_at is null
+     and (sender_admin or cl_has_area_role(p_invite.invited_by, a.id, 'owner', now()));
+  select * into person from people where email = p_invite.email;
+  standing := 'void';
+  if p_invite.accepted_at is not null then
+    standing := 'accepted';
+  elsif p_invite.revoked_at is not null then
+    standing := 'revoked';
+  elsif person.erased_at is not null then
+    why := 'erased';
+  elsif person.id is not null and person.deactivated_at is null then
+    why := 'member';
+  elsif (person.id is not null and not sender_admin)
+     or (p_invite.role = 'admin' and not sender_admin)
+     or (p_invite.role = 'member' and not sender_admin and cardinality(area_ids) = 0) then
+    why := 'sender';
+  elsif p_invite.expires_at <= now() then
+    standing := 'expired';
+  else
+    standing := 'open';
+  end if;
+end $$;
+
+CREATE FUNCTION public.invites_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  if old.accepted_at is not null or old.revoked_at is not null then
+    raise exception 'invite % is closed', old.id using errcode = 'check_violation';
+  end if;
+  if (new.email, new.role, new.area_ids, new.created_at)
+     is distinct from (old.email, old.role, old.area_ids, old.created_at)
+     or (new.invited_by is distinct from old.invited_by
+         and not coalesce(new.invited_by = cl_person() and cl_is_admin_now()
+                          and (invite_standing(old)).why = 'sender', false)) then
+    raise exception 'invite % may only be sent again, revoked or accepted', old.id
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end $$;
+
 CREATE FUNCTION public.item_bin_guard_update() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -2058,6 +2898,7 @@ declare e editions;
 begin
   select * into e from editions where seq = upper(new.editions);
   if e.reason = 'rollback' then return null; end if;                                  -- edition_seal proves content equality
+  if e.reason = 'decision_undone' and exists (select 1 from decision_undos u where u.edition_seq = e.seq) then return null; end if;
   if exists (select 1 from decisions d where d.item_version_id = new.version_id and d.outcome = 'retire'
              and d.area_id = (select area_id from item_versions where id = new.version_id)
              and (cl_is_admin(d.decided_by, d.decided_at)
@@ -2095,6 +2936,17 @@ begin
   return new;
 end $$;
 
+CREATE FUNCTION public.item_versions_default_kind() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if new.kind is null then
+    new.kind := coalesce((select kind from item_versions where id = new.supersedes_version_id),
+                         (select kind from items where id = new.item_id));
+  end if;
+  return new;
+end $$;
+
 CREATE FUNCTION public.item_versions_mentions_match() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -2104,7 +2956,7 @@ begin
   from (values ('summary',new.summary_markup),('body',new.body_markup)) fields(field,markup),
        lateral jsonb_array_elements(cl_parse_mention_text(coalesce(markup,''))->'mentions') token;
   select coalesce(jsonb_agg(jsonb_build_object('field',field,'position',position,'label',label,
-      'target',coalesce(term_key,'item:'||item_id,'area:'||area_id)) order by field::text,position),'[]') into rows_
+      'target',coalesce(term_key,'item:'||item_id,'area:'||area_id,'term:'||term_id::text)) order by field::text,position),'[]') into rows_
     from item_version_mentions where version_id=new.id;
   select least(50,greatest(0,value::int)) into max_mentions from settings_current where key='limits.mentions_per_version';
   if jsonb_array_length(tokens)>coalesce(max_mentions,50) then
@@ -2131,6 +2983,35 @@ begin
   return null;
 end $$;
 
+CREATE FUNCTION public.oauth_grants_end_policies() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  agent auth.agents;
+  who uuid := cl_person();
+begin
+  select * into agent from auth.agents a
+   where a.kind = 'app' and a.person_id = new.person_id and a.client_id = new.client_id;
+  if not found then return null; end if;
+  if exists (select 1 from auth.oauth_grants g
+              where g.person_id = new.person_id and g.client_id = new.client_id
+                and g.revoked_at is null and g.expires_at > now()) then
+    return null;
+  end if;
+  with ended as (
+    update agent_policies set ended_at = now(), ended_by = coalesce(who, new.person_id),
+                              ended_reason = 'The agent was revoked.'
+     where agent_id = agent.id and ended_at is null
+    returning id, area_id)
+  insert into audit_log (actor_id, actor_kind, action, area_id, subject_type, subject_id, details)
+  select who, case when who is null then 'system' else 'person' end, 'agent.policy_ended', e.area_id,
+         'agent', agent.id::text,
+         jsonb_build_object('name', agent.name, 'policyId', e.id::text, 'reason', 'The agent was revoked.')
+    from ended e;
+  return null;
+end $$;
+
 CREATE FUNCTION public.outbox_notify() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -2147,43 +3028,135 @@ begin
   return null;
 end $$;
 
-CREATE FUNCTION public.proposals_guard_state() RETURNS trigger
+CREATE FUNCTION public.proposals_guard_reopen() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 begin
+  if old.state in ('accepted', 'rejected') and new.state = 'submitted'
+     and not exists (select 1 from decision_undos u join decisions d on d.id = u.decision_id
+                      where d.proposal_id = new.id
+                        and d.outcome = any(case old.state when 'accepted' then array['accept', 'retire']
+                                                           else array['reject'] end::decision_outcome[])
+                        and u.created_xact = pg_current_xact_id()) then
+    raise exception 'proposal % reopens only when its decision is undone', old.id using errcode = 'check_violation';
+  end if;
+  return new;
+end $$;
+
+CREATE FUNCTION public.proposals_guard_state() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+declare
+  edit_ok boolean := false;
+begin
   if old.discarded_at is not null then
+    -- A deleted draft comes back only as its deleter's undo, within the window: nothing else changes.
+    if new.discarded_at is null and old.discarded_by = cl_person()
+       and now() < cl_undo_until(old.discarded_at)
+       and (to_jsonb(new) - '{discarded_at,discarded_by,revision,updated_at}'::text[])
+             = (to_jsonb(old) - '{discarded_at,discarded_by,revision,updated_at}'::text[]) then
+      new.discarded_by := null;
+      if new.revision = old.revision then new.revision := old.revision + 1; end if;
+      return new;
+    end if;
     raise exception 'proposal % was discarded', old.id using errcode = 'check_violation';
   end if;
+  -- Whoever deletes a draft is recorded with it, for the Deleted list.
+  if new.discarded_at is not null then new.discarded_by := cl_person(); end if;
   if new.state is distinct from old.state
      and not exists (select 1 from proposal_transitions t where t.from_state = old.state and t.to_state = new.state) then
     raise exception 'proposal % cannot move from % to %', old.id, old.state, new.state using errcode = 'check_violation';
   end if;
   -- After submit the version is fixed, except for a review edit: a new version of the same item, edited by the person
   -- making this change, that supersedes the submitted one and keeps its content.
-  if old.item_version_id is not null and new.item_version_id is distinct from old.item_version_id and old.state <> 'changes_requested'
-     and not coalesce(
+  if old.item_version_id is not null and new.item_version_id is distinct from old.item_version_id and old.state <> 'changes_requested' then
+    edit_ok := coalesce(
        old.state in ('submitted', 'in_review') and new.state = old.state and old.action in ('create', 'change')
        and new.item_id = old.item_id
        and exists (select 1 from item_versions v where v.id = new.item_version_id and v.item_id = old.item_id
                      and v.supersedes_version_id = old.item_version_id and v.edited_by = cl_person() and not v.is_recheck
-                     and v.proposer_id is distinct from cl_person()
                      and exists (select 1 from item_versions o where o.id = old.item_version_id
                                    and cl_has_area_role(cl_person(), o.area_id, 'owner', now()))
                      and (v.area_id = (select o.area_id from item_versions o where o.id = old.item_version_id)
                           or cl_is_admin(cl_person(), now())
-                          or cl_has_area_role(cl_person(), v.area_id, 'owner', now())))
-       and cl_item_version_kept(new.item_version_id) = cl_item_version_kept(old.item_version_id), false) then
-    raise exception 'proposal % version is fixed after submit', old.id using errcode = 'check_violation';
+                          or cl_has_area_role(cl_person(), v.area_id, 'owner', now()))
+                     and ((v.proposer_id is distinct from cl_person()
+                           and cl_item_version_kept(new.item_version_id) = cl_item_version_kept(old.item_version_id))
+                          or (cl_item_version_kept(new.item_version_id) - 'replaces' - 'conflicts'
+                                = cl_item_version_kept(old.item_version_id) - 'replaces' - 'conflicts'
+                              and cl_item_version_kept(new.item_version_id) <> cl_item_version_kept(old.item_version_id)
+                              and (cl_item_version_kept(new.item_version_id) -> 'replaces')
+                                    @> (cl_item_version_kept(old.item_version_id) -> 'replaces')
+                              and (cl_item_version_kept(new.item_version_id) -> 'conflicts')
+                                    @> (cl_item_version_kept(old.item_version_id) -> 'conflicts')))), false);
+    if not edit_ok then
+      raise exception 'proposal % version is fixed after submit', old.id using errcode = 'check_violation';
+    end if;
   end if;
   if new.revision = old.revision then new.revision := old.revision + 1; end if;
   return new;
 end $$;
 
+CREATE FUNCTION public.proposals_keep_agent() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  if new.agent_id is distinct from old.agent_id or new.agent_name is distinct from old.agent_name then
+    raise exception 'The agent that sent a suggestion cannot change' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+CREATE FUNCTION public.reactions_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  if new.comment_id is not null and exists (select 1 from comments c where c.id = new.comment_id and c.deleted_at is not null) then
+    raise exception 'comment % was deleted', new.comment_id using errcode = 'check_violation';
+  end if;
+  new.created_at := now();
+  return new;
+end $$;
+
+CREATE FUNCTION public.serving_access_key(p_hash text) RETURNS TABLE(state text, agent_id uuid, tools text[])
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  found_key auth.access_keys%rowtype;
+begin
+  select * into found_key from auth.access_keys where key_hash = p_hash;
+  if not found then return; end if;
+  if found_key.revoked_at is null
+     and (found_key.last_used_at is null or found_key.last_used_at < now() - interval '1 minute') then
+    update auth.access_keys set last_used_at = now()
+     where id = found_key.id and revoked_at is null;
+  end if;
+  return query
+    select case when found_key.revoked_at is null then 'open' else 'revoked' end, a.id, a.tools
+      from auth.agents a where a.key_id = found_key.id;
+end $$;
+
+CREATE FUNCTION public.serving_agent_tools(p_grant uuid) RETURNS TABLE(state text, agent_id uuid, tools text[])
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select case when g.revoked_at is not null then 'revoked'
+              when g.expires_at <= now() then 'expired'
+              else 'open' end,
+         a.id, a.tools
+    from auth.oauth_grants g
+    left join auth.agents a on a.kind = 'app' and a.person_id = g.person_id and a.client_id = g.client_id
+   where g.id = p_grant
+$$;
+
 CREATE FUNCTION public.serving_items(p_seq bigint) RETURNS TABLE(item_id text, version_id uuid, version_no integer, kind public.item_kind, area_id text, title text, summary text, body text, risk public.risk_level, claim public.claim_level, audience_groups text[], valid_from date, valid_until date, review_date date, owner_id uuid, content_digest bytea, metrics text[], value_keys text[], ref_marks jsonb, conflicts text[], replaces text[], evidence jsonb, dimension_keys text[], not_to_conclude text)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
-  select s.item_id, v.id, v.version_no, i.kind, v.area_id, v.title, v.summary, v.body, v.risk, v.claim, v.audience_groups,
+  select s.item_id, v.id, v.version_no, v.kind, v.area_id, v.title, v.summary, v.body, v.risk, v.claim, v.audience_groups,
          v.valid_from, v.valid_until, v.review_date, v.owner_id, v.content_digest,
          coalesce((select array_agg(m.metric_key order by m.metric_key) from item_version_metrics m where m.version_id = v.id), '{}'),
          coalesce((select array_agg(d.value_key order by d.value_key) from item_version_dimension_values d where d.version_id = v.id), '{}'),
@@ -2195,7 +3168,6 @@ CREATE FUNCTION public.serving_items(p_seq bigint) RETURNS TABLE(item_id text, v
          v.not_to_conclude
     from item_version_service s
     join item_versions v on v.id = s.version_id
-    join items i on i.id = s.item_id
    where s.editions @> p_seq $$;
 
 CREATE FUNCTION public.serving_links(p_seq bigint) RETURNS TABLE(from_item text, rel text, to_kind text, to_id text, label text, definition_ref text, change_mark text)
@@ -2252,6 +3224,37 @@ CREATE FUNCTION public.serving_source_domains(p_seq bigint) RETURNS TABLE(key te
     AS $$
   select term_key, area_id from source_domain_service where editions @> p_seq $$;
 
+CREATE FUNCTION public.serving_terms() RETURNS TABLE(id text, name text, meaning text, same_as text, area_id text, written_on text, written_as text, conflict boolean, also_means text[])
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  with words as materialized (select w.word, w.key from cl_vocabulary_words() w),
+  live as materialized (
+    select s.term_key as key
+      from vocab_term_service s join vocab_terms t on t.key = s.term_key
+     where s.editions @> (select seq from live_edition) and t.kind in ('metric', 'dimension'))
+  select t.id::text, t.name, t.meaning,
+         coalesce(t.same_as_key, 'term:' || t.same_as_term::text),
+         t.area_id,
+         to_char(t.updated_at at time zone 'UTC', 'YYYY-MM-DD'),
+         case when t.area_id is not null and cl_has_area_role(t.updated_by, t.area_id, 'owner', t.updated_at) then 'owner'
+              when cl_is_admin(t.updated_by, t.updated_at) then 'administrator'
+              when t.area_id is null then 'administrator'
+              else 'owner' end,
+         exists (select 1 from words w where w.word = t.word and w.key is distinct from t.same_as_key)
+           or (t.same_as_key is not null and not exists (select 1 from live l where l.key = t.same_as_key)),
+         array(select distinct w.key from words w
+                where w.word = t.word and w.key is distinct from t.same_as_key order by w.key)
+    from terms t
+   where t.deleted_at is null
+   order by t.word $$;
+
+CREATE FUNCTION public.serving_terms_mark() RETURNS text
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$ select (select count(*) from term_versions)::text || ':'
+                 || coalesce((select id::text from connector_snapshots order by id desc limit 1), '') $$;
+
 CREATE FUNCTION public.serving_vocabulary(p_seq bigint) RETURNS TABLE(key text, kind public.term_kind, parent_key text, name text, aliases text[], area_id text, definition_refs text[])
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -2261,6 +3264,116 @@ CREATE FUNCTION public.serving_vocabulary(p_seq bigint) RETURNS TABLE(key text, 
                      from vocab_term_refs r where r.version_id = v.id), '{}')
     from vocab_term_service s join vocab_term_versions v on v.id = s.version_id join vocab_terms t on t.key = s.term_key
    where s.editions @> p_seq $$;
+
+CREATE FUNCTION public.settings_auto_publish_off() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare who uuid := coalesce(new.changed_by, cl_person());
+begin
+  with ended as (
+    update agent_policies p set ended_at = now(), ended_by = coalesce(who, p.set_by),
+                                ended_reason = 'Turned off for the workspace.'
+     where p.ended_at is null
+    returning p.id, p.agent_id, p.area_id)
+  insert into audit_log (actor_id, actor_kind, action, area_id, subject_type, subject_id, details)
+  select who, case when who is null then 'system' else 'person' end, 'agent.policy_ended', e.area_id,
+         'agent', e.agent_id::text,
+         jsonb_build_object('name', (select a.name from auth.agents a where a.id = e.agent_id),
+                            'policyId', e.id::text, 'reason', 'Turned off for the workspace.')
+    from ended e;
+  return null;
+end $$;
+
+CREATE FUNCTION public.terms_follow() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  update terms set updated_by = coalesce(cl_person(), updated_by)
+   where same_as_term = new.id and deleted_at is null and area_id is distinct from new.area_id;
+  return null;
+end $$;
+
+CREATE FUNCTION public.terms_guard() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  -- A stored generated column is computed after this trigger: the word is worked out here.
+  v_word text := cl_term_word(new.name);
+  restoring boolean := tg_op = 'UPDATE' and old.deleted_at is not null and new.deleted_at is null;
+  claims boolean := tg_op = 'INSERT' or restoring
+                    or (new.deleted_at is null and (v_word <> old.word
+                        or new.same_as_key is distinct from old.same_as_key
+                        or new.same_as_term is distinct from old.same_as_term));
+begin
+  if tg_op = 'UPDATE' then
+    if new.id <> old.id or new.created_by <> old.created_by or new.created_at <> old.created_at then
+      raise exception 'a term keeps its id and who wrote it' using errcode = 'check_violation';
+    end if;
+    if old.deleted_at is not null and not restoring then
+      raise exception 'term % was deleted: restore it first', old.id using errcode = 'check_violation';
+    end if;
+    if new.deleted_at is not null and old.deleted_at is null then
+      if exists (select 1 from terms s where s.same_as_term = new.id and s.deleted_at is null) then
+        raise exception 'delete the synonyms of term % with it', new.id using errcode = 'check_violation';
+      end if;
+      new.deleted_by := cl_person();
+    end if;
+    if restoring then
+      new.deleted_by := null;
+      new.deleted_with := null;
+    end if;
+    new.revision := old.revision + 1;
+    new.updated_at := now();
+  end if;
+  if new.deleted_at is null then
+    if new.same_as_key is not null and not exists (
+         select 1 from vocab_term_service s join vocab_terms t on t.key = s.term_key
+          where s.term_key = new.same_as_key and t.kind in ('metric', 'dimension')
+            and s.editions @> (select seq from live_edition)) and claims then
+      raise exception 'a synonym means a metric or a dimension agents get now' using errcode = 'foreign_key_violation';
+    end if;
+    if new.same_as_term is not null and not exists (
+         select 1 from terms t where t.id = new.same_as_term and t.deleted_at is null and t.meaning is not null) then
+      raise exception 'a synonym means a term with its own meaning' using errcode = 'check_violation';
+    end if;
+    if new.meaning is null and exists (
+         select 1 from terms s where s.same_as_term = new.id and s.deleted_at is null) then
+      raise exception 'other words mean term %: it keeps its own meaning', new.id using errcode = 'check_violation';
+    end if;
+    -- A synonym's domain is what it means.
+    if new.meaning is null then
+      new.area_id := cl_term_target_area(new.same_as_key, new.same_as_term);
+    end if;
+    if claims and exists (select 1 from cl_vocabulary_words() w where w.word = v_word) then
+      raise exception 'the word "%" already means a metric or a dimension', btrim(new.name)
+        using errcode = 'unique_violation', constraint = 'terms_vocabulary_word';
+    end if;
+  end if;
+  return new;
+end $$;
+
+CREATE FUNCTION public.terms_version() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  insert into term_versions (term_id, revision, change, name, meaning, same_as_key, same_as_term, area_id, made_by)
+  values (new.id, new.revision,
+          case when tg_op = 'INSERT' then 'created'
+               when new.deleted_at is not null then 'deleted'
+               when old.deleted_at is not null then 'restored'
+               when new.area_id is distinct from old.area_id and new.name = old.name
+                    and new.meaning is not distinct from old.meaning
+                    and new.same_as_key is not distinct from old.same_as_key
+                    and new.same_as_term is not distinct from old.same_as_term then 'moved'
+               else 'edited' end,
+          new.name, new.meaning, new.same_as_key, new.same_as_term, new.area_id,
+          coalesce(cl_person(), new.updated_by));
+  return null;
+end $$;
 
 CREATE FUNCTION public.vocab_term_service_guard() RETURNS trigger
     LANGUAGE plpgsql
@@ -2274,7 +3387,7 @@ begin
     select * into v from vocab_term_versions where id = new.version_id;
     select exists (select 1 from decisions d where d.vocab_version_id = v.id and d.outcome = 'accept'
         and (d.decided_by <> v.proposer_id or v.proposer_id is null or cl_decides_own(d.decided_by, v.area_id, d.decided_at))
-        and ((v.area_id is not null and d.capacity in ('owner','deputy')
+        and ((v.area_id is not null and d.capacity = 'owner'
               and cl_has_area_role(d.decided_by, v.area_id, 'owner', d.decided_at))
           or (d.capacity = 'administrator' and cl_is_admin(d.decided_by, d.decided_at)))) into ok;
     if not ok and not exists (select 1 from editions e where e.seq = lower(new.editions) and e.reason in ('bootstrap','rollback')) then
@@ -2286,8 +3399,54 @@ begin
   return new;
 end $$;
 
+CREATE TABLE auth.access_keys (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    key_hash text NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_used_at timestamp with time zone,
+    revoked_at timestamp with time zone,
+    revoked_by uuid,
+    name text NOT NULL,
+    CONSTRAINT access_keys_key_hash_check CHECK ((key_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT access_keys_name_check CHECK (((char_length(name) BETWEEN 1 AND 100) AND (btrim(name) = name) AND (name !~ '[[:cntrl:]]'::text))),
+    CONSTRAINT access_keys_revoked_check CHECK (((revoked_at IS NULL) = (revoked_by IS NULL)))
+);
+
+CREATE TABLE auth.agents (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    kind text NOT NULL,
+    name text NOT NULL,
+    person_id uuid,
+    client_id text,
+    key_id uuid,
+    tools text[] NOT NULL,
+    tools_set_by uuid,
+    tools_set_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT agents_kind_check CHECK ((((kind = 'app'::text) AND (person_id IS NOT NULL) AND (client_id IS NOT NULL) AND (key_id IS NULL)) OR ((kind = 'key'::text) AND (key_id IS NOT NULL) AND (person_id IS NULL) AND (client_id IS NULL)))),
+    CONSTRAINT agents_name_check CHECK (((char_length(name) BETWEEN 1 AND 100) AND (btrim(name) <> ''::text))),
+    CONSTRAINT agents_tools_check CHECK (((tools <@ ARRAY['get_context'::text, 'find_context'::text, 'read_context'::text, 'report'::text, 'suggest_context'::text, 'get_related'::text]) AND ((kind = 'app'::text) OR (NOT ('suggest_context'::text = ANY (tools)))))),
+    CONSTRAINT agents_tools_set_check CHECK (((tools_set_by IS NULL) = (tools_set_at IS NULL)))
+);
+
 CREATE TABLE auth.dev_people (
     person_id uuid NOT NULL
+);
+
+CREATE TABLE auth.group_admins (
+    person_id uuid NOT NULL,
+    granted_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE auth.identities (
+    issuer text NOT NULL,
+    subject text NOT NULL,
+    person_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_signed_in_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT identities_issuer_check CHECK (((char_length(issuer) >= 1) AND (char_length(issuer) <= 512))),
+    CONSTRAINT identities_subject_check CHECK (((char_length(subject) >= 1) AND (char_length(subject) <= 255)))
 );
 
 CREATE TABLE auth.oauth_clients (
@@ -2316,6 +3475,13 @@ CREATE TABLE auth.oauth_codes (
     CONSTRAINT oauth_codes_code_challenge_check CHECK ((code_challenge ~ '^[A-Za-z0-9_-]{43}$'::text)),
     CONSTRAINT oauth_codes_code_hash_check CHECK ((code_hash ~ '^[a-f0-9]{64}$'::text)),
     CONSTRAINT oauth_codes_scopes_check CHECK (((scopes <@ ARRAY['read'::text, 'feedback'::text, 'propose'::text]) AND (cardinality(scopes) >= 1)))
+);
+
+CREATE TABLE auth.oauth_declines (
+    person_id uuid NOT NULL,
+    client_name text NOT NULL,
+    declined_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT oauth_declines_client_name_check CHECK ((char_length(client_name) BETWEEN 1 AND 200))
 );
 
 CREATE TABLE auth.oauth_grants (
@@ -2357,12 +3523,27 @@ CREATE TABLE auth.oauth_requests (
     CONSTRAINT oauth_requests_browser_hash_check CHECK ((browser_hash ~ '^[a-f0-9]{64}$'::text)),
     CONSTRAINT oauth_requests_client_id_check CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512))),
     CONSTRAINT oauth_requests_client_kind_check CHECK ((client_kind = ANY (ARRAY['metadata_document'::text, 'registered'::text]))),
-    CONSTRAINT oauth_requests_client_name_check CHECK (((char_length(client_name) >= 1) AND (char_length(client_name) <= 100))),
+    CONSTRAINT oauth_requests_client_name_check CHECK ((char_length(client_name) BETWEEN 1 AND 100)),
     CONSTRAINT oauth_requests_code_challenge_check CHECK ((code_challenge ~ '^[A-Za-z0-9_-]{43}$'::text)),
     CONSTRAINT oauth_requests_id_hash_check CHECK ((id_hash ~ '^[a-f0-9]{64}$'::text)),
     CONSTRAINT oauth_requests_redirect_uri_check CHECK ((char_length(redirect_uri) <= 512)),
     CONSTRAINT oauth_requests_scopes_check CHECK (((scopes <@ ARRAY['read'::text, 'feedback'::text, 'propose'::text]) AND (cardinality(scopes) >= 1))),
     CONSTRAINT oauth_requests_state_check CHECK ((char_length(state) <= 512))
+);
+
+CREATE TABLE auth.oidc_requests (
+    state_hash text NOT NULL,
+    browser_hash text NOT NULL,
+    nonce text NOT NULL,
+    code_verifier text NOT NULL,
+    return_to text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT oidc_requests_browser_hash_check CHECK ((browser_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT oidc_requests_code_verifier_check CHECK ((code_verifier ~ '^[A-Za-z0-9_-]{43}$'::text)),
+    CONSTRAINT oidc_requests_nonce_check CHECK ((nonce ~ '^[A-Za-z0-9_-]{43}$'::text)),
+    CONSTRAINT oidc_requests_return_to_check CHECK (((char_length(return_to) BETWEEN 1 AND 512) AND (return_to ~~ '/%'::text))),
+    CONSTRAINT oidc_requests_state_hash_check CHECK ((state_hash ~ '^[a-f0-9]{64}$'::text))
 );
 
 CREATE TABLE auth.sessions (
@@ -2371,7 +3552,62 @@ CREATE TABLE auth.sessions (
     csrf_token text NOT NULL,
     expires_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    method text DEFAULT 'dev'::text NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    absolute_expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT sessions_absolute_check CHECK ((expires_at <= absolute_expires_at)),
+    CONSTRAINT sessions_method_check CHECK ((method = ANY (ARRAY['dev'::text, 'demo'::text, 'oidc'::text]))),
     CONSTRAINT sessions_token_hash_check CHECK ((token_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+CREATE TABLE public.agent_policies (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    agent_id uuid NOT NULL,
+    area_id text NOT NULL,
+    per_day integer NOT NULL,
+    set_by uuid NOT NULL,
+    set_at timestamp with time zone DEFAULT now() NOT NULL,
+    reason text NOT NULL,
+    ended_at timestamp with time zone,
+    ended_by uuid,
+    ended_reason text,
+    CONSTRAINT agent_policies_ended_check CHECK ((((ended_at IS NULL) = (ended_by IS NULL)) AND ((ended_at IS NULL) = (ended_reason IS NULL)) AND ((ended_reason IS NULL) OR ((char_length(btrim(ended_reason)) >= 1) AND (char_length(btrim(ended_reason)) <= 500))))),
+    CONSTRAINT agent_policies_per_day_check CHECK (((per_day >= 1) AND (per_day <= 50))),
+    CONSTRAINT agent_policies_reason_check CHECK (((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500)))
+);
+
+CREATE TABLE public.alert_mutes (
+    person_id uuid NOT NULL,
+    area_id text NOT NULL,
+    rule text NOT NULL,
+    muted_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.alert_raises (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    rule text NOT NULL,
+    key text NOT NULL,
+    area_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    title text NOT NULL,
+    subject jsonb NOT NULL,
+    raised_at timestamp with time zone DEFAULT now() NOT NULL,
+    event_seq bigint,
+    CONSTRAINT alert_raises_key_check CHECK (((char_length(key) >= 1) AND (char_length(key) <= 200))),
+    CONSTRAINT alert_raises_subject_check CHECK (((jsonb_typeof(subject) = 'object'::text) AND (octet_length((subject)::text) <= 500))),
+    CONSTRAINT alert_raises_title_check CHECK (((char_length(title) >= 1) AND (char_length(title) <= 300)))
+);
+
+CREATE TABLE public.alert_rules (
+    rule text NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    threshold integer,
+    audience text NOT NULL,
+    changed_by uuid,
+    changed_at timestamp with time zone,
+    CONSTRAINT alert_rules_audience_check CHECK ((audience = ANY (ARRAY['owners'::text, 'admins'::text, 'both'::text]))),
+    CONSTRAINT alert_rules_changed_check CHECK (((changed_by IS NULL) = (changed_at IS NULL))),
+    CONSTRAINT alert_rules_rule_check CHECK ((rule = ANY (ARRAY['gap'::text, 'saved'::text, 'disagree'::text, 'share'::text, 'fail'::text, 'spend'::text, 'sync'::text, 'due'::text]))),
+    CONSTRAINT alert_rules_threshold_check CHECK (((threshold IS NULL) OR ((threshold >= 1) AND (threshold <= 100))))
 );
 
 CREATE TABLE public.area_assignments (
@@ -2391,19 +3627,7 @@ CREATE TABLE public.area_deletions (
     edition bigint,
     contents jsonb NOT NULL,
     recipients uuid[] DEFAULT '{}'::uuid[] NOT NULL,
-    restored_by uuid,
-    restored_at timestamp with time zone,
-    restored_edition bigint,
-    CONSTRAINT area_deletions_check CHECK (((restored_at IS NULL) = (restored_by IS NULL))),
-    CONSTRAINT area_deletions_check1 CHECK (((restored_edition IS NULL) OR (restored_at IS NOT NULL))),
     CONSTRAINT area_deletions_reason_check CHECK (((reason IS NULL) OR ((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500))))
-);
-
-CREATE TABLE public.area_state_service (
-    area_id text NOT NULL,
-    state public.area_state NOT NULL,
-    editions int8range NOT NULL,
-    CONSTRAINT area_state_service_editions_check CHECK (((NOT isempty(editions)) AND lower_inc(editions) AND (NOT lower_inf(editions))))
 );
 
 CREATE TABLE public.areas (
@@ -2427,37 +3651,6 @@ CREATE TABLE public.areas (
     CONSTRAINT areas_review_days_check CHECK (((review_days >= 1) AND (review_days <= 30))),
     CONSTRAINT areas_revision_check CHECK ((revision >= 1)),
     CONSTRAINT areas_summary_check CHECK (((char_length(summary) <= 160) AND (summary !~ '[[:cntrl:]]'::text) AND (summary = btrim(summary))))
-);
-
-CREATE TABLE public.assistant_case_tries (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    run_id uuid NOT NULL,
-    case_id text NOT NULL,
-    try smallint NOT NULL,
-    state text DEFAULT 'running'::text NOT NULL,
-    passed boolean,
-    failure_kind text,
-    problems jsonb DEFAULT '[]'::jsonb NOT NULL,
-    checks jsonb DEFAULT '{}'::jsonb NOT NULL,
-    verdict jsonb,
-    turns jsonb DEFAULT '[]'::jsonb NOT NULL,
-    first_text_ms integer,
-    first_sentence_ms integer,
-    total_ms integer,
-    cost_micros bigint DEFAULT 0 NOT NULL,
-    started_at timestamp with time zone DEFAULT now() NOT NULL,
-    finished_at timestamp with time zone,
-    CONSTRAINT assistant_case_tries_case_id_check CHECK ((case_id ~ '^[a-z0-9][a-z0-9-]{2,80}$'::text)),
-    CONSTRAINT assistant_case_tries_checks_check CHECK ((jsonb_typeof(checks) = 'object'::text)),
-    CONSTRAINT assistant_case_tries_cost_micros_check CHECK ((cost_micros >= 0)),
-    CONSTRAINT assistant_case_tries_failure_kind_check CHECK ((failure_kind = ANY (ARRAY['throttled'::text, 'provider'::text, 'judge'::text, 'error'::text]))),
-    CONSTRAINT assistant_case_tries_first_sentence_ms_check CHECK ((first_sentence_ms >= 0)),
-    CONSTRAINT assistant_case_tries_first_text_ms_check CHECK ((first_text_ms >= 0)),
-    CONSTRAINT assistant_case_tries_problems_check CHECK ((jsonb_typeof(problems) = 'array'::text)),
-    CONSTRAINT assistant_case_tries_state_check CHECK ((state = ANY (ARRAY['running'::text, 'finished'::text, 'failed'::text]))),
-    CONSTRAINT assistant_case_tries_total_ms_check CHECK ((total_ms >= 0)),
-    CONSTRAINT assistant_case_tries_try_check CHECK ((try >= 1)),
-    CONSTRAINT assistant_case_tries_turns_check CHECK ((jsonb_typeof(turns) = 'array'::text))
 );
 
 CREATE TABLE public.assistant_ratings (
@@ -2502,6 +3695,23 @@ ALTER TABLE public.audit_log ALTER COLUMN seq ADD GENERATED ALWAYS AS IDENTITY (
     CACHE 1
 );
 
+CREATE TABLE public.card_reads (
+    person_id uuid NOT NULL,
+    card text NOT NULL,
+    read_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT card_reads_card_check CHECK ((card ~ '^[a-z]+:[A-Za-z0-9_.:-]{1,80}$'::text))
+);
+
+CREATE TABLE public.card_states (
+    card text NOT NULL,
+    area_id text NOT NULL,
+    state text NOT NULL,
+    decided_by uuid NOT NULL,
+    decided_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT card_states_card_check CHECK ((card ~ '^[a-z]+:[A-Za-z0-9_.:-]{1,80}$'::text)),
+    CONSTRAINT card_states_state_check CHECK ((state = 'closed'::text))
+);
+
 CREATE TABLE public.chat_links (
     person_id uuid NOT NULL,
     connector_id text NOT NULL,
@@ -2515,9 +3725,26 @@ CREATE TABLE public.check_results (
     level public.check_level NOT NULL,
     outcome public.check_outcome NOT NULL,
     ran_at timestamp with time zone DEFAULT now() NOT NULL,
-    eval_run_id uuid,
     inputs_digest bytea,
     details jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+CREATE TABLE public.check_runs (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    trigger text NOT NULL,
+    area_id text,
+    started_by uuid,
+    edition bigint,
+    "overlay" bigint,
+    day date NOT NULL,
+    total integer DEFAULT 0 NOT NULL,
+    checked integer DEFAULT 0 NOT NULL,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone,
+    failed_at timestamp with time zone,
+    CONSTRAINT check_runs_count_check CHECK (((total >= 0) AND ((checked >= 0) AND (checked <= total)))),
+    CONSTRAINT check_runs_end_check CHECK (((finished_at IS NULL) OR (failed_at IS NULL))),
+    CONSTRAINT check_runs_trigger_check CHECK ((trigger = ANY (ARRAY['saved'::text, 'kept'::text, 'publish'::text, 'archive'::text, 'restore'::text, 'sync'::text, 'check_date'::text, 'manual'::text])))
 );
 
 CREATE TABLE public.client_policies (
@@ -2528,6 +3755,95 @@ CREATE TABLE public.client_policies (
     max_response_bytes integer,
     enabled boolean DEFAULT true NOT NULL,
     CONSTRAINT client_policies_client_label_check CHECK ((client_label ~ '^[a-z0-9_.-]{1,40}$'::text))
+);
+
+CREATE TABLE public.comment_mentions (
+    comment_id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    seen_at timestamp with time zone
+);
+
+CREATE TABLE public.comments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    item_id text,
+    proposal_id uuid,
+    parent_id uuid,
+    author_id uuid NOT NULL,
+    kind text DEFAULT 'comment'::text NOT NULL,
+    decision_id uuid,
+    body jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    edited_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    withdrew_at timestamp with time zone,
+    anchor_before uuid,
+    anchor_after uuid,
+    anchor_field text,
+    anchor_side text,
+    anchor_line integer,
+    resolved_at timestamp with time zone,
+    resolved_by uuid,
+    reopened_at timestamp with time zone,
+    reopened_by uuid,
+    CONSTRAINT comments_anchor_check CHECK (((num_nonnulls(anchor_before, anchor_after, anchor_field, anchor_side, anchor_line) = 0) OR ((proposal_id IS NOT NULL) AND (parent_id IS NULL) AND (kind = 'comment'::text) AND (num_nonnulls(anchor_before, anchor_after) >= 1) AND (((anchor_field = ANY (ARRAY['title'::text, 'kind'::text, 'domain'::text, 'owner'::text, 'scope'::text, 'validity'::text, 'reviewDate'::text, 'sources'::text, 'dontConclude'::text])) AND (anchor_side IS NULL) AND (anchor_line IS NULL)) OR ((anchor_field IS NULL) AND ((anchor_line >= 1) AND (anchor_line <= 20000)) AND (((anchor_side = 'before'::text) AND (anchor_before IS NOT NULL)) OR ((anchor_side = 'after'::text) AND (anchor_after IS NOT NULL)))))))),
+    CONSTRAINT comments_body_check CHECK (((jsonb_typeof(body) = 'object'::text) AND ((body ->> 'type'::text) = 'doc'::text) AND (octet_length((body)::text) <= 65536))),
+    CONSTRAINT comments_deleted_check CHECK (((deleted_at IS NULL) OR (body = '{"type": "doc"}'::jsonb))),
+    CONSTRAINT comments_kind_check CHECK ((kind = ANY (ARRAY['comment'::text, 'returned'::text]))),
+    CONSTRAINT comments_resolved_check CHECK ((((resolved_at IS NULL) = (resolved_by IS NULL)) AND ((reopened_at IS NULL) = (reopened_by IS NULL)) AND ((num_nonnulls(resolved_at, reopened_at) = 0) OR (num_nonnulls(anchor_field, anchor_line) = 1)))),
+    CONSTRAINT comments_returned_check CHECK ((((kind = 'returned'::text) = (decision_id IS NOT NULL)) AND ((kind = 'comment'::text) OR (proposal_id IS NOT NULL)))),
+    CONSTRAINT comments_subject_check CHECK ((num_nonnulls(item_id, proposal_id) = 1)),
+    CONSTRAINT comments_withdrew_check CHECK (((withdrew_at IS NULL) OR ((proposal_id IS NOT NULL) AND (kind = 'comment'::text) AND (deleted_at IS NULL))))
+);
+
+CREATE TABLE public.conflict_decisions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    holder_item_id text NOT NULL,
+    other_item_id text NOT NULL,
+    outcome text NOT NULL,
+    kept_item_id text,
+    reason text NOT NULL,
+    quote text,
+    holder_version integer NOT NULL,
+    other_version integer NOT NULL,
+    decisions uuid[] DEFAULT '{}'::uuid[] NOT NULL,
+    decided_by uuid DEFAULT public.cl_person() NOT NULL,
+    decided_at timestamp with time zone DEFAULT now() NOT NULL,
+    undone_at timestamp with time zone,
+    CONSTRAINT conflict_decisions_kept_check CHECK ((((outcome = 'kept_one'::text) = (kept_item_id IS NOT NULL)) AND ((kept_item_id IS NULL) OR ((kept_item_id = holder_item_id) OR (kept_item_id = other_item_id))))),
+    CONSTRAINT conflict_decisions_outcome_check CHECK ((outcome = ANY (ARRAY['kept_one'::text, 'kept_both'::text, 'not_conflict'::text]))),
+    CONSTRAINT conflict_decisions_pair_check CHECK ((holder_item_id <> other_item_id)),
+    CONSTRAINT conflict_decisions_quote_check CHECK (((quote IS NULL) OR ((char_length(quote) >= 1) AND (char_length(quote) <= 500)))),
+    CONSTRAINT conflict_decisions_reason_check CHECK (((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500))),
+    CONSTRAINT conflict_decisions_versions_check CHECK (((holder_version >= 1) AND (other_version >= 1)))
+);
+
+CREATE TABLE public.connector_documents (
+    source_id text NOT NULL,
+    document_id text NOT NULL,
+    scope text NOT NULL,
+    title text NOT NULL,
+    link text NOT NULL,
+    modified_at timestamp with time zone NOT NULL,
+    change_mark text NOT NULL,
+    quote text NOT NULL,
+    state text NOT NULL,
+    skip_reason text,
+    proposal_id uuid,
+    first_read_id uuid NOT NULL,
+    last_read_id uuid NOT NULL,
+    first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    gone_at timestamp with time zone,
+    CONSTRAINT connector_documents_change_mark_check CHECK ((change_mark ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT connector_documents_document_id_check CHECK (((char_length(document_id) >= 1) AND (char_length(document_id) <= 500))),
+    CONSTRAINT connector_documents_drafted_check CHECK (((state <> 'drafted'::text) OR (proposal_id IS NOT NULL))),
+    CONSTRAINT connector_documents_gone_check CHECK (((state = 'gone'::text) = (gone_at IS NOT NULL))),
+    CONSTRAINT connector_documents_link_check CHECK (((link ~ '^https://'::text) AND (char_length(link) <= 2000))),
+    CONSTRAINT connector_documents_quote_check CHECK ((char_length(quote) <= 500)),
+    CONSTRAINT connector_documents_scope_check CHECK (((char_length(scope) >= 1) AND (char_length(scope) <= 500))),
+    CONSTRAINT connector_documents_skip_reason_check CHECK ((((state = 'skipped'::text) = (skip_reason IS NOT NULL)) AND ((skip_reason IS NULL) OR (skip_reason ~ '^[a-z][a-z_]{1,39}$'::text)))),
+    CONSTRAINT connector_documents_state_check CHECK ((state = ANY (ARRAY['drafted'::text, 'waiting'::text, 'skipped'::text, 'gone'::text]))),
+    CONSTRAINT connector_documents_title_check CHECK (((char_length(title) >= 1) AND (char_length(title) <= 300)))
 );
 
 CREATE TABLE public.connector_snapshots (
@@ -2542,6 +3858,17 @@ CREATE TABLE public.connector_snapshots (
     error text,
     content_digest bytea,
     cursor text,
+    connector_version text,
+    documents_seen integer DEFAULT 0 NOT NULL,
+    suggested integer DEFAULT 0 NOT NULL,
+    replaced integer DEFAULT 0 NOT NULL,
+    withdrawn integer DEFAULT 0 NOT NULL,
+    waiting integer DEFAULT 0 NOT NULL,
+    skipped integer DEFAULT 0 NOT NULL,
+    full_read boolean DEFAULT true NOT NULL,
+    settings_revision integer,
+    CONSTRAINT connector_snapshots_connector_version_check CHECK ((char_length(connector_version) <= 100)),
+    CONSTRAINT connector_snapshots_counts_check CHECK ((LEAST(documents_seen, suggested, replaced, withdrawn, waiting, skipped) >= 0)),
     CONSTRAINT connector_snapshots_cursor_check CHECK ((char_length(cursor) <= 500))
 );
 
@@ -2560,29 +3887,36 @@ CREATE TABLE public.connectors (
     revision integer DEFAULT 1 NOT NULL,
     changed_at timestamp with time zone,
     changed_by uuid,
+    scopes jsonb DEFAULT '[]'::jsonb NOT NULL,
+    schedule interval,
+    next_read_at timestamp with time zone DEFAULT now() NOT NULL,
+    failures integer DEFAULT 0 NOT NULL,
+    capabilities jsonb DEFAULT '{}'::jsonb NOT NULL,
+    data_contact_id uuid,
+    removed_at timestamp with time zone,
+    removed_by uuid,
+    all_groups boolean DEFAULT true NOT NULL,
+    reading_since timestamp with time zone,
+    CONSTRAINT connectors_capabilities_object CHECK ((jsonb_typeof(capabilities) = 'object'::text)),
     CONSTRAINT connectors_config_object CHECK ((jsonb_typeof(config) = 'object'::text)),
+    CONSTRAINT connectors_failures_check CHECK ((failures >= 0)),
+    CONSTRAINT connectors_figures_secret_ref CHECK ((((capabilities #>> '{figures,secretRef}'::text[]) IS NULL) OR ((capabilities #>> '{figures,secretRef}'::text[]) ~ '^[a-z]+:[A-Za-z0-9_-]{1,100}$'::text))),
     CONSTRAINT connectors_id_check CHECK ((id ~ '^[a-z][a-z0-9_-]{1,39}$'::text)),
     CONSTRAINT connectors_origin_check CHECK ((origin = ANY (ARRAY['server'::text, 'workspace'::text]))),
+    CONSTRAINT connectors_removed_check CHECK ((((removed_at IS NULL) = (removed_by IS NULL)) AND ((removed_at IS NULL) OR ((NOT enabled) AND (secret_ref IS NULL) AND (origin = 'workspace'::text))))),
     CONSTRAINT connectors_revision_check CHECK ((revision >= 1)),
+    CONSTRAINT connectors_schedule_check CHECK (((schedule IS NULL) OR (schedule >= '00:01:00'::interval))),
+    CONSTRAINT connectors_scopes_check CHECK (((jsonb_typeof(scopes) = 'array'::text) AND (jsonb_array_length(scopes) <= 2000))),
     CONSTRAINT connectors_secret_ref CHECK (((secret_ref IS NULL) OR (secret_ref ~ '^[a-z]+:[A-Za-z0-9_-]{1,100}$'::text))),
     CONSTRAINT connectors_workspace_name CHECK (((origin = 'server'::text) OR ((char_length(name) >= 1) AND (char_length(name) <= 80))))
 );
 
-CREATE TABLE public.decisions (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    proposal_id uuid,
-    item_version_id uuid,
-    vocab_version_id uuid,
-    area_id text,
-    decided_by uuid NOT NULL,
-    capacity public.decision_capacity NOT NULL,
-    outcome public.decision_outcome NOT NULL,
-    reason text NOT NULL,
-    decided_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT decisions_check CHECK (((item_version_id IS NULL) <> (vocab_version_id IS NULL))),
-    CONSTRAINT decisions_check1 CHECK (((outcome = 'retire'::public.decision_outcome) OR (proposal_id IS NOT NULL))),
-    CONSTRAINT decisions_check2 CHECK (((item_version_id IS NULL) OR (area_id IS NOT NULL))),
-    CONSTRAINT decisions_reason_check CHECK (((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500)))
+CREATE TABLE public.decision_undos (
+    decision_id uuid NOT NULL,
+    undone_by uuid NOT NULL,
+    undone_at timestamp with time zone DEFAULT now() NOT NULL,
+    edition_seq bigint,
+    created_xact xid8 DEFAULT pg_current_xact_id() NOT NULL
 );
 
 CREATE TABLE public.definition_marks (
@@ -2633,6 +3967,10 @@ CREATE TABLE public.deliveries (
     cut boolean DEFAULT false NOT NULL,
     response_bytes integer,
     duration_ms integer,
+    answer_state text,
+    app_family text DEFAULT 'unknown'::text NOT NULL,
+    CONSTRAINT deliveries_answer_state_check CHECK ((answer_state = ANY (ARRAY['grounded'::text, 'partial'::text, 'conflict'::text, 'stale'::text, 'missing'::text, 'failed'::text]))),
+    CONSTRAINT deliveries_app_family_check CHECK ((app_family = ANY (ARRAY['claude_code'::text, 'claude_ai'::text, 'chatgpt'::text, 'codex'::text, 'cursor'::text, 'vscode_copilot'::text, 'windsurf'::text, 'gemini_cli'::text, 'goose'::text, 'footnote'::text, 'other'::text, 'unknown'::text]))),
     CONSTRAINT deliveries_client_label_check CHECK ((client_label ~ '^[a-z0-9_.-]{1,40}$'::text)),
     CONSTRAINT deliveries_delivered_hour_check CHECK ((delivered_hour = date_trunc('hour'::text, delivered_hour, 'UTC'::text))),
     CONSTRAINT deliveries_id_check CHECK ((uuid_extract_version(id) = 4))
@@ -2694,18 +4032,20 @@ CREATE TABLE public.eval_cells (
     error text,
     failure_kind text,
     CONSTRAINT eval_cells_error_check CHECK ((char_length(error) <= 500)),
-    CONSTRAINT eval_cells_failure_kind_check CHECK ((failure_kind = ANY (ARRAY['throttled'::text, 'provider'::text, 'judge'::text, 'tool'::text, 'error'::text])))
+    CONSTRAINT eval_cells_failure_kind_check CHECK ((failure_kind = ANY (ARRAY['throttled'::text, 'provider'::text, 'tool'::text, 'error'::text])))
+);
+
+CREATE TABLE public.eval_run_transitions (
+    from_state public.eval_state NOT NULL,
+    to_state public.eval_state NOT NULL
 );
 
 CREATE TABLE public.eval_runs (
     id uuid DEFAULT uuidv7() NOT NULL,
     kind public.eval_kind NOT NULL,
-    state public.eval_state DEFAULT 'estimated'::public.eval_state NOT NULL,
+    state public.eval_state NOT NULL,
     area_id text,
-    proposal_id uuid,
-    item_version_id uuid,
     baseline_edition_seq bigint,
-    candidate_digest bytea,
     tool_schema_digest text NOT NULL,
     model_id text NOT NULL,
     client_label text NOT NULL,
@@ -2723,12 +4063,12 @@ CREATE TABLE public.eval_runs (
     system_prompt_digest text,
     summary jsonb DEFAULT '{}'::jsonb NOT NULL,
     failure text,
-    answer_family text,
-    judge_family text,
-    answer_vendor text,
-    judge_vendor text,
-    answer_provider text,
-    judge_provider text,
+    answer_family text NOT NULL,
+    judge_family text NOT NULL,
+    answer_vendor text NOT NULL,
+    judge_vendor text NOT NULL,
+    answer_provider text NOT NULL,
+    judge_provider text NOT NULL,
     worker text,
     lease_until timestamp with time zone,
     cost_ceiling_micros bigint,
@@ -2773,11 +4113,6 @@ CREATE TABLE public.gap_notes (
     CONSTRAINT gap_notes_source_check CHECK ((source = ANY (ARRAY['report_gap'::text, 'feedback'::text, 'owner'::text, 'person'::text])))
 );
 
-CREATE TABLE public.gap_proposals (
-    gap_id uuid NOT NULL,
-    proposal_id uuid NOT NULL
-);
-
 CREATE TABLE public.gap_report_keys (
     retry_digest bytea NOT NULL,
     request_digest bytea NOT NULL,
@@ -2788,19 +4123,9 @@ CREATE TABLE public.gap_report_keys (
     CONSTRAINT gap_report_keys_retry_digest_check CHECK ((octet_length(retry_digest) = 32))
 );
 
-CREATE TABLE public.gap_tests (
-    gap_id uuid NOT NULL,
-    question_id text NOT NULL,
-    evidence_run uuid,
-    linked_hour timestamp with time zone DEFAULT date_trunc('hour'::text, now(), 'UTC'::text) NOT NULL,
-    passed_run uuid,
-    passed_edition_seq bigint,
-    passed_revision integer,
-    passed_hour timestamp with time zone,
-    CONSTRAINT gap_tests_linked_hour CHECK ((linked_hour = date_trunc('hour'::text, linked_hour, 'UTC'::text))),
-    CONSTRAINT gap_tests_pass_whole CHECK ((num_nulls(passed_run, passed_edition_seq, passed_revision, passed_hour) = ANY (ARRAY[0, 4]))),
-    CONSTRAINT gap_tests_passed_hour CHECK ((passed_hour = date_trunc('hour'::text, passed_hour, 'UTC'::text))),
-    CONSTRAINT gap_tests_passed_revision_check CHECK ((passed_revision >= 1))
+CREATE TABLE public.gap_transitions (
+    from_status public.gap_status NOT NULL,
+    to_status public.gap_status NOT NULL
 );
 
 CREATE TABLE public.gap_weekly_counts (
@@ -2822,20 +4147,15 @@ CREATE TABLE public.gaps (
     opened_by_case smallint NOT NULL,
     first_seen date DEFAULT ((now() AT TIME ZONE 'UTC'::text))::date NOT NULL,
     last_seen date DEFAULT ((now() AT TIME ZONE 'UTC'::text))::date NOT NULL,
-    verified_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT date_trunc('hour'::text, now(), 'UTC'::text) NOT NULL,
     status_since timestamp with time zone DEFAULT date_trunc('hour'::text, now(), 'UTC'::text) NOT NULL,
     resolved_edition_seq bigint,
-    verified_edition_seq bigint,
     CONSTRAINT gaps_created_hour CHECK ((created_at = date_trunc('hour'::text, created_at, 'UTC'::text))),
     CONSTRAINT gaps_id_check CHECK ((uuid_extract_version(id) = 4)),
     CONSTRAINT gaps_opened_by_case_check CHECK (((opened_by_case >= 1) AND (opened_by_case <= 5))),
     CONSTRAINT gaps_resolved_edition CHECK (((resolved_edition_seq IS NULL) OR (status = 'resolved'::public.gap_status))),
     CONSTRAINT gaps_severity_check CHECK (((severity >= 1) AND (severity <= 4))),
-    CONSTRAINT gaps_status_since_hour CHECK ((status_since = date_trunc('hour'::text, status_since, 'UTC'::text))),
-    CONSTRAINT gaps_verified_edition CHECK (((num_nulls(verified_at, verified_edition_seq) = ANY (ARRAY[0, 2])) AND ((verified_edition_seq IS NULL) OR (verified_edition_seq >= resolved_edition_seq)))),
-    CONSTRAINT gaps_verified_hour CHECK ((verified_at = date_trunc('hour'::text, verified_at, 'UTC'::text))),
-    CONSTRAINT gaps_verified_needs_resolved CHECK (((verified_at IS NULL) OR (resolved_edition_seq IS NOT NULL)))
+    CONSTRAINT gaps_status_since_hour CHECK ((status_since = date_trunc('hour'::text, status_since, 'UTC'::text)))
 );
 
 CREATE TABLE public.global_role_grants (
@@ -2908,8 +4228,6 @@ CREATE TABLE public.inbox_items (
     subject_id text NOT NULL,
     payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    read_at timestamp with time zone,
-    archived_at timestamp with time zone,
     actor_id uuid
 );
 
@@ -2933,6 +4251,33 @@ CREATE TABLE public.item_bin (
     CONSTRAINT item_bin_reason_check CHECK (((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500))),
     CONSTRAINT item_bin_rescue CHECK (((COALESCE((restored_via = 'rescue'::text), false) = (restored_area IS NOT NULL)) AND ((restored_area IS NULL) = (rescue_proposal IS NULL)) AND ((restored_area IS NULL) OR (restored_edition IS NULL)))),
     CONSTRAINT item_bin_restored_via_check CHECK ((restored_via = ANY (ARRAY['restore'::text, 'rollback'::text, 'rescue'::text])))
+);
+
+CREATE TABLE public.item_changes (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    action text NOT NULL,
+    made_by uuid NOT NULL,
+    made_at timestamp with time zone DEFAULT now() NOT NULL,
+    summary text NOT NULL,
+    items jsonb NOT NULL,
+    undo jsonb DEFAULT '{}'::jsonb NOT NULL,
+    undone_at timestamp with time zone,
+    CONSTRAINT item_changes_action_check CHECK ((action = ANY (ARRAY['archived'::text, 'deleted'::text, 'moved'::text, 'kind'::text, 'owners'::text, 'checked'::text]))),
+    CONSTRAINT item_changes_items_check CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) > 0))),
+    CONSTRAINT item_changes_summary_check CHECK (((char_length(btrim(summary)) >= 1) AND (char_length(btrim(summary)) <= 500)))
+);
+
+CREATE TABLE public.item_owners (
+    item_id text NOT NULL,
+    person_id uuid NOT NULL,
+    added_by uuid NOT NULL,
+    added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.item_reads (
+    person_id uuid NOT NULL,
+    item_id text NOT NULL,
+    read_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE public.item_version_conflicts (
@@ -2975,7 +4320,8 @@ CREATE TABLE public.item_version_mentions (
     label text NOT NULL,
     definition_ref text,
     change_mark text,
-    CONSTRAINT item_version_mentions_check CHECK ((num_nonnulls(term_key, item_id, area_id) = 1)),
+    term_id uuid,
+    CONSTRAINT item_version_mentions_check CHECK ((num_nonnulls(term_key, item_id, area_id, term_id) = 1)),
     CONSTRAINT item_version_mentions_label_check CHECK (((char_length(label) >= 1) AND (char_length(label) <= 120))),
     CONSTRAINT item_version_mentions_mark CHECK (((definition_ref IS NULL) = (change_mark IS NULL))),
     CONSTRAINT item_version_mentions_position_check CHECK (("position" >= 0)),
@@ -3020,7 +4366,7 @@ CREATE TABLE public.item_versions (
     claim_quote text,
     audience_groups text[],
     owner_id uuid,
-    proposer_id uuid NOT NULL,
+    proposer_id uuid,
     edited_by uuid,
     created_via public.creation_channel NOT NULL,
     valid_from date NOT NULL,
@@ -3036,6 +4382,7 @@ CREATE TABLE public.item_versions (
     summary_markup text,
     body_markup text,
     created_xact xid8 DEFAULT pg_current_xact_id() NOT NULL,
+    kind public.item_kind NOT NULL,
     CONSTRAINT item_versions_audience_groups_check CHECK (((audience_groups IS NULL) OR (cardinality(audience_groups) > 0))),
     CONSTRAINT item_versions_body_check CHECK (((body IS NULL) OR (char_length(body) <= 20000))),
     CONSTRAINT item_versions_body_markup_plain CHECK (((body_markup IS NULL) OR ((body IS NOT NULL) AND (public.cl_strip_mentions(body_markup) = body)))),
@@ -3046,6 +4393,7 @@ CREATE TABLE public.item_versions (
     CONSTRAINT item_versions_claim_quote_check CHECK (((claim_quote IS NULL) OR (char_length(claim_quote) <= 500))),
     CONSTRAINT item_versions_content_digest_check CHECK ((length(content_digest) = 32)),
     CONSTRAINT item_versions_core_digest_check CHECK ((length(core_digest) = 32)),
+    CONSTRAINT item_versions_source_check CHECK (((created_via = 'source'::public.creation_channel) = (proposer_id IS NULL))),
     CONSTRAINT item_versions_summary_check CHECK ((char_length(summary) <= 280)),
     CONSTRAINT item_versions_summary_markup_plain CHECK (((summary_markup IS NULL) OR (public.cl_strip_mentions(summary_markup) = summary))),
     CONSTRAINT item_versions_title_check CHECK (((char_length(btrim(title)) >= 1) AND (char_length(btrim(title)) <= 200))),
@@ -3087,9 +4435,7 @@ CREATE TABLE public.llm_spend_daily (
     tokens_out bigint DEFAULT 0 NOT NULL,
     cost_micros bigint DEFAULT 0 NOT NULL,
     expires_at timestamp with time zone DEFAULT (now() + '24:00:00'::interval) NOT NULL,
-    estimated_calls bigint DEFAULT 0 NOT NULL,
-    web_searches bigint DEFAULT 0 NOT NULL,
-    web_reads bigint DEFAULT 0 NOT NULL
+    estimated_calls bigint DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE public.llm_spend_monthly (
@@ -3098,9 +4444,7 @@ CREATE TABLE public.llm_spend_monthly (
     calls bigint DEFAULT 0 NOT NULL,
     cost_micros bigint DEFAULT 0 NOT NULL,
     estimated_calls bigint DEFAULT 0 NOT NULL,
-    provider text NOT NULL,
-    web_searches bigint DEFAULT 0 NOT NULL,
-    web_reads bigint DEFAULT 0 NOT NULL
+    provider text NOT NULL
 );
 
 CREATE TABLE public.mcp_requests (
@@ -3114,7 +4458,7 @@ CREATE TABLE public.mcp_requests (
     response_bytes integer,
     app_family text DEFAULT 'unknown'::text NOT NULL,
     result_status text,
-    CONSTRAINT mcp_requests_app_family_check CHECK ((app_family = ANY (ARRAY['claude_code'::text, 'claude_ai'::text, 'chatgpt'::text, 'codex'::text, 'cursor'::text, 'vscode_copilot'::text, 'windsurf'::text, 'gemini_cli'::text, 'goose'::text, 'heed'::text, 'other'::text, 'unknown'::text]))),
+    CONSTRAINT mcp_requests_app_family_check CHECK ((app_family = ANY (ARRAY['claude_code'::text, 'claude_ai'::text, 'chatgpt'::text, 'codex'::text, 'cursor'::text, 'vscode_copilot'::text, 'windsurf'::text, 'gemini_cli'::text, 'goose'::text, 'footnote'::text, 'other'::text, 'unknown'::text]))),
     CONSTRAINT mcp_requests_client_label_check CHECK ((client_label ~ '^[a-z0-9_.-]{1,40}$'::text)),
     CONSTRAINT mcp_requests_hour_check CHECK ((hour = date_trunc('hour'::text, hour, 'UTC'::text))),
     CONSTRAINT mcp_requests_id_check CHECK ((uuid_extract_version(id) = 4)),
@@ -3129,7 +4473,6 @@ CREATE TABLE public.model_calls (
     feature text NOT NULL,
     run_id uuid NOT NULL,
     cell_id uuid,
-    case_try_id uuid,
     role text NOT NULL,
     provider text NOT NULL,
     model text NOT NULL,
@@ -3159,12 +4502,65 @@ CREATE TABLE public.model_calls (
     CONSTRAINT model_calls_tokens_out_check CHECK ((tokens_out >= 0))
 );
 
+CREATE TABLE public.names_left_out (
+    definition_ref text NOT NULL,
+    left_by uuid DEFAULT public.cl_person() NOT NULL,
+    left_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE public.notification_prefs (
     person_id uuid NOT NULL,
     channel text NOT NULL,
     kind text NOT NULL,
     enabled boolean DEFAULT true NOT NULL,
     CONSTRAINT notification_prefs_channel_check CHECK ((channel = ANY (ARRAY['inbox'::text, 'chat'::text, 'email'::text])))
+);
+
+CREATE TABLE public.obs_caught_weekly (
+    week date NOT NULL,
+    area_id text,
+    line text NOT NULL,
+    kind text NOT NULL,
+    count integer NOT NULL,
+    acted integer DEFAULT 0 NOT NULL,
+    CONSTRAINT obs_caught_weekly_acted_check CHECK (((acted BETWEEN 0 AND count) AND ((acted = 0) OR ((line = 'alert'::text) AND (kind = ANY (ARRAY['gap'::text, 'saved'::text, 'due'::text])))))),
+    CONSTRAINT obs_caught_weekly_count_check CHECK ((count > 0)),
+    CONSTRAINT obs_caught_weekly_kind_check CHECK ((((line = 'saved'::text) AND (kind = ANY (ARRAY['publish'::text, 'archive'::text, 'restore'::text, 'sync'::text, 'check_date'::text]))) OR ((line = 'alert'::text) AND (kind = ANY (ARRAY['gap'::text, 'saved'::text, 'disagree'::text, 'share'::text, 'fail'::text, 'spend'::text, 'sync'::text, 'due'::text]))))),
+    CONSTRAINT obs_caught_weekly_line_check CHECK ((line = ANY (ARRAY['saved'::text, 'alert'::text]))),
+    CONSTRAINT obs_caught_weekly_week_check CHECK ((week = (date_trunc('week'::text, (week)::timestamp without time zone))::date))
+);
+
+CREATE TABLE public.obs_snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    period text NOT NULL,
+    starts date NOT NULL,
+    area_id text,
+    taken_on date NOT NULL,
+    summary jsonb NOT NULL,
+    CONSTRAINT obs_snapshots_id_check CHECK ((uuid_extract_version(id) = 4)),
+    CONSTRAINT obs_snapshots_period_check CHECK ((period = 'month'::text)),
+    CONSTRAINT obs_snapshots_starts_check CHECK ((starts = (date_trunc('month'::text, (starts)::timestamp without time zone))::date)),
+    CONSTRAINT obs_snapshots_summary_check CHECK (((jsonb_typeof(summary) = 'object'::text) AND (octet_length((summary)::text) <= 20000)))
+);
+
+CREATE TABLE public.obs_weekly (
+    week date NOT NULL,
+    area_id text,
+    answer_state text NOT NULL,
+    calls integer NOT NULL,
+    CONSTRAINT obs_weekly_answer_state_check CHECK ((answer_state = ANY (ARRAY['grounded'::text, 'partial'::text, 'conflict'::text, 'stale'::text, 'missing'::text]))),
+    CONSTRAINT obs_weekly_calls_check CHECK ((calls > 0)),
+    CONSTRAINT obs_weekly_week_check CHECK ((week = (date_trunc('week'::text, (week)::timestamp without time zone))::date))
+);
+
+CREATE TABLE public.observability_views (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    name text NOT NULL,
+    filters jsonb NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT observability_views_filters_check CHECK (((jsonb_typeof(filters) = 'object'::text) AND (octet_length((filters)::text) <= 65536))),
+    CONSTRAINT observability_views_name_check CHECK ((char_length(btrim(name)) BETWEEN 1 AND 60))
 );
 
 ALTER TABLE public.outbox_events ALTER COLUMN seq ADD GENERATED ALWAYS AS IDENTITY (
@@ -3233,6 +4629,16 @@ CREATE TABLE public.proposal_events (
     CONSTRAINT proposal_events_kind_check CHECK ((kind ~ '^[a-z_]+$'::text))
 );
 
+CREATE TABLE public.proposal_relations (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    proposal_id uuid NOT NULL,
+    item_version_id uuid NOT NULL,
+    item_id text NOT NULL,
+    relation public.proposal_relation NOT NULL,
+    decided_by uuid NOT NULL,
+    decided_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE public.proposal_tests (
     proposal_id uuid NOT NULL,
     question_id text NOT NULL,
@@ -3255,7 +4661,7 @@ CREATE TABLE public.proposals (
     item_id text,
     item_version_id uuid,
     vocab_version_id uuid,
-    proposer_id uuid NOT NULL,
+    proposer_id uuid,
     channel public.creation_channel NOT NULL,
     draft jsonb,
     draft_saved_at timestamp with time zone,
@@ -3275,14 +4681,23 @@ CREATE TABLE public.proposals (
     discarded_at timestamp with time zone,
     provenance jsonb,
     answers_round uuid,
+    discarded_by uuid,
+    source_id text,
+    source_read_id uuid,
+    source_document_id text,
+    agent_id uuid,
+    agent_name text,
+    CONSTRAINT proposals_agent_check CHECK ((((agent_id IS NULL) = (agent_name IS NULL)) AND ((agent_id IS NULL) OR (channel = 'mcp'::public.creation_channel)) AND ((agent_name IS NULL) OR ((char_length(agent_name) >= 1) AND (char_length(agent_name) <= 100))))),
     CONSTRAINT proposals_check CHECK (((subject = 'item'::public.proposal_subject) = (vocab_version_id IS NULL))),
     CONSTRAINT proposals_check1 CHECK (((state = 'draft'::public.proposal_state) OR ((item_version_id IS NOT NULL) OR (vocab_version_id IS NOT NULL) OR (action = 'retire'::public.proposal_action)))),
     CONSTRAINT proposals_check2 CHECK (((action <> 'retire'::public.proposal_action) OR (item_id IS NOT NULL))),
     CONSTRAINT proposals_check3 CHECK (((state = ANY (ARRAY['accepted'::public.proposal_state, 'rejected'::public.proposal_state, 'withdrawn'::public.proposal_state])) = (closed_at IS NOT NULL))),
+    CONSTRAINT proposals_discarded_by_check CHECK (((discarded_by IS NULL) OR (discarded_at IS NOT NULL))),
     CONSTRAINT proposals_discarded_draft CHECK (((discarded_at IS NULL) OR (state = 'draft'::public.proposal_state))),
     CONSTRAINT proposals_item_area CHECK (((subject = 'vocabulary'::public.proposal_subject) OR (area_id IS NOT NULL))),
-    CONSTRAINT proposals_provenance_check CHECK (((provenance IS NULL) OR ((jsonb_typeof(provenance) = 'object'::text) AND ((provenance ->> 'by'::text) = ANY (ARRAY['agent'::text, 'assistant'::text])) AND (jsonb_typeof((provenance -> 'fields'::text)) = 'object'::text) AND (jsonb_typeof((provenance -> 'flags'::text)) = 'array'::text)))),
-    CONSTRAINT proposals_reason_check CHECK ((char_length(reason) <= 500))
+    CONSTRAINT proposals_provenance_check CHECK (((provenance IS NULL) OR ((jsonb_typeof(provenance) = 'object'::text) AND ((provenance ->> 'by'::text) = ANY (ARRAY['agent'::text, 'source'::text])) AND (jsonb_typeof((provenance -> 'fields'::text)) = 'object'::text) AND (jsonb_typeof((provenance -> 'flags'::text)) = 'array'::text)))),
+    CONSTRAINT proposals_reason_check CHECK ((char_length(reason) <= 500)),
+    CONSTRAINT proposals_source_check CHECK ((((channel = 'source'::public.creation_channel) = (proposer_id IS NULL)) AND ((channel = 'source'::public.creation_channel) = (source_id IS NOT NULL)) AND ((channel = 'source'::public.creation_channel) = (source_read_id IS NOT NULL)) AND ((channel = 'source'::public.creation_channel) = (source_document_id IS NOT NULL))))
 );
 
 ALTER TABLE public.proposals ALTER COLUMN number ADD GENERATED ALWAYS AS IDENTITY (
@@ -3292,6 +4707,55 @@ ALTER TABLE public.proposals ALTER COLUMN number ADD GENERATED ALWAYS AS IDENTIT
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
+);
+
+CREATE TABLE public.reactions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    person_id uuid NOT NULL,
+    emoji text NOT NULL,
+    comment_id uuid,
+    item_id text,
+    proposal_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT reactions_emoji_check CHECK ((emoji = ANY (ARRAY['👍'::text, '👀'::text, '✅'::text, '🤔'::text, '🙏'::text]))),
+    CONSTRAINT reactions_target_check CHECK ((num_nonnulls(comment_id, item_id, proposal_id) = 1))
+);
+
+CREATE TABLE public.records_asked_weekly (
+    week date NOT NULL,
+    intent text NOT NULL,
+    asks integer NOT NULL,
+    CONSTRAINT records_asked_weekly_asks_check CHECK ((asks > 0)),
+    CONSTRAINT records_asked_weekly_intent_check CHECK ((intent = ANY (ARRAY['created'::text, 'changed'::text, 'due'::text, 'archived'::text, 'owner'::text, 'count'::text, 'asked_nothing'::text, 'terms'::text, 'values'::text, 'conflicts'::text, 'audit'::text, 'queue'::text, 'glossary'::text, 'refused'::text]))),
+    CONSTRAINT records_asked_weekly_week_check CHECK ((week = (date_trunc('week'::text, (week)::timestamp without time zone))::date))
+);
+
+CREATE TABLE public.reports (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    person_id uuid NOT NULL,
+    area_id text NOT NULL,
+    item_id text NOT NULL,
+    part text NOT NULL,
+    question text NOT NULL,
+    what text NOT NULL,
+    correction text,
+    link text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    figure_source text,
+    figure_metric text,
+    figure_values text[],
+    figure_from date,
+    figure_to date,
+    figure_route text,
+    CONSTRAINT reports_correction_check CHECK (((correction IS NULL) OR ((char_length(btrim(correction)) >= 1) AND (char_length(btrim(correction)) <= 2000)))),
+    CONSTRAINT reports_figure_check CHECK (((part = 'figure'::text) = ((figure_source IS NOT NULL) AND (figure_metric IS NOT NULL) AND (figure_values IS NOT NULL) AND (figure_from IS NOT NULL) AND (figure_to IS NOT NULL) AND (figure_route IS NOT NULL)))),
+    CONSTRAINT reports_figure_days_check CHECK (((figure_to IS NULL) OR (figure_from <= figure_to))),
+    CONSTRAINT reports_figure_metric_check CHECK (((figure_metric IS NULL) OR (figure_metric ~ '^metric:[a-z0-9_]+$'::text))),
+    CONSTRAINT reports_figure_route_check CHECK (((figure_route IS NULL) OR (figure_route = ANY (ARRAY['owners'::text, 'contact'::text, 'both'::text])))),
+    CONSTRAINT reports_link_check CHECK (((link IS NULL) OR ((char_length(link) <= 2000) AND (link ~ '^https?://'::text)))),
+    CONSTRAINT reports_part_check CHECK ((part = ANY (ARRAY['item'::text, 'answer'::text, 'figure'::text]))),
+    CONSTRAINT reports_question_check CHECK (((char_length(btrim(question)) >= 1) AND (char_length(btrim(question)) <= 2000))),
+    CONSTRAINT reports_what_check CHECK (((char_length(btrim(what)) >= 1) AND (char_length(btrim(what)) <= 2000)))
 );
 
 CREATE TABLE public.retrieval_results (
@@ -3320,6 +4784,58 @@ CREATE TABLE public.retrieval_runs (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT retrieval_runs_check CHECK (((passed >= 0) AND (passed <= questions))),
     CONSTRAINT retrieval_runs_questions_check CHECK ((questions >= 0))
+);
+
+CREATE TABLE public.review_reads (
+    proposal_id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    item_version_id uuid,
+    opened_at timestamp with time zone DEFAULT now() NOT NULL,
+    read_at timestamp with time zone,
+    CONSTRAINT review_reads_read_after_open CHECK (((read_at IS NULL) OR (read_at >= opened_at))),
+    CONSTRAINT review_reads_read_version CHECK (((read_at IS NULL) OR (item_version_id IS NOT NULL)))
+);
+
+CREATE TABLE public.saved_question_baselines (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    question_id uuid NOT NULL,
+    answer jsonb NOT NULL,
+    edition bigint,
+    why text NOT NULL,
+    kept_by uuid NOT NULL,
+    kept_at timestamp with time zone DEFAULT now() NOT NULL,
+    undone_at timestamp with time zone,
+    CONSTRAINT saved_question_baselines_answer_check CHECK (((jsonb_typeof(answer) = 'object'::text) AND (octet_length((answer)::text) <= 40000))),
+    CONSTRAINT saved_question_baselines_why_check CHECK ((why = ANY (ARRAY['saved'::text, 'kept'::text, 'published'::text])))
+);
+
+CREATE TABLE public.saved_question_results (
+    run_id uuid NOT NULL,
+    question_id uuid NOT NULL,
+    baseline_id uuid NOT NULL,
+    result text NOT NULL,
+    reason text NOT NULL,
+    answer jsonb NOT NULL,
+    checked_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT saved_question_results_answer_check CHECK (((jsonb_typeof(answer) = 'object'::text) AND (octet_length((answer)::text) <= 40000))),
+    CONSTRAINT saved_question_results_reason_check CHECK ((reason = ANY (ARRAY['saved'::text, 'same'::text, 'kept'::text, 'published'::text, 'words'::text, 'items'::text, 'better'::text, 'worse'::text, 'gone'::text]))),
+    CONSTRAINT saved_question_results_result_check CHECK ((result = ANY (ARRAY['same'::text, 'changed'::text, 'look'::text])))
+);
+
+CREATE TABLE public.saved_questions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    area_id text NOT NULL,
+    question text NOT NULL,
+    origin text NOT NULL,
+    expect_items text[] DEFAULT '{}'::text[] NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    removed_at timestamp with time zone,
+    removed_by uuid,
+    CONSTRAINT saved_questions_expect_check CHECK ((cardinality(expect_items) <= 20)),
+    CONSTRAINT saved_questions_origin_check CHECK ((origin = ANY (ARRAY['ask'::text, 'gap'::text, 'typed'::text]))),
+    CONSTRAINT saved_questions_question_check CHECK (((char_length(btrim(question)) >= 1) AND (char_length(btrim(question)) <= 500))),
+    CONSTRAINT saved_questions_removed_check CHECK (((removed_at IS NULL) = (removed_by IS NULL)))
 );
 
 CREATE TABLE public.saved_views (
@@ -3356,11 +4872,79 @@ CREATE VIEW public.settings_current AS
    FROM public.settings_versions
   ORDER BY key, version DESC;
 
+CREATE TABLE public.setup_marks (
+    step text NOT NULL,
+    done_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT setup_marks_step_check CHECK ((step = 'ask'::text))
+);
+
 CREATE TABLE public.source_domain_service (
     term_key text NOT NULL,
     area_id text NOT NULL,
     editions int8range NOT NULL,
     CONSTRAINT source_domain_service_editions_check CHECK (((NOT isempty(editions)) AND lower_inc(editions) AND (NOT lower_inf(editions))))
+);
+
+CREATE TABLE public.term_changes (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    action text NOT NULL,
+    made_by uuid NOT NULL,
+    made_at timestamp with time zone DEFAULT now() NOT NULL,
+    summary text NOT NULL,
+    terms jsonb NOT NULL,
+    undo jsonb DEFAULT '{}'::jsonb NOT NULL,
+    undone_at timestamp with time zone,
+    CONSTRAINT term_changes_action_check CHECK ((action = ANY (ARRAY['deleted'::text, 'moved'::text]))),
+    CONSTRAINT term_changes_summary_check CHECK (((char_length(btrim(summary)) >= 1) AND (char_length(btrim(summary)) <= 500))),
+    CONSTRAINT term_changes_terms_check CHECK (((jsonb_typeof(terms) = 'array'::text) AND (jsonb_array_length(terms) > 0)))
+);
+
+CREATE TABLE public.term_versions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    term_id uuid NOT NULL,
+    revision integer NOT NULL,
+    change text NOT NULL,
+    name text NOT NULL,
+    meaning text,
+    same_as_key text,
+    same_as_term uuid,
+    area_id text,
+    made_by uuid NOT NULL,
+    made_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT term_versions_change_check CHECK ((change = ANY (ARRAY['created'::text, 'edited'::text, 'moved'::text, 'deleted'::text, 'restored'::text])))
+);
+
+CREATE TABLE public.terms (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    name text NOT NULL,
+    word text GENERATED ALWAYS AS (public.cl_term_word(name)) STORED,
+    meaning text,
+    same_as_key text,
+    same_as_term uuid,
+    area_id text,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_by uuid NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    revision integer DEFAULT 1 NOT NULL,
+    deleted_at timestamp with time zone,
+    deleted_by uuid,
+    deleted_with uuid,
+    CONSTRAINT terms_deleted_check CHECK (((deleted_at IS NULL) = (deleted_by IS NULL))),
+    CONSTRAINT terms_deleted_with_check CHECK (((deleted_with IS NULL) OR (deleted_at IS NOT NULL))),
+    CONSTRAINT terms_meaning_check CHECK (((meaning IS NULL) OR ((char_length(btrim(meaning)) >= 1) AND (char_length(btrim(meaning)) <= 4000)))),
+    CONSTRAINT terms_name_check CHECK (((char_length(btrim(name)) BETWEEN 1 AND 100) AND (name !~ '[,\r\n\t]'::text))),
+    CONSTRAINT terms_not_itself CHECK ((same_as_term IS DISTINCT FROM id)),
+    CONSTRAINT terms_one_meaning CHECK ((num_nonnulls(meaning, same_as_key, same_as_term) = 1)),
+    CONSTRAINT terms_revision_check CHECK ((revision >= 1))
+);
+
+CREATE TABLE public.thread_reads (
+    person_id uuid NOT NULL,
+    item_id text,
+    proposal_id uuid,
+    seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT thread_reads_subject_check CHECK ((num_nonnulls(item_id, proposal_id) = 1))
 );
 
 CREATE TABLE public.tool_config (
@@ -3410,7 +4994,7 @@ CREATE VIEW public.v_items_current AS
 
 CREATE VIEW public.v_item_current_all AS
  SELECT i.id,
-    i.kind,
+    v.kind,
     c.version_id,
     v.version_no,
         CASE
@@ -3580,7 +5164,8 @@ CREATE VIEW public.v_item_index AS
         CASE
             WHEN (((l.kind)::text = 'issue'::text) AND (l.valid_until IS NULL)) THEN 'still_going_on'::text
             ELSE 'still_correct'::text
-        END, 'checkFlag', f.flag, 'ownerId', l.owner_id, 'proposerId', l.proposer_id, 'updatedAt', to_char((l.updated_at AT TIME ZONE 'UTC'::text), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'::text)) AS entry
+        END, 'checkFlag', f.flag, 'ownerId', l.owner_id, 'proposerId', l.proposer_id, 'updatedAt', to_char((l.updated_at AT TIME ZONE 'UTC'::text), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'::text)) AS entry,
+    l.version_id
    FROM (public.v_item_list l
      LEFT JOIN ( SELECT DISTINCT ON (o.item_id) o.item_id,
             o.flag
@@ -3614,10 +5199,11 @@ CREATE VIEW public.v_mention_status WITH (security_invoker='true') AS
     m.field,
     m."position",
     m.label,
-    COALESCE(m.term_key, ('item:'::text || m.item_id), ('area:'::text || m.area_id)) AS target,
+    COALESCE(m.term_key, ('item:'::text || m.item_id), ('area:'::text || m.area_id), ('term:'::text || (m.term_id)::text)) AS target,
         CASE
             WHEN (m.item_id IS NOT NULL) THEN 'item'::text
             WHEN (m.area_id IS NOT NULL) THEN 'area'::text
+            WHEN (m.term_id IS NOT NULL) THEN 'term'::text
             ELSE ( SELECT (k.kind)::text AS kind
                FROM public.vocab_terms k
               WHERE (k.key = m.term_key))
@@ -3636,6 +5222,13 @@ CREATE VIEW public.v_mention_status WITH (security_invoker='true') AS
                 ELSE 'retired'::text
             END
             WHEN (m.area_id IS NOT NULL) THEN 'current'::text
+            WHEN (m.term_id IS NOT NULL) THEN
+            CASE
+                WHEN (EXISTS ( SELECT 1
+                   FROM public.terms w
+                  WHERE ((w.id = m.term_id) AND (w.deleted_at IS NULL)))) THEN 'current'::text
+                ELSE 'retired'::text
+            END
             WHEN (t.served IS NULL) THEN 'unresolved'::text
             WHEN (d.ref IS NULL) THEN 'current'::text
             WHEN d.missing THEN 'source_missing'::text
@@ -3727,9 +5320,10 @@ CREATE VIEW public.v_version_links WITH (security_invoker='true') AS
                FROM public.vocab_terms t
               WHERE (t.key = item_version_mentions.term_key))
             WHEN (item_version_mentions.item_id IS NOT NULL) THEN 'item'::text
+            WHEN (item_version_mentions.term_id IS NOT NULL) THEN 'term'::text
             ELSE 'area'::text
         END AS to_kind,
-    COALESCE(item_version_mentions.term_key, item_version_mentions.item_id, item_version_mentions.area_id) AS to_id,
+    COALESCE(item_version_mentions.term_key, item_version_mentions.item_id, item_version_mentions.area_id, ('term:'::text || (item_version_mentions.term_id)::text)) AS to_id,
     item_version_mentions.label,
     item_version_mentions.definition_ref,
     item_version_mentions.change_mark
@@ -3821,12 +5415,50 @@ CREATE TABLE public.webhook_endpoints (
     CONSTRAINT webhook_endpoints_url_check CHECK ((url ~ '^https://'::text))
 );
 
+REVOKE ALL ON FUNCTION auth.accept_invite(p_email text, p_name text) FROM PUBLIC;
+
 REVOKE ALL ON FUNCTION auth.bootstrap_person(p_email text, p_name text, p_roles public.global_role[]) FROM PUBLIC;
 
-REVOKE ALL ON FUNCTION public.cl_eval_versions_due() FROM PUBLIC;
+REVOKE ALL ON FUNCTION auth.invite_by_token(p_token_hash text) FROM PUBLIC;
 
--- The rows a new installation starts with: the proposal workflow, the AI app tools and
--- clients, and one version of each setting.
+REVOKE ALL ON FUNCTION auth.join_by_group(p_email text, p_name text) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION auth.sync_group_admin(p_person uuid, p_in_group boolean) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_conflicts_kept() FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_caught(p_from date, p_to date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_caught_rollup(p_week date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_caught_rollup_due(p_today date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_changes(p_areas text[], p_from date, p_to date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_managed_at(p_person uuid, p_areas text[], p_at timestamp with time zone) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_week_kept(p_week date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_weekly_rollup(p_week date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_obs_weekly_rollup_due(p_today date) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_policy_decision_problem(d public.decisions) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.cl_term_word(p_name text) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.invite_standing(p_invite public.invites, OUT standing text, OUT why text, OUT area_ids text[]) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.serving_access_key(p_hash text) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.serving_agent_tools(p_grant uuid) FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.serving_terms() FROM PUBLIC;
+
+REVOKE ALL ON FUNCTION public.serving_terms_mark() FROM PUBLIC;
+
+-- The rows a new installation starts with: the proposal and evaluation run workflows, the gap
+-- states, the agent tools and clients, the alert rules, and one version of each setting.
 
 insert into public.proposal_transitions (from_state, to_state) values
   ('draft', 'submitted'),
@@ -3840,26 +5472,57 @@ insert into public.proposal_transitions (from_state, to_state) values
   ('changes_requested', 'submitted'),
   ('submitted', 'withdrawn'),
   ('in_review', 'withdrawn'),
-  ('changes_requested', 'withdrawn');
+  ('changes_requested', 'withdrawn'),
+  ('accepted', 'submitted'),
+  ('rejected', 'submitted');
+insert into public.eval_run_transitions (from_state, to_state) values
+  ('awaiting_approval', 'queued'),
+  ('awaiting_approval', 'failed'),
+  ('awaiting_approval', 'cancelled'),
+  ('queued', 'running'),
+  ('queued', 'finished'),
+  ('queued', 'failed'),
+  ('queued', 'cancelled'),
+  ('running', 'finished'),
+  ('running', 'incomplete'),
+  ('running', 'failed'),
+  ('running', 'cancelled'),
+  ('incomplete', 'queued'),
+  ('incomplete', 'failed'),
+  ('incomplete', 'cancelled');
+insert into public.gap_transitions (from_status, to_status) values
+  ('open', 'resolved'),
+  ('resolved', 'open'),
+  ('open', 'wont_fix'),
+  ('wont_fix', 'open');
 insert into public.tool_config (tool, enabled) values
-  ('get_context', true),
-  ('search_context', true),
-  ('read_item', true),
-  ('improve_question', true),
-  ('report_gap', true),
-  ('give_feedback', true),
-  ('get_related', false),
-  ('draft_context', false),
   ('find_context', true),
-  ('domain_overview', true),
-  ('what_changed', true),
-  ('search_help', true);
+  ('get_context', true),
+  ('get_related', true),
+  ('read_context', true),
+  ('report', true),
+  ('suggest_context', true);
 insert into public.client_policies (client_label, display_name, tools_allowed, rate_per_minute, max_response_bytes, enabled) values
   ('eval', 'Evaluation runner', null, 120, 100000, true),
-  ('signed-in', 'AI apps people sign in with', null, null, 100000, true),
-  ('claude-code', 'Claude Code with a token', null, 120, 100000, true);
+  ('claude-code', 'Claude Code with a token', null, 120, 100000, true),
+  ('signed-in', 'Agents people sign in with', null, null, 100000, true),
+  ('access-key', 'Access keys', null, null, 100000, true);
+insert into public.alert_rules (rule, enabled, threshold, audience) values
+  ('gap', true, null, 'owners'),
+  ('saved', true, null, 'owners'),
+  ('disagree', true, 3, 'owners'),
+  ('share', true, 20, 'admins'),
+  ('fail', true, 5, 'admins'),
+  ('spend', true, 80, 'admins'),
+  ('sync', true, null, 'both'),
+  ('due', true, null, 'owners');
 insert into public.settings_versions (key, version, value, reason) values
-  ('business.about', 1, E'"We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our own stores, in our webshop and apps, and through marketplaces, in twelve markets.\\n\\nWords that are easy to misread here:\\n- Order: a purchase a customer completed and paid for, in a store, the webshop or an app. A cancelled order is not an order.\\n- Return: a product a customer sends back for a refund. Gross sales are before returns, discounts and VAT. Net revenue is after them.\\n- First-time buyer: a customer whose first paid order falls in the period, whenever they signed up.\\n- Marketplace: another company''s online shop that sells our gear. It reports those sales to us a day or more late.\\n- Marketplace commission: the share of each marketplace sale the marketplace keeps.\\n- Gross margin: net revenue minus what the goods cost us, as a share of net revenue.\\n- Market: the country or region an order ships to. Selling country: the country of the store or webshop that took the order. They can differ.\\n- Season: spring and summer, or autumn and winter. Compare a season with the same season a year before."', 'default: the starter text, an outdoor-gear retailer'),
+  ('agents.auto_publish', 1, 'false', 'default: off until an administrator switches it on (FR-421)'),
+  ('ask.max_steps', 1, '6', 'default (FR-719.7)'),
+  ('ask.time_limit_seconds', 1, '30', 'default (FR-719.7)'),
+  ('business.about', 1, '""', 'default: no text until the workspace writes its own; the retailer text is the guide''s example'),
+  ('calendar.fiscal_year_start', 1, 'null', 'default: fiscal years read as calendar years'),
+  ('calendar.time_zone', 1, '"UTC"', 'default (NFR-048)'),
   ('evals.flip_repeats', 1, '7', 'default (FR-515)'),
   ('evals.run_budget_micros', 1, '2000000', 'default (FR-516): a run estimated above this waits for an administrator'),
   ('evals.tries', 1, '3', 'default (FR-515)'),
@@ -3871,15 +5534,16 @@ insert into public.settings_versions (key, version, value, reason) values
   ('limits.llm_daily_micros_per_person', 1, '2000000', 'default (FR-409)'),
   ('limits.llm_feature_monthly_micros', 1, '{"eval": 250000000, "assistant": 250000000}', 'default (FR-409)'),
   ('limits.llm_monthly_cap_micros', 1, '500000000', 'default (FR-409)'),
-  ('limits.mcp_rate_per_minute', 1, '{"report_gap": 20, "get_context": 120, "give_feedback": 20}', 'default (FR-408)'),
+  ('limits.mcp_rate_per_minute', 1, '{"report": 20, "get_context": 120}', 'default (FR-408)'),
   ('limits.mcp_requests_per_minute', 1, '{"client": 120, "person": 30}', 'default (FR-408)'),
   ('limits.mentions_per_version', 1, '50', 'Default mention limit (FR-134)'),
-  ('limits.web_searches_per_day', 1, '0', 'default: web search off until an administrator turns it on'),
+  ('limits.undo_seconds', 1, '15', 'default (FR-227)'),
   ('models.assistant', 1, '{"model": "claude-sonnet-5-5", "provider": "anthropic"}', 'a provider and a model: questions and answers leave the company to the named provider and the model''s vendor; real company data needs company approval first'),
   ('models.call_limits', 1, '{"concurrency": 4}', 'default (output test plan, R4 and R5)'),
   ('models.eval_answer', 1, '{"model": "claude-sonnet-5-5", "provider": "anthropic"}', 'a provider and a model: questions and answers leave the company to the named provider and the model''s vendor; real company data needs company approval first'),
   ('models.judge', 1, '"different_family"', 'default: a judge from another model line than the answering model'),
   ('models.test_authoring', 1, '{"model": "claude-sonnet-5-5", "provider": "anthropic"}', 'default (plan section 2.3): questions and answers leave the company to the named provider and the model''s vendor; real company data needs company approval first'),
+  ('observability.pinned_dimensions', 1, '[]', 'default: no dimension pinned (FR-620)'),
   ('privacy.min_count', 1, '5', 'default (OQ-6)'),
   ('retention.delivery_days', 1, '180', 'default (OQ-6)'),
   ('retention.note_days', 1, '180', 'default (OQ-6)'),
@@ -3888,12 +5552,34 @@ insert into public.settings_versions (key, version, value, reason) values
   ('review.default_days', 1, '90', 'default (FR-127)'),
   ('review.open_issue_days', 1, '14', 'default (FR-135)'),
   ('serving.max_overlay_age_seconds', 1, '60', 'default (FR-805, NFR-042)'),
-  ('sources.cube_model_url', 1, 'null', 'default: off; the address of the Cube model folder in the Git host''s web view, for links to model files');
+  ('sources.cube_model_url', 1, 'null', 'default: off; the address of the Cube model folder in the Git host''s web view, for links to model files'),
+  ('workspace.name', 1, '""', 'default: no name until an admin gives the workspace one');
 
 -- Indexes, constraints, triggers and row security.
 
+ALTER TABLE ONLY auth.access_keys
+    ADD CONSTRAINT access_keys_key_hash_key UNIQUE (key_hash);
+
+ALTER TABLE ONLY auth.access_keys
+    ADD CONSTRAINT access_keys_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY auth.agents
+    ADD CONSTRAINT agents_app_unique UNIQUE (person_id, client_id);
+
+ALTER TABLE ONLY auth.agents
+    ADD CONSTRAINT agents_key_id_key UNIQUE (key_id);
+
+ALTER TABLE ONLY auth.agents
+    ADD CONSTRAINT agents_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY auth.dev_people
     ADD CONSTRAINT dev_people_pkey PRIMARY KEY (person_id);
+
+ALTER TABLE ONLY auth.group_admins
+    ADD CONSTRAINT group_admins_pkey PRIMARY KEY (person_id);
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_pkey PRIMARY KEY (issuer, subject);
 
 ALTER TABLE ONLY auth.oauth_clients
     ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (id);
@@ -3910,8 +5596,26 @@ ALTER TABLE ONLY auth.oauth_refresh_tokens
 ALTER TABLE ONLY auth.oauth_requests
     ADD CONSTRAINT oauth_requests_pkey PRIMARY KEY (id_hash);
 
+ALTER TABLE ONLY auth.oidc_requests
+    ADD CONSTRAINT oidc_requests_pkey PRIMARY KEY (state_hash);
+
 ALTER TABLE ONLY auth.sessions
     ADD CONSTRAINT sessions_pkey PRIMARY KEY (token_hash);
+
+ALTER TABLE ONLY public.agent_policies
+    ADD CONSTRAINT agent_policies_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.alert_mutes
+    ADD CONSTRAINT alert_mutes_pkey PRIMARY KEY (person_id, area_id, rule);
+
+ALTER TABLE ONLY public.alert_raises
+    ADD CONSTRAINT alert_raises_key_unique UNIQUE (rule, key);
+
+ALTER TABLE ONLY public.alert_raises
+    ADD CONSTRAINT alert_raises_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.alert_rules
+    ADD CONSTRAINT alert_rules_pkey PRIMARY KEY (rule);
 
 ALTER TABLE ONLY public.area_assignments
     ADD CONSTRAINT area_assignments_pkey PRIMARY KEY (area_id, person_id, role, valid_at WITHOUT OVERLAPS);
@@ -3919,26 +5623,23 @@ ALTER TABLE ONLY public.area_assignments
 ALTER TABLE ONLY public.area_deletions
     ADD CONSTRAINT area_deletions_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.area_state_service
-    ADD CONSTRAINT area_state_service_pkey PRIMARY KEY (area_id, editions WITHOUT OVERLAPS);
-
 ALTER TABLE ONLY public.areas
     ADD CONSTRAINT areas_name_key UNIQUE (name);
 
 ALTER TABLE ONLY public.areas
     ADD CONSTRAINT areas_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.assistant_case_tries
-    ADD CONSTRAINT assistant_case_tries_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.assistant_case_tries
-    ADD CONSTRAINT assistant_case_tries_run_id_case_id_try_key UNIQUE (run_id, case_id, try);
-
 ALTER TABLE ONLY public.assistant_ratings
     ADD CONSTRAINT assistant_ratings_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.audit_log
     ADD CONSTRAINT audit_log_pkey PRIMARY KEY (seq);
+
+ALTER TABLE ONLY public.card_reads
+    ADD CONSTRAINT card_reads_pkey PRIMARY KEY (person_id, card);
+
+ALTER TABLE ONLY public.card_states
+    ADD CONSTRAINT card_states_pkey PRIMARY KEY (card);
 
 ALTER TABLE ONLY public.chat_links
     ADD CONSTRAINT chat_links_person_id_connector_id_key UNIQUE (person_id, connector_id);
@@ -3949,8 +5650,26 @@ ALTER TABLE ONLY public.chat_links
 ALTER TABLE ONLY public.check_results
     ADD CONSTRAINT check_results_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.check_runs
+    ADD CONSTRAINT check_runs_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.client_policies
     ADD CONSTRAINT client_policies_pkey PRIMARY KEY (client_label);
+
+ALTER TABLE ONLY public.comment_mentions
+    ADD CONSTRAINT comment_mentions_pkey PRIMARY KEY (comment_id, person_id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_decision_id_key UNIQUE (decision_id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.conflict_decisions
+    ADD CONSTRAINT conflict_decisions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.connector_documents
+    ADD CONSTRAINT connector_documents_pkey PRIMARY KEY (source_id, document_id);
 
 ALTER TABLE ONLY public.connector_snapshots
     ADD CONSTRAINT connector_snapshots_pkey PRIMARY KEY (id);
@@ -3958,8 +5677,8 @@ ALTER TABLE ONLY public.connector_snapshots
 ALTER TABLE ONLY public.connectors
     ADD CONSTRAINT connectors_pkey PRIMARY KEY (id);
 
-ALTER TABLE public.decisions
-    ADD CONSTRAINT decisions_no_new_deputy CHECK ((capacity <> 'deputy'::public.decision_capacity)) NOT VALID;
+ALTER TABLE ONLY public.decision_undos
+    ADD CONSTRAINT decision_undos_pkey PRIMARY KEY (decision_id);
 
 ALTER TABLE ONLY public.decisions
     ADD CONSTRAINT decisions_pkey PRIMARY KEY (id);
@@ -3988,6 +5707,9 @@ ALTER TABLE ONLY public.eval_cells
 ALTER TABLE ONLY public.eval_cells
     ADD CONSTRAINT eval_cells_run_id_question_id_wording_arm_trial_key UNIQUE (run_id, question_id, wording, arm, trial);
 
+ALTER TABLE ONLY public.eval_run_transitions
+    ADD CONSTRAINT eval_run_transitions_pkey PRIMARY KEY (from_state, to_state);
+
 ALTER TABLE ONLY public.eval_runs
     ADD CONSTRAINT eval_runs_pkey PRIMARY KEY (id);
 
@@ -4000,14 +5722,11 @@ ALTER TABLE ONLY public.feedback
 ALTER TABLE ONLY public.gap_notes
     ADD CONSTRAINT gap_notes_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.gap_proposals
-    ADD CONSTRAINT gap_proposals_pkey PRIMARY KEY (gap_id, proposal_id);
-
 ALTER TABLE ONLY public.gap_report_keys
     ADD CONSTRAINT gap_report_keys_pkey PRIMARY KEY (retry_digest);
 
-ALTER TABLE ONLY public.gap_tests
-    ADD CONSTRAINT gap_tests_pkey PRIMARY KEY (gap_id, question_id);
+ALTER TABLE ONLY public.gap_transitions
+    ADD CONSTRAINT gap_transitions_pkey PRIMARY KEY (from_status, to_status);
 
 ALTER TABLE ONLY public.gap_weekly_counts
     ADD CONSTRAINT gap_weekly_counts_pkey PRIMARY KEY (gap_id, week);
@@ -4039,8 +5758,23 @@ ALTER TABLE ONLY public.inbox_items
 ALTER TABLE ONLY public.inbox_items
     ADD CONSTRAINT inbox_items_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.invites
+    ADD CONSTRAINT invites_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.invites
+    ADD CONSTRAINT invites_token_hash_key UNIQUE (token_hash);
+
 ALTER TABLE ONLY public.item_bin
     ADD CONSTRAINT item_bin_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.item_changes
+    ADD CONSTRAINT item_changes_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.item_owners
+    ADD CONSTRAINT item_owners_pkey PRIMARY KEY (item_id, person_id);
+
+ALTER TABLE ONLY public.item_reads
+    ADD CONSTRAINT item_reads_pkey PRIMARY KEY (person_id, item_id);
 
 ALTER TABLE ONLY public.item_version_conflicts
     ADD CONSTRAINT item_version_conflicts_pkey PRIMARY KEY (version_id, other_item_id);
@@ -4099,8 +5833,26 @@ ALTER TABLE ONLY public.mcp_requests
 ALTER TABLE ONLY public.model_calls
     ADD CONSTRAINT model_calls_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.names_left_out
+    ADD CONSTRAINT names_left_out_pkey PRIMARY KEY (definition_ref);
+
 ALTER TABLE ONLY public.notification_prefs
     ADD CONSTRAINT notification_prefs_pkey PRIMARY KEY (person_id, channel, kind);
+
+ALTER TABLE ONLY public.obs_caught_weekly
+    ADD CONSTRAINT obs_caught_weekly_key UNIQUE NULLS NOT DISTINCT (week, area_id, line, kind);
+
+ALTER TABLE ONLY public.obs_snapshots
+    ADD CONSTRAINT obs_snapshots_key UNIQUE NULLS NOT DISTINCT (period, starts, area_id);
+
+ALTER TABLE ONLY public.obs_snapshots
+    ADD CONSTRAINT obs_snapshots_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.obs_weekly
+    ADD CONSTRAINT obs_weekly_key UNIQUE NULLS NOT DISTINCT (week, area_id, answer_state);
+
+ALTER TABLE ONLY public.observability_views
+    ADD CONSTRAINT observability_views_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.outbox_events
     ADD CONSTRAINT outbox_events_id_key UNIQUE (id);
@@ -4123,6 +5875,9 @@ ALTER TABLE ONLY public.people
 ALTER TABLE ONLY public.proposal_events
     ADD CONSTRAINT proposal_events_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.proposal_relations
+    ADD CONSTRAINT proposal_relations_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.proposal_tests
     ADD CONSTRAINT proposal_tests_pkey PRIMARY KEY (proposal_id, question_id);
 
@@ -4138,11 +5893,32 @@ ALTER TABLE ONLY public.proposals
 ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.reactions
+    ADD CONSTRAINT reactions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.records_asked_weekly
+    ADD CONSTRAINT records_asked_weekly_key PRIMARY KEY (week, intent);
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY public.retrieval_results
     ADD CONSTRAINT retrieval_results_pkey PRIMARY KEY (run_id, question_id);
 
 ALTER TABLE ONLY public.retrieval_runs
     ADD CONSTRAINT retrieval_runs_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.review_reads
+    ADD CONSTRAINT review_reads_pkey PRIMARY KEY (proposal_id, person_id);
+
+ALTER TABLE ONLY public.saved_question_baselines
+    ADD CONSTRAINT saved_question_baselines_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.saved_question_results
+    ADD CONSTRAINT saved_question_results_pkey PRIMARY KEY (run_id, question_id);
+
+ALTER TABLE ONLY public.saved_questions
+    ADD CONSTRAINT saved_questions_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.saved_views
     ADD CONSTRAINT saved_views_person_id_name_key UNIQUE (person_id, name);
@@ -4156,8 +5932,23 @@ ALTER TABLE ONLY public.serving_overlay
 ALTER TABLE ONLY public.settings_versions
     ADD CONSTRAINT settings_versions_pkey PRIMARY KEY (key, version);
 
+ALTER TABLE ONLY public.setup_marks
+    ADD CONSTRAINT setup_marks_pkey PRIMARY KEY (step);
+
 ALTER TABLE ONLY public.source_domain_service
     ADD CONSTRAINT source_domain_service_pkey PRIMARY KEY (term_key, editions WITHOUT OVERLAPS);
+
+ALTER TABLE ONLY public.term_changes
+    ADD CONSTRAINT term_changes_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.term_versions
+    ADD CONSTRAINT term_versions_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.term_versions
+    ADD CONSTRAINT term_versions_term_id_revision_key UNIQUE (term_id, revision);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.tool_config
     ADD CONSTRAINT tool_config_pkey PRIMARY KEY (tool);
@@ -4198,7 +5989,13 @@ ALTER TABLE ONLY public.webhook_deliveries
 ALTER TABLE ONLY public.webhook_endpoints
     ADD CONSTRAINT webhook_endpoints_pkey PRIMARY KEY (id);
 
+CREATE INDEX access_keys_open ON auth.access_keys USING btree (created_at DESC) WHERE (revoked_at IS NULL);
+
+CREATE UNIQUE INDEX identities_person ON auth.identities USING btree (issuer, person_id);
+
 CREATE INDEX oauth_codes_expiry ON auth.oauth_codes USING btree (expires_at);
+
+CREATE INDEX oauth_declines_person ON auth.oauth_declines USING btree (person_id, declined_at DESC);
 
 CREATE INDEX oauth_grants_person ON auth.oauth_grants USING btree (person_id) WHERE (revoked_at IS NULL);
 
@@ -4208,11 +6005,23 @@ CREATE INDEX oauth_refresh_tokens_grant ON auth.oauth_refresh_tokens USING btree
 
 CREATE INDEX oauth_requests_expiry ON auth.oauth_requests USING btree (expires_at);
 
+CREATE INDEX oidc_requests_expiry ON auth.oidc_requests USING btree (expires_at);
+
 CREATE INDEX sessions_expiry ON auth.sessions USING btree (expires_at);
+
+CREATE INDEX sessions_person ON auth.sessions USING btree (person_id);
+
+CREATE INDEX agent_policies_area ON public.agent_policies USING btree (area_id, set_at DESC);
+
+CREATE UNIQUE INDEX agent_policies_open ON public.agent_policies USING btree (agent_id, area_id) WHERE (ended_at IS NULL);
+
+CREATE INDEX alert_raises_raised ON public.alert_raises USING btree (raised_at DESC);
+
+CREATE INDEX alert_raises_rule ON public.alert_raises USING btree (rule, raised_at DESC);
 
 CREATE INDEX area_assignments_person ON public.area_assignments USING btree (person_id);
 
-CREATE UNIQUE INDEX area_deletions_open ON public.area_deletions USING btree (area_id) WHERE (restored_at IS NULL);
+CREATE UNIQUE INDEX area_deletions_once ON public.area_deletions USING btree (area_id);
 
 CREATE INDEX assistant_ratings_area_hour ON public.assistant_ratings USING btree (area_id, created_hour);
 
@@ -4228,17 +6037,45 @@ CREATE INDEX audit_log_subject ON public.audit_log USING btree (subject_type, su
 
 CREATE INDEX check_results_version ON public.check_results USING btree (item_version_id, level, ran_at DESC);
 
+CREATE INDEX check_runs_started ON public.check_runs USING btree (started_at DESC);
+
+CREATE INDEX comment_mentions_person ON public.comment_mentions USING btree (person_id) WHERE (seen_at IS NULL);
+
+CREATE INDEX comments_item ON public.comments USING btree (item_id, created_at) WHERE (item_id IS NOT NULL);
+
+CREATE INDEX comments_open_anchors ON public.comments USING btree (proposal_id) WHERE ((num_nonnulls(anchor_field, anchor_line) = 1) AND (resolved_at IS NULL));
+
+CREATE INDEX comments_parent ON public.comments USING btree (parent_id) WHERE (parent_id IS NOT NULL);
+
+CREATE INDEX comments_proposal ON public.comments USING btree (proposal_id, created_at) WHERE (proposal_id IS NOT NULL);
+
+CREATE UNIQUE INDEX comments_withdrawal ON public.comments USING btree (proposal_id) WHERE (withdrew_at IS NOT NULL);
+
+CREATE INDEX conflict_decisions_holder ON public.conflict_decisions USING btree (holder_item_id, decided_at DESC);
+
+CREATE INDEX conflict_decisions_other ON public.conflict_decisions USING btree (other_item_id, decided_at DESC);
+
+CREATE INDEX connector_documents_proposal ON public.connector_documents USING btree (proposal_id) WHERE (proposal_id IS NOT NULL);
+
 CREATE INDEX connector_snapshots_latest ON public.connector_snapshots USING btree (connector_id, fetched_at DESC);
+
+CREATE INDEX decisions_auto_policy ON public.decisions USING btree (auto_policy_id, decided_at) WHERE (auto_policy_id IS NOT NULL);
 
 CREATE INDEX decisions_item_version ON public.decisions USING btree (item_version_id, outcome) WHERE (item_version_id IS NOT NULL);
 
-CREATE UNIQUE INDEX decisions_once_item ON public.decisions USING btree (item_version_id, decided_by, outcome) WHERE (item_version_id IS NOT NULL);
+CREATE UNIQUE INDEX decisions_once_item ON public.decisions USING btree (item_version_id, decided_by, outcome, round) WHERE (item_version_id IS NOT NULL);
 
 CREATE UNIQUE INDEX decisions_once_vocab ON public.decisions USING btree (vocab_version_id, decided_by, outcome) WHERE (vocab_version_id IS NOT NULL);
 
 CREATE INDEX decisions_vocab_version ON public.decisions USING btree (vocab_version_id, outcome) WHERE (vocab_version_id IS NOT NULL);
 
+CREATE INDEX definition_marks_snapshot ON public.definition_marks USING btree (snapshot_id);
+
 CREATE INDEX definitions_connector ON public.definitions USING btree (connector_id, kind);
+
+CREATE INDEX definitions_first_seen ON public.definitions USING btree (first_seen_snapshot);
+
+CREATE INDEX definitions_missing_since ON public.definitions USING btree (missing_since_snapshot) WHERE (missing_since_snapshot IS NOT NULL);
 
 CREATE INDEX definitions_name_trgm ON public.definitions USING gin (name public.gin_trgm_ops);
 
@@ -4256,10 +6093,6 @@ CREATE INDEX eval_runs_area ON public.eval_runs USING btree (area_id, kind, fini
 
 CREATE INDEX eval_runs_incomplete ON public.eval_runs USING btree (finished_at) WHERE (state = 'incomplete'::public.eval_state);
 
-CREATE UNIQUE INDEX eval_runs_one_open ON public.eval_runs USING btree (item_version_id, baseline_edition_seq) WHERE ((item_version_id IS NOT NULL) AND (state = ANY (ARRAY['estimated'::public.eval_state, 'awaiting_approval'::public.eval_state, 'queued'::public.eval_state, 'running'::public.eval_state])));
-
-CREATE INDEX eval_runs_proposal ON public.eval_runs USING btree (proposal_id) WHERE (proposal_id IS NOT NULL);
-
 CREATE INDEX eval_runs_work ON public.eval_runs USING btree (state, created_at) WHERE (state = ANY (ARRAY['queued'::public.eval_state, 'running'::public.eval_state]));
 
 CREATE INDEX feedback_area_hour ON public.feedback USING btree (area_id, created_hour);
@@ -4272,21 +6105,25 @@ CREATE INDEX gap_notes_gap ON public.gap_notes USING btree (gap_id);
 
 CREATE INDEX gap_report_keys_expiry ON public.gap_report_keys USING btree (expires_hour);
 
-CREATE INDEX gap_tests_question ON public.gap_tests USING btree (question_id);
-
-CREATE UNIQUE INDEX gaps_one_open_per_topic_type ON public.gaps USING btree (topic_id, type) WHERE (status = ANY (ARRAY['open'::public.gap_status, 'proposal_made'::public.gap_status]));
+CREATE UNIQUE INDEX gaps_one_open_per_topic_type ON public.gaps USING btree (topic_id, type) WHERE (status = 'open'::public.gap_status);
 
 CREATE INDEX golden_questions_area ON public.golden_questions USING btree (area_id, status, split);
 
 CREATE INDEX idempotency_expiry ON public.idempotency_keys USING btree (expires_at);
 
-CREATE INDEX inbox_unread ON public.inbox_items USING btree (person_id, created_at DESC) WHERE ((read_at IS NULL) AND (archived_at IS NULL));
+CREATE INDEX inbox_items_created ON public.inbox_items USING btree (created_at);
+
+CREATE INDEX invites_invited_by ON public.invites USING btree (invited_by);
+
+CREATE UNIQUE INDEX invites_open_email ON public.invites USING btree (email) WHERE ((accepted_at IS NULL) AND (revoked_at IS NULL));
 
 CREATE INDEX item_bin_item ON public.item_bin USING btree (item_id, binned_at DESC);
 
 CREATE UNIQUE INDEX item_bin_open ON public.item_bin USING btree (item_id) WHERE (restored_at IS NULL);
 
 CREATE UNIQUE INDEX item_bin_rescue_proposal ON public.item_bin USING btree (rescue_proposal) WHERE (rescue_proposal IS NOT NULL);
+
+CREATE INDEX item_changes_made_at ON public.item_changes USING btree (made_at DESC);
 
 CREATE INDEX item_version_dim_value ON public.item_version_dimension_values USING btree (value_key, version_id);
 
@@ -4299,6 +6136,8 @@ CREATE INDEX item_version_mentions_area ON public.item_version_mentions USING bt
 CREATE INDEX item_version_mentions_item ON public.item_version_mentions USING btree (item_id, version_id) WHERE (item_id IS NOT NULL);
 
 CREATE INDEX item_version_mentions_term ON public.item_version_mentions USING btree (term_key, version_id) WHERE (term_key IS NOT NULL);
+
+CREATE INDEX item_version_mentions_written_term ON public.item_version_mentions USING btree (term_id, version_id) WHERE (term_id IS NOT NULL);
 
 CREATE INDEX item_version_metrics_metric ON public.item_version_metrics USING btree (metric_key, version_id);
 
@@ -4324,11 +6163,13 @@ CREATE INDEX item_versions_title_trgm ON public.item_versions USING gin (title p
 
 CREATE INDEX item_versions_validity ON public.item_versions USING gist (validity);
 
-CREATE INDEX model_calls_case_try ON public.model_calls USING btree (case_try_id) WHERE (case_try_id IS NOT NULL);
-
 CREATE INDEX model_calls_cell ON public.model_calls USING btree (cell_id) WHERE (cell_id IS NOT NULL);
 
 CREATE INDEX model_calls_run ON public.model_calls USING btree (run_id, at);
+
+CREATE INDEX obs_snapshots_area ON public.obs_snapshots USING btree (area_id, starts DESC);
+
+CREATE UNIQUE INDEX observability_views_name_key ON public.observability_views USING btree (lower(btrim(name)));
 
 CREATE INDEX outbox_unrelayed ON public.outbox_events USING btree (seq) WHERE (relayed_at IS NULL);
 
@@ -4338,7 +6179,13 @@ CREATE INDEX people_search ON public.people USING gin ((((lower(display_name) ||
 
 CREATE INDEX proposal_events_proposal ON public.proposal_events USING btree (proposal_id, at);
 
+CREATE INDEX proposal_relations_current ON public.proposal_relations USING btree (item_version_id, item_id, decided_at DESC, id DESC);
+
 CREATE INDEX proposal_tests_question ON public.proposal_tests USING btree (question_id);
+
+CREATE INDEX proposals_agent ON public.proposals USING btree (agent_id, created_at DESC) WHERE (agent_id IS NOT NULL);
+
+CREATE INDEX proposals_discarded ON public.proposals USING btree (discarded_at DESC) WHERE (discarded_at IS NOT NULL);
 
 CREATE INDEX proposals_item ON public.proposals USING btree (item_id) WHERE (item_id IS NOT NULL);
 
@@ -4348,7 +6195,23 @@ CREATE INDEX proposals_proposer ON public.proposals USING btree (proposer_id, up
 
 CREATE INDEX proposals_queue ON public.proposals USING btree (area_id, state, due_at) WHERE (state = ANY (ARRAY['submitted'::public.proposal_state, 'in_review'::public.proposal_state, 'changes_requested'::public.proposal_state]));
 
+CREATE INDEX proposals_source ON public.proposals USING btree (source_id, created_at DESC) WHERE (source_id IS NOT NULL);
+
 CREATE INDEX proposals_version ON public.proposals USING btree (item_version_id) WHERE (item_version_id IS NOT NULL);
+
+CREATE UNIQUE INDEX reactions_once_comment ON public.reactions USING btree (comment_id, person_id, emoji) WHERE (comment_id IS NOT NULL);
+
+CREATE UNIQUE INDEX reactions_once_item ON public.reactions USING btree (item_id, person_id, emoji) WHERE (item_id IS NOT NULL);
+
+CREATE UNIQUE INDEX reactions_once_proposal ON public.reactions USING btree (proposal_id, person_id, emoji) WHERE (proposal_id IS NOT NULL);
+
+CREATE INDEX reports_area ON public.reports USING btree (area_id, created_at);
+
+CREATE INDEX reports_figure ON public.reports USING btree (figure_source, figure_metric) WHERE (part = 'figure'::text);
+
+CREATE INDEX reports_item ON public.reports USING btree (item_id, created_at);
+
+CREATE INDEX reports_person ON public.reports USING btree (person_id, created_at);
 
 CREATE INDEX retrieval_results_area ON public.retrieval_results USING btree (area_id, run_id);
 
@@ -4358,7 +6221,27 @@ CREATE UNIQUE INDEX retrieval_runs_edition ON public.retrieval_runs USING btree 
 
 CREATE INDEX retrieval_runs_recent ON public.retrieval_runs USING btree (edition_seq, created_at DESC);
 
+CREATE INDEX saved_question_baselines_question ON public.saved_question_baselines USING btree (question_id, kept_at DESC);
+
+CREATE INDEX saved_question_results_question ON public.saved_question_results USING btree (question_id, checked_at DESC);
+
+CREATE INDEX saved_questions_area ON public.saved_questions USING btree (area_id, created_at) WHERE (removed_at IS NULL);
+
 CREATE INDEX source_domain_service_open ON public.source_domain_service USING btree (term_key) WHERE upper_inf(editions);
+
+CREATE INDEX term_changes_made_at ON public.term_changes USING btree (made_at DESC);
+
+CREATE INDEX terms_deleted ON public.terms USING btree (deleted_at DESC) WHERE (deleted_at IS NOT NULL);
+
+CREATE UNIQUE INDEX terms_one_word ON public.terms USING btree (word) WHERE (deleted_at IS NULL);
+
+CREATE INDEX terms_same_as_term ON public.terms USING btree (same_as_term) WHERE (same_as_term IS NOT NULL);
+
+CREATE UNIQUE INDEX thread_reads_item ON public.thread_reads USING btree (person_id, item_id) WHERE (item_id IS NOT NULL);
+
+CREATE UNIQUE INDEX thread_reads_proposal ON public.thread_reads USING btree (person_id, proposal_id) WHERE (proposal_id IS NOT NULL);
+
+CREATE INDEX topics_value_keys ON public.topics USING gin (value_keys);
 
 CREATE INDEX vocab_term_refs_ref ON public.vocab_term_refs USING btree (definition_ref);
 
@@ -4368,9 +6251,19 @@ CREATE INDEX vocab_term_service_opened ON public.vocab_term_service USING btree 
 
 CREATE INDEX vocab_term_versions_aliases ON public.vocab_term_versions USING gin (aliases);
 
+CREATE TRIGGER oauth_grants_end_policies AFTER UPDATE OF revoked_at ON auth.oauth_grants FOR EACH ROW WHEN (((old.revoked_at IS NULL) AND (new.revoked_at IS NOT NULL))) EXECUTE FUNCTION public.oauth_grants_end_policies();
+
+CREATE TRIGGER agent_policies_guard BEFORE INSERT OR UPDATE ON public.agent_policies FOR EACH ROW EXECUTE FUNCTION public.agent_policies_guard();
+
+CREATE TRIGGER agent_policies_no_delete BEFORE DELETE ON public.agent_policies FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER agent_policies_no_truncate BEFORE TRUNCATE ON public.agent_policies FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+
 CREATE TRIGGER ao_row_audit_log BEFORE DELETE OR UPDATE ON public.audit_log FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_row_check_results BEFORE DELETE OR UPDATE ON public.check_results FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER ao_row_decision_undos BEFORE DELETE OR UPDATE ON public.decision_undos FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_row_decisions BEFORE DELETE OR UPDATE ON public.decisions FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
@@ -4398,11 +6291,17 @@ CREATE TRIGGER ao_row_overlay_events BEFORE DELETE OR UPDATE ON public.overlay_e
 
 CREATE TRIGGER ao_row_proposal_events BEFORE DELETE OR UPDATE ON public.proposal_events FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
+CREATE TRIGGER ao_row_proposal_relations BEFORE DELETE OR UPDATE ON public.proposal_relations FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER ao_row_reports BEFORE DELETE OR UPDATE ON public.reports FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
+
 CREATE TRIGGER ao_row_retrieval_results BEFORE DELETE OR UPDATE ON public.retrieval_results FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_row_retrieval_runs BEFORE DELETE OR UPDATE ON public.retrieval_runs FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_row_settings_versions BEFORE DELETE OR UPDATE ON public.settings_versions FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER ao_row_term_versions BEFORE DELETE OR UPDATE ON public.term_versions FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_row_vocab_term_refs BEFORE DELETE OR UPDATE ON public.vocab_term_refs FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
@@ -4411,6 +6310,8 @@ CREATE TRIGGER ao_row_vocab_term_versions BEFORE DELETE OR UPDATE ON public.voca
 CREATE TRIGGER ao_trunc_audit_log BEFORE TRUNCATE ON public.audit_log FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_trunc_check_results BEFORE TRUNCATE ON public.check_results FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER ao_trunc_decision_undos BEFORE TRUNCATE ON public.decision_undos FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_trunc_decisions BEFORE TRUNCATE ON public.decisions FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
@@ -4438,11 +6339,17 @@ CREATE TRIGGER ao_trunc_overlay_events BEFORE TRUNCATE ON public.overlay_events 
 
 CREATE TRIGGER ao_trunc_proposal_events BEFORE TRUNCATE ON public.proposal_events FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
+CREATE TRIGGER ao_trunc_proposal_relations BEFORE TRUNCATE ON public.proposal_relations FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER ao_trunc_reports BEFORE TRUNCATE ON public.reports FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+
 CREATE TRIGGER ao_trunc_retrieval_results BEFORE TRUNCATE ON public.retrieval_results FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_trunc_retrieval_runs BEFORE TRUNCATE ON public.retrieval_runs FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_trunc_settings_versions BEFORE TRUNCATE ON public.settings_versions FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER ao_trunc_term_versions BEFORE TRUNCATE ON public.term_versions FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER ao_trunc_vocab_term_refs BEFORE TRUNCATE ON public.vocab_term_refs FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
@@ -4452,11 +6359,15 @@ CREATE TRIGGER area_deletions_delete BEFORE DELETE ON public.area_deletions FOR 
 
 CREATE TRIGGER area_deletions_truncate BEFORE TRUNCATE ON public.area_deletions FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
-CREATE TRIGGER area_deletions_update BEFORE UPDATE ON public.area_deletions FOR EACH ROW EXECUTE FUNCTION public.area_deletions_guard_update();
-
-CREATE TRIGGER area_state_service_delete BEFORE DELETE OR TRUNCATE ON public.area_state_service FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+CREATE TRIGGER area_deletions_update BEFORE UPDATE ON public.area_deletions FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
 CREATE TRIGGER audit_log_chain BEFORE INSERT ON public.audit_log FOR EACH ROW EXECUTE FUNCTION public.audit_chain();
+
+CREATE TRIGGER comments_clear_reactions AFTER UPDATE OF deleted_at ON public.comments FOR EACH ROW WHEN (((new.deleted_at IS NOT NULL) AND (old.deleted_at IS NULL))) EXECUTE FUNCTION public.comments_clear_reactions();
+
+CREATE TRIGGER comments_guard BEFORE INSERT OR UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION public.comments_guard();
+
+CREATE TRIGGER decisions_policy_guard BEFORE INSERT ON public.decisions FOR EACH ROW WHEN ((new.auto_policy_id IS NOT NULL)) EXECUTE FUNCTION public.decisions_policy_guard();
 
 CREATE TRIGGER deliveries_count AFTER INSERT ON public.deliveries FOR EACH ROW EXECUTE FUNCTION public.cl_count_delivery();
 
@@ -4464,11 +6375,15 @@ CREATE TRIGGER editions_guard BEFORE DELETE OR UPDATE ON public.editions FOR EAC
 
 CREATE TRIGGER editions_truncate BEFORE TRUNCATE ON public.editions FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
 
+CREATE TRIGGER eval_runs_state BEFORE UPDATE OF state ON public.eval_runs FOR EACH ROW EXECUTE FUNCTION public.eval_runs_guard_state();
+
 CREATE TRIGGER feedback_area BEFORE INSERT ON public.feedback FOR EACH ROW EXECUTE FUNCTION public.cl_feedback_area();
 
-CREATE TRIGGER gap_tests_check AFTER INSERT ON public.gap_tests FOR EACH ROW EXECUTE FUNCTION public.cl_test_link_check();
+CREATE TRIGGER gaps_status BEFORE UPDATE ON public.gaps FOR EACH ROW EXECUTE FUNCTION public.gaps_guard_status();
 
 CREATE TRIGGER golden_questions_links BEFORE UPDATE OF split, area_id ON public.golden_questions FOR EACH ROW EXECUTE FUNCTION public.cl_question_links_guard();
+
+CREATE TRIGGER invites_guard BEFORE UPDATE ON public.invites FOR EACH ROW EXECUTE FUNCTION public.invites_guard();
 
 CREATE TRIGGER item_bin_delete BEFORE DELETE ON public.item_bin FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
@@ -4490,6 +6405,8 @@ CREATE TRIGGER item_version_service_insert BEFORE INSERT ON public.item_version_
 
 CREATE TRIGGER item_version_service_update BEFORE UPDATE ON public.item_version_service FOR EACH ROW EXECUTE FUNCTION public.item_version_service_guard_update();
 
+CREATE TRIGGER item_versions_kind BEFORE INSERT ON public.item_versions FOR EACH ROW EXECUTE FUNCTION public.item_versions_default_kind();
+
 CREATE CONSTRAINT TRIGGER item_versions_mentions_match AFTER INSERT ON public.item_versions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.item_versions_mentions_match();
 
 CREATE CONSTRAINT TRIGGER item_versions_scope_nonempty AFTER INSERT ON public.item_versions DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.item_versions_scope_nonempty();
@@ -4502,13 +6419,17 @@ CREATE TRIGGER overlay_events_bump AFTER INSERT ON public.overlay_events FOR EAC
 
 CREATE TRIGGER proposal_tests_check AFTER INSERT ON public.proposal_tests FOR EACH ROW EXECUTE FUNCTION public.cl_test_link_check();
 
+CREATE TRIGGER proposals_keep_agent BEFORE UPDATE OF agent_id, agent_name ON public.proposals FOR EACH ROW EXECUTE FUNCTION public.proposals_keep_agent();
+
+CREATE TRIGGER proposals_reopen BEFORE UPDATE OF state ON public.proposals FOR EACH ROW EXECUTE FUNCTION public.proposals_guard_reopen();
+
 CREATE TRIGGER proposals_state BEFORE UPDATE ON public.proposals FOR EACH ROW EXECUTE FUNCTION public.proposals_guard_state();
 
 CREATE TRIGGER proposals_tests_area AFTER UPDATE OF area_id ON public.proposals FOR EACH ROW WHEN ((old.area_id IS DISTINCT FROM new.area_id)) EXECUTE FUNCTION public.cl_proposal_tests_follow_area();
 
 CREATE TRIGGER proposals_touch BEFORE UPDATE ON public.proposals FOR EACH ROW EXECUTE FUNCTION public.cl_touch_updated_at();
 
-CREATE TRIGGER service_edition_guard BEFORE INSERT OR UPDATE ON public.area_state_service FOR EACH ROW EXECUTE FUNCTION public.cl_service_edition_guard();
+CREATE TRIGGER reactions_guard BEFORE INSERT ON public.reactions FOR EACH ROW EXECUTE FUNCTION public.reactions_guard();
 
 CREATE TRIGGER service_edition_guard BEFORE INSERT OR UPDATE ON public.item_version_service FOR EACH ROW EXECUTE FUNCTION public.cl_service_edition_guard();
 
@@ -4516,7 +6437,15 @@ CREATE TRIGGER service_edition_guard BEFORE INSERT OR UPDATE ON public.source_do
 
 CREATE TRIGGER service_edition_guard BEFORE INSERT OR UPDATE ON public.vocab_term_service FOR EACH ROW EXECUTE FUNCTION public.cl_service_edition_guard();
 
+CREATE TRIGGER settings_auto_publish_off AFTER INSERT ON public.settings_versions FOR EACH ROW WHEN (((new.key = 'agents.auto_publish'::text) AND (new.value = 'false'::jsonb))) EXECUTE FUNCTION public.settings_auto_publish_off();
+
 CREATE TRIGGER source_domain_service_delete BEFORE DELETE OR TRUNCATE ON public.source_domain_service FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
+
+CREATE TRIGGER terms_follow AFTER UPDATE OF area_id ON public.terms FOR EACH ROW WHEN (((new.meaning IS NOT NULL) AND (new.deleted_at IS NULL) AND (new.area_id IS DISTINCT FROM old.area_id))) EXECUTE FUNCTION public.terms_follow();
+
+CREATE TRIGGER terms_guard BEFORE INSERT OR UPDATE ON public.terms FOR EACH ROW EXECUTE FUNCTION public.terms_guard();
+
+CREATE TRIGGER terms_version AFTER INSERT OR UPDATE ON public.terms FOR EACH ROW EXECUTE FUNCTION public.terms_version();
 
 CREATE TRIGGER version_child_insert BEFORE INSERT ON public.item_version_conflicts FOR EACH ROW EXECUTE FUNCTION public.cl_version_child_insert();
 
@@ -4538,8 +6467,29 @@ CREATE TRIGGER vocab_term_service_delete BEFORE DELETE OR TRUNCATE ON public.voc
 
 CREATE TRIGGER vocab_term_service_guard BEFORE INSERT OR UPDATE ON public.vocab_term_service FOR EACH ROW EXECUTE FUNCTION public.vocab_term_service_guard();
 
+ALTER TABLE ONLY auth.access_keys
+    ADD CONSTRAINT access_keys_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY auth.access_keys
+    ADD CONSTRAINT access_keys_revoked_by_fkey FOREIGN KEY (revoked_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY auth.agents
+    ADD CONSTRAINT agents_key_id_fkey FOREIGN KEY (key_id) REFERENCES auth.access_keys(id);
+
+ALTER TABLE ONLY auth.agents
+    ADD CONSTRAINT agents_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY auth.agents
+    ADD CONSTRAINT agents_tools_set_by_fkey FOREIGN KEY (tools_set_by) REFERENCES public.people(id);
+
 ALTER TABLE ONLY auth.dev_people
     ADD CONSTRAINT dev_people_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY auth.group_admins
+    ADD CONSTRAINT group_admins_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 ALTER TABLE ONLY auth.oauth_codes
     ADD CONSTRAINT oauth_codes_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
@@ -4549,6 +6499,9 @@ ALTER TABLE ONLY auth.oauth_codes
 
 ALTER TABLE ONLY auth.oauth_codes
     ADD CONSTRAINT oauth_codes_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY auth.oauth_declines
+    ADD CONSTRAINT oauth_declines_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 ALTER TABLE ONLY auth.oauth_grants
     ADD CONSTRAINT oauth_grants_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
@@ -4561,6 +6514,33 @@ ALTER TABLE ONLY auth.oauth_refresh_tokens
 
 ALTER TABLE ONLY auth.sessions
     ADD CONSTRAINT sessions_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.agent_policies
+    ADD CONSTRAINT agent_policies_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES auth.agents(id);
+
+ALTER TABLE ONLY public.agent_policies
+    ADD CONSTRAINT agent_policies_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.agent_policies
+    ADD CONSTRAINT agent_policies_ended_by_fkey FOREIGN KEY (ended_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.agent_policies
+    ADD CONSTRAINT agent_policies_set_by_fkey FOREIGN KEY (set_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.alert_mutes
+    ADD CONSTRAINT alert_mutes_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.alert_mutes
+    ADD CONSTRAINT alert_mutes_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.alert_mutes
+    ADD CONSTRAINT alert_mutes_rule_fkey FOREIGN KEY (rule) REFERENCES public.alert_rules(rule);
+
+ALTER TABLE ONLY public.alert_raises
+    ADD CONSTRAINT alert_raises_rule_fkey FOREIGN KEY (rule) REFERENCES public.alert_rules(rule);
+
+ALTER TABLE ONLY public.alert_rules
+    ADD CONSTRAINT alert_rules_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.area_assignments
     ADD CONSTRAINT area_assignments_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
@@ -4580,23 +6560,20 @@ ALTER TABLE ONLY public.area_deletions
 ALTER TABLE ONLY public.area_deletions
     ADD CONSTRAINT area_deletions_edition_fkey FOREIGN KEY (edition) REFERENCES public.editions(seq);
 
-ALTER TABLE ONLY public.area_deletions
-    ADD CONSTRAINT area_deletions_restored_by_fkey FOREIGN KEY (restored_by) REFERENCES public.people(id);
-
-ALTER TABLE ONLY public.area_deletions
-    ADD CONSTRAINT area_deletions_restored_edition_fkey FOREIGN KEY (restored_edition) REFERENCES public.editions(seq);
-
-ALTER TABLE ONLY public.area_state_service
-    ADD CONSTRAINT area_state_service_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
-
-ALTER TABLE ONLY public.assistant_case_tries
-    ADD CONSTRAINT assistant_case_tries_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.eval_runs(id);
-
 ALTER TABLE ONLY public.assistant_ratings
     ADD CONSTRAINT assistant_ratings_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
 
 ALTER TABLE ONLY public.audit_log
     ADD CONSTRAINT audit_log_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.card_reads
+    ADD CONSTRAINT card_reads_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.card_states
+    ADD CONSTRAINT card_states_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.card_states
+    ADD CONSTRAINT card_states_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.chat_links
     ADD CONSTRAINT chat_links_connector_id_fkey FOREIGN KEY (connector_id) REFERENCES public.connectors(id);
@@ -4607,8 +6584,68 @@ ALTER TABLE ONLY public.chat_links
 ALTER TABLE ONLY public.check_results
     ADD CONSTRAINT check_results_item_version_id_fkey FOREIGN KEY (item_version_id) REFERENCES public.item_versions(id);
 
-ALTER TABLE ONLY public.check_results
-    ADD CONSTRAINT check_results_run FOREIGN KEY (eval_run_id) REFERENCES public.eval_runs(id);
+ALTER TABLE ONLY public.check_runs
+    ADD CONSTRAINT check_runs_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.check_runs
+    ADD CONSTRAINT check_runs_started_by_fkey FOREIGN KEY (started_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.comment_mentions
+    ADD CONSTRAINT comment_mentions_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES public.comments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.comment_mentions
+    ADD CONSTRAINT comment_mentions_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_anchor_after_fkey FOREIGN KEY (anchor_after) REFERENCES public.item_versions(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_anchor_before_fkey FOREIGN KEY (anchor_before) REFERENCES public.item_versions(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_decision_id_fkey FOREIGN KEY (decision_id) REFERENCES public.decisions(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.comments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_reopened_by_fkey FOREIGN KEY (reopened_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.conflict_decisions
+    ADD CONSTRAINT conflict_decisions_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.conflict_decisions
+    ADD CONSTRAINT conflict_decisions_holder_item_id_fkey FOREIGN KEY (holder_item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.conflict_decisions
+    ADD CONSTRAINT conflict_decisions_kept_item_id_fkey FOREIGN KEY (kept_item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.conflict_decisions
+    ADD CONSTRAINT conflict_decisions_other_item_id_fkey FOREIGN KEY (other_item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.connector_documents
+    ADD CONSTRAINT connector_documents_first_read_id_fkey FOREIGN KEY (first_read_id) REFERENCES public.connector_snapshots(id);
+
+ALTER TABLE ONLY public.connector_documents
+    ADD CONSTRAINT connector_documents_last_read_id_fkey FOREIGN KEY (last_read_id) REFERENCES public.connector_snapshots(id);
+
+ALTER TABLE ONLY public.connector_documents
+    ADD CONSTRAINT connector_documents_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
+
+ALTER TABLE ONLY public.connector_documents
+    ADD CONSTRAINT connector_documents_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.connectors(id);
 
 ALTER TABLE ONLY public.connector_snapshots
     ADD CONSTRAINT connector_snapshots_connector_id_fkey FOREIGN KEY (connector_id) REFERENCES public.connectors(id);
@@ -4616,8 +6653,26 @@ ALTER TABLE ONLY public.connector_snapshots
 ALTER TABLE ONLY public.connectors
     ADD CONSTRAINT connectors_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.people(id);
 
+ALTER TABLE ONLY public.connectors
+    ADD CONSTRAINT connectors_data_contact_id_fkey FOREIGN KEY (data_contact_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.connectors
+    ADD CONSTRAINT connectors_removed_by_fkey FOREIGN KEY (removed_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.decision_undos
+    ADD CONSTRAINT decision_undos_decision_id_fkey FOREIGN KEY (decision_id) REFERENCES public.decisions(id);
+
+ALTER TABLE ONLY public.decision_undos
+    ADD CONSTRAINT decision_undos_edition_seq_fkey FOREIGN KEY (edition_seq) REFERENCES public.editions(seq);
+
+ALTER TABLE ONLY public.decision_undos
+    ADD CONSTRAINT decision_undos_undone_by_fkey FOREIGN KEY (undone_by) REFERENCES public.people(id);
+
 ALTER TABLE ONLY public.decisions
     ADD CONSTRAINT decisions_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.decisions
+    ADD CONSTRAINT decisions_auto_policy_id_fkey FOREIGN KEY (auto_policy_id) REFERENCES public.agent_policies(id);
 
 ALTER TABLE ONLY public.decisions
     ADD CONSTRAINT decisions_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES public.people(id);
@@ -4692,12 +6747,6 @@ ALTER TABLE ONLY public.eval_runs
     ADD CONSTRAINT eval_runs_baseline_edition_seq_fkey FOREIGN KEY (baseline_edition_seq) REFERENCES public.editions(seq);
 
 ALTER TABLE ONLY public.eval_runs
-    ADD CONSTRAINT eval_runs_item_version_id_fkey FOREIGN KEY (item_version_id) REFERENCES public.item_versions(id);
-
-ALTER TABLE ONLY public.eval_runs
-    ADD CONSTRAINT eval_runs_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
-
-ALTER TABLE ONLY public.eval_runs
     ADD CONSTRAINT eval_runs_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.eval_transcripts
@@ -4712,29 +6761,8 @@ ALTER TABLE ONLY public.feedback
 ALTER TABLE ONLY public.gap_notes
     ADD CONSTRAINT gap_notes_gap_id_fkey FOREIGN KEY (gap_id) REFERENCES public.gaps(id);
 
-ALTER TABLE ONLY public.gap_proposals
-    ADD CONSTRAINT gap_proposals_gap_id_fkey FOREIGN KEY (gap_id) REFERENCES public.gaps(id);
-
-ALTER TABLE ONLY public.gap_proposals
-    ADD CONSTRAINT gap_proposals_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
-
 ALTER TABLE ONLY public.gap_report_keys
     ADD CONSTRAINT gap_report_keys_gap_id_fkey FOREIGN KEY (gap_id) REFERENCES public.gaps(id);
-
-ALTER TABLE ONLY public.gap_tests
-    ADD CONSTRAINT gap_tests_evidence_run_fkey FOREIGN KEY (evidence_run) REFERENCES public.eval_runs(id);
-
-ALTER TABLE ONLY public.gap_tests
-    ADD CONSTRAINT gap_tests_gap_id_fkey FOREIGN KEY (gap_id) REFERENCES public.gaps(id);
-
-ALTER TABLE ONLY public.gap_tests
-    ADD CONSTRAINT gap_tests_passed_edition_seq_fkey FOREIGN KEY (passed_edition_seq) REFERENCES public.editions(seq);
-
-ALTER TABLE ONLY public.gap_tests
-    ADD CONSTRAINT gap_tests_passed_run_fkey FOREIGN KEY (passed_run) REFERENCES public.eval_runs(id);
-
-ALTER TABLE ONLY public.gap_tests
-    ADD CONSTRAINT gap_tests_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.golden_questions(id);
 
 ALTER TABLE ONLY public.gap_weekly_counts
     ADD CONSTRAINT gap_weekly_counts_gap_id_fkey FOREIGN KEY (gap_id) REFERENCES public.gaps(id);
@@ -4744,9 +6772,6 @@ ALTER TABLE ONLY public.gaps
 
 ALTER TABLE ONLY public.gaps
     ADD CONSTRAINT gaps_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(id);
-
-ALTER TABLE ONLY public.gaps
-    ADD CONSTRAINT gaps_verified_edition_seq_fkey FOREIGN KEY (verified_edition_seq) REFERENCES public.editions(seq);
 
 ALTER TABLE ONLY public.global_role_grants
     ADD CONSTRAINT global_role_grants_granted_by_fkey FOREIGN KEY (granted_by) REFERENCES public.people(id);
@@ -4781,6 +6806,15 @@ ALTER TABLE ONLY public.inbox_items
 ALTER TABLE ONLY public.inbox_items
     ADD CONSTRAINT inbox_items_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
+ALTER TABLE ONLY public.invites
+    ADD CONSTRAINT invites_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.invites
+    ADD CONSTRAINT invites_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.invites
+    ADD CONSTRAINT invites_revoked_by_fkey FOREIGN KEY (revoked_by) REFERENCES public.people(id);
+
 ALTER TABLE ONLY public.item_bin
     ADD CONSTRAINT item_bin_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
 
@@ -4807,6 +6841,24 @@ ALTER TABLE ONLY public.item_bin
 
 ALTER TABLE ONLY public.item_bin
     ADD CONSTRAINT item_bin_version_id_item_id_fkey FOREIGN KEY (version_id, item_id) REFERENCES public.item_versions(id, item_id);
+
+ALTER TABLE ONLY public.item_changes
+    ADD CONSTRAINT item_changes_made_by_fkey FOREIGN KEY (made_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.item_owners
+    ADD CONSTRAINT item_owners_added_by_fkey FOREIGN KEY (added_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.item_owners
+    ADD CONSTRAINT item_owners_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.item_owners
+    ADD CONSTRAINT item_owners_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.item_reads
+    ADD CONSTRAINT item_reads_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.item_reads
+    ADD CONSTRAINT item_reads_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.item_version_conflicts
     ADD CONSTRAINT item_version_conflicts_other_item_id_fkey FOREIGN KEY (other_item_id) REFERENCES public.items(id);
@@ -4840,6 +6892,9 @@ ALTER TABLE ONLY public.item_version_mentions
 
 ALTER TABLE ONLY public.item_version_mentions
     ADD CONSTRAINT item_version_mentions_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.item_version_mentions
+    ADD CONSTRAINT item_version_mentions_term_id_fkey FOREIGN KEY (term_id) REFERENCES public.terms(id);
 
 ALTER TABLE ONLY public.item_version_mentions
     ADD CONSTRAINT item_version_mentions_term_key_fkey FOREIGN KEY (term_key) REFERENCES public.vocab_terms(key);
@@ -4899,16 +6954,31 @@ ALTER TABLE ONLY public.llm_spend_daily
     ADD CONSTRAINT llm_spend_daily_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.model_calls
-    ADD CONSTRAINT model_calls_case_try FOREIGN KEY (case_try_id) REFERENCES public.assistant_case_tries(id);
-
-ALTER TABLE ONLY public.model_calls
     ADD CONSTRAINT model_calls_cell_id_fkey FOREIGN KEY (cell_id) REFERENCES public.eval_cells(id);
 
 ALTER TABLE ONLY public.model_calls
     ADD CONSTRAINT model_calls_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.eval_runs(id);
 
+ALTER TABLE ONLY public.names_left_out
+    ADD CONSTRAINT names_left_out_definition_ref_fkey FOREIGN KEY (definition_ref) REFERENCES public.definitions(ref);
+
+ALTER TABLE ONLY public.names_left_out
+    ADD CONSTRAINT names_left_out_left_by_fkey FOREIGN KEY (left_by) REFERENCES public.people(id);
+
 ALTER TABLE ONLY public.notification_prefs
     ADD CONSTRAINT notification_prefs_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.obs_caught_weekly
+    ADD CONSTRAINT obs_caught_weekly_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.obs_snapshots
+    ADD CONSTRAINT obs_snapshots_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.obs_weekly
+    ADD CONSTRAINT obs_weekly_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.observability_views
+    ADD CONSTRAINT observability_views_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.outbox_events
     ADD CONSTRAINT outbox_events_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.people(id);
@@ -4931,11 +7001,26 @@ ALTER TABLE ONLY public.proposal_events
 ALTER TABLE ONLY public.proposal_events
     ADD CONSTRAINT proposal_events_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
 
+ALTER TABLE ONLY public.proposal_relations
+    ADD CONSTRAINT proposal_relations_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.proposal_relations
+    ADD CONSTRAINT proposal_relations_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.proposal_relations
+    ADD CONSTRAINT proposal_relations_item_version_id_fkey FOREIGN KEY (item_version_id) REFERENCES public.item_versions(id);
+
+ALTER TABLE ONLY public.proposal_relations
+    ADD CONSTRAINT proposal_relations_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
+
 ALTER TABLE ONLY public.proposal_tests
     ADD CONSTRAINT proposal_tests_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
 
 ALTER TABLE ONLY public.proposal_tests
     ADD CONSTRAINT proposal_tests_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.golden_questions(id);
+
+ALTER TABLE ONLY public.proposals
+    ADD CONSTRAINT proposals_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES auth.agents(id);
 
 ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
@@ -4945,6 +7030,9 @@ ALTER TABLE ONLY public.proposals
 
 ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_derived_from_fkey FOREIGN KEY (derived_from) REFERENCES public.proposals(id);
+
+ALTER TABLE ONLY public.proposals
+    ADD CONSTRAINT proposals_discarded_by_fkey FOREIGN KEY (discarded_by) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_import_batch FOREIGN KEY (import_batch_id) REFERENCES public.import_batches(id);
@@ -4959,10 +7047,43 @@ ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_proposer_id_fkey FOREIGN KEY (proposer_id) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.proposals
+    ADD CONSTRAINT proposals_source_document_fkey FOREIGN KEY (source_id, source_document_id) REFERENCES public.connector_documents(source_id, document_id);
+
+ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_source_gap FOREIGN KEY (source_gap_id) REFERENCES public.gaps(id);
 
 ALTER TABLE ONLY public.proposals
+    ADD CONSTRAINT proposals_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.connectors(id);
+
+ALTER TABLE ONLY public.proposals
+    ADD CONSTRAINT proposals_source_read_id_fkey FOREIGN KEY (source_read_id) REFERENCES public.connector_snapshots(id);
+
+ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_vocab_version_id_fkey FOREIGN KEY (vocab_version_id) REFERENCES public.vocab_term_versions(id);
+
+ALTER TABLE ONLY public.reactions
+    ADD CONSTRAINT reactions_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES public.comments(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.reactions
+    ADD CONSTRAINT reactions_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.reactions
+    ADD CONSTRAINT reactions_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.reactions
+    ADD CONSTRAINT reactions_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_figure_source_fkey FOREIGN KEY (figure_source) REFERENCES public.connectors(id);
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 ALTER TABLE ONLY public.retrieval_results
     ADD CONSTRAINT retrieval_results_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
@@ -4976,6 +7097,39 @@ ALTER TABLE ONLY public.retrieval_results
 ALTER TABLE ONLY public.retrieval_runs
     ADD CONSTRAINT retrieval_runs_edition_seq_fkey FOREIGN KEY (edition_seq) REFERENCES public.editions(seq);
 
+ALTER TABLE ONLY public.review_reads
+    ADD CONSTRAINT review_reads_item_version_id_fkey FOREIGN KEY (item_version_id) REFERENCES public.item_versions(id);
+
+ALTER TABLE ONLY public.review_reads
+    ADD CONSTRAINT review_reads_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.review_reads
+    ADD CONSTRAINT review_reads_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
+
+ALTER TABLE ONLY public.saved_question_baselines
+    ADD CONSTRAINT saved_question_baselines_kept_by_fkey FOREIGN KEY (kept_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.saved_question_baselines
+    ADD CONSTRAINT saved_question_baselines_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.saved_questions(id);
+
+ALTER TABLE ONLY public.saved_question_results
+    ADD CONSTRAINT saved_question_results_baseline_id_fkey FOREIGN KEY (baseline_id) REFERENCES public.saved_question_baselines(id);
+
+ALTER TABLE ONLY public.saved_question_results
+    ADD CONSTRAINT saved_question_results_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.saved_questions(id);
+
+ALTER TABLE ONLY public.saved_question_results
+    ADD CONSTRAINT saved_question_results_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.check_runs(id);
+
+ALTER TABLE ONLY public.saved_questions
+    ADD CONSTRAINT saved_questions_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.saved_questions
+    ADD CONSTRAINT saved_questions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.saved_questions
+    ADD CONSTRAINT saved_questions_removed_by_fkey FOREIGN KEY (removed_by) REFERENCES public.people(id);
+
 ALTER TABLE ONLY public.saved_views
     ADD CONSTRAINT saved_views_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
@@ -4987,6 +7141,45 @@ ALTER TABLE ONLY public.source_domain_service
 
 ALTER TABLE ONLY public.source_domain_service
     ADD CONSTRAINT source_domain_service_term_key_fkey FOREIGN KEY (term_key) REFERENCES public.vocab_terms(key);
+
+ALTER TABLE ONLY public.term_changes
+    ADD CONSTRAINT term_changes_made_by_fkey FOREIGN KEY (made_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.term_versions
+    ADD CONSTRAINT term_versions_made_by_fkey FOREIGN KEY (made_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.term_versions
+    ADD CONSTRAINT term_versions_term_id_fkey FOREIGN KEY (term_id) REFERENCES public.terms(id);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_deleted_by_fkey FOREIGN KEY (deleted_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_deleted_with_fkey FOREIGN KEY (deleted_with) REFERENCES public.terms(id);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_same_as_key_fkey FOREIGN KEY (same_as_key) REFERENCES public.vocab_terms(key);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_same_as_term_fkey FOREIGN KEY (same_as_term) REFERENCES public.terms(id);
+
+ALTER TABLE ONLY public.terms
+    ADD CONSTRAINT terms_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.thread_reads
+    ADD CONSTRAINT thread_reads_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id);
+
+ALTER TABLE ONLY public.thread_reads
+    ADD CONSTRAINT thread_reads_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+ALTER TABLE ONLY public.thread_reads
+    ADD CONSTRAINT thread_reads_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
 
 ALTER TABLE ONLY public.topic_week_counts
     ADD CONSTRAINT topic_week_counts_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(id);
@@ -5027,6 +7220,36 @@ ALTER TABLE ONLY public.webhook_endpoints
 ALTER TABLE ONLY public.webhook_endpoints
     ADD CONSTRAINT webhook_endpoints_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.people(id);
 
+ALTER TABLE public.agent_policies ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY agent_policies_end ON public.agent_policies FOR UPDATE USING (((ended_at IS NULL) AND ((set_by = public.cl_person()) OR public.cl_is_owner_now(area_id) OR public.cl_is_admin_now() OR (EXISTS ( SELECT 1
+   FROM auth.agents a
+  WHERE ((a.id = agent_policies.agent_id) AND (a.person_id = public.cl_person()))))))) WITH CHECK ((ended_by = public.cl_person()));
+
+CREATE POLICY agent_policies_insert ON public.agent_policies FOR INSERT WITH CHECK (((set_by = public.cl_person()) AND public.cl_is_owner_now(area_id)));
+
+CREATE POLICY agent_policies_read ON public.agent_policies FOR SELECT USING ((public.cl_person() IS NOT NULL));
+
+ALTER TABLE public.alert_mutes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY alert_mutes_delete ON public.alert_mutes FOR DELETE USING ((person_id = public.cl_person()));
+
+CREATE POLICY alert_mutes_insert ON public.alert_mutes FOR INSERT WITH CHECK (((person_id = public.cl_person()) AND public.cl_is_owner_now(area_id)));
+
+CREATE POLICY alert_mutes_read ON public.alert_mutes FOR SELECT USING ((person_id = public.cl_person()));
+
+ALTER TABLE public.alert_raises ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY alert_raises_read ON public.alert_raises FOR SELECT USING ((public.cl_is_admin_now() OR (EXISTS ( SELECT 1
+   FROM unnest(alert_raises.area_ids) a(a)
+  WHERE public.cl_is_owner_now(a.a))) OR ((public.cl_person() IS NULL) AND (public.cl_source() IS NULL))));
+
+ALTER TABLE public.alert_rules ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY alert_rules_change ON public.alert_rules FOR UPDATE USING (public.cl_is_admin_now()) WITH CHECK ((public.cl_is_admin_now() AND (changed_by = public.cl_person())));
+
+CREATE POLICY alert_rules_read ON public.alert_rules FOR SELECT USING (true);
+
 ALTER TABLE public.area_assignments ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.area_deletions ENABLE ROW LEVEL SECURITY;
@@ -5035,33 +7258,43 @@ CREATE POLICY area_deletions_insert ON public.area_deletions FOR INSERT WITH CHE
 
 CREATE POLICY area_deletions_read ON public.area_deletions FOR SELECT USING (public.cl_is_admin_now());
 
-CREATE POLICY area_deletions_restore ON public.area_deletions FOR UPDATE USING (public.cl_is_admin_now()) WITH CHECK ((public.cl_is_admin_now() AND (restored_by = public.cl_person())));
-
-CREATE POLICY assignments_insert ON public.area_assignments FOR INSERT WITH CHECK (public.cl_is_admin_now());
+CREATE POLICY assignments_insert ON public.area_assignments FOR INSERT WITH CHECK ((public.cl_is_admin_now() OR ((role = 'owner'::public.area_role) AND public.cl_is_owner_now(area_id))));
 
 CREATE POLICY assignments_read ON public.area_assignments FOR SELECT USING (true);
 
-CREATE POLICY assignments_update ON public.area_assignments FOR UPDATE USING (public.cl_is_admin_now()) WITH CHECK (public.cl_is_admin_now());
-
-ALTER TABLE public.assistant_case_tries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY assistant_case_tries_insert ON public.assistant_case_tries FOR INSERT WITH CHECK (true);
-
-CREATE POLICY assistant_case_tries_read ON public.assistant_case_tries FOR SELECT USING ((public.cl_is_admin_now() OR (EXISTS ( SELECT 1
-   FROM public.eval_runs r
-  WHERE ((r.id = assistant_case_tries.run_id) AND (r.requested_by = public.cl_person()))))));
-
-CREATE POLICY assistant_case_tries_update ON public.assistant_case_tries FOR UPDATE USING ((public.cl_is_admin_now() OR (EXISTS ( SELECT 1
-   FROM public.eval_runs r
-  WHERE ((r.id = assistant_case_tries.run_id) AND (r.requested_by = public.cl_person()))))));
+CREATE POLICY assignments_update ON public.area_assignments FOR UPDATE USING ((public.cl_is_admin_now() OR ((role = 'owner'::public.area_role) AND public.cl_is_owner_now(area_id)))) WITH CHECK ((public.cl_is_admin_now() OR ((role = 'owner'::public.area_role) AND public.cl_is_owner_now(area_id))));
 
 CREATE POLICY audit_insert ON public.audit_log FOR INSERT WITH CHECK (true);
 
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY audit_read ON public.audit_log FOR SELECT USING (public.cl_is_auditor_now());
+CREATE POLICY audit_read ON public.audit_log FOR SELECT USING (public.cl_is_admin_now());
+
+ALTER TABLE public.card_reads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY card_reads_own ON public.card_reads USING ((person_id = public.cl_person())) WITH CHECK ((person_id = public.cl_person()));
+
+ALTER TABLE public.card_states ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY card_states_delete ON public.card_states FOR DELETE USING (((decided_by = public.cl_person()) AND (now() < public.cl_undo_until(decided_at))));
+
+CREATE POLICY card_states_insert ON public.card_states FOR INSERT WITH CHECK (((decided_by = public.cl_person()) AND (public.cl_is_admin_now() OR public.cl_is_owner_now(area_id))));
+
+CREATE POLICY card_states_insert_contact ON public.card_states FOR INSERT WITH CHECK (((decided_by = public.cl_person()) AND public.cl_closes_figure_report(card)));
+
+CREATE POLICY card_states_read ON public.card_states FOR SELECT USING ((public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
+
+CREATE POLICY card_states_read_contact ON public.card_states FOR SELECT USING (public.cl_closes_figure_report(card));
 
 ALTER TABLE public.check_results ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.check_runs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY check_runs_insert ON public.check_runs FOR INSERT WITH CHECK ((((started_by = public.cl_person()) AND ((area_id IS NULL) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id))) OR ((started_by IS NULL) AND (public.cl_person() IS NULL) AND (public.cl_source() IS NULL))));
+
+CREATE POLICY check_runs_read ON public.check_runs FOR SELECT USING (true);
+
+CREATE POLICY check_runs_update ON public.check_runs FOR UPDATE USING (((NOT (started_by IS DISTINCT FROM public.cl_person())) AND (public.cl_source() IS NULL))) WITH CHECK ((NOT (started_by IS DISTINCT FROM public.cl_person())));
 
 CREATE POLICY checks_insert ON public.check_results FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM public.item_versions v
@@ -5070,6 +7303,52 @@ CREATE POLICY checks_insert ON public.check_results FOR INSERT WITH CHECK ((EXIS
 CREATE POLICY checks_read ON public.check_results FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.item_versions v
   WHERE (v.id = check_results.item_version_id))));
+
+ALTER TABLE public.comment_mentions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY comment_mentions_delete ON public.comment_mentions FOR DELETE USING ((EXISTS ( SELECT 1
+   FROM public.comments c
+  WHERE ((c.id = comment_mentions.comment_id) AND (c.author_id = public.cl_person())))));
+
+CREATE POLICY comment_mentions_insert ON public.comment_mentions FOR INSERT WITH CHECK (((seen_at IS NULL) AND (EXISTS ( SELECT 1
+   FROM public.comments c
+  WHERE ((c.id = comment_mentions.comment_id) AND (c.author_id = public.cl_person()) AND (c.deleted_at IS NULL))))));
+
+CREATE POLICY comment_mentions_read ON public.comment_mentions FOR SELECT USING (((person_id = public.cl_person()) OR (EXISTS ( SELECT 1
+   FROM public.comments c
+  WHERE ((c.id = comment_mentions.comment_id) AND (c.author_id = public.cl_person()))))));
+
+CREATE POLICY comment_mentions_seen ON public.comment_mentions FOR UPDATE USING ((person_id = public.cl_person())) WITH CHECK ((person_id = public.cl_person()));
+
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY comments_delete ON public.comments FOR DELETE USING ((author_id = public.cl_person()));
+
+CREATE POLICY comments_insert ON public.comments FOR INSERT WITH CHECK (((author_id = public.cl_person()) AND public.cl_comment_subject_open(item_id, proposal_id)));
+
+CREATE POLICY comments_read ON public.comments FOR SELECT USING (((public.cl_person() IS NOT NULL) AND public.cl_comment_subject_open(item_id, proposal_id)));
+
+CREATE POLICY comments_resolve ON public.comments FOR UPDATE USING (((public.cl_person() IS NOT NULL) AND (parent_id IS NULL) AND (num_nonnulls(anchor_field, anchor_line) = 1) AND public.cl_comment_subject_open(item_id, proposal_id))) WITH CHECK (((public.cl_person() IS NOT NULL) AND (parent_id IS NULL) AND (num_nonnulls(anchor_field, anchor_line) = 1) AND public.cl_comment_subject_open(item_id, proposal_id)));
+
+CREATE POLICY comments_update ON public.comments FOR UPDATE USING (((author_id = public.cl_person()) AND public.cl_comment_subject_open(item_id, proposal_id))) WITH CHECK ((author_id = public.cl_person()));
+
+ALTER TABLE public.conflict_decisions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY conflict_decisions_read ON public.conflict_decisions FOR SELECT USING (((public.cl_person() IS NOT NULL) AND public.cl_item_open(holder_item_id) AND public.cl_item_open(other_item_id)));
+
+CREATE POLICY conflict_decisions_undo ON public.conflict_decisions FOR UPDATE USING (((decided_by = public.cl_person()) AND (undone_at IS NULL) AND (now() < public.cl_undo_until(decided_at)))) WITH CHECK (((decided_by = public.cl_person()) AND (undone_at IS NOT NULL)));
+
+CREATE POLICY conflict_decisions_write ON public.conflict_decisions FOR INSERT WITH CHECK (((decided_by = public.cl_person()) AND (undone_at IS NULL) AND public.cl_item_open(holder_item_id) AND public.cl_item_open(other_item_id)));
+
+ALTER TABLE public.decision_undos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY decision_undos_insert ON public.decision_undos FOR INSERT WITH CHECK (((undone_by = public.cl_person()) AND (EXISTS ( SELECT 1
+   FROM public.decisions d
+  WHERE ((d.id = decision_undos.decision_id) AND (((d.decided_by = public.cl_person()) AND (now() < public.cl_undo_until(d.decided_at))) OR ((d.auto_policy_id IS NOT NULL) AND (public.cl_is_owner_now(d.area_id) OR public.cl_is_admin_now()))))))));
+
+CREATE POLICY decision_undos_read ON public.decision_undos FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.decisions d
+  WHERE (d.id = decision_undos.decision_id))));
 
 ALTER TABLE public.decisions ENABLE ROW LEVEL SECURITY;
 
@@ -5096,31 +7375,6 @@ CREATE POLICY gap_notes_read ON public.gap_notes FOR SELECT USING ((EXISTS ( SEL
 
 CREATE POLICY gap_notes_write ON public.gap_notes USING (public.cl_is_admin_now()) WITH CHECK (true);
 
-ALTER TABLE public.gap_tests ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY gap_tests_link ON public.gap_tests FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM (public.gaps g
-     JOIN public.topics t ON ((t.id = g.topic_id)))
-  WHERE ((g.id = gap_tests.gap_id) AND public.cl_manages_topic(t.area_id, t.metric_keys)))));
-
-CREATE POLICY gap_tests_pass ON public.gap_tests FOR UPDATE USING ((EXISTS ( SELECT 1
-   FROM (public.gaps g
-     JOIN public.topics t ON ((t.id = g.topic_id)))
-  WHERE ((g.id = gap_tests.gap_id) AND public.cl_manages_topic(t.area_id, t.metric_keys))))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM (public.gaps g
-     JOIN public.topics t ON ((t.id = g.topic_id)))
-  WHERE ((g.id = gap_tests.gap_id) AND public.cl_manages_topic(t.area_id, t.metric_keys)))));
-
-CREATE POLICY gap_tests_read ON public.gap_tests FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM (public.gaps g
-     JOIN public.topics t ON ((t.id = g.topic_id)))
-  WHERE ((g.id = gap_tests.gap_id) AND public.cl_manages_topic(t.area_id, t.metric_keys)))));
-
-CREATE POLICY gap_tests_unlink ON public.gap_tests FOR DELETE USING ((EXISTS ( SELECT 1
-   FROM (public.gaps g
-     JOIN public.topics t ON ((t.id = g.topic_id)))
-  WHERE ((g.id = gap_tests.gap_id) AND public.cl_manages_topic(t.area_id, t.metric_keys)))));
-
 ALTER TABLE public.global_role_grants ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.idempotency_keys ENABLE ROW LEVEL SECURITY;
@@ -5131,6 +7385,14 @@ ALTER TABLE public.inbox_items ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY inbox_own ON public.inbox_items USING ((person_id = public.cl_person())) WITH CHECK ((person_id = public.cl_person()));
 
+ALTER TABLE public.invites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY invites_insert ON public.invites FOR INSERT WITH CHECK (((invited_by = public.cl_person()) AND (accepted_at IS NULL) AND (revoked_at IS NULL) AND (public.cl_is_admin_now() OR ((role = 'member'::text) AND (cardinality(area_ids) > 0) AND public.cl_owns_all(area_ids)))));
+
+CREATE POLICY invites_read ON public.invites FOR SELECT USING ((public.cl_person() IS NOT NULL));
+
+CREATE POLICY invites_update ON public.invites FOR UPDATE USING ((public.cl_is_admin_now() OR (invited_by = public.cl_person()))) WITH CHECK (((accepted_at IS NULL) AND (((revoked_at IS NOT NULL) AND (revoked_by = public.cl_person())) OR ((revoked_at IS NULL) AND (public.cl_is_admin_now() OR ((role = 'member'::text) AND (cardinality(area_ids) > 0) AND public.cl_owns_all(area_ids)))))));
+
 ALTER TABLE public.item_bin ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY item_bin_insert ON public.item_bin FOR INSERT WITH CHECK ((public.cl_is_admin_now() AND (binned_by = public.cl_person())));
@@ -5138,6 +7400,32 @@ CREATE POLICY item_bin_insert ON public.item_bin FOR INSERT WITH CHECK ((public.
 CREATE POLICY item_bin_read ON public.item_bin FOR SELECT USING ((public.cl_is_admin_now() OR (restored_at IS NOT NULL)));
 
 CREATE POLICY item_bin_restore ON public.item_bin FOR UPDATE USING (public.cl_is_admin_now()) WITH CHECK ((public.cl_is_admin_now() AND (restored_by = public.cl_person())));
+
+ALTER TABLE public.item_changes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY item_changes_insert ON public.item_changes FOR INSERT WITH CHECK ((made_by = public.cl_person()));
+
+CREATE POLICY item_changes_read ON public.item_changes FOR SELECT USING (((action <> 'deleted'::text) OR (made_by = public.cl_person()) OR public.cl_is_admin_now()));
+
+CREATE POLICY item_changes_undo ON public.item_changes FOR UPDATE USING (((made_by = public.cl_person()) AND (undone_at IS NULL) AND (now() < public.cl_undo_until(made_at)))) WITH CHECK (((made_by = public.cl_person()) AND (undone_at IS NOT NULL)));
+
+ALTER TABLE public.item_owners ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY item_owners_delete ON public.item_owners FOR DELETE USING ((EXISTS ( SELECT 1
+   FROM (public.v_items_current c
+     JOIN public.item_versions v ON ((v.id = c.version_id)))
+  WHERE ((c.item_id = item_owners.item_id) AND (public.cl_is_admin_now() OR public.cl_is_owner_now(v.area_id))))));
+
+CREATE POLICY item_owners_insert ON public.item_owners FOR INSERT WITH CHECK (((added_by = public.cl_person()) AND (EXISTS ( SELECT 1
+   FROM (public.v_items_current c
+     JOIN public.item_versions v ON ((v.id = c.version_id)))
+  WHERE ((c.item_id = item_owners.item_id) AND (public.cl_is_admin_now() OR public.cl_is_owner_now(v.area_id)) AND (public.cl_is_admin(item_owners.person_id, now()) OR public.cl_has_area_role(item_owners.person_id, v.area_id, 'owner'::public.area_role, now())))))));
+
+CREATE POLICY item_owners_read ON public.item_owners FOR SELECT USING (public.cl_item_open(item_id));
+
+ALTER TABLE public.item_reads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY item_reads_own ON public.item_reads USING ((person_id = public.cl_person())) WITH CHECK ((person_id = public.cl_person()));
 
 ALTER TABLE public.item_version_conflicts ENABLE ROW LEVEL SECURITY;
 
@@ -5161,7 +7449,29 @@ CREATE POLICY item_versions_insert ON public.item_versions FOR INSERT WITH CHECK
 
 CREATE POLICY item_versions_read ON public.item_versions FOR SELECT USING ((((EXISTS ( SELECT 1
    FROM public.item_version_service s
-  WHERE (s.version_id = item_versions.id))) AND public.cl_audience_allows(audience_groups) AND public.cl_item_open(item_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id)));
+  WHERE (s.version_id = item_versions.id))) AND public.cl_audience_allows(audience_groups) AND public.cl_item_open(item_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
+
+CREATE POLICY item_versions_source_insert ON public.item_versions FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (created_via = 'source'::public.creation_channel) AND (proposer_id IS NULL)));
+
+CREATE POLICY item_versions_source_read ON public.item_versions FOR SELECT USING (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (created_via = 'source'::public.creation_channel)));
+
+ALTER TABLE public.names_left_out ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY names_left_out_delete ON public.names_left_out FOR DELETE USING ((public.cl_is_admin_now() OR public.cl_is_owner_now(( SELECT d.area_hint
+   FROM public.definitions d
+  WHERE (d.ref = names_left_out.definition_ref)))));
+
+CREATE POLICY names_left_out_insert ON public.names_left_out FOR INSERT WITH CHECK (((left_by = public.cl_person()) AND (public.cl_is_admin_now() OR public.cl_is_owner_now(( SELECT d.area_hint
+   FROM public.definitions d
+  WHERE (d.ref = names_left_out.definition_ref))))));
+
+CREATE POLICY names_left_out_read ON public.names_left_out FOR SELECT USING (true);
+
+ALTER TABLE public.obs_snapshots ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY obs_snapshots_insert ON public.obs_snapshots FOR INSERT WITH CHECK ((public.cl_is_admin_now() OR ((public.cl_person() IS NULL) AND (public.cl_source() IS NULL))));
+
+CREATE POLICY obs_snapshots_read ON public.obs_snapshots FOR SELECT USING ((public.cl_is_admin_now() OR ((area_id IS NOT NULL) AND public.cl_is_owner_now(area_id)) OR ((public.cl_person() IS NULL) AND (public.cl_source() IS NULL))));
 
 ALTER TABLE public.proposal_events ENABLE ROW LEVEL SECURITY;
 
@@ -5171,7 +7481,17 @@ CREATE POLICY proposal_events_insert ON public.proposal_events FOR INSERT WITH C
 
 CREATE POLICY proposal_events_read ON public.proposal_events FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.proposals p
-  WHERE ((p.id = proposal_events.proposal_id) AND ((proposal_events.kind <> 'commented'::text) OR (p.proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(p.area_id))))));
+  WHERE ((p.id = proposal_events.proposal_id) AND ((proposal_events.kind <> 'commented'::text) OR (p.proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(p.area_id))))));
+
+ALTER TABLE public.proposal_relations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY proposal_relations_insert ON public.proposal_relations FOR INSERT WITH CHECK (((decided_by = public.cl_person()) AND (EXISTS ( SELECT 1
+   FROM public.proposals p
+  WHERE ((p.id = proposal_relations.proposal_id) AND (p.item_version_id = proposal_relations.item_version_id) AND (p.state = ANY (ARRAY['submitted'::public.proposal_state, 'in_review'::public.proposal_state])) AND (p.item_id IS DISTINCT FROM proposal_relations.item_id) AND (public.cl_is_admin_now() OR public.cl_is_owner_now(p.area_id)))))));
+
+CREATE POLICY proposal_relations_read ON public.proposal_relations FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.proposals p
+  WHERE (p.id = proposal_relations.proposal_id))));
 
 ALTER TABLE public.proposal_tests ENABLE ROW LEVEL SECURITY;
 
@@ -5191,9 +7511,45 @@ CREATE POLICY proposal_tests_read ON public.proposal_tests FOR SELECT USING (((E
 
 ALTER TABLE public.proposals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY proposals_read ON public.proposals FOR SELECT USING ((((state = 'accepted'::public.proposal_state) AND public.cl_item_open(item_id) AND public.cl_version_open(item_version_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id)));
+CREATE POLICY proposals_read ON public.proposals FOR SELECT USING ((((state = 'accepted'::public.proposal_state) AND public.cl_item_open(item_id) AND public.cl_version_open(item_version_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
 
-CREATE POLICY proposals_write ON public.proposals USING (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id))) WITH CHECK (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id)));
+CREATE POLICY proposals_source ON public.proposals USING (((public.cl_person() IS NULL) AND (source_id = public.cl_source()))) WITH CHECK (((public.cl_person() IS NULL) AND (source_id = public.cl_source()) AND (channel = 'source'::public.creation_channel) AND (proposer_id IS NULL)));
+
+CREATE POLICY proposals_write ON public.proposals USING (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id))) WITH CHECK (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
+
+ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY reactions_delete ON public.reactions FOR DELETE USING ((person_id = public.cl_person()));
+
+CREATE POLICY reactions_insert ON public.reactions FOR INSERT WITH CHECK (((person_id = public.cl_person()) AND
+CASE
+    WHEN (comment_id IS NOT NULL) THEN (EXISTS ( SELECT 1
+       FROM public.comments c
+      WHERE (c.id = reactions.comment_id)))
+    ELSE public.cl_comment_subject_open(item_id, proposal_id)
+END));
+
+CREATE POLICY reactions_read ON public.reactions FOR SELECT USING (((public.cl_person() IS NOT NULL) AND
+CASE
+    WHEN (comment_id IS NOT NULL) THEN (EXISTS ( SELECT 1
+       FROM public.comments c
+      WHERE (c.id = reactions.comment_id)))
+    ELSE public.cl_comment_subject_open(item_id, proposal_id)
+END));
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY reports_insert ON public.reports FOR INSERT WITH CHECK (((person_id = public.cl_person()) AND public.cl_item_open(item_id)));
+
+CREATE POLICY reports_read ON public.reports FOR SELECT USING (((person_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id) OR ((figure_route = ANY (ARRAY['contact'::text, 'both'::text])) AND public.cl_is_figure_contact(figure_source))));
+
+ALTER TABLE public.review_reads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY review_reads_own ON public.review_reads USING (((person_id = public.cl_person()) AND (EXISTS ( SELECT 1
+   FROM public.proposals p
+  WHERE (p.id = review_reads.proposal_id))))) WITH CHECK (((person_id = public.cl_person()) AND (EXISTS ( SELECT 1
+   FROM public.proposals p
+  WHERE (p.id = review_reads.proposal_id)))));
 
 CREATE POLICY roles_insert ON public.global_role_grants FOR INSERT WITH CHECK (public.cl_is_admin_now());
 
@@ -5201,9 +7557,65 @@ CREATE POLICY roles_read ON public.global_role_grants FOR SELECT USING (true);
 
 CREATE POLICY roles_update ON public.global_role_grants FOR UPDATE USING (public.cl_is_admin_now()) WITH CHECK (public.cl_is_admin_now());
 
+ALTER TABLE public.saved_question_baselines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY saved_question_baselines_insert ON public.saved_question_baselines FOR INSERT WITH CHECK (((kept_by = public.cl_person()) AND (EXISTS ( SELECT 1
+   FROM public.saved_questions q
+  WHERE (q.id = saved_question_baselines.question_id)))));
+
+CREATE POLICY saved_question_baselines_read ON public.saved_question_baselines FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.saved_questions q
+  WHERE (q.id = saved_question_baselines.question_id))));
+
+CREATE POLICY saved_question_baselines_undo ON public.saved_question_baselines FOR UPDATE USING (((kept_by = public.cl_person()) AND (why = 'kept'::text))) WITH CHECK ((kept_by = public.cl_person()));
+
+ALTER TABLE public.saved_question_results ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY saved_question_results_insert ON public.saved_question_results FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
+   FROM public.saved_questions q
+  WHERE (q.id = saved_question_results.question_id))) OR ((public.cl_person() IS NULL) AND (public.cl_source() IS NULL))));
+
+CREATE POLICY saved_question_results_read ON public.saved_question_results FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.saved_questions q
+  WHERE (q.id = saved_question_results.question_id))));
+
+ALTER TABLE public.saved_questions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY saved_questions_insert ON public.saved_questions FOR INSERT WITH CHECK (((created_by = public.cl_person()) AND (removed_at IS NULL) AND (public.cl_is_admin_now() OR public.cl_is_owner_now(area_id))));
+
+CREATE POLICY saved_questions_read ON public.saved_questions FOR SELECT USING ((public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
+
+CREATE POLICY saved_questions_remove ON public.saved_questions FOR UPDATE USING ((public.cl_is_admin_now() OR public.cl_is_owner_now(area_id))) WITH CHECK ((removed_by = public.cl_person()));
+
 ALTER TABLE public.saved_views ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY saved_views_own ON public.saved_views USING ((person_id = public.cl_person())) WITH CHECK ((person_id = public.cl_person()));
+
+ALTER TABLE public.term_changes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY term_changes_insert ON public.term_changes FOR INSERT WITH CHECK ((made_by = public.cl_person()));
+
+CREATE POLICY term_changes_read ON public.term_changes FOR SELECT USING (((made_by = public.cl_person()) OR public.cl_is_admin_now()));
+
+CREATE POLICY term_changes_undo ON public.term_changes FOR UPDATE USING (((made_by = public.cl_person()) AND (undone_at IS NULL) AND (now() < public.cl_undo_until(made_at)))) WITH CHECK (((made_by = public.cl_person()) AND (undone_at IS NOT NULL)));
+
+ALTER TABLE public.term_versions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY term_versions_read ON public.term_versions FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.terms t
+  WHERE (t.id = term_versions.term_id))));
+
+ALTER TABLE public.terms ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY terms_insert ON public.terms FOR INSERT WITH CHECK (((created_by = public.cl_person()) AND (updated_by = public.cl_person()) AND (public.cl_is_admin_now() OR ((area_id IS NOT NULL) AND public.cl_is_owner_now(area_id)))));
+
+CREATE POLICY terms_read ON public.terms FOR SELECT USING (((deleted_at IS NULL) OR public.cl_is_admin_now() OR (deleted_by = public.cl_person()) OR ((area_id IS NOT NULL) AND public.cl_is_owner_now(area_id))));
+
+CREATE POLICY terms_update ON public.terms FOR UPDATE USING ((public.cl_is_admin_now() OR ((area_id IS NOT NULL) AND public.cl_is_owner_now(area_id)))) WITH CHECK (((updated_by = public.cl_person()) AND (public.cl_is_admin_now() OR ((area_id IS NOT NULL) AND public.cl_is_owner_now(area_id)))));
+
+ALTER TABLE public.thread_reads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY thread_reads_own ON public.thread_reads USING ((person_id = public.cl_person())) WITH CHECK (((person_id = public.cl_person()) AND public.cl_comment_subject_open(item_id, proposal_id)));
 
 CREATE POLICY transcripts_read ON public.eval_transcripts FOR SELECT USING ((public.cl_is_admin_now() OR (EXISTS ( SELECT 1
    FROM public.areas a
@@ -5275,7 +7687,39 @@ CREATE POLICY version_child_read ON public.item_version_replaces FOR SELECT USIN
    FROM public.item_versions v
   WHERE (v.id = item_version_replaces.version_id))));
 
--- This month's and the next two months' partitions of the AI app request and delivery logs.
+CREATE POLICY version_child_source_insert ON public.item_version_conflicts FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_conflicts.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_dimension_values FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_dimension_values.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_dimensions FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_dimensions.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_evidence FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_evidence.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_mentions FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_mentions.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_metrics FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_metrics.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_refs FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_refs.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+CREATE POLICY version_child_source_insert ON public.item_version_replaces FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.item_versions v
+  WHERE ((v.id = item_version_replaces.version_id) AND (v.created_via = 'source'::public.creation_channel))))));
+
+-- This month's and the next two months' partitions of the agent request and delivery logs.
 select public.cl_ensure_delivery_partitions(2), public.cl_ensure_request_partitions(2);
 
 -- Back to the settings the migration runner started with, for its own bookkeeping.

@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto'
-import { contentDigest } from '../../../domain/canonical.ts'
 import type {
   Agreement,
   CellScore,
@@ -7,23 +5,16 @@ import type {
   QuestionLayers,
   Verdict,
 } from '../../../domain/golden-question.ts'
-import { noneWorseWords, testChange, testChangeWords } from '../../../domain/review.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { toolSchemaDigest } from '../../mcp/tools.ts'
-import {
-  asDelivered,
-  enabledTools,
-  loadServingBundle,
-  type ServingBundle,
-} from '../editions/index.ts'
+import { enabledTools, loadServingBundle, type ServingBundle } from '../editions/index.ts'
 import {
   differentFamily,
   type JudgeSetting,
   type ModelChoice,
   type ModelPort,
 } from '../models/index.ts'
-import { candidateBundle, proposalEvent, type StoredVersion } from '../proposals/index.ts'
 import { answerPromptDigest } from './answer.ts'
 import { evalClient } from './arm.ts'
 import {
@@ -37,23 +28,19 @@ import {
   type Models,
   type PlannedQuestion,
 } from './plan.ts'
-import type { ReplayReport } from './replay.ts'
 import { readEvalSettings, type EvalSettings } from './settings.ts'
-import { formatUsd } from './spend.ts'
 
 /**
  * Evaluation runs. A run is planned and costed without a model, stored, and then worked by the
  * `evals.work` job. Scheduled runs score a live area every week and move its baseline (FR-517,
  * FR-518). No suggestion waits for answer tests: every item passes levels 1 to 3 only (FR-513).
- * Runs of a version, made before that, still finish, resume and report their levels.
  */
 
 export type EvalDeps = { port: ModelPort; clock: Clock }
 /** `held_out`: the sealed held-out questions of an area, run with nothing of them kept. */
-export type RunKind = 'impact' | 'full' | 'scheduled' | 'links' | 'held_out'
+export type RunKind = 'full' | 'scheduled' | 'links' | 'held_out'
 export type RunState =
   'awaiting_approval' | 'queued' | 'running' | 'finished' | 'failed' | 'cancelled' | 'incomplete'
-export type AnswerLevel = 'answer_impact' | 'answer_full'
 /** Why a full run was queued without a person: a change that bypasses the review gate. */
 export type RunTrigger = 'source_sync' | 'tool_descriptions' | 'date_expiry'
 
@@ -61,9 +48,8 @@ export type RunSummary = {
   edition: string
   plan: { questions: PlannedQuestion[]; setAside: string[] }
   estimate: { cells: number; cached: number; micros: number }
-  /** The tools each side offered; runs planned before this was recorded use the live switch. */
-  tools?: ArmTools
-  replay?: ReplayReport
+  /** The tools each side offered. */
+  tools: ArmTools
   /** A run a person started themself counts against their daily limit. */
   manual?: boolean
   trigger?: RunTrigger
@@ -80,41 +66,28 @@ export type RunSummary = {
 /**
  * Why a run ended incomplete: answers the provider or the tool server kept from being made
  * (`infrastructure`), a spending cap (`cap`), the run's own cost ceiling (`ceiling`), or the
- * command that worked it was stopped (`stopped`). None of it is a quality result. (`judge` counts
- * answers of runs made before a judge error was kept on the answer it could not grade.)
+ * command that worked it was stopped (`stopped`). None of it is a quality result.
  */
 export type RunStop = {
   reason: 'infrastructure' | 'cap' | 'ceiling' | 'stopped'
   /** Answers not made yet, by why they failed (`missing`: not tried before the stop). */
-  failed: Partial<Record<'throttled' | 'provider' | 'judge' | 'tool' | 'error' | 'missing', number>>
+  failed: Partial<Record<'throttled' | 'provider' | 'tool' | 'error' | 'missing', number>>
   cells: number
   at: string
 }
 export type QuestionResult = {
   id: string
-  impact: boolean
-  /** Attached to the proposal (FR-524); absent when not. */
-  attached?: true
   baseline: Verdict | null
   candidate: Verdict | null
   flip: 'pass_to_fail' | 'fail_to_pass' | null
-  /** Each side split into the code-checked and judge-checked layers; absent on older runs. */
-  layers?: { baseline: QuestionLayers; candidate: QuestionLayers | null }
-}
-/** An attached test's answers without and with the change, as the level details report them. */
-export type AttachedResult = Pick<QuestionResult, 'id' | 'baseline' | 'candidate'>
-export type LevelOutcome = {
-  outcome: 'passed' | 'failed' | 'error'
-  message: string
-  /** FR-524: reported only, never part of the outcome. */
-  attached?: AttachedResult[]
+  /** Each side split into the code-checked and judge-checked layers. */
+  layers: { baseline: QuestionLayers; candidate: QuestionLayers | null }
 }
 export type RunResult = {
   questions: QuestionResult[]
-  levels?: Partial<Record<AnswerLevel, LevelOutcome>>
   scorecard?: Scorecard
   links?: LinkResult
-  /** Judge against code, per side; absent on older runs. */
+  /** Judge against code, per side; absent on a run with no questions. */
   agreement?: { baseline: Agreement; candidate: Agreement | null }
 }
 /**
@@ -143,11 +116,10 @@ export type Scorecard = {
   /**
    * Questions passing and failing in each layer, and how many questions each check failed, so a
    * drop can be traced to retrieval and citing (code) or to caveats, causes and rubrics (judge).
-   * Absent on older runs.
    */
-  layers?: Record<'code' | 'judge', { passed: number; failed: number }>
-  failedChecks?: Record<string, number>
-  /** Where the judge and the code checks disagreed; absent on older runs. */
+  layers: Record<'code' | 'judge', { passed: number; failed: number }>
+  failedChecks: Record<string, number>
+  /** Where the judge and the code checks disagreed; absent on a run with no questions. */
   agreement?: Agreement
 }
 /**
@@ -169,17 +141,15 @@ export type RunRow = {
   kind: RunKind
   state: RunState
   area_id: string | null
-  proposal_id: string | null
-  item_version_id: string | null
   baseline_edition_seq: string | null
   model_id: string
   judge_model_id: string | null
-  answer_family: string | null
-  judge_family: string | null
-  answer_provider: string | null
-  judge_provider: string | null
-  answer_vendor: string | null
-  judge_vendor: string | null
+  answer_family: string
+  judge_family: string
+  answer_provider: string
+  judge_provider: string
+  answer_vendor: string
+  judge_vendor: string
   tries: number
   flip_repeats: number
   estimated_cost_micros: string
@@ -196,7 +166,7 @@ export type RunRow = {
   started_at: string | null
   finished_at: string | null
 }
-export const runColumns = `id::text,kind::text,state::text,area_id,proposal_id::text,item_version_id::text,
+export const runColumns = `id::text,kind::text,state::text,area_id,
   baseline_edition_seq::text,model_id,judge_model_id,answer_provider,judge_provider,answer_family,judge_family,answer_vendor,judge_vendor,tries,flip_repeats,estimated_cost_micros::text,
   actual_cost_micros::text,requested_by::text,approved_by::text,cost_ceiling_micros::text,worker,summary,failure,created_at::text,
   started_at::text,finished_at::text`
@@ -236,25 +206,12 @@ export async function headAt(tx: Queryable, seq: string): Promise<Head> {
   return head
 }
 
-/** A version whose answer tests are planned: a submitted one, or a draft. */
-type Candidate = Pick<StoredVersion, 'itemId' | 'versionNo' | 'version'>
-
-/** The two sides of a paired run: the live edition, and the live edition with the version. */
+/** The side a run answers on: the edition it was planned on. */
 export async function sidesFor(
   tx: Queryable,
   head: Head,
-  version: Candidate | null,
 ): Promise<Partial<Record<ArmName, ServingBundle>>> {
-  const live = await loadServingBundle(tx, head)
-  if (!version) return { baseline: live }
-  const area = version.version.areaId
-  const candidate = candidateBundle(live, {
-    id: version.itemId,
-    versionNo: version.versionNo,
-    proposerId: version.version.proposerId,
-    version: version.version,
-  })
-  return { baseline: asDelivered(live, area), candidate: asDelivered(candidate, area) }
+  return { baseline: await loadServingBundle(tx, head) }
 }
 
 /** A links run compares the live edition with itself; only the tools differ. */
@@ -276,17 +233,12 @@ export async function armTools(tx: Queryable, kind: RunKind): Promise<ArmTools> 
   return { baseline: off, candidate: [...off, 'get_related'].sort() }
 }
 
-const levelsOf = (kind: RunKind): AnswerLevel[] =>
-  kind === 'full' ? ['answer_impact', 'answer_full'] : kind === 'impact' ? ['answer_impact'] : []
-
 export async function insertRun(
   tx: Queryable,
   values: {
     kind: RunKind
     state: RunState
     area: string | null
-    proposal: string | null
-    version: StoredVersion | null
     head: Head
     models: Models
     settings: EvalSettings
@@ -297,21 +249,16 @@ export async function insertRun(
   },
 ): Promise<RunRow> {
   const [row] = await tx.query<RunRow>(
-    `insert into eval_runs(kind,state,area_id,proposal_id,item_version_id,baseline_edition_seq,candidate_digest,
+    `insert into eval_runs(kind,state,area_id,baseline_edition_seq,
        tool_schema_digest,model_id,judge_model_id,client_label,test_set_digest,tries,flip_repeats,
        estimated_cost_micros,requested_by,system_prompt_digest,summary,answer_family,judge_family,answer_vendor,judge_vendor,
        answer_provider,judge_provider,cost_ceiling_micros)
-     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25) returning ${runColumns}`,
+     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) returning ${runColumns}`,
     [
       values.kind,
       values.state,
       values.area,
-      values.proposal,
-      values.version?.id ?? null,
       values.head.seq,
-      values.version
-        ? createHash('sha256').update(`${values.head.label}:${values.version.digest}`).digest()
-        : null,
       toolSchemaDigest,
       values.models.answer.id,
       values.models.judge.id,
@@ -353,10 +300,9 @@ export async function planArea(
   const tools = await armTools(tx, kind)
   const planned = await planQuestions(
     questions,
-    sidesOfRun(kind, await sidesFor(tx, head, null)),
+    sidesOfRun(kind, await sidesFor(tx, head)),
     deps.clock,
     models,
-    [],
     tools,
   )
   const cost = await estimate(tx, planned, settings.tries, models)
@@ -383,8 +329,6 @@ export async function queueAreaRun(
     kind,
     state: cost.micros > settings.runBudgetMicros ? 'awaiting_approval' : 'queued',
     area,
-    proposal: null,
-    version: null,
     head,
     models,
     settings,
@@ -412,105 +356,7 @@ async function person(tx: Queryable): Promise<string | null> {
   return row?.id ?? null
 }
 
-/**
- * The gate's view of a finished paired run (FR-513, FR-514, FR-515). A test attached to the
- * proposal only for the report (FR-524) is named with its result and leaves the outcome alone.
- */
-export function levelResults(
-  kind: RunKind,
-  questions: QuestionResult[],
-  heldOut: ReadonlySet<string> = new Set(),
-): NonNullable<RunResult['levels']> {
-  // The gate is read by the proposer: held-out questions are counted, never named (FR-503).
-  const listed = (ids: string[]) => {
-    const named = ids.filter((id) => !heldOut.has(id))
-    const hidden = ids.length - named.length
-    return [
-      ...(named.length > 5 ? [...named.slice(0, 5), `${named.length - 5} more`] : named),
-      ...(hidden ? [`${hidden} held-out question${hidden === 1 ? '' : 's'}`] : []),
-    ].join(', ')
-  }
-  const levels: NonNullable<RunResult['levels']> = {}
-  if (kind === 'scheduled') return levels
-  // An attached test is never held out (FR-503); the check keeps that true here too.
-  const attached = questions.filter((q) => q.attached && !heldOut.has(q.id))
-  const report = attached.length
-    ? ` Attached tests, reported only: ${attached
-        .map((q) => {
-          const change = testChange(
-            q.baseline === null ? null : q.baseline === 'pass',
-            q.candidate === null ? null : q.candidate === 'pass',
-          )
-          return `${q.id} ${change ? testChangeWords[change] : 'has no answer to compare'}`
-        })
-        .join('; ')}.`
-    : ''
-  const reported = (level: Omit<LevelOutcome, 'attached'>): LevelOutcome =>
-    attached.length
-      ? {
-          ...level,
-          message: level.message + report,
-          attached: attached.map(({ id, baseline, candidate }) => ({ id, baseline, candidate })),
-        }
-      : level
-  const impact = questions.filter((q) => q.impact)
-  const regressions = impact.filter((q) => q.flip === 'pass_to_fail').map((q) => q.id)
-  const silent = impact
-    .filter((q) => q.baseline === 'no_answer' || q.candidate === 'no_answer')
-    .map((q) => q.id)
-  levels.answer_impact = reported(
-    regressions.length
-      ? {
-          outcome: 'failed',
-          message: `These answers got worse with this change: ${listed(regressions)}. Read the transcripts of the failed tries.`,
-        }
-      : silent.length
-        ? {
-            outcome: 'error',
-            message: `The answering AI gave no answer, or the judge no usable verdict, for ${listed(silent)}. Run the checks again, or set the questions aside with a reason.`,
-          }
-        : {
-            outcome: 'passed',
-            message: impact.length
-              ? noneWorseWords(impact.length, {
-                  alreadyFailing: impact.filter(
-                    (q) => q.baseline === 'fail' && q.candidate === 'fail',
-                  ).length,
-                  nowPassing: impact.filter((q) => q.flip === 'fail_to_pass').length,
-                })
-              : 'None of the test questions could change.',
-          },
-  )
-  if (kind === 'full') {
-    const failing = questions.filter((q) => q.candidate === 'fail').map((q) => q.id)
-    const unanswered = questions.filter((q) => q.candidate === 'no_answer').map((q) => q.id)
-    levels.answer_full = reported(
-      !questions.length
-        ? {
-            outcome: 'failed',
-            message:
-              "The domain has no active test questions, so this check can't pass. Add test questions first.",
-          }
-        : failing.length
-          ? {
-              outcome: 'failed',
-              message: `${failing.length} of ${questions.length} test questions of the domain fail with this change: ${listed(failing)}.`,
-            }
-          : unanswered.length
-            ? {
-                outcome: 'error',
-                message: `The answering AI gave no answer, or the judge no usable verdict, for ${listed(unanswered)}. Run the checks again, or set the questions aside with a reason.`,
-              }
-            : {
-                outcome: 'passed',
-                message: `All ${questions.length} test questions of the domain pass.`,
-              },
-    )
-  }
-  return levels
-}
-
-/** Records the levels on the version (paired runs) or the scorecard and baseline (area runs). */
+/** Records the links result (links runs) or the scorecard and baseline (area runs). */
 export async function finishRun(
   tx: Queryable,
   run: RunRow,
@@ -518,14 +364,7 @@ export async function finishRun(
   agreement?: NonNullable<RunResult['agreement']>,
 ): Promise<RunRow> {
   const result: RunResult = { questions, ...(agreement ? { agreement } : {}) }
-  if (run.item_version_id) {
-    const bodies = await loadRevisions(tx, run.summary.plan.questions)
-    const heldOut = new Set(
-      [...bodies].filter(([, body]) => body.split === 'held_out').map(([id]) => id),
-    )
-    result.levels = levelResults(run.kind, questions, heldOut)
-    await recordLevels(tx, run, result.levels, questions.length)
-  } else if (run.kind === 'links') {
+  if (run.kind === 'links') {
     result.links = await linkResult(tx, run, questions)
   } else {
     result.scorecard = await scorecard(tx, run, questions)
@@ -643,7 +482,6 @@ async function scorecard(
   const layers = { code: { passed: 0, failed: 0 }, judge: { passed: 0, failed: 0 } }
   const failedChecks: Record<string, number> = {}
   for (const q of questions) {
-    if (!q.layers) continue
     for (const layer of ['code', 'judge'] as const) {
       const verdict = q.layers.baseline[layer]
       if (verdict === 'pass') layers[layer].passed++
@@ -668,75 +506,13 @@ async function scorecard(
   }
 }
 
-async function recordLevels(
-  tx: Queryable,
-  run: RunRow,
-  levels: NonNullable<RunResult['levels']>,
-  questions: number,
-) {
-  const [version] = await tx.query<{ digest: string }>(
-    "select encode(content_digest,'hex') as digest from item_versions where id=$1",
-    [run.item_version_id],
-  )
-  if (!version) throw new Error('The run cannot read the version it checks')
-  for (const [level, result] of Object.entries(levels)) {
-    const details = {
-      edition: run.summary.edition,
-      run: run.id,
-      message: result.message,
-      questions,
-      setAside: run.summary.plan.setAside.length,
-      estimate: formatUsd(Number(run.estimated_cost_micros)),
-      ...(result.attached ? { attached: result.attached } : {}),
-    }
-    await tx.query(
-      `insert into check_results(item_version_id,level,outcome,eval_run_id,inputs_digest,details)
-       values($1,$2,$3,$4,decode($5,'hex'),$6)`,
-      [
-        run.item_version_id,
-        level,
-        result.outcome,
-        run.id,
-        await contentDigest({
-          level,
-          edition: run.summary.edition,
-          version: version.digest,
-          run: run.id,
-        }),
-        JSON.stringify(details),
-      ],
-    )
-  }
-  if (run.proposal_id) {
-    const [p] = await tx.query<{
-      id: string
-      areaId: string | null
-      state: string
-      revision: number
-    }>('select id::text,area_id as "areaId",state::text,revision from proposals where id=$1', [
-      run.proposal_id,
-    ])
-    if (p && ['submitted', 'in_review'].includes(p.state))
-      await proposalEvent(tx, p as Parameters<typeof proposalEvent>[1], 'checked', {
-        levels: Object.fromEntries(Object.entries(levels).map(([l, r]) => [l, r.outcome])),
-        run: run.id,
-      })
-  }
-}
-
-/** Stops a run with a reason; a paired run records the reason as an error on its levels. */
+/** Stops a run with a reason. */
 export async function failRun(tx: Queryable, run: RunRow, reason: string): Promise<void> {
   await tx.query(
     `update eval_runs set state='failed',failure=$2,finished_at=now(),worker=null,lease_until=null
       where id=$1 and state='running'`,
     [run.id, reason.slice(0, 500)],
   )
-  if (run.item_version_id) {
-    const levels = Object.fromEntries(
-      levelsOf(run.kind).map((level) => [level, { outcome: 'error' as const, message: reason }]),
-    )
-    await recordLevels(tx, run, levels, run.summary.plan.questions.length)
-  }
 }
 
 /** What a stopped run says, in words: why, and what is missing. */
@@ -745,7 +521,6 @@ export function stopWords(stop: RunStop): string {
   const kinds: [keyof RunStop['failed'], string][] = [
     ['throttled', 'refused for the provider’s rate limit'],
     ['provider', 'failed at the provider'],
-    ['judge', 'without a readable verdict from the judge'],
     ['tool', 'with a tool call the tool server refused'],
     ['error', 'failed for another reason'],
     ['missing', 'not tried yet'],
@@ -805,10 +580,10 @@ export async function stopRun(
 }
 
 /**
- * The kinds the worker never takes: the assistant's test cases and the held-out questions are
- * worked by the command that runs them. Queued again, such a run would wait for nobody.
+ * The kinds the worker never takes: the held-out questions are worked by the command that runs
+ * them. Queued again, such a run would wait for nobody.
  */
-export const commandKinds: readonly string[] = ['assistant_mock', 'assistant_real', 'held_out']
+export const commandKinds: readonly string[] = ['held_out']
 const commandRunNotResumed =
   'This test run is worked only by the command that started it, so it is not resumed. Run that command again (for held-out cases, npm run held-out -- eval --area <domain id>).'
 

@@ -66,7 +66,7 @@ const reasons = {
   restored: (version: number) => `Restored from version ${version}.`,
 }
 
-const kindName = (kind: string) => (kind in kinds ? kinds[kind as Kind].label : 'Example')
+const kindName = (kind: string) => kinds[kind as Kind].label
 const isItemId = (id: string) => /^itm_[a-z0-9]{8,16}$/.test(id)
 const plainError = (error: unknown) =>
   error instanceof ORPCError ? error.message : "It couldn't be changed."
@@ -329,7 +329,7 @@ export function createContextService(
         return
       }
       case 'check': {
-        const checked = await review.recheck(row.id, reasons.check, { v1: true })
+        const checked = await review.recheck(row.id, reasons.check)
         const [decision] = await tx.query<{ id: string }>(
           `select id::text from decisions where proposal_id = $1 order by decided_at desc, id desc limit 1`,
           [checked.proposal.id],

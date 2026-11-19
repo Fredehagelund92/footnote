@@ -123,7 +123,7 @@ describe('the check on a model’s words', () => {
 })
 
 describe('what the model is given', () => {
-  it('numbers only the sources the person sees, so no citation shifts past an example', () => {
+  it('gives the sources the person sees, in their order', () => {
     const item = (kind: string, title: string) => ({
       kind,
       title,
@@ -132,10 +132,9 @@ describe('what the model is given', () => {
     })
     const answer = {
       state: 'grounded',
-      say: 'Three context items apply.',
+      say: 'Two context items apply.',
       items: [
         item('event', 'Online sales stopped'),
-        item('example', 'What explains the movement of Orders?'),
         item('note', 'Orders are booked in each currency'),
       ],
     } as unknown as AnswerResult

@@ -41,7 +41,7 @@ async function shifts(page: Page, route: string, drawn?: string) {
 const pages: [name: string, route: string, drawn?: string][] = [
   ['a review', '/inbox/sug-ines-link/review'],
   ['Ask', '/ask'],
-  ['Observability questions', '/observability/questions'],
+  ['Observability', '/observability'],
   ['Settings, People', '/settings/people', 'People'],
   ['Settings, Agents', '/settings/agents', 'Connected agents'],
 ]

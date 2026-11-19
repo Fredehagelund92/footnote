@@ -8,7 +8,7 @@ reviewed: 2026-11-18
 
 2026-11-18
 
-The app and its docs have a new name and a new mark. An install that upgrades keeps its data, its sign-ins and its connected agents.
+The app and its docs have a new name and a new mark.
 
 ## Agents get the definition in every reply
 
@@ -110,7 +110,7 @@ The demo signs you in as its admin. View as, at the top of every page, shows the
 
 Overview's Filter button, or F, opens one list: pick a field or a dimension, then its values, the ones agents asked about most first, with what each counts, a search, A to Z, and is or is not. Type two letters to find a value in any dimension.
 
-A filter reads in parts, such as Store · is any of · 3 values, and a click on its middle flips is and is not. Old links that filter by a market still open.
+A filter reads in parts, such as Store · is any of · 3 values, and a click on its middle flips is and is not.
 
 Beside the topics, the filter lists keep the fixed fields, one By list you switch between dimensions, and a list for each dimension an admin keeps here for everyone. Your recent dimensions come first in the filter, and stay in your browser.
 
@@ -130,7 +130,7 @@ Overview's filters are chips you add from the bar (press F, or / to type), chang
 
 2026-11-03
 
-Overview now holds the topics too: the numbers, questions per day and the topics follow the same range, domain, kind of agent, view and filters, and a changed number counts to its new value. Questions' links open Overview at the topics.
+Overview now holds the topics too: the numbers, questions per day and the topics follow the same range, domain, kind of agent, view and filters, and a changed number counts to its new value.
 
 ## "What is" starts with the definition
 
@@ -160,7 +160,7 @@ Select a card in the Inbox to see what agents say today, and what they will say 
 
 2026-11-02
 
-Observability no longer has a Summary page or its monthly digests. It opens on Overview, and an old link to Summary or a digest lands there.
+Observability no longer has a Summary page or its monthly digests. It opens on Overview.
 
 ## Ask reads like a chat
 
@@ -172,7 +172,7 @@ The answer label is a badge at the head of the answer, and the badge opens a car
 
 2026-11-02
 
-Conflicts is a filter of the one Context list, and every item in a conflict has a Conflict chip. A link to the old Conflicts list opens the filtered list.
+Conflicts is a filter of the one Context list, and every item in a conflict has a Conflict chip.
 
 ## Ask writes its answer as it goes
 
@@ -192,12 +192,6 @@ Ask answers questions about what Definitions lists, such as "list 10 dimensions"
 
 An owner can let one agent publish low-risk new items in their domain without a review round, once an admin switches it on. Each one names the owner, and can be undone from its history.
 
-## Summary shows what was caught
-
-2026-10-31
-
-Summary lists what was caught on three lines of their own: answers that went out with a warning, saved questions whose answer changed, and alerts with how many an owner acted on. The lines are never added up.
-
 ## Compare two items that disagree
 
 2026-10-31
@@ -209,12 +203,6 @@ Two context items that disagree open side by side. Keep this one, Keep both, Not
 2026-10-31
 
 Every connected agent is listed by its name, with who it works for. An admin switches each of its tools on or off in its Details.
-
-## A monthly digest of Summary
-
-2026-10-30
-
-Each finished month keeps a copy of Summary as it was. Open one from Summary to read it or print it on one page.
 
 ## Comment on a line in the review
 

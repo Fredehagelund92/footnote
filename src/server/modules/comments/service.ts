@@ -22,17 +22,17 @@ import { missing, signedOutKept } from '../../../contract/refusals.ts'
 /*
   Comments, reactions and mentions (FR-817; docs/product.md, sections 4 and 9). A thread hangs on
   a suggestion or a context item; whoever may read that reads its thread and may write in it, and
-  row security says the same (db/migrations/0007_comments.sql). People change and delete only their
+  row security says the same (db/migrations/0001_schema.sql). People change and delete only their
   own words. A mention of a person is kept beside the comment, so their Inbox shows it until they
   read it; a reply since someone last opened a thread they take part in is new to them.
 
   The person who suggested archiving a context item may mark a comment of theirs on it as taking
-  the suggestion back, while it waits (db/migrations/0028_withdrawn_in_comments.sql). It stays with
+  the suggestion back, while it waits (db/migrations/0001_schema.sql). It stays with
   its owners, whose review quotes the comment, until they close it or archive anyway.
 
   On a suggestion, a thread may hang on a line of its text or on a field, read against the two
   versions the review compared; anyone who may read it resolves or reopens it, and the database
-  keeps who and when (db/migrations/0032_anchored_comments.sql).
+  keeps who and when (db/migrations/0001_schema.sql).
 
   Agents never read any of this: the MCP read path has no grant on these tables, and nothing an
   edition holds is built from them.

@@ -104,11 +104,7 @@ function whatChanged(input: SentenceInput): string {
       `${plural(input.withheld, 'context item that only some groups see', 'context items that only some groups see')} changed`,
     )
   if (input.vocabulary > 0) parts.push(plural(input.vocabulary, 'name changed', 'names changed'))
-  // An edition from before every domain was served may have only moved a domain's state.
-  if (parts.length === 0)
-    return input.reason === 'area_state_changed'
-      ? 'A domain was switched on or off, before agents got every domain'
-      : 'Nothing different'
+  if (parts.length === 0) return 'Nothing different'
   const sentence = parts.join('; ')
   return sentence.charAt(0).toUpperCase() + sentence.slice(1)
 }

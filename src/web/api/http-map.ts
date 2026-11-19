@@ -21,7 +21,7 @@ import type {
 } from '@/components/templates/comment-box/types'
 import type { Definition, SynonymCheck } from '@/lib/definitions'
 import type { Comments, Subject } from '@/model/comments'
-import type { Fact, Kind, Status } from '@/model/items'
+import type { Fact, Status } from '@/model/items'
 import { anyDate, shiftDate } from '@domain/validity'
 import { dateLabel, whenLabel, type Validity } from '@/model/validity'
 import type { SearchHits } from './client'
@@ -31,10 +31,6 @@ export type Names = {
   person: (id: string) => string
   domainOwners: (areaId: string) => string[]
 }
-
-/** The service's `example` kind, which the app does not offer, is left out of its lists. */
-const offered = <T extends { kind: string }>(row: T): row is T & { kind: Kind } =>
-  row.kind !== 'example'
 
 /** A row's status in the app's words: retired is Archived; accepted is Live, or Due for a check when its trust says so. */
 export function statusOf(row: Pick<LibraryItem, 'status' | 'trust'>): Status {
@@ -88,7 +84,7 @@ export function ownersOf(
  * reads those. Its owners show only when they are not its domain's.
  */
 export function factsOf(rows: readonly LibraryItem[], names: Names): Fact[] {
-  return rows.filter(offered).map((row) => {
+  return rows.map((row) => {
     const valid = validityOf(row)
     const owners = ownersOf(row, names)
     return {
@@ -179,9 +175,12 @@ export function refusalOf(error: unknown): Exclude<SynonymCheck, { ok: true }> |
 /** Search everywhere's groups in the app's words. */
 export function hitsOf(results: SearchResults): SearchHits {
   return {
-    items: results.items
-      .filter(offered)
-      .map((row) => ({ id: row.id, title: row.title, kind: row.kind, domain: row.areaId })),
+    items: results.items.map((row) => ({
+      id: row.id,
+      title: row.title,
+      kind: row.kind,
+      domain: row.areaId,
+    })),
     definitions: results.definitions.map((d) => ({
       name: d.name,
       type: d.kind,

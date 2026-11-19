@@ -91,7 +91,7 @@ describe('the dates a text names', () => {
 
 describe('the kind a text suggests', () => {
   it.each([
-    ['How did Orders change in Norway in August 2026?', 'example'],
+    ['How did Orders change in Norway in August 2026?', 'guide'],
     ['How to investigate a drop in Orders', 'guide'],
     ['Orders in Poland arrive two days late while the provider moves.', 'issue'],
     ['Partner reporting for France was down for twelve days', 'issue'],
@@ -434,11 +434,11 @@ describe('provenance', () => {
       validity: { start: '2026-10-01', end: null },
     }
     const flag = { code: 'uncertain_dates', field: 'validity', words: [] }
-    const saved = provenanceOf('assistant', { validity: 'prefilled' }, draft, undefined, true)
+    const saved = provenanceOf('agent', { validity: 'prefilled' }, draft, true)
     expect(saved.flags).toEqual([flag])
     // Nothing to check without dates, and nothing flagged when the person knew them.
-    expect(provenanceOf('assistant', {}, { summary: 'x' }, undefined, true).flags).toEqual([])
-    expect(provenanceOf('assistant', {}, draft).flags).toEqual([])
+    expect(provenanceOf('agent', {}, { summary: 'x' }, true).flags).toEqual([])
+    expect(provenanceOf('agent', {}, draft).flags).toEqual([])
     // Another field changed: the dates are still unsure. The dates changed: someone decided them.
     expect(
       keepMarks(saved, draft, {

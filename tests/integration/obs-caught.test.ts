@@ -447,11 +447,7 @@ describe('Summary', () => {
     const [all] = await get<ObsSnapshotItem[]>('admin', '/observability/snapshots')
     const kept = await get<ObsSnapshot>('admin', `/observability/snapshots/${all!.id}`)
     expect(kept.summary.caught).toEqual(live.caught)
-    expect(kept.words.caught.map((c) => [c.key, c.measured])).toEqual([
-      ['warned', true],
-      ['saved', true],
-      ['alerts', true],
-    ])
+    expect(kept.words.caught.map((c) => c.key)).toEqual(['warned', 'saved', 'alerts'])
     expect(kept.words.caught[1]!.text).toBe(
       '13 times, a saved question gave a different answer after a change: 6 after a sync and 7 after other changes.',
     )

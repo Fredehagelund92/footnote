@@ -41,7 +41,7 @@ export function createLimiter(now: () => Date) {
 }
 
 type ApiLimits = { person: number; ip: number }
-/** The migration's defaults (0029), for a database that has lost the setting. */
+/** The baseline's defaults, for a database that has lost the setting. */
 const defaultLimits: ApiLimits = { person: 600, ip: 120 }
 /** How long a read of the setting serves, so a flood of refused requests does not reach the database. */
 const LIMITS_TTL_MS = 5000

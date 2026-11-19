@@ -111,7 +111,7 @@ Ask is the steward's companion for the context itself: what is missing, stale, c
 | A conflict, to compare and decide      | `/context/conflicts/<item>.<item>`     |
 | A conflict in the dock                 | `/context?dock=conflict.<item>.<item>` |
 
-Conflicts is a filter of the list, not a list of its own: All or Conflicts above the list (with how many conflicts there are), or In a conflict in the Filter menu, shows the same table with only the items in a conflict. Every item in one carries a **Conflict** chip, filtered or not; the chip, or Compare and decide in the row's menu, opens the pair. The old address of the Conflicts list, `/context/conflicts`, leads to the filtered list.
+Conflicts is a filter of the list, not a list of its own: All or Conflicts above the list (with how many conflicts there are), or In a conflict in the Filter menu, shows the same table with only the items in a conflict. Every item in one carries a **Conflict** chip, filtered or not; the chip, or Compare and decide in the row's menu, opens the pair.
 
 ### Definitions
 
@@ -144,17 +144,16 @@ Inside Settings, the app sidebar gives way to the settings menu, with Back to ap
 
 Inside Observability the sidebar gives way to its own menu, with Back to app on top: Agents (Overview), Answers (Quality, Feedback), System (Usage for admins, Alerts). `/observability` is Overview. Every page takes `range=7|30|90`. Admins also take `domain=` and `agent=`. An owner sees only their own domains.
 
-Overview is one view over one state in the address: the numbers (Asked, Checked answers, Not found, saved questions), questions per day by how they were answered with a dashed line at each publish, and the topics, with the built-in views (All topics, Needs a look, Not found, Conflict, Outdated, Reported) and the workspace's saved views beside them. They all follow the same range, view and filters. The filters are chips in a bar, each a sentence in parts (a field or a dimension, how it matches, its values, and a cross): domain, answer, kind of agent (admins), metric, month asked about, In the Inbox, Reported, a topic's words, and any dimension, each kept, any of several, or left out, and a dimension also by any value at all. One Filter button, or F, opens a picker that asks for a dimension first and then its values: the fixed fields, the dimensions an admin pinned, the person's 3 recent ones (kept in their browser only), the 7 asked about most in the range and every dimension; typing finds a field or a dimension by name, and from 2 letters a value in any dimension, grouped by dimension. A dimension's values come from the service 50 at a time, the most asked about in the range first or A to Z, each with how many times agents asked about it over the topics that pass every other filter, never every value at once. The address keeps one param per field (`answer=missing,partial`, `q=` for a topic's words), one per dimension by keys (`d.store=alder_row,birch_quay`, `d.channel=!webshop` for is not, `d.campaign=*` for any value) and `chips=` when they are in an order of their own. An old link's `market=Norway` is read as that dimension's chip when the name is one value of one dimension, and is otherwise kept as it was with a note on the chip, never merged into one of the values it could mean. Facets beside the topics hold the fixed fields, a facet for each dimension an admin pinned for the whole workspace (a setting, `observability.pinned_dimensions`, changed with a reason like any other; owners read it), and one By facet that switches between the other dimensions, starting on the most asked. Facets count every value without its own chip; their counts are the disclosed counts added up, and "Not shown" where the service keeps no count for the topics in view. A saved view keeps its chips in order, up to 20, a dimension's by its values' keys. Old views' Value chips, kept by name, moved to their dimension's chip once where each name is one value of one dimension; any other stays as it was, flagged, and the move can be undone. The domain and the kind of agent narrow what is read, so the numbers and the chart are theirs; the other filters narrow the topics, and the numbers then add up what those topics may show ("83+"). The chart counts questions, so it follows the answer filter and says when it cannot follow the rest. A part of a bar adds its answer as a chip. A drag across the bars, or B and then Shift and the arrows, selects a run of days (weeks over 90 days): the address keeps it (`days=2026-10-12..2026-10-18`), the filter bar reads it as a sentence ("Time is 12 to 18 Oct"), and the numbers add up the bars selected as they show, "83+" when a part is hidden; Escape, Clear all or another range clears it. The topics still count the whole range, and say so. A number is a way into its topics: Checked answers and Not found narrow them to that answer. Changed numbers count to their new value and the bars move to theirs ([motion](design/motion.md)). Old addresses keep working: `/observability/overview` and an old link to Summary or one of its digests (`/observability/summary`, `/observability/summary/<id>`) land on Overview, keeping their view (Summary's own period goes); Questions' address opens Overview at the topics, with its filters and a topic's answer panel.
+Overview is one view over one state in the address: the numbers (Asked, Checked answers, Not found, saved questions), questions per day by how they were answered with a dashed line at each publish, and the topics, with the built-in views (All topics, Needs a look, Not found, Conflict, Outdated, Reported) and the workspace's saved views beside them. They all follow the same range, view and filters. The filters are chips in a bar, each a sentence in parts (a field or a dimension, how it matches, its values, and a cross): domain, answer, kind of agent (admins), metric, month asked about, In the Inbox, Reported, a topic's words, and any dimension, each kept, any of several, or left out, and a dimension also by any value at all. One Filter button, or F, opens a picker that asks for a dimension first and then its values: the fixed fields, the dimensions an admin pinned, the person's 3 recent ones (kept in their browser only), the 7 asked about most in the range and every dimension; typing finds a field or a dimension by name, and from 2 letters a value in any dimension, grouped by dimension. A dimension's values come from the service 50 at a time, the most asked about in the range first or A to Z, each with how many times agents asked about it over the topics that pass every other filter, never every value at once. The address keeps one param per field (`answer=missing,partial`, `q=` for a topic's words), one per dimension by keys (`d.store=alder_row,birch_quay`, `d.channel=!webshop` for is not, `d.campaign=*` for any value) and `chips=` when they are in an order of their own. Facets beside the topics hold the fixed fields, a facet for each dimension an admin pinned for the whole workspace (a setting, `observability.pinned_dimensions`, changed with a reason like any other; owners read it), and one By facet that switches between the other dimensions, starting on the most asked. Facets count every value without its own chip; their counts are the disclosed counts added up, and "Not shown" where the service keeps no count for the topics in view. A saved view keeps its chips in order, up to 20, a dimension's by its values' keys. The domain and the kind of agent narrow what is read, so the numbers and the chart are theirs; the other filters narrow the topics, and the numbers then add up what those topics may show ("83+"). The chart counts questions, so it follows the answer filter and says when it cannot follow the rest. A part of a bar adds its answer as a chip. A drag across the bars, or B and then Shift and the arrows, selects a run of days (weeks over 90 days): the address keeps it (`days=2026-10-12..2026-10-18`), the filter bar reads it as a sentence ("Time is 12 to 18 Oct"), and the numbers add up the bars selected as they show, "83+" when a part is hidden; Escape, Clear all or another range clears it. The topics still count the whole range, and say so. A number is a way into its topics: Checked answers and Not found narrow them to that answer. Changed numbers count to their new value and the bars move to theirs ([motion](design/motion.md)).
 
-| Screen                                  | Address                                    |
-| --------------------------------------- | ------------------------------------------ |
-| Overview: the numbers, chart and topics | `/observability`                           |
-| Overview, opened at the topics          | `/observability/questions`                 |
-| The answer panel, a replay of a topic   | `/observability/questions?dock=topic.<id>` |
-| Quality, the saved questions            | `/observability/quality`                   |
-| Feedback                                | `/observability/feedback`                  |
-| Usage (admins)                          | `/observability/usage`                     |
-| Alerts                                  | `/observability/alerts`                    |
+| Screen                                  | Address                          |
+| --------------------------------------- | -------------------------------- |
+| Overview: the numbers, chart and topics | `/observability`                 |
+| The answer panel, a replay of a topic   | `/observability?dock=topic.<id>` |
+| Quality, the saved questions            | `/observability/quality`         |
+| Feedback                                | `/observability/feedback`        |
+| Usage (admins)                          | `/observability/usage`           |
+| Alerts                                  | `/observability/alerts`          |
 
 ### Help, documentation and sign-in
 
@@ -168,7 +167,7 @@ Overview is one view over one state in the address: the numbers (Asked, Checked 
 
 The consent page is where the login server sends a person whose agent asked to connect (`?request=` names the sign-in): they sign in there if they have not, read which agent asks and what it may do, and allow or deny it. The mockup does not draw it; it keeps the earlier app's page in this design.
 
-The Help menu in the sidebar's foot opens a small menu: the Help page, the keys, the documentation and What's new in new tabs, Contact support, Report a problem. Old addresses `/library`, `/settings/about` and `/settings/definitions` redirect to Context, General and the definitions source's page in Integrations.
+The Help menu in the sidebar's foot opens a small menu: the Help page, the keys, the documentation and What's new in new tabs, Contact support, Report a problem.
 
 ## 6. The six answer states
 
@@ -202,7 +201,7 @@ A context item has one of four kinds. A kind shows as an icon only (neutral colo
 | **Rule**    | Ruler     | `note`    | A fixed way to read the numbers, like a house rule.               |
 | **Guide**   | Route     | `guide`   | What to check before you explain a change.                        |
 
-The stored values are the earlier names. Screens, help and agents use the labels. The earlier fifth kind, Example, is no longer offered.
+The stored values are the earlier names. Screens, help and agents use the labels.
 
 ## 8. Statuses and freshness
 
@@ -259,7 +258,7 @@ There are two roles.
 
 Removing a person from the workspace waits until no domain has them as its only owner. Anyone signed in can comment. People edit and delete their own comments.
 
-An earlier model had more roles (auditor, approver) and risk levels. v1 has neither: every item uses the same three checks.
+Every item uses the same three checks, whatever its risk.
 
 ## 12. Integrations
 

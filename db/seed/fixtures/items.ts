@@ -408,7 +408,8 @@ const guideTemplates: readonly Template[] = [
   },
 ]
 
-const exampleTemplates: readonly Template[] = [
+/** Guides to what a good answer to one question holds. */
+const answerTemplates: readonly Template[] = [
   {
     title: (s) => `How did ${s.metric} change in ${s.place} in ${s.month}?`,
     lead: (s) =>
@@ -461,11 +462,13 @@ const exampleTemplates: readonly Template[] = [
   },
 ]
 
-const templatesOf: Record<Exclude<ItemKind, 'issue'>, readonly Template[]> = {
+/** How a generated item is written: a kind's templates, or a guide to a good answer. */
+type Writing = Exclude<ItemKind, 'issue'> | 'answer'
+const templatesOf: Record<Writing, readonly Template[]> = {
   event: eventTemplates,
   note: noteTemplates,
   guide: guideTemplates,
-  example: exampleTemplates,
+  answer: answerTemplates,
 }
 
 /**
@@ -524,12 +527,13 @@ function referenceTo(
 }
 
 function buildItem(random: Random, flags: Random, usedIds: Set<string>): ContextItem {
-  const kind = random.weighted<Exclude<ItemKind, 'issue'>>([
+  const writing = random.weighted<Writing>([
     ['event', 35],
     ['note', 30],
     ['guide', 20],
-    ['example', 15],
+    ['answer', 15],
   ])
+  const kind = writing === 'answer' ? 'guide' : writing
   const area = random.weighted(areas.map((a) => [a, a.id === 'area_sandbox' ? 3 : 10] as const))
   const metric = random.pick(vocabulary.metrics)
   const secondMetric = random.chance(0.3) ? random.pick(vocabulary.metrics) : null
@@ -547,7 +551,7 @@ function buildItem(random: Random, flags: Random, usedIds: Set<string>): Context
     month: formatMonth(start),
     day: start,
   }
-  const template = random.pick(templatesOf[kind])
+  const template = random.pick(templatesOf[writing])
   const title = template.title(subject)
   const summary = summaryOf(random, template, subject, random.chance(0.08) ? 12 : random.int(1, 3))
 
@@ -593,8 +597,7 @@ function buildItem(random: Random, flags: Random, usedIds: Set<string>): Context
   const riskLevel: RiskLevel = random.chance(0.08) ? 'high' : kind === 'note' ? 'low' : 'normal'
   const createdVia: CreationChannel = random.weighted([
     ['form', 50],
-    ['assistant', 20],
-    ['chat', 12],
+    ['chat', 32],
     ['import', 12],
     ['command_line', 4],
     ['mcp', 2],

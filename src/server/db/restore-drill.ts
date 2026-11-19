@@ -170,9 +170,6 @@ async function checkEditions(client: pg.Client): Promise<EditionCheck[]> {
        from editions e join vocab_term_service s on s.editions @> e.seq
        join vocab_term_versions v on v.id = s.version_id where e.sealed_at is not null
      union all
-     select e.seq::text, 'area', s.area_id, s.state::text
-       from editions e join area_state_service s on s.editions @> e.seq where e.sealed_at is not null
-     union all
      select e.seq::text, 'domain', s.term_key, s.area_id
        from editions e join source_domain_service s on s.editions @> e.seq where e.sealed_at is not null`,
   )
@@ -181,22 +178,20 @@ async function checkEditions(client: pg.Client): Promise<EditionCheck[]> {
     {
       items: { id: string; digest: string }[]
       vocabulary: { key: string; digest: string }[]
-      areas: { id: string; state: 'not_started' | 'starting' | 'live' | 'paused' }[]
       domains: { key: string; areaId: string }[]
     }
   >()
   for (const line of lines.rows) {
-    const entry = content.get(line.seq) ?? { items: [], vocabulary: [], areas: [], domains: [] }
+    const entry = content.get(line.seq) ?? { items: [], vocabulary: [], domains: [] }
     if (line.kind === 'item') entry.items.push({ id: line.key, digest: line.value })
     else if (line.kind === 'vocab') entry.vocabulary.push({ key: line.key, digest: line.value })
-    else if (line.kind === 'domain') entry.domains.push({ key: line.key, areaId: line.value })
-    else entry.areas.push({ id: line.key, state: line.value as 'live' })
+    else entry.domains.push({ key: line.key, areaId: line.value })
     content.set(line.seq, entry)
   }
   const checks: EditionCheck[] = []
   for (const edition of editions) {
     const recomputed = await editionDigest(
-      content.get(edition.seq) ?? { items: [], vocabulary: [], areas: [], domains: [] },
+      content.get(edition.seq) ?? { items: [], vocabulary: [], domains: [] },
     ).catch(() => 'invalid')
     checks.push({
       label: edition.label,

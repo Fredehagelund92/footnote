@@ -287,8 +287,8 @@ function engineAnswerOf(
       ...base,
       text: `Nobody has written down anything about ${scope?.metrics.length || markets.length ? what : midSentence(a.reading?.words ?? what)}. That doesn't mean there's no explanation, only that none is written down yet.`,
     }
-  // Numbered as the app shows the sources: an example is not one, so its number would shift them.
-  const shown = a.items.filter((i) => i.kind !== 'example')
+  // Numbered as the app shows the sources.
+  const shown = a.items
   const said = shown.length
     ? shown.map((i, n) => `${sentenceOf(i.summary)} [${n + 1}]`).join(' ')
     : a.say

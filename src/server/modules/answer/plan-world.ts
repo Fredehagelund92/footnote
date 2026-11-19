@@ -437,14 +437,12 @@ export const planDefinitions: Readonly<Record<string, string>> = {
     'The share of customers active in the previous month who are active again this month.',
 }
 
-type AuditKind = RecordsItem['kind']
-
 const statusOf = (s: Seed): RecordsItem['status'] =>
   s.reviewDate && s.reviewDate < PLAN_TODAY ? 'due' : 'live'
 
 const itemRecord = (s: Seed): RecordsItem => ({
   id: s.id,
-  kind: s.kind as RecordsItem['kind'],
+  kind: s.kind,
   areaId: s.area,
   title: s.title,
   status: statusOf(s),
@@ -654,7 +652,7 @@ export const planRecords: RecordsWorld = {
       }),
     items: seen.map((s) => ({
       id: s.id,
-      kind: s.kind as AuditKind,
+      kind: s.kind,
       title: s.title,
       areaId: s.area,
       metrics: s.metrics.map((m) => `metric:${m}`),

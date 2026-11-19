@@ -264,8 +264,7 @@ export async function runChecks(
 
 /**
  * The newest result of every required level (levels 1 to 3, FR-513), whether an owner or an
- * administrator accepted, and the database's own verdict. No approver is needed any more, so its
- * approval is always null.
+ * administrator accepted, and the database's own verdict.
  */
 export async function readGate(tx: Queryable, versionId: string): Promise<Gate> {
   const levels = await tx.query<LevelResult>(
@@ -279,7 +278,7 @@ export async function readGate(tx: Queryable, versionId: string): Promise<Gate> 
   )
   const [row] = await tx.query<{ owner: boolean; problem: string | null }>(
     `select exists(select 1 from decisions d where d.item_version_id=v.id and d.outcome='accept'
-              and d.capacity in ('owner','deputy','administrator')) as owner,
+              and d.capacity in ('owner','administrator')) as owner,
             cl_item_version_problem(v.id) as problem
        from item_versions v where v.id=$1`,
     [versionId],
@@ -287,7 +286,7 @@ export async function readGate(tx: Queryable, versionId: string): Promise<Gate> 
   return {
     required: levels.map((l) => l.level),
     levels,
-    approvals: { owner: row?.owner ?? false, approver: null },
+    approvals: { owner: row?.owner ?? false },
     problem: row?.problem ?? null,
     attached: await attachedResults(tx, versionId, levels),
   }
@@ -295,8 +294,7 @@ export async function readGate(tx: Queryable, versionId: string): Promise<Gate> 
 
 /**
  * FR-524: the tests attached to the version's proposal, each with its result in the newest level 3
- * check. A test attached after that ran has no result there until it runs again. No answer tests
- * run on a suggestion, so no attached test has an answer result.
+ * check. A test attached after that ran has no result there until it runs again.
  */
 async function attachedResults(
   tx: Queryable,
@@ -320,7 +318,6 @@ async function attachedResults(
         checked?.baseline === undefined || checked.candidate === undefined
           ? null
           : { baseline: checked.baseline, candidate: checked.candidate },
-      answer: null,
     }
   })
 }

@@ -113,7 +113,7 @@ it.each([
   )
   expect(privileges.rows[0]!.allowed).toBe(false)
 })
-it.each(['item_version_service', 'vocab_term_service', 'area_state_service'])(
+it.each(['item_version_service', 'vocab_term_service'])(
   'denies API direct service changes in %s',
   async (table) => {
     await expect(
@@ -317,7 +317,7 @@ it('keeps the job queue to the API role, without DDL', async () => {
     ).rejects.toMatchObject({ code: '42501' })
 })
 
-describe('attached tests (0043)', () => {
+describe('attached tests', () => {
   let draft: string
   let submitted: string
   beforeAll(async () => {

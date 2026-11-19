@@ -1,5 +1,5 @@
 import type { ItemKind } from './item.ts'
-import { kinds, type Kind } from './words.ts'
+import { kinds } from './words.ts'
 
 /*
   What a change to many rows of the Context list does, row by row, before anything happens
@@ -76,7 +76,7 @@ export type BulkRowPlan = { act: BulkRow[]; skipped: BulkRowSkip[] }
 export const changesItem = (row: Pick<BulkRow, 'areaId'>, person: BulkPerson) =>
   person.admin || person.owns.includes(row.areaId)
 
-const kindName = (kind: ItemKind) => (kind in kinds ? kinds[kind as Kind].label : 'Example')
+const kindName = (kind: ItemKind) => kinds[kind].label
 
 /**
  * The plan of one change: each row the person may change and the change would change, and each

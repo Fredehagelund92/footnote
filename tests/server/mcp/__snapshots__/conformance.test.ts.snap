@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "02ce7d6466759a54295ccb10b0b065e5e29c18191d4ad0cb0a612b3e4978d475",
+  "digest": "61b55c26aff9cf102bba3fd5e486ed6dbeeb359b60bd05886bfa56cb379b2261",
   "tools": [
     {
       "annotations": {
@@ -958,7 +958,6 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
               "note",
               "event",
               "guide",
-              "example",
               "issue",
             ],
             "type": "string",

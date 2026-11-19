@@ -14,6 +14,66 @@ import { migrationNumberProblems } from '../../scripts/check-migration-numbers.t
 
 const renumber = 'Rebase onto the base branch and run `npm run db:renumber`'
 const base = ['0001_baseline.sql', '0002_people.sql']
+const preSquash = [
+  '0001_baseline.sql',
+  '0002_edition_digest_byte_order.sql',
+  '0003_agent_wording.sql',
+  '0004_agent_contract.sql',
+  '0005_review_path.sql',
+  '0006_inbox_and_undo.sql',
+  '0007_comments.sql',
+  '0008_context_items.sql',
+  '0009_terms.sql',
+  '0010_about_starts_empty.sql',
+  '0011_serving_terms.sql',
+  '0012_people_and_invites.sql',
+  '0013_named_reports.sql',
+  '0014_oidc_sign_in.sql',
+  '0015_observability.sql',
+  '0016_source_channel.sql',
+  '0017_content_sources.sql',
+  '0018_settings_agents.sql',
+  '0019_saved_questions.sql',
+  '0020_cube_interface_3.sql',
+  '0021_content_full_reads.sql',
+  '0022_alerts.sql',
+  '0023_term_mentions.sql',
+  '0024_source_activity.sql',
+  '0025_figures.sql',
+  '0026_access_keys.sql',
+  '0027_source_disconnect.sql',
+  '0028_withdrawn_in_comments.sql',
+  '0029_obs_weekly.sql',
+  '0030_records_asked.sql',
+  '0031_obs_snapshots.sql',
+  '0032_anchored_comments.sql',
+  '0033_obs_caught.sql',
+  '0034_agent_names.sql',
+  '0035_conflict_decisions.sql',
+  '0036_agent_policies.sql',
+  '0037_records_asked_catalogue.sql',
+  '0038_records_asked_conflicts.sql',
+  '0039_word_comparison.sql',
+  '0040_dbt_file_location.sql',
+  '0041_records_asked_analysis.sql',
+  '0042_names_left_out.sql',
+  '0043_ask_loop_limits.sql',
+  '0044_topic_value_index.sql',
+  '0045_observability_pins.sql',
+  '0046_saved_view_keys.sql',
+  '0047_source_view_lists.sql',
+  '0048_source_read_state.sql',
+  '0049_agent_connection_state.sql',
+  '0050_eval_run_transitions.sql',
+  '0051_gap_states.sql',
+  '0052_read_settings_revision.sql',
+  '0053_invite_standing.sql',
+  '0054_inbox_end_and_dead_states.sql',
+  '0055_undo_until.sql',
+  '0056_item_index_version.sql',
+  '0057_workspace_calendar.sql',
+  '0058_footnote_names.sql',
+]
 
 describe('the migration numbers of a change', () => {
   it('pass the next number, and no new migration at all', () => {
@@ -58,6 +118,27 @@ describe('the migration numbers of a change', () => {
     expect(migrationNumberProblems(base, [...base, '0003-mine.sql'])).toEqual([
       expect.stringMatching(/^Migration file 0003-mine\.sql must be named NNNN_snake_case\.sql/),
     ])
+  })
+
+  it('pass the one squash of the exact old list into 0001_schema.sql', () => {
+    expect(migrationNumberProblems(preSquash, ['0001_schema.sql'], '0001_schema.sql\n')).toEqual([])
+  })
+
+  it('refuse a second squash, once the base holds the baseline', () => {
+    for (const held of [['0001_schema.sql'], ['0001_schema.sql', '0002_x.sql']]) {
+      const problems = migrationNumberProblems(held, ['0001_other.sql'])
+      expect(problems).toContainEqual(
+        expect.stringMatching(/^db\/migrations\/0001_schema\.sql is on the base branch but not/),
+      )
+    }
+  })
+
+  it('refuse a squash of a base that is not the exact old list', () => {
+    expect(migrationNumberProblems(base, ['0001_schema.sql'])).toEqual([
+      expect.stringMatching(/^db\/migrations\/0001_baseline\.sql is on the base branch but not/),
+      expect.stringMatching(/^db\/migrations\/0002_people\.sql is on the base branch but not/),
+    ])
+    expect(migrationNumberProblems(preSquash.slice(0, -1), ['0001_schema.sql'])).not.toEqual([])
   })
 })
 

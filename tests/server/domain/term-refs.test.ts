@@ -72,7 +72,7 @@ describe('the members of a term', () => {
 })
 
 describe('termDigestContent', () => {
-  it('keeps the shape a term with one definition was always digested in', async () => {
+  it('digests the definitions as a sorted list, one or none as well', async () => {
     const orders = {
       key: 'metric:orders',
       kind: 'metric' as const,
@@ -83,11 +83,11 @@ describe('termDigestContent', () => {
     }
     expect(termDigestContent({ ...orders, definitionRefs: ['cube:payments.orders'] })).toEqual({
       ...orders,
-      definitionRef: 'cube:payments.orders',
+      definitionRefs: ['cube:payments.orders'],
     })
     expect(termDigestContent({ ...orders, definitionRefs: [] })).toEqual({
       ...orders,
-      definitionRef: null,
+      definitionRefs: [],
     })
     // Several definitions digest as a sorted list, whatever order they came in.
     const forward = termDigestContent(market)

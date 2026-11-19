@@ -93,17 +93,6 @@ describe('the sentence of an edition', () => {
 
   it('names vocabulary and area changes, and an edition that changed nothing', () => {
     expect(
-      changeSentence(
-        edition({
-          reason: 'area_state_changed',
-          actor: 'Ann',
-          why: 'Start checks pass',
-        }),
-      ),
-    ).toBe(
-      'A domain was switched on or off, before agents got every domain. Changed by Ann. Why: Start checks pass.',
-    )
-    expect(
       changeSentence(edition({ reason: 'vocabulary_changed', vocabulary: 2400, actor: 'Ann' })),
     ).toBe('2,400 names changed. Accepted by Ann.')
     expect(

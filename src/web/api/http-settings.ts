@@ -369,7 +369,6 @@ const REASONS: Record<string, string> = {
   proposal_accepted: 'A suggestion was published',
   item_retired: 'A context item was archived',
   vocabulary_changed: 'Definitions changed',
-  area_state_changed: 'A domain was paused or resumed',
   area_map_changed: 'Domains changed',
   source_rechecked: 'An integration was read again',
   rollback: 'What agents got before came back',

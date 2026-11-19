@@ -649,11 +649,11 @@ it('keeps timestamp ordering when the local clock repeats at the end of daylight
     `insert into proposals(id,action,area_id,proposer_id,channel,draft,created_at)
      values ($1,'create','finance',$3,'form','{}','2026-10-25T00:30:00Z'),
             ($2,'create','finance',$3,'form','{}','2026-10-25T01:15:00Z')`,
-    [earlier, later, people.approver],
+    [earlier, later, people.member],
   )
-  const result = await database.transaction(people.approver, async (tx) => {
+  const result = await database.transaction(people.member, async (tx) => {
     await tx.query("set local timezone = 'Europe/Berlin'")
-    return createProposalsService(tx, systemClock('2026-10-25'), people.approver).list({
+    return createProposalsService(tx, systemClock('2026-10-25'), people.member).list({
       own: true,
     })
   })

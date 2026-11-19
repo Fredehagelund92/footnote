@@ -11,15 +11,14 @@ databases, inherit privileges or bypass row security. Local login uses the serve
 loopback authentication, and the compose file's database trusts its own network; neither changes
 `pg_hba.conf` or installs passwords.
 
-`db/migrations` holds forward-only SQL. `0001_baseline.sql` is the whole schema: the job queue's,
-then the types, functions, tables and views, the rows a new installation starts with (the proposal
-workflow, the agent tools and clients, one version of each setting), then the indexes,
-constraints, triggers and row security. It replaced the migrations that built the schema step by
-step, and a schema-only `pg_dump` of a database it makes equals one of a database they made. A
-database those earlier migrations made cannot be upgraded: the runner refuses it, naming the
-migration its history starts with. Its data is demo data, so make it again: `docker compose down
---volumes` for the compose file's database, or drop the database and run `npm run db:migrate`
-(and `npm run seed`, or `SEED_DEMO=on`) for a local one.
+`db/migrations` holds forward-only SQL. `0001_schema.sql` is the whole schema: the job queue's,
+then the types, functions, tables and views, the rows a new installation starts with (the
+proposal, evaluation run and gap workflows, the agent tools and clients, the alert rules, one
+version of each setting), then the indexes, constraints, triggers and row security. A database
+made by other migrations cannot be upgraded: the runner refuses it, naming the migration its
+history starts with. Make it again: `docker compose down --volumes` for the compose file's
+database, or drop the database and run `npm run db:migrate` (and `npm run seed`, or
+`SEED_DEMO=on`) for a local one.
 
 The migration runner serializes callers with an advisory lock, commits one file at a time,
 and records its SHA-256. Missing, reordered or edited applied files fail before new SQL runs.
@@ -71,8 +70,8 @@ The database compares target, label, field and position at commit, caps the tota
 rejects self/unknown targets, and requires the markup's visible text to equal the plain field.
 Mentions never supply scope. Live-target and source-health validation belongs to the write
 services; link filtering and `get_related` are the pure resolver in `src/domain/links.ts`.
-`get_related` starts switched off in `tool_config` (FR-332, FR-407); the `links` evaluation kind is
-a paired run with the tool off and on (FR-523).
+`get_related` is on in `tool_config` unless an admin switched it off (FR-332, FR-407); the
+`links` evaluation kind is a paired run with the tool off and on (FR-523).
 
 ## Jobs
 
@@ -99,7 +98,7 @@ delivery with a topic adds one call (and one no-item call when it delivered noth
 and status. Evaluation, preview and replay calls are not demand. The counts outlive the delivery
 partitions that retention drops.
 
-`obs_weekly` (migration 0029) keeps Observability's weekly counts without limit, the deliberate
+`obs_weekly` keeps Observability's weekly counts without limit, the deliberate
 exception to `retention.delivery_days` that FR-612 allows: for each completed week (Monday to
 Sunday, UTC), the agent calls about a topic in each domain (or none), in each of the five answer
 states a chart tells apart. It holds no topic, no words and no person; check constraints refuse
@@ -109,12 +108,12 @@ run keeps the same counts, but leaves a week as it was kept once its deliveries 
 it starts before both the delivery period and the oldest delivery partition, as retention drops
 whole partitions, the oldest first. `cl_obs_weekly_rollup_due(today)`, which the
 `observability.rollup` job runs each night before retention, counts every completed week from the
-latest one kept (again, for a late call), or from the oldest delivery when nothing is kept yet;
-the migration ran it once to count the weeks already held. Small counts are kept as they are and
+latest one kept (again, for a late call), or from the oldest delivery when nothing is kept yet.
+Small counts are kept as they are and
 hidden when they are read (FR-614). The API role reads the table and runs only
 `cl_obs_weekly_rollup_due`; the serving and analytics roles reach neither.
 
-`obs_snapshots` (migration 0031) keeps the monthly snapshots of the withdrawn Summary without limit, the same
+`obs_snapshots` keeps the monthly snapshots of the withdrawn Summary without limit, the same
 exception: for each whole calendar month and scope (every domain, `area_id` null, or one), the
 page's counts as shown, already through the disclosure pass, and the sentences said over them, as
 one JSON object of bounded size. It holds no topic, no item, no words of a question and no person;
@@ -125,7 +124,7 @@ role may insert and read, never update or delete, and retention never touches it
 `cl_obs_changes(areas, from, to)` counts the changes published after review and runs as the owner,
 so the count is the same for any reader and for the job.
 
-`obs_caught_weekly` (migration 0033) keeps what Footnote caught each completed week, without limit,
+`obs_caught_weekly` keeps what Footnote caught each completed week, without limit,
 the same exception: per domain (or none), how many times a saved question's answer came out
 Changed or Needs a look where it was Same before, in a check run started by a publish, an archive,
 a restore, a sync or a check date passing (`line` `saved`, `kind` the trigger); and how many
@@ -143,7 +142,7 @@ The API role reads the table and runs those two functions; the serving and analy
 neither.
 
 A gap is `open`, `resolved` (Covered) or `wont_fix` (Set aside), and moves only as
-`gap_transitions` lists (migration 0049, FR-609): a publish of a suggestion whose
+`gap_transitions` lists (FR-609): a publish of a suggestion whose
 `proposals.source_gap_id` names it covers it, Not something we write down sets it aside, and
 the Undo of either opens it again. A trigger refuses any other change of status with
 `check_violation`. `gaps.resolved_edition_seq` is the live edition when it was covered, allowed
@@ -178,7 +177,7 @@ and no new row in any schema, no log line and no export may contain any of them.
 The domain of a term is one rule everywhere (CON-206, FR-136): the
 area the vocabulary gives it, otherwise the domain its definition gives (`definitions.area_hint`,
 Cube's `meta.domain`). `source_domain_service` pins the second half per edition, with the ranges
-and guards of `area_state_service`; it is part of the edition digest, the export, the restore drill
+and guards of the other service tables; it is part of the edition digest, the export, the restore drill
 and a rollback. Every edition the service publishes calls `edition_pin_source_domains`, and a
 definition sync publishes an `area_map_changed` edition when `cl_source_domains_behind()` says the
 live edition is behind the source (FR-215). An edition with no pinned source domains keeps its
@@ -206,7 +205,7 @@ the area's maintainers until a decision.
 `proposals.provenance` is set on a draft an AI agent (the MCP tool
 `suggest_context`, FR-121) wrote for the person: who wrote it, a mark per field and
 the flags of its words; null for a draft a person wrote. `suggest_context` is on in
-`tool_config` unless an admin switched it off (migration 0004), and the setting `limits.agent_drafts` allows each person 10 in 24 hours and 20
+`tool_config` unless an admin switched it off, and the setting `limits.agent_drafts` allows each person 10 in 24 hours and 20
 waiting. `cl_similar_items` is an owner-run read of the accepted items whose title or summary reads like a
 draft (pg_trgm's `similarity`, which the API role does not hold). The limits count the person's
 own `mcp` proposals, so no counter names anyone, and the person is named only where every proposal
@@ -331,15 +330,13 @@ and vocabulary version gets the content digest the write path would give it, com
 stored content, and every bulk edition its recomputed digest, so exports and the restore drill
 verify the demo data exactly.
 Every version also gets the review history the serving guards require (FR-205, FR-206): an
-accepted proposal, passing results of the check levels its risk required before migration 0005
-(levels 1 to 3 are all that is required now), an accept decision by an owner of the area (another
-owner when the first proposed a normal or high risk version) and, for high risk, an approver's
-accept as history; a retired item gets its owner's retire decision. So every seeded
-version passes `cl_item_version_problem`, and going back to any seeded edition serves its
-versions again. Roles hold from the first day of that history. Where the fixtures need someone the
-mock's roster lacks (a second owner in Marketing, Paid media and Sandbox, approvers outside Commercial),
-the seed grants a former role that ended the day after the history, so today's roster stays the
-mock's. These fixtures bypass the review path itself and must never be treated as reviewed
+accepted proposal, passing results of levels 1 to 3, and an accept decision by an owner of the
+area (another owner when the first proposed a normal or high risk version, as the demo's history
+reads); a retired item gets its owner's retire decision. So every seeded version passes
+`cl_item_version_problem`, and going back to any seeded edition serves its versions again. Roles
+hold from the first day of that history. Where the history needs an owner the mock's roster lacks
+(a second owner in Marketing, Paid media and Sandbox), the seed grants an ownership that ended the
+day after the history, so today's roster stays the mock's. These fixtures bypass the review path itself and must never be treated as reviewed
 production content.
 
 The seed also stores what the Cube connector reads from the demo model in `db/seed/cube`
@@ -393,9 +390,8 @@ says the held-out cases did not run and is skipped.
 ## Review and release
 
 Every item version needs the same review: levels 1 to 3 pass (`cl_required_levels` gives the
-same three at every risk level) and an owner of its area or an administrator accepts it. An
-area's approvers still read its proposals and versions, but no longer decide: their earlier
-accepts stay as history. A vocabulary proposal may have no area (an administrator decides an
+same three at every risk level) and an owner of its area or an administrator accepts it. A
+vocabulary proposal may have no area (an administrator decides an
 area-less term), and an item has at most one open retirement proposal. The API role may run the
 gate functions the serving guards use (`cl_required_levels`, `cl_version_gate_ok`,
 `cl_item_version_problem` and their role helpers), so the review screen shows the database's own
@@ -409,17 +405,17 @@ it, the two disagree, or they are unrelated): an owner of the suggestion's area 
 administrator writes one row per answer, for the version under review, and rows never change.
 The owner's answer also goes on the version: a review edit may add to a version's replaced
 items and conflicts, its content unchanged, even when the owner wrote the suggestion
-(`proposals_guard_state`, migration 0006).
+(`proposals_guard_state`).
 
-The person who made a decision may undo it within `limits.undo_seconds` (migration 0006).
-`cl_undo_until(at)` is that window, and every row policy and guard that holds it reads it
-(migration 0055); so does the service, to tell the screens until when Undo is offered.
+The person who made a decision may undo it within `limits.undo_seconds`.
+`cl_undo_until(at)` is that window, and every row policy and guard that holds it reads it; so
+does the service, to tell the screens until when Undo is offered.
 `decision_undos` keeps one row per undone decision, by its maker as themselves inside the window
 (row security), and the `decision_undone` edition that served again what the decision changed;
 rows never change. An item leaves service in that edition only when it records an undo
 (`item_version_service_closing_authorized`), and an accepted proposal waits again only when its
 accept is undone in the same transaction (`proposals_guard_reopen`); so does a closed one, a
-suggestion to archive its sender took back, when its close is undone (migration 0028), with no
+suggestion to archive its sender took back, when its close is undone, with no
 edition. A decision is never
 deleted: `decisions.round` counts how often its maker undid the same decision on the version
 before, so they may decide it again (`decisions_once_item`).
@@ -432,7 +428,7 @@ its card is named by text (`feedback:<id>`) and nothing joins a person to the re
 `setup_marks` keeps when a step of the setup checklist first happened when nothing else records
 it (a question in Ask), never who or what.
 
-Comments, reactions and mentions (FR-817, migration 0007) hang on a suggestion (`proposal_id`) or a
+Comments, reactions and mentions (FR-817) hang on a suggestion (`proposal_id`) or a
 context item (`item_id`), exactly one. `comments` keeps the comment box's document as JSON, checked
 by the service; whoever may read what a comment hangs on reads it (`cl_comment_subject_open`, which
 runs under the reader's own row security, and never for a read with no person), anyone writes one
@@ -442,7 +438,7 @@ and its time never change, and a delete that keeps its place empties its words f
 its reactions and mentions with it (`comments_clear_reactions`). A return with a note is the
 suggestion's comment of kind `returned`, tied to its decision, and leaves with the decision's undo.
 The person who suggested archiving a context item may mark one of their own comments on it as taking
-it back, while it waits (`comments.withdrew_at`, migration 0028): one comment of a suggestion holds
+it back, while it waits (`comments.withdrew_at`): one comment of a suggestion holds
 the mark, only its writer sets or clears it, and only while the suggestion to archive waits
 (`comments_guard`); deleting the comment clears it. The owners then close it, a `reject` decision
 that changes nothing agents get.
@@ -452,11 +448,10 @@ it, marked by that person only. `thread_reads` keeps when a person last opened a
 only. Agents never read any of it: the serving and analytics roles have no grant on these tables,
 and no edition or serving function reads them.
 
-Context (migration 0008). A context item's kind is part of each version (`item_versions.kind`),
-as its domain and words are; every version before 0008 took its item's kind, and `items.kind`
-stays as the kind it was created with. A version's content digest always held its kind, so
-sealed editions verify as before. A version written without a kind takes the kind of the
-version it follows (`item_versions_kind`). `item_owners` names who answers for an item beside
+Context. A context item's kind is part of each version (`item_versions.kind`), as its domain and
+words are, and of its content digest; `items.kind` is the kind it was created with. A version
+written without a kind takes the kind of the version it follows, or the item's
+(`item_versions_kind`). `item_owners` names who answers for an item beside
 its domain's owners: an owner of the item's domain or an administrator writes it, and each
 person named owns that domain or is an administrator (row security). `item_reads` keeps which
 items a person opened, only for that person. `item_changes` keeps one row per change to many
@@ -465,13 +460,12 @@ items at once, with what Undo needs; only its maker marks it undone, once, insid
 draft records who deleted it (`proposals.discarded_by`), and only that person brings it back,
 inside the same window and with nothing else changed (`proposals_guard_state`).
 
-Terms (migration 0009). `terms` keeps the words people write in Definitions (FR-138): a word
+Terms. `terms` keeps the words people write in Definitions (FR-138): a word
 with its own `meaning`, or a synonym that names what it means instead (`same_as_key`, a live
 metric or dimension of the vocabulary, or `same_as_term`, a term with its own meaning; never
-another synonym). `word` is the name as the service compares it (`cl_term_word`, migration 0039, the
+another synonym). `word` is the name as the service compares it (`cl_term_word`, the
 database's `normalizeName`: case, spaces and accents set aside), and one live term holds a word at
-most (`terms_one_word`). Two terms that only read as one word when 0039 came in both stay, the later
-one marked `word_clash` and outside that index, until it next claims a word. `terms_guard` refuses a word the live vocabulary or
+most (`terms_one_word`). `terms_guard` refuses a word the live vocabulary or
 the definitions source uses for a metric or a dimension (`cl_vocabulary_words`: names, other
 names, and the source's name, title and synonyms) whenever a term takes a word: written, renamed,
 pointed elsewhere or restored. A sync can still give a word a second meaning later; the service
@@ -484,17 +478,16 @@ append only. `term_changes` keeps one row per change to many terms with what Und
 maker marks it undone, once, inside `limits.undo_seconds`. The serving and analytics roles have no
 grant on these tables.
 
-Observability (migration 0015). Each agent delivery keeps the answer state its reply gave
+Observability. Each agent delivery keeps the answer state its reply gave
 (`answer_state`: grounded, partial, conflict, stale, missing or failed; none when the question
 could not be read) and the kind of agent that called (`app_family`, FR-410's fixed list), never
-the name it gave itself; deliveries from before keep their resolver's status as their state.
-`observability_views` keeps the views people save on Questions for everyone in the workspace: a
+the name it gave itself. `observability_views` keeps the views people save on Overview for everyone in the workspace: a
 name, unique whatever its case, filters and who saved it, never a question. `cl_gaps_detect()`
 counts case 1 of FR-606 across a month edge: no-item calls in the period about one domain,
 metrics, values and dimensions count together whatever month their dates start in, and the gap
 stays on one topic of that scope, whose weekly counts add up every month of it.
 
-Saved questions (migration 0019). `saved_questions` keeps a domain's question with who saved it,
+Saved questions. `saved_questions` keeps a domain's question with who saved it,
 where from (Ask, a Not found draft, or typed) and the items it should answer from; removing one
 marks it removed. `saved_question_baselines` keeps the answers it should keep getting: the first
 when it is saved, one each time someone keeps a new answer (its keeper may undo it, once), and one
@@ -506,7 +499,7 @@ administrators read and change its saved questions; the job reads them as no per
 `cl_saved_questions_to_check()`, which runs as the owner. The serving and analytics roles have no
 grant on these tables.
 
-Alerts (migration 0022). `alert_rules` holds the eight rules, each on or off with its threshold
+Alerts. `alert_rules` holds the eight rules, each on or off with its threshold
 and its audience; administrators change them, and the Not found rule's threshold stays in the
 `gaps.no_item_threshold` setting. `alert_mutes` keeps what an owner muted, a rule for a domain they
 own, readable by that person only. `alert_raises` keeps each raise once for its rule and key, with
@@ -519,17 +512,17 @@ items rely on a source's definitions; each runs as the owner. Administrators rea
 an owner those about their domains. The serving and analytics roles have no grant on these
 tables.
 
-Conflicts (migration 0035). `conflict_decisions` keeps each decision on a conflict between two
+Conflicts. `conflict_decisions` keeps each decision on a conflict between two
 items (FR-220): who settled it and when, the outcome (one kept and the other archived, both kept,
 or not a conflict), the reason and an optional quoted line, the versions both items had, and the
 retire and accept decisions it made, so Undo, by the person who decided, once, inside
-`limits.undo_seconds` (row security, migration 0055), takes back exactly those.
+`limits.undo_seconds` (row security), takes back exactly those.
 What it changes goes through the retire and publish paths; the row only records it. Anyone signed in
 who may read both items reads a decision; a person writes only their own. `cl_conflicts_kept()`,
 which runs as the owner, gives the alert job the pairs kept as both with the versions the decision
 saw, ids and numbers only. The serving and analytics roles have no grant on the table.
 
-Figures in Ask (migration 0025). A definitions source keeps its figures settings in
+Figures in Ask. A definitions source keeps its figures settings in
 `connectors.capabilities.figures`: whether Ask shows figures from it (off by default), the data
 endpoint an administrator set and the name of the endpoint's token in the secret store, never the
 token; `connectors.data_contact_id` is its data contact. No figure is ever stored. A named report
@@ -540,17 +533,17 @@ can be about a figure (`part = 'figure'`): it names the source, the metric, the 
 anyone signed in, the items an open figure report says a figure doesn't fit, and nothing else of
 it; each runs as the owner. The serving and analytics roles have no grant on any of it.
 
-Serving terms (migration 0011). Agents read the live terms through `serving_terms()`, a security
+Serving terms. Agents read the live terms through `serving_terms()`, a security
 definer function the API and serving roles may run: each word with its own meaning or what it
 means, its domain, the day it was last written and the role it was written in (`owner` or
 `administrator`, never the person), `conflict` when the vocabulary or the definitions source
-gives the word another meaning or what a synonym means is gone, and `also_means` (migration 0039),
+gives the word another meaning or what a synonym means is gone, and `also_means`,
 the metrics and dimensions that other meaning is, so a question in the word can name both.
 `serving_terms_mark()` changes
 with every write to a term and every sync of a definitions source, so a cached serving bundle is
 read again after either.
 
-Named reports (migration 0013). `reports` keeps what a person sends from Ask on purpose, with
+Named reports. `reports` keeps what a person sends from Ask on purpose, with
 their name (FR-622): the question, the item and the part that is wrong, what is wrong, and
 optionally the correct version and a link. It is append only. Its sender, the owners of its domain
 and administrators read it (row security); a person sends one only as themselves, about an item
@@ -559,26 +552,19 @@ report what the owners did after it: closed as not a problem (its card in `card_
 item checked again, changed or archived (its decisions, undone ones left out). The serving and
 analytics roles have no grant on it.
 
-About our business starts empty (migration 0010). A new install gets an empty `business.about`
-version on top of the baseline's default, and so does an install whose text is still that
-untouched default (one version, which nobody changed); one where a person wrote or reset the
-text keeps it. The baseline's text, an outdoor-gear retailer, is the guide's worked example; the
-demo seeds (`db/seed/bulk.ts`) write it themselves.
+About our business starts empty: the baseline's `business.about` has no text. The guide's worked
+example, an outdoor-gear retailer, is what the demo seeds (`db/seed/bulk.ts`) write.
 
 ## Evaluations
 
 A run of the evaluation runner records who it acts for (`requested_by`: whoever started it);
 scheduled runs act for nobody and touch only the live edition. No suggestion waits for answer
-tests since migration 0005, so nothing queues a run of a version any more; one made before still
-finishes, records `answer_impact` and `answer_full` under its requester's row security, and stays
-in the history. Cells say when the model refused (`refused`, with `passed` null) or a call failed
+tests: a run answers on an edition, never on a suggested version. Cells say when the model refused (`refused`, with `passed` null) or a call failed
 (`error`). Transcripts stay append-only: the API role inserts them with the finished
 cell and has no UPDATE. The settings add the tries, flip repeats, the run budget, the evaluation spending cap
 and the model per feature.
 
-`models.assistant` is the model that writes Ask's words (FR-710). It was the in-app assistant's
-model until the assistant left (30 Oct 2026); the drafts it wrote (channel `assistant`) and its
-test runs (`eval_runs` of kind `assistant_mock` or `assistant_real`) stay in the history.
+`models.assistant` is the model that writes Ask's words (FR-710).
 
 `estimated_calls` in `llm_spend_daily` and `llm_spend_monthly` counts the model calls that ended early (abort, timeout, provider error) and were recorded as an
 estimate, so they can be told from reported usage.
@@ -649,10 +635,8 @@ A fresh template avoids stale migration checksums and grants.
 
 ## Domains are always served
 
-A domain that exists is served, with no `not_started`, `starting`, `live` or `paused` state and no
-start checks (FR-320, FR-802). `area_state_service` and the `area_state` enum remain: edition
-digests, the edition export and the restore drill read them, and a new edition carries their rows
-forward unchanged. `delivery_status` keeps `area_not_live`. `serving_metadata` lists every domain
+A domain that exists is served, with no state and no start checks (FR-320, FR-802).
+`serving_metadata` lists every domain
 from `areas` (and an archived one that items in the edition still name), with no state. The stop
 switch is the one way to hold a domain's items back. `areas.summary` (one line, at most 160
 characters) and `areas.description` (at most 1,500, line breaks allowed), both empty by default,

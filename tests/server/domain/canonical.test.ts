@@ -46,9 +46,9 @@ it('matches SHA-256 known vectors and edition SQL preimages without a database',
   const content = {
     items: [{ id: 'itm_12345678', digest: 'a'.repeat(64) }],
     vocabulary: [{ key: 'metric:x', digest: 'b'.repeat(64) }],
-    areas: [{ id: 'finance', state: 'live' as const }],
+    domains: [{ key: 'metric:x', areaId: 'finance' }],
   }
-  const preimage = `area:finance:live\nitem:itm_12345678:${'a'.repeat(64)}\nvocab:metric:x:${'b'.repeat(64)}`
+  const preimage = `domain:metric:x:finance\nitem:itm_12345678:${'a'.repeat(64)}\nvocab:metric:x:${'b'.repeat(64)}`
   expect(await editionDigest(content)).toBe(createHash('sha256').update(preimage).digest('hex'))
   expect(() => editionDigest({ ...content, items: [...content.items, ...content.items] })).toThrow()
 })

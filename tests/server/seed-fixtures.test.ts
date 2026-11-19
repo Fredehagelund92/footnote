@@ -56,9 +56,9 @@ describe('item fixtures', () => {
     }
   })
 
-  it('covers all five kinds, every area, long titles and past review dates', () => {
+  it('covers all four kinds, every area, long titles and past review dates', () => {
     expect(new Set(items.map((item) => item.kind))).toEqual(
-      new Set(['note', 'event', 'guide', 'example', 'issue']),
+      new Set(['note', 'event', 'guide', 'issue']),
     )
     expect(new Set(items.map((item) => item.areaId)).size).toBe(areas.length)
     expect(items.some((item) => item.title.length > 100)).toBe(true)
@@ -108,7 +108,8 @@ describe('item fixtures', () => {
       expect(item).toMatchObject({ summary: fact.summary, notToConclude: fact.notToConclude })
       expect(item!.evidence[0]).toMatchObject(fact.source)
       expect(item!.summary.length).toBeLessThanOrEqual(SUMMARY_MAX_LENGTH)
-      expect(fact.body !== undefined, id).toBe(item!.kind === 'guide')
+      // Only a guide has steps of its own; a guide to a good answer has none.
+      if (fact.body !== undefined) expect(item!.kind, id).toBe('guide')
       expect(id).not.toBe(regression.item)
     }
     // A shorter library holds the ones it has.

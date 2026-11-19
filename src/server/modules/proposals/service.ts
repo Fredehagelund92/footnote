@@ -11,7 +11,7 @@ import { type Draft, formatOutcome, textFindings } from '../../../domain/draft.t
 import { defaultRiskFor, type ItemKind } from '../../../domain/item.ts'
 import { parseMentions } from '../../../domain/mentions.ts'
 import { keepMarks, type Provenance } from '../../../domain/provenance.ts'
-import { addWorkingDays, vocabularyChangeOf } from '../../../domain/review.ts'
+import { addWorkingDays } from '../../../domain/review.ts'
 import { isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { relevantRefs } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
@@ -32,15 +32,9 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
  created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
 /**
- * A proposal as the API returns it. A term proposed before a term could name several definitions
- * (0070) stored the one it named as `definitionRef`; it reads as `definitionRefs`.
- */
-const record = (row: ProposalRecord): ProposalRecord =>
-  row.vocabulary ? { ...row, vocabulary: vocabularyChangeOf(row.vocabulary) } : row
-/**
  * Proposals as the API returns them to the reader: a draft that names an item the audience rule
  * hides from them reads without it (`forReader`). Row security leaves out the proposals they may
- * not read at all (0083).
+ * not read at all.
  */
 async function forReaders(tx: Queryable, rows: readonly ProposalRecord[]) {
   const drafts = await forReader(
@@ -97,7 +91,7 @@ export function changeReason(text: string | null | undefined, action: ProposalRe
 /**
  * The Bin record of a rescue (FR-814): an administrator restored an item of a deleted domain into
  * another domain, and this proposal opened there. Null for any other proposal. A restored record
- * is history that everyone who reads the item reads (0067).
+ * is history that everyone who reads the item reads.
  */
 async function rescueOf(tx: Queryable, proposalId: string) {
   const [row] = await tx.query<{
@@ -165,7 +159,7 @@ function proposalsService(
       [id],
     )
     if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
-    return record(row)
+    return row
   }
   async function getItem(id: string, lock = false) {
     const p = await get(id, lock)
@@ -434,7 +428,7 @@ function proposalsService(
         ],
       )
       return {
-        rows: await forReaders(tx, (result?.rows ?? []).map(record)),
+        rows: await forReaders(tx, result?.rows ?? []),
         total: result?.total ?? 0,
         limit,
         offset,
@@ -448,14 +442,11 @@ function proposalsService(
     async create(
       input: z.infer<typeof createProposalSchema>,
       /**
-       * `assisted` records where each field of an assistant's draft came from, on the draft's
-       * history, with the label every assistant draft carries until a person submits it (FR-707).
-       * `provenance` marks each field of a draft an agent or the assistant wrote (FR-121); only
-       * `saveAgentDraft` passes it, never a client.
+       * `provenance` marks each field of a draft an agent wrote (FR-121); only `saveAgentDraft`
+       * passes it, never a client.
        */
       options: {
         importBatchId?: string
-        assisted?: Record<string, string>
         provenance?: (draft: Draft) => Provenance
         /** The question round whose answers saved it (FR-121); only `saveAgentDraft` passes it. */
         answersRound?: string
@@ -493,13 +484,7 @@ function proposalsService(
           options.agentId ?? null,
         ],
       )
-      await event(
-        p!,
-        'created',
-        options.assisted
-          ? { assistant: { label: 'unreviewed draft', sources: options.assisted } }
-          : {},
-      )
+      await event(p!, 'created', {})
       return p!
     },
     /** `reason` left out keeps the stored one; null or empty clears it. */

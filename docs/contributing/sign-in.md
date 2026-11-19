@@ -30,7 +30,7 @@ access, where **Revoke** ends every connection of that agent for that person.
 ## Every agent by name
 
 Each app a person signs in with is one agent for that person, and each access key is one agent
-(FR-420, `auth.agents`, migration 0034). Settings, Agents and access lists every agent
+(FR-420, `auth.agents`). Settings, Agents and access lists every agent
 (`agents.list`) with its name, its kind, who it acts for or who made it, and its tools; an
 administrator sees every agent, anyone else their own apps. An app's name is the one it gives
 itself, kept up to date at each sign-in and shown as it says it; an access key's name is the one an
@@ -71,7 +71,7 @@ listed, and what they may do is their token's scopes.
 ## Publishing without review
 
 An owner of a domain may let one named app publish some of its suggestions there without a review
-round, as the owner's own decision (FR-421, `agent_policies`, migration 0036; the page for people is
+round, as the owner's own decision (FR-421, `agent_policies`, the page for people is
 [Publish without review](../help/publish-without-review.md)). It is off for the workspace until an
 administrator switches it on (`agentPolicies.switch`, the versioned setting `agents.auto_publish`,
 false on a new install). Switching it off again ends every policy at once.
@@ -115,7 +115,7 @@ seconds (`connect.pending`, FR-418) for the newest of two things since the wait 
 collected its tokens (connected), or the person chose **Deny** on the consent screen (declined).
 Both are named by the agent's own name for itself. Allowing alone is not yet a connection: the
 agent still has to exchange its code. A **Deny** is kept for an hour, for that person alone, as
-who said it, the app's name and when (`auth.oauth_declines`, migration 0018); nothing else of the
+who said it, the app's name and when (`auth.oauth_declines`); nothing else of the
 sign-in is kept, and the history log is not told, as nothing changed.
 
 An app needs either a client ID metadata document (preferred by the MCP specification) or

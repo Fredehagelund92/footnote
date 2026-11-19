@@ -2,20 +2,13 @@ import * as z from 'zod/mini'
 import { creationChannels } from '../domain/item.ts'
 import { proposalStates } from '../domain/proposal-state.ts'
 import { decisionCapacities, proposalActions } from '../domain/proposal.ts'
-import { runStates, verdictSchema } from './evals.ts'
 import { findingSchema, proposalTestSchema } from './proposals.ts'
 
 const reason = z.string().check(z.minLength(1), z.maxLength(500))
 const itemIdSchema = z.string().check(z.regex(/^itm_[a-z0-9]{8,16}$/))
 const areaIdSchema = z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/))
 const editionLabelSchema = z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}\.\d+$/))
-export const checkLevels = [
-  'format',
-  'matching',
-  'delivery',
-  'answer_impact',
-  'answer_full',
-] as const
+export const checkLevels = ['format', 'matching', 'delivery'] as const
 
 /** Any proposal the review engine handles: item create, change, retire and recheck, and vocabulary. */
 export const reviewProposalSchema = z.object({
@@ -116,28 +109,6 @@ export const deliveryDetailsSchema = z.object({
  * Levels 4 and 5: the answer run's summary. A level that has not run on the live edition says
  * why in `message`, with the run and its state when one exists.
  */
-export const answerDetailsSchema = z.object({
-  message: z.optional(z.string()),
-  /** The edition the run compared against. */
-  edition: z.optional(z.string()),
-  /** The evaluation run, for evals.runs.get (impact, flips, transcripts). */
-  run: z.optional(z.string()),
-  runState: z.optional(z.enum(runStates)),
-  questions: z.optional(z.number()),
-  setAside: z.optional(z.number()),
-  /** The run's cost estimate, in dollars: "$0.42". */
-  estimate: z.optional(z.string()),
-  /** The outcome of a run on an earlier live edition, while the level runs again. */
-  previous: z.optional(z.enum(checkOutcomes)),
-  previousEdition: z.optional(z.nullable(z.string())),
-  /**
-   * The tests attached to the proposal when the run was planned (FR-524), each answered without
-   * and with the change. Reported only: they never change the outcome.
-   */
-  attached: z.optional(
-    z.array(z.object({ id: z.string(), baseline: verdictSchema, candidate: verdictSchema })),
-  ),
-})
 const levelResultOf = <Level extends (typeof checkLevels)[number], Details extends z.ZodMiniType>(
   level: Level,
   details: Details,
@@ -153,8 +124,6 @@ export const levelResultSchema = z.discriminatedUnion('level', [
   levelResultOf('format', formatDetailsSchema),
   levelResultOf('matching', matchingDetailsSchema),
   levelResultOf('delivery', deliveryDetailsSchema),
-  levelResultOf('answer_impact', answerDetailsSchema),
-  levelResultOf('answer_full', answerDetailsSchema),
 ])
 export type LevelResult = z.infer<typeof levelResultSchema>
 export type ProbeResult = z.infer<typeof probeResultSchema>
@@ -166,13 +135,6 @@ export const attachedTestSchema = z.object({
   ...proposalTestSchema.shape,
   /** Level 3 without and with the change; null until level 3 has checked the question. */
   retrieval: z.nullable(z.object({ baseline: z.boolean(), candidate: z.boolean() })),
-  /**
-   * The answer tests without and with the change, from the run that counts on the live edition;
-   * null for a low-risk version (FR-513), and until a run with the test attached has finished.
-   */
-  answer: z.nullable(
-    z.object({ run: z.string(), baseline: verdictSchema, candidate: verdictSchema }),
-  ),
 })
 export type AttachedTest = z.infer<typeof attachedTestSchema>
 /** What the database gate reads: the newest result of every required level, and the approvals. */
@@ -182,7 +144,6 @@ export const gateSchema = z.object({
   approvals: z.object({
     /** The first accept: an owner's of the area or an administrator's. */
     owner: z.boolean(),
-    approver: z.nullable(z.boolean()),
   }),
   problem: z.nullable(z.string()),
   /** The tests attached to the proposal, reported with the change and never blocking it. */
@@ -193,7 +154,7 @@ export type Gate = z.infer<typeof gateSchema>
 export const decisionSchema = z.object({
   id: z.string(),
   decidedBy: z.string(),
-  /** The capacity it was made in; `deputy` only on a decision made before the role went. */
+  /** The capacity it was made in. */
   capacity: z.enum(decisionCapacities),
   outcome: z.enum(['accept', 'request_changes', 'reject', 'retire']),
   reason: z.string(),
@@ -214,7 +175,7 @@ export const decideSchema = z.strictObject({
   revision: z.number().check(z.int(), z.minimum(1)),
   outcome: z.enum(['accept', 'request_changes', 'reject']),
   reason,
-  capacity: z.optional(z.enum(['owner', 'approver', 'administrator'])),
+  capacity: z.optional(z.enum(['owner', 'administrator'])),
   /**
    * A request for changes may carry a longer comment for the discussion, in the small Markdown
    * subset (bold, italic, code, links, lists and quotes), beside its short reason.
@@ -260,8 +221,6 @@ export const bulkSkipCodes = [
   'forbidden',
   'refused',
 ] as const
-/** What happens to a proposal the step decides: published, waiting for the approver, or decided. */
-export const bulkEffects = ['publish', 'wait', 'decide'] as const
 
 /**
  * Members of a definition source that no term links yet, as the term to propose for them: a new

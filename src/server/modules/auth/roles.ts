@@ -60,8 +60,8 @@ async function closeGrants(tx: Queryable, changes: readonly GrantChange[]) {
 
 /**
  * Opens the grants among `changes` that are not held; returns the keys of those it opened. A
- * grant the person holds already changes nothing. An area may have several owners and several
- * approvers, so giving one never needs another removed first.
+ * grant the person holds already changes nothing. An area may have several owners, so giving one
+ * never needs another removed first.
  */
 async function openGrants(tx: Queryable, changes: readonly GrantChange[]) {
   const opened = new Set<string>()

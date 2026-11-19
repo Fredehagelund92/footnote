@@ -63,7 +63,7 @@ To change who looks after a domain, use `/assignments/grant` and `/assignments/r
 
 ## Read the history log
 
-Admins and auditors can read it. Reading or exporting it is not itself logged.
+Admins can read it. Reading or exporting it is not itself logged.
 
 | Operation           | What it does                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------ |

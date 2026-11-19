@@ -107,7 +107,7 @@ test('Definitions: Name and Context headers sort, and flip', async ({ page }) =>
 })
 
 test('Questions: the sort and its direction are kept in the address', async ({ page }) => {
-  await go(page, '/observability/questions')
+  await go(page, '/observability')
   await expect(header(page, 'Asked')).toHaveAttribute('aria-sort', 'descending')
 
   await header(page, 'Asked').getByRole('button').click()

@@ -146,9 +146,9 @@ it('keeps only an app family from the fixed list on a request, never the name an
     code: '23514',
   })
   await expect(insert('cursor', 'Orders in Norway')).rejects.toMatchObject({ code: '23514' })
-  // A request written before the app was recorded, or that names none, is unknown.
+  // A request that names no app is unknown.
   const defaulted = await client.query<{ family: string }>(
-    "insert into mcp_requests (client_label,tool,status) values ('test','get_facts','ok') returning app_family as family",
+    "insert into mcp_requests (client_label,tool,status) values ('test','get_context','ok') returning app_family as family",
   )
   expect(defaulted.rows).toEqual([{ family: 'unknown' }])
 })

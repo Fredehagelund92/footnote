@@ -62,7 +62,7 @@ type WrittenRow = {
 type ReviewRow = {
   item_id: string
   accepted_on: string | null
-  accepted_as: AcceptedAs | 'approver' | null
+  accepted_as: AcceptedAs | null
   accepted_area: string | null
   first_edition: string | null
 }
@@ -75,7 +75,7 @@ export async function enabledTools(tx: Queryable): Promise<string[]> {
   return rows.map((row) => row.tool)
 }
 
-/** The migration's defaults (0034), for a database that has lost the setting. */
+/** The baseline's defaults, for a database that has lost the setting. */
 export const DEFAULT_MCP_RATES: McpRates = { person: 30, client: 120 }
 
 /**
@@ -365,8 +365,7 @@ export async function loadServingBundle(
 
 /** A version's acceptance as served; null only for a version with no acceptance on record. */
 function servedReview(row: ReviewRow | undefined, areaId: string): ServingItem['review'] {
-  if (!row?.accepted_on || !row.accepted_as || row.accepted_as === 'approver' || !row.first_edition)
-    return null
+  if (!row?.accepted_on || !row.accepted_as || !row.first_edition) return null
   return {
     acceptedOn: row.accepted_on,
     acceptedAs: row.accepted_as,

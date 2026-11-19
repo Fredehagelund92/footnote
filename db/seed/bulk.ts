@@ -58,56 +58,32 @@ const sha256 = (text: string) => createHash('sha256').update(text).digest('hex')
 const at = (day: string, time: string) => `${day}T${time}:00Z`
 
 /**
- * Roles people held during the seeded history and no longer hold, so today's roster stays the
- * mock's. The fixtures have owners propose normal and high risk items in areas with one owner,
- * and high risk items in areas without an approver; someone else accepted those (FR-206, FR-207).
- * Two approvers per area, so one of them is never the proposer.
+ * Owners during the seeded history who own the domain no longer, so today's roster stays the
+ * mock's: in the domains with one owner today, an owner proposed versions that another owner
+ * accepted, as the demo's history reads.
  */
-const formerRoles: { areaId: string; personId: string; role: 'owner' | 'approver' }[] = [
-  { areaId: 'area_marketing', personId: 'per_ella', role: 'owner' },
-  { areaId: 'area_paid_media', personId: 'per_kofi', role: 'owner' },
-  { areaId: 'area_sandbox', personId: 'per_sofia', role: 'owner' },
-  { areaId: 'area_sales', personId: 'per_ines', role: 'approver' },
-  ...['area_marketing', 'area_paid_media', 'area_customer_value', 'area_sandbox'].flatMap(
-    (areaId) =>
-      ['per_lars', 'per_ines'].map((personId) => ({ areaId, personId, role: 'approver' as const })),
-  ),
+const formerOwners: { areaId: string; personId: string }[] = [
+  { areaId: 'area_marketing', personId: 'per_ella' },
+  { areaId: 'area_paid_media', personId: 'per_kofi' },
+  { areaId: 'area_sandbox', personId: 'per_sofia' },
 ]
 
-/**
- * The check levels each risk required before migration 0005, when every seeded version was
- * accepted. The seeded history keeps them, and an approver's accept for high risk, as a database
- * that ran before Footnote v1 does; today every level beyond the first three is history only.
- */
-const requiredLevels = {
-  low: ['format', 'matching', 'delivery'],
-  normal: ['format', 'matching', 'delivery', 'answer_impact'],
-  high: ['format', 'matching', 'delivery', 'answer_impact', 'answer_full'],
-} as const
+/** The check levels every version passes before it is accepted (FR-205). */
+const requiredLevels = ['format', 'matching', 'delivery'] as const
 
 /**
  * Who accepted a seeded version: an owner of the area, one other than the proposer for a normal or
- * high risk version (as the fixtures' history had it), and an approver who is neither for high risk.
+ * high risk version, as the demo's history reads.
  */
 function acceptedBy(item: ContextItem) {
   const area = areas.find((a) => a.id === item.areaId)
-  const holders = (role: 'owner' | 'approver') => [
-    ...(role === 'owner' ? (area?.ownerIds ?? []) : []),
-    ...(role === 'approver'
-      ? roleGrants.approvers.filter((a) => a.areaId === item.areaId).map((a) => a.personId)
-      : []),
-    ...formerRoles
-      .filter((r) => r.areaId === item.areaId && r.role === role)
-      .map((r) => r.personId),
+  const owners = [
+    ...(area?.ownerIds ?? []),
+    ...formerOwners.filter((r) => r.areaId === item.areaId).map((r) => r.personId),
   ]
-  const decider = holders('owner').find((id) => item.riskLevel === 'low' || id !== item.proposerId)
-  const approver =
-    item.riskLevel === 'high'
-      ? holders('approver').find((id) => id !== item.proposerId && id !== decider)
-      : null
-  if (!decider || approver === undefined)
-    throw new Error(`No one in the seeded roles may accept ${item.id} (${item.areaId})`)
-  return { decider, capacity: 'owner', approver }
+  const decider = owners.find((id) => item.riskLevel === 'low' || id !== item.proposerId)
+  if (!decider) throw new Error(`No one in the seeded roles may accept ${item.id} (${item.areaId})`)
+  return { decider, capacity: 'owner' }
 }
 
 /**
@@ -278,7 +254,7 @@ async function seedDefinitions(
       change_mark: sha256(member.ref),
     })),
   ])
-  // The demo company says what it is about: a new install starts with no text (0010), and the
+  // The demo company says what it is about: a new install starts with no text, and the
   // demo, the golden library and the assistant evals' About arm read the retailer's worked example.
   await client.query(
     `insert into settings_versions (key, version, value, reason)
@@ -369,7 +345,8 @@ export async function bulkSeed(
         [t.id, t.name, t.meaning, t.areaId, t.by, t.at],
       )
     // Roles hold from the first day of the history, so its decisions were made by people who held
-    // them then (0006 checks the role at the decision's time). Former roles end the day after it.
+    // them then (the database checks the role at the decision's time). Former owners end the day
+    // after it.
     const days = items
       .flatMap((i) => [
         ...versionDays(i).flatMap((v) => [v.proposed, v.accepted]),
@@ -389,18 +366,13 @@ export async function bulkSeed(
             role: 'owner',
           })),
         ),
-        ...roleGrants.approvers.map((a) => ({
-          area_id: a.areaId,
-          person_id: seedPersonId(a.personId),
-          role: 'approver',
-        })),
       ]
         .map((row) => ({ ...row, valid_at: rolesFrom + ')' }))
         .concat(
-          formerRoles.map((r) => ({
+          formerOwners.map((r) => ({
             area_id: r.areaId,
             person_id: seedPersonId(r.personId),
-            role: r.role,
+            role: 'owner',
             valid_at: rolesFrom + rolesEnded,
           })),
         ),
@@ -410,7 +382,6 @@ export async function bulkSeed(
         person_id: seedPersonId(id),
         role: 'administrator',
       })),
-      ...roleGrants.auditors.map((id) => ({ person_id: seedPersonId(id), role: 'auditor' })),
     ])
     const terms: Record<string, unknown>[] = []
     const versions: Record<string, unknown>[] = []
@@ -490,7 +461,7 @@ export async function bulkSeed(
       'insert into vocab_term_service select term_key,id,int8range($1,null) from vocab_term_versions where not term_key = any($2::text[])',
       [bootstrap, [...imported]],
     )
-    // The domains the demo Cube model gives its members, as the edition carries them (0054).
+    // The domains the demo Cube model gives its members, as the edition carries them.
     await client.query(
       `insert into source_domain_service (term_key,area_id,editions)
        select term_key,area_id,int8range($1,null) from cl_source_domains_now($1)`,
@@ -717,8 +688,8 @@ export async function bulkSeed(
       await insert(
         client,
         'check_results',
-        history.flatMap(({ item: i, id, version: v }) =>
-          requiredLevels[i.riskLevel].map((level) => ({
+        history.flatMap(({ id, version: v }) =>
+          requiredLevels.map((level) => ({
             item_version_id: id,
             level,
             outcome: 'passed',
@@ -746,11 +717,6 @@ export async function bulkSeed(
       await insert(client, 'decisions', [
         ...history.map((h) =>
           decision(h, h.by.decider, h.by.capacity, 'accept', at(h.version.accepted, '08:30')),
-        ),
-        ...history.flatMap((h) =>
-          h.by.approver
-            ? [decision(h, h.by.approver, 'approver', 'accept', at(h.version.accepted, '08:45'))]
-            : [],
         ),
         ...history
           .filter((h) => h.item.status === 'retired' && h.version.version === h.item.version)

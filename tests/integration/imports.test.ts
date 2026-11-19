@@ -114,7 +114,7 @@ beforeAll(async () => {
     await foundation(client)
     await client.query(`insert into vocab_terms(key,kind,parent_key) values
       ('val:market/spain','dimension_value','dim:market')`)
-    // The first edition is a bootstrap: its vocabulary needs no decision (0006).
+    // The first edition is a bootstrap: its vocabulary needs no decision.
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")
     ).rows as [{ seq: string }]
@@ -346,8 +346,6 @@ describe('edition export', () => {
         { field: 'summary', position: 1, target: 'metric:orders', label: 'Orders' },
       ],
     })
-    // Domains have no state any more; only editions sealed before that carry one.
-    expect(document.areas).toEqual([])
     expect(document.withheld).toEqual([])
     // The test vocabulary's digests are placeholders; items are written by the real write path.
     expect(await verifyEditionExport(document)).toEqual({

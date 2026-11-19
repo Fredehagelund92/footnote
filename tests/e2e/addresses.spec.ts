@@ -1,21 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { go, signOut, userMenu } from './go.ts'
 
-// The app's addresses are paths (/inbox), one to one with the old #/ addresses, each with its
-// search params checked. An old #/ link and a renamed place still land where they live
-// now, and a link inside the app moves without loading the page again.
-
-test('an old #/ link lands on its path, with its query', async ({ page }) => {
-  await page.goto('/#/inbox?demo=week&card=check-returns')
-  await expect(page).toHaveURL(/\/inbox\?demo=week&card=check-returns$/)
-  await expect(page.locator('[data-row="check-returns"]')).toBeVisible()
-})
-
-test('a renamed place and an old peek land where they live now', async ({ page }) => {
-  await go(page, '/library?dock=fact.itm_ra39ow6c')
-  await expect(page).toHaveURL(/\/context\?dock=context\.itm_ra39ow6c$/)
-  await expect(page.getByRole('region', { name: /Context/ }).last()).toBeVisible()
-})
+// The app's addresses are paths (/inbox), each with its search params checked, and a link inside
+// the app moves without loading the page again.
 
 test('the app opens on the Inbox for someone with something to decide, and an unknown address says it is not found', async ({
   page,

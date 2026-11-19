@@ -18,17 +18,11 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
 
 ### The six tools (the agent contract)
 
-Since the agent contract (Footnote v1, [the product page](../product.md#10-what-agents-get)) the server
-offers six tools, described in one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`):
-`get_context`, `find_context`, `read_context`, `report`, `suggest_context` and `get_related`.
-`improve_question`, `domain_overview`, `what_changed` and `search_help` left the list, and left
-the service with the in-app assistant (30 Oct 2026).
-
-The earlier ids no longer answer: `get_facts` (now `get_context`),
-`find_facts`, `search_facts` and `search_context` (now `find_context`), `read_item` (now
-`read_context`), `report_gap` and `give_feedback` (now `report`) and `draft_context` (now
-`suggest_context`). A call by one of them is refused as an unknown tool. Inside the service
-`get_facts` is still the name of the reply a draft's preview and the evals read; no agent can call it.
+The server offers six tools ([the product page](../product.md#10-what-agents-get)), described in
+one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
+`read_context`, `report`, `suggest_context` and `get_related`. A call by any other id is refused
+as an unknown tool. Inside the service `get_facts` is the name of the reply a draft's preview and
+the evals read; no agent can call it.
 
 Footnote's server instructions (FR-343) tell the agent what Footnote holds and what the data tool holds,
 to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
@@ -405,9 +399,8 @@ archive and a rollback also take an `Idempotency-Key`.
   runs the candidate through `get_facts`'s code: its probe delivers it, replaced items are
   absent, the reply fits, and no active test question of the domain turns from pass to fail. Both
   look at the item as delivered once nothing stops it.
-- No answer test gates a proposal (FR-513): levels 4 and 5 (`answer_impact`, `answer_full`) are
-  history, kept on the versions whose runs recorded them before Footnote v1. A failed level 1 to 3
-  blocks acceptance, with no override (FR-514).
+- No answer test gates a proposal (FR-513). A failed level 1 to 3 blocks acceptance, with no
+  override (FR-514).
 - `POST /items/{id}/retire-proposals` (API only, with no screen in the web app) lets anyone
   suggest archiving an item, with a reason; one can be open per item. Its owners review it like
   any suggestion, and publishing it archives the item.
@@ -631,7 +624,7 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   single link points to, with no model. It fills the words, a kind and dates by rule and where
   it applies by the vocabulary's names, and lists in `unsure` what it guessed.
 
-A context item's kind belongs to each version (migration 0008), so Change kind keeps its id,
+A context item's kind belongs to each version, so Change kind keeps its id,
 history and links. In a change to many items, an owner of a draft's domain may delete it, and
 Mark as checked records a check even when nothing else moved, for an owner of the domain or an
 admin.
@@ -710,7 +703,7 @@ synonym means what that one means.
   (`metric:orders`, `dim:market`), in the shape of `GET /items/{id}/related`: the items that
   mention it or apply to it. A key agents do not read is not found.
 
-Agents read the live terms and synonyms through `serving_terms()` (migration 0011), which names
+Agents read the live terms and synonyms through `serving_terms()`, which names
 no person; the serving role has no grant on the terms tables. What they get is in the agent tools
 above (`terms`).
 
@@ -895,7 +888,7 @@ source keeps them, so a new publish or stop switch is read at once.
 What agents asked and what they got (FR-620), as topics and counts: never the words of a question
 and never who asked (FR-602, FR-613). Each `get_context` call keeps, with its topic, the answer
 state its reply gave (FR-349; none when the question could not be read) and the kind of agent
-that called, from FR-410's fixed list, never the name it gave itself (migration 0015).
+that called, from FR-410's fixed list, never the name it gave itself.
 Administrators read every domain and the calls with no domain; an owner reads the domains they
 own, and Usage is for administrators only. Every read is in `src/contract/observability.ts`.
 
@@ -1021,7 +1014,7 @@ over its months) found nothing at least the minimum times.
   Summary, for every domain together and for each domain, as the page showed it on the day it was
   taken: the counts after the disclosure pass (a hidden count is kept as hidden, never as its
   value), what is still open and what changed as counts alone (no topic, no item, nobody who
-  approved), what was caught (`caught`, absent in a snapshot taken before it was counted), and the
+  approved), what was caught (`caught`), and the
   sentences, what was caught and the notes said over them then
   (`src/domain/obs-summary-words.ts`), so a snapshot read later says the same after the delivery
   records are gone. No page of the web app reads them since the Summary page was withdrawn. Administrators read every snapshot, an owner those of the domains they own;
@@ -1031,17 +1024,10 @@ over its months) found nothing at least the minimum times.
   taken again, changed or deleted. The change counts on Summary and in a snapshot come from
   `cl_obs_changes`, which runs as the owner, so they are the same whoever reads.
 - `GET /observability/views`, `POST /observability/views` (`{ name, filters }`) and
-  `DELETE /observability/views/{id}`: the views people save on Questions, for everyone in the
+  `DELETE /observability/views/{id}`: the views people save on Overview, for everyone in the
   workspace (`observability_views`): a name, unique whatever its case, and filters, never a
   question: `chips`, up to 20 in order, each a field or a dimension once (`dim:store` with its
-  values' keys, `val:store/alder_row`, or `*` for any value; `not` leaves them out), or from before
-  chips the fields answer states, a domain, a kind of agent, what waits in the Inbox and a month.
-  An old `market` chip keeps values by name; migration 0046 moved each to its dimension's chip
-  where every name is one value of one dimension, and flagged any other (`flag`: `shared`,
-  `unknown` or `taken`). `select observability_views_from_keys()` undoes the move for each view whose filters are still
-  exactly what the move produced (`filters_after_keys`); a view changed since keeps its current
-  filters, is not converted back, and is named in a notice, so a rollback right after the deploy
-  restores every view and a later one loses no edit. Only whoever
+  values' keys, `val:store/alder_row`, or `*` for any value; `not` leaves them out). Only whoever
   saved a view, or an administrator, removes it.
 
 ## Settings, domains and agents
@@ -1080,8 +1066,8 @@ Footnote v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read an
 - `POST /access-keys` (administrators) takes `{ name }` and creates an access key for a bot or a
   scheduled job: it reads context and gives feedback, names no person, and lasts until revoked.
   The key is in this answer only.
-- `GET /agent-connections` and `POST /agent-connections/{id}/disconnect` (administrators, formerly
-  `/ai-connections`): every person's agents, and ending one, with a reason the history log keeps
+- `GET /agent-connections` and `POST /agent-connections/{id}/disconnect` (administrators): every
+  person's agents, and ending one, with a reason the history log keeps
   (docs/ai-sign-in.md).
 - `GET /agents`, `POST /agents/{id}/name`, `POST /agents/{id}/tools` and
   `POST /agents/{id}/revoke`: every agent by name, with its kind, each tool it may call and where it
@@ -1168,7 +1154,7 @@ administrator turns a rule on or off for everyone and picks its threshold from t
 offers; the Not found threshold is the gap detection's own setting, `gaps.no_item_threshold`, so
 changing it there writes a new version of that setting. An owner mutes a rule for a domain they
 own: its cards stop reaching them there and still reach the domain's other owners and the
-administrators. The tables are `alert_rules`, `alert_mutes` and `alert_raises` (migration 0022);
+administrators. The tables are `alert_rules`, `alert_mutes` and `alert_raises`;
 the contract is in `src/contract/alerts.ts`.
 
 - The `alerts.raise` job runs every 15 minutes, beside `gaps.detect`. Each rule that is on reads

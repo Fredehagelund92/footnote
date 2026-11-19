@@ -26,7 +26,7 @@ import { useDomains, useMe } from '@/lib/workspace'
 
 // Observability's map: five pages in three small groups, who sees them, and what each is for.
 // Overview comes first, and is where Observability opens: the numbers, the chart and the topics in
-// one view. Questions was a page of its own; its address now opens Overview at the topics.
+// one view.
 
 export const OBS_SECTIONS = [
   {
@@ -77,10 +77,7 @@ export const OBS_TITLES = Object.fromEntries(
 export const obsHref = (section: ObsSection) =>
   section === 'overview' ? '/observability' : `/observability/${section}`
 
-/**
- * The page an address shows: Overview when it names none, and for Questions' old address, which
- * opens Overview at the topics so its links (and an Inbox card's) keep working.
- */
+/** The page an address shows: Overview when it names none, or one that is not a page. */
 export const obsSectionOf = (part: string | undefined): ObsSection =>
   part && part in OBS_PURPOSE ? (part as ObsSection) : 'overview'
 

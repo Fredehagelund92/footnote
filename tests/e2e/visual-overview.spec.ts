@@ -2,18 +2,16 @@ import { existsSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 
 // Screenshot baselines of Observability's Overview (design contract 9, Screenshots), at 1440 and
-// 390 wide, light and dark: the numbers and the chart as it opens, narrowed to Not found, the
-// topics as Questions' old address opens them, filtered by chips with the facets beside them, and
-// with days selected on the chart. Fonts render a little differently on each system,
-// so each platform keeps its own baselines (Playwright's default path ends in the platform's
-// name). Where a platform has none yet the check says so and skips; `npx playwright test
+// 390 wide, light and dark: the numbers and the chart as it opens, narrowed to Not found,
+// filtered by chips with the facets beside them, and with days selected on the chart. Fonts
+// render a little differently on each system, so each platform keeps its own baselines
+// (Playwright's default path ends in the platform's name). Where a platform has none yet the check says so and skips; `npx playwright test
 // tests/e2e/visual-overview.spec.ts --update-snapshots` on that platform writes them, for review
 // by eye in a pull request.
 
 const places = [
   { name: 'overview', address: '/observability' },
   { name: 'not-found', address: '/observability?answer=missing' },
-  { name: 'topics', address: '/observability/questions' },
   // The filter bar: a chip that leaves a value out, chips in an order of their own, the facets.
   {
     name: 'filtered',

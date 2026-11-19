@@ -11,25 +11,18 @@ import { answerPromptDigest, judgePromptDigest } from './answer.ts'
 
 /**
  * Planning a run without a model: what each wording would be delivered on each side (the
- * resolver through get_facts's own code), the impact set (FR-511) and the cell cache keys
- * (FR-522). Nothing here calls a model.
+ * resolver through get_facts's own code) and the cell cache keys (FR-522). Nothing here calls a
+ * model.
  */
 
 export type ArmName = 'baseline' | 'candidate'
 export type PlannedQuestion = {
   id: string
   revision: number
-  /** In the impact set: a wording's delivery changes, or the question names the changed item. */
-  impact: boolean
-  /** Attached to the proposal (FR-524): planned with it, reported only. Absent when not. */
-  attached?: true
   /** Cache key base per arm and wording (hex); a cell key adds the trial. */
   keys: Partial<Record<ArmName, string[]>>
-  /**
-   * The day the question is asked on: its own as-of day, or the run's day when it has none.
-   * Absent on runs planned before it was kept, which ask on the day they are worked.
-   */
-  asOf?: string
+  /** The day the question is asked on: its own as-of day, or the run's day when it has none. */
+  asOf: string
 }
 export type Plan = { questions: PlannedQuestion[]; setAside: string[] }
 export type LoadedQuestion = { id: string; revision: number; body: GoldenQuestion }
@@ -92,31 +85,21 @@ export async function planQuestions(
   sides: Partial<Record<ArmName, ServingBundle>>,
   clock: Clock,
   models: Models,
-  changed: readonly string[],
   tools: ArmTools,
 ): Promise<PlannedQuestion[]> {
   const planned: PlannedQuestion[] = []
   for (const { id, revision, body } of questions) {
     const keys: PlannedQuestion['keys'] = {}
-    const digests: Partial<Record<ArmName, string[]>> = {}
     for (const arm of ['baseline', 'candidate'] as const) {
       const bundle = sides[arm]
       if (!bundle) continue
-      digests[arm] = []
       keys[arm] = []
       for (const wording of body.wordings) {
         const delivered = await deliveryDigest(bundle, clock, body, wording.text)
-        digests[arm].push(delivered)
         keys[arm].push(keyBase(body, wording.text, delivered, models, tools[arm]))
       }
     }
-    const named = [...body.expected.must_deliver, ...body.expected.must_not_deliver]
-    const impact =
-      changed.some((item) => named.includes(item)) ||
-      (digests.baseline !== undefined &&
-        digests.candidate !== undefined &&
-        digests.baseline.some((d, i) => d !== digests.candidate![i]))
-    planned.push({ id, revision, impact, keys, asOf: body.as_of ?? clock.today() })
+    planned.push({ id, revision, keys, asOf: body.as_of ?? clock.today() })
   }
   return planned
 }

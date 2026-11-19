@@ -1,8 +1,8 @@
 # Local demo personas: who the sign-in page's picker offers (the dev identity connector, which the
-# service refuses when NODE_ENV=production), in this order. Area roles (owner, high-risk approver)
-# come from the demo seed for the same email (db/seed/bulk.ts, the reference people), so the picker
-# shows them once the database is seeded. Global roles below are imported once per email, so the
-# administrator and the auditor hold their roles beside your own Cube model too, with no demo data.
+# service refuses when NODE_ENV=production), in this order. Area roles (owner) come from the demo
+# seed for the same email (db/seed/bulk.ts, the reference people), so the picker shows them once
+# the database is seeded. Global roles below are imported once per email, so the administrator
+# holds the role beside your own Cube model too, with no demo data.
 # Every name is invented.
 
 # The administrator, who sets things up (README, "Use your own data").
@@ -29,10 +29,7 @@
   name: Maria Lindqvist
 - email: per_ines@example.test
   name: Ines Duarte
-
-# The high-risk approver of Sales, and the auditor, who reads the history log.
 - email: per_lars@example.test
   name: Lars Dahl
 - email: per_ella@example.test
   name: Ella Voss
-  roles: [auditor]

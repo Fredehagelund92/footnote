@@ -1096,7 +1096,7 @@ export async function seedDemoWeek(
     )
     await seedAskedThisWeek(after)
     await after.query(
-      `update proposals set source_gap_id = $1, provenance = '{"by":"assistant","fields":{},"flags":[]}' where id = $2`,
+      `update proposals set source_gap_id = $1, provenance = '{"by":"agent","fields":{},"flags":[]}' where id = $2`,
       [gap!.id, ids['gap-spain']],
     )
     // The workspace finished its setup: agents asked through MCP, and someone used Ask.

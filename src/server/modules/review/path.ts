@@ -172,10 +172,9 @@ export function createReviewPath(
       // A draft can be sent before anyone owns it.
       owner: v.ownerId ? { id: v.ownerId, name: person.get(v.ownerId) ?? null } : null,
       scope: [...sideOf(v, r.candidate).where],
-      // An older stored version can lack a field the schema now has: read it as not set.
-      validity: { from: v.validity.start ?? null, until: v.validity.end ?? null },
-      reviewDate: v.reviewDate ?? null,
-      sources: v.evidence.map((e) => ({ url: e.url, quote: e.quote ?? null })),
+      validity: { from: v.validity.start, until: v.validity.end },
+      reviewDate: v.reviewDate,
+      sources: v.evidence.map((e) => ({ url: e.url, quote: e.quote })),
       notToConclude: v.notToConclude,
     })
     return {
@@ -376,7 +375,7 @@ export function createReviewPath(
     const clashItem = unanswered ?? r.clashes[0]
     const ready = readiness({
       diff,
-      // Drafted for a Not found card by an agent or the assistant: nobody has checked its words.
+      // Drafted for a Not found card by an agent: nobody has checked its words.
       drafted: r.gapId !== null && writtenBy(r.p) !== null,
       claims: claims?.rows ?? null,
       clash: clashItem

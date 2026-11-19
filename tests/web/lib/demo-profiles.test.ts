@@ -37,12 +37,7 @@ describe("the demo's profiles", () => {
     expect(demoProfiles.map((p) => p.part)).toEqual(['Admin', 'Domain owner', 'Reader'])
     expect(roleGrants.administrators).toContain(admin)
     expect(areas.find((a) => a.id === 'area_sales')!.ownerIds).toContain(owner)
-    const held = [
-      ...areas.flatMap((a) => a.ownerIds),
-      ...roleGrants.administrators,
-      ...roleGrants.approvers.map((a) => a.personId),
-      ...roleGrants.auditors,
-    ]
+    const held = [...areas.flatMap((a) => a.ownerIds), ...roleGrants.administrators]
     expect(held).not.toContain(reader)
     expect(devPeople.find((d) => d.name === demoProfiles[2]!.name)!.roles ?? []).toEqual([])
   })

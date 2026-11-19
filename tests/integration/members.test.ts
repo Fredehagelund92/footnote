@@ -19,10 +19,9 @@ import { apiDatabase, testDatabase, transaction } from './support.ts'
 const { client, url } = testDatabase()
 const extra = {
   coowner: '00000000-0000-4000-8000-0000000000c1',
-  auditor: '00000000-0000-4000-8000-0000000000c2',
   leaver: '00000000-0000-4000-8000-0000000000c3',
 }
-const names = ['author', 'owner', 'approver', 'admin', 'stranger', 'coowner', 'auditor', 'leaver']
+const names = ['author', 'owner', 'member', 'admin', 'stranger', 'coowner', 'leaver']
 const app = buildApp({
   database: apiDatabase(url),
   logger: createLogger({ level: 'silent' }),
@@ -80,13 +79,10 @@ beforeAll(async () => {
     await foundation(client)
     await client.query(
       `insert into people (id,email,display_name) values
-         ($1,'coowner@example.test','coowner'),($2,'auditor@example.test','auditor'),($3,'leaver@example.test','leaver')`,
-      [extra.coowner, extra.auditor, extra.leaver],
+         ($1,'coowner@example.test','coowner'),($2,'leaver@example.test','leaver')`,
+      [extra.coowner, extra.leaver],
     )
-    await client.query("insert into global_role_grants (person_id,role) values ($1,'auditor')", [
-      extra.auditor,
-    ])
-    // Marketing has one owner, the stranger; finance has the owner (and an approver).
+    // Marketing has one owner, the stranger; finance has the owner.
     await client.query(
       "insert into area_assignments (area_id,person_id,role) values ('marketing',$1,'owner')",
       [people.stranger],
@@ -112,8 +108,6 @@ describe('Admin and Member', () => {
       role: 'member',
       owns: ['finance'],
     })
-    // An auditor of an earlier model reads as a Member: v1 has two roles.
-    expect(list.find((m) => m.id === extra.auditor)).toMatchObject({ role: 'member' })
     expect(list.find((m) => m.id === people.author)!.lastSignedInAt).toMatch(/^\d{4}-/)
     expect(list.find((m) => m.id === extra.coowner)!.lastSignedInAt).toBeNull()
   })
@@ -146,13 +140,6 @@ describe('Admin and Member', () => {
     expect(
       (await call(owner, 'POST', `/members/${people.author}/role`, { role: 'admin' })).statusCode,
     ).toBe(403)
-    // Making an auditor a Member ends the auditor grant: v1 has no auditor role.
-    await call(admin, 'POST', `/members/${extra.auditor}/role`, { role: 'member' })
-    const held = await client.query(
-      'select 1 from global_role_grants where person_id=$1 and valid_at @> now()',
-      [extra.auditor],
-    )
-    expect(held.rowCount).toBe(0)
     const logged = await client.query<{ action: string; role: string }>(
       `select action, details->>'role' as role from audit_log
         where subject_id=$1 and action like 'role.%' order by seq`,
@@ -307,7 +294,6 @@ describe('row security, for a holder of the API role who skips the service', () 
     )
     for (const sql of [
       "insert into area_assignments (area_id,person_id,role) values ('marketing',$1,'owner')",
-      "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'approver')",
       "insert into global_role_grants (person_id,role) values ($1,'administrator')",
     ])
       await expect(

@@ -104,8 +104,9 @@ function appFamilyOfBody(body: unknown): AppFamily {
 }
 
 /**
- * What a read tool's result said, from the closed set the request log keeps. Partial and Outdated
- * answers are matches there, as they were before the answer states (FR-349).
+ * What a read tool's result said, from the closed set the request log keeps: the resolver's
+ * outcome, so Partial and Outdated answers are matches there; the delivery keeps the answer
+ * state (FR-349).
  */
 function resultStatusOf(result: { structuredContent?: Record<string, unknown> }) {
   const said = result.structuredContent?.status

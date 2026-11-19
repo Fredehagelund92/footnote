@@ -13,7 +13,7 @@ const dock = (page: Page) =>
 
 /** Fails the first replay of `topic`: the mock by its ?replay=fail switch, the service by a 502. */
 async function failFirstReplay(page: Page, topic: string) {
-  if (mode === 'mock') return `/observability/questions?replay=fail&dock=topic.${topic}`
+  if (mode === 'mock') return `/observability?replay=fail&dock=topic.${topic}`
   let failed = false
   await page.route('**/api/v1/**', (route: Route) => {
     if (failed || !/replay/i.test(route.request().url())) return route.continue()
@@ -24,12 +24,12 @@ async function failFirstReplay(page: Page, topic: string) {
       body: '{"message":"Bad gateway"}',
     })
   })
-  return `/observability/questions?dock=topic.${topic}`
+  return `/observability?dock=topic.${topic}`
 }
 
 test('a dock whose read fails keeps its frame, with Retry and Close', async ({ page }) => {
   const topic = topicId('units-sold-all')
-  await go(page, '/observability/questions')
+  await go(page, '/observability')
   await go(page, await failFirstReplay(page, topic))
 
   const panel = dock(page)

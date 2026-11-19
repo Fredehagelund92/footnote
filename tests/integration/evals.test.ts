@@ -129,8 +129,6 @@ async function decide(id: string, who: Who = 'owner') {
     revision: sheet.json<{ proposal: { revision: number } }>().proposal.revision,
   })
 }
-const runsOf = async (proposal: string) =>
-  (await call('GET', `/evals/runs?proposal=${proposal}`, 'owner')).json<EvalRun[]>()
 type Detail = {
   run: EvalRun
   results: {
@@ -335,15 +333,11 @@ describe('no answer tests on a suggestion (FR-513)', () => {
       )
     // A deliberately wrong item: the answer would claim a cause. No answer test stops it; the
     // owner's review does, so it stays waiting here.
-    const wrong = await submitted(
+    await submitted(
       { summary: 'Orders in Norway fell because online sales stopped on 4 August 2026.' },
       closure,
     )
-    const summary = await work()
-    expect(summary.runs).toEqual([])
-    expect(await runsOf(wrong.id)).toEqual([])
-    // Listing runs is still for maintainers.
-    expect((await call('GET', `/evals/runs?proposal=${wrong.id}`, 'stranger')).statusCode).toBe(403)
+    expect((await work()).runs).toEqual([])
   })
 
   it('lets a corrected item through on one accept', async () => {
@@ -354,31 +348,9 @@ describe('no answer tests on a suggestion (FR-513)', () => {
       },
       closure,
     )
-    await work()
-    expect(await runsOf(fixed.id)).toEqual([])
+    expect((await work()).runs).toEqual([])
     const accepted = await decide(fixed.id)
     expect(accepted.statusCode, accepted.body).toBe(200)
-  })
-
-  it('needs no answer test at high risk either, and records no answer level', async () => {
-    const high = await submitted({
-      kind: 'note',
-      title: 'Spain note',
-      summary: 'Spain reporting changed.',
-      riskLevel: 'high',
-      scope: {
-        metrics: ['metric:orders'],
-        dimensions: [],
-        dimensionValues: [{ dimension: 'dim:market', value: 'val:market/spain' }],
-      },
-    })
-    await work()
-    expect(await runsOf(high.id)).toEqual([])
-    const rows = await client.query(
-      'select 1 from check_results where item_version_id=$1 and level::text like $2',
-      [high.itemVersionId, 'answer_%'],
-    )
-    expect(rows.rowCount).toBe(0)
   })
 })
 
@@ -891,10 +863,10 @@ describe('weekly scorecard and baseline', () => {
     // One never started; one stopped at a cap, which nothing resumes by itself.
     await client.query(
       `insert into eval_runs(kind,state,area_id,tool_schema_digest,model_id,client_label,test_set_digest,tries,
-         estimated_cost_micros,created_at,finished_at,summary)
-       values('scheduled','queued','marketing','x','mock/scripted-answer','eval','\\x00',3,0,now()-interval '25 hours',null,'{}'),
+         estimated_cost_micros,created_at,finished_at,summary,answer_family,judge_family,answer_vendor,judge_vendor,answer_provider,judge_provider)
+       values('scheduled','queued','marketing','x','mock/scripted-answer','eval','\\x00',3,0,now()-interval '25 hours',null,'{}','mock/scripted','mock/judge','mock','mock','mock','mock'),
              ('scheduled','incomplete','finance','x','mock/scripted-answer','eval','\\x00',3,0,now()-interval '25 hours',
-              now()-interval '24 hours','{"stopped":{"reason":"cap"}}')`,
+              now()-interval '24 hours','{"stopped":{"reason":"cap"}}','mock/scripted','mock/judge','mock','mock','mock','mock')`,
     )
     logs.length = 0
     expect(await work()).toMatchObject({ expired: 2 })
@@ -909,9 +881,9 @@ describe('weekly scorecard and baseline', () => {
       rows: [run],
     } = await client.query<{ id: string }>(
       `insert into eval_runs(kind,state,tool_schema_digest,model_id,client_label,test_set_digest,tries,
-         estimated_cost_micros,finished_at,summary)
+         estimated_cost_micros,finished_at,summary,answer_family,judge_family,answer_vendor,judge_vendor,answer_provider,judge_provider)
        values('held_out','incomplete','x','mock/scripted-answer','eval','\\x00',3,0,now(),
-         '{"edition":"E1","plan":{"questions":[],"setAside":[]},"stopped":{"reason":"stopped"}}')
+         '{"edition":"E1","plan":{"questions":[],"setAside":[]},"stopped":{"reason":"stopped"}}','mock/scripted','mock/judge','mock','mock','mock','mock')
        returning id::text`,
     )
     const state = async () =>
@@ -972,8 +944,8 @@ describe('weekly scorecard and baseline', () => {
           rows: [run],
         } = await client.query<{ id: string }>(
           `insert into eval_runs(kind,state,tool_schema_digest,model_id,client_label,test_set_digest,tries,
-             estimated_cost_micros,summary)
-           values('held_out',$1,'x','mock/scripted-answer','eval','\\x00',3,0,'{}') returning id::text`,
+             estimated_cost_micros,summary,answer_family,judge_family,answer_vendor,judge_vendor,answer_provider,judge_provider)
+           values('held_out',$1,'x','mock/scripted-answer','eval','\\x00',3,0,'{}','mock/scripted','mock/judge','mock','mock','mock','mock') returning id::text`,
           [from],
         )
         ids.push(run!.id)

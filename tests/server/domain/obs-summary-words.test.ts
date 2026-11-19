@@ -32,8 +32,15 @@ function data(over: Partial<Data> = {}): Data {
     notCompared: null,
     open: { total: 3 },
     changes: { total: 12 },
+    caught: nothingCaught,
     ...over,
   }
+}
+
+/** Nothing caught besides the answers with a warning. */
+const nothingCaught: CaughtView = {
+  saved: { total: 0, triggers: { publish: 0, archive: 0, restore: 0, sync: 0, check_date: 0 } },
+  alerts: { raised: 0, acted: 0 },
 }
 
 describe('periodName', () => {
@@ -106,6 +113,7 @@ describe('summarySentences', () => {
       '335 (63%) had an answer fully based on checked context.',
       '115 found nothing written down; 3 topics like that are still open.',
       '12 changes were approved by an owner and published.',
+      '82 answers went out with a warning, and the agent was told each time.',
     ])
   })
 
@@ -122,6 +130,7 @@ describe('summarySentences', () => {
     expect(lines).toEqual([
       'Agents asked 47 questions in September 2026.',
       'No change was approved and published in September 2026.',
+      'Nothing was caught in September 2026.',
     ])
     expect(
       summarySentences(data({ numbers: { asked: 532, checked: 3, warned: 0, missing: 0 } }))[1],
@@ -135,7 +144,7 @@ describe('changes under the minimum', () => {
     expect(changesWords(small.changes.total)).toBe('Fewer than 5')
     expect(changesWords(null)).toBe('Fewer than 5')
     expect(changesWords(0)).toBe('0')
-    expect(summarySentences(small).at(-1)).toBe(
+    expect(summarySentences(small).at(-2)).toBe(
       'Fewer than 5 changes were approved by an owner and published.',
     )
     // Only the questions' counts move; nothing reads up or down for changes.
@@ -158,10 +167,10 @@ function caught(over: Partial<CaughtView> = {}): CaughtView {
 describe('caughtLines', () => {
   it('says each of the three lines on its own, never a total and never prevented', () => {
     const lines = caughtLines(data({ caught: caught() }))
-    expect(lines.map((l) => [l.key, l.title, l.measured])).toEqual([
-      ['warned', 'Answered with a warning', true],
-      ['saved', 'Saved questions that changed', true],
-      ['alerts', 'Alerts that owners acted on', true],
+    expect(lines.map((l) => [l.key, l.title])).toEqual([
+      ['warned', 'Answered with a warning'],
+      ['saved', 'Saved questions that changed'],
+      ['alerts', 'Alerts that owners acted on'],
     ])
     expect(lines[1]!.text).toBe(
       '12 times, a saved question gave a different answer after a change: 7 after a publish and 5 after a sync.',
@@ -231,16 +240,7 @@ describe('caughtLines', () => {
     ).toBe('No alert asked an owner for a decision.')
   })
 
-  it('keeps two lines not measured yet in a snapshot taken before they were counted', () => {
-    const lines = caughtLines(data())
-    expect(lines.map((l) => [l.key, l.measured])).toEqual([
-      ['warned', true],
-      ['saved', false],
-      ['alerts', false],
-    ])
-    expect(lines[0]!.text).toMatch(/^82 answers went out with a warning/)
-    expect(lines[1]!.text).toMatch(/^Not measured yet\./)
-    for (const l of lines) expect(l.text).not.toMatch(/prevent/i)
+  it('says when no answer went out with a warning', () => {
     expect(
       caughtLines(data({ numbers: { asked: 9, checked: 9, warned: 0, missing: 0 } }))[0]!.text,
     ).toBe('No answer went out with a warning.')
@@ -286,8 +286,6 @@ describe('caughtSentence', () => {
       'Nothing was caught in September 2026.',
     )
     expect(caughtSentence(data({ numbers: { ...quiet, warned: null }, caught: none }))).toBeNull()
-    // A snapshot taken before what was caught was counted says nothing of it.
-    expect(caughtSentence(data())).toBeNull()
   })
 })
 

@@ -4,7 +4,6 @@ import {
   type EditionExport,
   type ExportedTerm,
 } from '../../../domain/edition-export.ts'
-import type { AreaState } from '../../../domain/item.ts'
 import { namedItems } from '../../../domain/mentions.ts'
 import type { Queryable } from '../../db/database.ts'
 import { hiddenItems } from '../library/index.ts'
@@ -57,7 +56,7 @@ export async function exportEdition(tx: Queryable, label: string): Promise<Editi
   const withheld: EditionExport['withheld'] = []
   for (const row of served) {
     const stored = versions.get(row.versionId)
-    // A version the audience rule hides from the reader keeps only its digest here (0083).
+    // A version the audience rule hides from the reader keeps only its digest here.
     if (!stored) withheld.push({ id: row.itemId, digest: row.digest })
     else
       items.push({
@@ -75,11 +74,6 @@ export async function exportEdition(tx: Queryable, label: string): Promise<Editi
      where s.editions @> $1::bigint order by s.term_key`,
     [head.seq],
   )
-  const areas = await tx.query<{ id: string; state: AreaState }>(
-    `select area_id as id,state::text as state from area_state_service
-     where editions @> $1::bigint order by area_id`,
-    [head.seq],
-  )
   const domains = await tx.query<{ key: string; areaId: string }>(
     `select key,area_id as "areaId" from serving_source_domains($1::bigint) order by key`,
     [head.seq],
@@ -91,7 +85,6 @@ export async function exportEdition(tx: Queryable, label: string): Promise<Editi
     items,
     withheld,
     vocabulary,
-    areas,
     domains,
   }
 }

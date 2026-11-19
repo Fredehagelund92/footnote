@@ -110,7 +110,6 @@ const kindTitles: Record<ItemKind, string> = {
   note: 'Note: a lasting remark',
   event: 'Event: something that happened on a day',
   guide: 'Guide: how to investigate',
-  example: 'Example: a checked answer to a question',
   issue: 'Issue: a data problem that lasts a while',
 }
 const day = z.string().check(z.refine(isCalendarDate))

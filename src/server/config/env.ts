@@ -139,7 +139,6 @@ const envSchema = z
     // (FR-718 to FR-720), in place of its fixed rules and planner. On by default; off answers with
     // the router.
     FOOTNOTE_ASK_LOOP: z.enum(['on', 'off']).default('on'),
-    MODEL_PROVIDER: z.string().optional(),
     // A folder of Cube model files, read offline. Unset selects the demo connector.
     CUBE_MODEL_DIR: z.string().optional(),
     // Folders on the server, by connector id: a JSON object each connector named reads as
@@ -177,8 +176,8 @@ const envSchema = z
     // (mode 0700). Sources an administrator adds keep their tokens there (CON-105). Unset, the
     // server keeps no secret, so a source that needs one cannot be added.
     FOOTNOTE_SECRETS_DIR: z.string().optional(),
-    // `on` lets the assistant's read_source open plain http pages on this machine, where the
-    // end-to-end tests serve theirs. Never another private address; refused in production.
+    // `on` lets the service open plain http pages an evidence link names on this machine, where
+    // the end-to-end tests serve theirs. Never another private address; refused in production.
     FOOTNOTE_WEB_READ_LOOPBACK: z.enum(['on', 'off']).default('off'),
     // The bearer token a scraper presents at /metrics. Unset turns the endpoint off.
     FOOTNOTE_METRICS_TOKEN: z
@@ -279,14 +278,6 @@ const envSchema = z
           message: 'Expected an address without a query, a fragment or credentials',
         })
     }
-    if (env.MODEL_PROVIDER !== undefined) {
-      context.addIssue({
-        code: 'custom',
-        path: ['MODEL_PROVIDER'],
-        message:
-          "Replaced by MODELS: MODELS=mock, or MODELS=live with each role's provider and model in the models.* settings",
-      })
-    }
   })
 
 export type LogLevel = (typeof logLevels)[number]
@@ -362,7 +353,7 @@ export interface Config {
   /** The local secret store's folder; unset keeps no secret. */
   secretsDir: string | undefined
   metricsToken: string | undefined
-  /** read_source may open http pages on this machine too (tests only). */
+  /** Evidence links may open http pages on this machine too (tests only). */
   webReadLoopback: boolean
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; unset shows none. */
   profileLabel: string | undefined
