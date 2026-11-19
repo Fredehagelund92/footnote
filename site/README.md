@@ -32,7 +32,7 @@ The faint grey is one shade darker than in the approved file, so that small text
 
 ### The pictures
 
-The pictures of the app are real captures of the demo, in `landing/captures`, light and dark, wide and on a phone. To take them again, serve the web app on its demo data from the repository root (`npx vite build && npx vite preview --port 5517`), then run `npm run capture` here. It writes the WebP files the page reads.
+The pictures of the app are real captures of the demo, in `landing/captures`, light and dark, wide and on a phone. The repository's README has one more, `docs/images/answer.png`: an Ask answer with the panel that says where it comes from, in light. To take them all again, serve the web app on its demo data from the repository root (`npx vite build && npx vite preview --port 5517`), then run `npm run capture` here. It writes the WebP files the page reads and the README's PNG. `npm run capture -- landing` or `-- readme` takes only one set.
 
 ## The docs
 

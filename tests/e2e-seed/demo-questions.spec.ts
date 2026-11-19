@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { readmeQuestion } from './readme-question.ts'
 
 /*
   The eight demo questions: what a visitor to the demo is likely to ask Ask first, with no AI
@@ -23,7 +24,7 @@ const nothingWritten = (turn: Locator) =>
 const chats: Record<string, Question[]> = {
   'Norway, the README question: the customs rule first': [
     {
-      question: 'How did orders in Norway change in October 2026?',
+      question: readmeQuestion,
       label: 'Checked',
       shows: (turn) =>
         expect(answer(turn)).toHaveText(
