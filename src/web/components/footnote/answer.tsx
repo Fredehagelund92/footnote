@@ -1790,34 +1790,46 @@ const ratedMetrics = (answer: Answer) =>
  */
 function useRating(answer: Answer) {
   const write = useWrite()
+  type Counted = { id: string; verdict: 'helpful' | 'wrong' } | null
   const [rated, setRated] = React.useState<'helpful' | 'wrong' | null>(null)
-  // The id of the rating counted now, once the service answers: one chain, so clicks apply in order.
-  const counted = React.useRef<Promise<string | null>>(Promise.resolve(null))
+  // The rating counted now, once the service answers: one chain, so clicks apply in order, and the
+  // pressed button follows what the chain holds once nothing later is queued.
+  const counted = React.useRef<Promise<Counted>>(Promise.resolve(null))
+  const queued = React.useRef(0)
+  const wish = React.useRef(rated)
   const rate = (verdict: 'helpful' | 'wrong') => {
-    const before = rated
-    const next = rated === verdict ? null : verdict
+    const next = wish.current === verdict ? null : verdict
+    wish.current = next
     setRated(next)
-    counted.current = counted.current.then(async (id) => {
-      if (id)
+    queued.current += 1
+    counted.current = counted.current.then(async (held) => {
+      let now = held
+      if (held)
         try {
-          await write('takeBackRating', { id })
+          await write('takeBackRating', { id: held.id })
+          now = null
         } catch {
-          setRated(before)
           toast.error("Your rating wasn't taken back", {
             description: 'It still counts. Click it again in a moment.',
           })
-          return id
         }
-      if (!next) return null
-      try {
-        return (await write('rateAnswer', { verdict: next, metrics: ratedMetrics(answer) })).id
-      } catch {
-        setRated(null)
-        toast.error("Your rating wasn't counted", {
-          description: 'Nothing was kept. Click it again in a moment.',
-        })
-        return null
+      if (!now && next)
+        try {
+          now = {
+            id: (await write('rateAnswer', { verdict: next, metrics: ratedMetrics(answer) })).id,
+            verdict: next,
+          }
+        } catch {
+          toast.error("Your rating wasn't counted", {
+            description: 'It may not have been counted. Click it again in a moment.',
+          })
+        }
+      queued.current -= 1
+      if (queued.current === 0) {
+        wish.current = now?.verdict ?? null
+        setRated(wish.current)
       }
+      return now
     })
   }
   return { rated, rate }
@@ -1891,7 +1903,7 @@ export function AnswerActions({
           <CopiedIcon copied={copied} />
         </IconButton>
       )}
-      {answer.state !== 'failed' && (
+      {answer.state !== 'failed' && !draft && (
         <>
           <IconButton
             label="Good answer"
