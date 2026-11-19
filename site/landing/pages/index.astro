@@ -426,13 +426,15 @@ Before you answer a question about company data, call get_context first and use 
     <section class="sec" id="run" aria-labelledby="h-install">
       <div class="doc">
         <h2 class="h2" id="h-install">Try it on your own computer.</h2>
-        <p class="lede">You need Docker. The first start pulls the 0.1.0 images and loads the demo company: its people and their notes, a few suggestions waiting for review, and some weeks of questions from agents. Give it about two minutes.</p>
+        <!-- release: switch to the images -->
+        <p class="lede">You need Docker. The first start builds Footnote from your checkout and loads the demo company: its people and their notes, a few suggestions waiting for review, and some weeks of questions from agents. The first build takes a few minutes.</p>
 <div class="install wide" id="install">
           <div class="inst">
             <span class="n">1</span>
-            <div><h3>Start it</h3><p>Clone the repository and start the published images.</p></div>
-<div class="cmdw"><button class="copy" type="button" aria-label="Copy the commands" data-copy="git clone https://github.com/Fredehagelund92/footnote.git &amp;&amp; cd footnote&#10;docker compose -f compose.yaml -f compose.images.yaml up"><svg><use href="#i-copy"/></svg></button><pre class="cmd"><span class="p">$ </span>git clone https://github.com/Fredehagelund92/footnote.git &amp;&amp; cd footnote
-<span class="p">$ </span>docker compose -f compose.yaml -f compose.images.yaml up</pre></div>
+            <!-- release: switch to the images -->
+            <div><h3>Start it</h3><p>Clone the repository and start it with Docker Compose.</p></div>
+<div class="cmdw"><button class="copy" type="button" aria-label="Copy the commands" data-copy="git clone https://github.com/Fredehagelund92/footnote.git &amp;&amp; cd footnote&#10;docker compose up"><svg><use href="#i-copy"/></svg></button><pre class="cmd"><span class="p">$ </span>git clone https://github.com/Fredehagelund92/footnote.git &amp;&amp; cd footnote
+<span class="p">$ </span>docker compose up</pre></div>
           </div>
           <div class="inst">
             <span class="n">2</span>
@@ -445,7 +447,6 @@ Before you answer a question about company data, call get_context first and use 
 <div class="cmdw"><button class="copy" type="button" aria-label="Copy the command" data-copy="claude mcp add --transport http footnote http://localhost:3000/mcp"><svg><use href="#i-copy"/></svg></button><pre class="cmd"><span class="p">$ </span>claude mcp add --transport http footnote http://localhost:3000/mcp</pre></div>
           </div>
         </div>
-        <p class="name-note">Running plain <code>docker compose up</code> builds your checkout instead of pulling the 0.1.0 images.</p>
         <p class="prose">On the demo nothing leaves your computer, and no AI service is called. Ask uses a scripted reader that lists what's written.</p>
         <p class="prose">An admin can give Ask a model for its sentences, Anthropic directly or through Vercel's AI Gateway. Ask then sends the question, the chat so far, the items it read and their owners' names, but no e-mail addresses, and each person has a daily spending limit.</p>
         <p class="prose">Footnote reads your definitions from a Cube model folder or from the <code>semantic_manifest.json</code> that <code>dbt parse</code> writes, and never writes back.</p>
