@@ -73,7 +73,7 @@ const result = (patch: Partial<AnswerResult> = {}): AnswerResult => ({
   leftOutMore: 0,
   forAnotherGroup: 0,
   uncovered: { metrics: [], values: [] },
-  say: '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+  say: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
   next: null,
   steps: [],
   ms: 1,
@@ -100,7 +100,7 @@ describe("Ask's answer from the engine", () => {
       dates: '1 to 31 Aug 2026',
       state: 'grounded',
       sources: ['itm_a'],
-      said: '1 context item applies to Orders in Norway in August 2026. Only that was checked.',
+      said: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
       cited: {
         itm_a: {
           quote: 'Held at the border from 4 August 2026.',
@@ -480,7 +480,12 @@ describe('Asked this week from the service', () => {
 describe("the person's chats in the browser", () => {
   const memory = (): Shelf & { data: Map<string, string> } => {
     const data = new Map<string, string>()
-    return { data, get: (k) => data.get(k) ?? null, set: (k, v) => void data.set(k, v) }
+    return {
+      data,
+      get: (k) => data.get(k) ?? null,
+      set: (k, v) => void data.set(k, v),
+      remove: (k) => void data.delete(k),
+    }
   }
 
   it('keeps each person their own chats, newest first, and puts a deleted one back once', () => {
@@ -538,6 +543,21 @@ describe("the person's chats in the browser", () => {
     expect(kept.at(-1)).toMatchObject({ id: 'c1' })
     expect(kept.at(-1)?.answers).toBeUndefined()
     expect(kept.filter((t) => t.answers?.length)).toHaveLength(KEPT_ANSWERS)
+  })
+
+  it("forgets one person's chats at sign-out, so a deleted one cannot come back either", () => {
+    const shelf = memory()
+    const chats = createChatShelf(shelf)
+    chats.add('per_jon', 'c1', 'First?', '')
+    chats.add('per_jon', 'c2', 'Second?', '')
+    chats.add('per_ines', 'c3', 'Hers?', '')
+    const { undo } = chats.remove('per_jon', 'c2')
+    chats.forget('per_jon')
+    expect([...shelf.data.keys()]).toEqual(['footnote.ask.chats.per_ines'])
+    expect(chats.list('per_jon')).toEqual([])
+    expect(chats.undo(undo.token)).toBe(false)
+    expect(chats.list('per_jon')).toEqual([])
+    expect(chats.list('per_ines').map((t) => t.id)).toEqual(['c3'])
   })
 
   it('reads a shelf it cannot parse as no chats', () => {

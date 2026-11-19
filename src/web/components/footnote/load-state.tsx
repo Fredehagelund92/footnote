@@ -121,7 +121,10 @@ export function RowsSkeleton({ rows = 6, tall }: { rows?: number; tall?: boolean
   )
 }
 
-/** A load that failed: what didn't load, that nothing is lost, and Retry. */
+/**
+ * A load that failed: what didn't load, that nothing is lost, and Retry. Offline there is nothing to
+ * retry: it says so, and the read goes again by itself when the connection is back.
+ */
 export function LoadError({
   what,
   onRetry,
@@ -131,6 +134,7 @@ export function LoadError({
   onRetry: () => void
   className?: string
 }) {
+  const online = useOnline()
   return (
     <div
       role="alert"
@@ -139,17 +143,25 @@ export function LoadError({
         className,
       )}
     >
-      <CloudAlertIcon aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+      {online ? (
+        <CloudAlertIcon aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+      ) : (
+        <WifiOffIcon aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+      )}
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-medium">Couldn't load {what}.</p>
         <p className="text-muted-foreground">
-          Nothing is lost. Check the connection and try again.
+          {online
+            ? 'Nothing is lost. Check the connection and try again.'
+            : "You're offline. It loads by itself when the connection is back."}
         </p>
       </div>
-      <Button variant="outline" onClick={onRetry}>
-        <RefreshCwIcon data-icon="inline-start" />
-        Retry
-      </Button>
+      {online && (
+        <Button variant="outline" onClick={onRetry}>
+          <RefreshCwIcon data-icon="inline-start" />
+          Retry
+        </Button>
+      )}
     </div>
   )
 }
@@ -202,13 +214,15 @@ export function RefreshError({
 
 /**
  * What Loadable needs of a read: TanStack Query's own states. `isRefetchError` is a failure of a
- * read that has already brought its data: the page has something to show.
+ * read that has already brought its data: the page has something to show. `isPaused` is a read
+ * waiting for the connection: offline, nothing is sent.
  */
 export type LoadState = {
   isPending: boolean
   isError: boolean
   isRefetchError: boolean
   isFetching: boolean
+  isPaused: boolean
   refetch: () => unknown
 }
 
@@ -223,6 +237,7 @@ export function allLoaded(...reads: LoadState[]): LoadState {
     isError: failed.length > 0,
     isRefetchError: failed.length > 0 && failed.every((r) => r.isRefetchError),
     isFetching: reads.some((r) => r.isFetching),
+    isPaused: reads.some((r) => r.isPending && r.isPaused),
     refetch: () => failed.forEach((r) => r.refetch()),
   }
 }
@@ -233,7 +248,8 @@ export type LoadPhase = 'quiet' | 'skeleton' | 'failed' | 'content'
 /**
  * Where a read is, by the loading rules: `quiet` for the first 150ms of a load (nothing yet, so a
  * fast load never flashes a skeleton), `skeleton` after that, held at least 300ms, `failed` when a
- * load ended in an error with nothing to show, and `content` otherwise. `refreshFailed` is a
+ * load ended in an error with nothing to show, or waits offline with nothing to show (LoadError
+ * says the connection is out), and `content` otherwise. `refreshFailed` is a
  * refresh that failed on a page already shown, and `waited` that the person saw the skeleton.
  * Loadable swaps a whole region by it; a page that draws its frame at once (a list's bar and
  * table head) reads it to hold back only its rows.
@@ -241,10 +257,14 @@ export type LoadPhase = 'quiet' | 'skeleton' | 'failed' | 'content'
 export function useLoadPhase(query: LoadState) {
   // A read that failed with nothing to show; one that failed on a refresh keeps its page.
   const loadFailed = query.isError && !query.isRefetchError
-  const failed = loadFailed && !query.isFetching
+  // A first load waiting offline is never sent: a skeleton for it would never end. A retry also
+  // waits while the tab is hidden; that one goes on its own when the tab is back.
+  const online = useOnline()
+  const offline = query.isPending && query.isPaused && !online
+  const failed = (loadFailed && !query.isFetching) || offline
   const refreshFailed = query.isRefetchError && !query.isFetching
   // Pending is the first load; a failed one read again is a retry.
-  const busy = (query.isPending && !query.isError) || (loadFailed && query.isFetching)
+  const busy = !offline && ((query.isPending && !query.isError) || (loadFailed && query.isFetching))
   const shown = useDelayedBusy(busy)
   // Whether the person saw the skeleton: what arrives after it may grow in, once.
   const [waited, setWaited] = React.useState(false)

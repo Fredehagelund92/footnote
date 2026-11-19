@@ -76,7 +76,7 @@ test('a gap counts across a month edge: Overview, Alerts and the Inbox', async (
     .getByRole('row')
     .filter({ has: page.getByRole('button', { name: /^Orders in Germany/ }) })
   await expect(germany).toContainText('Oct, Nov 2026')
-  await expect(germany).toContainText('Counted across a month edge')
+  await expect(germany).toContainText('Counted across two months')
   // Calls that could not be read have no topic, so only the whole list says them.
   await expect(page.getByRole('row').filter({ hasText: 'Could not be read' })).toHaveCount(0)
   await go(page, '/observability')
@@ -87,10 +87,10 @@ test('a gap counts across a month edge: Overview, Alerts and the Inbox', async (
   await inMockUntil('P12b', 'alerts and the Not found card across a month edge', async () => {
     await go(page, '/observability/alerts')
     await expect(
-      page.getByText('or more times in 7 days about the same thing, even across a month edge'),
+      page.getByText('or more times in 7 days about the same thing, even across two months'),
     ).toBeVisible()
     await page
-      .getByRole('link', { name: 'Orders in Germany: not found, 6 times across a month edge' })
+      .getByRole('link', { name: 'Orders in Germany: not found, 6 times across two months' })
       .click()
     await expect(page).toHaveURL(/card=gap-germany/)
     await expect(

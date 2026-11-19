@@ -34,7 +34,7 @@ Both name the version that runs.
 
 Logs are JSON lines on stdout. Each line about a request carries its id (`reqId`), and the response returns the same id as `X-Request-Id`, so a person can quote it. A history log entry written by that request carries the id too.
 
-Logs never hold a header, a body, a query string, a credential or a person.
+Logs never hold a header, a body, a query string, a credential or a person. The web image's log holds the same: method, path and status, with no query string and no caller's address.
 
 ## Run the image in production mode
 
@@ -76,6 +76,8 @@ Every request under `/api` counts against a limit each minute, the setting `limi
 | An address, before sign-in | 120            |
 
 Over a limit, the answer is 429 with `Retry-After` in seconds. Each instance counts on its own. `/health`, `/health/ready` and `/metrics` are not limited.
+
+`/mcp` refuses 60 requests a minute from one address before a token is accepted: no token, a token that fails, or a wrong host, origin or method. Past that, each is answered the same, sign-in challenge included, but writes no request record and no log line until the minute ends. A valid token is never held back by it.
 
 The address is the one that connected, unless that is a proxy named in `FOOTNOTE_TRUSTED_PROXIES`. Then it is the address the proxy forwards. Unset, the service believes no forwarded address.
 

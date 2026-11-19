@@ -323,7 +323,10 @@ function engineAnswerOf(
     return {
       ...base,
       text: said,
-      note: `Based on ${seen.length === 1 ? '1 context item' : `${seen.length} context items, one of them`} that may be out of date: ${reason}.`,
+      note:
+        seen.length === 1
+          ? `Based on 1 context item that may be out of date: ${reason}.`
+          : `Based on ${seen.length} context items. One of them may be out of date: ${reason}.`,
     }
   }
   // A question about why something moved is told the context does not give the cause.
@@ -499,6 +502,7 @@ export function dayOf(at: number, now: number): Pick<Thread, 'day' | 'time'> {
 export type Shelf = {
   get: (key: string) => string | null
   set: (key: string, value: string) => void
+  remove: (key: string) => void
 }
 
 export function browserShelf(): Shelf {
@@ -524,6 +528,14 @@ export function browserShelf(): Shelf {
         storage()?.setItem(key, value)
       } catch {
         // A browser that keeps nothing (a private window, storage full) keeps the chats in memory.
+      }
+    },
+    remove(key) {
+      memory.delete(key)
+      try {
+        storage()?.removeItem(key)
+      } catch {
+        // Nothing was kept there to remove.
       }
     },
   }
@@ -603,6 +615,11 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
       })
       // Kept in this browser, it can be put back until the page goes.
       return { undo: { token, until: null } }
+    },
+    /** Takes all of a person's chats out of the browser, as at sign-out, so none can be put back. */
+    forget(person: string) {
+      shelf.remove(keyOf(person))
+      undos.clear()
     },
     /** Whether a token is one of these chats' own; it puts the chat back once. */
     undo(token: string): boolean {

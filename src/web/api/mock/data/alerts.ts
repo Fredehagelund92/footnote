@@ -63,7 +63,7 @@ export const RAISED: Raised[] = [
   {
     id: 'r-germany',
     rule: 'gap',
-    title: 'Orders in Germany: not found, 6 times across a month edge',
+    title: 'Orders in Germany: not found, 6 times across two months',
     line: '3 calls about 30 October and 3 about 1 November, counted together. A Not found card went to Jon Abara and Sofia Brandt.',
     when: 'Today, 06:20',
     domain: 'sales',
@@ -90,7 +90,7 @@ export const RAISED: Raised[] = [
   {
     id: 'r-cube',
     rule: 'sync',
-    title: `${demoTool(DEMO_DEFINITIONS)} did not sync`,
+    title: `${demoTool(DEMO_DEFINITIONS)} could not be read`,
     line: 'A card went to the admins. It was read again at 06:00.',
     when: 'Fri 9 Oct',
     href: `/settings/integrations/${DEMO_DEFINITIONS}`,

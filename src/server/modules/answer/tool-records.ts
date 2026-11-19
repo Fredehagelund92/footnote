@@ -120,7 +120,7 @@ const sortKey = (i: RecordsItem, by: (typeof sorts)[number]) =>
 const plural = (n: number, one: string, many: string) =>
   `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
-/** What a count is out of, in words: "published context items in Sales you may read". */
+/** What a count is out of, in words: "published context items in Sales you can see". */
 function populationWords(
   chosen: readonly (typeof statuses)[number][] | undefined,
   count: number,
@@ -128,7 +128,7 @@ function populationWords(
 ) {
   const set = new Set(chosen?.length ? chosen : statuses)
   const items = count === 1 ? 'context item' : 'context items'
-  const where = `${area ? ` in ${area}` : ''} you may read`
+  const where = `${area ? ` in ${area}` : ''} you can see`
   if (set.size === 3) return `${items}${where}`
   if (set.size === 2 && set.has('live') && set.has('due')) return `published ${items}${where}`
   const before = [...set].filter((s) => s !== 'due').map((s) => statusWords[s])
@@ -185,7 +185,7 @@ export function queryRecords(input: RecordsInput, table: RecordsTable) {
   return {
     count: matching.length,
     outOf: { count: population.length, of: out },
-    /** "2 of 13 published context items in Sales you may read", by code. */
+    /** "2 of 13 published context items in Sales you can see", by code. */
     counted: `${matching.length.toLocaleString('en-GB')} of ${population.length.toLocaleString('en-GB')} ${out}`,
     byStatus: Object.fromEntries(
       statuses.map((s) => [s, matching.filter((i) => i.status === s).length]),

@@ -260,6 +260,8 @@ It is for trying on one computer, not for production use. Expect rough edges and
 **Good to know**
 
 - The Docker demo uses the demo sign-in: anyone can be an admin, so keep it off the internet.
+- An access key, for a job that runs with nobody there to sign in, has no end date: it works until an admin
+  deletes it, so delete one a job no longer needs ([Connect an agent](docs/help/connect-an-agent.md#a-bot-or-a-scheduled-job)).
 - The demo runs on scripted mock models and spends nothing. `MODELS=live ANTHROPIC_API_KEY=... docker compose up`
   answers on Claude instead: [Ask on a real model](docs/self-hosting.md#ask-on-a-real-model) says what then leaves
   your computer and what it costs.

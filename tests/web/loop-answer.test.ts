@@ -125,7 +125,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(el.querySelectorAll('li').length).toBe(example('loop-missing').closest!.items.length)
     expect(text(el)).toMatch(/owned by/)
     expect(text(el)).toMatch(/Write context for Orders in Poland/)
-    expect(text(el)).toMatch(/^.*0 of 21 published context items you may read apply/)
+    expect(text(el)).toMatch(/^.*0 of 21 published context items you can see apply/)
   })
 
   it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
@@ -217,7 +217,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(fold).toHaveLength(1)
     expect(fold[0]!.getAttribute('aria-expanded')).toBe('false')
     expect(text(el.querySelector('[data-used]')!)).toMatch(
-      /^Used 4 items·2 Live, checked .+ to .+ 2026/,
+      /^Used 4 items·2 published, checked .+ to .+ 2026/,
     )
   })
 

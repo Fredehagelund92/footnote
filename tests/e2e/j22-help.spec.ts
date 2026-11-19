@@ -87,13 +87,13 @@ test('Report a problem is one box, sent as an issue with the page it came from',
 }) => {
   await go(page, '/inbox?open=report')
   const dialog = page.getByRole('dialog', { name: 'Report a problem' })
-  await expect(dialog.getByRole('button', { name: 'Send' })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Open on GitHub' })).toBeDisabled()
   await dialog
     .getByRole('textbox', { name: 'What happened' })
     .fill('The review jumped to another item.')
   // An issue the person writes on GitHub: nothing goes through the service, and the page goes
   // without its query or where this install is. A real address is the build's to set.
-  const send = dialog.getByRole('link', { name: 'Send' })
+  const send = dialog.getByRole('link', { name: 'Open on GitHub' })
   const issue = new URL((await send.getAttribute('href'))!)
   expect(issue.origin).toBe('https://github.com')
   expect(issue.pathname).toMatch(/\/issues\/new$/)
@@ -162,5 +162,5 @@ test('the documentation searches the words of its pages, and opens the part that
   // What's new, newest first, from the same pages.
   await go(page, '/docs/changelog')
   await expect(page.getByRole('heading', { level: 1, name: "What's new" })).toBeVisible()
-  await expect(page.locator('time').first()).toHaveText('10 Nov')
+  await expect(page.locator('time').first()).toHaveText('18 Nov')
 })

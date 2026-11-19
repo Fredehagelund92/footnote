@@ -195,7 +195,14 @@ export type Review = {
   claims?: {
     sentence: string
     rows: { claim: string; source: string; same: 'same' | 'different' | 'check' }[]
+    /** How many claims are to check, as the service counts them: past the rows it lists too. */
+    toCheck?: number
   }
+  /**
+   * Words of the suggestion that read like orders to an AI agent, by the field they are in
+   * (NFR-024): the review warns of them. Absent when there are none.
+   */
+  instructionLike?: { field: string; words: string[] }[]
   /**
    * The clash with live context: the suggestion's words once, and each live item it overlaps, which the
    * owner answers on its own. Publish sends each answer for its own item.
@@ -241,7 +248,7 @@ export type Relation = 'replaces' | 'disagree' | 'unrelated'
 
 /** The claims an agent or a draft makes that the copied sentence doesn't plainly say. */
 export const claimsToCheck = (r: Pick<Review, 'claims'>) =>
-  r.claims?.rows.filter((x) => x.same !== 'same').length ?? 0
+  r.claims?.toCheck ?? r.claims?.rows.filter((x) => x.same !== 'same').length ?? 0
 
 /** The overlap with live context as a sentence: "About the same thing as 2 published items". */
 export const clashWords = (n: number) =>

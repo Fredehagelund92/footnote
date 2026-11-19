@@ -92,7 +92,7 @@ const curated: Record<string, Omit<Answer, 'id' | 'question'>> = {
     state: 'grounded',
     text: "Online sales to Norway stopped on 4 August 2026 under a new customs rule, and there are no stores there [1]. Price promotions in Norway have been paused since 9 May 2026 [2]. The context doesn't say how much each of these moved orders.",
     sources: ['itm_norway_stop', 'itm_za26xpzv'],
-    said: '2 context items apply to Orders in Norway from 1 to 31 August 2026. Only that was checked.',
+    said: '2 context items apply to Orders in Norway from 1 to 31 August 2026. Nothing else was looked up.',
     leftOut: '1 context item about Germany (another market).',
   },
   partial: {
@@ -141,7 +141,7 @@ const curated: Record<string, Omit<Answer, 'id' | 'question'>> = {
     state: 'grounded',
     text: "Units sold in Norway leaves out the 312 accounts our teams use to test the webshop, and the new app's test accounts from 29 May 2026 [1].",
     sources: ['itm_s90n5xps'],
-    said: '1 context item applies to Units sold in Norway. Only that was checked.',
+    said: '1 context item applies to Units sold in Norway. Nothing else was looked up.',
     correction: {
       note: 'There are 340 test accounts now, and the returns team has used 28 more since October.',
       correct:
@@ -156,7 +156,7 @@ const curated: Record<string, Omit<Answer, 'id' | 'question'>> = {
     state: 'grounded',
     text: "The Norway regulator paused all price promotions on 9 May 2026, and no paid campaign has run there since [1]. The context doesn't say how much this moved discount cost.",
     sources: ['itm_za26xpzv'],
-    said: '1 context item applies to Discount cost in Norway from 9 to 31 May 2026. Only that was checked.',
+    said: '1 context item applies to Discount cost in Norway from 9 to 31 May 2026. Nothing else was looked up.',
   },
   nodata: {
     metric: 'Net promoter score',
@@ -502,7 +502,7 @@ function answerCore(
     state: 'grounded',
     text: `${text} The context doesn't say what caused it.`,
     sources,
-    said: `${all.length} ${all.length === 1 ? 'context item applies' : 'context items apply'} to ${scope}. Only that was checked.`,
+    said: `${all.length} ${all.length === 1 ? 'context item applies' : 'context items apply'} to ${scope}. Nothing else was looked up.`,
   }
 }
 

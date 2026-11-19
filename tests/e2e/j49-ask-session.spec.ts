@@ -1,12 +1,13 @@
 import type { Locator, Page } from '@playwright/test'
-import { expect, go, mode, test } from './go.ts'
+import { expect, go, mode, signOut, test } from './go.ts'
 
 // J49, the Ask chat session: a chat joins the history with its first answered turn, whichever
 // button asked it; a chat this page started opens again, on Back, as the history opens it; one
 // stopped turn does not stop the rest of a chat being kept (the loop's, on the mock: ?loop=1); a
 // chat keeps its first answer, so a reload asks nothing; and Not looked up is not an answer: it does
-// not join, and Ask again that gets it keeps the answer the turn had. Time stands still in the
-// first six, so a stop lands while the answer is on its way.
+// not join, and Ask again that gets it keeps the answer the turn had; and the chats leave the
+// browser at sign-out. Time stands still in the first six, so a stop lands while the answer is on
+// its way.
 
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 const QUESTION = 'Why did orders in Norway really drop in August?'
@@ -208,6 +209,26 @@ test('a chat keeps its first answer, so opening it again after a reload asks not
   await expect(log.getByText(QUESTION)).toHaveCount(1)
   await expect(log.getByText(STATE)).toHaveCount(1)
   expect(seen.count).toBe(1)
+})
+
+test('the chats leave the browser at sign-out, so the next person here never reads them', async ({
+  page,
+}) => {
+  test.skip(mode !== 'http', 'the mock keeps its chats only until the page reloads')
+  await go(page, '/ask?n=j49j')
+  await ask(page, QUESTION)
+  await expect(page.getByRole('log').getByText(STATE)).toHaveCount(1)
+  await expect.poll(() => keptInBrowser(page)).toBe(true)
+
+  await signOut(page)
+  const left = await page.evaluate(() =>
+    Object.keys(localStorage).filter((k) => k.startsWith('footnote.ask.chats.')),
+  )
+  expect(left).toEqual([])
+  // Back as the same person, the history is empty too: nothing was kept anywhere else.
+  await page.getByRole('button', { name: /Jon/ }).click()
+  await go(page, '/ask')
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(0)
 })
 
 test('a four-turn chat opens again after a reload on all four turns and asks nothing', async ({

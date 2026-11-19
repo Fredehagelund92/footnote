@@ -175,6 +175,21 @@ describe('copy/one-word-one-thing', () => {
 
   it('reads the lower case of gap and flag, which the capital check misses', () => {
     expect(copy('one-word-one-thing', "export const a = 'flag and suggest'")).toEqual(['second'])
+    expect(copy('one-word-one-thing', "export const a = 'a gap in the record'")).toEqual(['second'])
+  })
+
+  it('reads neither a class nor read-only as a second name', () => {
+    expect(copy('one-word-one-thing', "export const a = 'flex items-center gap-1.5'")).toEqual([])
+    expect(copy('one-word-one-thing', "export const a = 'Nothing is published by a read'")).toEqual(
+      ['second'],
+    )
+    expect(
+      copy(
+        'one-word-one-thing',
+        "export const a = 'as a read-only copy'",
+        'src/web/pages/settings.tsx',
+      ),
+    ).toEqual([])
   })
 
   it('keeps engineer words to their pages', () => {
@@ -226,22 +241,24 @@ describe('copy/errors-say-three-things', () => {
   })
 })
 
-describe('copy/no-fixed-locale', () => {
-  it('reports a literal locale and typed month names', () => {
-    expect(
-      copy('no-fixed-locale', "export const a = (n: number) => n.toLocaleString('en-GB')"),
-    ).toEqual(['locale'])
-    expect(copy('no-fixed-locale', "export const a = new Intl.DateTimeFormat('en')")).toEqual([
-      'locale',
-    ])
-    expect(copy('no-fixed-locale', 'export const a = (n: number) => n.toLocaleString()')).toEqual(
+describe('copy/english-locale', () => {
+  it('reports a date or number in any locale but British English, and typed month names', () => {
+    const rule = (code: string) => copy('english-locale', code)
+    expect(rule("export const a = (n: number) => n.toLocaleString('en-GB')")).toEqual([])
+    expect(rule("export const a = new Intl.DateTimeFormat('en-GB', { month: 'short' })")).toEqual(
       [],
     )
     expect(
-      copy(
-        'no-fixed-locale',
-        "export const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']",
-      ),
+      rule("import { LOCALE } from '@/lib/dates'\nexport const a = new Intl.NumberFormat(LOCALE)"),
+    ).toEqual([])
+    expect(rule('export const a = (n: number) => n.toLocaleString()')).toEqual(['locale'])
+    expect(rule('export const a = (d: Date) => d.toLocaleDateString(undefined)')).toEqual([
+      'locale',
+    ])
+    expect(rule("export const a = new Intl.DateTimeFormat('en')")).toEqual(['locale'])
+    expect(rule("export const a = Intl.NumberFormat('da-DK')")).toEqual(['locale'])
+    expect(
+      rule("export const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']"),
     ).toEqual(['months'])
   })
 })

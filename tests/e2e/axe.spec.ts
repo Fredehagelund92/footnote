@@ -420,7 +420,7 @@ for (const { name, width, height } of widths) {
           await box.pressSequentially(question)
           await box.press('Enter')
           await expect(
-            page.getByText(/^Agents did not read this answer\.|^Ask does not answer questions/),
+            page.getByText(/^This answer is only for you\.|^Ask does not answer questions/),
           ).toBeVisible()
           expect(await violations(page)).toEqual([])
         })

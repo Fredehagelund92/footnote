@@ -1382,7 +1382,7 @@ export const contract = {
         NOT_FOUND: { message: "We couldn't find this source." },
         CONFLICT: { message: 'This source is switched off. Switch it on to read it.' },
         SERVICE_UNAVAILABLE: {
-          message: "The job runner isn't running. Ask the data team to start it.",
+          message: "The job runner isn't running. Ask the person who hosts this app to start it.",
         },
       })
       .route({
@@ -1870,7 +1870,7 @@ export const contract = {
         NOT_FOUND: { message: "There's no scheduled job with this name." },
         CONFLICT: { message: "This job is already waiting or running. Try again once it's done." },
         SERVICE_UNAVAILABLE: {
-          message: "The job runner isn't running. Ask the data team to start it.",
+          message: "The job runner isn't running. Ask the person who hosts this app to start it.",
         },
       })
       .route({

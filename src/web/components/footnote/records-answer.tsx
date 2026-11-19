@@ -383,7 +383,7 @@ function RecordsBody({
       <div className="flex flex-col gap-1 text-xs text-muted-foreground">
         {records.note && <p>{records.note}</p>}
         <AnswerFooter footer={records.footer} />
-        <p>Agents did not read this answer. It says nothing about what they get.</p>
+        <p>This answer is only for you. Agents do not get it.</p>
       </div>
     </div>
   )

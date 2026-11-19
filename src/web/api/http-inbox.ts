@@ -829,7 +829,17 @@ export function reviewOf(
               source: row.source ?? 'not in the sentence',
               same: row.verdict,
             })),
+            // The Ready line counts every claim, the listed ones and any past them: so does the Inbox.
+            toCheck: sheet.readiness.claimsToCheck,
           },
+        }
+      : {}),
+    ...(sheet.instructionLike.length
+      ? {
+          instructionLike: sheet.instructionLike.map((f) => ({
+            field: fieldOf(f.field),
+            words: f.words,
+          })),
         }
       : {}),
     // Every live item it overlaps, each answered on its own, with the answer it already has.

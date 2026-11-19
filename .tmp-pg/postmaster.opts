@@ -1,0 +1,1 @@
+/opt/homebrew/Cellar/postgresql@18/18.4/bin/postgres "-D" "/Users/fhagelund/.no-mistakes/worktrees/49f7fa448256/01M7QYWT01J047K09AS3FQ1CZC/.tmp-pg" "-p" "5544" "-k" "/tmp/pgs"

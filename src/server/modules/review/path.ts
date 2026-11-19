@@ -21,6 +21,7 @@ import {
   type ClashRelation,
 } from '../../../domain/readiness.ts'
 import { matchingProbes } from '../../../domain/review.ts'
+import { instructionWords } from '../../../domain/provenance.ts'
 import { peopleVoice } from '../../../domain/say.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
@@ -337,6 +338,25 @@ export function createReviewPath(
     return { sentence, rows: claimCheck(text, sentence) }
   }
 
+  /**
+   * The words of the suggested version that read like orders to a model, by the review's field:
+   * whoever wrote it, as a person may paste a page's words too (NFR-024).
+   */
+  function instructionLikeOf(r: Reading): ReviewSheet['instructionLike'] {
+    const v = r.after?.version
+    if (!v) return []
+    const texts = [
+      ['title', v.title],
+      ['text', `${v.summary}\n${v.body ?? ''}`],
+      ['notToConclude', v.notToConclude],
+      ['quote', v.evidence.map((entry) => entry.quote ?? '').join('\n')],
+    ] as const
+    return texts.flatMap(([field, text]) => {
+      const words = instructionWords(text)
+      return words.length ? [{ field, words }] : []
+    })
+  }
+
   /** The comment with which the sender of a suggestion to archive took it back, if they did. */
   const withdrawalOf = (r: Reading) =>
     r.mode === 'retire' ? comments.withdrawal(r.p.id) : Promise.resolve(null)
@@ -470,6 +490,7 @@ export function createReviewPath(
       claims: claims
         ? { sentence: claims.sentence, rows: claims.rows.slice(0, CLAIMS_SHOWN) }
         : null,
+      instructionLike: instructionLikeOf(r),
       clashes: r.clashes.map((itemId) => ({
         itemId,
         title: live.get(itemId)?.title ?? itemId,

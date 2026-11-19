@@ -17,7 +17,9 @@ const words: Record<
   Pick<Connector, 'lead' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'>
 > = {
   cube: {
-    lead: "Reads your Cube definition files from Git. Read-only, and it keeps no calculation. It has two connections: definitions from Git, and figures, when switched on, from Cube's data API at the time of the answer.",
+    // From a Git repository an admin names, or a folder whoever runs the server names: the page
+    // says which, so the lead says neither.
+    lead: "Reads your Cube definition files. Read-only, and it keeps no calculation. It has two connections: definitions from the files, and figures, when switched on, from Cube's data API at the time of the answer.",
     domainField: 'meta.domain',
     endpointExample: 'https://cube.example.com/cubejs-api/v1/load',
     serverSetting: 'CUBE_MODEL_DIR',
@@ -60,30 +62,16 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
   }
 }
 
-/**
- * Shown as Soon, and not connectable: tools the design draws in the catalogue, which have no
- * manifest yet. A design list only: when one gets a manifest, it leaves this list.
- */
-const soon: Connector[] = [
-  {
-    id: 'notion',
-    name: 'Notion',
-    kind: 'context',
-    logo: logos.notion!,
-    blurb: 'Pages in spaces you choose become suggestions for owners.',
-    soon: true,
-    access: [],
-  },
-]
-
 const kindOrder: Record<ConnectorKind, number> = { definitions: 0, context: 1 }
 
 /** The catalogue: definitions first, then context, each by name, as the design lays it out. */
-export const connectors: Connector[] = [...builtInManifests.map(connectorOf), ...soon].sort(
-  (a, b) =>
-    kindOrder[a.kind] - kindOrder[b.kind] ||
-    a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }),
-)
+export const connectors: Connector[] = builtInManifests
+  .map(connectorOf)
+  .sort(
+    (a, b) =>
+      kindOrder[a.kind] - kindOrder[b.kind] ||
+      a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }),
+  )
 
 export const connectorById = (id: string | undefined) => connectors.find((c) => c.id === id)
 
@@ -95,6 +83,6 @@ export const connectorByTool = (tool: string | undefined) => connectors.find((c)
  * definitions tool of the catalogue that can be connected, or Integrations when there is none.
  */
 export const definitionsConnectHref = () => {
-  const connector = connectors.find((c) => c.kind === 'definitions' && !c.soon)
+  const connector = connectors.find((c) => c.kind === 'definitions')
   return connector ? `/settings/integrations/${connector.id}/connect` : '/settings/integrations'
 }

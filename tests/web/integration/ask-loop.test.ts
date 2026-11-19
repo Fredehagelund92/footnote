@@ -60,7 +60,7 @@ describe("Ask's loop", () => {
     expect(a.state).toBe('conflict')
     expect(a.read?.[0]).toMatch(/^Looked up Orders and Norway, /)
     // What applies, out of what the person may read, said once by code.
-    expect(a.footer?.denominator).toBe('3 of 21 published context items you may read apply.')
+    expect(a.footer?.denominator).toBe('3 of 21 published context items you can see apply.')
     expect(a.reads?.map((r) => r.tool)).toEqual(['get_context', 'find_context'])
   })
 
@@ -72,7 +72,7 @@ describe("Ask's loop", () => {
     expect(a.markets).toEqual(['Poland'])
     expect(a.sources).toEqual([])
     expect(a.related?.length).toBeGreaterThan(0)
-    expect(a.text).toContain('Out of 21 published context items you may read.')
+    expect(a.text).toContain('Nothing written covers Orders and Poland.')
   })
 
   it("reads an earlier turn's reads again: an item hidden since is neither given, named nor cited", async () => {
@@ -306,7 +306,7 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(a.sources).toEqual(found.map((i) => i.id))
     expect(a.text).toContain('campaigns.[1] [2]')
     // What the count is out of, never that none apply under what the answer cites.
-    expect(a.footer?.denominator).toBe('Out of 21 published context items you may read.')
+    expect(a.footer?.denominator).toBe('Out of 21 published context items you can see.')
   })
 
   it('under Not found, leaves out the words that only listed what it cited', async () => {

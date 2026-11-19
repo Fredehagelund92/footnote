@@ -305,7 +305,7 @@ const itemNames = (
 /** The items the person may read that are published, as a search is out of. */
 const outOf = (view: View) => ({
   count: view.published,
-  of: `published context ${view.published === 1 ? 'item' : 'items'} you may read`,
+  of: `published context ${view.published === 1 ? 'item' : 'items'} you can see`,
 })
 
 const plural = (n: number, one: string, many: string) =>
@@ -319,7 +319,7 @@ function nothingSaid(searched: readonly Searched[], view: View) {
     (s) =>
       `"${s.words}"${s.names.length ? ` read as ${list(s.names)}` : ''}, ${s.period}, ${s.kinds.length === kindNames.length ? 'every kind' : list(s.kinds)}${s.domain ? `, in ${s.domain}` : ''}${s.without ? `, without the ${s.without}` : ''}: ${s.found.toLocaleString('en-GB')} found`,
   )
-  return `Searched ${each.join('; then, wider, ')}. Out of ${plural(view.published, 'published context item', 'published context items')} you may read.`
+  return `Searched ${each.join('; then, wider, ')}. Out of ${plural(view.published, 'published context item', 'published context items')} you can see.`
 }
 
 /** An item of the person's view as a result gives it. */
@@ -1011,7 +1011,7 @@ function getContext(
     unread: null,
     nothing: items.length
       ? null
-      : `No context item you may read applies to all of it. ${nothingSaid(searched, view)}${synonyms.map((x) => ` "${x.word}" was read as ${x.name} only by a synonym written in Definitions, and may mean something else.`).join('')}`,
+      : `No context item you can see applies to all of it. ${nothingSaid(searched, view)}${synonyms.map((x) => ` "${x.word}" was read as ${x.name} only by a synonym written in Definitions, and may mean something else.`).join('')}`,
     ...(choices ? { choices } : {}),
     names: itemNames(view, shownItems, {
       terms: [...keysOf(counted), ...(wider ? keysOf(wider) : [])],
@@ -1168,7 +1168,7 @@ async function readContext(
     return {
       found: false,
       item: null,
-      nothing: `No context item you may read has the id ${input.id}.`,
+      nothing: `No context item you can see has the id ${input.id}.`,
       names: [],
       ids: [],
     }
@@ -1966,7 +1966,7 @@ const definitionsFor = {
   },
   records: {
     description:
-      'Count, list and rank the context items the person may read, by kind, status, domain, metric, value of a dimension and date, as their Context list has them. Every count is computed here, with what it is out of ("2 of 13 published context items in Sales you may read"), and a list is ranked here. Never count or rank items yourself: ask this tool.',
+      'Count, list and rank the context items the person may read, by kind, status, domain, metric, value of a dimension and date, as their Context list has them. Every count is computed here, with what it is out of ("2 of 13 published context items in Sales you can see"), and a list is ranked here. Never count or rank items yourself: ask this tool.',
     input: recordsInput,
     output: recordsOutput,
   },

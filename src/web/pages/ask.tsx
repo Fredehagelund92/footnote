@@ -557,7 +557,7 @@ export function AskChat({
     ? 'Ask another question against the draft'
     : narrow
       ? 'Ask about a number'
-      : 'Ask what is written about a number, such as orders in Norway'
+      : 'Ask what is written about a number, or why it moved'
 
   // What agents asked this week; a new workspace, with nothing asked yet, gets its starters instead.
   const start = draft ? null : fresh || (week && !week.rows.length) ? (
@@ -1468,15 +1468,16 @@ export function TryIt({ cardId, embedded }: { cardId?: string; embedded?: boolea
       {
         id: 'try',
         question,
-        metric: draft.where[0] ?? 'Orders',
-        markets: [draft.where[1] ?? 'Norway'],
+        metric: draft.where[0] ?? '',
+        // Only the market the draft names: never one of the demo's in its place.
+        markets: draft.where.slice(1, 2),
         state: 'grounded' as const,
         text: `${draft.summary
           .split(/(?<=\.)\s/)
           .slice(0, 2)
           .join(' ')} [1]`,
         sources: [draft.id],
-        said: `1 context item applies to ${draft.where.join(' in ')}. Only that was checked.`,
+        said: `1 context item applies to ${draft.where.join(' in ')}. Nothing else was looked up.`,
       },
     ]
     // The draft is read once it exists, when Try it opens.

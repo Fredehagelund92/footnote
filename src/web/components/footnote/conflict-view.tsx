@@ -556,10 +556,13 @@ export function ConflictView({
   const isMobile = useIsMobile()
   const [measure, wide] = useWide<HTMLDivElement>(SIDE_BY_SIDE)
   const root = React.useRef<HTMLDivElement | null>(null)
-  const ref = (el: HTMLDivElement | null) => {
-    measure(el)
-    root.current = el
-  }
+  const ref = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      measure(el)
+      root.current = el
+    },
+    [measure],
+  )
   // The decision, from reading the pair to settled (src/web/model/conflict-decision.ts).
   const [state, dispatch] = React.useReducer(
     decide<Done>,

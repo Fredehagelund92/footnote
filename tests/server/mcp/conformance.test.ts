@@ -753,7 +753,7 @@ describe.each(['legacy', 'auto'] as const)('a result read alone (FR-344), %s', (
     // The person hears the answer line and what was checked; the model reads the absence rule
     // and the next step.
     expect(read.say).toBe(
-      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Only that was checked.',
+      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(read.next).toMatch(
       /^That does not prove there is no caveat, and it covers only this question, never the whole topic\. Check the names and dates, or call find_context .+ and if the person agrees, call report with kind missing\.$/,
@@ -995,6 +995,47 @@ it('counts each person and client apart, reopens after the minute, and records a
   const text = JSON.stringify(s.records)
   for (const secret of [s.token, other, third, s.token.split('.')[2]!])
     expect(text).not.toContain(secret)
+})
+
+it('writes nothing for a flood without a token, and still challenges it and answers a valid token (S3)', async () => {
+  const start = new Date('2026-10-07T12:34:56Z')
+  const clock = { now: start }
+  const s = await server(clock)
+  const warn = vi.spyOn(s.app.log, 'warn')
+  const status = async (auth?: string, headers?: Record<string, string>) => {
+    const response = await s.post(call, auth, headers)
+    await response.text()
+    return { status: response.status, retry: response.headers.get('retry-after') }
+  }
+  // One address has 60 refusals a minute before a token is accepted, each challenged and recorded.
+  for (let i = 0; i < 59; i++) expect((await status('')).status).toBe(401)
+  expect((await status('garbage')).status).toBe(401)
+  expect(warn).toHaveBeenCalledTimes(1)
+  clock.now = new Date(start.getTime() + 20_000)
+  // Past them, no token, a failed token and a wrong origin are refused as ever, the challenge
+  // included so an agent can still find where to sign in, but nothing is recorded or logged.
+  const challenged = await s.post(call, '')
+  await challenged.text()
+  expect(challenged.status).toBe(401)
+  expect(challenged.headers.get('www-authenticate')).toContain('resource_metadata=')
+  expect((await status('garbage')).status).toBe(401)
+  expect((await status(s.token, { Origin: 'https://attacker.example' })).status).toBe(403)
+  // A valid token from the same address is answered as ever.
+  expect((await status(s.token)).status).toBe(200)
+  await s.gateway.flush()
+  expect(warn).toHaveBeenCalledTimes(1)
+  const requests = s.records.filter((record) => record.kind === 'request')
+  expect(requests.map((record) => record.value.status)).toEqual([
+    ...Array<string>(60).fill('unauthorized'),
+    'ok',
+  ])
+  // Once the minute has passed, a refusal is challenged and recorded again.
+  clock.now = new Date(start.getTime() + 60_000)
+  expect((await status('')).status).toBe(401)
+  await s.gateway.flush()
+  expect(s.records.filter((record) => record.kind === 'request').at(-1)?.value.status).toBe(
+    'unauthorized',
+  )
 })
 
 it('counts its limits in minutes of the wall clock, while it answers as of its own clock (round 5)', async () => {

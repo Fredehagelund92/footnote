@@ -4,7 +4,7 @@ line: One prompt for Claude, Cursor or another agent, and what approving does.
 group: Start
 order: 2
 minutes: 3
-reviewed: 2026-11-03
+reviewed: 2026-11-18
 open:
   label: Open Agents and access
   href: /settings/agents
@@ -86,3 +86,5 @@ A job that runs on its own, with nobody there to approve a sign-in, uses an acce
 3. Give the job the MCP address, with the key as its bearer token.
 
 A key reads published context and sends feedback. It names no person, so it never sends a suggestion. It shows in Connected agents by its name, with who made it and when it was last used, until you delete it, which ends it at once. Rename it, or switch its tools off for a while, in its Details. A key can never have suggest_context.
+
+A key has no end date, so delete one a job no longer needs.

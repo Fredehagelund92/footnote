@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { today } from '@/lib/today'
 import { missingDates, WHEN_PRESETS, whenSummary, type WhenMode, type WhenValue } from '@/lib/when'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { PersonAvatar } from '@/components/footnote/bits'
@@ -416,7 +417,9 @@ export function WhenField({
   const mobile = useIsMobile()
   const presets = React.useRef<HTMLDivElement>(null)
   const missing = missingDates(value)
-  const month = toDate(value.mode === 'until' ? value.until : value.from) ?? new Date(2026, 9, 1)
+  // Today is the service's day, so the calendar marks it and, with no day picked, opens on its month.
+  const now = toDate(today())
+  const month = toDate(value.mode === 'until' ? value.until : value.from) ?? now
   const single = value.mode === 'until' ? value.until : value.from
   const hint = asking
     ? asking
@@ -481,6 +484,7 @@ export function WhenField({
               <Calendar
                 mode="range"
                 defaultMonth={month}
+                today={now}
                 selected={{ from: toDate(value.from), to: toDate(value.until) }}
                 onSelect={(r) => onChange({ ...value, from: toIso(r?.from), until: toIso(r?.to) })}
                 className={cn(
@@ -492,6 +496,7 @@ export function WhenField({
               <Calendar
                 mode="single"
                 defaultMonth={month}
+                today={now}
                 selected={toDate(single)}
                 onSelect={(d) =>
                   onChange(

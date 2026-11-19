@@ -1,6 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import type * as z from 'zod/mini'
 import type { decideSchema, Edition, Gate, ReviewProposal } from '../../../contract/review.ts'
+import type { ItemVersion } from '../../../domain/item-version.ts'
 import { canonicalJson } from '../../../domain/canonical.ts'
 import { addWorkingDays } from '../../../domain/review.ts'
 import { reviewQuestion } from '../../../domain/item.ts'
@@ -170,7 +171,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
   }
 
   async function decideItem(p: LoadedProposal, input: Decide, policy?: UnderPolicy) {
-    const version = await stored(p.itemVersionId)
+    let version = await stored(p.itemVersionId)
     const capacity = await capacityFor(
       version.version.areaId,
       input.capacity,
@@ -180,7 +181,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       throw new ORPCError('CONFLICT', {
         message: 'Another owner is already reviewing this suggestion.',
       })
-    const decision = {
+    let decision = {
       proposalId: p.id,
       itemVersionId: version.id,
       areaId: version.version.areaId,
@@ -203,6 +204,8 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         edition: null,
       }
     }
+    version = await startReview(p, version)
+    decision = { ...decision, itemVersionId: version.id }
     // A rescue (FR-814) changes a retired item: it is accepted while the item is still retired and
     // out of the Bin, and accepting it serves the item again. The live version and the rescue are
     // read together, so an ordinary accept pays nothing for the rescue path.
@@ -266,6 +269,37 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       return { proposal: updated, edition: null }
     }
     return publishAccepted(p, version, data)
+  }
+
+  /** The days to the next check: the shorter issue period for an open issue still going on. */
+  async function reviewDays(version: ItemVersion) {
+    if (reviewQuestion(version) === 'still_going_on') return openIssueDays(tx)
+    const [setting] = await tx.query<{ days: number }>(
+      "select (value #>> '{}')::int as days from settings_current where key='review.default_days'",
+    )
+    return setting?.days ?? 90
+  }
+
+  /**
+   * A version that waited for review is published with a check date that is not already past: the
+   * stored version stays as it was reviewed, and a new one with the date counted from today
+   * takes its place on the suggestion.
+   */
+  async function startReview(p: LoadedProposal, version: StoredVersion): Promise<StoredVersion> {
+    const { reviewDate } = version.version
+    if (reviewDate === null || reviewDate >= clock.today()) return version
+    const inserted = await insertVersion(
+      tx,
+      version.itemId,
+      {
+        ...version.version,
+        reviewDate: shiftDate(clock.today(), await reviewDays(version.version)),
+      },
+      version.id,
+      { editedBy: await me() },
+    )
+    await tx.query('update proposals set item_version_id=$2 where id=$1', [p.id, inserted.id])
+    return stored(inserted.id)
   }
 
   async function publishAccepted(
@@ -601,14 +635,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
            or exists(select 1 from v_mention_status where version_id=$2 and status='source_changed') as on`,
         [itemId, live.id],
       )
-      const [setting] = await tx.query<{ days: number }>(
-        "select (value #>> '{}')::int as days from settings_current where key='review.default_days'",
-      )
-      // An open issue that is still going on is asked again after the shorter issue period (FR-135).
-      const days =
-        reviewQuestion(live.version) === 'still_going_on'
-          ? await openIssueDays(tx)
-          : (setting?.days ?? 90)
+      const days = await reviewDays(live.version)
       // A check moves the next one on: an open-ended item always has one, and an item with an end
       // date keeps one only when it was given one.
       const version = {
