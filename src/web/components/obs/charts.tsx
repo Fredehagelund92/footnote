@@ -1107,6 +1107,8 @@ function usePoint(
     return () => document.removeEventListener('pointerdown', away)
   }, [touched, box])
   const go = (i: number) => {
+    setHover(null)
+    setTouched(false)
     setCursor(i)
     setSaid(saidOf(i))
   }

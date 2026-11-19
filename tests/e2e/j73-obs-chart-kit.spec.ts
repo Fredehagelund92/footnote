@@ -55,12 +55,9 @@ for (const c of charts)
     expect(at.x + at.width).toBeLessThanOrEqual(frame.x + frame.width + 0.5)
     // Left of the point it describes, since the point is at the right edge.
     expect(at.x + at.width).toBeLessThan(box.x + box.width - 4)
-    await page.mouse.move(0, 0)
-    await expect(tip(chart)).toHaveCount(0)
 
-    // From the keys: focus starts on the last point, Left steps to the one before it.
+    // The pointer still rests on the last point: the keys win, Left shows the point before it.
     await chart.focus()
-    await says(chart, last)
     await page.keyboard.press('ArrowLeft')
     await says(chart, before)
     await expect(chart.locator('[aria-live]')).toHaveText(
@@ -68,6 +65,8 @@ for (const c of charts)
         `^${before.label}: .*${before.values.at(-1)!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
       ),
     )
+    await page.mouse.move(0, 0)
+    await says(chart, before)
     await page.keyboard.press('End')
     await says(chart, last)
     await page.keyboard.press('Escape')
