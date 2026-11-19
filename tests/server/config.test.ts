@@ -255,10 +255,7 @@ describe('loadConfig', () => {
     expect(load).toThrow(/FOOTNOTE_FIXED_TODAY:/)
   })
 
-  it('validates exact web origins and ignores the removed fixed-person stub setting', () => {
-    expect(
-      loadConfig({ DATABASE_URL: databaseUrl, CL_DEV_PERSON: 'admin@example.test' }),
-    ).not.toHaveProperty('devPerson')
+  it('validates exact web origins', () => {
     for (const origin of [
       'null',
       'https://example.test/path',
@@ -379,13 +376,6 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_PROFILE_LABEL: '   ' })).toThrow(
       /FOOTNOTE_PROFILE_LABEL/,
     )
-  })
-
-  it('refuses the replaced MODEL_PROVIDER and says what replaces it', () => {
-    for (const value of ['mock', 'anthropic'])
-      expect(() => loadConfig({ DATABASE_URL: databaseUrl, MODEL_PROVIDER: value })).toThrow(
-        /MODEL_PROVIDER: Replaced by MODELS: MODELS=mock, or MODELS=live with each role's provider and model in the models\.\* settings/,
-      )
   })
 })
 

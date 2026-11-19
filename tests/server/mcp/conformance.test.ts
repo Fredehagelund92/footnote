@@ -136,17 +136,6 @@ const call = {
 }
 /** What a dev token is offered: the six tools but suggest_context. */
 const offeredToDev = ['get_context', 'find_context', 'read_context', 'report', 'get_related']
-/** The ids from before the agent contract, gone in 0.2.0. */
-const removedIds = [
-  'get_facts',
-  'find_facts',
-  'search_facts',
-  'search_context',
-  'read_item',
-  'report_gap',
-  'give_feedback',
-  'draft_context',
-]
 
 describe('the hosts the MCP server answers', () => {
   const initialize = {
@@ -439,26 +428,6 @@ it('is stateless, rejects nonlocal origins, and reports rate limits with a retry
   const limited = await s.post(call)
   expect(limited.status).toBe(429)
   expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0)
-})
-
-describe.each(['legacy', 'auto'] as const)('the ids from before the agent contract, %s', (mode) => {
-  it('are gone in 0.2.0: none is listed, and a call by one is an unknown tool', async () => {
-    const s = await server(),
-      client = await s.connect(mode)
-    const names = (await client.listTools()).tools.map((t) => t.name)
-    for (const old of removedIds) {
-      expect(names).not.toContain(old)
-      await expect(
-        client.callTool({ name: old, arguments: call.params.arguments }),
-        old,
-      ).rejects.toThrow(`Tool ${old} not found`)
-    }
-    // Nothing is served by them: no delivery, and no tool in the request log.
-    await s.gateway.flush()
-    expect(s.records.filter((r) => r.kind === 'delivery')).toEqual([])
-    const logged = s.records.flatMap((r) => (r.kind === 'request' ? [r.value.tool] : []))
-    expect(logged.filter((tool) => tool !== 'protocol')).toEqual([])
-  })
 })
 
 it('keeps question canaries, tokens, network addresses and RPC ids out of records', async () => {

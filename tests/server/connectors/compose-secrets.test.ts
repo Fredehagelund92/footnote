@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, posix, relative } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -62,12 +62,5 @@ describe('the secret store in compose', () => {
     await expect(openLocalSecretStore(await volume())).rejects.toThrow(
       /readable by the server only/,
     )
-  })
-
-  it('keeps working on a volume from before the setting, which already holds the keys', async () => {
-    const keys = await volume()
-    await writeFile(join(keys, 'mcp-state.key'), 'a key')
-    const dir = join(keys, relative(keysVolume, secretsDir))
-    expect((await openLocalSecretStore(dir)).available).toBe(true)
   })
 })

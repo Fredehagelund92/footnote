@@ -18,17 +18,11 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
 
 ### The six tools (the agent contract)
 
-Since the agent contract (Footnote v1, [the product page](../product.md#10-what-agents-get)) the server
-offers six tools, described in one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`):
-`get_context`, `find_context`, `read_context`, `report`, `suggest_context` and `get_related`.
-`improve_question`, `domain_overview`, `what_changed` and `search_help` left the list, and left
-the service with the in-app assistant (30 Oct 2026).
-
-The earlier ids no longer answer: `get_facts` (now `get_context`),
-`find_facts`, `search_facts` and `search_context` (now `find_context`), `read_item` (now
-`read_context`), `report_gap` and `give_feedback` (now `report`) and `draft_context` (now
-`suggest_context`). A call by one of them is refused as an unknown tool. Inside the service
-`get_facts` is still the name of the reply a draft's preview and the evals read; no agent can call it.
+The server offers six tools ([the product page](../product.md#10-what-agents-get)), described in
+one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
+`read_context`, `report`, `suggest_context` and `get_related`. A call by any other id is refused
+as an unknown tool. Inside the service `get_facts` is the name of the reply a draft's preview and
+the evals read; no agent can call it.
 
 Footnote's server instructions (FR-343) tell the agent what Footnote holds and what the data tool holds,
 to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
