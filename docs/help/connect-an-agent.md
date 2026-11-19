@@ -4,7 +4,7 @@ line: One prompt for Claude, Cursor or another agent, and what approving does.
 group: Start
 order: 2
 minutes: 3
-reviewed: 2026-11-18
+reviewed: 2026-11-19
 open:
   label: Open Agents and access
   href: /settings/agents
@@ -44,7 +44,7 @@ Before you answer a question about company data, call get_context first and use 
 
 Your browser opens a screen that names the agent and what it can do: read published context, and send a report or a suggestion after you say yes. Choose Allow. The page says Connected, with the agent's name and yours, and it joins Connected agents.
 
-> **Cursor and VS Code.** They have one-click install links on the same page. Claude's app and ChatGPT take the address as a connector; their steps are under Prefer to do it by hand.
+> **Cursor and VS Code.** They have one-click install links on the same page. Claude's app and ChatGPT take the address as a connector; their steps are under Prefer to do it by hand. Codex signs in with its one command, which opens the browser; `codex mcp login` is only for when it did not.
 
 ## If nothing signs in
 
