@@ -19,7 +19,7 @@ describe('productTitle', () => {
 })
 
 describe('themeBootstrap', () => {
-  it('inlines the storage keys of the resolved product name', () => {
+  it('inlines the theme key of the resolved product name', () => {
     const plugin: Plugin = themeBootstrap()
     const configResolved = plugin.configResolved as (config: ResolvedConfig) => void
     configResolved({ env: { FOOTNOTE_PRODUCT_NAME: 'Acme' } } as unknown as ResolvedConfig)
@@ -28,7 +28,6 @@ describe('themeBootstrap', () => {
     }
     const script = hook.handler()[0]!.children
     expect(script).toContain('"acme-theme"')
-    expect(script).toContain('"acme-"')
     expect(script).not.toContain('footnote-theme')
   })
 })

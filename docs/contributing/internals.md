@@ -46,7 +46,7 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 
 - The service reads its configuration in `src/server/config/env.ts`. `npm run db:migrate` is `db/prepare.ts`: it makes the roles and the database as `DATABASE_URL_BOOTSTRAP`, then applies migrations and grants as `context_layer_owner`. The container runs it before every start. `npm run seed` loads the demo and the variants the tests use by hand ([db/README.md](../../db/README.md)).
 - `FOOTNOTE_DEV_PEOPLE_FILE` defaults to `db/seed/people.local.yml`. `CL_DEV_PERSON` no longer signs requests in. `MODEL_PROVIDER` is refused, with a note on what replaced it. `FOOTNOTE_WEB_READ_LOOPBACK` is for the end-to-end tests only.
-- `FOOTNOTE_PRODUCT_NAME` and what it does not rename: [the rename checklist](../rename-checklist.md).
+- `FOOTNOTE_PRODUCT_NAME` and what it does not rename: [the product name](../product-name.md).
 - Request limits are FR-408. The web image's nginx forwards each caller's address and drops one a caller sends, and `compose.yaml` trusts it. nginx overwrites `X-Forwarded-For` with its own peer's address, so it gives per-caller limits only where it is the first proxy.
 - Jobs: `observability.rollup` runs at 02:45, `partitions.ensure` at 03:00, `observability.snapshot` at 03:15 (the monthly snapshot of the withdrawn Summary) and `retention.run` at 03:30, all UTC. Jobs fail with retries and alerts (NFR-047). Job behaviour is in [the API page](api.md#observability) and [the evaluations page](../evaluations.md).
 - `/metrics`: the MCP counter's `app_family` label comes from FR-410's fixed list, and counts exactly for operators, where Observability hides counts under `privacy.min_count` (FR-614).
@@ -57,12 +57,6 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 - A session never opens `/metrics`. It also reports request durations and the live edition's age. The people picker logs a warning at start.
 - The service sets its own security headers (`SECURITY_HEADERS` in `src/server/app.ts`) on what it answers, on port 3000 too, not only behind the web image's nginx.
 - The service compresses what `/api/v1` answers for a caller that accepts it (`@fastify/compress` in `src/server/http/api.ts`), as the web image's nginx does, so a service without that proxy in front sends the 1.5 MB library index as about a tenth of it. Event streams are never compressed.
-
-## Settings named HEED_ before the rename
-
-Until the product was renamed Footnote, each setting that now starts with `FOOTNOTE_` started with `HEED_` instead, and the rest of its name is the same. This release still reads an old name when the new one is unset (or empty), and the release after it reads the new names only. `src/domain/renamed-settings.ts` pairs each with its new name, and [the reader page](../operations.md#settings-that-started-with-heed_) says what to do. The `CL_` names of before 0.1.0 were read by 0.1 only and are no longer read.
-
-The old names: `HEED_API_URL`, `HEED_ASK_LOOP`, `HEED_AUTH`, `HEED_DEV_PEOPLE_FILE`, `HEED_DOMAIN_OVERRIDES`, `HEED_EGRESS_PRIVATE_HOSTS`, `HEED_EMAIL`, `HEED_FIGURE_OVERRIDES`, `HEED_FIXED_TODAY`, `HEED_LOGIN_SERVER`, `HEED_MCP_STATE_KEY_FILE`, `HEED_METRICS_TOKEN`, `HEED_OAUTH_CONNECTION_DAYS`, `HEED_OAUTH_CONSENT_URL`, `HEED_OAUTH_DYNAMIC_REGISTRATION`, `HEED_OAUTH_ISSUER`, `HEED_OAUTH_PREVIOUS_KEY_FILES`, `HEED_OAUTH_REFRESH_IDLE_HOURS`, `HEED_OAUTH_SIGNING_KEY_FILE`, `HEED_OIDC_ADMIN_GROUPS`, `HEED_OIDC_CLIENT_ID`, `HEED_OIDC_CLIENT_SECRET_FILE`, `HEED_OIDC_GROUPS_CLAIM`, `HEED_OIDC_ISSUER`, `HEED_OIDC_MEMBER_GROUPS`, `HEED_OIDC_NAME`, `HEED_OIDC_REDIRECT_URL`, `HEED_OIDC_SCOPES`, `HEED_ORIGIN`, `HEED_PRODUCT_NAME`, `HEED_PROFILE_LABEL`, `HEED_SECRETS_DIR`, `HEED_SERVER_FOLDERS`, `HEED_SESSION_IDLE_HOURS`, `HEED_SESSION_MAX_DAYS`, `HEED_SUPPORT_EMAIL`, `HEED_TRUSTED_PROXIES`, `HEED_URL`, `HEED_WEB_ORIGINS`, `HEED_WEB_READ_LOOPBACK`.
 
 ## Administer the service
 

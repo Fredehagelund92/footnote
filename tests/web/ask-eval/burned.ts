@@ -17,9 +17,9 @@ import type { EvalCase, Pattern, TurnExpect } from './types.ts'
 */
 
 const NOT_WRITTEN =
-  /\b(?:not written|nothing (?:is )?written|isn't written|no item says|nothing (?:in (?:Footnote|Heed) |here )?says|does(?: not|n't) say)\b/i
+  /\b(?:not written|nothing (?:is )?written|isn't written|no item says|nothing (?:in Footnote |here )?says|does(?: not|n't) say)\b/i
 const ONLY_WRITTEN =
-  /\b(?:only what is written|not what others|other (?:outdoor )?retailers|outside (?:Footnote|Heed|the workspace)|does(?: not|n't) (?:hold|keep|have))\b/i
+  /\b(?:only what is written|not what others|other (?:outdoor )?retailers|outside (?:Footnote|the workspace)|does(?: not|n't) (?:hold|keep|have))\b/i
 const NO_NUMBERS =
   /\b(?:keeps no (?:numbers|figures)|holds no (?:numbers|figures)|no (?:numbers|figures|data values) (?:are )?(?:kept|held)|does(?: not|n't) (?:keep|hold|have) (?:any |the )?(?:numbers|figures|order figures|data))\b/i
 const DECLINES_PERSON =

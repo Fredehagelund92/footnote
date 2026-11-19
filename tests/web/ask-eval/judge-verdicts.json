@@ -1,5 +1,5 @@
 {
-  "digest": "0f8e4e2160036170",
+  "digest": "61112f2125b140cd",
   "model": "anthropic/claude-haiku-5.5",
   "verdicts": {
     "J01": {
@@ -17,9 +17,7 @@
         "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
       ],
       "verdict": [],
-      "unsupported": [
-        "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
-      ]
+      "unsupported": []
     },
     "J04": {
       "advice": [],
@@ -62,7 +60,7 @@
       "unsupported": []
     },
     "J12": {
-      "advice": [],
+      "advice": ["Open your Inbox to see them."],
       "verdict": [],
       "unsupported": []
     },
@@ -140,9 +138,7 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": [
-        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
-      ]
+      "unsupported": ["so 12 May was only the plan [1]"]
     },
     "J27": {
       "advice": [],
@@ -154,13 +150,13 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["but the owners have not marked them as conflicting"]
+      "unsupported": ["but the owners have not marked them as conflicting."]
     },
     "J29": {
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "Correction to my last reply: I said Heed does not show which metrics have a definition."
+        "Correction to my last reply: I said Footnote does not show which metrics have a definition."
       ]
     },
     "J30": {
@@ -176,7 +172,7 @@
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway, and one of them is archived."]
+      "unsupported": ["Seven items are about Norway"]
     },
     "J33": {
       "advice": [],
@@ -196,7 +192,7 @@
     "J36": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Nothing in Heed is about Poland."]
+      "unsupported": ["Nothing in Footnote is about Poland."]
     },
     "J37": {
       "advice": [],
@@ -221,9 +217,7 @@
     "J41": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "He last checked it on 20 June 2026, and its check date passed on 18 September [1]."
-      ]
+      "unsupported": []
     },
     "J42": {
       "advice": [],
@@ -238,13 +232,9 @@
       ]
     },
     "J45": {
-      "advice": [
-        "The only related item is general: return on ad spend for one campaign counts orders for 30 days after sign-up, so a campaign should be read only once those 30 days have passed [1]."
-      ],
+      "advice": ["so a campaign should be read only once those 30 days have passed [1]"],
       "verdict": [],
-      "unsupported": [
-        "The only related item is general: return on ad spend for one campaign counts orders for 30 days after sign-up, so a campaign should be read only once those 30 days have passed [1]."
-      ]
+      "unsupported": []
     },
     "J46": {
       "advice": ["Do not report it weekly [1]."],

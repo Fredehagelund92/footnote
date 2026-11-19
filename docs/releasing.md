@@ -123,14 +123,14 @@ To publish for the first time, a maintainer decides, then:
 2. Runs **Actions, Docs site, Run workflow** on `main`. This creates the `gh-pages` branch with `/next/`.
 3. In **Settings, Pages**, chooses **Deploy from a branch**, then `gh-pages` and `/ (root)`.
 
-Release 0.1.0 came before the site, so `/v0.1/` first appears with the next 0.1 release. Until then the root opens `/next/`.
+The first release builds `/v0.1/`. Until then the root opens `/next/`.
 
 The host and path are the two `env` lines at the top of the workflow. A custom domain changes those. To stop publishing, turn the variable off.
 
 ## Set up once
 
-These are repository settings, so a maintainer makes them. They were made for 0.1.0; a fork or a
-new repository needs them again:
+These are repository settings, so a maintainer makes them, once before the first release. A fork
+or a new repository needs them again:
 
 1. **Settings, Actions, General, Workflow permissions:** turn on **Allow GitHub Actions to create
    and approve pull requests**. Leave the default permissions at read. Without it the release
@@ -143,10 +143,35 @@ new repository needs them again:
 3. Optional: a tag ruleset (**Settings, Rules, Rulesets, New tag ruleset**, for `v*`) that lets only
    maintainers create, move or delete release tags.
 
+## The first release
+
+Footnote has no release yet, and the first is 0.1.0. A release 0.1.0 of 2 November 2026, made
+under the product's earlier name, was withdrawn: nobody used it. So `release-please-config.json`
+tells release-please to make 0.1.0 again, from the start of the history:
+
+- `release-as` is `0.1.0`, so the release pull request is `chore(main): release 0.1.0`, not the
+  next number after the withdrawn release;
+- `last-release-sha` is the repository's first commit, so the changelog section of 0.1.0 holds
+  every change, not only those since the withdrawn release.
+
+Before a maintainer merges that pull request:
+
+1. Delete the withdrawn release, its tag and its images, so the tag `v0.1.0` can name the new
+   release: the GitHub Release and the tag (`gh release delete v0.1.0 --cleanup-tag`), and the
+   two packages it pushed to ghcr.io under the repository's earlier name.
+2. Take the withdrawn release's section, `## 0.1.0 (2026-11-02)`, out of `CHANGELOG.md` in a
+   commit on `main`, so the changelog has one 0.1.0. This is the one change to `CHANGELOG.md` a
+   maintainer makes by hand: release-please writes the new section above the old one and never
+   removes a section. It makes the release pull request again from `main` after every merge, so
+   the change belongs on `main`, not in the release pull request.
+
+Then make the release as below, with `0.1.0` where the steps say `0.2.0`. Once it is out, remove
+`release-as` and `last-release-sha` from `release-please-config.json`: as long as they are there,
+every release pull request is 0.1.0 again, with the whole history.
+
 ## Make a release
 
-The first release, 0.1.0, came out on 3 November 2026. Every release takes the same steps, with
-its own version where these say `0.2.0`:
+Every release takes the same steps, with its own version where these say `0.2.0`:
 
 1. Open the pull request `chore(main): release 0.2.0`. If there is none, start it by hand:
    **Actions, Release pull request, Run workflow** on `main`, or

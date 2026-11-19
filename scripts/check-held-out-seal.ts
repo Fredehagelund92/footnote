@@ -45,7 +45,6 @@ export const sealFiles = [
 const opening = [
   'golden-held-out',
   'FOOTNOTE_HELDOUT_KEY',
-  'HEED_HELDOUT_KEY',
   'age-encryption',
   'readHeldOut',
   'unseal',

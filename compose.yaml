@@ -6,12 +6,8 @@
 # Cube model, which the image carries (db/seed/cube), so nothing is read from this computer. To run
 # on your own Cube model instead, name its folder in CUBE_MODEL_DIR (README, "Use your own data");
 # it is shared into the container read only, and the demo is then left out. FOOTNOTE_WEB_PORT and
-# FOOTNOTE_PORT move the web app (8080) and the service (3000); for one release their names before
-# the rename to Footnote, HEED_WEB_PORT and HEED_PORT, still count. Both listen on this computer
-# only: anyone who reaches them can sign in as any of the demo people.
-#
-# An install from before the rename keeps its data in the volumes heed_db and heed_keys: move it
-# over before the first start (docs/self-hosting.md, "Upgrade from Heed 0.1").
+# FOOTNOTE_PORT move the web app (8080) and the service (3000). Both listen on this computer only:
+# anyone who reaches them can sign in as any of the demo people.
 #
 # Ask and the test runs answer on scripted models and send nothing out. MODELS=live with a key
 # answers on a real model (docs/self-hosting.md, "Ask on a real model"):
@@ -50,7 +46,7 @@ services:
       # The web container's nginx forwards the address of each browser that calls /api/v1, so the
       # request limits count each caller on its own. Believed only from this network's private
       # addresses, where that nginx is.
-      FOOTNOTE_DEFAULT_TRUSTED_PROXIES: uniquelocal
+      FOOTNOTE_TRUSTED_PROXIES: uniquelocal
       # The superuser makes Footnote's roles and database and loads the demo; each part of the service
       # then connects as its own role (db/README.md).
       DATABASE_URL_BOOTSTRAP: postgres://postgres@db:5432/postgres
@@ -59,8 +55,8 @@ services:
       SEED_DEMO: ${SEED_DEMO:-on}
       # Your own model's folder, when you name one; empty, the image reads its demo model.
       CUBE_MODEL_DIR: ${CUBE_MODEL_DIR:+/cube-model}
-      FOOTNOTE_DEFAULT_WEB_ORIGINS: http://localhost:${FOOTNOTE_WEB_PORT:-${HEED_WEB_PORT:-8080}}
-      MCP_RESOURCE_URL: http://localhost:${FOOTNOTE_PORT:-${HEED_PORT:-3000}}/mcp
+      FOOTNOTE_WEB_ORIGINS: http://localhost:${FOOTNOTE_WEB_PORT:-8080}
+      MCP_RESOURCE_URL: http://localhost:${FOOTNOTE_PORT:-3000}/mcp
       # The secret store: the tokens and signed links of the tools you connect, in a folder of its
       # own in the keys volume, so they stay when the container is made again. The service makes
       # it, for its own user alone: it refuses a folder others may read, as the volume's top is.
@@ -79,7 +75,7 @@ services:
       - ${CUBE_MODEL_DIR:-no-model}:/cube-model:ro
       - keys:/var/lib/footnote
     ports:
-      - 127.0.0.1:${FOOTNOTE_PORT:-${HEED_PORT:-3000}}:3000
+      - 127.0.0.1:${FOOTNOTE_PORT:-3000}:3000
 
   web:
     build:
@@ -89,7 +85,7 @@ services:
       footnote:
         condition: service_healthy
     ports:
-      - 127.0.0.1:${FOOTNOTE_WEB_PORT:-${HEED_WEB_PORT:-8080}}:8080
+      - 127.0.0.1:${FOOTNOTE_WEB_PORT:-8080}:8080
 
 volumes:
   db:

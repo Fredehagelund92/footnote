@@ -87,7 +87,7 @@ For contributors, in the repository only.
 | [Develop Footnote](development.md) and [its tests](testing.md)      | The repository, the commands and the tests                           |
 | [The public docs site](../apps/docs/README.md)                      | Which pages are published, and how, one version at a time            |
 | [Release Footnote](releasing.md)                                    | One version number, the release pull request and the tag             |
-| [The rename checklist](rename-checklist.md)                         | Everything that follows the product name                             |
+| [The product name](product-name.md)                                 | Where the name appears, and what follows it                          |
 | [Contributing](../CONTRIBUTING.md)                                  | How to send a change, and the rules for people and agents            |
 | [Working with coding agents](agents.md)                             | Where an agent reads first, and what it may and may not do           |
 

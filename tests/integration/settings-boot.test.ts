@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,9 +9,8 @@ import { describe, expect, it } from 'vitest'
 import { testDatabase } from './support.ts'
 
 /*
-  A 0.1 operator's environment, with only the old HEED_ names for the service's own settings and
-  the key files under their old default names, starts the current service: it listens, warns once
-  naming each old setting with its new name and no value, and moves each key file to its new name.
+  The service starts on its FOOTNOTE_ settings alone and uses the key files they name: it listens,
+  serves /metrics to the token, keeps the keys it was given and prints no value of a setting.
 */
 
 const { url } = testDatabase()
@@ -37,17 +36,18 @@ async function healthy(port: number, deadline: number): Promise<boolean> {
   return false
 }
 
-describe('a start with only the old HEED_ settings', () => {
-  it('listens, warns once without values and moves the old key files', async () => {
-    const folder = await mkdtemp(join(tmpdir(), 'old-settings-'))
+describe('a start with the FOOTNOTE_ settings', () => {
+  it('listens, reads each setting and keeps the key files it names', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'footnote-settings-'))
     const stateKey = `${'ab'.repeat(32)}\n`
     const oauthKey = generateKeyPairSync('ed25519')
       .privateKey.export({ format: 'pem', type: 'pkcs8' })
       .toString()
-    for (const [name, content] of [
-      ['.heed-mcp-state.key', stateKey],
-      ['.heed-oauth-key.pem', oauthKey],
-    ] as const) {
+    const keys = [
+      ['.footnote-mcp-state.key', stateKey],
+      ['.footnote-oauth-key.pem', oauthKey],
+    ] as const
+    for (const [name, content] of keys) {
       await writeFile(join(folder, name), content, { mode: 0o600 })
       await chmod(join(folder, name), 0o600)
     }
@@ -60,12 +60,12 @@ describe('a start with only the old HEED_ settings', () => {
         USER: process.env.USER ?? '',
         DATABASE_URL: url,
         PORT: String(port),
-        HEED_AUTH: 'dev',
-        HEED_WEB_ORIGINS: 'http://localhost:5173',
-        HEED_FIXED_TODAY: '2026-01-15',
-        HEED_METRICS_TOKEN: metricsToken,
-        HEED_MCP_STATE_KEY_FILE: join(folder, '.footnote-mcp-state.key'),
-        HEED_OAUTH_SIGNING_KEY_FILE: join(folder, '.footnote-oauth-key.pem'),
+        FOOTNOTE_AUTH: 'dev',
+        FOOTNOTE_WEB_ORIGINS: 'http://localhost:5173',
+        FOOTNOTE_FIXED_TODAY: '2026-01-15',
+        FOOTNOTE_METRICS_TOKEN: metricsToken,
+        FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, '.footnote-mcp-state.key'),
+        FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, '.footnote-oauth-key.pem'),
       },
     })
     let output = ''
@@ -74,28 +74,14 @@ describe('a start with only the old HEED_ settings', () => {
     const exited = new Promise((resolve) => child.on('exit', resolve))
     try {
       expect(await healthy(port, Date.now() + 50_000), output).toBe(true)
-
-      const warnings = output.split('\n').filter((line) => line.startsWith('Renamed settings:'))
-      expect(warnings).toHaveLength(1)
-      for (const name of [
-        'AUTH',
-        'WEB_ORIGINS',
-        'FIXED_TODAY',
-        'METRICS_TOKEN',
-        'MCP_STATE_KEY_FILE',
-        'OAUTH_SIGNING_KEY_FILE',
-      ])
-        expect(warnings[0]).toContain(`HEED_${name} is now FOOTNOTE_${name}`)
+      const metrics = await fetch(`http://127.0.0.1:${port}/metrics`, {
+        headers: { authorization: `Bearer ${metricsToken}` },
+      })
+      expect(metrics.status, output).toBe(200)
+      expect(await metrics.text()).toContain('footnote_')
       expect(output).not.toContain(metricsToken)
-
-      for (const [from, to, content] of [
-        ['.heed-mcp-state.key', '.footnote-mcp-state.key', stateKey],
-        ['.heed-oauth-key.pem', '.footnote-oauth-key.pem', oauthKey],
-      ] as const) {
-        expect(output).toContain(`Moved the key file ${join(folder, from)} to ${join(folder, to)}`)
-        expect(await readFile(join(folder, to), 'utf8')).toBe(content)
-        await expect(stat(join(folder, from))).rejects.toMatchObject({ code: 'ENOENT' })
-      }
+      for (const [name, content] of keys)
+        expect(await readFile(join(folder, name), 'utf8')).toBe(content)
     } finally {
       child.kill('SIGTERM')
       await exited

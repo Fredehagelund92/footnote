@@ -37,8 +37,8 @@ defaults:
 # The host and the path under it. A custom domain changes these two lines and nothing else.
 env:
   DOCS_SITE: https://fredehagelund92.github.io
-  # Moves with the GitHub repository rename (docs/rename-checklist.md): Pages serves under the repository's name.
-  DOCS_ROOT: /heed
+  # Pages serves under the repository's name, which follows a rename on GitHub (docs/product-name.md).
+  DOCS_ROOT: /${{ github.event.repository.name }}
 
 jobs:
   build:

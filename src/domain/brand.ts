@@ -1,5 +1,5 @@
 /**
- * The product's name, decided in one place (docs/rename-checklist.md). People and agents see it
+ * The product's name, decided in one place (docs/product-name.md). People and agents see it
  * only where it earns its place: a sentence that names the product, never a label such as Back
  * or Add context. The web app (src/web/lib/brand.ts) and the service (src/server/brand.ts) read
  * one setting, `FOOTNOTE_PRODUCT_NAME`, once at start, so the assistant's instructions stay
@@ -18,12 +18,6 @@ export const CONNECTOR_REQUEST_URL = `${REPOSITORY_URL}/issues/new?template=conn
 
 /** The name when `FOOTNOTE_PRODUCT_NAME` is not set. */
 export const DEFAULT_PRODUCT_NAME = 'Footnote'
-
-/**
- * The name the product had until 18 November 2026. People may still say it, so a question that
- * names it reads it as the product, not as a value or a person; no sentence says it (lint).
- */
-export const FORMER_PRODUCT_NAME = 'Heed'
 
 /** The longest name the setting takes: it sits in a title, a heading and a button. */
 export const PRODUCT_NAME_MAX = 32

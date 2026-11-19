@@ -3,7 +3,6 @@ import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
-import { withRenamedSettings } from '../src/domain/renamed-settings.ts'
 import { readDevPeople } from '../src/server/modules/auth/index.ts'
 import { inlineScriptHashes } from './web-csp.ts'
 
@@ -49,8 +48,7 @@ function run(command: string, args: string[], env: Record<string, string>) {
 /** The service in one file, `outfile` (absolute, or under the repository), and its size in bytes. */
 export async function bundleService(
   outfile: string,
-  peopleFile = withRenamedSettings(process.env).environment.FOOTNOTE_DEV_PEOPLE_FILE ||
-    'db/seed/people.local.yml',
+  peopleFile = process.env.FOOTNOTE_DEV_PEOPLE_FILE || 'db/seed/people.local.yml',
 ): Promise<number> {
   const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
     version: string

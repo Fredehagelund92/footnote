@@ -22,7 +22,7 @@ import {
   type Term,
   type WordMeaning,
 } from './vocabulary.ts'
-import { DEFAULT_PRODUCT_NAME, FORMER_PRODUCT_NAME } from './brand.ts'
+import { DEFAULT_PRODUCT_NAME } from './brand.ts'
 import { everydayWords, isEverydayWord, saysHow } from './everyday-words.ts'
 
 /**
@@ -183,7 +183,6 @@ function unknownValuesByPlace(
   const known = found.names
   const tools = new Set([
     normalizeName(DEFAULT_PRODUCT_NAME),
-    normalizeName(FORMER_PRODUCT_NAME),
     ...terms.flatMap((t) => t.definitionRefs.map((ref) => normalizeName(ref.split(':')[0]!))),
   ])
   const nameAt = (i: number) => named.find((n) => n.start === words[i]?.start)

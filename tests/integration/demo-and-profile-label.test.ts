@@ -84,7 +84,7 @@ describe('what the session says of the install', () => {
       const signedIn = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/sign-in',
-        headers: { origin: 'http://localhost', 'x-heed-csrf': 'dev-sign-in' },
+        headers: { origin: 'http://localhost', 'x-footnote-csrf': 'dev-sign-in' },
         payload: { email: person.email },
       })
       expect(signedIn.json()).toMatchObject({ modelConnected: live })

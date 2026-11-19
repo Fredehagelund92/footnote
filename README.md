@@ -98,8 +98,8 @@ Another way in:
 
 - **The published images, in about two minutes.** `docker compose -f compose.yaml -f compose.images.yaml up`
   pulls them instead of building. They are the latest release, named in `compose.images.yaml`, which can be
-  behind this page and may differ from it. A newer release replaces them. They exist from the first release
-  under the name Footnote; until then `docker compose up` builds them.
+  behind this page and may differ from it. A newer release replaces them. They exist from the first release on;
+  until then `docker compose up` builds them.
 
 To choose how to run Footnote for your own team, see [Where to run Footnote](docs/where-to-run.md). To keep it running
 here, back it up, upgrade it or roll an upgrade back, see [Self-host Footnote on one computer](docs/self-hosting.md).
@@ -236,8 +236,7 @@ The clickable mockup is the design the app was built from, kept as a reference i
 
 ## Status
 
-Footnote is **pre-1.0**. Its only release so far is [0.1.0](https://github.com/Fredehagelund92/footnote/releases/tag/v0.1.0)
-of 2 November 2026, and this page describes the code on main, which is well ahead of it.
+Footnote is **pre-1.0** and has no release yet: the first will be 0.1.0. This page describes the code on main.
 It is for trying on one computer, not for production use. Expect rough edges and breaking changes.
 
 **Works today**

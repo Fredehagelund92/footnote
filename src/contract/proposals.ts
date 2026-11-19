@@ -26,7 +26,7 @@ export const proposalMutationSchema = z.strictObject({
   revision: z.number().check(z.int(), z.minimum(1)),
 })
 /**
- * What the proposer says is wrong with the current version, on a change to an item (heed-ux B5):
+ * What the proposer says is wrong with the current version, on a change to an item (UX review B5):
  * optional plain text, which the reviewer reads as a quote. Empty or null clears it.
  */
 const changeReasonSchema = z.nullable(z.string().check(z.maxLength(limits.changeReason)))
