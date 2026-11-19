@@ -319,22 +319,43 @@ export function cachedThrough(
 ): ModelMessage[] {
   const keys = Object.keys(breakpoint)
   if (!keys.length) return [...messages]
-  const unmarked = (m: ModelMessage): ModelMessage => {
-    if (!m.providerOptions || !keys.some((k) => k in m.providerOptions!)) return m
+  type Options = ModelMessage['providerOptions']
+  const without = (options: Options): Options => {
     const rest = Object.fromEntries(
-      Object.entries(m.providerOptions).filter(([k]) => !keys.includes(k)),
+      Object.entries(options ?? {}).filter(([k]) => !keys.includes(k)),
     )
-    const { providerOptions: _, ...bare } = m
-    return (Object.keys(rest).length ? { ...bare, providerOptions: rest } : bare) as ModelMessage
+    return Object.keys(rest).length ? rest : undefined
   }
-  return messages.map((m, i) =>
-    i < messages.length - 1
-      ? unmarked(m)
-      : ({
-          ...unmarked(m),
-          providerOptions: { ...unmarked(m).providerOptions, ...breakpoint },
-        } as ModelMessage),
-  )
+  const withOptions = <T extends { providerOptions?: Options }>(item: T, options: Options): T => {
+    const { providerOptions: _, ...bare } = item
+    return (options ? { ...bare, providerOptions: options } : bare) as T
+  }
+  // Some providers read the mark from a message's last part rather than from the message.
+  const unmarked = (m: ModelMessage): ModelMessage => {
+    const bare = withOptions(m, without(m.providerOptions))
+    return Array.isArray(bare.content)
+      ? ({
+          ...bare,
+          content: (bare.content as { providerOptions?: Options }[]).map((part) =>
+            withOptions(part, without(part.providerOptions)),
+          ),
+        } as ModelMessage)
+      : bare
+  }
+  const marked = (m: ModelMessage): ModelMessage => {
+    const bare = unmarked(m)
+    const message = withOptions(bare, { ...bare.providerOptions, ...breakpoint })
+    if (message.role === 'system') return message
+    const parts = (
+      typeof message.content === 'string'
+        ? [{ type: 'text', text: message.content }]
+        : [...message.content]
+    ) as { providerOptions?: Options }[]
+    if (!parts.length) return message
+    parts[parts.length - 1] = withOptions(parts[parts.length - 1]!, breakpoint)
+    return { ...message, content: parts } as ModelMessage
+  }
+  return messages.map((m, i) => (i < messages.length - 1 ? unmarked(m) : marked(m)))
 }
 
 const ITEM_ID = /^itm_[a-z0-9]{8,16}$/

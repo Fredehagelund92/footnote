@@ -29,5 +29,12 @@ export const anthropicAdapter: ProviderAdapter = {
       }
     }
   },
-  keyHeaders: ({ apiKey }) => ({ 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }),
+  keyHeaders: ({ apiKey, authToken }) => ({
+    ...(authToken
+      ? { Authorization: `Bearer ${authToken}` }
+      : apiKey
+        ? { 'x-api-key': apiKey }
+        : {}),
+    'anthropic-version': '2023-06-01',
+  }),
 }

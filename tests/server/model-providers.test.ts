@@ -26,6 +26,7 @@ import type { Database } from '../../src/server/db/database.ts'
 import { placeOf } from '../../src/server/modules/models/address.ts'
 import { answerQuestion, judgeAnswer } from '../../src/server/modules/evals/answer.ts'
 import { reportModelKeys } from '../../src/server/service.ts'
+import { cachedThrough } from '../../src/server/modules/answer/loop.ts'
 
 /*
   The provider registry: a provider is a configuration entry plus an adapter for its protocol.
@@ -58,7 +59,8 @@ const acmeAdapter: ProviderAdapter = {
       cacheBreakpoint: {},
     })
   },
-  keyHeaders: ({ apiKey }) => ({ 'x-acme-key': apiKey }),
+  keyHeaders: ({ apiKey, authToken }) =>
+    authToken ? { 'x-acme-token': authToken } : apiKey ? { 'x-acme-key': apiKey } : {},
 }
 const acme: ProviderEntry = {
   name: 'acme',
@@ -347,6 +349,25 @@ describe('a wrong key at start-up (T2)', () => {
     })
   })
 
+  it('sends a bearer token as Authorization, never as a key, and names its variable when refused', async () => {
+    const requests = answering(() => 401)
+    const port = createModelPort({ mode: 'live', env: { ANTHROPIC_AUTH_TOKEN: 'gateway-token' } })
+    const [refused] = await checkModelKeys(port, settings())
+    expect(requests[0]!.headers.get('authorization')).toBe('Bearer gateway-token')
+    expect(requests[0]!.headers.has('x-api-key')).toBe(false)
+    expect(keyCheckLine(refused!)).toContain('refused the key in ANTHROPIC_AUTH_TOKEN (HTTP 401)')
+  })
+
+  it('sends no key header when a model server on this computer needs none', async () => {
+    const requests = answering(() => 200)
+    const port = createModelPort({
+      mode: 'live',
+      env: { OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1' },
+    })
+    expect(await port.checkKey('openai')).toEqual({ outcome: 'accepted' })
+    expect(requests[0]!.headers.has('authorization')).toBe(false)
+  })
+
   it('logs a refused key as an error that names its variable, at start-up', async () => {
     answering(() => 401)
     const port = createModelPort({ mode: 'live', env: { ANTHROPIC_API_KEY: anthropicKey } })
@@ -355,8 +376,7 @@ describe('a wrong key at start-up (T2)', () => {
     expect(keys).toEqual([
       {
         provider: 'anthropic',
-        keyEnv: 'ANTHROPIC_API_KEY',
-        check: { outcome: 'refused', status: 401 },
+        check: { outcome: 'refused', status: 401, variable: 'ANTHROPIC_API_KEY' },
       },
     ])
     const logged: { level: string; line: unknown }[] = []
@@ -1004,5 +1024,67 @@ describe('the anthropic entry at a gateway that speaks the Messages API', () => 
     expect(() => port({}).choose('assistant', haiku)).toThrow(
       'models.assistant uses provider anthropic, which needs ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN. Put it in .env.local (never commit it), or use MODELS=mock.',
     )
+  })
+})
+
+describe('the prompt cache mark on the wire (H20)', () => {
+  it('reaches a gateway on the last message of a later step, as the SDK reads it', async () => {
+    const served = 'anthropic/claude-opus-5.5'
+    const bodies: { messages: { role: string; content: unknown; cache_control?: unknown }[] }[] = []
+    vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(init.body as string) as (typeof bodies)[number])
+      return Promise.resolve(
+        Response.json({
+          id: 'x',
+          created: 1,
+          model: served,
+          choices: [
+            { index: 0, message: { role: 'assistant', content: 'Fine.' }, finish_reason: 'stop' },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+      )
+    })
+    const choice = createModelPort({
+      mode: 'live',
+      env: { VERCEL_AI_GATEWAY_API_KEY: 'vck-placeholder' },
+    }).choose('judge', { provider: 'vercel-gateway', model: 'anthropic/claude-opus-5.5' })
+    const call = { type: 'tool-call' as const, toolCallId: 'c1', toolName: 'find', input: {} }
+    const result = (id: string) => ({
+      type: 'tool-result' as const,
+      toolCallId: id,
+      toolName: 'find',
+      output: { type: 'text' as const, value: 'ok' },
+    })
+    const messages = cachedThrough(
+      [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: [{ ...call }] },
+        { role: 'tool', content: [result('c1')] },
+        { role: 'user', content: 'last question' },
+      ],
+      choice.cacheBreakpoint,
+    )
+    await generateText({ model: choice.model, messages, providerOptions: choice.options })
+    const wire = bodies[0]!.messages
+    expect(wire.at(-1)).toEqual({
+      role: 'user',
+      content: 'last question',
+      cache_control: { type: 'ephemeral' },
+    })
+    expect(JSON.stringify(wire.slice(0, -1))).not.toContain('cache_control')
+
+    const toolLast = cachedThrough(
+      [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: [{ ...call }] },
+        { role: 'tool', content: [result('c1')] },
+      ],
+      choice.cacheBreakpoint,
+    )
+    await generateText({ model: choice.model, messages: toolLast, providerOptions: choice.options })
+    const toolWire = bodies[1]!.messages
+    expect(JSON.stringify(toolWire.at(-1))).toContain('cache_control')
+    expect(JSON.stringify(toolWire.slice(0, -1))).not.toContain('cache_control')
   })
 })

@@ -53,7 +53,7 @@ export interface ModelPort {
 /** What a provider said of its key: taken, refused, or not known because it could not be asked. */
 export type KeyCheck =
   | { outcome: 'accepted' }
-  | { outcome: 'refused'; status: number }
+  | { outcome: 'refused'; status: number; variable: string | null }
   | { outcome: 'unchecked'; reason: string }
 
 /**
@@ -234,7 +234,11 @@ export function createModelPort(options: ModelPortOptions): ModelPort {
         })
         await response.body?.cancel()
         if (response.status === 401 || response.status === 403)
-          return { outcome: 'refused', status: response.status }
+          return {
+            outcome: 'refused',
+            status: response.status,
+            variable: (connection.authToken ? entry.authTokenEnv : entry.apiKeyEnv) ?? null,
+          }
         return response.ok
           ? { outcome: 'accepted' }
           : { outcome: 'unchecked', reason: `${entry.name} answered HTTP ${response.status}` }

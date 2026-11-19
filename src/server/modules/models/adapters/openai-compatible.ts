@@ -111,5 +111,8 @@ export const openAiCompatibleAdapter: ProviderAdapter = {
       return { model: provider.chatModel(name), options: { [key]: body }, cacheBreakpoint }
     }
   },
-  keyHeaders: ({ apiKey }) => ({ Authorization: `Bearer ${apiKey}` }),
+  keyHeaders: ({ apiKey, authToken }) => {
+    const token = authToken ?? apiKey
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  },
 }

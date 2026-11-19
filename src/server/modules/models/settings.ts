@@ -2,7 +2,7 @@ import { settingSchemas } from '../../../contract/admin.ts'
 import type { Queryable } from '../../db/database.ts'
 import { ModelConfigError } from './errors.ts'
 import type { KeyCheck, ModelPort } from './port.ts'
-import { defaultModel, modelProviders } from './providers.ts'
+import { defaultModel } from './providers.ts'
 import { modelRoles, type ModelRef, type ModelRole, type Prices } from './types.ts'
 
 /**
@@ -115,7 +115,7 @@ export function checkModelSetting(port: ModelPort, key: string, value: unknown):
 }
 
 /** One provider the settings use, and what it said of its key. */
-export type ProviderKey = { provider: string; keyEnv: string | null; check: KeyCheck }
+export type ProviderKey = { provider: string; check: KeyCheck }
 
 /**
  * Asks each provider the settings use whether it takes its key, at start-up (T2): a wrong key
@@ -125,7 +125,6 @@ export type ProviderKey = { provider: string; keyEnv: string | null; check: KeyC
 export async function checkModelKeys(
   port: ModelPort,
   settings: ModelSettings,
-  providers = modelProviders,
 ): Promise<ProviderKey[]> {
   const used = new Set(
     modelRoles.flatMap((role) => {
@@ -136,15 +135,15 @@ export async function checkModelKeys(
   return Promise.all(
     [...used].map(async (provider) => ({
       provider,
-      keyEnv: providers.find((p) => p.name === provider)?.apiKeyEnv ?? null,
       check: await port.checkKey(provider),
     })),
   )
 }
 
 /** What the start-up log says of one provider's key; null when the provider took it. */
-export function keyCheckLine({ provider, keyEnv, check }: ProviderKey): string | null {
-  const key = keyEnv ? `the key in ${keyEnv}` : 'its key'
+export function keyCheckLine({ provider, check }: ProviderKey): string | null {
+  const key =
+    check.outcome === 'refused' && check.variable ? `the key in ${check.variable}` : 'its key'
   switch (check.outcome) {
     case 'accepted':
       return null
