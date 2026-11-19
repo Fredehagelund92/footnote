@@ -94,10 +94,8 @@ grant execute on function cl_report_gap_person(text, text, text[], text[], text[
 grant insert, delete on proposal_tests to :api;
 -- A gap's managers read its history log rows, never who.
 grant execute on function cl_gap_history(uuid) to :api;
--- Test runs: one row per model call, written once and never changed; an assistant case try is written when it
--- starts and finished once.
-grant insert on model_calls, assistant_case_tries to :api;
-grant update on assistant_case_tries to :api;
+-- Test runs: one row per model call, written once and never changed.
+grant insert on model_calls to :api;
 -- Source domains: every edition the service makes pins the domains the definition source gives, a definition
 -- sync asks whether the live edition is behind them, and serving and the catalogue read them. A gap's managers are
 -- the owners of every domain of its topic; a topic seen before its metrics had a domain takes the one they have.

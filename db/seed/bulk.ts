@@ -74,16 +74,8 @@ const formerRoles: { areaId: string; personId: string; role: 'owner' | 'approver
   ),
 ]
 
-/**
- * The check levels each risk required before migration 0005, when every seeded version was
- * accepted. The seeded history keeps them, and an approver's accept for high risk, as a database
- * that ran before Footnote v1 does; today every level beyond the first three is history only.
- */
-const requiredLevels = {
-  low: ['format', 'matching', 'delivery'],
-  normal: ['format', 'matching', 'delivery', 'answer_impact'],
-  high: ['format', 'matching', 'delivery', 'answer_impact', 'answer_full'],
-} as const
+/** The check levels every version passes before it is accepted (FR-205). */
+const requiredLevels = ['format', 'matching', 'delivery'] as const
 
 /**
  * Who accepted a seeded version: an owner of the area, one other than the proposer for a normal or
@@ -717,8 +709,8 @@ export async function bulkSeed(
       await insert(
         client,
         'check_results',
-        history.flatMap(({ item: i, id, version: v }) =>
-          requiredLevels[i.riskLevel].map((level) => ({
+        history.flatMap(({ id, version: v }) =>
+          requiredLevels.map((level) => ({
             item_version_id: id,
             level,
             outcome: 'passed',

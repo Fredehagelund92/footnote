@@ -24,8 +24,6 @@ export function publicRun(
     kind: row.kind,
     state: row.state,
     areaId: row.area_id,
-    proposalId: row.proposal_id,
-    itemVersionId: row.item_version_id,
     edition: row.summary.edition,
     modelId: row.model_id,
     judgeModelId: row.judge_model_id,
@@ -33,12 +31,10 @@ export function publicRun(
     judgeProvider: row.judge_provider,
     modelFamily: row.answer_family,
     judgeFamily: row.judge_family,
-    judgeSameFamily:
-      row.answer_family && row.judge_family ? row.answer_family === row.judge_family : null,
+    judgeSameFamily: row.answer_family === row.judge_family,
     modelVendor: row.answer_vendor,
     judgeVendor: row.judge_vendor,
-    judgeSameVendor:
-      row.answer_vendor && row.judge_vendor ? row.answer_vendor === row.judge_vendor : null,
+    judgeSameVendor: row.answer_vendor === row.judge_vendor,
     trigger: row.summary.trigger ?? null,
     toolSchemaDigest: row.tool_schema_digest ?? '',
     testSetDigest: row.test_set_digest ?? '',
@@ -60,14 +56,11 @@ export function publicRun(
 }
 const columns = `${runColumns},tool_schema_digest,encode(test_set_digest,'hex') as test_set_digest`
 /**
- * A proposal's runs are visible to whoever may read the proposal (row security decides), so its
- * review screen shows them to the proposer and the approvers. Other runs are test results: for
- * the owners and deputies of their area, administrators, and the person who started the run.
+ * Runs are test results: for the owners of their area, administrators, and the person who
+ * started the run.
  */
-const visible = `(case when proposal_id is not null
-    then exists (select 1 from proposals p where p.id=eval_runs.proposal_id)
-    else cl_is_admin_now() or requested_by = cl_person()
-         or (area_id is not null and cl_is_owner_now(area_id)) end)`
+const visible = `(cl_is_admin_now() or requested_by = cl_person()
+    or (area_id is not null and cl_is_owner_now(area_id)))`
 
 async function maintains(tx: Queryable, area: string | null) {
   const [row] = await tx.query<{ ok: boolean }>(
@@ -92,9 +85,7 @@ async function hiddenQuestions(tx: Queryable, ids: readonly string[]): Promise<S
   return new Set(rows.map((r) => r.id))
 }
 const heldOutLabel = 'held-out'
-type PublicScorecard = Omit<Scorecard, 'layers' | 'failedChecks' | 'agreement'> & {
-  layers: NonNullable<Scorecard['layers']> | null
-  failedChecks: NonNullable<Scorecard['failedChecks']> | null
+type PublicScorecard = Omit<Scorecard, 'agreement'> & {
   agreement: NonNullable<Scorecard['agreement']> | null
 }
 /** Judge against code, with held-out questions named as such to those who may not see them. */
@@ -117,9 +108,6 @@ function redactCard(card: Scorecard | null, hidden: Set<string>): PublicScorecar
     ...card,
     failing: shown(card.failing),
     regressions: shown(card.regressions),
-    // Runs scored before the layers were kept have none.
-    layers: card.layers ?? null,
-    failedChecks: card.failedChecks ?? null,
     agreement: redactAgreement(card.agreement ?? null, hidden),
   }
 }
@@ -152,18 +140,14 @@ export function createEvalsService(
         importQuestions(tx, input.content, input.dryRun),
     },
     runs: {
-      async list(filter: {
-        area?: string | undefined
-        proposal?: string | undefined
-        limit?: number | undefined
-      }) {
+      async list(filter: { area?: string | undefined; limit?: number | undefined }) {
         const rows = await tx.query<
           RunRow & { test_set_digest: string; tool_schema_digest: string }
         >(
           `select ${columns} from eval_runs
-            where ($1::text is null or area_id=$1) and ($2::uuid is null or proposal_id=$2) and ${seen}
-            order by created_at desc limit $3`,
-          [filter.area ?? null, filter.proposal ?? null, filter.limit ?? 20],
+            where ($1::text is null or area_id=$1) and ${seen}
+            order by created_at desc limit $2`,
+          [filter.area ?? null, filter.limit ?? 20],
         )
         return rows.map(publicRun)
       },
@@ -191,13 +175,11 @@ export function createEvalsService(
         const results = (row.summary.result?.questions ?? []).map((q) => ({
           ...q,
           id: shown(q.id),
-          layers: q.layers ?? null,
         }))
         return {
           run: publicRun(row),
           results,
           flips: results.flatMap((q) => (q.flip ? [{ id: q.id, flip: q.flip }] : [])),
-          levels: row.summary.result?.levels ?? {},
           scorecard: redactCard(row.summary.result?.scorecard ?? null, hidden),
           links: row.summary.result?.links
             ? {
@@ -206,7 +188,6 @@ export function createEvalsService(
                 lost: row.summary.result.links.lost.map(shown),
               }
             : null,
-          replay: row.summary.replay ?? null,
           agreement: row.summary.result?.agreement
             ? {
                 baseline: redactAgreement(row.summary.result.agreement.baseline, hidden),

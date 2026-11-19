@@ -284,7 +284,6 @@ export type MeteredCall = {
   /** The call ended before the provider reported its usage; the usage is an estimate. */
   estimated: boolean
   cell: string | null
-  caseTry: string | null
 }
 
 export type CallMeterOptions = {
@@ -308,7 +307,7 @@ export type CallMeterOptions = {
   onRecordError?: (error: unknown) => void
 }
 /** Where a call is made: the role, and the cell or assistant case try of a test run. */
-export type CallSite = { role: ModelRole; cell?: string | null; caseTry?: string | null }
+export type CallSite = { role: ModelRole; cell?: string | null }
 
 export type CallMeter = {
   /** The same model choice, with every call metered. */
@@ -438,7 +437,6 @@ export function createCallMeter(options: CallMeterOptions): CallMeter {
     model: choice.name,
     attempt,
     cell: site.cell ?? null,
-    caseTry: site.caseTry ?? null,
   })
 
   return {
@@ -545,14 +543,13 @@ async function writeCall(options: CallMeterOptions, call: MeteredCall) {
   await options.database.transaction(options.person, async (tx) => {
     if (options.runId) {
       await tx.query(
-        `insert into model_calls(feature,run_id,cell_id,case_try_id,role,provider,model,attempt,outcome,http_status,
+        `insert into model_calls(feature,run_id,cell_id,role,provider,model,attempt,outcome,http_status,
            tokens_in,tokens_out,cache_read,cache_write,reasoning,latency_ms,cost_micros,estimated)
-         values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+         values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
         [
           options.feature,
           options.runId,
           call.cell,
-          call.caseTry,
           call.role,
           call.provider,
           call.model,

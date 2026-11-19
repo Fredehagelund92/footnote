@@ -87,7 +87,7 @@ function captured() {
 const rows = (statements: { text: string; values: unknown[] }[]) =>
   statements
     .filter((s) => s.text.includes('insert into model_calls'))
-    .map((s) => ({ outcome: s.values[8], status: s.values[9], cost: s.values[16] }))
+    .map((s) => ({ outcome: s.values[7], status: s.values[8], cost: s.values[15] }))
 
 function meterOf(over: Partial<CallMeterOptions> = {}) {
   const { database, statements } = captured()
@@ -357,10 +357,10 @@ describe('prompt cache writes through the gateway (round 5)', () => {
     statements
       .filter((s) => s.text.includes('insert into model_calls'))
       .map((s) => ({
-        in: s.values[10],
-        read: s.values[12],
-        write: s.values[13],
-        cost: s.values[16],
+        in: s.values[9],
+        read: s.values[11],
+        write: s.values[12],
+        cost: s.values[15],
       }))
 
   it('records what each call wrote and read, and bills it as the gateway does', async () => {
@@ -408,7 +408,7 @@ describe('prompt cache writes through the gateway (round 5)', () => {
     )
     const { meter, statements } = meterOf()
     const result = streamText({
-      model: meter.wrap(haiku(), { role: 'assistant', caseTry: null }).model,
+      model: meter.wrap(haiku(), { role: 'assistant' }).model,
       prompt: 'Say OK.',
       maxRetries: 0,
     })
@@ -452,11 +452,11 @@ describe('calls cut short before the provider answered (round 6)', () => {
     statements
       .filter((s) => s.text.includes('insert into model_calls'))
       .map((s) => ({
-        outcome: s.values[8],
-        in: s.values[10],
-        out: s.values[11],
-        cost: s.values[16],
-        estimated: s.values[17],
+        outcome: s.values[7],
+        in: s.values[9],
+        out: s.values[10],
+        cost: s.values[15],
+        estimated: s.values[16],
       }))
   // About 7,650 tokens of prompt, as the cut-short answer step sent.
   const prompt = 'The question, the instructions and what this delivered. '.repeat(546)
@@ -495,7 +495,7 @@ describe('calls cut short before the provider answered (round 6)', () => {
     const { meter, statements } = meterOf({ runId: null })
     const stop = new AbortController()
     const result = streamText({
-      model: meter.wrap(sonnet(), { role: 'assistant', caseTry: null }).model,
+      model: meter.wrap(sonnet(), { role: 'assistant' }).model,
       prompt,
       maxRetries: 0,
       abortSignal: stop.signal,

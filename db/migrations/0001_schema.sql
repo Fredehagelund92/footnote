@@ -522,9 +522,7 @@ CREATE TYPE public.caller_kind AS ENUM (
 CREATE TYPE public.check_level AS ENUM (
     'format',
     'matching',
-    'delivery',
-    'answer_impact',
-    'answer_full'
+    'delivery'
 );
 
 CREATE TYPE public.check_outcome AS ENUM (
@@ -602,12 +600,8 @@ CREATE TYPE public.eval_arm AS ENUM (
 );
 
 CREATE TYPE public.eval_kind AS ENUM (
-    'impact',
     'full',
     'scheduled',
-    'assistant_mock',
-    'assistant_real',
-    'replay',
     'links',
     'held_out'
 );
@@ -3676,37 +3670,6 @@ CREATE TABLE public.areas (
     CONSTRAINT areas_summary_check CHECK (((char_length(summary) <= 160) AND (summary !~ '[[:cntrl:]]'::text) AND (summary = btrim(summary))))
 );
 
-CREATE TABLE public.assistant_case_tries (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    run_id uuid NOT NULL,
-    case_id text NOT NULL,
-    try smallint NOT NULL,
-    state text DEFAULT 'running'::text NOT NULL,
-    passed boolean,
-    failure_kind text,
-    problems jsonb DEFAULT '[]'::jsonb NOT NULL,
-    checks jsonb DEFAULT '{}'::jsonb NOT NULL,
-    verdict jsonb,
-    turns jsonb DEFAULT '[]'::jsonb NOT NULL,
-    first_text_ms integer,
-    first_sentence_ms integer,
-    total_ms integer,
-    cost_micros bigint DEFAULT 0 NOT NULL,
-    started_at timestamp with time zone DEFAULT now() NOT NULL,
-    finished_at timestamp with time zone,
-    CONSTRAINT assistant_case_tries_case_id_check CHECK ((case_id ~ '^[a-z0-9][a-z0-9-]{2,80}$'::text)),
-    CONSTRAINT assistant_case_tries_checks_check CHECK ((jsonb_typeof(checks) = 'object'::text)),
-    CONSTRAINT assistant_case_tries_cost_micros_check CHECK ((cost_micros >= 0)),
-    CONSTRAINT assistant_case_tries_failure_kind_check CHECK ((failure_kind = ANY (ARRAY['throttled'::text, 'provider'::text, 'judge'::text, 'error'::text]))),
-    CONSTRAINT assistant_case_tries_first_sentence_ms_check CHECK ((first_sentence_ms >= 0)),
-    CONSTRAINT assistant_case_tries_first_text_ms_check CHECK ((first_text_ms >= 0)),
-    CONSTRAINT assistant_case_tries_problems_check CHECK ((jsonb_typeof(problems) = 'array'::text)),
-    CONSTRAINT assistant_case_tries_state_check CHECK ((state = ANY (ARRAY['running'::text, 'finished'::text, 'failed'::text]))),
-    CONSTRAINT assistant_case_tries_total_ms_check CHECK ((total_ms >= 0)),
-    CONSTRAINT assistant_case_tries_try_check CHECK ((try >= 1)),
-    CONSTRAINT assistant_case_tries_turns_check CHECK ((jsonb_typeof(turns) = 'array'::text))
-);
-
 CREATE TABLE public.assistant_ratings (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     verdict public.feedback_verdict NOT NULL,
@@ -3779,7 +3742,6 @@ CREATE TABLE public.check_results (
     level public.check_level NOT NULL,
     outcome public.check_outcome NOT NULL,
     ran_at timestamp with time zone DEFAULT now() NOT NULL,
-    eval_run_id uuid,
     inputs_digest bytea,
     details jsonb DEFAULT '{}'::jsonb NOT NULL
 );
@@ -4087,7 +4049,7 @@ CREATE TABLE public.eval_cells (
     error text,
     failure_kind text,
     CONSTRAINT eval_cells_error_check CHECK ((char_length(error) <= 500)),
-    CONSTRAINT eval_cells_failure_kind_check CHECK ((failure_kind = ANY (ARRAY['throttled'::text, 'provider'::text, 'judge'::text, 'tool'::text, 'error'::text])))
+    CONSTRAINT eval_cells_failure_kind_check CHECK ((failure_kind = ANY (ARRAY['throttled'::text, 'provider'::text, 'tool'::text, 'error'::text])))
 );
 
 CREATE TABLE public.eval_run_transitions (
@@ -4100,10 +4062,7 @@ CREATE TABLE public.eval_runs (
     kind public.eval_kind NOT NULL,
     state public.eval_state NOT NULL,
     area_id text,
-    proposal_id uuid,
-    item_version_id uuid,
     baseline_edition_seq bigint,
-    candidate_digest bytea,
     tool_schema_digest text NOT NULL,
     model_id text NOT NULL,
     client_label text NOT NULL,
@@ -4121,12 +4080,12 @@ CREATE TABLE public.eval_runs (
     system_prompt_digest text,
     summary jsonb DEFAULT '{}'::jsonb NOT NULL,
     failure text,
-    answer_family text,
-    judge_family text,
-    answer_vendor text,
-    judge_vendor text,
-    answer_provider text,
-    judge_provider text,
+    answer_family text NOT NULL,
+    judge_family text NOT NULL,
+    answer_vendor text NOT NULL,
+    judge_vendor text NOT NULL,
+    answer_provider text NOT NULL,
+    judge_provider text NOT NULL,
     worker text,
     lease_until timestamp with time zone,
     cost_ceiling_micros bigint,
@@ -4535,7 +4494,6 @@ CREATE TABLE public.model_calls (
     feature text NOT NULL,
     run_id uuid NOT NULL,
     cell_id uuid,
-    case_try_id uuid,
     role text NOT NULL,
     provider text NOT NULL,
     model text NOT NULL,
@@ -5693,12 +5651,6 @@ ALTER TABLE ONLY public.areas
 ALTER TABLE ONLY public.areas
     ADD CONSTRAINT areas_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.assistant_case_tries
-    ADD CONSTRAINT assistant_case_tries_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY public.assistant_case_tries
-    ADD CONSTRAINT assistant_case_tries_run_id_case_id_try_key UNIQUE (run_id, case_id, try);
-
 ALTER TABLE ONLY public.assistant_ratings
     ADD CONSTRAINT assistant_ratings_pkey PRIMARY KEY (id);
 
@@ -6166,10 +6118,6 @@ CREATE INDEX eval_runs_area ON public.eval_runs USING btree (area_id, kind, fini
 
 CREATE INDEX eval_runs_incomplete ON public.eval_runs USING btree (finished_at) WHERE (state = 'incomplete'::public.eval_state);
 
-CREATE UNIQUE INDEX eval_runs_one_open ON public.eval_runs USING btree (item_version_id, baseline_edition_seq) WHERE ((item_version_id IS NOT NULL) AND (state = ANY (ARRAY['awaiting_approval'::public.eval_state, 'queued'::public.eval_state, 'running'::public.eval_state])));
-
-CREATE INDEX eval_runs_proposal ON public.eval_runs USING btree (proposal_id) WHERE (proposal_id IS NOT NULL);
-
 CREATE INDEX eval_runs_work ON public.eval_runs USING btree (state, created_at) WHERE (state = ANY (ARRAY['queued'::public.eval_state, 'running'::public.eval_state]));
 
 CREATE INDEX feedback_area_hour ON public.feedback USING btree (area_id, created_hour);
@@ -6239,8 +6187,6 @@ CREATE INDEX item_versions_search ON public.item_versions USING gin (search);
 CREATE INDEX item_versions_title_trgm ON public.item_versions USING gin (title public.gin_trgm_ops);
 
 CREATE INDEX item_versions_validity ON public.item_versions USING gist (validity);
-
-CREATE INDEX model_calls_case_try ON public.model_calls USING btree (case_try_id) WHERE (case_try_id IS NOT NULL);
 
 CREATE INDEX model_calls_cell ON public.model_calls USING btree (cell_id) WHERE (cell_id IS NOT NULL);
 
@@ -6639,9 +6585,6 @@ ALTER TABLE ONLY public.area_deletions
 ALTER TABLE ONLY public.area_deletions
     ADD CONSTRAINT area_deletions_edition_fkey FOREIGN KEY (edition) REFERENCES public.editions(seq);
 
-ALTER TABLE ONLY public.assistant_case_tries
-    ADD CONSTRAINT assistant_case_tries_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.eval_runs(id);
-
 ALTER TABLE ONLY public.assistant_ratings
     ADD CONSTRAINT assistant_ratings_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
 
@@ -6665,9 +6608,6 @@ ALTER TABLE ONLY public.chat_links
 
 ALTER TABLE ONLY public.check_results
     ADD CONSTRAINT check_results_item_version_id_fkey FOREIGN KEY (item_version_id) REFERENCES public.item_versions(id);
-
-ALTER TABLE ONLY public.check_results
-    ADD CONSTRAINT check_results_run FOREIGN KEY (eval_run_id) REFERENCES public.eval_runs(id);
 
 ALTER TABLE ONLY public.check_runs
     ADD CONSTRAINT check_runs_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
@@ -6830,12 +6770,6 @@ ALTER TABLE ONLY public.eval_runs
 
 ALTER TABLE ONLY public.eval_runs
     ADD CONSTRAINT eval_runs_baseline_edition_seq_fkey FOREIGN KEY (baseline_edition_seq) REFERENCES public.editions(seq);
-
-ALTER TABLE ONLY public.eval_runs
-    ADD CONSTRAINT eval_runs_item_version_id_fkey FOREIGN KEY (item_version_id) REFERENCES public.item_versions(id);
-
-ALTER TABLE ONLY public.eval_runs
-    ADD CONSTRAINT eval_runs_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES public.proposals(id);
 
 ALTER TABLE ONLY public.eval_runs
     ADD CONSTRAINT eval_runs_requested_by_fkey FOREIGN KEY (requested_by) REFERENCES public.people(id);
@@ -7043,9 +6977,6 @@ ALTER TABLE ONLY public.live_edition
 
 ALTER TABLE ONLY public.llm_spend_daily
     ADD CONSTRAINT llm_spend_daily_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
-
-ALTER TABLE ONLY public.model_calls
-    ADD CONSTRAINT model_calls_case_try FOREIGN KEY (case_try_id) REFERENCES public.assistant_case_tries(id);
 
 ALTER TABLE ONLY public.model_calls
     ADD CONSTRAINT model_calls_cell_id_fkey FOREIGN KEY (cell_id) REFERENCES public.eval_cells(id);
@@ -7357,18 +7288,6 @@ CREATE POLICY assignments_insert ON public.area_assignments FOR INSERT WITH CHEC
 CREATE POLICY assignments_read ON public.area_assignments FOR SELECT USING (true);
 
 CREATE POLICY assignments_update ON public.area_assignments FOR UPDATE USING ((public.cl_is_admin_now() OR ((role = 'owner'::public.area_role) AND public.cl_is_owner_now(area_id)))) WITH CHECK ((public.cl_is_admin_now() OR ((role = 'owner'::public.area_role) AND public.cl_is_owner_now(area_id))));
-
-ALTER TABLE public.assistant_case_tries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY assistant_case_tries_insert ON public.assistant_case_tries FOR INSERT WITH CHECK (true);
-
-CREATE POLICY assistant_case_tries_read ON public.assistant_case_tries FOR SELECT USING ((public.cl_is_admin_now() OR (EXISTS ( SELECT 1
-   FROM public.eval_runs r
-  WHERE ((r.id = assistant_case_tries.run_id) AND (r.requested_by = public.cl_person()))))));
-
-CREATE POLICY assistant_case_tries_update ON public.assistant_case_tries FOR UPDATE USING ((public.cl_is_admin_now() OR (EXISTS ( SELECT 1
-   FROM public.eval_runs r
-  WHERE ((r.id = assistant_case_tries.run_id) AND (r.requested_by = public.cl_person()))))));
 
 CREATE POLICY audit_insert ON public.audit_log FOR INSERT WITH CHECK (true);
 

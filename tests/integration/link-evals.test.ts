@@ -219,7 +219,6 @@ it('shows that following links helps, what it costs, and leaves the switch as it
   expect(result.results).toEqual([
     {
       id: 'link-refund-rule',
-      impact: false,
       baseline: 'fail',
       candidate: 'pass',
       flip: 'fail_to_pass',
@@ -231,7 +230,6 @@ it('shows that following links helps, what it costs, and leaves the switch as it
     },
     {
       id: 'stale-old-rule',
-      impact: false,
       baseline: 'pass',
       candidate: 'pass',
       flip: null,

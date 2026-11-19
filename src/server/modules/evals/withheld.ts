@@ -107,15 +107,13 @@ export async function runWithheld(
     const settings = await readEvalSettings(tx)
     const models = modelsFor(deps.port, settings)
     const tools = await armTools(tx, 'full')
-    const bundle = (await sidesFor(tx, head, null)).baseline!
+    const bundle = (await sidesFor(tx, head)).baseline!
     const cells = questions.reduce((n, q) => n + q.wordings.length * settings.tries, 0)
     const run = await insertRun(tx, {
       kind: 'held_out',
       state: 'running',
       // No area: the run is listed for administrators and its requester, not in an area's runs.
       area: null,
-      proposal: null,
-      version: null,
       head,
       models,
       settings,
