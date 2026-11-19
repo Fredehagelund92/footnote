@@ -24,7 +24,7 @@ Older design pages that still apply:
 | Page                               | What it says                                                     |
 | ---------------------------------- | ---------------------------------------------------------------- |
 | [Demo world](design/demo-world.md) | Larchwood Outdoor, the invented company that all demo text tells |
-| [Logo](design/logo.md)             | The placeholder logo, while the final mark is drawn, and its use |
+| [Logo](design/logo.md)             | The logo, its files and its use                                  |
 
 ## Use Footnote
 

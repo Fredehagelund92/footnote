@@ -17,6 +17,9 @@ const base = basePath(settings)
 const pages = sitePages()
 // /next/ follows main, so it stays out of search engines and carries no canonical addresses.
 const isNext = settings.version === 'next'
+// From the repository, as GitHub shows it: an image the site does not have to carry.
+const socialPreview =
+  'https://raw.githubusercontent.com/Fredehagelund92/footnote/main/docs/images/footnote-social-preview.png'
 
 export default defineConfig({
   site: !isNext && settings.site ? settings.site : undefined,
@@ -68,6 +71,9 @@ export default defineConfig({
             href: `${base}/llms.txt`,
           },
         },
+        // A shared link shows the logo's social preview (docs/design/logo.md).
+        { tag: 'meta', attrs: { property: 'og:image', content: socialPreview } },
+        { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
         ...(isNext
           ? [{ tag: 'meta' as const, attrs: { name: 'robots', content: 'noindex' } }]
           : []),
