@@ -146,11 +146,12 @@ function Feedback({ busy }: { busy: boolean }) {
           icon={<BotIcon />}
           label="From agents"
           value={<CountUp value={agents} />}
+          href={agents ? '#reports' : undefined}
           sub="reported a Not found or gave feedback"
         />
       </div>
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-3-2)">
-        <div>
+        <div id="reports" className="scroll-mt-16">
           <div
             role="tablist"
             aria-label="Reports"

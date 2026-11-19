@@ -71,6 +71,9 @@ import { ObsPage } from '@/pages/observability'
 // a check date passing, or on Run now. The answer tests (wording, with and without context, other
 // models) need a model key and live in Settings, Advanced. Drift is announced by Alerts, not here.
 
+/** A number cell's way to its group of questions further down, when the group has any. */
+const toGroup = (result: SavedResult, n: number) => (n ? `#saved-${result}` : undefined)
+
 const GROUPS: { result: SavedResult; title: string; icon: typeof CheckIcon }[] = [
   { result: 'look', title: 'Needs a look', icon: TriangleAlertIcon },
   { result: 'changed', title: 'Changed', icon: ArrowRightLeftIcon },
@@ -257,14 +260,27 @@ function Quality({ first }: { first: SavedCheck }) {
           value={c.total}
           sub={`in ${c.domains} ${c.domains === 1 ? 'domain' : 'domains'}`}
         />
-        <Kpi icon={<CircleCheckIcon />} label="Same" value={c.same} sub="answer as saved" />
+        <Kpi
+          icon={<CircleCheckIcon />}
+          label="Same"
+          value={c.same}
+          sub="answer as saved"
+          href={toGroup('same', c.same)}
+        />
         <Kpi
           icon={<ArrowRightLeftIcon />}
           label="Changed"
           value={c.changed}
           sub="answers moved, not worse"
+          href={toGroup('changed', c.changed)}
         />
-        <Kpi icon={<TriangleAlertIcon />} label="Needs a look" value={c.look} sub="got worse" />
+        <Kpi
+          icon={<TriangleAlertIcon />}
+          label="Needs a look"
+          value={c.look}
+          sub="got worse"
+          href={toGroup('look', c.look)}
+        />
       </div>
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-3-2)">
         <div>
@@ -273,7 +289,12 @@ function Quality({ first }: { first: SavedCheck }) {
             if (!qs.length) return null
             const list = g.result === 'same' && !showAll ? qs.slice(0, 3) : qs
             return (
-              <section key={g.result} aria-label={g.title}>
+              <section
+                key={g.result}
+                id={`saved-${g.result}`}
+                aria-label={g.title}
+                className="scroll-mt-16"
+              >
                 <h2 className="flex items-center gap-2 border-b bg-muted/30 px-4 py-2 text-sm font-semibold md:px-5">
                   <g.icon className="size-3.5 text-muted-foreground" aria-hidden />
                   {g.title}
