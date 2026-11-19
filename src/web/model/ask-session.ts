@@ -10,7 +10,8 @@ import { effectsOf, isLive, outcomeOf, type Turn } from './ask-turn'
 //   fresh   an empty thread: nothing is answered yet
 //   example an example, opened on its own answer; it is in the history already
 //   history a chat opened from the history, a reload, Back or Forward: its kept answers, or else
-//           (one past the newest kept) its first question asked again
+//           (one past the newest kept) its first question, which asks nothing until the person
+//           asks it again: opening a chat never calls a model (H20)
 //   live    a thread in which a turn was answered: the thread shows itself, nothing is read for it
 
 /** Where the address points: an example, a chat, or neither (a new chat). */
@@ -46,12 +47,22 @@ export function sessionOf(place: Place, threads: readonly Thread[]): Session {
   }
 }
 
-/** What Ask is asked for the thread's first answer, when the session does not already hold it. */
+/**
+ * What Ask is asked for the thread's first answer: an example's own. A chat from the history is
+ * never asked again by opening it; with nothing kept it opens on its question (`NOT_KEPT`).
+ */
 export function firstRead(session: Session): AskInput | null {
   if (session.kind === 'example') return { example: session.example }
-  if (session.kind === 'history' && !session.answers) return { question: session.question }
   return null
 }
+
+/** What a chat opened with no answers kept says under its question, beside Ask again. */
+export const NOT_KEPT =
+  'Its answers are no longer kept in this browser, so nothing was asked. Ask again to answer it now.'
+
+/** Whether the thread opens on a chat whose answers were not kept: its question, to ask again. */
+export const notKept = (session: Session): session is Extract<Session, { kind: 'history' }> =>
+  session.kind === 'history' && !session.answers
 
 /** The answers a thread opens on, given its first read; none until that has come. */
 export function openingAnswers(session: Session, first: Answer | undefined): Answer[] {

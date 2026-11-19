@@ -97,8 +97,13 @@ export const LOOP_STEPS = 6
 export const LOOP_SECONDS = 30
 /** Enough for an answer of a few short paragraphs, or a step's reads. */
 export const LOOP_MAX_TOKENS = 1_200
+/**
+ * The turns whose reads a turn makes again and sends the model: the latest. An older turn is sent
+ * as its question and what Ask said, so a long chat costs about what its third turn does (H20).
+ */
+export const EARLIER_TURNS = 2
 /** The most earlier reads a turn makes again: the latest ones. */
-const EARLIER_READS = 24
+const EARLIER_READS = 16
 
 /** The step and time limits, from the settings, each in its range. */
 export async function readLoopLimits(tx: Queryable) {
@@ -288,12 +293,48 @@ function serialReads(deps: Pick<LoopDeps, 'database' | 'person' | 'toolsIn' | 'o
   }
 }
 
-/** The chat's earlier reads, the latest `EARLIER_READS`, each with where it sits. */
+/**
+ * The chat's earlier reads: those of its last `EARLIER_TURNS` turns, the latest `EARLIER_READS`,
+ * each with where it sits.
+ */
 function earlierReadsOf(turns: readonly ChatTurnInput[]) {
+  const from = turns.length - EARLIER_TURNS
   const all = turns.flatMap((t, turn) =>
-    (t.reads ?? []).flatMap((r, n) => (isToolName(r.tool) ? [{ turn, n, read: r }] : [])),
+    turn < from
+      ? []
+      : (t.reads ?? []).flatMap((r, n) => (isToolName(r.tool) ? [{ turn, n, read: r }] : [])),
   )
   return all.slice(-EARLIER_READS)
+}
+
+/**
+ * The messages of a step with a prompt cache breakpoint on the last, and on no other: the next
+ * step sends them again and more, so it reads them from the cache, at a tenth of the price on
+ * Claude (H20). The SDK sends a step's messages on to the next, so the mark moves rather than
+ * adds up; Claude takes four marks at most, and the system instructions carry one of their own.
+ */
+export function cachedThrough(
+  messages: readonly ModelMessage[],
+  breakpoint: ModelChoice['cacheBreakpoint'],
+): ModelMessage[] {
+  const keys = Object.keys(breakpoint)
+  if (!keys.length) return [...messages]
+  const unmarked = (m: ModelMessage): ModelMessage => {
+    if (!m.providerOptions || !keys.some((k) => k in m.providerOptions!)) return m
+    const rest = Object.fromEntries(
+      Object.entries(m.providerOptions).filter(([k]) => !keys.includes(k)),
+    )
+    const { providerOptions: _, ...bare } = m
+    return (Object.keys(rest).length ? { ...bare, providerOptions: rest } : bare) as ModelMessage
+  }
+  return messages.map((m, i) =>
+    i < messages.length - 1
+      ? unmarked(m)
+      : ({
+          ...unmarked(m),
+          providerOptions: { ...unmarked(m).providerOptions, ...breakpoint },
+        } as ModelMessage),
+  )
 }
 
 const ITEM_ID = /^itm_[a-z0-9]{8,16}$/
@@ -742,7 +783,10 @@ export async function* askLoop(
         const stop = await spendStop(now)
         if (stop) throw new SpendLimitStop(stop)
         // The last step reads nothing: it answers from what was read.
-        return stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}
+        return {
+          messages: cachedThrough(now, choice.cacheBreakpoint),
+          ...(stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}),
+        }
       },
       maxOutputTokens: LOOP_MAX_TOKENS,
       // The model call meter retries what is worth retrying.

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Answer, Thread } from '@/model/ask'
 import {
   firstRead,
+  NOT_KEPT,
+  notKept,
   keptAnswers,
   nextTurnId,
   openingAnswers,
@@ -78,12 +80,14 @@ describe('what a thread is when it mounts', () => {
     expect(placeOf({ id: 'a', example: 'e' })).toEqual({ example: 'e', chat: null })
   })
 
-  it('reads the first answer only for an example or a chat with nothing kept', () => {
+  it('reads the first answer only for an example: opening a chat never asks the model (H20)', () => {
     expect(firstRead(sessionOf(none, []))).toBeNull()
     expect(firstRead({ kind: 'example', example: 'e' })).toEqual({ example: 'e' })
-    expect(firstRead({ kind: 'history', chat: 'a', question: 'Q?', answers: null })).toEqual({
-      question: 'Q?',
-    })
+    // A chat with nothing kept opens on its question, to ask again: nothing is asked by itself.
+    const unkept = { kind: 'history', chat: 'a', question: 'Q?', answers: null } as const
+    expect(firstRead(unkept)).toBeNull()
+    expect(notKept(unkept)).toBe(true)
+    expect(NOT_KEPT).toMatch(/nothing was asked/)
     const kept = [answer('t0', 'Q?')]
     const history = { kind: 'history', chat: 'a', question: 'Q?', answers: kept } as const
     expect(firstRead(history)).toBeNull()
