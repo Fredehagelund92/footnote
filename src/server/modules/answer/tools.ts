@@ -4,6 +4,7 @@ import * as z from 'zod'
 import type { Answer } from '../../../domain/answer.ts'
 import { answer } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
+import { vagueMetricWord } from '../../../domain/ask-held.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
 import {
   anchorOf,
@@ -163,6 +164,8 @@ type View = {
   areaName: (areaId: string | null | undefined) => string
   /** The names of the people, by id. */
   personName: (id: string) => string
+  /** The names of everyone in the workspace. */
+  people: readonly string[]
   /** A dimension's value type, as its source gives it ("time", "string"), by its key. */
   valueType: (dimensionKey: string) => string | null
   execute: ReturnType<typeof createToolService>
@@ -227,6 +230,7 @@ async function viewOf(reads: ToolReads): Promise<View> {
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
     areaName: (id) => area(id)?.name ?? 'no domain',
     personName: (id) => names.get(id) ?? 'Someone who left',
+    people: people.map((p) => p.name),
     valueType: (key) => types.get(key) ?? null,
     execute,
   }
@@ -2059,6 +2063,24 @@ export function createAskTools(reads: ToolReads) {
   }
   return {
     run,
+    /**
+     * The word of a question that names no one metric, with the metrics the person may see that
+     * it may mean, by id and name (A5, FR-719.2); null when it names one, or none.
+     */
+    async vague(
+      question: string,
+    ): Promise<{ word: string; metrics: { id: string; name: string }[] } | null> {
+      const v = await viewNow()
+      const found = vagueMetricWord(question, v.bundle.terms, today, {
+        titles: v.bundle.items.map((i) => i.title),
+        domains: v.areas.map((a) => a.name),
+        people: v.people,
+      })
+      const metrics = (found?.metrics ?? []).filter((m) => isShown(v, m.key))
+      return found && metrics.length > 1
+        ? { word: found.word, metrics: metrics.map((m) => ({ id: nounId(m.key), name: m.name })) }
+        : null
+    },
     /** The tools in the AI SDK's shape: a description, the input schema and the read. */
     ai(): Record<AskToolName, Tool> {
       return Object.fromEntries(
