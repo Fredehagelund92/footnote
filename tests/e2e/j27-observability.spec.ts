@@ -363,6 +363,33 @@ test('Quality: no saved questions yet, a failed check, and offline', async ({ pa
   )
 })
 
+test("Quality loads like the other pages: its skeleton while the status is read, then Couldn't load and Retry", async ({
+  page,
+}) => {
+  test.skip(mode === 'mock', 'Observability keeps ?state for its own data on the mock')
+  // The check's status read: held until it is let go, then refused until it is not.
+  let release = () => {}
+  const held = new Promise<void>((resolve) => (release = resolve))
+  let refused = true
+  await page.route('**/api/v1/saved-questions/status*', async (route) => {
+    await held
+    if (refused) await route.fulfill({ status: 500, json: { message: 'Down for a test' } })
+    else await route.continue()
+  })
+  await go(page, '/observability/quality')
+  const main = page.getByRole('main')
+  const skeleton = main.getByRole('status', { name: 'Loading' })
+  await expect(skeleton).toBeVisible()
+  await expect(skeleton.getByRole('heading', { name: 'Quality' })).toBeVisible()
+  await expect(main.getByRole('button', { name: 'Run now' })).toHaveCount(0)
+  release()
+  const alert = main.getByRole('alert')
+  await expect(alert).toContainText("Couldn't load the saved questions.", { timeout: 20_000 })
+  refused = false
+  await alert.getByRole('button', { name: 'Retry' }).click()
+  await expect(main.getByRole('button', { name: 'Run now' })).toBeVisible()
+})
+
 test('Saved questions are saved from Ask, counted everywhere from one list, and checked in the review', async ({
   page,
 }) => {

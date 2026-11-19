@@ -39,6 +39,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Frame, FrameSection } from '@/components/footnote/frame'
+import { allLoaded, Loadable } from '@/components/footnote/load-state'
+import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DifferingWords } from '@/components/footnote/differing-words'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { LineChart } from '@/components/obs/charts'
@@ -81,9 +83,21 @@ const GROUPS: { result: SavedResult; title: string; icon: typeof CheckIcon }[] =
 ]
 
 export function QualityPage() {
-  const check = useQuery(savedCheckQuery()).data
-  const page = useObsPageQuery('quality').data
-  return <ObsPage section="quality">{check && page && <Quality first={check} />}</ObsPage>
+  const check = useQuery(savedCheckQuery())
+  const page = useObsPageQuery('quality')
+  // Like every other page: its skeleton while the check's status and the page load, then
+  // "Couldn't load" with Retry when one fails.
+  return (
+    <ObsPage section="quality">
+      <Loadable
+        query={allLoaded(check, page)}
+        what="the saved questions"
+        skeleton={<ObsSkeleton section="quality" kpis={4} body="split" />}
+      >
+        {check.data && <Quality first={check.data} />}
+      </Loadable>
+    </ObsPage>
+  )
 }
 
 function Quality({ first }: { first: SavedCheck }) {
