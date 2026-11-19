@@ -209,10 +209,10 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm test
-      # As it is published, under a path and with a version, so a link that ignores either fails.
-      - name: Built as published, under the Pages path, as /docs/next/
+      # Under a path and with a version, so a link that ignores either fails.
+      - name: Built under a path, as /docs/next/
         env:
-          SITE_URL: https://fredehagelund92.github.io/footnote
+          SITE_URL: https://example.com/footnote
           DOCS_VERSION: next
         run: npm run build
       # At the root of a host, as the smoke test and a team without internet access serve it.

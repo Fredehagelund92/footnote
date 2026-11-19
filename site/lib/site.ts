@@ -1,4 +1,5 @@
-import { kindOf, repository } from './links.ts'
+import { kindOf } from './links.ts'
+import { repository } from './repository.ts'
 import { publishedPages, slugOf } from './pages.ts'
 import type { Settings } from './settings.ts'
 

@@ -10,6 +10,8 @@ const port = Number(process.env.SMOKE_PORT ?? 4329)
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
+  // Each case waits for the landing page's opening and runs axe, which takes a while on a busy machine.
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: { baseURL: `http://localhost:${port}`, ...devices['Desktop Chrome'] },

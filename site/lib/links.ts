@@ -6,6 +6,7 @@ import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { gfm } from 'micromark-extension-gfm'
 import { visit } from 'unist-util-visit'
 import { repoRoot, type SitePage } from './pages.ts'
+import { repository } from './repository.ts'
 
 /*
   Where a link written in a page goes on the site. The Markdown keeps the relative links that work
@@ -13,8 +14,6 @@ import { repoRoot, type SitePage } from './pages.ts'
   file of the repository opens on GitHub at the build's reference, so a release's pages open the
   files of that release. A link to a file that does not exist stops the build.
 */
-
-export const repository = 'https://github.com/Fredehagelund92/footnote'
 
 export type LinkContext = {
   /** Each page's address by its path in the repository. */

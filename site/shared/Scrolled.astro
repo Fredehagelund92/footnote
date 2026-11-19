@@ -1,0 +1,10 @@
+---
+/* Marks the page as scrolled, for the header (shared/chrome.css and the docs' theme.css). */
+---
+
+<script>
+  const root = document.documentElement
+  const mark = () => root.toggleAttribute('data-scrolled', scrollY > 0)
+  mark()
+  addEventListener('scroll', mark, { passive: true })
+</script>

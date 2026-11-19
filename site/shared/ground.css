@@ -1,0 +1,51 @@
+/* The ground: a dot field on the paper around the page, as Altertable draws it (28 px pitch,
+   ink at 10 percent, fixed to the window, fading in over the top and bottom 140 px). On the
+   landing page it shows around the sheet; in the docs, on the sidebar's paper. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--dot) 1.1px, transparent 1.4px);
+  background-size: 28px 28px;
+  background-position: 14px 14px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 140px,
+    #000 calc(100% - 140px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 140px,
+    #000 calc(100% - 140px),
+    transparent 100%
+  );
+}
+
+/* The ground's moving part: a canvas over the dot field. It draws only while a mark is landing. */
+.ground {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 140px,
+    #000 calc(100% - 140px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 140px,
+    #000 calc(100% - 140px),
+    transparent 100%
+  );
+}

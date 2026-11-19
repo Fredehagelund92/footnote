@@ -25,8 +25,9 @@
   --sl-color-text-accent: var(--mark);
   --sl-color-text-invert: var(--sheet);
   --sl-color-bg: var(--sheet);
-  --sl-color-bg-nav: color-mix(in srgb, var(--sheet) 88%, transparent);
-  --sl-color-bg-sidebar: var(--paper);
+  --sl-color-bg-nav: var(--sheet);
+  /* The sidebar is the paper itself, so the ground's dots show on it (shared/ground.css). */
+  --sl-color-bg-sidebar: transparent;
   --sl-color-bg-inline-code: var(--paper);
   --sl-color-bg-accent: var(--mark);
   --sl-color-hairline-light: var(--rule);
@@ -76,10 +77,36 @@ body {
   outline-offset: 2px;
 }
 
-/* The header: frosted like the landing page's, with its logo, links, theme button and Install. */
+/* The page is a sheet on the paper: the paper shows under the header and beside the sidebar. */
+body {
+  background: var(--paper);
+}
+
+.main-frame {
+  background: var(--sheet);
+  background-clip: content-box;
+}
+
+/* The header, as the landing page's: clear over the top of the page, then the sheet's colour and
+   a hairline once the page scrolls or the menu opens (shared/Scrolled.astro). */
 .page > .header {
-  backdrop-filter: saturate(1.4) blur(12px);
-  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom-color: transparent;
+  background-color: transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+:root[data-scrolled] .page > .header,
+:root:has(#starlight__sidebar:popover-open) .page > .header {
+  border-bottom-color: var(--rule);
+  background-color: var(--sheet);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page > .header {
+    transition: none;
+  }
 }
 
 .footnote-title {
@@ -256,7 +283,16 @@ footnote-version .caret {
   }
 }
 
-/* "On this page": the notes column of a page, in the notes' serif. */
+/* "On this page" starts under the header, so its rule never shows through the clear header. */
+@media (min-width: 72rem) {
+  .right-sidebar {
+    top: var(--sl-nav-height);
+    height: calc(100vh - var(--sl-nav-height));
+    padding-top: 0;
+  }
+}
+
+/* "On this page": the notes column of a page. */
 starlight-toc a,
 mobile-starlight-toc a {
   color: var(--ink-3);
