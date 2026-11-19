@@ -59,15 +59,18 @@ function mount(getRaised: FootnoteApi['getRaised'], domain?: DomainId) {
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  act(() =>
-    root!.render(
-      React.createElement(
-        QueryClientProvider,
-        { client },
-        React.createElement(RaisedLately, { first, empty: false, domain }),
+  const render = (d?: DomainId) =>
+    act(() =>
+      root!.render(
+        React.createElement(
+          QueryClientProvider,
+          { client },
+          React.createElement(RaisedLately, { key: d ?? 'all', first, empty: false, domain: d }),
+        ),
       ),
-    ),
-  )
+    )
+  render(domain)
+  return render
 }
 const flush = () => act(() => new Promise<void>((r) => setTimeout(r, 0)))
 const text = () => host!.textContent ?? ''
@@ -142,5 +145,32 @@ describe('Raised lately', () => {
     click(radio(/Not found/))
     await flush()
     expect(asked.at(-1)).toEqual({ rule: 'gap', domain: 'sales' })
+  })
+
+  it('with a domain chosen and its read held shows loading, not empty or unfiltered counts', async () => {
+    mount(() => new Promise<RaisedPage>(() => {}), 'sales')
+    expect(text()).toContain('Loading the raises')
+    expect(text()).not.toContain('Nothing raised')
+    expect(host!.querySelector('[role=radiogroup]')).toBeNull()
+    expect(text()).not.toContain('12')
+  })
+
+  it('a domain change after a rule was chosen goes back to All with the new domain rows', async () => {
+    const asked: Parameters<FootnoteApi['getRaised']>[0][] = []
+    const render = mount((input) => {
+      asked.push(input)
+      return Promise.resolve(
+        input.domain === 'marketing' ? page(['m1', 'm2'], 4, 1, null) : page(['s1'], 6, 5, null),
+      )
+    }, 'sales')
+    await flush()
+    click(radio(/Not found/))
+    await flush()
+    render('marketing')
+    await flush()
+    expect(asked.at(-1)).toEqual({ domain: 'marketing' })
+    expect(host!.querySelectorAll('li a')).toHaveLength(2)
+    expect(text()).not.toContain('Nothing raised')
+    expect(radio(/^All/).getAttribute('aria-checked')).toBe('true')
   })
 })

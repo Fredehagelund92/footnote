@@ -109,7 +109,12 @@ function Alerts() {
         )}
       </section>
 
-      <RaisedLately first={raised} empty={view.state === 'empty'} domain={choice.asked} />
+      <RaisedLately
+        key={choice.asked ?? 'all'}
+        first={raised}
+        empty={view.state === 'empty'}
+        domain={choice.asked}
+      />
       <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
         <UsersIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         Owners see and mute alerts for their own domains. Admins turn rules off and change the
@@ -168,7 +173,8 @@ export function RaisedLately({
   const domains = useDomains()
   const [rule, setRule] = React.useState<RuleId | null>(null)
   const pages = useRaisedPages(rule, domain, first)
-  const counts = pages.data?.pages[0] ?? first
+  const loading = !empty && !pages.data && !pages.isError
+  const counts = pages.data?.pages[0] ?? (domain ? { ...first, total: 0, byRule: [] } : first)
   const raised = empty ? [] : (pages.data?.pages.flatMap((p) => p.raised) ?? [])
   const of = rule ? (counts.byRule.find((c) => c.rule === rule)?.count ?? 0) : counts.total
   const stale = pages.isPlaceholderData
@@ -200,6 +206,10 @@ export function RaisedLately({
       )}
       {pages.isError && !pages.data ? (
         <LoadError what="the raises" onRetry={() => void pages.refetch()} className="border-t" />
+      ) : loading ? (
+        <p role="status" className="border-t px-4 py-6 text-sm text-muted-foreground md:px-5">
+          Loading the raises
+        </p>
       ) : raised.length ? (
         <ul aria-label="Raised lately" aria-busy={stale} className="border-t">
           {raised.map((r) => (
