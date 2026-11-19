@@ -6,7 +6,7 @@ import {
   type AskTrace,
   type MadeRead,
 } from '../../../src/server/modules/answer/index.ts'
-import { createModelPort } from '../../../src/server/modules/models/index.ts'
+import { createModelPort, type ModelRef } from '../../../src/server/modules/models/index.ts'
 import { evalCases } from '../ask-eval/cases.ts'
 import { itemText, type ReadableItem, type TopicCount } from '../ask-eval/graders.ts'
 import { heldOf } from '../ask-eval/held.ts'
@@ -29,6 +29,8 @@ import { askWorld } from './ask-world.ts'
   they only shrink. With ASK_EVAL_REAL=1 (`npm run eval:ask-harness -- --real`) it measures the
   judge against its labels, asks the real model three times a case, has the judge read every reply
   a model wrote, stops before ASK_EVAL_MAX_MICROS is spent, and writes the report to ASK_EVAL_OUT;
+  ASK_EVAL_MODEL and ASK_EVAL_JUDGE name the answering model and the judge (`--model`, `--judge`),
+  each Claude Haiku 5.5 through the Vercel gateway unless named, as the recordings are;
   with ASK_EVAL_RECORD=1 it keeps what the model said and the judge's verdicts the builds replay.
   The held-back cases are only ever counts.
 */
@@ -42,7 +44,11 @@ export type Answering = {
   heldPassingToday: number
 }
 
-const MODEL = { provider: 'vercel-gateway', model: 'anthropic/claude-haiku-5.5' }
+/** The recordings' model: Claude Haiku 5.5 through the Vercel gateway answers and judges. */
+const RECORDED: ModelRef = { provider: 'vercel-gateway', model: 'anthropic/claude-haiku-5.5' }
+/** A real run's answering model and judge, as `--model` and `--judge` name them. */
+const modelFrom = (json: string | undefined): ModelRef =>
+  json ? (JSON.parse(json) as ModelRef) : RECORDED
 
 /**
  * A real run's journal, one line as each try of a case is graded, with what the model said in it
@@ -61,6 +67,8 @@ export function askEvalSuite(side: Answering) {
   const ceiling = Number(process.env.ASK_EVAL_MAX_MICROS ?? 0)
   const only = process.env.ASK_EVAL_CASES?.split(',').filter(Boolean)
   const loop = side.answerer === 'loop'
+  const MODEL = modelFrom(process.env.ASK_EVAL_MODEL)
+  const JUDGE = modelFrom(process.env.ASK_EVAL_JUDGE)
 
   const plansFile = new URL(
     loop ? './ask-eval-loop-steps.json' : './ask-eval-plans.json',
@@ -200,7 +208,7 @@ export function askEvalSuite(side: Answering) {
     return found
   }
 
-  const judgeChoice = models?.choose('judge', MODEL)
+  const judgeChoice = models?.choose('judge', JUDGE)
   let judgeMicros = 0
   const journaled = new Set<string>(Object.keys(written))
   /** Everything this run and the one it resumes have spent: the service's meter and the judge's. */
@@ -305,11 +313,24 @@ export function askEvalSuite(side: Answering) {
     let labelled: Record<string, Verdicts | null> = {}
 
     let creditsAtStart: number | null = null
+    /**
+     * What the providers' own counters say their keys used, in micros, for the providers of the
+     * answering model and the judge that keep one; null when neither does.
+     */
+    const creditsUsed = async () => {
+      const counts = await Promise.all(
+        [...new Set([MODEL.provider, JUDGE.provider])].map((p) =>
+          models!.creditsUsed(p).catch(() => null),
+        ),
+      )
+      const kept = counts.filter((n) => n !== null)
+      return kept.length ? kept.reduce((a, b) => a + b, 0) : null
+    }
 
     it('measures the judge against its labels', async () => {
       await spentByService()
-      // The gateway's own counter of what the key used: another use of the key moves it too.
-      creditsAtStart = await models!.creditsUsed(MODEL.provider).catch(() => null)
+      // The providers' own counters of what their keys used: another use of a key moves it too.
+      creditsAtStart = await creditsUsed()
       write({ type: 'start', creditsMicros: creditsAtStart })
       // A run that goes on with another keeps its tries in this journal too, so this one is whole.
       resumedRuns.forEach((run, i) =>
@@ -341,8 +362,8 @@ export function askEvalSuite(side: Answering) {
           verdictsFile,
           `${JSON.stringify(
             {
-              digest: judgeDigest(MODEL.model, judgeSet),
-              model: MODEL.model,
+              digest: judgeDigest(JUDGE.model, judgeSet),
+              model: JUDGE.model,
               verdicts: Object.fromEntries(verdicts),
             },
             null,
@@ -362,11 +383,12 @@ export function askEvalSuite(side: Answering) {
         prior: resumedRuns,
       })
       const spent = await spentSoFar()
-      const credits = await models!.creditsUsed(MODEL.provider).catch(() => null)
+      const credits = await creditsUsed()
       const text = [
+        `Answered by ${MODEL.provider}/${MODEL.model}, judged by ${JUDGE.provider}/${JUDGE.model}.`,
         measured,
         printReport(outcome.report),
-        `Spent ${(spent / 1e6).toFixed(4)} USD by the meters (this process's judge ${(judgeMicros / 1e6).toFixed(4)}${spentBefore ? `, the run it resumes ${(spentBefore / 1e6).toFixed(4)}` : ''}); the gateway's counter moved ${credits !== null && creditsAtStart !== null ? `${((credits - creditsAtStart) / 1e6).toFixed(4)} USD in this process` : 'by an unknown amount'}. ${outcome.judgeErrors} judge errors${outcome.incomplete ? '. Stopped at the ceiling: the run is incomplete' : ''}.`,
+        `Spent ${(spent / 1e6).toFixed(4)} USD by the meters (this process's judge ${(judgeMicros / 1e6).toFixed(4)}${spentBefore ? `, the run it resumes ${(spentBefore / 1e6).toFixed(4)}` : ''}); the providers' counters moved ${credits !== null && creditsAtStart !== null ? `${((credits - creditsAtStart) / 1e6).toFixed(4)} USD in this process` : 'by an unknown amount'}. ${outcome.judgeErrors} judge errors${outcome.incomplete ? '. Stopped at the ceiling: the run is incomplete' : ''}.`,
       ].join('\n\n')
       console.log(text)
       writeFileSync(

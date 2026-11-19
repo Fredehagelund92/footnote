@@ -4,11 +4,15 @@ Which model each role uses, and how test questions and the golden set are run an
 
 ## Model providers
 
+[Choose a model provider](model-providers.md) is the page for whoever runs Footnote: the ways to
+reach a model, the one-line starts, the models tested so far and who receives what. This section
+is how the code does it.
+
 Every role that calls a model (`eval_answer`, `judge`, `assistant`, which writes Ask's words, and
-`test_authoring`, which no
-feature uses yet) names a provider and a model in its setting, `models.<role>`, for example
-`{"provider": "vercel-gateway", "model": "anthropic/claude-sonnet-5.5"}`. The provider registry
-(`src/server/modules/models/providers.ts`) lists the providers this service may use:
+`test_authoring`, which no feature uses yet) names a provider and a model in its setting,
+`models.<role>`, for example `{"provider": "vercel-gateway", "model": "anthropic/claude-sonnet-5.5"}`.
+The provider registry (`src/server/modules/models/providers.ts`) lists the providers this service
+may use:
 
 | Provider         | Adapter             | Key                         | Base URL setting             | Requests go to              |
 | ---------------- | ------------------- | --------------------------- | ---------------------------- | --------------------------- |
@@ -22,45 +26,47 @@ tokens, such as `{"provider": "vercel-gateway", "model": "google/gemini-3-flash"
 0.5, "output": 3}}`; `cacheRead` and `cacheWrite` are optional, and 0 is allowed for a model that
 costs nothing. Its vendor is the `vendor/` prefix of its name, else the provider's name, and its
 family is the whole name. Prices in the setting of a listed model replace its built-in ones. The
-service logs every price a setting gives at start-up, and Settings, Advanced shows it. The gateway serves Anthropic's Claude models
-(including `anthropic/claude-haiku-5.5`, the cheapest, at USD 0.10 in and 0.50 out) and
-one Google model, `google/gemini-2.5-flash-lite` (vendor `google`, line `gemini-flash-lite`), for
-demo data. Keys live only in `.env.local` (or the environment);
-a setting names a provider, never a key, and keys are never logged or returned. With `MODELS=live`
-the service checks every role's setting at start-up and on every change (`PUT /settings/{key}`), and
-refuses an unknown provider, an unlisted model without prices or a missing key with a message that names the
-setting. To answer and judge through the gateway, set its key and change `models.eval_answer`,
-`models.judge` (or keep `different_family`) and `models.assistant` to `vercel-gateway`.
+service logs every price a setting gives at start-up, and Settings, Advanced shows it. Keys live
+only in `.env.local` (or the environment); a setting names a provider, never a key, and keys are
+never logged or returned. With `MODELS=live` the service checks every role's setting at start-up
+and on every change (`PUT /settings/{key}`), and refuses an unknown provider, an unlisted model
+without prices or a missing key with a message that names the setting.
 
-`anthropic` is Anthropic's own API, or a gateway that speaks its Messages API at
-`ANTHROPIC_BASE_URL`, such as OpenRouter (`https://openrouter.ai/api/v1`), LiteLLM, Ollama
-(`http://localhost:11434/v1`) or Microsoft Foundry. Such a gateway may take
-`ANTHROPIC_AUTH_TOKEN`, sent as a bearer token, in place of `ANTHROPIC_API_KEY`; set only one. A
-Claude model keeps its prompt cache this way; a model name the gateway uses that this entry does
-not list needs its prices in the setting.
+`anthropic` takes `ANTHROPIC_AUTH_TOKEN`, sent as a bearer token, in place of `ANTHROPIC_API_KEY`
+for a gateway that speaks the Messages API at `ANTHROPIC_BASE_URL`; setting both is refused.
+`openai` lists no model and needs no key for a base URL on this computer or a private network.
+Who receives the requests (`recipients`, for the notice before a real run) is worked out from a
+base URL that is not the operator's own: "this computer" for a loopback address, "your network
+(10.0.0.12)" for a private one, and "the host at openrouter.ai" otherwise, with the model's vendor
+when its name gives one.
 
-`openai` is OpenAI's own API, or any server that speaks its Chat Completions API at
-`OPENAI_BASE_URL`: a hosted one such as OpenRouter or Groq, a company gateway such as LiteLLM, or a
-model server such as Ollama or vLLM. It lists no model, so each setting gives its prices, and a
-server on this computer or a private network needs no key. Who receives the requests is worked out
-from a base URL that is not the operator's own, for `ANTHROPIC_BASE_URL` too: "this computer" for a
-loopback address, "your network (10.0.0.12)" for a private one, and "the host at openrouter.ai"
-otherwise, with the model's vendor when its name gives one, such as `anthropic/claude-sonnet-5.5`.
+**The model check** (`src/server/modules/models/capability.ts`). With `MODELS=live`, the service
+checks each role's model once it listens, with three tiny calls metered like any other: a forced
+call of a tool with a strict two-field input, a call with the tool named and `toolChoice: 'none'`,
+and an answer against a JSON schema. Each is `pass`, `fail`, or `unknown` when the provider failed,
+throttled or refused the key, or turned away a plain call too (a gateway's vendor pin no host of
+the model meets), which changes nothing and is checked again five minutes later.
 
-**Data leaves the company.** With `MODELS=live`, questions, test questions, item text and answers go
-to the provider's operator and the model's vendor (the table's last column): a Gemini model sends
-them to Vercel and Google. Use real company data
-only once the company has approved those providers; until then, only demo content.
+- A `models.assistant` model that fails the tool call answers Ask with its router, which needs only
+  words, as `FOOTNOTE_ASK_LOOP=off` does.
+- A test run whose `models.eval_answer` model fails it is refused before any answer, and says why.
+- A judge that fails the JSON schema is asked for JSON text at once.
+
+A change to a `models.*` setting checks again. `GET /models/checks` and Settings, Advanced show
+what each check found. `npm run models:check` makes the checks now and prints them, and
+`-- --model <provider>:<model> [--prices <input>,<output>]` checks a model before any setting
+names it. It exits 1 when a role's model cannot do what the role needs, and 2 when a check could
+not tell.
 
 Every evaluation run records the provider, model, vendor and family of the answering model and the
-judge, and the spend ledger keeps each provider's
-spend, priced with its own table. The caps (FR-409) count every provider. A `different_family`
-judge stays with the answering model's provider and vendor (a Gemini answer is judged by the same
-Gemini model, since the gateway lists no other Google line), and a response that names another
-vendor's model, as a gateway fallback would, is refused. Another vendor or a second gateway is one
-more registry entry; a new protocol also needs one adapter in `adapters/` (the anthropic and
-openai-compatible adapters are the examples, and `tests/server/model-providers.test.ts` adds a
-provider of each kind).
+judge, and the spend ledger keeps each provider's spend, priced with its own table. The caps
+(FR-409) count every provider. A `different_family` judge stays with the answering model's
+provider and vendor (a Gemini answer is judged by the same Gemini model, since the gateway lists no
+other Google line, and a model of `openai`, which lists none, judges itself), and a response that
+names another vendor's model, as a gateway fallback would, is refused. Another vendor or a second
+gateway is one more registry entry; a new protocol also needs one adapter in `adapters/` (the
+anthropic and openai-compatible adapters are the examples, and
+`tests/server/model-providers.test.ts` adds a provider of each kind).
 
 ## Evaluations
 
@@ -315,14 +321,21 @@ service runs it.
 | Mocked | Every build, `tests/web/integration/ask-eval.test.ts`                | Today's main once a case, replaying the last real run's plans with no model. Its failures are listed by promise and by what a case must say, so the lists only shrink                              |
 | Mocked | Every build, `tests/web/integration/ask-eval-loop.test.ts`           | Ask's loop once a case, taking the last real run's steps again with no model (`ask-eval-loop-steps.json`); a step it did not record is the scripted reader's. Its failures are listed the same way |
 | Units  | Every build, `tests/web/ask-eval.test.ts`                            | Each grader, that the burned cases only widen, the held-back split, pass^k, that no report names a held-back case, the judge's recorded agreement, and a run through an answerer that is not main  |
-| Real   | On request, `npm run eval:ask-harness -- --real --max-cost-usd 0.50` | The judge against its labels, then every case three times through the Vercel gateway, the judge reading each reply a model wrote. No case starts once the ceiling is spent                         |
+| Real   | On request, `npm run eval:ask-harness -- --real --max-cost-usd 0.50` | The judge against its labels, then every case three times on the answering model, the judge reading each reply a model wrote. No case starts once the ceiling is spent                             |
 
 `npm run eval:ask-harness` with no flags runs the mocked form of today's main and prints its
-report; `--answerer loop` runs Ask's loop instead, in every form. `--real` needs
-`VERCEL_AI_GATEWAY_API_KEY` in the environment and runs in a database of its own, copied from the
-test template, so its spend never reaches another ledger. `--record` keeps the plans
+report; `--answerer loop` runs Ask's loop instead, in every form. `--real` runs in a database of
+its own, copied from the test template, so its spend never reaches another ledger. It answers and
+judges on Claude Haiku 5.5 through the Vercel gateway, unless `--model <provider>:<model>` names
+the answering model and `--judge <provider>:<model>` the judge, each on any provider of the
+registry, as `FOOTNOTE_MODEL` names one ([Choose a model provider](model-providers.md)); a model its
+provider does not list takes `--prices` (or `--judge-prices`) `<input>,<output>`. Each provider's
+key comes from the environment, and a missing one is refused by the flag that needs it. One
+`--real --answerer loop --tries 1 --no-judge-set` run is a row of the providers page's tested
+models, for USD 0.15 to 0.5. `--record` keeps the plans
 (`tests/web/integration/ask-eval-plans.json`), or the loop's steps, each by what the model was
-sent, and the judge's verdicts the builds replay; `--no-judge-set` leaves out measuring the judge
+sent, and the judge's verdicts the builds replay, so it takes only the default models;
+`--no-judge-set` leaves out measuring the judge
 against its labels, `--tries` and `--cases` narrow a run, and `--out` names the report file,
 which holds every open case's turns and the held-back ones only as counts. The loop's evidence for
 the judge and the number grader is every value its reads returned, the chat's earlier reads made
@@ -336,10 +349,11 @@ at once as the pool has connections wait on each other for good. The loop does n
 gives no reply to is sent once more; a second miss ends that try as unanswered, which counts as
 missing what the case must say and is reported apart, never as a promise broken. The run journals
 each graded try next to its report (`<out>.jsonl`) with what has been spent so far, by the
-service's meter and the judge's, and reads the gateway's own counter at its start and end, so a run
-that dies keeps what it paid for: `--resume <journal>` goes on with it, asks only the tries it had
-not, and counts its spend against the same ceiling. `--replay <journal>` grades a real run's
-replies and judge findings again on the demo week with no model, after a grader changes.
+service's meter and the judge's, and reads its providers' own counters at its start and end where
+they keep one, as the Vercel gateway does, so a run that dies keeps what it paid for:
+`--resume <journal>` goes on with it, asks only the tries it had not, and counts its spend against
+the same ceiling. `--replay <journal>` grades a real run's replies and judge findings again on the
+demo week with no model, after a grader changes.
 
 ### Ask's tools
 

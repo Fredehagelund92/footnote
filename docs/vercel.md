@@ -2,7 +2,7 @@
 title: Run the demo on Vercel and Neon
 line: The web app as static files, the service as one function, and PostgreSQL 18 on Neon.
 group: Run the service
-order: 8
+order: 9
 reviewed: 2026-11-05
 ---
 

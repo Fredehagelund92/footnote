@@ -6,7 +6,7 @@ import { OpenAPIGenerator } from '@orpc/openapi'
 import { OpenAPIHandler } from '@orpc/openapi/fastify'
 import { implement, ValidationError } from '@orpc/server'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { API_PREFIX, contract } from '../../contract/index.ts'
 import { missing, notAllowed, refusalOfCode, refusals } from '../../contract/refusals.ts'
 import { forRequest, type Database, type Queryable } from '../db/database.ts'
@@ -52,7 +52,16 @@ import { operationsView, type JobRunner } from '../modules/jobs/index.ts'
 import { ITEM_FILE_MAX_LENGTH } from '../../domain/item-file.ts'
 import { TERM_BATCH_BODY_MAX } from '../../contract/review.ts'
 import { itemJsonSchema } from '../../domain/item-version.ts'
-import { checkModelSetting, readSpendLimits, type ModelPort } from '../modules/models/index.ts'
+import {
+  answersWithTools,
+  checkModelSetting,
+  checkWords,
+  readModelSettings,
+  readSpendLimits,
+  roleModels,
+  type ModelChecks,
+  type ModelPort,
+} from '../modules/models/index.ts'
 import { labelOperation } from '../observability/metrics.ts'
 import { createLimiter } from './rate-limit.ts'
 import {
@@ -165,6 +174,8 @@ export interface ApiServices {
   askTrace?: AskTrace
   /** Ask reads with one model and its read tools (FR-718 to FR-720) in place of its router. */
   askLoop?: boolean
+  /** The model check, with real models: Ask answers with its router while its model fails the tool call. */
+  modelChecks?: ModelChecks
   /** The MCP server's public address (`MCP_RESOURCE_URL`); null when this app serves no MCP. */
   mcpAddress?: string | null
   /** The built-in login server for agents; without it there is nothing to approve or list. */
@@ -299,6 +310,7 @@ export function createRouter({
   readPage,
   askTrace,
   askLoop = false,
+  modelChecks,
   profileLabel = null,
 }: ApiServices) {
   const limitGapReports = createLimiter(() => clock.now())
@@ -474,6 +486,28 @@ export function createRouter({
       },
       input,
     )
+  }
+  /**
+   * Whether Ask's model may read with its tools: yes unless its model check failed the tool call.
+   * A model not checked yet, or whose check could not tell and is due again, is checked meanwhile.
+   */
+  const readsWithTools = async (tx: Queryable, log: FastifyBaseLogger) => {
+    if (!modelChecks || models.mode !== 'live') return true
+    const choice = await readWordsModel(tx, models)
+    const check = modelChecks.known(choice.id)
+    void modelChecks.of(choice, 'assistant')
+    if (answersWithTools(check)) return true
+    log.info({ model: choice.id }, 'ask answers with its router: its model failed the tool call')
+    return false
+  }
+  /** Checks each role's model again after a change of its setting, without waiting for it. */
+  const checkAfterChange = (context: { tx: Queryable; hooks: TransactionHooks }, key: string) => {
+    if (!modelChecks || models.mode !== 'live' || !key.startsWith('models.')) return
+    context.hooks.onCommit(async () => {
+      const settings = await readModelSettings(database)
+      for (const { role, choice } of roleModels(models, settings))
+        void modelChecks.of(choice, role).catch(() => {})
+    })
   }
   return authorized.router({
     proposals: {
@@ -1207,14 +1241,31 @@ export function createRouter({
     },
     settings: {
       list: authorized.settings.list.handler(({ context }) => listSettings(context.tx)),
-      set: authorized.settings.set.handler(({ context, input }) =>
-        setSetting(
+      set: authorized.settings.set.handler(async ({ context, input }) => {
+        const saved = await setSetting(
           context.tx,
           input,
           () => knownTools(context.tx),
           (key, value) => checkModelSetting(models, key, value),
-        ),
-      ),
+        )
+        checkAfterChange(context, input.key)
+        return saved
+      }),
+    },
+    models: {
+      // What each role's model check found, as this service keeps it; nothing with the mock.
+      checks: authorized.models.checks.handler(async ({ context }) => {
+        if (!modelChecks || models.mode !== 'live') return []
+        return roleModels(models, await readModelSettings(context.tx)).map(({ role, choice }) => {
+          const check = modelChecks.known(choice.id)
+          return {
+            role,
+            model: choice.id,
+            check: check ?? null,
+            words: check ? checkWords(role, check) : null,
+          }
+        })
+      }),
     },
     tools: {
       set: authorized.tools.set.handler(({ context, input }) => setTool(context.tx, input)),
@@ -1355,7 +1406,8 @@ export function createRouter({
       lookup: authorized.ask.lookup.handler(async ({ context, input, signal }) => {
         // The setup checklist's Ask step (FR-816): only that Ask was used, never what or by whom.
         await context.cards.askedOnce()
-        if (askLoop) return loopTurn(context, input, signal)
+        if (askLoop && (await readsWithTools(context.tx, context.request.log)))
+          return loopTurn(context, input, signal)
         // With a real model, the assistant's model writes the words after the answer; like the
         // assistant's turn, that call outlives the request's transaction and opens its own.
         const plan = await planWords(context.tx, models, context.session!.person.id)

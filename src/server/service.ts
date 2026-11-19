@@ -32,11 +32,17 @@ import { savedCheckJob } from './modules/saved-questions/index.ts'
 import { createJobRunner, maintenanceJobs, type JobRunner } from './modules/jobs/index.ts'
 import {
   checkModelSettings,
+  checkWords,
+  createModelChecks,
   createModelPort,
   fillModelSettings,
   ModelConfigError,
   readModelSettings,
+  roleFails,
+  roleModels,
   settingPrices,
+  type ModelChecks,
+  type ModelPort,
 } from './modules/models/index.ts'
 import { createRelay, outboxRelayJob, type Relay } from './modules/notifications/index.ts'
 import { createLoginServer, loadKeyRing } from './modules/oauth/index.ts'
@@ -55,6 +61,11 @@ export interface Service {
   database: Database
   jobs: JobRunner
   relay: Relay
+  /**
+   * The model check of each role, with real models (models/capability.ts): logged, and kept for
+   * Ask, test runs and Settings. The long-running process makes it once it listens.
+   */
+  checkModels(): Promise<void>
 }
 
 export interface ServiceOptions {
@@ -232,6 +243,8 @@ async function compose(
     registry: sources,
     ...(figureOverrides ? { figureOverrides } : {}),
   })
+  // With real models, each model is checked once for what its roles need (models:check).
+  const checks = models.mode === 'live' ? createModelChecks({ database }) : undefined
   const jobs = createJobRunner({
     connectionString: config.databaseUrl,
     database,
@@ -245,7 +258,7 @@ async function compose(
       snapshotJob({ clock }),
       connectorSyncJob(sources, { clock }),
       savedCheckJob({ clock }),
-      ...evalJobs({ port: models, clock }),
+      ...evalJobs({ port: models, clock, ...(checks ? { checks } : {}) }),
     ],
   })
   const relay = createRelay({ connectionString: config.databaseUrl, database, logger })
@@ -264,11 +277,41 @@ async function compose(
     nodeEnv: config.nodeEnv,
     metricsToken: config.metricsToken,
     askLoop: config.askLoop,
+    ...(checks ? { modelChecks: checks } : {}),
     profileLabel: config.profileLabel,
     // The end-to-end tests serve their web pages on this machine; elsewhere, the public web only.
     ...(config.webReadLoopback ? { readPage: createPageReader({ loopback: true }) } : {}),
     login,
   })
   app.addHook('preClose', () => relay.stop())
-  return { app, database, jobs, relay }
+  return {
+    app,
+    database,
+    jobs,
+    relay,
+    checkModels: () => (checks ? checkModels(models, checks, database, logger) : Promise.resolve()),
+  }
+}
+
+/**
+ * Checks each role's model and logs what it means: a warning where a role cannot do what it
+ * needs. Never throws: a model that fails changes what Ask and test runs do, not whether the
+ * service runs.
+ */
+async function checkModels(
+  port: ModelPort,
+  checks: ModelChecks,
+  database: Database,
+  logger: Logger,
+): Promise<void> {
+  try {
+    for (const { role, choice } of roleModels(port, await readModelSettings(database))) {
+      const check = await checks.of(choice, role)
+      const fields = { setting: `models.${role}`, ...check }
+      if (roleFails(role, check)) logger.warn(fields, `model check: ${checkWords(role, check)}`)
+      else logger.info(fields, `model check: ${checkWords(role, check)}`)
+    }
+  } catch (error) {
+    logger.warn({ err: error }, 'model check not made')
+  }
 }

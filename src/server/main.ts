@@ -59,6 +59,8 @@ async function main(): Promise<void> {
   // The runner keeps retrying while the database is down; HTTP and readiness answer meanwhile.
   void jobs.start()
   relay.start()
+  // Three tiny calls on each role's model with real models; what they find is logged.
+  void service.checkModels()
 }
 
 await main()

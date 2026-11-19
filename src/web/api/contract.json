@@ -2083,6 +2083,24 @@
       }
     }
   },
+  "models": {
+    "checks": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/models/checks",
+          "tags": [
+            "admin"
+          ],
+          "summary": "What the model check found for each role's model: tools, no tools when told, and a JSON schema"
+        }
+      }
+    }
+  },
   "tools": {
     "set": {
       "~orpc": {

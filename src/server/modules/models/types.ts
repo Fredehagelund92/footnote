@@ -116,4 +116,6 @@ export type ModelChoice = AdaptedModel & {
   prices: Prices
   /** Who receives what is sent to this model, in plain words, for the notice before a real run. */
   recipients: string
+  /** False when the model failed the JSON schema of the model check: ask for JSON text instead. */
+  jsonSchema?: false
 }

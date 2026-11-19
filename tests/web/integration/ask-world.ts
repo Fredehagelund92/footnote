@@ -2,7 +2,7 @@ import { afterAll, beforeAll } from 'vitest'
 import { createHttpApi } from '@/api/http'
 import type { FootnoteApi } from '@/api/client'
 import type { AskTools, AskTrace } from '../../../src/server/modules/answer/index.ts'
-import type { ModelPort } from '../../../src/server/modules/models/index.ts'
+import type { ModelChecks, ModelPort } from '../../../src/server/modules/models/index.ts'
 import { buildApp } from '../../../src/server/app.ts'
 import { systemClock } from '../../../src/server/clock.ts'
 import { createLogger } from '../../../src/server/observability/logger.ts'
@@ -16,7 +16,8 @@ import { devPeople, seedDemoWeek, TODAY } from '../http/demo-week.ts'
   a test asks as. `models` is the mock's scripted planner unless a run passes real ones, and
   `askTrace` hears or replaces what the planner, the words and the loop do. `askLoop` runs Ask's
   loop in place of its router (FOOTNOTE_ASK_LOOP). `withTools` runs Ask's tools as a
-  person, in a transaction of their own with the services a request of theirs has.
+  person, in a transaction of their own with the services a request of theirs has. `modelChecks`
+  is the model check the service keeps with real models.
 */
 
 export function askWorld(
@@ -25,6 +26,8 @@ export function askWorld(
     askTrace?: AskTrace
     assistant?: object
     askLoop?: boolean
+    /** The model check the service keeps, with real models. */
+    modelChecks?: ModelChecks
     /** Every pair the mock marks as disagreeing, not only Norway's (seedDemoWeek). */
     allConflicts?: boolean
   } = {},
@@ -41,6 +44,7 @@ export function askWorld(
     ...(options.models ? { models: options.models } : {}),
     ...(options.askTrace ? { askTrace: options.askTrace } : {}),
     ...(options.askLoop ? { askLoop: true } : {}),
+    ...(options.modelChecks ? { modelChecks: options.modelChecks } : {}),
   })
   let address = ''
   const sessions = new Map<string, Promise<FootnoteApi>>()

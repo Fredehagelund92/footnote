@@ -352,6 +352,7 @@ describe('the API over HTTP', () => {
       '/members/{personId}/remove',
       '/members/{personId}/restore',
       '/members/{personId}/role',
+      '/models/checks',
       '/observability/agents',
       '/observability/dimensions',
       '/observability/feedback',

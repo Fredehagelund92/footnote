@@ -180,6 +180,30 @@ export const settingSchema = z.object({
 })
 export type Setting = z.infer<typeof settingSchema>
 
+const checkOutcome = z.enum(['pass', 'fail', 'unknown'])
+/**
+ * What the model check found for a role's model (`npm run models:check`, and once at start-up):
+ * a forced tool call, a call told to use no tool, and an answer against a JSON schema. `check` is
+ * null until the service has made it; `words` say what it means for the role.
+ */
+export const modelCheckSchema = z.object({
+  role: z.enum(['assistant', 'eval_answer', 'judge']),
+  /** `provider/model`. */
+  model: z.string(),
+  check: z.nullable(
+    z.object({
+      model: z.string(),
+      at: z.string(),
+      tools: checkOutcome,
+      noTools: checkOutcome,
+      json: checkOutcome,
+      notes: z.array(z.string()),
+    }),
+  ),
+  words: z.nullable(z.string()),
+})
+export type ModelCheckRow = z.infer<typeof modelCheckSchema>
+
 /** What everyone in the workspace reads of it (FR-818): its name, empty until an admin names it. */
 export const workspaceSchema = z.object({ name: z.string() })
 export type WorkspaceInfo = z.infer<typeof workspaceSchema>

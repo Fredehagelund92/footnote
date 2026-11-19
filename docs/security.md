@@ -2,7 +2,7 @@
 title: Security, scanning and the restore drill
 line: What is scanned, how a backup is proved restorable, and where to report a security problem.
 group: Run the service
-order: 7
+order: 8
 reviewed: 2026-11-10
 ---
 

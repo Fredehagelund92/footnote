@@ -2,7 +2,7 @@
 title: Administer the service
 line: Change settings, read the history log, import items, export an edition and use the footnote command.
 group: Run the service
-order: 6
+order: 7
 reviewed: 2026-11-05
 ---
 

@@ -2156,22 +2156,34 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     advancedPage: async () => {
       const now = new Date()
       const words = await settingsWords()
-      const [settings, drafts, terms, history, changes, operations, editions, people, areas] =
-        await Promise.all([
-          read(() => client.settings.list()),
-          read(() => client.items.deleted()),
-          read(() => client.terms.deleted()),
-          read(() => client.audit.search({ limit: 20 })),
-          read(() => client.items.changes()),
-          // The job runner answers on its own: a page without it still shows the rest.
-          read(() => client.operations.overview()).catch(() => null),
-          read(() => client.editions.list({ limit: 3 })),
-          readPeople(),
-          read(() => client.areas.list()),
-        ])
+      const [
+        settings,
+        drafts,
+        terms,
+        history,
+        changes,
+        operations,
+        editions,
+        people,
+        areas,
+        checks,
+      ] = await Promise.all([
+        read(() => client.settings.list()),
+        read(() => client.items.deleted()),
+        read(() => client.terms.deleted()),
+        read(() => client.audit.search({ limit: 20 })),
+        read(() => client.items.changes()),
+        // The job runner answers on its own: a page without it still shows the rest.
+        read(() => client.operations.overview()).catch(() => null),
+        read(() => client.editions.list({ limit: 3 })),
+        readPeople(),
+        read(() => client.areas.list()),
+        // What the model check found is a note on each role's model; without it, none.
+        read(() => client.models.checks()).catch(() => []),
+      ])
       const domainName = (id: string) => areas.find((a) => a.id === id)?.name ?? id
       return {
-        settings: words.settingsOf(settings, (id) => people.name(id), now),
+        settings: words.settingsOf(settings, (id) => people.name(id), now, checks),
         deleted: words.deletedOf(drafts, terms, (id) => (id ? people.name(id) : 'Someone'), now),
         history: words.historyOf(history.entries, changes, now, {
           domain: domainName,
