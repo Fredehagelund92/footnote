@@ -9,7 +9,6 @@ import {
   CircleCheckIcon,
   InboxIcon,
   KeyRoundIcon,
-  LayersIcon,
   MessageSquareIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -19,15 +18,6 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Empty,
   EmptyContent,
@@ -44,7 +34,7 @@ import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DifferingWords } from '@/components/footnote/differing-words'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { LineChart } from '@/components/obs/charts'
-import { Kpi } from '@/components/obs/controls'
+import { DomainChip, Kpi } from '@/components/obs/controls'
 import { ResultIcon } from '@/components/obs/result'
 import { ReadingLine } from '@/components/footnote/reading'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -60,11 +50,11 @@ import {
 } from '@/model/saved-questions'
 import { useSavedQuestions } from '@/api/queries'
 import type { DomainId } from '@/model/items'
-import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
-import { href, setQuery, useRoute } from '@/lib/router'
+import { OBS_PURPOSE, useDomainChoice, useObsPageQuery, useObsView } from '@/lib/obs'
+import { href } from '@/lib/router'
 import { useDelayedBusy } from '@/lib/loading'
 import { useOnline } from '@/lib/send'
-import { useDomainList, useDomains, useMe } from '@/lib/workspace'
+import { useDomains, useMe } from '@/lib/workspace'
 import { ObsPage } from '@/pages/observability'
 
 // Quality: the one list of saved questions and how each answers after the last change. Needs a look
@@ -101,11 +91,8 @@ export function QualityPage() {
 }
 
 function Quality({ first }: { first: SavedCheck }) {
-  const domains = useDomains()
-  const domainIds = useDomainList().map((d) => d.id)
   const view = useObsView()
   const me = useMe()
-  const { query } = useRoute()
   const online = useOnline()
   const all = useSavedQuestions()
   const write = useWrite()
@@ -116,15 +103,9 @@ function Quality({ first }: { first: SavedCheck }) {
     useQuery({ ...savedCheckQuery(), refetchInterval: checking ? 200 : false }).data ?? first
   const [showAll, setShowAll] = React.useState(false)
   // Owners see the domains they own; anyone can narrow to one.
-  const asked = query.get('domain')
+  const { choices: domainChoices, asked } = useDomainChoice()
   const own = view.owned
-  const domain = own
-    ? asked && own.includes(asked)
-      ? asked
-      : own.length === 1
-        ? own[0]
-        : undefined
-    : (asked ?? undefined)
+  const domain = asked ?? (own?.length === 1 ? own[0] : undefined)
   const mine = all.filter(
     (q) => (!own || own.includes(q.domain)) && (!domain || q.domain === domain),
   )
@@ -153,34 +134,9 @@ function Quality({ first }: { first: SavedCheck }) {
       .finally(() => setChecking(false))
   }
 
-  const domainChoices = own ?? domainIds.filter((d) => !domains[d]?.sandbox)
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
-      {domainChoices.length > 1 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" />}>
-            <LayersIcon className="size-3.5" />
-            <span className="sr-only">Domain: </span>
-            {domain ? domains[domain]?.name : 'All domains'}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Domain</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={domain ?? 'all'}
-                onValueChange={(v) => setQuery({ domain: v === 'all' ? undefined : (v as string) })}
-              >
-                <DropdownMenuRadioItem value="all">All domains</DropdownMenuRadioItem>
-                {domainChoices.map((d) => (
-                  <DropdownMenuRadioItem key={d} value={d}>
-                    {domains[d]?.name}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+      <DomainChip value={domain} choices={domainChoices} all />
       <AddQuestion domains={domainChoices} me={me.name} />
       <Button
         variant="outline"

@@ -1,12 +1,30 @@
 import * as React from 'react'
-import { ArrowDownIcon, ArrowUpIcon, InfoIcon } from '@/components/icons'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronDownIcon,
+  InfoIcon,
+  LayersIcon,
+} from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Changed } from '@/components/footnote/changed'
+import { DomainDot } from '@/components/footnote/tag-chip'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { Change } from '@domain/observability'
+import type { DomainId } from '@/model/items'
 import { RANGES, type Range } from '@/model/observability'
 import { setQuery } from '@/lib/router'
+import { useDomains } from '@/lib/workspace'
 
 // The controls and number cells Observability's pages share. The range is kept in the address so a
 // link (or Back) lands the same way: 7, 30 or 90 days. Overview's domain and kind of agent are in
@@ -37,6 +55,68 @@ export function RangeSwitch({ value }: { value: Range }) {
         </button>
       ))}
     </div>
+  )
+}
+
+/**
+ * The domain a page is narrowed to, shared by Quality, Feedback and Alerts and kept in the address
+ * (`domain`, as Overview's domain chip), so a reload or a link lands the same way. The trigger
+ * keeps one width whatever the name, which is cut short, so the header never shifts. With `all`,
+ * "All domains" is one of the choices; an owner who reads one domain at a time has none. Nothing
+ * shows with one choice or none.
+ */
+export function DomainChip({
+  value,
+  choices,
+  all,
+}: {
+  value: DomainId | undefined
+  choices: DomainId[]
+  all: boolean
+}) {
+  const domains = useDomains()
+  if (choices.length < 2) return null
+  const name = value ? (domains[value]?.name ?? value) : 'All domains'
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="outline"
+            className="w-44 justify-start max-sm:h-10"
+            aria-label={`Domain: ${name}`}
+            title={name}
+          />
+        }
+      >
+        {value ? <DomainDot id={value} /> : <LayersIcon data-icon="inline-start" />}
+        <span data-slot="domain-name" className="min-w-0 flex-1 truncate text-left">
+          {name}
+        </span>
+        <ChevronDownIcon className="text-muted-foreground" aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Domain</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={value ?? 'all'}
+            onValueChange={(v) => setQuery({ domain: v === 'all' ? undefined : (v as string) })}
+          >
+            {all && (
+              <DropdownMenuRadioItem value="all" closeOnClick>
+                All domains
+              </DropdownMenuRadioItem>
+            )}
+            {choices.map((d) => (
+              <DropdownMenuRadioItem key={d} value={d} closeOnClick>
+                <DomainDot id={d} />
+                <span className="truncate">{domains[d]?.name ?? d}</span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

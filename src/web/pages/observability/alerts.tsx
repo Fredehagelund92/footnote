@@ -19,6 +19,7 @@ import { Switch } from '@/components/ui/switch'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable, LoadError, RefreshError } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
+import { DomainChip } from '@/components/obs/controls'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { ShowMoreButton } from '@/components/footnote/show-more'
 import { TextSwitch, type TextOption } from '@/components/footnote/switches'
@@ -32,7 +33,7 @@ import {
   type RuleId,
 } from '@/model/alerts'
 import type { DomainId } from '@/model/items'
-import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
+import { OBS_PURPOSE, useDomainChoice, useObsPageQuery, useObsView } from '@/lib/obs'
 import { useDomains, useMe } from '@/lib/workspace'
 import { ObsPage } from '@/pages/observability'
 
@@ -64,10 +65,15 @@ function Alerts() {
   const { rules: all, raised, settings: s } = useAlerts()
   const rules = rulesFor(all, me.admin)
   const owned = view.owned
+  const choice = useDomainChoice()
   const head = 'text-xs font-medium text-muted-foreground'
   return (
     <Frame>
-      <FrameSection title="Alerts" description={OBS_PURPOSE.alerts} />
+      <FrameSection
+        title="Alerts"
+        description={OBS_PURPOSE.alerts}
+        action={<DomainChip value={choice.asked} choices={choice.choices} all />}
+      />
       <section aria-labelledby="alert-rules" className="border-t">
         <h3 id="alert-rules" className="sr-only">
           Rules
@@ -101,7 +107,7 @@ function Alerts() {
         )}
       </section>
 
-      <RaisedLately first={raised} empty={view.state === 'empty'} />
+      <RaisedLately first={raised} empty={view.state === 'empty'} domain={choice.asked} />
       <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
         <UsersIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         Owners see and mute alerts for their own domains. Admins turn rules off and change the
@@ -117,15 +123,23 @@ function Alerts() {
  * the Alerts read's, so what refreshes that refreshes these too. Another rule keeps the rows on
  * screen until its own have loaded.
  */
-export function useRaisedPages(rule: RuleId | null, first: RaisedPage) {
+export function useRaisedPages(
+  rule: RuleId | null,
+  domain: DomainId | undefined,
+  first: RaisedPage,
+) {
   const client = useQueryClient()
   return useInfiniteQuery({
-    queryKey: [...queryKeys.alerts, 'raised', rule ?? 'all'],
+    queryKey: [...queryKeys.alerts, 'raised', rule ?? 'all', domain ?? 'all'],
     queryFn: ({ pageParam }) =>
-      api.getRaised({ ...(rule ? { rule } : {}), ...(pageParam ? { after: pageParam } : {}) }),
+      api.getRaised({
+        ...(rule ? { rule } : {}),
+        ...(domain ? { domain } : {}),
+        ...(pageParam ? { after: pageParam } : {}),
+      }),
     initialPageParam: '',
     getNextPageParam: (last) => last.next ?? undefined,
-    ...(rule === null
+    ...(rule === null && !domain
       ? {
           initialData: { pages: [first], pageParams: [''] },
           initialDataUpdatedAt: () => client.getQueryState(queryKeys.alerts)?.dataUpdatedAt,
@@ -140,10 +154,18 @@ export function useRaisedPages(rule: RuleId | null, first: RaisedPage) {
  * a rare raise (Conflict, Not found) is one click away under many check-date reminders, and Show
  * more for the older ones. An owner reads only their own domains' raises.
  */
-export function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
+export function RaisedLately({
+  first,
+  empty,
+  domain,
+}: {
+  first: RaisedPage
+  empty: boolean
+  domain: DomainId | undefined
+}) {
   const domains = useDomains()
   const [rule, setRule] = React.useState<RuleId | null>(null)
-  const pages = useRaisedPages(rule, first)
+  const pages = useRaisedPages(rule, domain, first)
   const counts = pages.data?.pages[0] ?? first
   const raised = empty ? [] : (pages.data?.pages.flatMap((p) => p.raised) ?? [])
   const of = rule ? (counts.byRule.find((c) => c.rule === rule)?.count ?? 0) : counts.total

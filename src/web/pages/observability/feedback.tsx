@@ -4,6 +4,7 @@ import {
   OBS_PURPOSE,
   ObsDrawn,
   rangeLabel,
+  useDomainChoice,
   useKeptObsPage,
   useObservability,
   useObsView,
@@ -27,7 +28,7 @@ import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { Bars } from '@/components/obs/charts'
 import { shareChange } from '@domain/observability'
-import { Kpi, kpiChange, RangeSwitch } from '@/components/obs/controls'
+import { DomainChip, Kpi, kpiChange, RangeSwitch } from '@/components/obs/controls'
 import { HIDE_UNDER, REPORT_WORDS, shownCount, type ReportState } from '@/model/observability'
 import { ObsPage } from '@/pages/observability'
 
@@ -78,6 +79,7 @@ function Feedback({ busy }: { busy: boolean }) {
   const domains = useDomains()
   const obs = useObservability()
   const view = useObsView()
+  const choice = useDomainChoice()
   const [tab, setTab] = React.useState<'all' | ReportState>('all')
   const feedback = obs.data.feedback
   // The binding gives the reports of the domains the person sees.
@@ -115,7 +117,13 @@ function Feedback({ busy }: { busy: boolean }) {
       <FrameSection
         title="Feedback"
         description={OBS_PURPOSE.feedback}
-        action={<RangeSwitch value={view.range} />}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* An owner reads one of their own domains at a time; an admin all, or one. */}
+            <DomainChip value={view.domain} choices={choice.choices} all={!view.owned} />
+            <RangeSwitch value={view.range} />
+          </div>
+        }
       />
       <div className="grid grid-cols-2 gap-px border-t bg-border @3xl/main:grid-cols-4">
         {/* The share of good is worked out only from counts that are shown, so it never gives a

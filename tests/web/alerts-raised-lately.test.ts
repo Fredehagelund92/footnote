@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import * as React from 'react'
+import type { DomainId } from '@/model/items'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -53,7 +54,7 @@ const page = (ids: string[], total: number, notFound: number, next: string | nul
 })
 const first = page(['a1', 'a2'], 12, 9, 'c1')
 
-function mount(getRaised: FootnoteApi['getRaised']) {
+function mount(getRaised: FootnoteApi['getRaised'], domain?: DomainId) {
   bindApi({ getRaised } as unknown as FootnoteApi)
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)
@@ -63,7 +64,7 @@ function mount(getRaised: FootnoteApi['getRaised']) {
       React.createElement(
         QueryClientProvider,
         { client },
-        React.createElement(RaisedLately, { first, empty: false }),
+        React.createElement(RaisedLately, { first, empty: false, domain }),
       ),
     ),
   )
@@ -127,5 +128,19 @@ describe('Raised lately', () => {
     await flush()
     expect(text()).not.toContain("Couldn't refresh")
     expect(host!.querySelectorAll('li a')).toHaveLength(3)
+  })
+
+  it("with a domain chosen reads that domain's raises, their counts too", async () => {
+    const asked: Parameters<FootnoteApi['getRaised']>[0][] = []
+    mount((input) => {
+      asked.push(input)
+      return Promise.resolve(page(['s1'], 6, 5, null))
+    }, 'sales')
+    await flush()
+    expect(asked).toEqual([{ domain: 'sales' }])
+    expect(text()).toContain('1 of 6, newest first')
+    click(radio(/Not found/))
+    await flush()
+    expect(asked.at(-1)).toEqual({ rule: 'gap', domain: 'sales' })
   })
 })

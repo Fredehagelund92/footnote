@@ -118,13 +118,16 @@ const RAISED_PAGE = 20
 
 /**
  * A page of the raises a reader may read (an owner, their own domains'), of one rule or of all,
- * after the raise `after` names, with the counts the service gives beside it.
+ * about one domain or all, after the raise `after` names, with the counts the service gives
+ * beside it.
  */
 export function raisedPage(
   owned: DomainId[] | null,
-  { rule, after }: { rule?: RuleId; after?: string } = {},
+  { rule, after, domain }: { rule?: RuleId; after?: string; domain?: DomainId } = {},
 ): RaisedPage {
-  const readable = RAISED.filter((r) => !owned || (r.domain && owned.includes(r.domain)))
+  const readable = RAISED.filter(
+    (r) => (!owned || (r.domain && owned.includes(r.domain))) && (!domain || r.domain === domain),
+  )
   const counts = new Map<RuleId, number>()
   for (const r of readable) counts.set(r.rule, (counts.get(r.rule) ?? 0) + 1)
   const of = readable.filter((r) => !rule || r.rule === rule)

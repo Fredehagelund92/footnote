@@ -287,7 +287,7 @@ export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
       ? agentCounts.map((a, i) => ({ name: a.name, count: agentShown[i] ?? null }))
       : [],
     feedback: {
-      reports: fixture.reports.filter((r) => mine(r)),
+      reports: fixture.reports.filter((r) => mine(r) && (!domain || r.domain === domain)),
       ...ratingsIn(
         fixture,
         range,

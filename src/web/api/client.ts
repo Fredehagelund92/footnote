@@ -673,7 +673,7 @@ export interface FootnoteApi {
    * What the rules raised, a page at a time, newest first: of one rule, or of all, after the raise
    * `after` names (a page's `next`). Each page says how many raised in all and by each rule.
    */
-  getRaised: (input: { rule?: RuleId; after?: string }) => Promise<RaisedPage>
+  getRaised: (input: { rule?: RuleId; after?: string; domain?: DomainId }) => Promise<RaisedPage>
   /** An admin turns a rule on or off for everyone. */
   setAlertRule: (input: { id: RuleId; on: boolean }) => Promise<void>
   /** An owner mutes a rule for their domains: its cards stop reaching them, not anyone else. */
