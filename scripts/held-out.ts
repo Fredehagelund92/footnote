@@ -213,8 +213,15 @@ async function evalArea(options: {
     { systemClock },
     { ConfigError, loadConfig },
     { createDatabase },
-    { modelsFor, readEvalSettings },
-    { checkModelSettings, createModelPort, ModelConfigError, readModelSettings, startCreditsCheck },
+    { checkedModelsFor, readEvalSettings, TestRunRefused },
+    {
+      checkModelSettings,
+      createModelChecks,
+      createModelPort,
+      ModelConfigError,
+      readModelSettings,
+      startCreditsCheck,
+    },
     { createLogger },
   ] = await Promise.all([
     import('../db/seed/held-out-runs.ts'),
@@ -241,15 +248,17 @@ async function evalArea(options: {
     const deps = {
       port: createModelPort({ mode: config.models, env: config.modelEnv }),
       clock: systemClock(config.fixedToday),
+      // A real run first checks its models: three tiny calls each (models:check).
+      ...(options.real ? { checks: createModelChecks({ database }) } : {}),
     }
     let recipients, providers
     try {
       checkModelSettings(deps.port, await readModelSettings(database))
-      const models = modelsFor(deps.port, await readEvalSettings(database))
+      const models = await checkedModelsFor(deps, await readEvalSettings(database))
       recipients = [...new Set([models.answer.recipients, models.judge.recipients])].join('; ')
       providers = [models.answer.provider, models.judge.provider]
     } catch (error) {
-      if (!(error instanceof ModelConfigError)) throw error
+      if (!(error instanceof ModelConfigError || error instanceof TestRunRefused)) throw error
       console.error(error.message)
       return 1
     }

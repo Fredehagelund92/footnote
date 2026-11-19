@@ -28,16 +28,17 @@ import { tryQuestion } from './answer.ts'
 import { openArm, ToolCallRefused, type Arm } from './arm.ts'
 import { cellEstimateMicros, cellKey, loadRevisions, type ArmName, type Models } from './plan.ts'
 import {
+  checkedModelsFor,
   commandKinds,
   failRun,
   finishRun,
   headAt,
-  modelsFor,
   resumeRun,
   runColumns,
   sidesFor,
   sidesOfRun,
   stopRun,
+  TestRunRefused,
   type EvalDeps,
   type QuestionResult,
   type RunRow,
@@ -208,7 +209,7 @@ async function workRun(
   try {
     const settings = await readEvalSettings(database)
     const limits = await readCallLimits(database)
-    const models = modelsFor(deps.port, settings)
+    const models = await checkedModelsFor(deps, settings)
     if (models.answer.id !== run.model_id || models.judge.id !== run.judge_model_id)
       throw new Halt(
         'stopped',
@@ -330,6 +331,11 @@ async function workRun(
           [run.id, options.worker],
         )
       return false
+    }
+    if (error instanceof TestRunRefused) {
+      log.warn('evaluation run refused: its answering model failed the model check')
+      await database.transaction(person, (tx) => failRun(tx, run, error.message))
+      return true
     }
     if (error instanceof Halt) {
       log.warn({ reason: error.reason }, 'evaluation run stopped before it finished')

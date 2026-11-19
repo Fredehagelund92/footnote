@@ -2,7 +2,7 @@
 title: Set up company sign-in
 line: Let people sign in to the web app with your company's OpenID Connect provider, and choose who may join.
 group: Run the service
-order: 5
+order: 6
 reviewed: 2026-11-05
 ---
 

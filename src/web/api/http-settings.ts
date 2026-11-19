@@ -5,7 +5,7 @@
  * it is unit tested (tests/web/api/http-settings.test.ts).
  */
 import { dayMonthYear } from '@/lib/dates'
-import type { AuditEntry, Setting } from '@contract/admin'
+import type { AuditEntry, ModelCheckRow, Setting } from '@contract/admin'
 import type { DeletedDraft, ItemChange } from '@contract/context'
 import type { OperationsOverviewView } from '@contract/index'
 import type { Edition } from '@contract/review'
@@ -123,12 +123,17 @@ export function switchesOf(
  * Every tuning setting, read only, in Advanced's groups: its value in words, and who changed it
  * last, when and why. The first version is the one the app was installed with; a later version no
  * person wrote came from an update of the app or a script. `person` names a person by their id.
+ * A role's model also says what its model check found, once the service has made it.
  */
 export function settingsOf(
   settings: readonly Setting[],
   person: (id: string) => string,
   now: Date,
+  checks: readonly ModelCheckRow[] = [],
 ): Advanced['settings'] {
+  const notes = Object.fromEntries(
+    checks.flatMap((c) => (c.words ? [[`models.${c.role}`, `Model check: ${c.words}`]] : [])),
+  )
   return settingGroups(
     settings
       .filter((s) => s.editable)
@@ -144,6 +149,7 @@ export function settingsOf(
               }
             : null,
       })),
+    notes,
   )
 }
 

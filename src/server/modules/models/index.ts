@@ -22,6 +22,22 @@ export {
   type ProviderEntry,
 } from './types.ts'
 export { startCreditsCheck, type CreditsCheck } from './credits.ts'
+export {
+  answersWithTools,
+  checkedRoles,
+  checkModel,
+  checkWords,
+  createModelChecks,
+  roleFails,
+  roleModels,
+  testRunRefusal,
+  withJsonText,
+  type CheckedRole,
+  type CheckOutcome,
+  type ModelCheck,
+  type ModelChecks,
+  type ModelChecksOptions,
+} from './capability.ts'
 export { ModelConfigError, ModelVendorError } from './errors.ts'
 export { defaultModel, modelProviders, providerEnvNames, vendorNames } from './providers.ts'
 export { modelAdapters } from './adapters/index.ts'

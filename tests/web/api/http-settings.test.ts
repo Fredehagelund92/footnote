@@ -311,6 +311,48 @@ describe('Settings, Advanced', () => {
     expect(rows['serving.legacy']).toBeUndefined()
   })
 
+  it('says under each role’s model what its model check found, once there is a check', () => {
+    const check = {
+      model: 'openai/gpt-oss:20b',
+      at: '2026-10-25T12:00:00.000Z',
+      tools: 'fail' as const,
+      noTools: 'fail' as const,
+      json: 'pass' as const,
+      notes: ['tools: HTTP 400'],
+    }
+    const groups = settingsOf(
+      [
+        setting('models.assistant', { provider: 'openai', model: 'gpt-oss:20b' }),
+        setting('models.eval_answer', { provider: 'openai', model: 'gpt-oss:20b' }),
+        setting('models.judge', 'different_family'),
+      ],
+      () => 'Someone',
+      new Date(at(25)),
+      [
+        {
+          role: 'assistant',
+          model: 'openai/gpt-oss:20b',
+          check,
+          words: 'Can’t call tools, so Ask answers without them',
+        },
+        { role: 'eval_answer', model: 'openai/gpt-oss:20b', check: null, words: null },
+        {
+          role: 'judge',
+          model: 'openai/gpt-oss:20b',
+          check,
+          words: 'Keeps to a JSON schema, as judging needs',
+        },
+      ],
+    )
+    const rows = Object.fromEntries(groups.flatMap((g) => g.rows).map((r) => [r.key, r]))
+    expect(rows['models.assistant']?.note).toBe(
+      'Model check: Can’t call tools, so Ask answers without them',
+    )
+    // A model not checked yet has no note.
+    expect(rows['models.eval_answer']).not.toHaveProperty('note')
+    expect(rows['models.judge']?.note).toBe('Model check: Keeps to a JSON schema, as judging needs')
+  })
+
   it('lists what was deleted, newest first, by whom and when, a term with its synonyms', () => {
     const names: Record<string, string> = { p1: 'Ravi Kapoor', p2: 'Ines Duarte' }
     const rows = deletedOf(

@@ -74,6 +74,7 @@ const adminOperations = [
   'evals.runs.approve',
   'settings.list',
   'settings.set',
+  'models.checks',
   'tools.set',
   'clients.list',
   'clients.save',

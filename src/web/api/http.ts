@@ -2168,6 +2168,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         people,
         areas,
         tests,
+        checks,
       ] = await Promise.all([
         read(() => client.settings.list()),
         read(() => client.items.deleted()),
@@ -2181,10 +2182,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         read(() => client.areas.list()),
         // An estimate plans every domain's tests; a page without it still shows the rest.
         read(() => client.evals.automatic()).catch(() => null),
+        // What the model check found is a note on each role's model; without it, none.
+        read(() => client.models.checks()).catch(() => []),
       ])
       const domainName = (id: string) => areas.find((a) => a.id === id)?.name ?? id
       return {
-        settings: words.settingsOf(settings, (id) => people.name(id), now),
+        settings: words.settingsOf(settings, (id) => people.name(id), now, checks),
         deleted: words.deletedOf(drafts, terms, (id) => (id ? people.name(id) : 'Someone'), now),
         history: words.historyOf(history.entries, changes, now, {
           domain: domainName,

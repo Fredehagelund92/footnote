@@ -20,6 +20,7 @@ import {
   workEvaluations,
 } from '../../src/server/modules/evals/index.ts'
 import {
+  createModelChecks,
   createModelPort,
   readCallLimits,
   type ModelPort,
@@ -1435,5 +1436,58 @@ describe('questions run in memory, with nothing of them kept (FR-525)', () => {
     expect((await running).state).toBe('incomplete')
     expect((await runOf(row.id)).failure).toMatch(/command/)
     expect(await work()).toMatchObject({ lapsed: 0 })
+  })
+})
+
+describe('the model check (P5, D4)', () => {
+  /** Checks whose every model fails the tool call, made without a model call. */
+  const toolless = createModelChecks({
+    database,
+    check: (choice) =>
+      Promise.resolve({
+        model: choice.id,
+        at: '2026-10-08T12:00:00.000Z',
+        tools: 'fail',
+        noTools: 'fail',
+        json: 'pass',
+        notes: ['tools: HTTP 400'],
+      }),
+  })
+  const refusal =
+    /^Test runs answer by calling tools, and mock\/scripted-answer failed the tool call of the model check \(HTTP 400\)/
+
+  it('fails a run whose answering model cannot call tools before any answer, saying why', async () => {
+    await save(question('model-check-refused', 'Online sales to Norway stopped on 4 August'))
+    const run = await startRun()
+    expect(run.state).toBe('queued')
+    await workEvaluations(
+      database,
+      { port: models, clock, checks: toolless },
+      { deadline: Date.now() + 30_000, signal: new AbortController().signal, logger, only: run.id },
+    )
+    const d = await detail(run.id)
+    expect(d.run.state).toBe('failed')
+    expect(d.run.failure).toMatch(refusal)
+    expect(d.cells).toEqual([])
+  })
+
+  it('makes no held-out run on such a model', async () => {
+    const before = await client.query<{ n: number }>('select count(*)::int as n from eval_runs')
+    await expect(
+      runWithheld(
+        database,
+        { port: models, clock, checks: toolless },
+        {
+          area: 'finance',
+          questions: [goldenQuestionSchema.parse(question('sealed-toolless', 'Online sales'))],
+          person: null,
+          ceilingMicros: null,
+          signal: new AbortController().signal,
+          logger,
+        },
+      ),
+    ).rejects.toThrow(refusal)
+    const after = await client.query<{ n: number }>('select count(*)::int as n from eval_runs')
+    expect(after.rows[0]!.n).toBe(before.rows[0]!.n)
   })
 })

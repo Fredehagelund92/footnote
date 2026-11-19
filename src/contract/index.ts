@@ -267,6 +267,7 @@ import {
   itemImportReportSchema,
   itemImportSchema,
   jsonSchemaDocument,
+  modelCheckSchema,
   saveClientSchema,
   setSettingSchema,
   settingSchema,
@@ -352,7 +353,14 @@ export type {
   TermUpdateInput,
   TermVersion,
 } from './terms.ts'
-export type { AuditEntry, ClientPolicy, ItemImportReport, Setting, SettingKey } from './admin.ts'
+export type {
+  AuditEntry,
+  ClientPolicy,
+  ItemImportReport,
+  ModelCheckRow,
+  Setting,
+  SettingKey,
+} from './admin.ts'
 export type { AreaDetail, AreaHoldings, AreaRemoved, ArchivedArea } from './areas.ts'
 export type { UndoOffer } from './undo.ts'
 export type { OperationsOverviewView } from './operations.ts'
@@ -1827,6 +1835,17 @@ export const contract = {
       })
       .input(setSettingSchema)
       .output(settingSchema),
+  },
+  models: {
+    checks: admin
+      .route({
+        method: 'GET',
+        path: '/models/checks',
+        tags: ['admin'],
+        summary:
+          "What the model check found for each role's model: tools, no tools when told, and a JSON schema",
+      })
+      .output(z.array(modelCheckSchema)),
   },
   tools: {
     set: admin

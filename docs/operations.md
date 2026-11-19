@@ -2,7 +2,7 @@
 title: Run and operate the service
 line: Run the service, check it is healthy, run it in production, and read its jobs, limits and metrics.
 group: Run the service
-order: 3
+order: 4
 reviewed: 2026-11-05
 ---
 

@@ -268,9 +268,10 @@ export type JudgeResult = { kind: 'verdict'; verdict: JudgeVerdict } | { kind: '
 
 /**
  * Native structured output with a zod schema and one retry; then JSON text validated by the same
- * schema as the last resort. A forced tool call is not an option: these models reject it. The
- * judge grades each rubric by its id, and a verdict must grade every rubric exactly once: one that
- * does not is tried once more, and a second one is the judge's failure (`UnreadableVerdict`).
+ * schema as the last resort, or at once for a judge that failed the model check's JSON schema. A
+ * forced tool call is not an option: these models reject it. The judge grades each rubric by its
+ * id, and a verdict must grade every rubric exactly once: one that does not is tried once more,
+ * and a second one is the judge's failure (`UnreadableVerdict`).
  */
 export async function judgeAnswer(
   choice: ModelChoice,
@@ -307,7 +308,8 @@ export async function judgeAnswer(
       ? rubricProblem({ rubrics: reply.rubrics as unknown[] }, question.rubrics)
       : null
   }
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // A judge that failed the model check's JSON schema goes to the JSON text at once.
+  for (let attempt = 0; attempt < (choice.jsonSchema === false ? 0 : 2); attempt++) {
     try {
       const result = await generateText({ ...common, output: Output.object({ schema }) })
       if (result.finishReason === 'content-filter') return { kind: 'refused' }

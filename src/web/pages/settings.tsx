@@ -309,7 +309,10 @@ function SettingsTable({ groups }: { groups: AdvancedPage['settings'] }) {
                 >
                   {r.key}
                 </th>
-                <td className={cn(cell, 'min-w-40 wrap-anywhere')}>{r.value}</td>
+                <td className={cn(cell, 'min-w-40 wrap-anywhere')}>
+                  {r.value}
+                  {r.note && <span className="block text-xs text-muted-foreground">{r.note}</span>}
+                </td>
                 <td className={cn(cell, 'whitespace-nowrap')}>
                   {r.changed ? 'Changed' : 'Default'}
                 </td>

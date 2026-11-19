@@ -12,12 +12,13 @@ import type { AnswerTestRuns } from '@/api/client'
  */
 export type SettingChange = { who: string | null; when: string; why: string | null }
 
-/** One setting as Advanced lists it. */
+/** One setting as Advanced lists it. `note` says more about its value, such as a model check. */
 export type SettingRow = {
   key: string
   value: string
   what: string
   changed: SettingChange | null
+  note?: string
 }
 
 /** A group of settings and its rows, in the order Advanced lists them. */
@@ -337,11 +338,13 @@ export const settingWhat = (key: string): string | undefined =>
   GROUPS.flatMap((g) => g.settings).find((e) => e.key === key)?.what
 
 /**
- * The settings in groups, each with its value in words and who changed it last. A setting the list
- * does not name still shows, under Other, so nothing the service has is hidden.
+ * The settings in groups, each with its value in words and who changed it last, and the note
+ * `notes` gives its key. A setting the list does not name still shows, under Other, so nothing the
+ * service has is hidden.
  */
 export function settingGroups(
   settings: readonly { key: string; value: unknown; changed: SettingChange | null }[],
+  notes: Readonly<Record<string, string>> = {},
 ): SettingGroup[] {
   const byKey = new Map(settings.map((s) => [s.key, s]))
   const named = new Set(SETTING_KEYS)
@@ -349,7 +352,18 @@ export function settingGroups(
     group,
     rows: entries.flatMap((e) => {
       const s = byKey.get(e.key)
-      return s ? [{ key: e.key, value: e.value(s.value), what: e.what, changed: s.changed }] : []
+      const note = notes[e.key]
+      return s
+        ? [
+            {
+              key: e.key,
+              value: e.value(s.value),
+              what: e.what,
+              changed: s.changed,
+              ...(note ? { note } : {}),
+            },
+          ]
+        : []
     }),
   }))
   const other = settings
