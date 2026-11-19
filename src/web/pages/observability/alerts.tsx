@@ -172,6 +172,7 @@ export function RaisedLately({
       domain,
     },
   )
+  if (chosen.domain !== domain) setChosen({ rule: null, domain })
   const rule = chosen.domain === domain ? chosen.rule : null
   const setRule = (r: RuleId | null) => setChosen({ rule: r, domain })
   const pages = useRaisedPages(rule, domain, first)
@@ -180,6 +181,8 @@ export function RaisedLately({
   const raised = empty ? [] : (pages.data?.pages.flatMap((p) => p.raised) ?? [])
   const of = rule ? (counts.byRule.find((c) => c.rule === rule)?.count ?? 0) : counts.total
   const stale = pages.isPlaceholderData
+  if (rule && pages.data && !stale && !counts.byRule.some((c) => c.rule === rule))
+    setChosen({ rule: null, domain })
   const left = of - raised.length
   const switches: TextOption<RuleId | 'all'>[] = [
     { value: 'all', label: 'All', count: counts.total },
