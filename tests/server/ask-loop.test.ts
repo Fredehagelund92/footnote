@@ -847,6 +847,20 @@ describe("Ask's loop on a scripted model", () => {
     expect(errors).toHaveLength(1)
   })
 
+  it('says the provider refused its key, not that it did not answer just now (T2)', async () => {
+    const { turn, errors } = await turnWith(() => ({ refuse: 401 }))
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'key', state: 'missing' })
+    expect(turn.text).toBe(
+      "The model provider refused Ask's key, so this is what is written, as agents get it. An administrator needs to give Footnote a key that works.",
+    )
+    expect(turn.text).not.toContain('just now')
+    expect(turn.body.length).toBeGreaterThan(0)
+    expect(errors).toHaveLength(1)
+    // A provider that fails on its side is still a passing failure.
+    const failing = await turnWith(() => ({ refuse: 500 }))
+    expect(failing.turn.stopped).toBe('model')
+  })
+
   it('shows the sentence alone when the plain read cannot be made', async () => {
     const { tools } = fakeTools(() => {
       throw new Error('The database is down.')

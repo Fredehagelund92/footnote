@@ -1,8 +1,8 @@
 import { settingSchemas } from '../../../contract/admin.ts'
 import type { Queryable } from '../../db/database.ts'
 import { ModelConfigError } from './errors.ts'
-import type { ModelPort } from './port.ts'
-import { defaultModel } from './providers.ts'
+import type { KeyCheck, ModelPort } from './port.ts'
+import { defaultModel, modelProviders } from './providers.ts'
 import { modelRoles, type ModelRef, type ModelRole, type Prices } from './types.ts'
 
 /**
@@ -112,4 +112,45 @@ export function checkModelSetting(port: ModelPort, key: string, value: unknown):
   if (!role) return
   const parsed = parseModelSetting(role, value)
   if (parsed !== differentFamily) port.check(key, parsed)
+}
+
+/** One provider the settings use, and what it said of its key. */
+export type ProviderKey = { provider: string; keyEnv: string | null; check: KeyCheck }
+
+/**
+ * Asks each provider the settings use whether it takes its key, at start-up (T2): a wrong key
+ * otherwise shows only once someone asks a question, as a failure that reads like an outage.
+ * The reads cost nothing; a provider that cannot be reached is `unchecked`, never refused.
+ */
+export async function checkModelKeys(
+  port: ModelPort,
+  settings: ModelSettings,
+  providers = modelProviders,
+): Promise<ProviderKey[]> {
+  const used = new Set(
+    modelRoles.flatMap((role) => {
+      const value = settings[role]
+      return value === differentFamily ? [] : [value.provider]
+    }),
+  )
+  return Promise.all(
+    [...used].map(async (provider) => ({
+      provider,
+      keyEnv: providers.find((p) => p.name === provider)?.apiKeyEnv ?? null,
+      check: await port.checkKey(provider),
+    })),
+  )
+}
+
+/** What the start-up log says of one provider's key; null when the provider took it. */
+export function keyCheckLine({ provider, keyEnv, check }: ProviderKey): string | null {
+  const key = keyEnv ? `the key in ${keyEnv}` : 'its key'
+  switch (check.outcome) {
+    case 'accepted':
+      return null
+    case 'refused':
+      return `The model provider ${provider} refused ${key} (HTTP ${check.status}). Ask and the test runs cannot use a model until it is replaced; the rest of the service works.`
+    case 'unchecked':
+      return `The key of model provider ${provider} was not checked: ${check.reason}.`
+  }
 }

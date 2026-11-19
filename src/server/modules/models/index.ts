@@ -4,6 +4,7 @@ export {
   createModelPort,
   type ModelMode,
   type ModelPort,
+  type KeyCheck,
   type ModelPortOptions,
   type Usage,
 } from './port.ts'
@@ -25,8 +26,10 @@ export { ModelConfigError, ModelVendorError } from './errors.ts'
 export { defaultModel, modelProviders, providerEnvNames, vendorNames } from './providers.ts'
 export { modelAdapters } from './adapters/index.ts'
 export {
+  checkModelKeys,
   checkModelSetting,
   checkModelSettings,
+  keyCheckLine,
   differentFamily,
   fillModelSettings,
   parseModelSetting,
@@ -35,6 +38,7 @@ export {
   type JudgeSetting,
   type ModelSettings,
   type StartModels,
+  type ProviderKey,
 } from './settings.ts'
 export { gradingTag, mentions, type GradingInput } from './mock.ts'
 export { fixedWordsModel, scriptedWordsModel } from './words-mock.ts'
@@ -55,6 +59,7 @@ export {
   conversationRetry,
   createCallMeter,
   defaultCallLimits,
+  keyRefused,
   ModelCallError,
   readCallLimits,
   retryAfterMs,

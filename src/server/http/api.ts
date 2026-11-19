@@ -52,7 +52,13 @@ import { operationsView, type JobRunner } from '../modules/jobs/index.ts'
 import { ITEM_FILE_MAX_LENGTH } from '../../domain/item-file.ts'
 import { TERM_BATCH_BODY_MAX } from '../../contract/review.ts'
 import { itemJsonSchema } from '../../domain/item-version.ts'
-import { checkModelSetting, readSpendLimits, type ModelPort } from '../modules/models/index.ts'
+import {
+  checkModelSetting,
+  keyRefused,
+  readSpendLimits,
+  type ModelPort,
+} from '../modules/models/index.ts'
+import { errorCode } from '../observability/logger.ts'
 import { labelOperation } from '../observability/metrics.ts'
 import { createLimiter } from './rate-limit.ts'
 import {
@@ -467,9 +473,11 @@ export function createRouter({
         steps,
         timeoutMs: seconds * 1000,
         ...(signal ? { signal } : {}),
-        // Names the failure only, never the question, the chat or what was read.
+        // Names the failure and its status only, never the question, the chat or what was read.
         onError: (error) =>
-          log.warn({ error: error instanceof Error ? error.name : 'unknown' }, 'ask loop'),
+          keyRefused(error)
+            ? log.error({ error: errorCode(error) }, 'ask loop: the model provider refused the key')
+            : log.warn({ error: errorCode(error) }, 'ask loop'),
         ...(askTrace?.onLoopTurn ? { onTurn: askTrace.onLoopTurn } : {}),
       },
       input,

@@ -28,6 +28,7 @@ import {
   conversationRetry,
   costMicros,
   createCallMeter,
+  keyRefused,
   spendLimitReached,
   type ModelChoice,
   type SpendLimits,
@@ -461,6 +462,8 @@ export function stoppedSentence(
       return spend?.message ?? 'Ask has reached its spending limit, so it did not answer.'
     case 'model':
       return `Ask's model did not answer just now, ${shown ?? 'so nothing is shown'}.`
+    case 'key':
+      return `The model provider refused Ask's key, ${shown ?? 'so nothing is shown'}. An administrator needs to give ${productName} a key that works.`
   }
 }
 
@@ -847,7 +850,8 @@ export async function* askLoop(
     else if (ToolChoiceViolationError.isInstance(error)) yield await stopped('steps')
     else {
       deps.onError?.(error)
-      yield await stopped('model')
+      // A wrong or revoked key fails every question alike: said as such (T2).
+      yield await stopped(keyRefused(error) ? 'key' : 'model')
     }
   } finally {
     // A call still open (stopped, timed out) is recorded as aborted.
