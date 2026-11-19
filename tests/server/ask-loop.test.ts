@@ -686,41 +686,67 @@ describe("Ask's loop on a scripted model", () => {
     expect(seen.most).toBe(1)
   })
 
-  it('stops at its step limit, the last step with no reads, and shows only a fixed sentence', async () => {
+  it('stops at its step limit, the last step with no reads, and shows the plain read under one sentence', async () => {
     const reads: boolean[] = []
-    const { turn, errors } = await turnWith(
+    const { turn, errors, asked } = await turnWith(
       ({ canRead }) => {
         reads.push(canRead)
         // A model that keeps reading, even when told it may not.
         return { calls: [{ toolName: 'find_context', input: { words: 'more' } }] }
       },
-      { steps: 3 },
+      { steps: 3, question: 'orders in Poland' },
     )
     expect(reads).toEqual([true, true, false])
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'steps', sources: [], state: null })
     expect(errors).toEqual([])
-    expect(turn.read.length).toBeGreaterThan(0)
-    expect(turn.read.join(' ')).toContain('Searched')
-    expect(turn.reads).toEqual([])
-    expect(turn.subject).toBeNull()
     expect(turn.text).toBe(
-      'Ask stopped at its limit of 3 steps before it had an answer, so nothing it wrote is shown.',
+      'Ask stopped at its limit of 3 steps before it had an answer, so this is what is written, as agents get it.',
     )
+    // The plain read agents get, made as the person after the model stopped: the question looked
+    // up and searched, with its answer line, its evidence and its words by code.
+    expect(asked.slice(-2)).toEqual([
+      { name: 'get_context', input: { about: 'orders in Poland' } },
+      { name: 'find_context', input: { words: 'orders in Poland' } },
+    ])
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'steps', state: 'missing' })
+    expect(turn.body.length).toBeGreaterThan(0)
+    expect(turn.nearby).toContain('itm_germany01')
+    // What was read says the model's reads and the plain read's, each once.
+    expect(turn.read.join(' ')).toContain('Searched')
+    expect(turn.read.join(' ')).toContain('Looked up')
+    expect(new Set(turn.read).size).toBe(turn.read.length)
+    // The next turn makes the plain read again, never the model's.
+    expect(turn.reads.map((r) => r.tool)).toEqual(['get_context', 'find_context'])
   })
 
-  it('stops at its time limit, and shows nothing the model wrote', async () => {
+  it('stops at its time limit, and shows the plain read, never what the model wrote', async () => {
     const { turn } = await turnWith(() => ({ text: 'Too late [itm_germany01].', delay: 2_000 }), {
       timeoutMs: 100,
     })
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'time', sources: [] })
-    expect(turn.text).toContain('time limit')
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'time', state: 'missing' })
+    expect(turn.text).toBe(
+      'Ask stopped at its time limit of 0 seconds before it had an answer, so this is what is written, as agents get it.',
+    )
+    expect(JSON.stringify(turn)).not.toContain('Too late')
   })
 
-  it('says its model failed, in a fixed sentence, and logs only the failure', async () => {
+  it('says its model failed, in one sentence over the plain read, and logs only the failure', async () => {
     const { turn, errors } = await turnWith(() => ({ fail: true }))
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'model' })
-    expect(turn.text).toBe("Ask's model did not answer just now, so nothing is shown.")
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'model', state: 'missing' })
+    expect(turn.text).toBe(
+      "Ask's model did not answer just now, so this is what is written, as agents get it.",
+    )
+    expect(turn.body.length).toBeGreaterThan(0)
     expect(errors).toHaveLength(1)
+  })
+
+  it('shows the sentence alone when the plain read cannot be made', async () => {
+    const { tools } = fakeTools(() => {
+      throw new Error('The database is down.')
+    })
+    const { turn } = await turnWith(() => ({ fail: true }), { toolsIn: () => tools })
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'model', state: null, body: [] })
+    expect(turn.text).toBe("Ask's model did not answer just now, so nothing is shown.")
+    expect(turn.reads).toEqual([])
   })
 
   it('asks one question back, with the readings as choices and no state', async () => {

@@ -65,6 +65,7 @@ import {
   type CheckContext,
   type CheckFinding,
 } from './loop-check.ts'
+import { plainStep } from './loop-mock.ts'
 
 /*
   Ask's loop (FR-718 to FR-720): one model, with the whole chat in view, reading with Ask's tools
@@ -80,7 +81,9 @@ import {
     cannot make Ask say what the person may not read (FR-718.3).
   - Limits (FR-719.7). At most `steps` model steps, the last with no reads, and `timeoutMs`; the
     person's spending limits are checked before every step, and every step is metered as the
-    assistant's. A turn that stops at a limit, or whose model fails, shows a fixed sentence only.
+    assistant's. A turn that stops at a limit, or whose model fails, shows nothing the model wrote:
+    one fixed sentence, then the plain read (decision 5), the reads the scripted reader makes, as
+    the person, with code's words, state and evidence from them.
   - The pool. A turn holds no database connection while the model works: each read, each spending
     check and each meter line is a short transaction of its own, and the reads of one turn take
     one connection at a time, so no turn waits for a second connection while it holds one.
@@ -438,21 +441,26 @@ export function progressOf(name: AskToolName, input: Record<string, unknown>): s
   }
 }
 
-/** Why a turn stopped, in the fixed sentence it shows. */
+/**
+ * Why a turn stopped, in the fixed sentence it shows: over the plain read when it shows one
+ * (`plain`), else alone.
+ */
 export function stoppedSentence(
   why: NonNullable<LoopTurn['stopped']>,
   limits: { steps: number; seconds: number },
   spend?: SpendStop,
+  plain = false,
 ) {
+  const shown = plain ? 'so this is what is written, as agents get it' : null
   switch (why) {
     case 'steps':
-      return `Ask stopped at its limit of ${limits.steps} steps before it had an answer, so nothing it wrote is shown.`
+      return `Ask stopped at its limit of ${limits.steps} steps before it had an answer, ${shown ?? 'so nothing it wrote is shown'}.`
     case 'time':
-      return `Ask stopped at its time limit of ${limits.seconds} seconds before it had an answer, so nothing it wrote is shown.`
+      return `Ask stopped at its time limit of ${limits.seconds} seconds before it had an answer, ${shown ?? 'so nothing it wrote is shown'}.`
     case 'spending':
       return spend?.message ?? 'Ask has reached its spending limit, so it did not answer.'
     case 'model':
-      return "Ask's model did not answer just now, so nothing is shown."
+      return `Ask's model did not answer just now, ${shown ?? 'so nothing is shown'}.`
   }
 }
 
@@ -489,13 +497,64 @@ export async function* askLoop(
     steps: steps.map(({ runs, done }) => ({ runs, done })),
     nouns: [...nounsRead(made.map((m) => m.result)).values()],
   })
-  const stopped = (why: NonNullable<LoopTurn['stopped']>, spend?: SpendStop): LookupEvent => ({
-    type: 'turn',
-    turn: stoppedTurn(stoppedSentence(why, limits, spend), why, [
-      ...againLine(earlier.map(readOf)),
-      ...readLines(made),
-    ]),
-  })
+  /**
+   * The plain read of the question (decision 5): the reads the scripted reader makes, each as the
+   * person, and its words, drawn by code as an answer is. Null when a read could not be made.
+   */
+  const plainTurn = async (): Promise<{ turn: LoopTurn; plain: MadeRead[] } | null> => {
+    const plain: MadeRead[] = []
+    const again = earlier.map(readOf)
+    // At most two rounds of reads, as the scripted reader makes: the question, then the chat's.
+    for (let round = 0; round < 3; round++) {
+      const next = plainStep({
+        question: input.question,
+        before: turns.at(-1)?.question,
+        results: plain.map((m) => ({ toolName: m.tool, value: m.result })),
+        canRead: round < 2,
+      })
+      if (next.text !== undefined)
+        return { turn: turnOf(next.text, plain, again, input.question), plain }
+      for (const call of next.calls) {
+        if (!isToolName(call.toolName)) return null
+        // The period the person chose for the question is every get_context's of the turn.
+        const given =
+          call.toolName === 'get_context' && input.period
+            ? { ...call.input, period: input.period }
+            : call.input
+        const result = await reads.one(call.toolName, given, {
+          lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+        })
+        if (isError(result)) return null
+        const ref = `r${earlier.length + made.length + plain.length + 1}`
+        plain.push({ tool: call.toolName, input: given, result, ref })
+      }
+    }
+    return null
+  }
+  /**
+   * A turn that stopped: its fixed sentence over the plain read, whatever the model read or
+   * wrote; when the plain read cannot be made, or the spending limits stopped it, the sentence
+   * alone.
+   */
+  const stopped = async (
+    why: NonNullable<LoopTurn['stopped']>,
+    spend?: SpendStop,
+  ): Promise<LookupEvent> => {
+    const read = [...againLine(earlier.map(readOf)), ...readLines(made)]
+    const shown = why === 'spending' ? null : await plainTurn()
+    if (!shown)
+      return { type: 'turn', turn: stoppedTurn(stoppedSentence(why, limits, spend), why, read) }
+    return {
+      type: 'turn',
+      turn: {
+        ...shown.turn,
+        kind: 'stopped',
+        text: stoppedSentence(why, limits, spend, true),
+        read: [...new Set([...read, ...readLines(shown.plain)])],
+        stopped: why,
+      },
+    }
+  }
 
   // The chat's earlier reads, made again as the person, now (FR-718.3).
   const wanted = earlierReadsOf(turns)
@@ -515,7 +574,7 @@ export async function* askLoop(
       earlier = wanted.map((w, i) => ({ ...w, result: made[i], ref: `r${i + 1}` }))
     } catch (error) {
       deps.onError?.(error)
-      yield stopped('model')
+      yield await stopped('model')
       return
     }
   }
@@ -774,7 +833,7 @@ export async function* askLoop(
       return
     }
     if (!text) {
-      yield stopped(modelSteps.length >= deps.steps ? 'steps' : 'model')
+      yield await stopped(modelSteps.length >= deps.steps ? 'steps' : 'model')
       return
     }
     const turn = turnOf(text, made, again, input.question)
@@ -782,13 +841,13 @@ export async function* askLoop(
   } catch (error) {
     // A Stop is the person's: nothing more is sent.
     if (deps.signal?.aborted) return
-    if (error instanceof SpendLimitStop) yield stopped('spending', error.stop)
-    else if (timeout.aborted) yield stopped('time')
+    if (error instanceof SpendLimitStop) yield await stopped('spending', error.stop)
+    else if (timeout.aborted) yield await stopped('time')
     // The last step may not read; a model that reads anyway has reached the step limit.
-    else if (ToolChoiceViolationError.isInstance(error)) yield stopped('steps')
+    else if (ToolChoiceViolationError.isInstance(error)) yield await stopped('steps')
     else {
       deps.onError?.(error)
-      yield stopped('model')
+      yield await stopped('model')
     }
   } finally {
     // A call still open (stopped, timed out) is recorded as aborted.

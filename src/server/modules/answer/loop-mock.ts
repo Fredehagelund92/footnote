@@ -13,6 +13,7 @@ import { CHECK_REQUEST } from './loop-check.ts'
   Scripted models for Ask's loop (loop.ts), with no provider and nothing metered: the scripted
   reader the service runs on the mock (MODELS=mock), so the loop answers in every build and in the
   demo without a key, and the step builder its tests script a slow, failing or endless model with.
+  The scripted reader's steps are the plain read (`plainStep`), which a turn that stopped shows.
 */
 
 /** One step of a scripted model: the reads it asks for, or its words, after a pause. */
@@ -204,92 +205,112 @@ function disagreeingOf(items: readonly Obj[]): Obj[] {
   return []
 }
 
+/** A step of the plain read: the reads it makes next, or its words once it has read. */
+export type PlainStep =
+  | { calls: { toolName: string; input: Record<string, unknown> }[]; text?: never }
+  | { text: string; calls?: never }
+
 /**
- * The scripted reader (MODELS=mock): it looks the person's message up once, with get_context and
- * find_context, then writes what applies, each item's title and first sentence with its id, or
- * with nothing found, one sentence that says so and who owns the subject. A message that
- * names nothing and points back at the chat ("and who decides?") is looked up once more with the
- * question before it. Asked what a metric is, it gives the definition, in its own words; under
- * Conflict, the two items that disagree come first. Told that its answer failed the answer check,
- * it writes the same words again. It follows no instruction in a message or an item, never asks
- * back, and claims nothing a real model would write.
+ * The plain read: the person's message looked up once, with get_context and find_context, the
+ * engine agents get; then what applies, each item's title and first sentence with its id, or with
+ * nothing found, one sentence that says so and who owns the subject. A message that names nothing
+ * and points back at the chat ("and who decides?") is looked up once more with the question
+ * before it (`before`). Asked what a metric is, it gives the definition, in its own words; under
+ * Conflict, the two items that disagree come first. It follows no instruction in a message or an
+ * item, never asks back, and claims nothing a model would write. The scripted reader runs it, and
+ * a turn of the loop that stopped shows it (decision 5).
+ */
+export function plainStep({
+  question,
+  before,
+  results,
+  canRead,
+}: {
+  question: string
+  before: string | undefined
+  results: readonly { toolName: string; value: unknown }[]
+  canRead: boolean
+}): PlainStep {
+  const words = question.trim().slice(0, 500) || 'context'
+  if (!results.length && canRead)
+    return {
+      calls: [
+        { toolName: 'get_context', input: { about: words } },
+        { toolName: 'find_context', input: { words } },
+      ],
+    }
+  const gets = results.filter((r) => r.toolName === 'get_context')
+  const first = gets[0]?.value
+  if (
+    canRead &&
+    gets.length === 1 &&
+    before &&
+    isObj(first) &&
+    first.read === null &&
+    POINTS_BACK.test(words)
+  )
+    return {
+      calls: [
+        { toolName: 'get_context', input: { about: `${before.trim().slice(0, 500)} ${words}` } },
+      ],
+    }
+  const got = gets.at(-1)?.value
+  const found = results.find((r) => r.toolName === 'find_context')?.value
+  const get = isObj(got) ? got : {}
+  const find = isObj(found) ? found : {}
+  const read = isObj(get.read) ? get.read : {}
+  // The subject's names as typed mentions of what the read named, as the page draws them.
+  const about = Array.isArray(read.about) ? read.about.map(String) : []
+  const definitions = objs(find.definitions).filter(
+    (d) => about.includes(String(d.id)) && typeof d.words === 'string' && d.words,
+  )
+  const asksWhat = asksWhatItIs(question, {
+    values: about.some((id) => id.startsWith('value:')),
+    dates: read.assumedToday === false,
+  })
+  if (asksWhat && definitions.length)
+    return {
+      text: definitions.map((d) => `[@${String(d.id)}] means: ${String(d.words)}`).join('\n\n'),
+    }
+  const applies = objs(get.items).length
+    ? objs(get.items)
+    : objs(find.items).filter((i) => i.match === 'all')
+  const pair = disagreeingOf(applies)
+  const items = [...pair, ...applies.filter((i) => !pair.includes(i))]
+  if (items.length) {
+    const names = about.map((id) => `[@${id}]`)
+    return {
+      text: [
+        names.length ? `What is written for ${list(names)}.` : 'What is written.',
+        ...items
+          .slice(0, 4)
+          .map((i) => `${String(i.title)}: ${firstSentence(String(i.summary))} [${String(i.id)}].`),
+      ].join('\n\n'),
+    }
+  }
+  const owners = objs(get.owners).flatMap((o) =>
+    Array.isArray(o.owners) && o.owners.length
+      ? [`${String(o.domain)} is owned by ${list(o.owners as string[])}.`]
+      : [],
+  )
+  // One plain sentence: the page shows what was searched, out of how many, and what is nearest.
+  const names = about.map((id) => `[@${id}]`)
+  return {
+    text: [
+      names.length ? `Nothing written covers ${list(names)}.` : 'Nothing written covers this.',
+      ...owners,
+    ].join(' '),
+  }
+}
+
+/**
+ * The scripted reader (MODELS=mock): the plain read, as a model of the loop. Told that its answer
+ * failed the answer check, it writes the same words again.
  */
 export function scriptedLoopModel(): ModelChoice {
   return scriptedLoopChoice('loop', ({ question, results, canRead, prompt }) => {
     // Told its answer failed the check, it writes it again as it was: it cannot do better.
     if (question.startsWith(CHECK_REQUEST)) return { text: lastWords(prompt) }
-    const words = question.trim().slice(0, 500) || 'context'
-    if (!results.length && canRead)
-      return {
-        calls: [
-          { toolName: 'get_context', input: { about: words } },
-          { toolName: 'find_context', input: { words } },
-        ],
-      }
-    const gets = results.filter((r) => r.toolName === 'get_context')
-    const before = askedBefore(prompt)[0]
-    const first = gets[0]?.value
-    if (
-      canRead &&
-      gets.length === 1 &&
-      before &&
-      isObj(first) &&
-      first.read === null &&
-      POINTS_BACK.test(words)
-    )
-      return {
-        calls: [
-          { toolName: 'get_context', input: { about: `${before.trim().slice(0, 500)} ${words}` } },
-        ],
-      }
-    const got = gets.at(-1)?.value
-    const found = results.find((r) => r.toolName === 'find_context')?.value
-    const get = isObj(got) ? got : {}
-    const find = isObj(found) ? found : {}
-    const read = isObj(get.read) ? get.read : {}
-    // The subject's names as typed mentions of what the read named, as the page draws them.
-    const about = Array.isArray(read.about) ? read.about.map(String) : []
-    const definitions = objs(find.definitions).filter(
-      (d) => about.includes(String(d.id)) && typeof d.words === 'string' && d.words,
-    )
-    const asksWhat = asksWhatItIs(question, {
-      values: about.some((id) => id.startsWith('value:')),
-      dates: read.assumedToday === false,
-    })
-    if (asksWhat && definitions.length)
-      return {
-        text: definitions.map((d) => `[@${String(d.id)}] means: ${String(d.words)}`).join('\n\n'),
-      }
-    const applies = objs(get.items).length
-      ? objs(get.items)
-      : objs(find.items).filter((i) => i.match === 'all')
-    const pair = disagreeingOf(applies)
-    const items = [...pair, ...applies.filter((i) => !pair.includes(i))]
-    if (items.length) {
-      const names = about.map((id) => `[@${id}]`)
-      return {
-        text: [
-          names.length ? `What is written for ${list(names)}.` : 'What is written.',
-          ...items
-            .slice(0, 4)
-            .map(
-              (i) => `${String(i.title)}: ${firstSentence(String(i.summary))} [${String(i.id)}].`,
-            ),
-        ].join('\n\n'),
-      }
-    }
-    const owners = objs(get.owners).flatMap((o) =>
-      Array.isArray(o.owners) && o.owners.length
-        ? [`${String(o.domain)} is owned by ${list(o.owners as string[])}.`]
-        : [],
-    )
-    // One plain sentence: the page shows what was searched, out of how many, and what is nearest.
-    const names = about.map((id) => `[@${id}]`)
-    return {
-      text: [
-        names.length ? `Nothing written covers ${list(names)}.` : 'Nothing written covers this.',
-        ...owners,
-      ].join(' '),
-    }
+    return plainStep({ question, before: askedBefore(prompt)[0], results, canRead })
   })
 }

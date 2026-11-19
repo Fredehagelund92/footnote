@@ -373,8 +373,10 @@ of FR-720.10 before they are shown (below); the judges' part waits.
   that cites an item no read returns any more. A turn sent with a result is refused.
 - **Limits** (FR-719.7). At most `ask.max_steps` model steps (6), the last with no reads, and
   `ask.time_limit_seconds` (30); the person's spending limits are checked before every step, and
-  every step is metered as the assistant's. A turn that stops at a limit, or whose model fails,
-  shows only a fixed sentence.
+  every step is metered as the assistant's. A turn that stops at a step or time limit, or whose
+  model fails, shows nothing the model wrote: one fixed sentence, then the plain read, the
+  scripted reader's reads made as the person with code's words, answer line and evidence. A
+  spending stop, or a plain read that cannot be made, shows the sentence alone.
 - **Code writes the rest, from the reads.** Each citation is checked against the ids the chat's
   reads returned and numbered as a source; a mark to an id no read returned is dropped. The state
   comes from the get_context reads about the question's subject, the least sure of several; an

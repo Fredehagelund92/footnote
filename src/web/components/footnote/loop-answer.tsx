@@ -1302,15 +1302,26 @@ function StateRow({ loop, words }: { loop: LoopTurn; words: React.RefObject<HTML
 const footerLines = (loop: LoopTurn) =>
   [loop.footer.denominator, loop.footer.stale, loop.footer.notSeen].filter((x): x is string => !!x)
 
-/** A turn of the loop that stopped: its fixed sentence, Ask again, and a search for its words. */
+/** A stopped turn's fixed sentence, with the stop mark. */
+function StoppedLine({ text }: { text: string }) {
+  const P = useParts()
+  return (
+    <p className="flex items-start gap-2 text-base leading-chat">
+      <P.CircleStopIcon aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" />
+      {text}
+    </p>
+  )
+}
+
+/**
+ * A turn of the loop that stopped with no plain read under it: its fixed sentence, Ask again, and
+ * a search for its words.
+ */
 function Stopped({ answer, onRetry }: { answer: Answer; onRetry?: () => void }) {
   const P = useParts()
   return (
     <div className="flex flex-col gap-3">
-      <p className="flex items-start gap-2 text-base leading-chat">
-        <P.CircleStopIcon aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" />
-        {answer.text}
-      </p>
+      <StoppedLine text={answer.text} />
       <div className="flex flex-wrap items-center gap-2">
         {onRetry && (
           <P.Button variant="outline" onClick={onRetry}>
@@ -1503,6 +1514,8 @@ function Finished({
   const owns = useOwns(loop)
   const showOwners = loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale'
   const footer = footerLines(loop)
+  // A turn that stopped shows the plain read under its sentence, when it has one (decision 5).
+  const bare = loop.kind === 'stopped' && !loop.body.length
   return (
     <div
       className={P.cn(
@@ -1510,10 +1523,11 @@ function Finished({
         !streamed && 'animate-in duration-(--dur-3) fade-in-0',
       )}
     >
-      {loop.kind === 'stopped' ? (
+      {bare ? (
         <Stopped answer={answer} onRetry={onRetry} />
       ) : (
         <>
+          {loop.kind === 'stopped' && <StoppedLine text={loop.text} />}
           <StateRow loop={loop} words={words} />
           <div ref={words}>
             {loop.overview ? (
@@ -1593,7 +1607,7 @@ function Finished({
         draft={false}
         docked={docked}
         latest={latest}
-        onRetry={loop.kind === 'stopped' ? undefined : onRetry}
+        onRetry={bare ? undefined : onRetry}
         wrong={wrong}
         onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
         canReport={cited.length > 0 && !sent}
