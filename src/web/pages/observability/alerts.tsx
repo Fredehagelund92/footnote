@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Frame, FrameSection } from '@/components/footnote/frame'
-import { Loadable } from '@/components/footnote/load-state'
+import { Loadable, LoadError, RefreshError } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -114,13 +114,14 @@ function Alerts() {
  * a rare raise (Conflict, Not found) is one click away under many check-date reminders, and Show
  * more for the older ones. An owner reads only their own domains' raises.
  */
-function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
+export function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
   const domains = useDomains()
   const [rule, setRule] = React.useState<RuleId | null>(null)
   const pages = useRaisedPages(rule, first)
   const counts = pages.data?.pages[0] ?? first
   const raised = empty ? [] : (pages.data?.pages.flatMap((p) => p.raised) ?? [])
   const of = rule ? (counts.byRule.find((c) => c.rule === rule)?.count ?? 0) : counts.total
+  const stale = pages.isPlaceholderData
   const left = of - raised.length
   const switches: TextOption<RuleId | 'all'>[] = [
     { value: 'all', label: 'All', count: counts.total },
@@ -130,7 +131,7 @@ function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
     <FrameSection
       title="Raised lately"
       description={
-        raised.length
+        raised.length && !stale
           ? `${raised.length < of ? `${raised.length} of ${of}` : `All ${of}`}, newest first. Each one is a card in the Inbox.`
           : 'Each one is a card in the Inbox.'
       }
@@ -147,8 +148,10 @@ function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
           />
         </div>
       )}
-      {raised.length ? (
-        <ul aria-label="Raised lately" className="border-t">
+      {pages.isError && !pages.data ? (
+        <LoadError what="the raises" onRetry={() => void pages.refetch()} className="border-t" />
+      ) : raised.length ? (
+        <ul aria-label="Raised lately" aria-busy={stale} className="border-t">
           {raised.map((r) => (
             <li
               key={r.id}
@@ -176,7 +179,16 @@ function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
               </span>
             </li>
           ))}
-          {pages.hasNextPage && (
+          {pages.isFetchNextPageError && (
+            <li>
+              <RefreshError
+                what="more raises"
+                onRetry={() => void pages.fetchNextPage()}
+                className="border-t-0"
+              />
+            </li>
+          )}
+          {pages.hasNextPage && !stale && (
             <li className="border-t px-4 py-2 md:px-5">
               <ShowMoreButton
                 more={left}

@@ -1,0 +1,131 @@
+// @vitest-environment jsdom
+import * as React from 'react'
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { bindApi, type FootnoteApi } from '@/api'
+import type { RaisedPage } from '@/model/alerts'
+
+// Raised lately as a person reads it: another rule's page loading never wears the old rule's count
+// or a negative Show more, and a read that fails says so with Retry instead of "nothing raised".
+
+vi.mock('@/lib/workspace', () => ({ useDomains: () => ({}) }))
+const { RaisedLately } = await import('@/pages/observability/alerts')
+
+declare global {
+  var IS_REACT_ACT_ENVIRONMENT: boolean
+}
+beforeAll(() => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener() {},
+    removeEventListener() {},
+  })) as unknown as typeof window.matchMedia
+})
+
+let root: Root | undefined
+let host: HTMLElement | undefined
+afterEach(() => {
+  act(() => root?.unmount())
+  host?.remove()
+  document.body.innerHTML = ''
+})
+
+const row = (id: string): RaisedPage['raised'][number] =>
+  ({
+    id,
+    title: `Card ${id}`,
+    line: 'line',
+    when: 'now',
+    href: '/x',
+  }) as RaisedPage['raised'][number]
+const page = (ids: string[], total: number, notFound: number, next: string | null): RaisedPage => ({
+  total,
+  byRule: [
+    { rule: 'due', count: total - notFound },
+    { rule: 'gap', count: notFound },
+  ],
+  raised: ids.map(row),
+  next,
+})
+const first = page(['a1', 'a2'], 12, 9, 'c1')
+
+function mount(getRaised: FootnoteApi['getRaised']) {
+  bindApi({ getRaised } as unknown as FootnoteApi)
+  host = document.body.appendChild(document.createElement('div'))
+  root = createRoot(host)
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  act(() =>
+    root!.render(
+      React.createElement(
+        QueryClientProvider,
+        { client },
+        React.createElement(RaisedLately, { first, empty: false }),
+      ),
+    ),
+  )
+}
+const flush = () => act(() => new Promise<void>((r) => setTimeout(r, 0)))
+const text = () => host!.textContent ?? ''
+const click = (el: Element) => act(() => (el as HTMLElement).click())
+const button = (name: RegExp) =>
+  [...host!.querySelectorAll('button')].find((b) => name.test(b.textContent ?? ''))!
+const radio = (name: RegExp) =>
+  [...host!.querySelectorAll('[role=radio]')].find((b) => name.test(b.textContent ?? ''))!
+
+describe('Raised lately', () => {
+  it('while another rule loads keeps the old rows without the new count or a Show more', async () => {
+    let release!: (p: RaisedPage) => void
+    mount(() => new Promise<RaisedPage>((r) => (release = r)))
+    expect(text()).toContain('2 of 12, newest first')
+    expect(button(/Show/)).toBeTruthy()
+
+    click(radio(/Not found/))
+    expect(host!.querySelectorAll('li a')).toHaveLength(2)
+    expect(text()).not.toContain('All 9')
+    expect(text()).not.toMatch(/-\d/)
+    expect(button(/Show/)).toBeUndefined()
+
+    release(page(['n1'], 12, 9, 'c2'))
+    await flush()
+    expect(text()).toContain('1 of 9, newest first')
+    expect(button(/Show 8 more/)).toBeTruthy()
+  })
+
+  it("says a rule's first page failed, with Retry, not that nothing was raised", async () => {
+    let down = true
+    mount(({ rule }) =>
+      rule && down ? Promise.reject(new Error('down')) : Promise.resolve(page(['n1'], 12, 9, null)),
+    )
+    click(radio(/Not found/))
+    await flush()
+    expect(host!.querySelector('[role=alert]')?.textContent).toContain("Couldn't load the raises")
+    expect(text()).not.toContain('Nothing raised')
+    down = false
+    click(button(/Retry/))
+    await flush()
+    expect(host!.querySelector('[role=alert]')).toBeNull()
+    expect(host!.querySelectorAll('li a')).toHaveLength(1)
+  })
+
+  it('says Show more failed and tries it again', async () => {
+    let down = true
+    mount(({ after }) =>
+      after && down
+        ? Promise.reject(new Error('down'))
+        : Promise.resolve(after ? page(['a3'], 12, 9, null) : first),
+    )
+    click(button(/Show/))
+    await flush()
+    expect(text()).toContain("Couldn't refresh more raises")
+    expect(host!.querySelectorAll('li a')).toHaveLength(2)
+    down = false
+    click(button(/Try again/))
+    await flush()
+    expect(text()).not.toContain("Couldn't refresh")
+    expect(host!.querySelectorAll('li a')).toHaveLength(3)
+  })
+})
