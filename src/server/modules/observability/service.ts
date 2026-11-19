@@ -1423,6 +1423,16 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
           group by b.start order by b.start`,
         [start, last, step, Math.ceil(input.range / step)],
       )
+      // The range's own percentiles, over every timed call in it: a middle of the days' p95s would
+      // read well under the range's when the days are uneven.
+      const [reply] = await tx.query<ObsUsage['reply']>(
+        `select percentile_disc(0.5) within group (order by r.duration_ms) as median,
+                percentile_disc(0.95) within group (order by r.duration_ms) as p95
+           from mcp_requests r
+          where r.tool <> 'protocol' and r.duration_ms is not null
+            and r.hour >= $1::date and r.hour < $2::date`,
+        [start, end],
+      )
       const month = `${today.slice(0, 7)}-01`
       const features = await tx.query<{ feature: string; micros: number }>(
         `select feature, sum(cost_micros)::float8 as micros from llm_spend_monthly
@@ -1453,6 +1463,7 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
           // When a kind's calls are hidden, so is when it last called.
           lastAt: shown.parts[i] === null ? null : f.last,
         })),
+        reply: reply ?? { median: null, p95: null },
         speed,
         spend: {
           month,

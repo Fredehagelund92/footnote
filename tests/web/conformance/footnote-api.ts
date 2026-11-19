@@ -2725,6 +2725,21 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'observabilityPage'))(
+      "says the range's own 95 of 100: no slower than its slowest day, no faster than its fastest",
+      async () => {
+        await api().signIn({ name: person })
+        const { reply, speed } = (await api().observabilityPage({ section: 'usage', range: 7 }))
+          .usage!
+        const days = speed.p95.filter((v) => v !== null)
+        expect(days.length).toBeGreaterThan(0)
+        expect(reply.p95).not.toBeNull()
+        expect(reply.p95!).toBeLessThanOrEqual(Math.max(...days))
+        expect(reply.p95!).toBeGreaterThanOrEqual(Math.min(...days))
+        expect(reply.median!).toBeLessThanOrEqual(reply.p95!)
+      },
+    )
+
     it.skipIf(lacks('signIn', 'getSavedViews', 'saveView', 'removeView'))(
       'saves a view of Overview with its chips for everyone, and removes it',
       async () => {

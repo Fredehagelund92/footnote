@@ -189,6 +189,8 @@ export type UsageData = {
   /** Calls whose question could not be read. */
   couldNotRead: Count
   agents: { name: string; calls: Count; last: string }[]
+  /** How long a reply took over the range: one median and one 95 of 100, over every reply. */
+  reply: { median: Count; p95: Count }
   speed: { median: Count[]; p95: Count[]; labels: string[]; per: 'day' | 'week' }
   spend: {
     total: number

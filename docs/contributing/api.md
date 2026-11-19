@@ -989,8 +989,10 @@ over its months) found nothing at least the minimum times.
   (FR-712, [Ratings](#ratings)).
 - `GET /observability/usage` (Usage, administrators): `range`. Each tool's calls and how they
   ended (answered, needed more detail, found nothing, failed), the calls of each kind of agent
-  with its last hour, reply times (the median and 95 of 100, a day each for 7 days, a week each
-  otherwise) and this month's model spend by feature against the caps (NFR-062).
+  with its last hour, reply times (`reply`: the range's median and 95 of 100, each one
+  `percentile_disc` over every timed call of the range, never a middle of the days'; and `speed`,
+  the same a day each for 7 days, a week each otherwise, null for one with no call timed) and this
+  month's model spend by feature against the caps (NFR-062).
 - Weekly counts, kept without limit. The delivery records last `retention.delivery_days` (180
   by default), so the `observability.rollup` job keeps, each night before retention, every
   completed week (Monday to Sunday, UTC) in `obs_weekly`: the agent calls of each domain in each

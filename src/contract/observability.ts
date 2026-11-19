@@ -359,6 +359,11 @@ export const obsUsageSchema = z.object({
   agents: z.array(
     z.object({ family: z.enum(appFamilies), calls: shown, lastAt: z.nullable(z.string()) }),
   ),
+  /**
+   * How long a reply took over the whole range, in milliseconds: the median and 95 of 100, each one
+   * percentile over every timed call, never a middle of the days'. Null when none was timed.
+   */
+  reply: z.object({ median: z.nullable(z.number()), p95: z.nullable(z.number()) }),
   /** How long a reply took, in milliseconds: per day for 7 days, per week otherwise. */
   speed: z.array(
     z.object({ start: day, median: z.nullable(z.number()), p95: z.nullable(z.number()) }),
