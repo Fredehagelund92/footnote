@@ -2,6 +2,7 @@
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
 import Brand from '../../shared/Brand.astro'
+import Scrolled from '../../shared/Scrolled.astro'
 import ThemeToggle from '../../shared/ThemeToggle.astro'
 
 /* The landing page's header: the logo, Docs and GitHub, the theme, and Install. */
@@ -30,3 +31,4 @@ const { docs, repository } = siteLinks(readSettings(process.env))
     </div>
   </div>
 </header>
+<Scrolled />

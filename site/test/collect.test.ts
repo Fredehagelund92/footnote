@@ -96,20 +96,13 @@ describe('collecting the versions', () => {
     expect(versions()).toEqual({ latest: '0.2', versions: ['0.2', '0.1'] })
   })
 
-  it("keeps a maintainer's custom domain and the branch's own files", () => {
-    writeFileSync(join(site, 'CNAME'), 'docs.example.com\n')
-    writeFileSync(join(site, '.git'), 'gitdir: elsewhere\n')
-    writeFileSync(join(site, 'stale.html'), 'stale')
+  it("replaces the root with main's build, and leaves nothing of an earlier one", () => {
     collect(site, build('main', 'next'), 'next')
-    expect(read('CNAME')).toBe('docs.example.com\n')
-    expect(read('.git')).toBe('gitdir: elsewhere\n')
+    writeFileSync(join(site, 'stale.html'), 'stale')
+    collect(site, build('later', 'next'), 'next')
+    expect(read('index.html')).toBe('landing later')
     expect(existsSync(join(site, 'stale.html'))).toBe(false)
-  })
-
-  it('keeps GitHub Pages from running Jekyll, which would drop _astro', () => {
-    collect(site, build('first', '0.1'), '0.1')
-    expect(existsSync(join(site, '.nojekyll'))).toBe(true)
-    expect(read('docs/0.1/_astro/page.js')).toBe('first')
+    expect(read('docs/next/_astro/page.js')).toBe('later')
   })
 
   it('refuses any other folder', () => {

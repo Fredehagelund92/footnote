@@ -279,11 +279,9 @@ jobs:
       web: ${{ needs.publish.outputs.web }}
 
   docs:
-    # Its publish job, which needs the write, only runs once a maintainer has turned it on.
+    # The release's copy of the site, for a team without internet access.
     name: Site
     needs: check
-    permissions:
-      contents: write # the gh-pages branch
     uses: ./.github/workflows/site.yml
     with:
       version: ${{ needs.check.outputs.version }}
@@ -358,3 +356,26 @@ jobs:
         run: |
           gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/docs/footnote-docs-$VERSION.tar.gz" \
             --repo "$GITHUB_REPOSITORY" --clobber
+
+  site-deploy:
+    # Vercel builds the site from main, and each release's docs from its tag (site/vercel.json). A
+    # tag starts no build there, so once the release exists this asks Vercel to build main again,
+    # which adds /docs/MAJOR.MINOR/. The hook is a secret a maintainer adds once
+    # (docs/releasing.md, "The site"); without it the next push to main does the
+    # same.
+    name: Site on Vercel
+    needs: release
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Build the site again, with this release's docs
+        env:
+          HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::notice::No SITE_DEPLOY_HOOK secret, so Vercel was not asked to build the site again. Redeploy production in Vercel to add this release's docs."
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "$HOOK" > /dev/null
+          echo "Vercel is building the site again, with this release's docs."

@@ -289,7 +289,8 @@ request cancels the run it replaces; runs on `main` and at night always finish.
 Three more workflows make releases ([Releasing Footnote](releasing.md)): `release-please.yml` keeps the
 release pull request current after every push to `main`, `release.yml`
 builds and publishes a release when a maintainer pushes a version tag, and `site.yml` builds
-the public site, for a release and for every push to `main` that changes it. `docs-touched.yml`
+a release's offline copy of the public site; Vercel builds and serves the site itself
+([The site](releasing.md#the-site)). `docs-touched.yml`
 checks that a pull request people will notice changes the docs too
 ([The docs follow the change](#the-docs-follow-the-change)).
 

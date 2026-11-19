@@ -9,9 +9,10 @@ describe('the build settings', () => {
   })
 
   it('take the host and the path from one address', () => {
-    expect(readSettings({ SITE_URL: 'https://fredehagelund92.github.io/footnote/' })).toMatchObject(
-      { site: 'https://fredehagelund92.github.io', root: '/footnote' },
-    )
+    expect(readSettings({ SITE_URL: 'https://example.com/footnote/' })).toMatchObject({
+      site: 'https://example.com',
+      root: '/footnote',
+    })
     expect(readSettings({ SITE_URL: 'https://footnote.example' })).toMatchObject({
       site: 'https://footnote.example',
       root: '',

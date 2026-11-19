@@ -79,22 +79,32 @@ The landing page's design is the whole site's, so the docs read as part of it:
 
 The theme is one for the whole site (`shared/theme.ts`): light until the reader picks dark, and the pick holds from the landing page to the docs.
 
+The ground is the paper's dot field (`shared/ground.css`): around the sheet on the landing page, and on the sidebar in the docs. Now and then a footnote mark lands on a dot, the dots around it light up in a ring, and a dotted leader runs toward the page (`shared/ground.ts`). It draws only while a mark is landing, rests while the tab is hidden, and never runs with reduced motion. The header is clear over the top of a page and takes the sheet's colour and a hairline once the page scrolls (`shared/Scrolled.astro`).
+
 ## Settings
 
 All are read when the site is built:
 
-| Setting                 | What it does                                                                                                                                                                                                                                                                                                      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SITE_URL`              | Where the landing page is served, such as `https://footnote.example` or `https://fredehagelund92.github.io/footnote`. Every address of the site follows it: the path under the host, canonical addresses, the sitemap and whole addresses in `llms.txt`. Empty: the root of any host, with no canonical addresses |
-| `DOCS_VERSION`          | The docs' folder in this build: `MAJOR.MINOR`, or `next`, which search engines are told to skip. Empty: the docs alone at `/docs/`                                                                                                                                                                                |
-| `DOCS_REF`              | The Git reference repository links open at, `main` by default                                                                                                                                                                                                                                                     |
-| `FOOTNOTE_PRODUCT_NAME` | The product name in the docs' titles. A renamed build shows it in place of the logo                                                                                                                                                                                                                               |
+| Setting                 | What it does                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`              | Where the landing page is served, such as `https://footnote.example`. Every address of the site follows it: the path under the host, canonical addresses, the sitemap and whole addresses in `llms.txt`. Empty: the root of any host, with no canonical addresses. On Vercel it is the project's production address, or a preview's own, unless the project sets it |
+| `DOCS_VERSION`          | The docs' folder in this build: `MAJOR.MINOR`, or `next`, which search engines are told to skip. Empty: the docs alone at `/docs/`                                                                                                                                                                                                                                  |
+| `DOCS_REF`              | The Git reference repository links open at, `main` by default                                                                                                                                                                                                                                                                                                       |
+| `FOOTNOTE_PRODUCT_NAME` | The product name in the docs' titles. A renamed build shows it in place of the logo                                                                                                                                                                                                                                                                                 |
 
-## Versions and publishing
+## Publishing on Vercel
 
-`.github/workflows/site.yml` builds the docs of each minor release into `/docs/MAJOR.MINOR/`, at its tag, and `/docs/next/` from `main`; the landing page at the root follows `main`. `scripts/collect.ts` puts each build in its place on the `gh-pages` branch: `/docs/` opens the newest release, and so does every page named without a version. `/docs/versions.json` lists the folders, and the switcher in the header reads it when a page opens, so an old version's pages know of newer ones without being built again. Publishing is off until a maintainer turns it on: see [Releasing Footnote](../docs/releasing.md#the-site). A folder is built with the site's address in it and is not built again by itself, so after changing `SITE_URL` or renaming the repository, run the workflow once on `main` and once per published release with its version. Docs are published once per minor version, from the newest patch of that minor: rebuilding an older patch replaces that minor's folder with the older tag's docs.
+The site is served by Vercel, from this repository, at the project's `vercel.app` address. `vercel.json` here sets it up for a project whose root directory is `site`: the Astro preset, `npm ci`, the build `scripts/vercel-build.ts` into `dist`, and the ignored build step `scripts/vercel-ignore.ts`. Vercel builds production from `main` and a preview for each pull request. How a maintainer connects the project is in [Releasing Footnote](../docs/releasing.md#the-site).
 
-So a change to the docs in a pull request shows in `/docs/next/` once it merges, and a release's docs stay as they were at its tag.
+Every deployment builds the whole site:
+
+1. this commit: the landing page, and its docs as `/docs/next/`, which search engines are told to skip;
+2. the docs of each release, the newest patch of each minor, as `/docs/MAJOR.MINOR/`. Each is built again from its own tag, with that tag's pages, code and lockfile, so a release's docs stay as they were at its tag, while every folder takes the deployment's address. A tag from before the site has no `site/` folder and adds nothing;
+3. `scripts/collect.ts` puts them together: `/docs/` opens the newest release, and so does every page named without a version. `/docs/versions.json` lists the folders for the switcher in the header, and `/docs/releases.json` the release tags the build looked at.
+
+So a change to the docs in a pull request shows in that preview's `/docs/next/`, and in production's once it merges, and a release's docs show from its tag on. The ignored build step skips a push that changed nothing the site reads (`site/`, `docs/`, the app's icons, and the product name and docs code it shares with the app). It still builds a redeploy, and a push made after a release that the live site has not looked at yet (`lib/vercel.ts`).
+
+To build as Vercel does, run `node scripts/vercel-build.ts` here. It needs the network, for the release tags and their packages.
 
 ## A team without internet access
 
