@@ -57,6 +57,16 @@ export function savedCounts(all: SavedQuestion[], domain?: DomainId): SavedCount
   }
 }
 
+/**
+ * Each week's share of saved questions that answer as saved, in whole percent; null for a week
+ * before any question was saved, so a chart leaves it out rather than drawing a fall to 0.
+ */
+export function sameShare(trend: { same: number[]; total: number[] }): (number | null)[] {
+  return trend.total.map((total, i) =>
+    total > 0 ? Math.round(((trend.same[i] ?? 0) / total) * 100) : null,
+  )
+}
+
 /** What the answer should keep getting, in plain words, from what it gets now. */
 export function expectationOf(a: Answer) {
   if (!a.state) return 'Nothing was looked up, so there is nothing to keep checking.'

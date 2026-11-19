@@ -439,6 +439,55 @@ test('Overview: a changed number counts to its new value, and the bars move to t
   }
 })
 
+for (const { name, address } of [
+  { name: 'Usage', address: '/observability/usage?slow=1' },
+  { name: 'Feedback', address: '/observability/feedback?slow=1' },
+])
+  test(`${name}: another range keeps the page on screen, and the first number counts to its new value`, async ({
+    page,
+  }) => {
+    await go(page, address)
+    const first = page.locator('[data-slot=kpi]').first().locator('[data-slot=count-up]')
+    await expect(first).toBeVisible()
+    const was = await first.evaluate((el) => getComputedStyle(el).getPropertyValue('--count'))
+    // Each frame from the press until the slow read has come: no skeleton, and what the first
+    // number shows on the way.
+    const seen = await page.evaluate(async () => {
+      const count = () =>
+        Number(
+          getComputedStyle(document.querySelector('[data-slot=kpi] [data-slot=count-up]')!)
+            .getPropertyValue('--count')
+            .trim(),
+        )
+      const counts: number[] = []
+      let skeleton = 0
+      ;[...document.querySelectorAll<HTMLElement>('[role=radio]')]
+        .find((r) => r.textContent?.trim() === '30 days')!
+        .click()
+      const t0 = performance.now()
+      await new Promise<void>((done) => {
+        const tick = () => {
+          if (document.querySelector('[role=status][aria-busy=true]')) skeleton++
+          if (document.querySelector('[data-slot=kpi] [data-slot=count-up]')) counts.push(count())
+          else skeleton++
+          if (performance.now() - t0 < 2500) requestAnimationFrame(tick)
+          else done()
+        }
+        requestAnimationFrame(tick)
+      })
+      return { counts, skeleton }
+    })
+    expect(seen.skeleton).toBe(0)
+    await expect(page).toHaveURL(/[?&]range=30/)
+    const end = seen.counts.at(-1)!
+    expect(end).not.toBe(Number(was))
+    const between = seen.counts.filter(
+      (n) => n > Math.min(end, Number(was)) && n < Math.max(end, Number(was)),
+    )
+    if (await reduced(page)) expect(between).toEqual([])
+    else expect(between.length).toBeGreaterThanOrEqual(1)
+  })
+
 test('moving between places never blanks the page on the way', async ({ page }) => {
   await go(page, '/inbox')
   await expect(page.locator('main').getByRole('heading').first()).toBeVisible()

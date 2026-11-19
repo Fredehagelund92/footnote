@@ -50,7 +50,12 @@ import type { SavedCheck } from '@/api'
 import { conflictsQuery, queryKeys, savedCheckQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { openDock } from '@/lib/dock'
-import { savedCounts, type SavedQuestion, type SavedResult } from '@/model/saved-questions'
+import {
+  sameShare,
+  savedCounts,
+  type SavedQuestion,
+  type SavedResult,
+} from '@/model/saved-questions'
 import { useSavedQuestions } from '@/api/queries'
 import type { DomainId } from '@/model/items'
 import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
@@ -65,6 +70,9 @@ import { ObsPage } from '@/pages/observability'
 // check is free and the same every time: it runs after a publish, an archive, a restore, a sync or
 // a check date passing, or on Run now. The answer tests (wording, with and without context, other
 // models) need a model key and live in Settings, Advanced. Drift is announced by Alerts, not here.
+
+/** A number cell's way to its group of questions further down, when the group has any. */
+const toGroup = (result: SavedResult, n: number) => (n ? `#saved-${result}` : undefined)
 
 const GROUPS: { result: SavedResult; title: string; icon: typeof CheckIcon }[] = [
   { result: 'look', title: 'Needs a look', icon: TriangleAlertIcon },
@@ -252,14 +260,27 @@ function Quality({ first }: { first: SavedCheck }) {
           value={c.total}
           sub={`in ${c.domains} ${c.domains === 1 ? 'domain' : 'domains'}`}
         />
-        <Kpi icon={<CircleCheckIcon />} label="Same" value={c.same} sub="answer as saved" />
+        <Kpi
+          icon={<CircleCheckIcon />}
+          label="Same"
+          value={c.same}
+          sub="answer as saved"
+          href={toGroup('same', c.same)}
+        />
         <Kpi
           icon={<ArrowRightLeftIcon />}
           label="Changed"
           value={c.changed}
           sub="answers moved, not worse"
+          href={toGroup('changed', c.changed)}
         />
-        <Kpi icon={<TriangleAlertIcon />} label="Needs a look" value={c.look} sub="got worse" />
+        <Kpi
+          icon={<TriangleAlertIcon />}
+          label="Needs a look"
+          value={c.look}
+          sub="got worse"
+          href={toGroup('look', c.look)}
+        />
       </div>
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-3-2)">
         <div>
@@ -268,7 +289,12 @@ function Quality({ first }: { first: SavedCheck }) {
             if (!qs.length) return null
             const list = g.result === 'same' && !showAll ? qs.slice(0, 3) : qs
             return (
-              <section key={g.result} aria-label={g.title}>
+              <section
+                key={g.result}
+                id={`saved-${g.result}`}
+                aria-label={g.title}
+                className="scroll-mt-16"
+              >
                 <h2 className="flex items-center gap-2 border-b bg-muted/30 px-4 py-2 text-sm font-semibold md:px-5">
                   <g.icon className="size-3.5 text-muted-foreground" aria-hidden />
                   {g.title}
@@ -301,21 +327,23 @@ function Quality({ first }: { first: SavedCheck }) {
         <div className="border-t @4xl/main:border-t-0 @4xl/main:border-l">
           <FrameSection
             title="Answer the same, by week"
-            description="Saved questions that answer as saved after each week's last publish."
+            description="The share of saved questions that answer as saved after each week's last publish."
           >
             <div className="px-3 pb-3">
               <LineChart
                 series={[
                   {
                     name: 'Answer the same',
-                    values: status.trend.same,
+                    values: sameShare(status.trend),
                     color: 'var(--primary)',
                     fill: true,
                   },
                 ]}
                 labels={status.trend.labels}
-                max={Math.max(1, ...status.trend.total)}
-                caption="Saved questions that answer as saved, by week"
+                max={100}
+                format={(v) => `${v}%`}
+                missing="No question saved yet"
+                caption="Share of saved questions that answer as saved, by week"
               />
             </div>
           </FrameSection>
