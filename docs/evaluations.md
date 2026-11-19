@@ -413,7 +413,9 @@ of FR-720.10 before they are shown (below); the judges' part waits.
   eight tools as its only reads, beside `ask_back` for one question back with its readings as
   choices, and `decline` for a question about one person's work, whose turn code writes: the
   fixed sentence, what Ask can answer instead, and questions to press. Who wrote or last checked
-  one context item is a question about that item, and is answered. The browser sends each earlier turn with what Ask said and the reads it made, by tool
+  one context item is a question about that item, and is answered. A word that names no one
+  metric (a group's name, or a name several metrics share) is asked about by code before the
+  model reads, with the metrics it may mean as the choices, unless the chat's reads name one. The browser sends each earlier turn with what Ask said and the reads it made, by tool
   and input (`reply` and `reads` in `chatTurnSchema`). The service makes each read again, as the
   person, now, before the model sees its result, and leaves out of an earlier reply each sentence
   that cites an item no read returns any more. A turn sent with a result is refused.

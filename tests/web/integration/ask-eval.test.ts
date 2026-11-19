@@ -6,7 +6,8 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   build. What it breaks and misses there is listed below, by promise and by what a case must say:
   only ever shorter. The held-back cases are a count. The router still declines "who checked that
   last?" as one person's work (K16 to K18), and its decline points to an item's history rather
-  than the loop's words (V13, V14): Ask's loop, on by default, answers it.
+  than the loop's words (V13, V14); and it reads "sales" as Net revenue, where the loop asks which
+  metric is meant (Q01, Q04). Ask's loop, on by default, does both.
 */
 
 askEvalSuite({
@@ -26,6 +27,8 @@ askEvalSuite({
     'V09',
     'V13',
     'V14',
+    'Q01',
+    'Q04',
     'F05',
     'F07',
     'F19',

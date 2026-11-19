@@ -725,13 +725,17 @@ function countingDatabase() {
 }
 
 /** Tools that answer each read from `results`, and keep what they were asked. */
-function fakeTools(results: (name: string, input: unknown) => unknown = () => ({ ids: [] })) {
+function fakeTools(
+  results: (name: string, input: unknown) => unknown = () => ({ ids: [] }),
+  vague: AskTools['vague'] = () => Promise.resolve(null),
+) {
   const asked: { name: string; input: unknown }[] = []
   const tools = {
     run: (name: string, input: unknown) => {
       asked.push({ name, input })
       return Promise.resolve(results(name, input))
     },
+    vague,
     ai: () => ({}),
   } as unknown as AskTools
   return { tools, asked }
@@ -744,6 +748,8 @@ async function turnWith(
     question?: string
     /** Each event as the turn yields it, in order. */
     onEvent?: (event: LookupEvent) => void
+    /** The word of the question that names no one metric, as the tools read it. */
+    vague?: AskTools['vague']
   } = {},
 ) {
   const { database, seen } = countingDatabase()
@@ -754,10 +760,11 @@ async function turnWith(
         find_context: find([{ ...item('itm_germany01'), match: 'all' }], 1).result,
         read_context: { found: false, item: null, nothing: 'none', ids: [] },
       })[name] ?? { input, ids: [] },
+    options.vague,
   )
   const errors: unknown[] = []
   const events: LookupEvent[] = []
-  const { turns, question = 'what is written?', onEvent, ...rest } = options
+  const { turns, question = 'what is written?', onEvent, vague: _vague, ...rest } = options
   for await (const event of askLoop(
     {
       database,
@@ -938,6 +945,58 @@ describe("Ask's loop on a scripted model", () => {
       choices: ['France', 'Spain'],
       state: null,
     })
+  })
+
+  it('asks which metric a word means before any model reads, with the metrics as the choices', async () => {
+    const sales = {
+      word: 'sales',
+      metrics: [
+        { id: 'metric:net_revenue', name: 'Net revenue' },
+        { id: 'metric:gross_sales', name: 'Gross sales' },
+      ],
+    }
+    const { turn, asked } = await turnWith(
+      () => {
+        throw new Error('No model reads a question code asks back.')
+      },
+      { question: 'What about sales in the UK?', vague: () => Promise.resolve(sales) },
+    )
+    expect(turn).toMatchObject({
+      kind: 'question',
+      text: 'Which metric do you mean by “sales”?',
+      choices: ['Net revenue', 'Gross sales'],
+      state: null,
+      sources: [],
+    })
+    expect(asked).toEqual([])
+  })
+
+  it("leaves the word to the model when the chat's reads already name a metric it may mean", async () => {
+    const sales = {
+      word: 'sales',
+      metrics: [
+        { id: 'metric:net_revenue', name: 'Net revenue' },
+        { id: 'metric:gross_sales', name: 'Gross sales' },
+      ],
+    }
+    const { turn } = await turnWith(() => ({ text: 'Nothing is written about it in Germany.' }), {
+      question: 'and sales in Germany?',
+      vague: () => Promise.resolve(sales),
+      turns: [
+        {
+          question: 'What is written about gross sales in the UK?',
+          sources: [],
+          reply: 'Nothing is written about it.',
+          reads: [{ tool: 'get_context', input: { about: 'gross sales in the UK' } }],
+        },
+      ],
+      toolsIn: () =>
+        fakeTools(
+          () => ({ state: 'missing', read: { about: ['metric:gross_sales'] }, items: [], ids: [] }),
+          () => Promise.resolve(sales),
+        ).tools,
+    })
+    expect(turn).toMatchObject({ kind: 'answer', text: 'Nothing is written about it in Germany.' })
   })
 
   it('declines when the model calls decline, with nothing it wrote or read shown', async () => {
@@ -1173,6 +1232,7 @@ describe('an overview, whatever the model sends of it', () => {
         name === 'inbox'
           ? new Promise((done) => setTimeout(() => done(read), delay))
           : Promise.resolve({ ids: [] }),
+      vague: () => Promise.resolve(null),
       ai: () => ({}),
     }) as unknown as AskTools
   const groupsOf = (turn: LoopTurn) => turn.overview?.groups.map((g) => [g.key, g.rows.length])

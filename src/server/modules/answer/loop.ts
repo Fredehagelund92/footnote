@@ -179,7 +179,8 @@ Today is ${dayWords(today)} (${timeZone}). The person is ${asker.admin ? 'an adm
 /**
  * When to ask back, said where the model chooses the tool (S18 of the chat audit): a bare word or
  * a question that names no metric, unless the chat settles it; never on a follow-up the chat
- * settles, nor on a question that names one metric. And on a period with two readings that find
+ * settles, nor on a question that names one metric. A word that names no one metric, alone or in
+ * a sentence, code asks about before the model reads (`vagueMetricWord`). And on a period with two readings that find
  * different items (R7, D6), which code finds: a get_context read that returns choices.
  */
 export const ASK_BACK =
@@ -287,6 +288,12 @@ function serialReads(deps: Pick<LoopDeps, 'database' | 'person' | 'toolsIn' | 'o
       inTx((tools) => tools.run(name, input, context)).catch((error: unknown) => {
         deps.onError?.(error)
         return { error: 'This read could not be made just now.', ids: [] }
+      }),
+    /** The word of the question that names no one metric, or null; a failure reads as none. */
+    vague: (question: string) =>
+      inTx((tools) => tools.vague(question)).catch((error: unknown) => {
+        deps.onError?.(error)
+        return null
       }),
     /**
      * Several reads in one transaction, in order: the chat's earlier reads, made again, each with
@@ -653,6 +660,26 @@ export async function* askLoop(
       yield await stopped('model')
       return
     }
+  }
+
+  // A word that names no one metric is asked about by code, before any model reads (A5,
+  // FR-719.2), unless what the chat read already names a metric it may mean.
+  const vague = await reads.vague(input.question)
+  if (vague && !vague.metrics.some((m) => earlier.some((e) => namesNoun(e.result, m.id)))) {
+    const again = earlier.map(readOf)
+    deps.onTurn?.([], again)
+    yield {
+      type: 'turn',
+      turn: questionTurn(
+        {
+          question: `Which metric do you mean by “${vague.word}”?`,
+          choices: vague.metrics.map((m) => m.name),
+        },
+        [],
+        again,
+      ),
+    }
+    return
   }
 
   const tools: Record<string, Tool> = Object.fromEntries(
@@ -1042,6 +1069,10 @@ export const declinedTurn = (): LoopTurn => {
     said: said.join(' '),
   }
 }
+
+/** Whether a read's result names a noun by its id, anywhere in it. */
+const namesNoun = (result: unknown, id: string) =>
+  JSON.stringify(result ?? null).includes(`"${id}"`)
 
 type Obj = Record<string, unknown>
 const isObj = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.isArray(v)

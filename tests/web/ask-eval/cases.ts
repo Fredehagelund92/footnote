@@ -545,11 +545,69 @@ const people: EvalCase[] = [
   },
 ]
 
+/**
+ * A word for more than one metric, alone or in a sentence: one question back, with the metrics it
+ * may mean as choices. A word only one metric holds, or one the chat settles, is answered.
+ */
+const vague: EvalCase[] = [
+  {
+    id: 'Q01',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Sales, in a sentence: which metric is meant, never Gross sales picked silently.',
+    turns: [
+      {
+        ask: 'What about sales in the UK?',
+        expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] },
+      },
+    ],
+  },
+  {
+    id: 'Q02',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Revenue, in a sentence: which metric is meant, never a list of what is written.',
+    turns: [
+      {
+        ask: 'Tell me about revenue.',
+        expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] },
+      },
+    ],
+  },
+  {
+    id: 'Q03',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Margin, a word only Gross margin holds: answered, with no question back.',
+    turns: [
+      {
+        ask: 'What should I know about margin in Spain?',
+        expect: { asksBack: false, says: ['Gross margin'] },
+      },
+    ],
+  },
+  {
+    id: 'Q04',
+    class: 'F',
+    as: ML,
+    source: 'harness',
+    what: 'Sales after an answer about Gross sales: the chat settles it, so no question back.',
+    turns: [
+      { ask: 'What is written about gross sales in the UK?' },
+      { ask: 'and sales in Germany?', expect: { asksBack: false, says: ['Gross sales'] } },
+    ],
+  },
+]
+
 export const evalCases: EvalCase[] = [
   ...captain,
   ...followUps,
   ...adversarial,
   ...people,
+  ...vague,
   ...demoConversations(),
   ...gateOneConversations(),
 ]

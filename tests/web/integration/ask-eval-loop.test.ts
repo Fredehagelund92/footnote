@@ -20,6 +20,8 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   18 steps follow tool results that are not the same from one run to the next even with the ids
   made afresh each run put back by place, so no recorded step matches them: the scripted reader
   takes those in every build, which is why K18's follow-up is listed as missing here.
+  A word that names no one metric ("What about sales in the UK?") is asked about by code before
+  the model reads (H16), so those cases need no recorded step.
 */
 
 askEvalSuite({
@@ -104,5 +106,5 @@ askEvalSuite({
     'P10',
     'P13',
   ],
-  heldPassingToday: 13,
+  heldPassingToday: 14,
 })
