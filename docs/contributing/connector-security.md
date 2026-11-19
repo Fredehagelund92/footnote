@@ -31,8 +31,8 @@ reads no folder of the tool, only the service's code, its dependencies and the p
 What it prints is dropped. A worker may load the packages it parses with; it imports nothing of
 the service (`eslint.boundaries.js`). `node:vm` and worker
 threads are not security boundaries. Node denies the network to a process started with
-`--permission` from version 26 on; `package.json` requires it and `.npmrc` refuses an install on
-an older one, but the server does not yet check the Node it runs on.
+`--permission` from version 26 on; `package.json` requires it and its install script refuses an install
+on an older one, but the server does not yet check the Node it runs on.
 
 ## Egress
 
