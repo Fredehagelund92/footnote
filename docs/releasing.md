@@ -117,7 +117,7 @@ The public site ([site](../site/README.md)), the landing page at the root and th
 - **`/docs/`** opens the newest release, and so does a page named without a version, such as `/docs/get-started/`, which is how the landing page links to the docs. Until the first release, `/docs/` opens `/docs/next/`.
 - **A push that changes nothing the site reads** builds nothing (`site/scripts/vercel-ignore.ts`). A redeploy builds, and so does any push while the live site lacks a release.
 
-A tag starts no build on Vercel, so after a release the **Site on Vercel** job in `release.yml` calls the project's deploy hook, which builds `main` again with the new release's docs. Without the hook it says so in the run, and the next push to `main` that changes the site adds them. `.github/workflows/site.yml` only builds the release's offline copy, `footnote-docs-<version>.tar.gz`; a failed site build never stops the release: the tarball is skipped with a warning.
+A tag starts no build on Vercel, so after a release the **Site on Vercel** job in `release.yml` calls the project's deploy hook, which builds `main` again with the new release's docs. Without the hook it says so in the run, and the next push to `main` adds them. `.github/workflows/site.yml` only builds the release's offline copy, `footnote-docs-<version>.tar.gz`; a failed site build never stops the release: the tarball is skipped with a warning.
 
 To connect the project, once, a maintainer:
 

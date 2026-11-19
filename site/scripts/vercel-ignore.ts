@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { repository } from '../lib/links.ts'
+import { repository } from '../lib/repository.ts'
 import { liveSiteUrl, releasesOf, shouldBuild, siteInputs, unseenReleases } from '../lib/vercel.ts'
 
 /*

@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { repository } from '../lib/links.ts'
+import { repository } from '../lib/repository.ts'
 import { releasesOf, vercelRef, vercelSiteUrl } from '../lib/vercel.ts'
 import { collect } from './collect.ts'
 
