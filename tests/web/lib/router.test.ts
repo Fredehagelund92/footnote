@@ -22,6 +22,9 @@ describe('an address after #/, as invite links and refused sign-ins write it', (
     expect(addressInFragment(at('/docs/get-started', '', '#/signin'))).toBeNull()
     expect(addressInFragment(at('/', '?theme=dark', '#/signin'))).toBeNull()
     expect(addressInFragment(at('/', '', '#section'))).toBeNull()
+    expect(addressInFragment(at('/', '', '#//example.com'))).toBeNull()
+    expect(addressInFragment(at('/', '', '#/\\example.com'))).toBeNull()
+    expect(addressInFragment(at('/', '', '#/'))).toBeNull()
   })
 })
 

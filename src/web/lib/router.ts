@@ -21,7 +21,7 @@ export function bindRouter(r: AnyRouter) {
  * and main.tsx moves it into the path in the browser alone, before the router first reads it.
  */
 export function addressInFragment(location: { pathname: string; search: string; hash: string }) {
-  if (location.pathname !== '/' || location.search || !location.hash.startsWith('#/')) return null
+  if (location.pathname !== '/' || location.search || !/^#\/[^/\\]/.test(location.hash)) return null
   return location.hash.slice(1)
 }
 
