@@ -44,6 +44,7 @@ The public site publishes these, and their words follow the [reader check](../si
 | ------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [Where to run Footnote](where-to-run.md)                | Docker Compose, a cloud host or container platform, and the demo       |
 | [Self-host Footnote on one computer](self-hosting.md)   | Install, back up, restore, upgrade and roll back, for local evaluation |
+| [Choose a model provider](model-providers.md)           | The ways to reach a model, the models tested, and who receives what    |
 | [Run and operate the service](operations.md)            | Run it, check it, run it in production, its jobs, limits and metrics   |
 | [Service settings](configuration.md)                    | Every setting the service reads when it starts                         |
 | [Set up company sign-in](company-sign-in.md)            | OpenID Connect, and who may sign in                                    |

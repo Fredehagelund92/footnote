@@ -2,7 +2,7 @@
 title: Service settings
 line: The settings the service reads from its environment when it starts, with their defaults.
 group: Run the service
-order: 4
+order: 5
 reviewed: 2026-11-10
 ---
 

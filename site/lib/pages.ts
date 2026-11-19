@@ -49,6 +49,7 @@ export const publishedPages = [
   'reference/http-api',
   'where-to-run',
   'self-hosting',
+  'model-providers',
   'operations',
   'configuration',
   'company-sign-in',
