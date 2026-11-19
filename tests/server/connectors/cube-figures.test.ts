@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { readCubeFigure } from '../../../src/connectors/cube/figures.ts'
 import {
@@ -343,5 +344,47 @@ describe('how a value is written', () => {
     expect(await formatOf({ format: 'accounting', currency: 'not money' })).toEqual({
       kind: 'number',
     })
+  })
+})
+
+describe('an answer from a real Cube', () => {
+  // What Cube 1.8.30 answered over DuckDB, for a view on the public jaffle-shop orders
+  // (tests/fixtures/cube-real/): its /v1/meta, and /v1/load for one month in one store. It writes
+  // the value as a string with the float's tail, and says "currency" in a formatDescription too.
+  const fixture = async (name: string) =>
+    JSON.parse(
+      await readFile(new URL(`../../fixtures/cube-real/${name}.json`, import.meta.url), 'utf8'),
+    ) as unknown
+
+  it('reads the value, the money it is in, how it is worked out and when Cube read it', async () => {
+    const { context, loads } = cube({
+      meta: (await fixture('meta')) as Meta,
+      loadAnswer: { status: 200, body: await fixture('load') },
+    })
+    const figure = await readCubeFigure(context, {
+      metric: 'shop_sales.order_total',
+      dates: ['shop_sales.ordered_at'],
+      from: '2026-10-01',
+      to: '2026-10-31',
+      filters: [{ dimension: 'shop_sales.store_name', values: ['Philadelphia'] }],
+    })
+    expect(figure).toEqual({
+      value: 46149.83000000001,
+      asOf: '2026-11-19T19:13:31.568Z',
+      format: { kind: 'currency', currency: 'USD' },
+      aggregation: 'sum',
+      date: 'shop_sales.ordered_at',
+    })
+    expect(loads).toEqual([
+      {
+        measures: ['shop_sales.order_total'],
+        timeDimensions: [
+          { dimension: 'shop_sales.ordered_at', dateRange: ['2026-10-01', '2026-10-31'] },
+        ],
+        filters: [
+          { member: 'shop_sales.store_name', operator: 'equals', values: ['Philadelphia'] },
+        ],
+      },
+    ])
   })
 })

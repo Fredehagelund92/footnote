@@ -1,0 +1,95 @@
+{
+  "cubes": [
+    {
+      "name": "shop_sales",
+      "type": "view",
+      "title": "Shop sales",
+      "isVisible": true,
+      "public": true,
+      "description": "Orders of the Jaffle Shop sample, a public demo data set.",
+      "meta": {
+        "domain": "area_sales"
+      },
+      "measures": [
+        {
+          "name": "shop_sales.count",
+          "title": "Shop sales Orders",
+          "description": "The number of orders placed, whatever their size.",
+          "shortTitle": "Orders",
+          "formatDescription": {
+            "name": "number",
+            "specifier": ",.2~f"
+          },
+          "cumulativeTotal": false,
+          "cumulative": false,
+          "type": "number",
+          "aggType": "count",
+          "drillMembers": [],
+          "drillMembersGrouped": {
+            "measures": [],
+            "dimensions": []
+          },
+          "aliasMember": "orders.count",
+          "isVisible": true,
+          "public": true
+        },
+        {
+          "name": "shop_sales.order_total",
+          "title": "Shop sales Order total",
+          "description": "What customers paid for their orders, tax included, in US dollars.",
+          "shortTitle": "Order total",
+          "format": "currency",
+          "formatDescription": {
+            "name": "currency",
+            "specifier": "$,.2~f"
+          },
+          "cumulativeTotal": false,
+          "cumulative": false,
+          "type": "number",
+          "aggType": "sum",
+          "drillMembers": [],
+          "drillMembersGrouped": {
+            "measures": [],
+            "dimensions": []
+          },
+          "aliasMember": "orders.order_total",
+          "meta": {
+            "currency": "USD"
+          },
+          "isVisible": true,
+          "public": true
+        }
+      ],
+      "dimensions": [
+        {
+          "name": "shop_sales.store_name",
+          "title": "Shop sales Store",
+          "type": "string",
+          "description": "The shop the order was placed in.",
+          "shortTitle": "Store",
+          "suggestFilterValues": true,
+          "isVisible": true,
+          "public": true,
+          "primaryKey": false,
+          "aliasMember": "orders.store_name"
+        },
+        {
+          "name": "shop_sales.ordered_at",
+          "title": "Shop sales Order day",
+          "type": "time",
+          "description": "When the order was placed.",
+          "shortTitle": "Order day",
+          "suggestFilterValues": true,
+          "isVisible": true,
+          "public": true,
+          "primaryKey": false,
+          "aliasMember": "orders.ordered_at"
+        }
+      ],
+      "segments": [],
+      "hierarchies": [],
+      "folders": [],
+      "nestedFolders": []
+    }
+  ]
+}
