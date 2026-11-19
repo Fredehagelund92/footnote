@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react'
-import { useObservability, useObsPageQuery } from '@/lib/obs'
 import type { UsageData } from '@/model/observability'
 import {
   ArrowUpRightIcon,
@@ -22,12 +21,13 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
+import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { LineChart } from '@/components/obs/charts'
 import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'
 import { AGENT_TOOLS } from '@/lib/agents'
 import { askedChange, HIDE_UNDER, money, shownCount } from '@/model/observability'
-import { OBS_PURPOSE, useObsView } from '@/lib/obs'
+import { OBS_PURPOSE, ObsDrawn, useKeptObsPage, useObservability, useObsView } from '@/lib/obs'
 import { ObsPage } from '@/pages/observability'
 
 // Usage, for admins: how agents call the tools, how fast they get a reply, which kinds of agent
@@ -38,7 +38,9 @@ import { ObsPage } from '@/pages/observability'
 const SPEND_FILL = ['var(--primary)', 'var(--chart-3)', 'var(--chart-2)']
 
 export function UsagePage() {
-  const load = useObsPageQuery('usage')
+  // Another range keeps this view until the next has loaded: the numbers count to the new ones and
+  // the lines move, instead of a skeleton.
+  const { load, drawn, busy } = useKeptObsPage('usage')
   return (
     <ObsPage section="usage">
       <Loadable
@@ -46,13 +48,15 @@ export function UsagePage() {
         what="the usage"
         skeleton={<ObsSkeleton section="usage" kpis={4} body="table" />}
       >
-        <Usage />
+        <ObsDrawn.Provider value={drawn}>
+          <Usage busy={busy} />
+        </ObsDrawn.Provider>
       </Loadable>
     </ObsPage>
   )
 }
 
-function Usage() {
+function Usage({ busy }: { busy: boolean }) {
   const obs = useObservability()
   const view = useObsView()
   if (view.state === 'empty')
@@ -91,7 +95,7 @@ function Usage() {
   const change = usage.before !== null ? askedChange(calls, usage.before) : null
 
   return (
-    <Frame>
+    <Frame aria-busy={busy || undefined}>
       <FrameSection
         title="Usage"
         description={OBS_PURPOSE.usage}
@@ -101,7 +105,7 @@ function Usage() {
         <Kpi
           icon={<WrenchIcon />}
           label="Tool calls"
-          value={calls.toLocaleString('en-GB')}
+          value={<CountUp value={calls} />}
           change={kpiChange(change, (c) =>
             change?.percent != null
               ? `${change.percent > 0 ? '+' : ''}${change.percent}%`
@@ -112,7 +116,7 @@ function Usage() {
         <Kpi
           icon={<TimerIcon />}
           label="Typical reply (median)"
-          value={median ?? '-'}
+          value={median === null ? '-' : <CountUp value={median} />}
           unit={median === null ? undefined : 'ms'}
           sub={p95 === null ? 'no replies timed' : `95 of 100 under ${p95} ms (milliseconds)`}
         />

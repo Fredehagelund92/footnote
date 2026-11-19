@@ -1285,34 +1285,44 @@ export function LineChart({
           const lastShown = runs.at(-1)?.at(-1)
           const here = at === null ? null : s.values[at]
           return (
-            <g key={s.name}>
+            // A line is its points in this range: another range has other points, so another line.
+            <g key={`${labels.length}-${s.name}`}>
               {runs.map((run) => {
-                const pts = run.map((p) => `${x(p.i)},${y(p.v)}`).join(' ')
+                const pts = run.map((p) => `${x(p.i)},${y(p.v)}`).join(' L ')
                 return (
                   <g key={run[0]!.i}>
                     {s.fill && run.length > 1 && (
-                      <polygon
-                        points={`${x(run[0]!.i)},${y(0)} ${pts} ${x(run.at(-1)!.i)},${y(0)}`}
+                      <path
+                        className="line-move"
+                        d={`M ${x(run[0]!.i)},${y(0)} L ${pts} L ${x(run.at(-1)!.i)},${y(0)} Z`}
                         fill={s.color}
                         opacity={0.12}
                       />
                     )}
                     {run.length > 1 ? (
-                      <polyline
-                        points={pts}
+                      <path
+                        className="line-move"
+                        d={`M ${pts}`}
                         fill="none"
                         stroke={s.color}
                         strokeWidth="1.75"
                         strokeLinejoin="round"
                       />
                     ) : (
-                      <circle cx={x(run[0]!.i)} cy={y(run[0]!.v)} r="1.75" fill={s.color} />
+                      <circle
+                        className="line-move"
+                        cx={x(run[0]!.i)}
+                        cy={y(run[0]!.v)}
+                        r="1.75"
+                        fill={s.color}
+                      />
                     )}
                   </g>
                 )
               })}
               {lastShown && (
                 <circle
+                  className="line-move"
                   cx={x(lastShown.i)}
                   cy={y(lastShown.v)}
                   r="3"
@@ -1473,7 +1483,8 @@ export function Bars({
         {values.map((v, i) => {
           const x = pad.l + slot * i + (slot - bw) / 2
           return (
-            <g key={i} opacity={at !== null && at !== i ? 0.55 : 1}>
+            // A bar is its week in this range: another range has other weeks, so other bars.
+            <g key={`${values.length}-${i}`} opacity={at !== null && at !== i ? 0.55 : 1}>
               {v === null ? (
                 <line
                   x1={x}
@@ -1485,6 +1496,7 @@ export function Bars({
                 />
               ) : (
                 <rect
+                  className="bar-move"
                   x={x}
                   y={y(v)}
                   width={bw}
