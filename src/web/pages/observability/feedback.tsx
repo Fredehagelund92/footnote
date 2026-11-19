@@ -32,7 +32,7 @@ import { HIDE_UNDER, REPORT_WORDS, shownCount, type ReportState } from '@/model/
 import { ObsPage } from '@/pages/observability'
 
 // Feedback: what people and agents said about answers. A thumbs up or down under an answer in Ask
-// keeps only the verdict and the domain; a report is sent on purpose, so it carries the person's
+// keeps only the verdict, the domain and the hour (FR-712); a report is sent on purpose, so it carries the person's
 // name; an agent's report carries its kind, never a name. Open reports wait in the Inbox, which is
 // the queue: nothing is scored here. Agents never read comments or reports.
 

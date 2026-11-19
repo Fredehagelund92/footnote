@@ -619,6 +619,17 @@ export interface FootnoteApi {
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
   /**
+   * Marks an answer of Ask good or wrong (FR-712), with the metrics it read, for its domain: only
+   * the verdict, the domain and the hour are kept, never who rated. The id it gives back is the
+   * only way to that rating: the page holds it, in memory, to take the rating back.
+   */
+  rateAnswer: (input: {
+    verdict: 'helpful' | 'wrong'
+    metrics: string[]
+  }) => Promise<{ id: string }>
+  /** Takes back the rating with this id; false when it is already gone. */
+  takeBackRating: (input: { id: string }) => Promise<{ taken: boolean }>
+  /**
    * Tells the owners that nothing is written about what an answer of Ask was about (decision 7 of
    * the chat audit): the report of kind missing agents file, as a gap on the subject's topic, with
    * its metrics and values by id (`metric:orders`, `value:market/poland`) and its days. It names
@@ -937,6 +948,8 @@ export const footnoteApiMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'rateAnswer',
+  'takeBackRating',
   'tellOwner',
   'observabilityPage',
   'obsDimensions',

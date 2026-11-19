@@ -216,7 +216,15 @@ import {
   toggleReactionSchema,
   withdrawCommentSchema,
 } from './comments.ts'
-import { createReportSchema, myReportsSchema, sentReportSchema } from './reports.ts'
+import {
+  createReportSchema,
+  myReportsSchema,
+  rateAnswerSchema,
+  ratingSchema,
+  sentReportSchema,
+  takeBackRatingSchema,
+  takenBackSchema,
+} from './reports.ts'
 import {
   figureReadSchema,
   figureSourceSchema,
@@ -2098,6 +2106,33 @@ export const contract = {
           'Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614)',
       })
       .output(askedSchema),
+    rate: read
+      .errors({
+        TOO_MANY_REQUESTS: {
+          status: 429,
+          message: "You've sent a lot of ratings. Try again in a minute.",
+          data: z.object({ retryAfterSeconds: z.number() }),
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/ask/ratings',
+        tags: ['assistant'],
+        summary:
+          "Mark an answer of Ask good or wrong (FR-712): counts the verdict in the domain of the answer's metrics and the hour, with a random id only the page that rated holds; no person, question or answer is kept",
+      })
+      .input(rateAnswerSchema)
+      .output(ratingSchema),
+    takeBack: read
+      .route({
+        method: 'POST',
+        path: '/ask/ratings/take-back',
+        tags: ['assistant'],
+        summary:
+          'Take a rating of Ask back (FR-712): removes the one rating with the id the page that rated holds, and says whether it was still there',
+      })
+      .input(takeBackRatingSchema)
+      .output(takenBackSchema),
   },
   obs: {
     agents: maintainRead

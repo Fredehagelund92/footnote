@@ -612,6 +612,9 @@ export const invalidations: {
   saveView: () => [queryKeys.savedViews],
   saveChat: () => [queryKeys.chats],
   reportAnswer: () => [queryKeys.myReports, ...inbox],
+  // Feedback counts the ratings.
+  rateAnswer: () => [queryKeys.observabilityPages],
+  takeBackRating: () => [queryKeys.observabilityPages],
   tellOwner: () => inbox,
   // Related says whether agents follow links.
   setLinks: () => [queryKeys.settings, queryKeys.relateds],

@@ -525,6 +525,23 @@ from it.
   did after it, `not_a_problem` (its card closed), `checked`, `changed` or `archived` (its item),
   and when. Ask shows it under the answer it was about.
 
+## Ratings
+
+Good answer and Bad answer under an answer in Ask (FR-712), typed in `src/contract/reports.ts`.
+A rating names nobody: it keeps the verdict, the domain and the hour, and nothing of who rated, the
+question or the answer.
+
+- `POST /ask/ratings` takes `{ verdict, metrics? }` (`helpful` or `wrong`, give_feedback's words;
+  up to 10 metric keys of what the answer read) and refuses any other field. It stores the
+  verdict, the one domain those metrics belong to on the live edition (as a gap's topic takes it;
+  null when none or several) and the hour in `assistant_ratings`, with a random id, and answers
+  `{ id }`. No history entry, log line or retry record names who rated: the write keeps no
+  `Idempotency-Key` answer, which would hold the person beside the id. Each person may rate
+  `limits.assistant_ratings_per_minute` (default 20) a minute; over it, 429 with `Retry-After`.
+- `POST /ask/ratings/take-back` takes `{ id }` and removes that one rating, answering
+  `{ taken }`: false when it is already gone. The page that rated holds the id in memory only, so
+  a second click on the same button takes the rating back; nothing else can find a rating.
+
 ## Comments, reactions and mentions
 
 People talk about a suggestion or a context item in a thread under it (FR-817; docs/product.md,
@@ -968,8 +985,8 @@ over its months) found nothing at least the minimum times.
   answers, each with its kind of agent and where it stands (`inbox` while its Reported card waits,
   `fine` when an owner closed it as not a problem, `looked` otherwise), and the reports people made
   from Try it and, until it left on 30 Oct 2026, the in-app assistant, which name nobody; and the
-  answers people marked good in that assistant, a week each for 14 weeks, and good and wrong in
-  the range (FR-712).
+  answers people marked good in Ask, a week each for 14 weeks, and good and wrong in the range
+  (FR-712, [Ratings](#ratings)).
 - `GET /observability/usage` (Usage, administrators): `range`. Each tool's calls and how they
   ended (answered, needed more detail, found nothing, failed), the calls of each kind of agent
   with its last hour, reply times (the median and 95 of 100, a day each for 7 days, a week each

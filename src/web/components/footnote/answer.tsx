@@ -1778,6 +1778,51 @@ function ContextAnswerBody({
   )
 }
 
+/** The metrics an answer read, for its rating's domain: the engine's keys, or the loop's subject. */
+const ratedMetrics = (answer: Answer) =>
+  answer.keys?.metrics ??
+  (answer.loop?.subject?.about ?? []).filter((id) => id.startsWith('metric:'))
+
+/**
+ * Good and Bad answer (FR-712): a click counts the verdict, a second click on the same one takes
+ * it back, and the other one takes it back and counts its own. The service keeps only the verdict,
+ * the domain and the hour; the rating's id stays in this answer's memory, the one way back to it.
+ */
+function useRating(answer: Answer) {
+  const write = useWrite()
+  const [rated, setRated] = React.useState<'helpful' | 'wrong' | null>(null)
+  // The id of the rating counted now, once the service answers: one chain, so clicks apply in order.
+  const counted = React.useRef<Promise<string | null>>(Promise.resolve(null))
+  const rate = (verdict: 'helpful' | 'wrong') => {
+    const before = rated
+    const next = rated === verdict ? null : verdict
+    setRated(next)
+    counted.current = counted.current.then(async (id) => {
+      if (id)
+        try {
+          await write('takeBackRating', { id })
+        } catch {
+          setRated(before)
+          toast.error("Your rating wasn't taken back", {
+            description: 'It still counts. Click it again in a moment.',
+          })
+          return id
+        }
+      if (!next) return null
+      try {
+        return (await write('rateAnswer', { verdict: next, metrics: ratedMetrics(answer) })).id
+      } catch {
+        setRated(null)
+        toast.error("Your rating wasn't counted", {
+          description: 'Nothing was kept. Click it again in a moment.',
+        })
+        return null
+      }
+    })
+  }
+  return { rated, rate }
+}
+
 /**
  * One row of icons under a finished answer: Copy, Good, Bad, Ask again on the chat's last answer,
  * and More with the rest (Something wrong?, Save question, Share). The last answer always shows
@@ -1809,7 +1854,7 @@ export function AnswerActions({
   onWrong: (wrong: boolean) => void
   canReport: boolean
 }) {
-  const [rated, setRated] = React.useState<'up' | 'down' | null>(null)
+  const { rated, rate } = useRating(answer)
   const [copied, copy] = useCopied()
   // Saving a question is for the owners of the domain it is about, and admins.
   const me = useMe()
@@ -1850,18 +1895,18 @@ export function AnswerActions({
         <>
           <IconButton
             label="Good answer"
-            active={rated === 'up'}
-            onClick={() => setRated(rated === 'up' ? null : 'up')}
+            active={rated === 'helpful'}
+            onClick={() => rate('helpful')}
           >
-            {rated === 'up' ? <CheckIcon /> : <ThumbsUpIcon />}
+            {rated === 'helpful' ? <CheckIcon /> : <ThumbsUpIcon />}
           </IconButton>
           {/* One way to say it is wrong: a bad answer asks what was wrong, in the same form. */}
           <IconButton
             label="Bad answer"
-            active={rated === 'down'}
+            active={rated === 'wrong'}
             onClick={() => {
-              setRated(rated === 'down' ? null : 'down')
-              if (rated !== 'down') onWrong(true)
+              rate('wrong')
+              if (rated !== 'wrong') onWrong(true)
             }}
           >
             <ThumbsDownIcon />

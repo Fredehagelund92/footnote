@@ -412,6 +412,7 @@ export function createMockApi() {
 
   /** The reports the person sent from Ask this visit, newest first. */
   const reports: { id: string; question: string; at: Date }[] = []
+  const ratings = new Map<string, 'helpful' | 'wrong'>()
 
   /** Who sets and turns off a policy to publish without review, by name; the review flag first. */
   const policyReader = () => {
@@ -988,6 +989,14 @@ export function createMockApi() {
       now(() =>
         reports.map((r) => ({ id: r.id, question: r.question, on: reportedOn(r.at, new Date()) })),
       ),
+    // A rating waits in this visit's memory with only its verdict, as the service keeps it.
+    rateAnswer: ({ verdict }) =>
+      now(() => {
+        const id = globalThis.crypto.randomUUID()
+        ratings.set(id, verdict)
+        return { id }
+      }),
+    takeBackRating: ({ id }) => now(() => ({ taken: ratings.delete(id) })),
 
     // Observability
     observabilityPage: ({ section, ...view }) =>

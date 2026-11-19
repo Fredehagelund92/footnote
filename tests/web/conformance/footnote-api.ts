@@ -2603,6 +2603,20 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'rateAnswer', 'takeBackRating'))(
+      'marks an answer good, and takes that one rating back once',
+      async () => {
+        const a = await signedIn()
+        const { id } = await a.rateAnswer({ verdict: 'helpful', metrics: ['metric:orders'] })
+        expect(id).toMatch(/^[0-9a-f-]{36}$/)
+        const other = await a.rateAnswer({ verdict: 'wrong', metrics: [] })
+        expect(other.id).not.toBe(id)
+        expect(await a.takeBackRating({ id })).toEqual({ taken: true })
+        expect(await a.takeBackRating({ id })).toEqual({ taken: false })
+        expect(await a.takeBackRating({ id: other.id })).toEqual({ taken: true })
+      },
+    )
+
     /** FR-614 on a page: no count from one to four, and no shown total that gives one away. */
     const expectDisclosed = (page: ObsData) => {
       const fine = (n: number | null) => n === null || n === 0 || n >= 5

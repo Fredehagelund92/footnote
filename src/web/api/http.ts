@@ -261,6 +261,8 @@ export const wiredMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'rateAnswer',
+  'takeBackRating',
   'tellOwner',
   'observabilityPage',
   'obsDimensions',
@@ -2331,6 +2333,14 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           : {}),
       }))
     },
+
+    // A rating names no one (FR-712): the service keeps no retry record of it.
+    rateAnswer: ({ verdict, metrics }) => {
+      const input = { verdict, ...(metrics.length ? { metrics: metrics.slice(0, 10) } : {}) }
+      return write('ask.rate', input, (o) => client.ask.rate(input, o))
+    },
+    takeBackRating: ({ id }) =>
+      write('ask.takeBack', { id }, (o) => client.ask.takeBack({ id }, o)),
 
     // Observability: the service discloses every count (FR-614); this binding only names things.
     // Quality and Alerts read their own lists (saved questions, alerts); Alerts with nothing ever
