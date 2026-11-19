@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { ArrowUpRightIcon, BellIcon, UsersIcon } from '@/components/icons'
-import { useAlerts, useRaisedPages, useWrite } from '@/api/queries'
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/api'
+import { queryKeys, useAlerts, useWrite } from '@/api/queries'
 import { alertRule } from '@domain/alerts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -107,6 +109,30 @@ function Alerts() {
       </p>
     </Frame>
   )
+}
+
+/**
+ * What the rules raised, of one rule or of all, a page at a time. The first page of all is the one
+ * the Alerts read holds, so the list opens with it; Show more reads the next. Its key sits under
+ * the Alerts read's, so what refreshes that refreshes these too. Another rule keeps the rows on
+ * screen until its own have loaded.
+ */
+export function useRaisedPages(rule: RuleId | null, first: RaisedPage) {
+  const client = useQueryClient()
+  return useInfiniteQuery({
+    queryKey: [...queryKeys.alerts, 'raised', rule ?? 'all'],
+    queryFn: ({ pageParam }) =>
+      api.getRaised({ ...(rule ? { rule } : {}), ...(pageParam ? { after: pageParam } : {}) }),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.next ?? undefined,
+    ...(rule === null
+      ? {
+          initialData: { pages: [first], pageParams: [''] },
+          initialDataUpdatedAt: () => client.getQueryState(queryKeys.alerts)?.dataUpdatedAt,
+        }
+      : {}),
+    placeholderData: keepPreviousData,
+  })
 }
 
 /**

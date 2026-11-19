@@ -1,8 +1,6 @@
 import * as React from 'react'
 import {
-  keepPreviousData,
   queryOptions,
-  useInfiniteQuery,
   useMutation,
   useQueryClient,
   useSuspenseQuery,
@@ -21,7 +19,6 @@ import {
   type ScopeSearchInput,
 } from '@/api/client'
 import { reportSignedOut } from '@/api/query-client'
-import type { RaisedPage, RuleId } from '@/model/alerts'
 import type { AskInput } from '@/model/ask'
 import type { FigureAsk } from '@/model/figures'
 import type { Source } from '@/model/integrations'
@@ -480,29 +477,6 @@ export const useReviews = () => useSuspenseQuery(useSharedRead(reviewsQuery())).
 export const useSavedQuestions = () => useSuspenseQuery(useSharedRead(savedQuestionsQuery())).data
 export const useAlerts = () => useSuspenseQuery(useSharedRead(alertsQuery())).data
 
-/**
- * What the rules raised, of one rule or of all, a page at a time. The first page of all is the one
- * the Alerts read holds, so the list opens with it; Show more reads the next. Its key sits under
- * the Alerts read's, so what refreshes that refreshes these too. Another rule keeps the rows on
- * screen until its own have loaded.
- */
-export function useRaisedPages(rule: RuleId | null, first: RaisedPage) {
-  const client = useQueryClient()
-  return useInfiniteQuery({
-    queryKey: [...queryKeys.alerts, 'raised', rule ?? 'all'],
-    queryFn: ({ pageParam }) =>
-      api.getRaised({ ...(rule ? { rule } : {}), ...(pageParam ? { after: pageParam } : {}) }),
-    initialPageParam: '',
-    getNextPageParam: (last) => last.next ?? undefined,
-    ...(rule === null
-      ? {
-          initialData: { pages: [first], pageParams: [''] },
-          initialDataUpdatedAt: () => client.getQueryState(queryKeys.alerts)?.dataUpdatedAt,
-        }
-      : {}),
-    placeholderData: keepPreviousData,
-  })
-}
 export const useSavedViews = () => useSuspenseQuery(useSharedRead(savedViewsQuery())).data
 export const useAskExamples = () => useSuspenseQuery(useSharedRead(askExamplesQuery())).data
 export const useChats = () => useSuspenseQuery(useSharedRead(chatsQuery())).data
