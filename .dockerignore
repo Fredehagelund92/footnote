@@ -16,5 +16,5 @@ test-results
 *held-out*.key
 overlay
 .claude
-# The public docs site is built and hosted on its own (apps/docs/README.md).
-apps/docs
+# The public site is built and hosted on its own (site/README.md).
+site

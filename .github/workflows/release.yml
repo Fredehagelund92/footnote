@@ -6,7 +6,7 @@ name: Release
 # pushed to ghcr.io with an SBOM and the build provenance, and signed with GitHub's build
 # provenance. Each is scanned before it is tagged. Before the release names them, the demo journey
 # and the eight demo questions run on the tagged images as the README's Quick start pulls them
-# (demo-images.yml). The docs site is built at the tag (docs-site.yml), apart from all of that. The
+# (demo-images.yml). The site is built at the tag (site.yml), apart from all of that. The
 # GitHub Release gets the notes release-please wrote into CHANGELOG.md. Last, a separate job
 # attaches the docs as a tarball when the docs build succeeded; if it failed, the release and
 # images stand and a warning says the tarball is missing.
@@ -280,11 +280,11 @@ jobs:
 
   docs:
     # Its publish job, which needs the write, only runs once a maintainer has turned it on.
-    name: Docs site
+    name: Site
     needs: check
     permissions:
       contents: write # the gh-pages branch
-    uses: ./.github/workflows/docs-site.yml
+    uses: ./.github/workflows/site.yml
     with:
       version: ${{ needs.check.outputs.version }}
 
@@ -344,7 +344,7 @@ jobs:
     steps:
       - name: The docs build failed, so the release has no docs tarball
         if: ${{ needs.docs.result != 'success' }}
-        run: echo "::warning::The docs site build did not succeed, so footnote-docs-${{ needs.check.outputs.version }}.tar.gz was not attached to the release. The release and the images are unaffected."
+        run: echo "::warning::The site build did not succeed, so footnote-docs-${{ needs.check.outputs.version }}.tar.gz was not attached to the release. The release and the images are unaffected."
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: ${{ needs.docs.result == 'success' }}
         with:

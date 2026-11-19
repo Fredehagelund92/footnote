@@ -1,0 +1,58 @@
+---
+import Select from '@astrojs/starlight/components/Select.astro'
+import { siteLinks } from '../../lib/site.ts'
+import { readSettings } from '../../lib/settings.ts'
+import ThemeToggle from '../../shared/ThemeToggle.astro'
+
+/* The version being read, the theme button and Install, as at the end of the landing page's
+   header. */
+const settings = readSettings(process.env)
+const { home } = siteLinks(settings)
+---
+
+{
+  settings.version && (
+    <footnote-version data-root={settings.root} data-current={settings.version} hidden>
+      <Select
+        icon="open-book"
+        label="Version"
+        options={[{ label: settings.version, value: settings.version, selected: true }]}
+        width="9em"
+      />
+    </footnote-version>
+  )
+}
+<ThemeToggle />
+<a class="btn btn-ink btn-sm" href={`${home}#run`}>Install</a>
+
+<script>
+  // The list is read when a page opens, so an old version's pages know of newer ones without being
+  // built again. With no versions.json (a copy served on its own) nothing shows.
+  class FootnoteVersion extends HTMLElement {
+    async connectedCallback() {
+      const { root = '', current = '' } = this.dataset
+      const docs = `${root}/docs`
+      const response = await fetch(`${docs}/versions.json`).catch(() => undefined)
+      if (!response?.ok) return
+      const { latest, versions } = (await response.json()) as {
+        latest: string
+        versions: string[]
+      }
+      const select = this.querySelector('select')!
+      select.replaceChildren(
+        ...versions.map((version) => {
+          const label = version === latest ? `${version} (latest)` : version
+          return new Option(label, version, version === current, version === current)
+        }),
+      )
+      this.hidden = false
+      select.addEventListener('change', async () => {
+        const home = `${docs}/${select.value}/`
+        const same = location.pathname.replace(`${docs}/${current}/`, home)
+        const found = await fetch(same, { method: 'HEAD' }).catch(() => undefined)
+        location.href = found?.ok ? same + location.hash : home
+      })
+    }
+  }
+  customElements.define('footnote-version', FootnoteVersion)
+</script>

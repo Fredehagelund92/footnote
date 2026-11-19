@@ -1,0 +1,52 @@
+---
+/* The light and dark button of the header. Every copy on the page follows the theme, whichever
+   one was pressed. The icons are the landing page's moon and sun. */
+const icon = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  'stroke-width': 2,
+  'stroke-linecap': 'round',
+  'stroke-linejoin': 'round',
+  'aria-hidden': 'true',
+} as const
+---
+
+<footnote-theme>
+  <button class="icon-btn" type="button" aria-label="Switch to dark mode">
+    <svg class="theme-moon" {...icon}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+    <svg class="theme-sun" {...icon}>
+      <circle cx="12" cy="12" r="4"></circle>
+      <path
+        d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+      ></path>
+    </svg>
+  </button>
+</footnote-theme>
+
+<script>
+  import { themeKey } from './theme.ts'
+
+  const root = document.documentElement
+  const isDark = () => root.dataset.theme === 'dark'
+
+  class FootnoteTheme extends HTMLElement {
+    connectedCallback() {
+      const button = this.querySelector('button')!
+      const paint = () =>
+        button.setAttribute('aria-label', isDark() ? 'Switch to light mode' : 'Switch to dark mode')
+      paint()
+      new MutationObserver(paint).observe(root, { attributeFilter: ['data-theme'] })
+      button.addEventListener('click', () => {
+        const next = isDark() ? 'light' : 'dark'
+        root.dataset.theme = next
+        try {
+          localStorage.setItem(themeKey, next)
+        } catch {
+          // A browser that keeps nothing still switches, for this page.
+        }
+      })
+    }
+  }
+  customElements.define('footnote-theme', FootnoteTheme)
+</script>

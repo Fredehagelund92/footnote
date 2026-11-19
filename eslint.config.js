@@ -68,8 +68,8 @@ export default tseslint.config(
       'tests/lint/fixtures/**',
       // The private overlay is never committed (.gitignore).
       'overlay/**',
-      // The docs site, with its dependencies kept out of the app's (apps/docs/README.md).
-      'apps/docs/**',
+      // The site, with its dependencies kept out of the app's (site/README.md).
+      'site/**',
     ],
   },
   js.configs.recommended,

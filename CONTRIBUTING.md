@@ -86,7 +86,7 @@ Footnote is one npm package, not a workspace. The layout is in the
 | `tests/e2e`         | Browser tests: the golden journeys and axe, on the mock build and in http mode       |
 | `db`                | Migrations, grants and the demo data (`db/seed`)                                     |
 | `docs`              | Everything written about Footnote; `docs/help` is also the app's own Docs            |
-| `apps/docs`         | The public docs site, built from the Markdown in `docs`                              |
+| `site`              | The public site: the landing page, and the docs built from the Markdown in `docs`    |
 
 ## Run it
 

@@ -1,0 +1,33 @@
+---
+import { DEFAULT_PRODUCT_NAME } from '../../src/domain/brand.ts'
+import { readSettings } from '../lib/settings.ts'
+
+/* The logo: the asterisk with a loose dot and the lowercase wordmark (docs/design/logo.md). A
+   renamed build shows its name instead. */
+interface Props {
+  href: string
+}
+
+const { product } = readSettings(process.env)
+---
+
+<a class="brand" href={Astro.props.href} aria-label={`${product}, home`}>
+  {
+    product === DEFAULT_PRODUCT_NAME ? (
+      <Fragment>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round">
+            <path d="M24 24 L24 10" />
+            <path d="M24 24 L37.3 19.7" />
+            <path d="M24 24 L15.8 35.3" />
+            <path d="M24 24 L10.7 19.7" />
+          </g>
+          <circle cx="32.8" cy="36.1" r="4.5" fill="currentColor" />
+        </svg>
+        footnote
+      </Fragment>
+    ) : (
+      product
+    )
+  }
+</a>

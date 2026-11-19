@@ -36,10 +36,13 @@ tests that need PostgreSQL 18, against `TEST_DATABASE_URL` (default
   links, the app's own lists they include, and every bold control, which must have a row in
   `tests/e2e/docs-controls.ts`; `tests/e2e/docs-controls.spec.ts` draws each row's screen
   in the browser and finds the control on it. `npm run docs:sync` mends an include that is out of date.
-- **Docs site (Vitest, and the build).** `apps/docs/test` tests the public docs site's own code. Its
-  build fails on a published page that is not ready for readers, then reads the built pages and
-  fails on a link or heading that goes nowhere
-  ([apps/docs](../apps/docs/README.md)).
+- **The public site (Vitest, the build and a smoke test).** `site/test` tests the site's own code.
+  Its build fails on a published page that is not ready for readers, then reads the built pages,
+  the landing page among them, and fails on a link or heading that goes nowhere.
+  `site/e2e/smoke.spec.ts` opens the landing page and the docs at 390 and 1440 px, light and dark,
+  and fails on a console error, a request to another host, a page that scrolls sideways or a
+  serious axe finding ([the site](../site/README.md)). The app's `npm test` leaves the site out;
+  CI runs it in its own job.
 - **Module boundaries (Vitest).** `tests/lint/boundaries.test.ts` lints a fixture tree that breaks
   each boundary and expects each break to be reported.
 - **Guard rails (Vitest).** `tests/lint/web-guard-rails.test.ts` and `tests/lint/guard-rails.test.ts`

@@ -1,0 +1,60 @@
+/*
+  The site's design tokens, from the landing page, which the docs read too (site/README.md, "The
+  design"): cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and
+  links, and a highlighter yellow for what was checked. Schibsted Grotesk is Footnote talking,
+  Source Serif 4 is what an agent says. Light unless the reader picks dark (shared/theme.ts).
+*/
+
+:root {
+  --paper: #f2f4f7;
+  --sheet: #ffffff;
+  --ink: #151922;
+  --ink-2: #424958;
+  /* A shade darker than the approved #727a8a, so small text keeps 4.5:1 on the paper (WCAG AA). */
+  --ink-3: #686f7e;
+  --rule: #e4e7ed;
+  --rule-2: #cdd2db;
+  --mark: #2a48db;
+  --mark-soft: #e4e9fd;
+  --hl: rgba(255, 221, 64, 0.62);
+  --ok: #1d7a4b;
+  --ok-bg: #e3f3ea;
+  --warn: #8a5a0b;
+  --warn-bg: #f5ead2;
+  --code-bg: #121620;
+  --code-ink: #e6e9f0;
+  --code-dim: #8b94a7;
+  --shadow: 0 1px 2px rgba(21, 25, 34, 0.05), 0 14px 36px -22px rgba(21, 25, 34, 0.32);
+  --logo: #111111;
+  --dot: rgba(21, 25, 34, 0.085);
+  --sans: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --serif: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --main: 660px;
+  --notes: 290px;
+  --gap: 64px;
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --paper: #0a0d14;
+  --sheet: #0f131c;
+  --ink: #e8ebf2;
+  --ink-2: #b4bbca;
+  --ink-3: #7e8698;
+  --rule: #1d2330;
+  --rule-2: #2c3444;
+  --mark: #93a6ff;
+  --mark-soft: #1c2448;
+  --hl: rgba(255, 210, 60, 0.26);
+  --ok: #7fd3a4;
+  --ok-bg: #14291e;
+  --warn: #e6bc6a;
+  --warn-bg: #3a2e17;
+  --code-bg: #06080d;
+  --code-ink: #e6e9f0;
+  --code-dim: #7d879b;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 44px -22px rgba(0, 0, 0, 0.8);
+  --logo: #ffffff;
+  --dot: rgba(232, 235, 242, 0.075);
+  color-scheme: dark;
+}

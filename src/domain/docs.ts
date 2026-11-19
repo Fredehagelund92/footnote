@@ -164,7 +164,7 @@ export function docLinks(blocks: readonly DocBlock[]): DocTarget[] {
 export const docPath = (base: string, slug: string, hash = '') =>
   `${base}/${slug}${hash ? `#${hash}` : ''}`
 
-/** What the agents' text reads of the docs: this model, or a site's own list (apps/docs). */
+/** What the agents' text reads of the docs: this model, or a site's own list (site). */
 export type DocIndex = {
   pages: readonly { slug: string; title: string; line: string; group?: string }[]
   changelog: { title: string; line: string }

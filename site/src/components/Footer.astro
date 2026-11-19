@@ -1,0 +1,12 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro'
+import { siteLinks } from '../../lib/site.ts'
+import { readSettings } from '../../lib/settings.ts'
+import SiteFooter from '../../shared/SiteFooter.astro'
+
+/* Starlight's last check and previous and next, then the landing page's footer. */
+const { home } = siteLinks(readSettings(process.env))
+---
+
+<Default />
+<SiteFooter home={home} docs={Astro.locals.starlightRoute.siteTitleHref} />

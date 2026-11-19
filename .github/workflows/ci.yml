@@ -151,7 +151,7 @@ jobs:
         run: npm run format:check
 
   unit:
-    name: Unit tests, build, first load budget, docs site
+    name: Unit tests, build, first load budget
     needs: scope
     if: needs.scope.outputs.check == 'true'
     runs-on: ubuntu-latest
@@ -166,9 +166,6 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            apps/docs/package-lock.json
       - run: npm ci
       - name: Unit, service and guard rail tests
         run: npm test
@@ -188,15 +185,50 @@ jobs:
       # sizes, the growth, the ceilings and the margins also go to the job's summary page.
       - name: Build the web app as it ships (http mode) and check the first load budget
         run: npm run size -- ${SIZE_BASE:+--base "$SIZE_BASE"}
-      # apps/docs is its own package, so the docs framework stays out of the app's packages.
-      - name: The public docs site (apps/docs), built, with every link checked
-        working-directory: apps/docs
-        run: |
-          npm ci
-          npm run typecheck
-          npm run lint
-          npm test
-          npm run build
+
+  site:
+    # The landing page and the docs (site/README.md), its own package, so the site's framework stays
+    # out of the app's packages and none of the app's jobs run for it. In every run: the site reads
+    # the docs, the app's icons and the files the landing page cites, so almost any change can
+    # break a link, and the job is short.
+    name: The site, built, every link checked, smoke tested
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      # As it is published, under a path and with a version, so a link that ignores either fails.
+      - name: Built as published, under the Pages path, as /docs/next/
+        env:
+          SITE_URL: https://fredehagelund92.github.io/footnote
+          DOCS_VERSION: next
+        run: npm run build
+      # At the root of a host, as the smoke test and a team without internet access serve it.
+      - name: Built at the root of a host
+        run: npm run build
+      - uses: ./.github/actions/playwright
+        with:
+          directory: site
+      - name: Smoke test, at 390 and 1440 px, light and dark (e2e/smoke.spec.ts)
+        run: npm run test:smoke
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report-site
+          path: site/test-results
+          retention-days: 7
 
   service:
     # Split into parts by test file; each part has its own database.
@@ -517,7 +549,20 @@ jobs:
     name: CI gate
     if: always()
     needs:
-      [scope, migrations, check, unit, service, seed, own-data, docker, web, golden-http, security]
+      [
+        scope,
+        migrations,
+        check,
+        unit,
+        site,
+        service,
+        seed,
+        own-data,
+        docker,
+        web,
+        golden-http,
+        security,
+      ]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -537,6 +582,7 @@ jobs:
           expect scope true
           expect migrations true
           expect security true
+          expect site true
           expect check "$CHECK"
           expect unit "$CHECK"
           expect service "$CODE"

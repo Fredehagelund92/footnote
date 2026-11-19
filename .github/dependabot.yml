@@ -32,9 +32,9 @@ updates:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
 
-  # The docs site is its own npm package. A bad upgrade can only break the docs build.
+  # The site is its own npm package. A bad upgrade can only break the site build.
   - package-ecosystem: npm
-    directory: /apps/docs
+    directory: /site
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
