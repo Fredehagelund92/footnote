@@ -172,9 +172,7 @@ describe('the model check', () => {
     expect(answersWithTools(check)).toBe(true)
     expect(testRunRefusal(check)).toBeNull()
     expect(roleFails('eval_answer', check)).toBe(false)
-    expect(checkWords('assistant', check)).toBe(
-      'Couldn’t tell, so Ask reads with its tools',
-    )
+    expect(checkWords('assistant', check)).toBe('Couldn’t tell, so Ask reads with its tools')
   })
 })
 
