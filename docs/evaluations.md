@@ -384,7 +384,10 @@ of FR-720.10 before they are shown (below); the judges' part waits.
   nearby is listed and not used, and an answer that cites any other item the chat's reads returned
   is never Not found (Partial at most). An answer that cites no item and gives or is asked for a
   definition its reads returned carries the Definition label in place of a state; a reply that
-  read nothing new and cites nothing ("thanks!") carries none of the evidence. Then the footer, what was read line by line, and a step as each
+  read nothing new and cites nothing ("thanks!") carries none of the evidence, and one that read
+  nothing new and cites earlier items carries the state of the reads that returned them. Words that
+  cite nothing and name only what no subject read was about ("Who owns Sales?" answered with the
+  domain) carry no state and no read line of that subject. Then the footer, what was read line by line, and a step as each
   read starts and once it is done.
 - **The answer as the page draws it** (`src/server/modules/answer/loop-body.ts`). Each result has a
   ref (`r1`) and names every noun it returns by the id a typed mention writes
