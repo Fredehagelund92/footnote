@@ -20,6 +20,9 @@ export const modelProviders: readonly ProviderEntry[] = [
     operator: 'Anthropic',
     operatorHost: 'api.anthropic.com',
     apiKeyEnv: 'ANTHROPIC_API_KEY',
+    // A gateway that speaks the Messages API at ANTHROPIC_BASE_URL may take a bearer token
+    // instead, as OpenRouter, LiteLLM, Ollama and Vercel's gateway do.
+    authTokenEnv: 'ANTHROPIC_AUTH_TOKEN',
     baseUrlEnv: 'ANTHROPIC_BASE_URL',
     baseUrl: 'https://api.anthropic.com/v1',
     // List prices of the direct API (Claude API skill tables, cached 2026-09-25). A prompt cache write
@@ -120,6 +123,14 @@ export const vendorNames: Record<string, string> = {
   google: 'Google',
   openai: 'OpenAI',
 }
+
+/** Every environment variable a provider reads: its key, bearer token and base URL. */
+export const providerEnvNames = (entries: readonly ProviderEntry[] = modelProviders): string[] =>
+  entries.flatMap((entry) => [
+    entry.apiKeyEnv,
+    ...(entry.authTokenEnv ? [entry.authTokenEnv] : []),
+    entry.baseUrlEnv,
+  ])
 
 /** Every role's model when its setting is missing (plan section 2.3). */
 export const defaultModel: ModelRef = { provider: 'anthropic', model: 'claude-sonnet-5-5' }

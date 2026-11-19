@@ -32,6 +32,13 @@ refuses an unknown provider, an unlisted model without prices or a missing key w
 setting. To answer and judge through the gateway, set its key and change `models.eval_answer`,
 `models.judge` (or keep `different_family`) and `models.assistant` to `vercel-gateway`.
 
+`anthropic` is Anthropic's own API, or a gateway that speaks its Messages API at
+`ANTHROPIC_BASE_URL`, such as OpenRouter (`https://openrouter.ai/api/v1`), LiteLLM, Ollama
+(`http://localhost:11434/v1`) or Microsoft Foundry. Such a gateway may take
+`ANTHROPIC_AUTH_TOKEN`, sent as a bearer token, in place of `ANTHROPIC_API_KEY`; set only one. A
+Claude model keeps its prompt cache this way; a model name the gateway uses that this entry does
+not list needs its prices in the setting.
+
 `openai` is OpenAI's own API, or any server that speaks its Chat Completions API at
 `OPENAI_BASE_URL`: a hosted one such as OpenRouter or Groq, a company gateway such as LiteLLM, or a
 model server such as Ollama or vLLM. It lists no model, so each setting gives its prices, and a

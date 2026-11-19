@@ -841,3 +841,62 @@ describe('where a base URL is', () => {
     expect(placeOf(new URL(`http://${host}:8000/v1`).hostname)).toBe(place)
   })
 })
+
+describe('the anthropic entry at a gateway that speaks the Messages API', () => {
+  const haiku = { provider: 'anthropic', model: 'claude-haiku-4-5' }
+  const requests: { url: string; headers: Headers }[] = []
+  const serve = () => {
+    requests.length = 0
+    vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
+      requests.push({ url, headers: new Headers(init.headers) })
+      return Promise.resolve(
+        Response.json({
+          id: 'msg_1',
+          type: 'message',
+          role: 'assistant',
+          model: haiku.model,
+          content: [{ type: 'text', text: 'Pass.' }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 10, output_tokens: 2 },
+        }),
+      )
+    })
+  }
+  const port = (env: Record<string, string>) => createModelPort({ mode: 'live', env })
+
+  it('sends ANTHROPIC_AUTH_TOKEN as a bearer token in place of the key', async () => {
+    serve()
+    const token = 'gw-placeholder-not-a-token'
+    const choice = port({
+      ANTHROPIC_AUTH_TOKEN: token,
+      ANTHROPIC_BASE_URL: 'https://openrouter.ai/api/v1',
+    }).choose('assistant', haiku)
+    expect(choice.recipients).toBe('the host at openrouter.ai and Anthropic')
+    const result = await generateText({ model: choice.model, prompt: 'Hello.' })
+    expect(result.text).toBe('Pass.')
+    expect(requests[0]!.url).toBe('https://openrouter.ai/api/v1/messages')
+    expect(requests[0]!.headers.get('authorization')).toBe(`Bearer ${token}`)
+    expect(requests[0]!.headers.has('x-api-key')).toBe(false)
+  })
+
+  it('sends the key as x-api-key, as Anthropic itself takes it', async () => {
+    serve()
+    const key = 'sk-ant-placeholder-not-a-key'
+    const choice = port({ ANTHROPIC_API_KEY: key }).choose('assistant', haiku)
+    await generateText({ model: choice.model, prompt: 'Hello.' })
+    expect(requests[0]!.url).toBe('https://api.anthropic.com/v1/messages')
+    expect(requests[0]!.headers.get('x-api-key')).toBe(key)
+    expect(requests[0]!.headers.has('authorization')).toBe(false)
+  })
+
+  it('refuses both a key and a token, and names both when neither is set', () => {
+    expect(() =>
+      port({ ANTHROPIC_API_KEY: 'k', ANTHROPIC_AUTH_TOKEN: 't' }).choose('assistant', haiku),
+    ).toThrow(
+      'Provider anthropic has both ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN. Set only one of them.',
+    )
+    expect(() => port({}).choose('assistant', haiku)).toThrow(
+      'models.assistant uses provider anthropic, which needs ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN. Put it in .env.local (never commit it), or use MODELS=mock.',
+    )
+  })
+})

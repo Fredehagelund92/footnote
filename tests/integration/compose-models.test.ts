@@ -5,7 +5,7 @@ import { loadConfig } from '../../src/server/config/env.ts'
 import {
   checkModelSettings,
   createModelPort,
-  modelProviders,
+  providerEnvNames,
   readModelSettings,
 } from '../../src/server/modules/models/index.ts'
 import { apiDatabase, testDatabase } from './support.ts'
@@ -23,7 +23,7 @@ const compose = parse(
   await readFile(new URL('../../compose.yaml', import.meta.url), 'utf8'),
 ) as Compose
 const environment = compose.services['footnote']!.environment!
-const passed = ['MODELS', ...modelProviders.flatMap((p) => [p.apiKeyEnv, p.baseUrlEnv])]
+const passed = ['MODELS', ...providerEnvNames()]
 
 /** The service's model environment, as compose writes it from the shell's: set names only. */
 const fromShell = (shell: Record<string, string>) =>

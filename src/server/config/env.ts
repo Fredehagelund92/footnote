@@ -2,7 +2,7 @@ import { isIP } from 'node:net'
 import * as z from 'zod'
 import { DEFAULT_WEB_ORIGINS } from '../../contract/limits.ts'
 import { productNameProblem } from '../../domain/brand.ts'
-import { modelProviders } from '../modules/models/index.ts'
+import { providerEnvNames } from '../modules/models/index.ts'
 
 /**
  * The service's configuration, read once from the environment at start-up. Anything invalid
@@ -337,7 +337,7 @@ export interface Config {
   models: 'mock' | 'live'
   /** FOOTNOTE_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). */
   askLoop: boolean
-  /** The registry's key and base URL variables that are set, by name. Never logged. */
+  /** The registry's key, bearer token and base URL variables that are set, by name. Never logged. */
   modelEnv: Record<string, string>
   cubeModelDir: string | undefined
   /** The folders on the server, by connector id (`FOOTNOTE_SERVER_FOLDERS`). */
@@ -411,9 +411,9 @@ export function loadConfig(environment: Record<string, string | undefined>): Con
     models: env.MODELS,
     askLoop: env.FOOTNOTE_ASK_LOOP === 'on',
     modelEnv: Object.fromEntries(
-      modelProviders
-        .flatMap((provider) => [provider.apiKeyEnv, provider.baseUrlEnv])
-        .flatMap((name) => (present[name] === undefined ? [] : [[name, present[name]]])),
+      providerEnvNames().flatMap((name) =>
+        present[name] === undefined ? [] : [[name, present[name]]],
+      ),
     ),
     cubeModelDir: env.CUBE_MODEL_DIR,
     serverFolders: env.FOOTNOTE_SERVER_FOLDERS ?? {},

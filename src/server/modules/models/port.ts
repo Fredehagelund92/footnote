@@ -129,13 +129,18 @@ export function createModelPort(options: ModelPortOptions): ModelPort {
     if (!URL.canParse(baseUrl) || !/^https?:$/.test(new URL(baseUrl).protocol))
       throw new ModelConfigError(`${entry.baseUrlEnv} must be an http or https URL`)
     const apiKey = env[entry.apiKeyEnv] || undefined
+    const authToken = (entry.authTokenEnv && env[entry.authTokenEnv]) || undefined
+    if (apiKey && authToken)
+      throw new ModelConfigError(
+        `Provider ${entry.name} has both ${entry.apiKeyEnv} and ${entry.authTokenEnv}. Set only one of them.`,
+      )
     const keyless =
       entry.keyOptionalWhenPrivate && placeOf(new URL(baseUrl).hostname) !== 'internet'
-    if (!apiKey && !keyless)
+    if (!apiKey && !authToken && !keyless)
       throw new ModelConfigError(
-        `${setting} uses provider ${entry.name}, which needs ${entry.apiKeyEnv}. Put it in .env.local (never commit it), or use MODELS=mock.`,
+        `${setting} uses provider ${entry.name}, which needs ${entry.authTokenEnv ? `${entry.apiKeyEnv} or ${entry.authTokenEnv}` : entry.apiKeyEnv}. Put it in .env.local (never commit it), or use MODELS=mock.`,
       )
-    return { apiKey, baseUrl }
+    return authToken ? { apiKey, authToken, baseUrl } : { apiKey, baseUrl }
   }
   const baseUrlOf = (entry: ProviderEntry) => env[entry.baseUrlEnv] || entry.baseUrl
   const connect = (setting: string, entry: ProviderEntry) => {

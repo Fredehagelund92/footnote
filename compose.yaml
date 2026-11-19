@@ -66,6 +66,7 @@ services:
       # written: the provider packages fail on an empty address, so an unset one must stay unset.
       MODELS:
       ANTHROPIC_API_KEY:
+      ANTHROPIC_AUTH_TOKEN:
       ANTHROPIC_BASE_URL:
       VERCEL_AI_GATEWAY_API_KEY:
       VERCEL_AI_GATEWAY_BASE_URL:

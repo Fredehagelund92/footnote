@@ -44,14 +44,16 @@ The login server's own settings are on [Sign in your own agent](ai-sign-in.md#th
 
 ## Models
 
-| Setting                     | Default | What it does                                                  |
-| --------------------------- | ------- | ------------------------------------------------------------- |
-| `MODELS`                    | `mock`  | `mock` is scripted and sends nothing. `live` uses real models |
-| `ANTHROPIC_API_KEY`         | None    | The key for the `anthropic` provider                          |
-| `VERCEL_AI_GATEWAY_API_KEY` | None    | The key for the `vercel-gateway` provider                     |
-| `OPENAI_API_KEY`            | None    | The key for the `openai` provider; a local server needs none  |
-| `OPENAI_BASE_URL`           | OpenAI  | Any server that speaks OpenAI's Chat Completions API          |
-| `FOOTNOTE_ASK_LOOP`         | `on`    | `off` answers Ask with its fixed rules and planner instead    |
+| Setting                     | Default   | What it does                                                  |
+| --------------------------- | --------- | ------------------------------------------------------------- |
+| `MODELS`                    | `mock`    | `mock` is scripted and sends nothing. `live` uses real models |
+| `ANTHROPIC_API_KEY`         | None      | The key for the `anthropic` provider                          |
+| `ANTHROPIC_AUTH_TOKEN`      | None      | A gateway's bearer token in place of the key                  |
+| `ANTHROPIC_BASE_URL`        | Anthropic | Any server that speaks Anthropic's Messages API               |
+| `VERCEL_AI_GATEWAY_API_KEY` | None      | The key for the `vercel-gateway` provider                     |
+| `OPENAI_API_KEY`            | None      | The key for the `openai` provider; a local server needs none  |
+| `OPENAI_BASE_URL`           | OpenAI    | Any server that speaks OpenAI's Chat Completions API          |
+| `FOOTNOTE_ASK_LOOP`         | `on`      | `off` answers Ask with its fixed rules and planner instead    |
 
 With `live`, each role's provider and model come from the `models.*` settings, and the service refuses to start when a provider, a model or a key is missing, or the provider does not list the model and its setting gives no prices.
 

@@ -348,14 +348,15 @@ describe('loadConfig', () => {
     expect(config).toMatchObject({ models: 'mock', modelEnv: {} })
     // Which keys a live service needs depends on the models.* settings, checked at start-up.
     expect(loadConfig({ DATABASE_URL: databaseUrl, MODELS: 'live' }).models).toBe('live')
-    // The openai provider's key and address, an empty value left out as unset.
+    // The openai provider's key and address and Anthropic's bearer token, an empty value left out.
     expect(
       loadConfig({
         DATABASE_URL: databaseUrl,
         OPENAI_API_KEY: '',
         OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1',
+        ANTHROPIC_AUTH_TOKEN: 'gw-token',
       }).modelEnv,
-    ).toEqual({ OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1' })
+    ).toEqual({ OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1', ANTHROPIC_AUTH_TOKEN: 'gw-token' })
   })
 
   it('answers Ask with its loop unless FOOTNOTE_ASK_LOOP=off, and takes only on or off', () => {

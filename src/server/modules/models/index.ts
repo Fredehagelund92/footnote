@@ -22,7 +22,7 @@ export {
 } from './types.ts'
 export { startCreditsCheck, type CreditsCheck } from './credits.ts'
 export { ModelConfigError, ModelVendorError } from './errors.ts'
-export { defaultModel, modelProviders, vendorNames } from './providers.ts'
+export { defaultModel, modelProviders, providerEnvNames, vendorNames } from './providers.ts'
 export { modelAdapters } from './adapters/index.ts'
 export {
   checkModelSetting,

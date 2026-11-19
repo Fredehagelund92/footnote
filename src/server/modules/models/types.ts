@@ -54,6 +54,11 @@ export type ProviderEntry = {
   /** The environment variable that holds the key. The key itself is never in a setting. */
   apiKeyEnv: string
   /**
+   * The environment variable that may hold a bearer token in place of the key, as gateways that
+   * speak the provider's protocol take one. Never both.
+   */
+  authTokenEnv?: string
+  /**
    * A base URL on this computer or a private network needs no key, as a local model server such
    * as Ollama takes none.
    */
@@ -72,8 +77,11 @@ export type ProviderEntry = {
   models: Record<string, ListedModel>
 }
 
-/** A provider's key and base URL. There is no key only for a server that takes none. */
-export type Connection = { apiKey: string | undefined; baseUrl: string }
+/**
+ * A provider's key or bearer token, and its base URL. There is neither only for a server that
+ * takes none.
+ */
+export type Connection = { apiKey: string | undefined; authToken?: string; baseUrl: string }
 
 /** What an adapter makes for one model. */
 export type AdaptedModel = {

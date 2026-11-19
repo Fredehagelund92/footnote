@@ -10,12 +10,15 @@ const servedByAnthropic = (entry: ProviderEntry, name: string, provider: string)
 
 /**
  * The Anthropic Messages API, with Claude's effort setting and a prompt cache breakpoint:
- * Anthropic itself, or a gateway that serves the Messages API at its base URL. Claude thinks only
- * when asked to, which no role does here, so effort `none` is sent as Claude's lowest, `low`.
+ * Anthropic itself, or a gateway that serves the Messages API at its base URL, with a key
+ * (`x-api-key`) or a bearer token (`Authorization`). Claude thinks only when asked to, which no
+ * role does here, so effort `none` is sent as Claude's lowest, `low`.
  */
 export const anthropicAdapter: ProviderAdapter = {
-  connect(entry, { apiKey, baseUrl }) {
-    const anthropic = createAnthropic({ apiKey, baseURL: baseUrl })
+  connect(entry, { apiKey, authToken, baseUrl }) {
+    const anthropic = createAnthropic(
+      authToken ? { authToken, baseURL: baseUrl } : { apiKey, baseURL: baseUrl },
+    )
     return (name, _listed, effort) => {
       const model = anthropic(name)
       servedByAnthropic(entry, name, model.provider)
