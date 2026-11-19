@@ -85,6 +85,9 @@ export const obsSectionOf = (part: string | undefined): ObsSection =>
 export type ObsAddress = View & { owned: DomainId[] | null; label: string }
 export type ObsView = ObsAddress & { state: ObsState }
 
+/** A range in words, as a number cell's line under it says it: "this week", "the last 30 days". */
+export const rangeLabel = (range: Range) => (range === 7 ? 'this week' : `the last ${range} days`)
+
 /** What the address asks for: the range and filters, and an owner's own domains. */
 export function useObsAddress(): ObsAddress {
   const { query } = useRoute()
@@ -103,7 +106,7 @@ export function useObsAddress(): ObsAddress {
     domain,
     agent,
     owned,
-    label: range === 7 ? 'this week' : `the last ${range} days`,
+    label: rangeLabel(range),
   }
 }
 
@@ -135,6 +138,20 @@ export const useObsPageQuery = (section: ObsSection, keep?: boolean) =>
  * that view, which has loaded, instead of the one in the address, which may still be on its way.
  */
 export const ObsDrawn = React.createContext<ObsPageInput | null>(null)
+
+/**
+ * A page's own read that keeps the last view on screen (`useObsPageQuery` with `keep`), and the
+ * view it draws: the one in the address once it has loaded, the one before until then. What is
+ * under the page reads `drawn` through `ObsDrawn`, so it never asks for a view still on its way.
+ */
+export function useKeptObsPage(section: ObsSection) {
+  const load = useObsPageQuery(section, true)
+  const input = obsPageInput(section, useObsAddress())
+  const [drawn, setDrawn] = React.useState(input)
+  if (load.data && !load.isPlaceholderData && JSON.stringify(drawn) !== JSON.stringify(input))
+    setDrawn(input)
+  return { load, drawn, busy: load.isPlaceholderData }
+}
 
 /** The page in the address, which its own read loaded before anything under it draws. */
 function useObsData(): ObsData {
