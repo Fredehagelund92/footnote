@@ -1,0 +1,14 @@
+# The TLS proxy in front of Footnote, as docs/operations.md ("Run the image in production mode",
+# step 5) says: /api/v1/, /mcp, /oauth/ and /.well-known/oauth-* to the service directly, the rest
+# to the web image, with the public host (tests/image/company-sign-in.sh).
+{
+	admin off
+	auto_https disable_redirects
+}
+
+https://footnote.example.test:8443 {
+	tls /certs/footnote.pem /certs/footnote-key.pem
+	@service path /api/v1/* /mcp /mcp/* /oauth/* /.well-known/oauth-*
+	reverse_proxy @service service:3000
+	reverse_proxy web:8080
+}

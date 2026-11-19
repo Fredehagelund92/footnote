@@ -3,7 +3,7 @@ title: Set up company sign-in
 line: Let people sign in to the web app with your company's OpenID Connect provider, and choose who may join.
 group: Run the service
 order: 6
-reviewed: 2026-11-05
+reviewed: 2026-11-19
 ---
 
 Let people sign in with your company's OpenID Connect provider: Okta, Microsoft Entra ID, Google, Keycloak, Auth0 or any other that publishes a discovery document. A person's own agent then signs in through the same web session.
@@ -19,7 +19,7 @@ SAML providers work through an OIDC broker, such as Keycloak, Dex or the provide
    Scopes:           openid email profile
    ```
 
-   Add the provider's groups scope to map groups. A public client (PKCE, no secret) and a confidential one with a secret both work.
+   To map groups, the ID token must list them: add the provider's groups scope, or in Keycloak a Group Membership mapper on the client with Full group path off. A public client (PKCE, no secret) and a confidential one with a secret both work.
 
 2. Set the three settings below. `FOOTNOTE_AUTH=oidc` is the default in production.
 

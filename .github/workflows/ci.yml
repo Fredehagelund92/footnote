@@ -386,18 +386,23 @@ jobs:
     # The images docker compose up runs (Dockerfile, compose.yaml): the service, and the web app's
     # http build behind nginx. The web image is started on its own and checked as a browser meets
     # it (scripts/check-web-image.ts). The service image boots as it ships, in production mode, behind
-    # the web image, against a stand-in OpenID Connect provider (tests/image/production-boot.sh); then
-    # docker compose up starts the demo, as the README's Try it does.
+    # the web image, against a stand-in OpenID Connect provider (tests/image/production-boot.sh), and
+    # signs people in through Keycloak, a real provider, in a browser (tests/image/company-sign-in.sh);
+    # then docker compose up starts the demo, as the README's Try it does.
     name: 'Docker images: build, and boot the service in production mode'
     needs: scope
     if: needs.scope.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+          cache: npm
+      # For the browser of the company sign-in check.
+      - run: npm ci
+      - uses: ./.github/actions/playwright
       - name: Build the service and web images
         run: docker compose build
       # Both images as someone who scans before running sees them: no critical or high finding
@@ -429,6 +434,8 @@ jobs:
           docker rm -f footnote-web-check
       - name: Boot the service image in production mode, sign a person in and call the MCP server
         run: bash tests/image/production-boot.sh
+      - name: Company sign-in through Keycloak, in production mode behind a TLS proxy, in a browser
+        run: bash tests/image/company-sign-in.sh
       - name: FOOTNOTE_PORT and FOOTNOTE_WEB_PORT move the published ports
         run: |
           FOOTNOTE_PORT=3001 FOOTNOTE_WEB_PORT=8081 docker compose config --format json > compose.json
@@ -452,6 +459,51 @@ jobs:
       - name: The demo's logs
         if: failure()
         run: docker compose logs --no-color | tail -n 300
+
+  quick-start:
+    # The README's Quick start on a clean Ubuntu runner, typed as written: clone, docker compose up
+    # in the foreground, the demo in a browser, Ctrl+C, docker compose down --volumes, and the ports
+    # moved (tests/image/quick-start.sh). It builds the images itself, with no cache, so the time it
+    # prints for the first start is a stranger's. On Node 22, npm ci says which Node to install.
+    name: "The README's Quick start on Linux, as written"
+    needs: scope
+    if: needs.scope.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: On Node 22, npm ci refuses and says which Node to install
+        run: |
+          if npm ci > npm-ci.log 2>&1; then
+            cat npm-ci.log
+            echo "::error::npm ci installed on Node $(node --version)."
+            exit 1
+          fi
+          tail -n 12 npm-ci.log
+          grep -q 'Footnote needs Node 26 or later, and this is Node 22' npm-ci.log
+          grep -q 'Install Node 26, the version in .nvmrc, then run npm ci again.' npm-ci.log
+          rm -rf node_modules npm-ci.log
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: ./.github/actions/playwright
+      - name: The Quick start, as the README says it
+        run: bash tests/image/quick-start.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report-quick-start
+          path: |
+            playwright-report/e2e-seed
+            test-results/e2e-seed
+          retention-days: 7
 
   web:
     # The web app on its mock binding (tests/e2e): the golden job specs, with the
@@ -559,6 +611,7 @@ jobs:
         seed,
         own-data,
         docker,
+        quick-start,
         web,
         golden-http,
         security,
@@ -589,6 +642,7 @@ jobs:
           expect seed "$CODE"
           expect own-data "$CODE"
           expect docker "$CODE"
+          expect quick-start "$CODE"
           expect web "$CODE"
           expect golden-http "$CODE"
           if [ "$failed" = true ]; then
