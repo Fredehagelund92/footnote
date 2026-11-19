@@ -7,7 +7,11 @@ import type { Locator, Page } from '@playwright/test'
 // On a phone no two labels under a chart overlap, on those pages and on Overview.
 
 const charts = [
-  { page: 'Quality', address: '/observability/quality', name: /^Saved questions that answer/ },
+  {
+    page: 'Quality',
+    address: '/observability/quality',
+    name: /^Share of saved questions that answer/,
+  },
   { page: 'Feedback', address: '/observability/feedback', name: /^Good answers, by week/ },
   { page: 'Usage', address: '/observability/usage', name: /^How long a reply took/ },
 ]
@@ -69,6 +73,20 @@ for (const c of charts)
     await page.keyboard.press('Escape')
     await expect(tip(chart)).toHaveCount(0)
   })
+
+test("Quality: the trend is the share that answers the same, each week's of its own", async ({
+  page,
+}) => {
+  await go(page, '/observability/quality')
+  const chart = page.getByRole('group', { name: /^Share of saved questions that answer/ })
+  await expect(chart).toBeVisible()
+  // The last week: 9 of the 12 saved questions answer as saved.
+  const last = chart.locator('table tbody tr').last()
+  await expect(last.locator('td')).toHaveText('75%')
+  // The axis reads shares, up to all of them.
+  await expect(chart.locator('svg text', { hasText: /^100%$/ })).toBeAttached()
+  await expect(chart.locator('svg text', { hasText: /^0%$/ })).toBeAttached()
+})
 
 /** Every label under each chart on the page, by chart: none overlaps another or leaves the chart. */
 async function labelsApart(page: Page) {

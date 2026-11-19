@@ -50,7 +50,12 @@ import type { SavedCheck } from '@/api'
 import { conflictsQuery, queryKeys, savedCheckQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { openDock } from '@/lib/dock'
-import { savedCounts, type SavedQuestion, type SavedResult } from '@/model/saved-questions'
+import {
+  sameShare,
+  savedCounts,
+  type SavedQuestion,
+  type SavedResult,
+} from '@/model/saved-questions'
 import { useSavedQuestions } from '@/api/queries'
 import type { DomainId } from '@/model/items'
 import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
@@ -301,21 +306,23 @@ function Quality({ first }: { first: SavedCheck }) {
         <div className="border-t @4xl/main:border-t-0 @4xl/main:border-l">
           <FrameSection
             title="Answer the same, by week"
-            description="Saved questions that answer as saved after each week's last publish."
+            description="The share of saved questions that answer as saved after each week's last publish."
           >
             <div className="px-3 pb-3">
               <LineChart
                 series={[
                   {
                     name: 'Answer the same',
-                    values: status.trend.same,
+                    values: sameShare(status.trend),
                     color: 'var(--primary)',
                     fill: true,
                   },
                 ]}
                 labels={status.trend.labels}
-                max={Math.max(1, ...status.trend.total)}
-                caption="Saved questions that answer as saved, by week"
+                max={100}
+                format={(v) => `${v}%`}
+                missing="No question saved yet"
+                caption="Share of saved questions that answer as saved, by week"
               />
             </div>
           </FrameSection>
