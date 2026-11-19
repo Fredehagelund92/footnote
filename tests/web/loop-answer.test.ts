@@ -128,6 +128,23 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).toMatch(/^.*0 of 21 published context items you can see apply/)
   })
 
+  it('Stopped: one sentence first, then the plain read with its answer line and evidence', () => {
+    const sentence =
+      'Ask stopped at its time limit of 30 seconds before it had an answer, so this is what is written, as agents get it.'
+    const el = render({
+      ...example('loop-missing'),
+      kind: 'stopped',
+      text: sentence,
+      stopped: 'time',
+    })
+    const shown = text(el)
+    expect(shown.startsWith(sentence)).toBe(true)
+    expect(shown.indexOf('Not found')).toBeGreaterThan(sentence.length - 1)
+    expect(shown).toContain('Nothing is written about this yet.')
+    expect(shown).toContain('Written nearest about')
+    expect(shown).not.toContain('Nothing it wrote was checked')
+  })
+
   it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
     const owner = world.me
     world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }

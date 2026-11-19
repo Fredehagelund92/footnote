@@ -180,6 +180,28 @@ describe("Ask's loop", () => {
     }
   })
 
+  // The release judge's three questions that ended with nothing shown (A1): each needed more
+  // reads than its limit let it make.
+  it.each([
+    'What is our GMV definition?',
+    'How is CPA counted for paid search?',
+    'How were orders in Norway in October 2023?',
+  ])('shows the plain read under one sentence when the model stops: %s', async (question) => {
+    const api = await world.as(ML)
+    // A model that keeps reading until its step limit stops it.
+    decide = () => ({ calls: [{ toolName: 'find_context', input: { words: question } }] })
+    try {
+      const a = await api.ask({ question })
+      expect(a.stopped).toBe('steps')
+      expect(a.text).toMatch(/so this is what is written, as agents get it\.$/)
+      // Its answer line: the state of what was read, or the Definition label (decision 3).
+      expect(a.state ?? a.loop?.defined?.names).toBeTruthy()
+      expect(a.loop?.body.length).toBeGreaterThan(0)
+    } finally {
+      decide = null
+    }
+  })
+
   it('changes nothing and keeps none of a chat’s words, in any table', async () => {
     const api = await world.as(ML)
     // The first question of a session marks Ask as used for the setup checklist; after it, nothing.
