@@ -31,7 +31,7 @@ const words: Record<
     lead: 'Reads the semantic manifest your dbt pipeline writes, from where you keep it. Read-only, and it keeps no calculation and no value.',
     // dbt has views too, as tables are built; a group of its metrics is a semantic model, whose
     // domain is in its config's meta.
-    group: 'semantic model',
+    group: { one: 'semantic model', many: 'semantic models' },
     domainField: 'config.meta.domain',
     noFileLinks: true,
   },
