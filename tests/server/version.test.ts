@@ -11,7 +11,7 @@ import { idleJobs } from './idle-jobs.ts'
 /*
   Footnote has one version, written in package.json and raised by the release pull request
   (docs/releasing.md). Everything else that names a version must name that one, the published
-  images the README's Quick start pulls among them. The MCP server info is checked on the wire in
+  images compose.images.yaml pulls among them. The MCP server info is checked on the wire in
   tests/server/mcp/conformance.test.ts.
 */
 

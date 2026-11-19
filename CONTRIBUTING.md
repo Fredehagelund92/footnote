@@ -15,7 +15,7 @@ open an issue: [SECURITY.md](SECURITY.md) says how to tell us privately.
 2. **Pick up an issue.** Look for **good first issue** and **help wanted**:
    [Finding something to work on](#finding-something-to-work-on) says what they mean.
 3. **Try the demo and tell us what confused you.** Run the
-   [Quick start](README.md#quick-start), then open an issue. A step that didn't work, or a word you
+   steps in [Try it](README.md#try-it), then open an issue. A step that didn't work, or a word you
    had to guess, counts as a bug.
 4. **Fix the docs.** Every page is Markdown in `docs`. If a page is wrong, send the fix. A small fix
    needs no issue.

@@ -1,6 +1,6 @@
 # Develop Footnote
 
-How the repository is laid out, how to run the front end, the commands, what CI runs, the rules and the versions. To run the whole product, see the [Quick start](../README.md#quick-start); to run and configure the service, see [Run and operate the service](operations.md).
+How the repository is laid out, how to run the front end, the commands, what CI runs, the rules and the versions. To run the whole product, see [Try it](../README.md#try-it) in the README; to run and configure the service, see [Run and operate the service](operations.md).
 
 ## The two parts
 
@@ -45,7 +45,7 @@ where it describes code, the API or the database.
 ## Run it in five minutes
 
 You need Node 26 (see `.nvmrc`; with nvm, run `nvm use`) and npm 11. In a clone of the repository
-([Quick start](../README.md#quick-start)):
+([Try it](../README.md#try-it)):
 
 ```sh
 npm ci            # installs exact, locked versions
@@ -67,7 +67,7 @@ npm run check     # type check, lint (ESLint and Stylelint), format check, unit 
 Browser tests (Playwright) need a browser once: `npx playwright install chromium`, then
 `npm run test:e2e` for the golden job specs on the mock build.
 
-To run the whole product instead, with its database and your own Cube model, see the [Quick start](../README.md#quick-start).
+To run the whole product instead, with its database and your own Cube model, see [Self-host Footnote on one computer](self-hosting.md).
 
 ## What is in it
 
