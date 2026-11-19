@@ -14,18 +14,28 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { FoldTrigger } from '@/components/footnote/fold'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { GuideLink } from '@/components/footnote/guide-link'
 import { servedToAgents } from '@/model/items'
 import { useQuery } from '@tanstack/react-query'
-import type { Advanced as AdvancedPage, Exported } from '@/api/client'
+import type { Advanced as AdvancedPage, AnswerTestRuns, Exported } from '@/api/client'
 import { toApiError } from '@/api/errors'
 import { advancedPageQuery, useWrite } from '@/api/queries'
 import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
 import { useFacts, useMe, usePeople } from '@/lib/workspace'
 import { listOf } from '@/model/people'
+import { answerTestWords } from '@/model/settings'
 import { useDomainList, useDomains } from '@/lib/workspace'
 import { useDefinitions } from '@/lib/definitions'
 import { DomainDot } from '@/components/footnote/tag-chip'
@@ -361,7 +371,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Tuning settings"
         level={3}
-        description={`All ${count} settings and their values now. This page only shows them.`}
+        description={`All ${count} settings and their values now. Answer tests can be turned on here; the rest change through the API.`}
         collapsible
       >
         <div className="space-y-2 border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
@@ -470,6 +480,15 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       >
         <FrameRows
           rows={[
+            ...(page.answerTests
+              ? [
+                  {
+                    label: 'Run on their own',
+                    hint: answerTestWords(page.answerTests).hint,
+                    value: <AutomaticRuns tests={page.answerTests} />,
+                  },
+                ]
+              : []),
             {
               label: 'Needs a model key',
               hint: "Answer tests only run with a real model, so a passed test always means something. The person who hosts this app turns real models on and adds the model provider's key where it runs.",
@@ -534,6 +553,57 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           </p>
         )}
       </FrameSection>
+    </>
+  )
+}
+
+/**
+ * Answer tests that run on their own (decision 6): off as installed. Turning them on shows what a
+ * run of every domain is estimated to cost first, and asks; turning them off asks nothing.
+ */
+function AutomaticRuns({ tests }: { tests: AnswerTestRuns }) {
+  const write = useWrite()
+  const [asking, setAsking] = React.useState(false)
+  const words = answerTestWords(tests)
+  const set = (on: boolean) =>
+    void write('setAutomaticRuns', { on, version: tests.version }).then(
+      () => {
+        setAsking(false)
+        toast(on ? 'Answer tests run on their own' : 'Answer tests run only when started')
+      },
+      (e: unknown) =>
+        toast(`Couldn't turn them ${on ? 'on' : 'off'}`, { description: toApiError(e).message }),
+    )
+  return (
+    <>
+      <span className="flex items-center gap-3">
+        <span className="text-xs text-muted-foreground">{words.state}</span>
+        {tests.on ? (
+          <Button variant="outline" onClick={() => set(false)}>
+            Turn off
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => setAsking(true)}>
+            Turn on
+          </Button>
+        )}
+      </span>
+      <Dialog open={asking} onOpenChange={setAsking}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run answer tests on their own?</DialogTitle>
+            <DialogDescription render={<div className="space-y-2" />}>
+              {words.estimate.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button onClick={() => set(true)}>Turn on</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -142,6 +142,20 @@ export function classifyCallError(error: unknown): Failure {
   }
 }
 
+/**
+ * Whether the provider refused the call's key: HTTP 401 or 403, which no retry changes. A wrong
+ * or revoked key fails every call this way, so it is said as such, never as a passing failure.
+ */
+export function keyRefused(error: unknown): boolean {
+  for (let cause = error, depth = 0; cause && depth < 5; depth++) {
+    if (APICallError.isInstance(cause)) return cause.statusCode === 401 || cause.statusCode === 403
+    cause =
+      (cause as { cause?: unknown; lastError?: unknown }).lastError ??
+      (cause as { cause?: unknown }).cause
+  }
+  return false
+}
+
 /** `retry-after-ms`, or `retry-after` in seconds or as an HTTP date. */
 export function retryAfterMs(
   headers: Record<string, string> | undefined,

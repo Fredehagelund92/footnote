@@ -16,6 +16,7 @@ export const policies = {
   'review.proposeRetirement': 'propose',
   'decisions.undo': 'propose',
   'evals.questions.import': 'maintain',
+  'evals.automatic': 'admin',
   'evals.runs.list': 'maintain',
   'evals.runs.get': 'propose',
   'evals.runs.approve': 'admin',

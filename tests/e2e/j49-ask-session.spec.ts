@@ -6,7 +6,8 @@ import { expect, go, mode, signOut, test } from './go.ts'
 // stopped turn does not stop the rest of a chat being kept (the loop's, on the mock: ?loop=1); a
 // chat keeps its first answer, so a reload asks nothing; and Not looked up is not an answer: it does
 // not join, and Ask again that gets it keeps the answer the turn had; and the chats leave the
-// browser at sign-out. Time stands still in the first six, so a stop lands while the answer is on
+// browser at sign-out; a chat whose answers are no longer kept opens on its question and asks
+// nothing until Ask again. Time stands still in the first six, so a stop lands while the answer is on
 // its way.
 
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
@@ -209,6 +210,41 @@ test('a chat keeps its first answer, so opening it again after a reload asks not
   await expect(log.getByText(QUESTION)).toHaveCount(1)
   await expect(log.getByText(STATE)).toHaveCount(1)
   expect(seen.count).toBe(1)
+})
+
+test('a chat whose answers are no longer kept opens from the history on its question, and asks nothing until Ask again', async ({
+  page,
+}) => {
+  test.skip(mode !== 'http', 'the mock keeps its chats only until the page reloads')
+  const seen = await lookups(page)
+  await go(page, '/ask?n=j49k')
+  const log = page.getByRole('log')
+  await ask(page, QUESTION)
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  await expect.poll(() => keptInBrowser(page)).toBe(true)
+  expect(seen.count).toBe(1)
+  // Past the newest chats the browser keeps answers for, a chat keeps only its question.
+  await page.evaluate(() => {
+    const key = Object.keys(localStorage).find((k) => k.startsWith('footnote.ask.chats.'))!
+    const kept = JSON.parse(localStorage.getItem(key)!) as { answers?: unknown }[]
+    localStorage.setItem(key, JSON.stringify(kept.map(({ answers: _, ...chat }) => chat)))
+  })
+  await page.reload()
+  await go(page, '/ask?n=j49k2')
+  await chats(page).getByText(QUESTION).click()
+  await expect(log.getByText(QUESTION)).toHaveCount(1)
+  await expect(
+    log.getByText('Its answers are no longer kept in this browser, so nothing was asked.', {
+      exact: false,
+    }),
+  ).toBeVisible()
+  await expect(log.getByText(STATE)).toHaveCount(0)
+  expect(seen.count).toBe(1)
+  // Asked again by the person, it is answered once, in the same chat.
+  await log.getByRole('button', { name: 'Ask again', exact: true }).click()
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  expect(seen.count).toBe(2)
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(1)
 })
 
 test('the chats leave the browser at sign-out, so the next person here never reads them', async ({

@@ -316,6 +316,7 @@ describe('the API over HTTP', () => {
       '/editions/{label}/export',
       '/editions/{label}/rollback',
       '/editions/{label}/rollback-preview',
+      '/evals/automatic',
       '/evals/import',
       '/evals/runs',
       '/evals/runs/{id}',

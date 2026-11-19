@@ -1,11 +1,12 @@
 import { ORPCError } from '@orpc/client'
 import type * as z from 'zod/mini'
-import type { EvalRun, runDetailSchema } from '../../../contract/evals.ts'
+import type { AutomaticRuns, EvalRun, runDetailSchema } from '../../../contract/evals.ts'
 import type { Agreement } from '../../../domain/golden-question.ts'
 import type { Queryable } from '../../db/database.ts'
 import { importQuestions } from './questions.ts'
 import {
   canResume,
+  modelsFor,
   planArea,
   resumeRun,
   runColumns,
@@ -13,6 +14,7 @@ import {
   type RunRow,
   type Scorecard,
 } from './runs.ts'
+import { readEvalSettings } from './settings.ts'
 
 type RunDetail = z.infer<typeof runDetailSchema>
 
@@ -217,6 +219,39 @@ export function createEvalsService(
           budgetMicros,
           needsApproval: (plan?.cost.micros ?? 0) > budgetMicros,
           modelId: plan?.models.answer.id ?? deps.port.choose('eval_answer').id,
+        }
+      },
+      /**
+       * Whether test runs start by themselves, and one run of every domain's active questions
+       * estimated as each run is before it starts: what an administrator reads before turning
+       * them on (decision 6). Nothing is saved.
+       */
+      async automatic(): Promise<AutomaticRuns> {
+        const [setting] = await tx.query<{ version: number; on: boolean }>(
+          `select version,value='true'::jsonb as on from settings_current
+            where key='evals.automatic_runs'`,
+        )
+        const areas = await tx.query<{ id: string }>(
+          'select id from areas where archived_at is null order by id',
+        )
+        const totals = { domains: 0, questions: 0, costMicros: 0 }
+        for (const area of areas) {
+          const plan = await planArea(tx, deps, area.id, 'full')
+          if (!plan?.planned.length) continue
+          totals.domains++
+          totals.questions += plan.planned.length
+          totals.costMicros += plan.cost.micros
+        }
+        const settings = await readEvalSettings(tx)
+        const models = modelsFor(deps.port, settings)
+        return {
+          on: setting?.on ?? false,
+          version: setting?.version ?? 1,
+          live: deps.port.mode === 'live',
+          ...totals,
+          budgetMicros: settings.runBudgetMicros,
+          modelId: models.answer.id,
+          judgeModelId: models.judge.id,
         }
       },
       /** FR-516: an administrator approves a run estimated above the budget. */

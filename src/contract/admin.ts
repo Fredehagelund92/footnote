@@ -95,6 +95,10 @@ export const settingSchemas = {
   // The majority of the repeats decides a flip, so the count is odd.
   'evals.flip_repeats': int(1, 15).check(z.refine((n) => n % 2 === 1, 'Expected an odd number')),
   'evals.run_budget_micros': micros,
+  // Whether test runs start by themselves (decision 6): the weekly run, the runs a change outside
+  // the review gate queues, and the resumes of a run the service started. Off, a run starts only
+  // when an administrator starts it, so a real model's key is charged for nothing else.
+  'evals.automatic_runs': z.boolean(),
   'models.eval_answer': modelRef,
   // A model, or `different_family`: a judge of another model line than the answering model, from
   // the same provider and vendor. A judge of another vendor is named here.

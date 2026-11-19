@@ -49,6 +49,7 @@ import {
   demoAccessKey,
   historyFile,
   UNDO_SECONDS,
+  type Automatic,
   type Pins,
 } from './advanced'
 import { loopExample, playAnswer } from './ask-live'
@@ -108,6 +109,7 @@ export function createMockApi() {
   const definitions = createDefinitions()
   /** The dimensions an admin pinned on Overview in this visit (observability.pinned_dimensions). */
   let pins: Pins = { keys: [] }
+  let automatic: Automatic = { on: false, version: 1 }
   /** An Observability page as the person signed in may read it, for a view. */
   const obsPageFor = ({ range, domain, agent }: Omit<ObsPageInput, 'section'>) => {
     const person = workspace.people().find((p) => p.name === me())
@@ -1064,7 +1066,33 @@ export function createMockApi() {
           )
       }),
     advancedPage: () =>
-      read('advancedPage', '', () => advancedOf(state.log, state.about, autoPublishOn(), pins)),
+      read('advancedPage', '', () =>
+        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic),
+      ),
+    setAutomaticRuns: ({ on, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError(
+            'forbidden',
+            'Only an admin turns on answer tests that run on their own.',
+          )
+        if (version !== automatic.version)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        automatic = {
+          on,
+          version: version + 1,
+          changed: {
+            who: me(),
+            when: 'Today',
+            why: on
+              ? 'Turned on in Settings, Advanced, after reading what a run is estimated to cost.'
+              : 'Turned off in Settings, Advanced.',
+          },
+        }
+      }),
     checkHistory: () => now(() => ({ whole: true, entries: 1284 })),
     exportHistory: () => now(() => historyFile(state.log)),
     exportContext: () =>

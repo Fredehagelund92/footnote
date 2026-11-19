@@ -276,6 +276,27 @@ export type Advanced = {
   jobs: { key: string; job: string; href?: string; last: string; result: string }[] | null
   /** The latest sealed editions, newest first. */
   editions: { label: string; sealed: string; change: string }[]
+  /** Whether answer tests run on their own, and what a run would cost; null when unread. */
+  answerTests: AnswerTestRuns | null
+}
+
+/**
+ * Whether answer tests run on their own (decision 6), and what one run of every domain's active
+ * questions is estimated to cost now: what an Admin reads before turning them on.
+ */
+export type AnswerTestRuns = {
+  on: boolean
+  /** The setting's version, which a change names. */
+  version: number
+  /** Whether a real model answers; on the scripted models a run costs nothing. */
+  live: boolean
+  domains: number
+  questions: number
+  costMicros: number
+  /** A run estimated above this waits for an Admin, even with runs on. */
+  budgetMicros: number
+  model: string
+  judge: string
 }
 
 /** A file for the person to save: its name and its text. */
@@ -663,6 +684,8 @@ export interface FootnoteApi {
   renameAccessKey: (input: { id: string; name: string }) => Promise<void>
   /** Settings, Advanced's own read. */
   advancedPage: () => Promise<Advanced>
+  /** Turns answer tests that run on their own on or off, at the version read. */
+  setAutomaticRuns: (input: { on: boolean; version: number }) => Promise<void>
   /**
    * Checks the history log's hash chain end to end: whether it is whole, and how many entries it
    * checked when the binding counts them (null when it doesn't).
@@ -934,6 +957,7 @@ export const footnoteApiMethods = [
   'createAccessKey',
   'renameAccessKey',
   'advancedPage',
+  'setAutomaticRuns',
   'checkHistory',
   'exportHistory',
   'exportContext',

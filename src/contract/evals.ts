@@ -81,6 +81,29 @@ export const runSchema = z.object({
 export type EvalRun = z.infer<typeof runSchema>
 
 /**
+ * Whether test runs start by themselves (`evals.automatic_runs`, decision 6), and what one run of
+ * every domain's active questions is estimated to cost now: what an administrator reads before
+ * turning them on.
+ */
+export const automaticRunsSchema = z.object({
+  on: z.boolean(),
+  /** The setting's version, which a change names. */
+  version: z.number(),
+  /** Whether the service calls a real model; on the scripted models a run costs nothing. */
+  live: z.boolean(),
+  /** The domains with active test questions, and those questions. */
+  domains: z.number(),
+  questions: z.number(),
+  /** One run of every domain, estimated as a run is before it starts (FR-516). */
+  costMicros: z.number(),
+  /** A run estimated above this waits for an administrator even when runs are on. */
+  budgetMicros: z.number(),
+  modelId: z.string(),
+  judgeModelId: z.string(),
+})
+export type AutomaticRuns = z.infer<typeof automaticRunsSchema>
+
+/**
  * One side of a question split into its layers: code checks the tool results and the answer
  * text (delivered, not delivered, cited, linked, status), the judge model the answer (caveat,
  * cause claimed, clarifying question, rubrics). A null layer checks nothing for the question.

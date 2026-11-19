@@ -70,7 +70,11 @@ The log, and Settings, Advanced under Models, say what each check found. `docker
 
 On another provider, that provider receives the same, and the model's vendor too when the provider passes it on. A model server on this computer sends nothing out. Put no company data in until your company approves the provider.
 
-**What it costs.** On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs also start by themselves, such as soon after the first start and after a definition changes: two runs of the demo's tests cost USD 1.12. The service stops calling the model at these limits, which an admin can change:
+**What it costs.** On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs start only when an admin starts one.
+
+An admin can let them run on their own, every Monday and after a change agents may notice, in Settings, Advanced, Answer tests, which first shows what a run is estimated to cost: two runs of the demo's tests cost USD 1.12.
+
+The service stops calling the model at these limits, which an admin can change:
 
 | Setting                              | Default                                        |
 | ------------------------------------ | ---------------------------------------------- |
@@ -91,6 +95,7 @@ A third volume, `footnote_no-model`, stays empty. It stands where your own model
 ## If the start goes wrong
 
 - **Your own model's folder arrives empty.** When Docker cannot read the folder, the service refuses to start and says so in `docker compose logs footnote`. On a Mac, Docker Desktop shares only the folders under Settings, Resources, File sharing, and Colima shares your home folder unless told otherwise.
+- **The model provider refuses the key.** With `MODELS=live`, the service asks the provider at start whether it takes the key, which costs nothing. A wrong or revoked key is logged as `The model provider anthropic refused the key in ANTHROPIC_API_KEY (HTTP 401)`, and Ask then says the key was refused. The rest of the service works. Start it again with a key that works.
 - **The demo is half loaded.** The start stops with `The demo is half loaded` and the cause. The demo is not retried: run `docker compose down --volumes`, then `docker compose up` again.
 
 ## What to back up

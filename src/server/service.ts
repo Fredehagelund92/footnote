@@ -31,11 +31,13 @@ import { gapDetectionJob } from './modules/gaps/index.ts'
 import { savedCheckJob } from './modules/saved-questions/index.ts'
 import { createJobRunner, maintenanceJobs, type JobRunner } from './modules/jobs/index.ts'
 import {
+  checkModelKeys,
   checkModelSettings,
   checkWords,
   createModelChecks,
   createModelPort,
   fillModelSettings,
+  keyCheckLine,
   ModelConfigError,
   readModelSettings,
   roleFails,
@@ -43,6 +45,7 @@ import {
   settingPrices,
   type ModelChecks,
   type ModelPort,
+  type ModelSettings,
 } from './modules/models/index.ts'
 import { createRelay, outboxRelayJob, type Relay } from './modules/notifications/index.ts'
 import { createLoginServer, loadKeyRing } from './modules/oauth/index.ts'
@@ -109,6 +112,23 @@ export function logConfiguration(config: Config, logger: Logger): void {
     )
 }
 
+/**
+ * Says in the start-up log whether each provider the model settings use takes its key: a refused
+ * key as an error that names its variable, so a wrong key is not first met as Ask failing (T2).
+ */
+export async function reportModelKeys(
+  models: ModelPort,
+  settings: ModelSettings,
+  logger: Pick<Logger, 'error' | 'warn' | 'info'>,
+): Promise<void> {
+  for (const key of await checkModelKeys(models, settings)) {
+    const line = keyCheckLine(key)
+    if (key.check.outcome === 'refused') logger.error(line!)
+    else if (line) logger.warn(line)
+    else logger.info({ provider: key.provider }, 'model key accepted')
+  }
+}
+
 /** Composes the service. When that fails, the database pool it opened is closed again. */
 export async function createService(
   config: Config,
@@ -160,6 +180,8 @@ async function compose(
         // Spend is counted at these prices; one at 0 counts nothing against the limits.
         for (const priced of settingPrices(settings))
           logger.info(priced, 'model priced by its setting, in US dollars per million tokens')
+        // Whether each provider takes its key, said in the log while the service starts.
+        void reportModelKeys(models, settings, logger)
       }
     }
   } catch (error) {

@@ -1931,6 +1931,22 @@
         }
       }
     },
+    "automatic": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/evals/automatic",
+          "tags": [
+            "evals"
+          ],
+          "summary": "Whether test runs start by themselves, and what a run of every domain is estimated to cost now (decision 6)"
+        }
+      }
+    },
     "runs": {
       "list": {
         "~orpc": {

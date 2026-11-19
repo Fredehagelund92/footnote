@@ -56,12 +56,14 @@ import {
   answersWithTools,
   checkModelSetting,
   checkWords,
+  keyRefused,
   readModelSettings,
   readSpendLimits,
   roleModels,
   type ModelChecks,
   type ModelPort,
 } from '../modules/models/index.ts'
+import { errorCode } from '../observability/logger.ts'
 import { labelOperation } from '../observability/metrics.ts'
 import { createLimiter } from './rate-limit.ts'
 import {
@@ -479,9 +481,11 @@ export function createRouter({
         steps,
         timeoutMs: seconds * 1000,
         ...(signal ? { signal } : {}),
-        // Names the failure only, never the question, the chat or what was read.
+        // Names the failure and its status only, never the question, the chat or what was read.
         onError: (error) =>
-          log.warn({ error: error instanceof Error ? error.name : 'unknown' }, 'ask loop'),
+          keyRefused(error)
+            ? log.error({ error: errorCode(error) }, 'ask loop: the model provider refused the key')
+            : log.warn({ error: errorCode(error) }, 'ask loop'),
         ...(askTrace?.onLoopTurn ? { onTurn: askTrace.onLoopTurn } : {}),
       },
       input,
@@ -1217,6 +1221,9 @@ export function createRouter({
           context.evals.questions.import(input),
         ),
       },
+      automatic: authorized.evals.automatic.handler(({ context }) =>
+        context.evals.runs.automatic(),
+      ),
       runs: {
         list: authorized.evals.runs.list.handler(({ context, input }) =>
           context.evals.runs.list(input),

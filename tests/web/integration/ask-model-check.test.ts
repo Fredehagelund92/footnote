@@ -31,6 +31,7 @@ const live: ModelPort = {
   choose: () => assistant,
   otherLine: () => assistant,
   check: () => {},
+  checkKey: () => Promise.resolve({ outcome: 'accepted' }),
   creditsUsed: () => Promise.resolve(null),
 }
 const checked: string[] = []

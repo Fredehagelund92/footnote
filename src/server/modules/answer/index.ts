@@ -81,6 +81,8 @@ export { toolReadsIn, type ToolReads, type ToolServices } from './tool-reads.ts'
 export {
   ASK_BACK,
   askLoop,
+  cachedThrough,
+  EARLIER_TURNS,
   footerOf,
   LOOP_MAX_TOKENS,
   LOOP_SECONDS,

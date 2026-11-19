@@ -43,7 +43,18 @@ export interface ModelPort {
    * null when it keeps none, or for the mock. Throws when the counter cannot be read.
    */
   creditsUsed(provider: string): Promise<number | null>
+  /**
+   * Whether the provider takes its key, by a read that costs nothing (`GET <baseUrl>/models`):
+   * `refused` with the status when it answers 401 or 403. Always `accepted` on the mock.
+   */
+  checkKey(provider: string): Promise<KeyCheck>
 }
+
+/** What a provider said of its key: taken, refused, or not known because it could not be asked. */
+export type KeyCheck =
+  | { outcome: 'accepted' }
+  | { outcome: 'refused'; status: number; variable: string | null }
+  | { outcome: 'unchecked'; reason: string }
 
 /**
  * A call's tokens. `inputTokens` is every input token, those read from and written to a prompt
@@ -206,6 +217,38 @@ export function createModelPort(options: ModelPortOptions): ModelPort {
       if (!Number.isFinite(used)) throw new Error(`${entry.name} gave no total used`)
       return Math.round(used * 1_000_000)
     },
+    async checkKey(provider) {
+      const entry = providers.get(provider)
+      if (!entry) return { outcome: 'unchecked', reason: `${provider} is not in the registry` }
+      let connection
+      try {
+        connection = connectionOf(`models (${provider})`, entry)
+      } catch (error) {
+        return { outcome: 'unchecked', reason: error instanceof Error ? error.message : 'no key' }
+      }
+      try {
+        // The key goes in the header only, never in a message.
+        const response = await fetch(`${connection.baseUrl.replace(/\/+$/, '')}/models`, {
+          headers: adapters[entry.adapter]!.keyHeaders(connection),
+          signal: AbortSignal.timeout(10_000),
+        })
+        await response.body?.cancel()
+        if (response.status === 401 || response.status === 403)
+          return {
+            outcome: 'refused',
+            status: response.status,
+            variable: (connection.authToken ? entry.authTokenEnv : entry.apiKeyEnv) ?? null,
+          }
+        return response.ok
+          ? { outcome: 'accepted' }
+          : { outcome: 'unchecked', reason: `${entry.name} answered HTTP ${response.status}` }
+      } catch (error) {
+        return {
+          outcome: 'unchecked',
+          reason: `${entry.name} could not be reached (${error instanceof Error ? error.name : 'unknown'})`,
+        }
+      }
+    },
   }
 }
 
@@ -261,6 +304,7 @@ function mockPort(
       resolve(setting, ref)
     },
     creditsUsed: () => Promise.resolve(null),
+    checkKey: () => Promise.resolve({ outcome: 'accepted' }),
   }
 }
 

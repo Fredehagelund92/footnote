@@ -1,6 +1,7 @@
 import type { ScheduledJob } from '../jobs/index.ts'
 import { workRetrieval } from './retrieval.ts'
 import { queueAreaRun, type EvalDeps } from './runs.ts'
+import { automaticRuns } from './settings.ts'
 import { queueTriggeredRuns } from './triggers.ts'
 import { workEvaluations } from './worker.ts'
 
@@ -14,7 +15,9 @@ const day = 24 * 60 * minute
  * and the live edition each day, its retrieval pass without a model, then queues a full run
  * of each area that a change outside the review gate may have affected. Schedules only fire
  * while the service runs: a missed week runs once on start, and the watchdog alerts when a week
- * passes without a run.
+ * passes without a run. The weekly and the triggered runs are queued only while an administrator
+ * has turned automatic runs on (`evals.automatic_runs`, decision 6); the retrieval pass, which
+ * calls no model, always runs.
  */
 export function evalJobs(deps: EvalDeps, sliceSeconds = 10 * minute): ScheduledJob[] {
   return [
@@ -36,6 +39,7 @@ export function evalJobs(deps: EvalDeps, sliceSeconds = 10 * minute): ScheduledJ
       cron: '0 4 * * 1',
       expectedEverySeconds: 8 * day,
       async run({ database }) {
+        if (!(await automaticRuns(database))) return { off: true }
         const areas = await database.query<{ id: string }>(
           `select a.id from areas a where a.archived_at is null
              and not exists (select 1 from eval_runs r where r.area_id=a.id and r.kind='scheduled'
@@ -58,6 +62,7 @@ export function evalJobs(deps: EvalDeps, sliceSeconds = 10 * minute): ScheduledJ
       expectedEverySeconds: 15 * minute,
       async run({ database }) {
         const retrieval = await workRetrieval(database, deps.clock)
+        if (!(await automaticRuns(database))) return { ...retrieval, queued: 'off' }
         return { ...retrieval, queued: await queueTriggeredRuns(database, deps) }
       },
     },

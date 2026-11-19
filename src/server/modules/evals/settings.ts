@@ -41,3 +41,15 @@ export async function readEvalSettings(tx: Queryable): Promise<EvalSettings> {
     },
   }
 }
+
+/**
+ * Whether test runs start by themselves (`evals.automatic_runs`, decision 6). Off, which is the
+ * default, the weekly run, the triggered runs and the resumes of a run the service started all
+ * wait: a run starts only when an administrator starts it.
+ */
+export async function automaticRuns(tx: Queryable): Promise<boolean> {
+  const [row] = await tx.query<{ on: boolean }>(
+    "select value = 'true'::jsonb as on from settings_current where key='evals.automatic_runs'",
+  )
+  return row?.on ?? false
+}

@@ -4,6 +4,7 @@
 // read the same.
 
 import { monthLong } from '@/lib/dates'
+import type { AnswerTestRuns } from '@/api/client'
 
 /**
  * Who changed a setting last, when and why; null while it keeps the value it was installed with.
@@ -32,7 +33,7 @@ const days = (value: unknown) => count(value, 'day')
 const seconds = (value: unknown) => count(value, 'second')
 const perMinute = (value: unknown) => `${n(value).toLocaleString('en-GB')} a minute`
 /** Model spend is kept in millionths of a dollar. */
-const dollars = (micros: unknown) => {
+export const dollars = (micros: unknown) => {
   const amount = n(micros) / 1_000_000
   return `$${amount.toLocaleString('en-GB', { maximumFractionDigits: amount < 10 ? 2 : 0 })}`
 }
@@ -307,6 +308,11 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
     group: 'Answer tests',
     settings: [
       {
+        key: 'evals.automatic_runs',
+        what: 'Whether answer tests run on their own: every Monday, and after a change agents may notice',
+        value: (v) => (v === true ? 'On' : 'Off: only when an Admin starts a run'),
+      },
+      {
         key: 'evals.tries',
         what: 'Tries of each test question in a run',
         value: (v) => String(n(v)),
@@ -364,4 +370,35 @@ export function settingGroups(
     .filter((s) => !named.has(s.key))
     .map((s) => ({ key: s.key, value: raw(s.value), what: '', changed: s.changed }))
   return [...groups, { group: 'Other', rows: other }].filter((g) => g.rows.length)
+}
+
+/** What answer tests that run on their own say, on Advanced and before they are turned on. */
+export function answerTestWords(t: AnswerTestRuns): {
+  state: string
+  hint: string
+  estimate: string[]
+} {
+  const runs =
+    'They start every Monday, and after a change agents may notice, such as a source read that changed a definition.'
+  const estimate = !t.live
+    ? ['No real AI model is connected, so these runs cost nothing here.', runs]
+    : !t.questions
+      ? ['No domain has test questions yet, so a run costs nothing now.', runs]
+      : [
+          `One run of every domain is estimated at ${dollars(t.costMicros)}, for ${count(t.questions, 'test question')} in ${count(t.domains, 'domain')}.`,
+          `${t.model} answers them, and ${t.judge} judges the answers.`,
+          `${runs} So each week costs at least that much.`,
+          `A run estimated above ${dollars(t.budgetMicros)} still waits for an Admin.`,
+        ]
+  return t.on
+    ? {
+        state: 'On',
+        hint: `${runs} A run estimated above ${dollars(t.budgetMicros)} waits for an Admin.`,
+        estimate,
+      }
+    : {
+        state: 'Off',
+        hint: 'They run only when an Admin starts one, so the model provider’s key pays for nothing else.',
+        estimate,
+      }
 }
