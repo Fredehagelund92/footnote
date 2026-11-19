@@ -113,7 +113,7 @@ it.each([
   )
   expect(privileges.rows[0]!.allowed).toBe(false)
 })
-it.each(['item_version_service', 'vocab_term_service', 'area_state_service'])(
+it.each(['item_version_service', 'vocab_term_service'])(
   'denies API direct service changes in %s',
   async (table) => {
     await expect(

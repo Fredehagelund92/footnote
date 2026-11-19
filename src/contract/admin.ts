@@ -12,7 +12,6 @@ import { isTimeZone } from '../domain/dates.ts'
 import { EDITION_EXPORT_FORMAT } from '../domain/edition-export.ts'
 import { ITEM_FILE_MAX_LENGTH } from '../domain/item-file.ts'
 import { itemVersionSchema } from '../domain/item-version.ts'
-import { areaStates } from '../domain/item.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 import { findingSchema } from './proposals.ts'
 
@@ -358,9 +357,8 @@ export const editionExportSchema = z.object({
       digest,
     }),
   ),
-  areas: z.array(z.object({ id: z.string(), state: z.enum(areaStates) })),
   /** The domains the definition source gave terms in the edition; with the vocabulary's areas, its area map. */
-  domains: z.optional(z.array(z.object({ key: z.string(), areaId: z.string() }))),
+  domains: z.array(z.object({ key: z.string(), areaId: z.string() })),
 })
 
 export const jsonSchemaDocument = z.record(z.string(), z.unknown())

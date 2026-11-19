@@ -177,7 +177,7 @@ and no new row in any schema, no log line and no export may contain any of them.
 The domain of a term is one rule everywhere (CON-206, FR-136): the
 area the vocabulary gives it, otherwise the domain its definition gives (`definitions.area_hint`,
 Cube's `meta.domain`). `source_domain_service` pins the second half per edition, with the ranges
-and guards of `area_state_service`; it is part of the edition digest, the export, the restore drill
+and guards of the other service tables; it is part of the edition digest, the export, the restore drill
 and a rollback. Every edition the service publishes calls `edition_pin_source_domains`, and a
 definition sync publishes an `area_map_changed` edition when `cl_source_domains_behind()` says the
 live edition is behind the source (FR-215). An edition with no pinned source domains keeps its
@@ -648,10 +648,8 @@ A fresh template avoids stale migration checksums and grants.
 
 ## Domains are always served
 
-A domain that exists is served, with no `not_started`, `starting`, `live` or `paused` state and no
-start checks (FR-320, FR-802). `area_state_service` and the `area_state` enum remain: edition
-digests, the edition export and the restore drill read them, and a new edition carries their rows
-forward unchanged. `delivery_status` keeps `area_not_live`. `serving_metadata` lists every domain
+A domain that exists is served, with no state and no start checks (FR-320, FR-802).
+`serving_metadata` lists every domain
 from `areas` (and an archived one that items in the edition still name), with no state. The stop
 switch is the one way to hold a domain's items back. `areas.summary` (one line, at most 160
 characters) and `areas.description` (at most 1,500, line breaks allowed), both empty by default,

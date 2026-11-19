@@ -952,19 +952,6 @@ describe('review and release', () => {
     }
   })
 
-  it('has no start checks and no state to move: every domain is served (FR-320, FR-802)', async () => {
-    for (const [method, path] of [
-      ['GET', '/areas/finance/start-checks'],
-      ['POST', '/areas/finance/state'],
-    ] as const) {
-      const gone = await call(method, path, 'admin', { state: 'paused', reason: 'Gone' })
-      expect(gone.statusCode).toBe(404)
-    }
-    const answer = await ask()
-    expect(answer.status).not.toBe('area_not_live')
-    expect(JSON.stringify(answer)).not.toMatch(/not live|domains_not_live/)
-  })
-
   it('serializes concurrent decisions: a second change to the same item must be rewritten', async () => {
     const item = await acceptedItem({ title: 'Contested' })
     const one = await submitted({ title: 'Contested one' }, 'author', item)

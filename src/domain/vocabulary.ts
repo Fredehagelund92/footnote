@@ -152,10 +152,7 @@ export function relevantRefs(
   const relevant = refs.filter((ref) => views.has(refView(ref) ?? ''))
   return relevant.length ? relevant : refs
 }
-/**
- * What a term version's digest covers. A term that names one definition at most keeps the shape it
- * was always digested in (`definitionRef`), so the digests of earlier editions still verify.
- */
+/** What a term version's digest covers. */
 export function termDigestContent(
   term: Pick<Term, 'key' | 'kind' | 'parentKey' | 'name' | 'aliases' | 'areaId' | 'definitionRefs'>,
 ) {
@@ -168,9 +165,7 @@ export function termDigestContent(
     aliases: rest.aliases,
     areaId: rest.areaId,
   }
-  return definitionRefs.length > 1
-    ? { ...content, definitionRefs: [...definitionRefs].sort(byCodePoint) }
-    : { ...content, definitionRef: definitionRefs[0] ?? null }
+  return { ...content, definitionRefs: [...definitionRefs].sort(byCodePoint) }
 }
 const byCodePoint = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 /**

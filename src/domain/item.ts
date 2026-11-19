@@ -80,13 +80,6 @@ export type ItemStatus = (typeof itemStatuses)[number]
 export const checkFlags = ['needs_check', 'source_missing'] as const
 export type CheckFlag = (typeof checkFlags)[number]
 
-/**
- * The states a domain had in editions sealed before every domain was served (14 Oct 2026). Domains
- * no longer have one; these stay only because those editions' digests and exports name them.
- */
-export const areaStates = ['not_started', 'starting', 'live', 'paused'] as const
-export type AreaState = (typeof areaStates)[number]
-
 /** The most characters of a domain's summary line, shown in lists and pickers. */
 export const AREA_SUMMARY_MAX = 160
 /** The most characters of a domain's description: plain text with light markdown. */

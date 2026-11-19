@@ -11,7 +11,7 @@ import { type Draft, formatOutcome, textFindings } from '../../../domain/draft.t
 import { defaultRiskFor, type ItemKind } from '../../../domain/item.ts'
 import { parseMentions } from '../../../domain/mentions.ts'
 import { keepMarks, type Provenance } from '../../../domain/provenance.ts'
-import { addWorkingDays, vocabularyChangeOf } from '../../../domain/review.ts'
+import { addWorkingDays } from '../../../domain/review.ts'
 import { isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { relevantRefs } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
@@ -32,15 +32,9 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
  created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
 /**
- * A proposal as the API returns it. A term proposed before a term could name several definitions
- * (0070) stored the one it named as `definitionRef`; it reads as `definitionRefs`.
- */
-const record = (row: ProposalRecord): ProposalRecord =>
-  row.vocabulary ? { ...row, vocabulary: vocabularyChangeOf(row.vocabulary) } : row
-/**
  * Proposals as the API returns them to the reader: a draft that names an item the audience rule
  * hides from them reads without it (`forReader`). Row security leaves out the proposals they may
- * not read at all (0083).
+ * not read at all.
  */
 async function forReaders(tx: Queryable, rows: readonly ProposalRecord[]) {
   const drafts = await forReader(
@@ -165,7 +159,7 @@ function proposalsService(
       [id],
     )
     if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this suggestion') })
-    return record(row)
+    return row
   }
   async function getItem(id: string, lock = false) {
     const p = await get(id, lock)
@@ -434,7 +428,7 @@ function proposalsService(
         ],
       )
       return {
-        rows: await forReaders(tx, (result?.rows ?? []).map(record)),
+        rows: await forReaders(tx, result?.rows ?? []),
         total: result?.total ?? 0,
         limit,
         offset,

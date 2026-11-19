@@ -48,7 +48,7 @@ export function topicFor(
   const area = areaOfMetrics(metrics, metricArea)
   const month = scope.window.start.slice(0, 7) + '-01'
   return {
-    // The dimensions segment is added only when present, so earlier topics keep their keys.
+    // The dimensions segment is added only when there are any.
     key: [
       area ?? '',
       metrics.join(','),

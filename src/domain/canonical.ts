@@ -47,9 +47,8 @@ export function contentDigest(value: unknown): Promise<string> {
 export type EditionContent = {
   items: readonly { id: string; digest: string }[]
   vocabulary: readonly { key: string; digest: string }[]
-  areas: readonly { id: string; state: 'not_started' | 'starting' | 'live' | 'paused' }[]
-  /** The domains the definition source gave terms (0054); editions sealed before have none. */
-  domains?: readonly { key: string; areaId: string }[]
+  /** The domains the definition source gave terms. */
+  domains: readonly { key: string; areaId: string }[]
 }
 
 /** The same newline-separated preimage as edition_content_digest; labels are not content. */
@@ -57,13 +56,12 @@ export function editionDigest(content: EditionContent): Promise<string> {
   for (const rows of [
     content.items.map((row) => row.id),
     content.vocabulary.map((row) => row.key),
-    content.areas.map((row) => row.id),
-    (content.domains ?? []).map((row) => row.key),
+    content.domains.map((row) => row.key),
   ]) {
     if (new Set(rows).size !== rows.length || rows.some((key) => !/^[a-z0-9_:/-]+$/.test(key)))
       throw new Error('Invalid or duplicate edition key')
   }
-  if ((content.domains ?? []).some((row) => !/^[a-z0-9_]+$/.test(row.areaId)))
+  if (content.domains.some((row) => !/^[a-z0-9_]+$/.test(row.areaId)))
     throw new Error('Invalid edition domain')
   for (const row of [...content.items, ...content.vocabulary])
     if (!/^[0-9a-f]{64}$/.test(row.digest)) throw new Error('Expected a SHA-256 digest')
@@ -71,8 +69,7 @@ export function editionDigest(content: EditionContent): Promise<string> {
     [
       ...content.items.map((row) => `item:${row.id}:${row.digest}`),
       ...content.vocabulary.map((row) => `vocab:${row.key}:${row.digest}`),
-      ...content.areas.map((row) => `area:${row.id}:${row.state}`),
-      ...(content.domains ?? []).map((row) => `domain:${row.key}:${row.areaId}`),
+      ...content.domains.map((row) => `domain:${row.key}:${row.areaId}`),
     ]
       .sort()
       .join('\n'),

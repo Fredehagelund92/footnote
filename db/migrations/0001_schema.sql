@@ -512,13 +512,6 @@ CREATE TYPE public.area_role AS ENUM (
     'approver'
 );
 
-CREATE TYPE public.area_state AS ENUM (
-    'not_started',
-    'starting',
-    'live',
-    'paused'
-);
-
 CREATE TYPE public.caller_kind AS ENUM (
     'agent',
     'eval',
@@ -586,7 +579,6 @@ CREATE TYPE public.delivery_status AS ENUM (
     'matched',
     'conflict',
     'no_match',
-    'area_not_live',
     'need_more_detail',
     'check_failed'
 );
@@ -596,7 +588,6 @@ CREATE TYPE public.edition_reason AS ENUM (
     'proposal_accepted',
     'item_retired',
     'vocabulary_changed',
-    'area_state_changed',
     'area_map_changed',
     'source_rechecked',
     'rollback',
@@ -2652,8 +2643,6 @@ CREATE FUNCTION public.edition_content_digest(p_seq bigint) RETURNS bytea
     select 'vocab:' || s.term_key || ':' || encode(v.content_digest, 'hex')
       from vocab_term_service s join vocab_term_versions v on v.id = s.version_id where s.editions @> p_seq
     union all
-    select 'area:'  || area_id || ':' || state::text from area_state_service where editions @> p_seq
-    union all
     select 'domain:' || term_key || ':' || area_id from source_domain_service where editions @> p_seq) x $$;
 
 CREATE FUNCTION public.edition_lock() RETURNS void
@@ -2725,11 +2714,6 @@ begin
   insert into vocab_term_service (term_key, version_id, editions)
     select t.term_key, t.version_id, int8range(v_seq, null) from vocab_term_service t
      where t.editions @> p_target and not exists (select 1 from vocab_term_service s where s.term_key = t.term_key and s.version_id = t.version_id and upper_inf(s.editions));
-  update area_state_service s set editions = int8range(lower(s.editions), v_seq)
-   where upper_inf(s.editions) and not exists (select 1 from area_state_service t where t.area_id = s.area_id and t.state = s.state and t.editions @> p_target);
-  insert into area_state_service (area_id, state, editions)
-    select t.area_id, t.state, int8range(v_seq, null) from area_state_service t
-     where t.editions @> p_target and not exists (select 1 from area_state_service s where s.area_id = t.area_id and s.state = t.state and upper_inf(s.editions));
   update source_domain_service s set editions = int8range(lower(s.editions), v_seq)
    where upper_inf(s.editions) and not exists (select 1 from source_domain_service t where t.term_key = s.term_key and t.area_id = s.area_id and t.editions @> p_target);
   insert into source_domain_service (term_key, area_id, editions)
@@ -3671,13 +3655,6 @@ CREATE TABLE public.area_deletions (
     contents jsonb NOT NULL,
     recipients uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     CONSTRAINT area_deletions_reason_check CHECK (((reason IS NULL) OR ((char_length(btrim(reason)) >= 1) AND (char_length(btrim(reason)) <= 500))))
-);
-
-CREATE TABLE public.area_state_service (
-    area_id text NOT NULL,
-    state public.area_state NOT NULL,
-    editions int8range NOT NULL,
-    CONSTRAINT area_state_service_editions_check CHECK (((NOT isempty(editions)) AND lower_inc(editions) AND (NOT lower_inf(editions))))
 );
 
 CREATE TABLE public.areas (
@@ -5715,9 +5692,6 @@ ALTER TABLE ONLY public.area_assignments
 ALTER TABLE ONLY public.area_deletions
     ADD CONSTRAINT area_deletions_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.area_state_service
-    ADD CONSTRAINT area_state_service_pkey PRIMARY KEY (area_id, editions WITHOUT OVERLAPS);
-
 ALTER TABLE ONLY public.areas
     ADD CONSTRAINT areas_name_key UNIQUE (name);
 
@@ -6471,8 +6445,6 @@ CREATE TRIGGER area_deletions_truncate BEFORE TRUNCATE ON public.area_deletions 
 
 CREATE TRIGGER area_deletions_update BEFORE UPDATE ON public.area_deletions FOR EACH ROW EXECUTE FUNCTION public.cl_forbid_mutation();
 
-CREATE TRIGGER area_state_service_delete BEFORE DELETE OR TRUNCATE ON public.area_state_service FOR EACH STATEMENT EXECUTE FUNCTION public.cl_forbid_mutation();
-
 CREATE TRIGGER audit_log_chain BEFORE INSERT ON public.audit_log FOR EACH ROW EXECUTE FUNCTION public.audit_chain();
 
 CREATE TRIGGER comments_clear_reactions AFTER UPDATE OF deleted_at ON public.comments FOR EACH ROW WHEN (((new.deleted_at IS NOT NULL) AND (old.deleted_at IS NULL))) EXECUTE FUNCTION public.comments_clear_reactions();
@@ -6542,8 +6514,6 @@ CREATE TRIGGER proposals_tests_area AFTER UPDATE OF area_id ON public.proposals 
 CREATE TRIGGER proposals_touch BEFORE UPDATE ON public.proposals FOR EACH ROW EXECUTE FUNCTION public.cl_touch_updated_at();
 
 CREATE TRIGGER reactions_guard BEFORE INSERT ON public.reactions FOR EACH ROW EXECUTE FUNCTION public.reactions_guard();
-
-CREATE TRIGGER service_edition_guard BEFORE INSERT OR UPDATE ON public.area_state_service FOR EACH ROW EXECUTE FUNCTION public.cl_service_edition_guard();
 
 CREATE TRIGGER service_edition_guard BEFORE INSERT OR UPDATE ON public.item_version_service FOR EACH ROW EXECUTE FUNCTION public.cl_service_edition_guard();
 
@@ -6673,9 +6643,6 @@ ALTER TABLE ONLY public.area_deletions
 
 ALTER TABLE ONLY public.area_deletions
     ADD CONSTRAINT area_deletions_edition_fkey FOREIGN KEY (edition) REFERENCES public.editions(seq);
-
-ALTER TABLE ONLY public.area_state_service
-    ADD CONSTRAINT area_state_service_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);
 
 ALTER TABLE ONLY public.assistant_case_tries
     ADD CONSTRAINT assistant_case_tries_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.eval_runs(id);

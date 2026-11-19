@@ -24725,30 +24725,6 @@
                         ]
                       }
                     },
-                    "areas": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "state": {
-                            "enum": [
-                              "not_started",
-                              "starting",
-                              "live",
-                              "paused"
-                            ],
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "state"
-                        ]
-                      }
-                    },
                     "domains": {
                       "type": "array",
                       "items": {
@@ -24775,7 +24751,7 @@
                     "items",
                     "withheld",
                     "vocabulary",
-                    "areas"
+                    "domains"
                   ]
                 }
               }
@@ -106432,7 +106408,6 @@
                                         "answer",
                                         "domain",
                                         "agent",
-                                        "market",
                                         "metric",
                                         "month",
                                         "gap",
@@ -106458,14 +106433,6 @@
                                     "minLength": 1,
                                     "maxLength": 200
                                   }
-                                },
-                                "flag": {
-                                  "enum": [
-                                    "shared",
-                                    "unknown",
-                                    "taken"
-                                  ],
-                                  "type": "string"
                                 }
                               },
                               "required": [
@@ -106473,44 +106440,11 @@
                                 "values"
                               ]
                             }
-                          },
-                          "answer": {
-                            "type": "array",
-                            "items": {
-                              "enum": [
-                                "grounded",
-                                "partial",
-                                "conflict",
-                                "stale",
-                                "missing"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "domain": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9_]{1,39}$"
-                          },
-                          "agent": {
-                            "type": "string",
-                            "maxLength": 40
-                          },
-                          "gap": {
-                            "type": "array",
-                            "items": {
-                              "enum": [
-                                "draft",
-                                "suggestion",
-                                "none"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "month": {
-                            "type": "string",
-                            "pattern": "^\\d{4}-\\d{2}$"
                           }
-                        }
+                        },
+                        "required": [
+                          "chips"
+                        ]
                       },
                       "by": {
                         "type": "string"
@@ -106807,7 +106741,6 @@
                                     "answer",
                                     "domain",
                                     "agent",
-                                    "market",
                                     "metric",
                                     "month",
                                     "gap",
@@ -106833,14 +106766,6 @@
                                 "minLength": 1,
                                 "maxLength": 200
                               }
-                            },
-                            "flag": {
-                              "enum": [
-                                "shared",
-                                "unknown",
-                                "taken"
-                              ],
-                              "type": "string"
                             }
                           },
                           "required": [
@@ -106848,44 +106773,11 @@
                             "values"
                           ]
                         }
-                      },
-                      "answer": {
-                        "type": "array",
-                        "items": {
-                          "enum": [
-                            "grounded",
-                            "partial",
-                            "conflict",
-                            "stale",
-                            "missing"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "domain": {
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9_]{1,39}$"
-                      },
-                      "agent": {
-                        "type": "string",
-                        "maxLength": 40
-                      },
-                      "gap": {
-                        "type": "array",
-                        "items": {
-                          "enum": [
-                            "draft",
-                            "suggestion",
-                            "none"
-                          ],
-                          "type": "string"
-                        }
-                      },
-                      "month": {
-                        "type": "string",
-                        "pattern": "^\\d{4}-\\d{2}$"
                       }
-                    }
+                    },
+                    "required": [
+                      "chips"
+                    ]
                   }
                 },
                 "required": [
@@ -106927,7 +106819,6 @@
                                       "answer",
                                       "domain",
                                       "agent",
-                                      "market",
                                       "metric",
                                       "month",
                                       "gap",
@@ -106953,14 +106844,6 @@
                                   "minLength": 1,
                                   "maxLength": 200
                                 }
-                              },
-                              "flag": {
-                                "enum": [
-                                  "shared",
-                                  "unknown",
-                                  "taken"
-                                ],
-                                "type": "string"
                               }
                             },
                             "required": [
@@ -106968,44 +106851,11 @@
                               "values"
                             ]
                           }
-                        },
-                        "answer": {
-                          "type": "array",
-                          "items": {
-                            "enum": [
-                              "grounded",
-                              "partial",
-                              "conflict",
-                              "stale",
-                              "missing"
-                            ],
-                            "type": "string"
-                          }
-                        },
-                        "domain": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9_]{1,39}$"
-                        },
-                        "agent": {
-                          "type": "string",
-                          "maxLength": 40
-                        },
-                        "gap": {
-                          "type": "array",
-                          "items": {
-                            "enum": [
-                              "draft",
-                              "suggestion",
-                              "none"
-                            ],
-                            "type": "string"
-                          }
-                        },
-                        "month": {
-                          "type": "string",
-                          "pattern": "^\\d{4}-\\d{2}$"
                         }
-                      }
+                      },
+                      "required": [
+                        "chips"
+                      ]
                     },
                     "by": {
                       "type": "string"

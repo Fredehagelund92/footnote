@@ -339,7 +339,7 @@ Two named jobs sit on top of the roles. A **high-risk approver** is a named pers
 | Item version | Title, summary (at most 280 characters), optional body, mentions, references, scope, validity, review date, evidence, claim level, risk level, audience, owner, change marks, how it was created. It never changes. |
 | Proposal | One item version, the proposer, the target domain, a state, a due date and check results. Retiring an item is also a proposal. |
 | Decision | Who decided and in what capacity (owner, approver or administrator), the outcome, a reason and the exact item version. |
-| Edition | A number, a digest, and all accepted item versions, the vocabulary and the domain map. Editions sealed before 14 October 2026 also hold the domain states of that time. It never changes. |
+| Edition | A number, a digest, and all accepted item versions, the vocabulary and the domain map. It never changes. |
 | Test question | Domain, wordings, scope, expected items, rubrics, risk level, status. |
 | Test run | What was tested, the result of each try, and the cost. |
 | Delivery record | One anonymous record of one `get_facts` call: scope, edition, items, status. No person. |

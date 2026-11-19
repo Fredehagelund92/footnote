@@ -346,8 +346,6 @@ describe('edition export', () => {
         { field: 'summary', position: 1, target: 'metric:orders', label: 'Orders' },
       ],
     })
-    // Domains have no state any more; only editions sealed before that carry one.
-    expect(document.areas).toEqual([])
     expect(document.withheld).toEqual([])
     // The test vocabulary's digests are placeholders; items are written by the real write path.
     expect(await verifyEditionExport(document)).toEqual({

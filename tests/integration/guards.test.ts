@@ -164,11 +164,6 @@ it('enforces append-only owner writes and sealed range boundaries', async () => 
     client.query("update editions set digest=sha256('changed') where seq=$1", [seq]),
   ).rejects.toMatchObject({ code: '23001' })
   await expect(
-    client.query("insert into area_state_service values ('finance','live',int8range($1,null))", [
-      seq,
-    ]),
-  ).rejects.toMatchObject({ code: '23001' })
-  await expect(
     client.query('select edition_serve_item_version(999999,$1)', [v.id]),
   ).rejects.toMatchObject({ code: '23001' })
 })

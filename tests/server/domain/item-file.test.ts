@@ -119,7 +119,7 @@ describe('edition export check', () => {
     const items = [{ ...item, digest: digests.content }]
     const vocabulary = [{ ...term, digest: await contentDigest(termDigestContent(term)) }]
     const withheld = [{ id: 'itm_grouped0001', digest: 'b'.repeat(64) }]
-    const areas = [{ id: 'finance', state: 'live' as const }]
+    const domains = [{ key: 'metric:orders', areaId: 'finance' }]
     return {
       format: EDITION_EXPORT_FORMAT,
       edition: {
@@ -131,11 +131,11 @@ describe('edition export check', () => {
         createdAt: '2026-10-08 12:00:00+00',
         sealedAt: '2026-10-08 12:00:00+00',
       },
-      digest: await editionDigest({ items: [...items, ...withheld], vocabulary, areas }),
+      digest: await editionDigest({ items: [...items, ...withheld], vocabulary, domains }),
       items,
       withheld,
       vocabulary,
-      areas,
+      domains,
     }
   }
 
@@ -147,24 +147,11 @@ describe('edition export check', () => {
     })
   })
 
-  it('verifies an export made before a term could name several definitions', async () => {
-    const document = await exported()
-    const { definitionRefs, ...term } = document.vocabulary[0]!
-    // Such a file names the one definition as `definitionRef`.
-    const legacy = { ...term, definitionRef: definitionRefs[0] ?? null }
-    document.vocabulary = [legacy as unknown as (typeof document.vocabulary)[number]]
-    expect(await verifyEditionExport(document)).toEqual({
-      edition: true,
-      items: [],
-      vocabulary: [],
-    })
-  })
-
   it('names what was changed after the export', async () => {
     const document = await exported()
     document.items[0]!.title = 'Edited by hand'
     document.vocabulary[0]!.aliases = []
-    document.areas[0]!.state = 'paused'
+    document.domains[0]!.areaId = 'payments'
     expect(await verifyEditionExport(document)).toEqual({
       edition: false,
       items: ['itm_abcdefgh01'],

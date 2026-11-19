@@ -24,10 +24,10 @@ import { apiDatabase, servingPool, testDatabase, transaction } from './support.t
 
 /*
   One domain rule everywhere (CON-206, FR-136, FR-215, FR-320). The demo's metrics have no area
-  in the vocabulary; Cube gives each its domain (OQ-24). Before 0054 only the catalogue read it,
-  so a gap about Orders in Norway reached no owner ("Several domains"). The edition now
-  carries the source's domains: a sync publishes them, and serving, gap topics, who manages a gap
-  and the catalogue read the same pinned map. Every domain is served (FR-320).
+  in the vocabulary; Cube gives each its domain (OQ-24). The edition carries the source's
+  domains: a sync publishes them, and serving, gap topics, who manages a gap and the catalogue
+  read the same pinned map, so a gap about Orders in Norway reported before the first sync still
+  reaches its owner. Every domain is served (FR-320).
 
   Here: Commercial (owner), Customer value (approver is its owner), Marketing (stranger is its
   owner), and an author who reports gaps, as Maria does in the demo.
@@ -97,11 +97,11 @@ const activePlayers = {
   metrics: ['metric:active_customers'],
   window: { from: '2026-09-01', to: '2026-09-30' },
 }
-const legacyKey = '|metric:orders|val:market/norway|2026-08'
-let legacyGap = ''
+const reportedKey = '|metric:orders|val:market/norway|2026-08'
+let reportedGap = ''
 
-/** The live edition as an edition from before 0054 left it: the vocabulary, area states, no domains. */
-async function legacyEdition() {
+/** The live edition before a sync pins the domains: the vocabulary, no domains. */
+async function unpinnedEdition() {
   await client.query(`
     insert into areas (id,name) values ('area_commercial','Commercial'),('area_customer_value','Customer value'),
       ('area_marketing','Marketing');
@@ -156,17 +156,17 @@ async function legacyEdition() {
   }
   await client.query('select edition_seal($1)', [seq])
   await client.query('select edition_publish($1)', [seq])
-  // The demo's reported gap from before: Orders in Norway, its topic without an area.
+  // A gap reported before the sync: Orders in Norway, its topic without an area.
   const topic = await client.query<{ id: string }>(
     `insert into topics (key,area_id,metric_keys,value_keys,month)
      values ($1,null,'{metric:orders}','{val:market/norway}','2026-08-01') returning id`,
-    [legacyKey],
+    [reportedKey],
   )
-  legacyGap = randomUUID()
+  reportedGap = randomUUID()
   await client.query(
     `insert into gaps (id,ref,topic_id,type,status,severity,opened_by_case,first_seen,last_seen,status_since)
-     values ($1,'gap_legacy0001',$2,'missing','open',1,2,'2026-10-01','2026-10-01',date_trunc('hour',now(),'UTC'))`,
-    [legacyGap, topic.rows[0]!.id],
+     values ($1,'gap_reported01',$2,'missing','open',1,2,'2026-10-01','2026-10-01',date_trunc('hour',now(),'UTC'))`,
+    [reportedGap, topic.rows[0]!.id],
   )
 }
 
@@ -179,7 +179,7 @@ beforeAll(async () => {
     ])
   // The source is read before any edition: the first sync has no live edition to bring up to date.
   expect((await connectors.sync('demo')).domainEdition).toBeNull()
-  await transaction(client, legacyEdition)
+  await transaction(client, unpinnedEdition)
   for (const name of Object.keys(people) as Who[]) {
     const response = await app.inject({
       method: 'POST',
@@ -244,8 +244,6 @@ describe('after a sync pins them', () => {
        union all select 'vocab', s.term_key, encode(v.content_digest,'hex')
          from vocab_term_service s join vocab_term_versions v on v.id=s.version_id
         where s.editions @> (select seq from live_edition)
-       union all select 'area', area_id, state::text from area_state_service
-        where editions @> (select seq from live_edition)
        union all select 'domain', term_key, area_id from source_domain_service
         where editions @> (select seq from live_edition)`,
     )
@@ -253,7 +251,6 @@ describe('after a sync pins them', () => {
     const recomputed = await editionDigest({
       items: of('item').map((line) => ({ id: line.key, digest: line.value })),
       vocabulary: of('vocab').map((line) => ({ key: line.key, digest: line.value })),
-      areas: of('area').map((line) => ({ id: line.key, state: line.value as 'live' })),
       domains: of('domain').map((line) => ({ key: line.key, areaId: line.value })),
     })
     const { rows } = await client.query<{ digest: string }>(
@@ -265,20 +262,20 @@ describe('after a sync pins them', () => {
   it('gives the topic of the earlier report its domain, so it reaches the owner', async () => {
     const { rows } = await client.query<{ key: string; area_id: string | null }>(
       'select t.key, t.area_id from gaps g join topics t on t.id=g.topic_id where g.id=$1',
-      [legacyGap],
+      [reportedGap],
     )
-    expect(rows).toEqual([{ key: 'area_commercial' + legacyKey, area_id: 'area_commercial' }])
+    expect(rows).toEqual([{ key: 'area_commercial' + reportedKey, area_id: 'area_commercial' }])
   })
 
   it('lets the owner manage that gap', async () => {
-    const owned = await call('GET', `/gaps/${legacyGap}`, 'owner')
+    const owned = await call('GET', `/gaps/${reportedGap}`, 'owner')
     expect(owned.statusCode, owned.body).toBe(200)
     expect(owned.json<GapDetail>()).toMatchObject({
       canManage: true,
       topic: { areaId: 'area_commercial', areaIds: ['area_commercial'] },
     })
     // Not a manager of another domain's gap.
-    const other = await call('GET', `/gaps/${legacyGap}`, 'stranger')
+    const other = await call('GET', `/gaps/${reportedGap}`, 'stranger')
     if (other.statusCode === 200) expect(other.json<GapDetail>().canManage).toBe(false)
   })
 

@@ -3,7 +3,6 @@ import {
   riskLevels,
   claimLevels,
   creationChannels,
-  areaStates,
   checkFlags,
 } from '../../src/domain/item.ts'
 import { describe, expect, it } from 'vitest'
@@ -49,7 +48,6 @@ it.each(
     risk_level: riskLevels,
     claim_level: claimLevels,
     creation_channel: creationChannels,
-    area_state: areaStates,
     source_flag: checkFlags,
   }),
 )('keeps %s aligned with the existing domain model', async (name, values) => {

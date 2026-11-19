@@ -7,7 +7,6 @@ import {
   testChange,
   testChangeWords,
   versionDiff,
-  vocabularyChangeOf,
 } from '../../../src/domain/review.ts'
 import { bundle, event, terms, version } from './fixtures.ts'
 
@@ -139,36 +138,6 @@ describe('matching probes (level 2)', () => {
       passed: false,
       probes: [],
     })
-  })
-})
-
-describe('vocabularyChangeOf', () => {
-  it('reads a draft stored before a term could name several definitions', () => {
-    const draft = {
-      key: 'dim:market',
-      kind: 'dimension' as const,
-      parentKey: null,
-      name: 'Market',
-      aliases: [],
-      areaId: null,
-      definitionRef: 'cube:payments.market',
-      base: null,
-    }
-    expect(vocabularyChangeOf(draft)).toEqual({
-      key: 'dim:market',
-      kind: 'dimension',
-      parentKey: null,
-      name: 'Market',
-      aliases: [],
-      areaId: null,
-      definitionRefs: ['cube:payments.market'],
-      base: null,
-    })
-    expect(vocabularyChangeOf({ ...draft, definitionRef: null }).definitionRefs).toEqual([])
-    const { definitionRef: _old, ...current } = draft
-    expect(
-      vocabularyChangeOf({ ...current, definitionRefs: ['cube:a.market', 'cube:b.market'] }),
-    ).toMatchObject({ definitionRefs: ['cube:a.market', 'cube:b.market'] })
   })
 })
 

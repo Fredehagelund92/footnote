@@ -202,23 +202,6 @@ export type VocabularyChange = {
   /** The source members it names: one at most, or for a dimension one per view (CON-208). */
   definitionRefs: string[]
 }
-/**
- * The term a vocabulary proposal holds, as its draft stored it. A proposal made before a term could
- * name several definitions stored one, as `definitionRef`.
- */
-export function vocabularyChangeOf<T extends object>(
-  draft: T,
-): Omit<T, 'definitionRef'> & VocabularyChange {
-  const { definitionRef, definitionRefs, ...rest } = draft as T & {
-    definitionRef?: string | null
-    definitionRefs?: string[]
-  }
-  return {
-    ...rest,
-    definitionRefs: definitionRefs ?? (definitionRef ? [definitionRef] : []),
-  } as Omit<T, 'definitionRef'> & VocabularyChange
-}
-
 /** The review due time: `days` working days (Monday to Friday, UTC) after `from` (FR-212). */
 export function addWorkingDays(from: string, days: number): string {
   const due = new Date(from)

@@ -155,22 +155,16 @@ export type ItemVersion = z.infer<typeof itemVersionSchema>
 /**
  * What a version's two digests are taken over: `content` is all of it, with its lists in a
  * stable order; `core` leaves out the review date and change marks, which a recheck (CON-211)
- * moves. Two versions have the same digest exactly when these are the same canonical JSON. The
- * owner goes in under the field's first name, `stewardId`, so every digest stored before the
- * rename (0086) still matches its content.
+ * moves. Two versions have the same digest exactly when these are the same canonical JSON.
  */
 export function itemVersionDigestInput(input: ItemVersion): { content: unknown; core: unknown } {
-  const { ownerId, ...parsed } = itemVersionSchema.parse(input)
+  const parsed = itemVersionSchema.parse(input)
   const value = {
     ...parsed,
-    stewardId: ownerId,
     references: [...parsed.references].sort(),
     scope: {
       metrics: [...parsed.scope.metrics].sort(),
-      // Left out when empty, so a version saved before dimensions with any value keeps its digest.
-      ...(parsed.scope.dimensions.length
-        ? { dimensions: [...parsed.scope.dimensions].sort() }
-        : {}),
+      dimensions: [...parsed.scope.dimensions].sort(),
       dimensionValues: [...parsed.scope.dimensionValues].sort((a, b) =>
         a.value < b.value ? -1 : a.value > b.value ? 1 : 0,
       ),
