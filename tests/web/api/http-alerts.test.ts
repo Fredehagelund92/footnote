@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AlertRaise, AlertRuleRecord } from '@contract/alerts'
-import { alertsOf, hrefOf, raisedPageOf, raisedWhen } from '@/api/http-alerts'
+import { alertsOf, raisedPageOf, raisedWhen } from '@/api/http-alerts'
+import { hrefOf } from '@/api/http-inbox'
 import { lastOf, rulesFor, thresholdOf } from '@/model/alerts'
 import { RULES } from '@/api/mock/data/alerts'
 

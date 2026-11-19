@@ -6,7 +6,8 @@
  */
 import { weekdayDayMonth } from '@/lib/dates'
 import type { AlertRaise, AlertRaised, AlertRules } from '@contract/alerts'
-import { alertCardDays, isAlertCardRule, raisedLine, type RaiseSubject } from '@domain/alerts'
+import { alertCardDays, isAlertCardRule, raisedLine } from '@domain/alerts'
+import { hrefOf } from './http-inbox'
 import { cardKey } from '@domain/inbox'
 import { ruleWords, type Alerts, type Raised, type RaisedPage, type Rule } from '@/model/alerts'
 
@@ -26,15 +27,6 @@ export function raisedWhen(iso: string, now: Date): string {
   if (days === 1) return `Yesterday, ${time}`
   const date = weekdayDayMonth(at)
   return at.getFullYear() === now.getFullYear() ? date : `${date} ${at.getFullYear()}`
-}
-
-/** Where a raise sends people in the app: its card in the Inbox, or the page it is about. */
-export function hrefOf(subject: RaiseSubject): string {
-  if ('card' in subject) return `/inbox?card=${subject.card}`
-  if ('topic' in subject) return `/observability?dock=topic.${subject.topic}`
-  if ('connector' in subject) return `/settings/integrations/${subject.connector}`
-  // Overview is Observability's own address.
-  return subject.page === 'overview' ? '/observability' : `/observability/${subject.page}`
 }
 
 /**
