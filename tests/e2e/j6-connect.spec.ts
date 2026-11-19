@@ -179,7 +179,7 @@ test('an admin connects dbt in five steps: no calculation, no link to a file', a
   await button(page, 'Continue').click()
 
   await step(page, 'Map')
-  await expect(page.getByText('dbt view')).toBeVisible()
+  await expect(page.getByText('dbt semantic model')).toBeVisible()
   await mapToSales(page)
   await button(page, 'Continue').click()
 
