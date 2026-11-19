@@ -442,14 +442,11 @@ function proposalsService(
     async create(
       input: z.infer<typeof createProposalSchema>,
       /**
-       * `assisted` records where each field of an assistant's draft came from, on the draft's
-       * history, with the label every assistant draft carries until a person submits it (FR-707).
-       * `provenance` marks each field of a draft an agent or the assistant wrote (FR-121); only
-       * `saveAgentDraft` passes it, never a client.
+       * `provenance` marks each field of a draft an agent wrote (FR-121); only `saveAgentDraft`
+       * passes it, never a client.
        */
       options: {
         importBatchId?: string
-        assisted?: Record<string, string>
         provenance?: (draft: Draft) => Provenance
         /** The question round whose answers saved it (FR-121); only `saveAgentDraft` passes it. */
         answersRound?: string
@@ -487,13 +484,7 @@ function proposalsService(
           options.agentId ?? null,
         ],
       )
-      await event(
-        p!,
-        'created',
-        options.assisted
-          ? { assistant: { label: 'unreviewed draft', sources: options.assisted } }
-          : {},
-      )
+      await event(p!, 'created', {})
       return p!
     },
     /** `reason` left out keeps the stored one; null or empty clears it. */

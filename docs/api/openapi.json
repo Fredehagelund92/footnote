@@ -255,7 +255,6 @@
                   "channel": {
                     "enum": [
                       "form",
-                      "assistant",
                       "chat",
                       "command_line",
                       "mcp",
@@ -448,7 +447,6 @@
                     "channel": {
                       "enum": [
                         "form",
-                        "assistant",
                         "chat",
                         "command_line",
                         "mcp",
@@ -677,7 +675,6 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "assistant",
                                 "source"
                               ],
                               "type": "string"
@@ -768,36 +765,6 @@
                                   "code",
                                   "field",
                                   "words"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "external": {
-                              "type": "array",
-                              "maxItems": 5,
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string",
-                                    "maxLength": 2000
-                                  },
-                                  "quote": {
-                                    "type": "string",
-                                    "maxLength": 500
-                                  },
-                                  "readOn": {
-                                    "type": "string"
-                                  },
-                                  "quoteFound": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "url",
-                                  "quote",
-                                  "readOn",
-                                  "quoteFound"
                                 ],
                                 "additionalProperties": false
                               }
@@ -1299,7 +1266,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -1528,7 +1494,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -1619,36 +1584,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -2168,7 +2103,6 @@
                           "channel": {
                             "enum": [
                               "form",
-                              "assistant",
                               "chat",
                               "command_line",
                               "mcp",
@@ -2397,7 +2331,6 @@
                                   "by": {
                                     "enum": [
                                       "agent",
-                                      "assistant",
                                       "source"
                                     ],
                                     "type": "string"
@@ -2488,36 +2421,6 @@
                                         "code",
                                         "field",
                                         "words"
-                                      ],
-                                      "additionalProperties": false
-                                    }
-                                  },
-                                  "external": {
-                                    "type": "array",
-                                    "maxItems": 5,
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "url": {
-                                          "type": "string",
-                                          "maxLength": 2000
-                                        },
-                                        "quote": {
-                                          "type": "string",
-                                          "maxLength": 500
-                                        },
-                                        "readOn": {
-                                          "type": "string"
-                                        },
-                                        "quoteFound": {
-                                          "type": "boolean"
-                                        }
-                                      },
-                                      "required": [
-                                        "url",
-                                        "quote",
-                                        "readOn",
-                                        "quoteFound"
                                       ],
                                       "additionalProperties": false
                                     }
@@ -3043,7 +2946,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -3272,7 +3174,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -3363,36 +3264,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -3850,7 +3721,6 @@
                     "channel": {
                       "enum": [
                         "form",
-                        "assistant",
                         "chat",
                         "command_line",
                         "mcp",
@@ -4079,7 +3949,6 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "assistant",
                                 "source"
                               ],
                               "type": "string"
@@ -4170,36 +4039,6 @@
                                   "code",
                                   "field",
                                   "words"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "external": {
-                              "type": "array",
-                              "maxItems": 5,
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string",
-                                    "maxLength": 2000
-                                  },
-                                  "quote": {
-                                    "type": "string",
-                                    "maxLength": 500
-                                  },
-                                  "readOn": {
-                                    "type": "string"
-                                  },
-                                  "quoteFound": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "url",
-                                  "quote",
-                                  "readOn",
-                                  "quoteFound"
                                 ],
                                 "additionalProperties": false
                               }
@@ -4701,7 +4540,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -4930,7 +4768,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -5021,36 +4858,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -5529,7 +5336,6 @@
                     "channel": {
                       "enum": [
                         "form",
-                        "assistant",
                         "chat",
                         "command_line",
                         "mcp",
@@ -5758,7 +5564,6 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "assistant",
                                 "source"
                               ],
                               "type": "string"
@@ -5849,36 +5654,6 @@
                                   "code",
                                   "field",
                                   "words"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "external": {
-                              "type": "array",
-                              "maxItems": 5,
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string",
-                                    "maxLength": 2000
-                                  },
-                                  "quote": {
-                                    "type": "string",
-                                    "maxLength": 500
-                                  },
-                                  "readOn": {
-                                    "type": "string"
-                                  },
-                                  "quoteFound": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "url",
-                                  "quote",
-                                  "readOn",
-                                  "quoteFound"
                                 ],
                                 "additionalProperties": false
                               }
@@ -6380,7 +6155,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -6609,7 +6383,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -6700,36 +6473,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -7214,7 +6957,6 @@
                     "channel": {
                       "enum": [
                         "form",
-                        "assistant",
                         "chat",
                         "command_line",
                         "mcp",
@@ -7443,7 +7185,6 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "assistant",
                                 "source"
                               ],
                               "type": "string"
@@ -7534,36 +7275,6 @@
                                   "code",
                                   "field",
                                   "words"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "external": {
-                              "type": "array",
-                              "maxItems": 5,
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string",
-                                    "maxLength": 2000
-                                  },
-                                  "quote": {
-                                    "type": "string",
-                                    "maxLength": 500
-                                  },
-                                  "readOn": {
-                                    "type": "string"
-                                  },
-                                  "quoteFound": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "url",
-                                  "quote",
-                                  "readOn",
-                                  "quoteFound"
                                 ],
                                 "additionalProperties": false
                               }
@@ -8065,7 +7776,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -8294,7 +8004,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -8385,36 +8094,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -8823,7 +8502,6 @@
                         "channel": {
                           "enum": [
                             "form",
-                            "assistant",
                             "chat",
                             "command_line",
                             "mcp",
@@ -8955,7 +8633,6 @@
                         {
                           "enum": [
                             "agent",
-                            "assistant",
                             "source"
                           ],
                           "type": "string"
@@ -12039,7 +11716,6 @@
                               "channel": {
                                 "enum": [
                                   "form",
-                                  "assistant",
                                   "chat",
                                   "command_line",
                                   "mcp",
@@ -12171,7 +11847,6 @@
                               {
                                 "enum": [
                                   "agent",
-                                  "assistant",
                                   "source"
                                 ],
                                 "type": "string"
@@ -16083,7 +15758,6 @@
                         "channel": {
                           "enum": [
                             "form",
-                            "assistant",
                             "chat",
                             "command_line",
                             "mcp",
@@ -17268,7 +16942,6 @@
                         "channel": {
                           "enum": [
                             "form",
-                            "assistant",
                             "chat",
                             "command_line",
                             "mcp",
@@ -18355,7 +18028,6 @@
                         "channel": {
                           "enum": [
                             "form",
-                            "assistant",
                             "chat",
                             "command_line",
                             "mcp",
@@ -20363,7 +20035,6 @@
                     "channel": {
                       "enum": [
                         "form",
-                        "assistant",
                         "chat",
                         "command_line",
                         "mcp",
@@ -21943,7 +21614,6 @@
                           "createdVia": {
                             "enum": [
                               "form",
-                              "assistant",
                               "chat",
                               "command_line",
                               "mcp",
@@ -23947,7 +23617,6 @@
                                       {
                                         "enum": [
                                           "form",
-                                          "assistant",
                                           "chat",
                                           "command_line",
                                           "mcp",
@@ -36891,7 +36560,6 @@
                         "createdVia": {
                           "enum": [
                             "form",
-                            "assistant",
                             "chat",
                             "command_line",
                             "mcp",
@@ -38458,7 +38126,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -38687,7 +38354,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -38778,36 +38444,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -42502,7 +42138,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -42731,7 +42366,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -42822,36 +42456,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }
@@ -62623,7 +62227,6 @@
                                   {
                                     "enum": [
                                       "agent",
-                                      "assistant",
                                       "source"
                                     ],
                                     "type": "string"
@@ -82669,7 +82272,6 @@
                                 "channel": {
                                   "enum": [
                                     "form",
-                                    "assistant",
                                     "chat",
                                     "command_line",
                                     "mcp",
@@ -82898,7 +82500,6 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "assistant",
                                             "source"
                                           ],
                                           "type": "string"
@@ -82989,36 +82590,6 @@
                                               "code",
                                               "field",
                                               "words"
-                                            ],
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "external": {
-                                          "type": "array",
-                                          "maxItems": 5,
-                                          "items": {
-                                            "type": "object",
-                                            "properties": {
-                                              "url": {
-                                                "type": "string",
-                                                "maxLength": 2000
-                                              },
-                                              "quote": {
-                                                "type": "string",
-                                                "maxLength": 500
-                                              },
-                                              "readOn": {
-                                                "type": "string"
-                                              },
-                                              "quoteFound": {
-                                                "type": "boolean"
-                                              }
-                                            },
-                                            "required": [
-                                              "url",
-                                              "quote",
-                                              "readOn",
-                                              "quoteFound"
                                             ],
                                             "additionalProperties": false
                                           }

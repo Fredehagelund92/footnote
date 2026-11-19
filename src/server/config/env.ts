@@ -176,8 +176,8 @@ const envSchema = z
     // (mode 0700). Sources an administrator adds keep their tokens there (CON-105). Unset, the
     // server keeps no secret, so a source that needs one cannot be added.
     FOOTNOTE_SECRETS_DIR: z.string().optional(),
-    // `on` lets the assistant's read_source open plain http pages on this machine, where the
-    // end-to-end tests serve theirs. Never another private address; refused in production.
+    // `on` lets the service open plain http pages an evidence link names on this machine, where
+    // the end-to-end tests serve theirs. Never another private address; refused in production.
     FOOTNOTE_WEB_READ_LOOPBACK: z.enum(['on', 'off']).default('off'),
     // The bearer token a scraper presents at /metrics. Unset turns the endpoint off.
     FOOTNOTE_METRICS_TOKEN: z
@@ -353,7 +353,7 @@ export interface Config {
   /** The local secret store's folder; unset keeps no secret. */
   secretsDir: string | undefined
   metricsToken: string | undefined
-  /** read_source may open http pages on this machine too (tests only). */
+  /** Evidence links may open http pages on this machine too (tests only). */
   webReadLoopback: boolean
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; unset shows none. */
   profileLabel: string | undefined

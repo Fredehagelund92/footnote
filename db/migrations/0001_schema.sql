@@ -545,7 +545,6 @@ CREATE TYPE public.connector_kind AS ENUM (
 
 CREATE TYPE public.creation_channel AS ENUM (
     'form',
-    'assistant',
     'chat',
     'command_line',
     'mcp',
@@ -4452,9 +4451,7 @@ CREATE TABLE public.llm_spend_daily (
     tokens_out bigint DEFAULT 0 NOT NULL,
     cost_micros bigint DEFAULT 0 NOT NULL,
     expires_at timestamp with time zone DEFAULT (now() + '24:00:00'::interval) NOT NULL,
-    estimated_calls bigint DEFAULT 0 NOT NULL,
-    web_searches bigint DEFAULT 0 NOT NULL,
-    web_reads bigint DEFAULT 0 NOT NULL
+    estimated_calls bigint DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE public.llm_spend_monthly (
@@ -4463,9 +4460,7 @@ CREATE TABLE public.llm_spend_monthly (
     calls bigint DEFAULT 0 NOT NULL,
     cost_micros bigint DEFAULT 0 NOT NULL,
     estimated_calls bigint DEFAULT 0 NOT NULL,
-    provider text NOT NULL,
-    web_searches bigint DEFAULT 0 NOT NULL,
-    web_reads bigint DEFAULT 0 NOT NULL
+    provider text NOT NULL
 );
 
 CREATE TABLE public.mcp_requests (
@@ -4716,7 +4711,7 @@ CREATE TABLE public.proposals (
     CONSTRAINT proposals_discarded_by_check CHECK (((discarded_by IS NULL) OR (discarded_at IS NOT NULL))),
     CONSTRAINT proposals_discarded_draft CHECK (((discarded_at IS NULL) OR (state = 'draft'::public.proposal_state))),
     CONSTRAINT proposals_item_area CHECK (((subject = 'vocabulary'::public.proposal_subject) OR (area_id IS NOT NULL))),
-    CONSTRAINT proposals_provenance_check CHECK (((provenance IS NULL) OR ((jsonb_typeof(provenance) = 'object'::text) AND ((provenance ->> 'by'::text) = ANY (ARRAY['agent'::text, 'assistant'::text, 'source'::text])) AND (jsonb_typeof((provenance -> 'fields'::text)) = 'object'::text) AND (jsonb_typeof((provenance -> 'flags'::text)) = 'array'::text)))),
+    CONSTRAINT proposals_provenance_check CHECK (((provenance IS NULL) OR ((jsonb_typeof(provenance) = 'object'::text) AND ((provenance ->> 'by'::text) = ANY (ARRAY['agent'::text, 'source'::text])) AND (jsonb_typeof((provenance -> 'fields'::text)) = 'object'::text) AND (jsonb_typeof((provenance -> 'flags'::text)) = 'array'::text)))),
     CONSTRAINT proposals_reason_check CHECK ((char_length(reason) <= 500)),
     CONSTRAINT proposals_source_check CHECK ((((channel = 'source'::public.creation_channel) = (proposer_id IS NULL)) AND ((channel = 'source'::public.creation_channel) = (source_id IS NOT NULL)) AND ((channel = 'source'::public.creation_channel) = (source_read_id IS NOT NULL)) AND ((channel = 'source'::public.creation_channel) = (source_document_id IS NOT NULL))))
 );
@@ -5559,7 +5554,6 @@ insert into public.settings_versions (key, version, value, reason) values
   ('limits.mcp_requests_per_minute', 1, '{"client": 120, "person": 30}', 'default (FR-408)'),
   ('limits.mentions_per_version', 1, '50', 'Default mention limit (FR-134)'),
   ('limits.undo_seconds', 1, '15', 'default (FR-227)'),
-  ('limits.web_searches_per_day', 1, '0', 'default: web search off until an administrator turns it on'),
   ('models.assistant', 1, '{"model": "claude-sonnet-5-5", "provider": "anthropic"}', 'a provider and a model: questions and answers leave the company to the named provider and the model''s vendor; real company data needs company approval first'),
   ('models.call_limits', 1, '{"concurrency": 4}', 'default (output test plan, R4 and R5)'),
   ('models.eval_answer', 1, '{"model": "claude-sonnet-5-5", "provider": "anthropic"}', 'a provider and a model: questions and answers leave the company to the named provider and the model''s vendor; real company data needs company approval first'),

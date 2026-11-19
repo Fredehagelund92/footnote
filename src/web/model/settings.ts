@@ -192,11 +192,6 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         value: (v) => perMinute(field(v, 'person')),
       },
       {
-        key: 'limits.web_searches_per_day',
-        what: 'Web searches one person’s assistant can run in a day; 0 is off',
-        value: (v) => (n(v) ? `${n(v)} a day` : 'Off'),
-      },
-      {
         key: 'serving.max_overlay_age_seconds',
         what: 'How soon Pause sharing reaches every request',
         value: seconds,

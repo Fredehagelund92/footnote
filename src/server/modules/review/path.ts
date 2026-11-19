@@ -376,7 +376,7 @@ export function createReviewPath(
     const clashItem = unanswered ?? r.clashes[0]
     const ready = readiness({
       diff,
-      // Drafted for a Not found card by an agent or the assistant: nobody has checked its words.
+      // Drafted for a Not found card by an agent: nobody has checked its words.
       drafted: r.gapId !== null && writtenBy(r.p) !== null,
       claims: claims?.rows ?? null,
       clash: clashItem

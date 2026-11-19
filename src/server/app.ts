@@ -75,7 +75,7 @@ export interface AppDependencies {
   metricsToken?: string
   /** The built-in login server for a person's own AI client (FR-403). Without one it is off. */
   login?: LoginServer
-  /** Opens a web page for the assistant's read_source. Defaults to the public web only. */
+  /** Opens a web page an evidence link names. Defaults to the public web only. */
   readPage?: PageReader
   /**
    * The proxies whose X-Forwarded-For and X-Forwarded-Proto the service believes

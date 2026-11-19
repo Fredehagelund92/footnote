@@ -64,9 +64,6 @@ export const settingSchemas = {
   // Whether owners may let an agent publish without review (FR-421); off ends every policy, in the
   // database, whichever way it is switched.
   'agents.auto_publish': z.boolean(),
-  // Web searches one person's assistant may run in a day (search_web); 0 switches web search off.
-  // The search words leave the company to the model provider and its search partners.
-  'limits.web_searches_per_day': int(0, 1000),
   'limits.llm_daily_micros_per_person': micros,
   'limits.llm_monthly_cap_micros': micros,
   'limits.llm_feature_monthly_micros': z.partialRecord(z.enum(['eval', 'assistant']), micros),

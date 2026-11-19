@@ -56,7 +56,6 @@ function settingsOf(name: string, about: string, autoPublish: boolean, pins: Pin
     ['limits.api_rate_per_minute', { person: 600, ip: 120 }],
     ['limits.gap_reports_per_minute', { person: 5 }],
     ['limits.assistant_ratings_per_minute', { person: 20 }],
-    ['limits.web_searches_per_day', 0],
     ['serving.max_overlay_age_seconds', 60],
     ['limits.llm_monthly_cap_micros', 50_000_000, capped],
     ['limits.llm_daily_micros_per_person', 2_000_000],

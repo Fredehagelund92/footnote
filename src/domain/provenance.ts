@@ -1,18 +1,10 @@
 import * as z from 'zod/mini'
 import { canonicalJson } from './canonical.ts'
 import type { Draft } from './draft.ts'
-import {
-  fieldMarks,
-  limits,
-  markedFields,
-  toolInputLimits,
-  type FieldMark,
-  type MarkedField,
-} from './proposal-rules.ts'
-import { calendarDateSchema } from './validity.ts'
+import { fieldMarks, markedFields, type FieldMark, type MarkedField } from './proposal-rules.ts'
 
 /*
-  Where each field of a draft that an agent or the assistant wrote came from (FR-121, FR-707).
+  Where each field of a draft that an agent wrote came from (FR-121).
   A mark tells the person what to check before they submit, and the owner where the words came
   from: never a confidence number, only how the value was found. A field the person changes
   loses its mark: from then on it is their own. The marks and the fields that carry one are the
@@ -42,43 +34,16 @@ const flagSchema = z.strictObject({
 })
 export type ProvenanceFlag = z.infer<typeof flagSchema>
 
-/**
- * An evidence entry the assistant took from a public web page Footnote read for the person: an
- * external source nobody has reviewed yet. `quoteFound` is the automatic quote match against the
- * text Footnote read on `readOn`: when false the person and the owner are warned, never stopped.
- * Footnote sets it from what it read, never from what a model says.
- */
-const externalSchema = z.strictObject({
-  url: z.string().check(z.maxLength(limits.url)),
-  quote: z.string().check(z.maxLength(limits.quote)),
-  readOn: calendarDateSchema,
-  quoteFound: z.boolean(),
-})
-export type ExternalSource = z.infer<typeof externalSchema>
-
 export const provenanceSchema = z.strictObject({
   /**
-   * Who wrote the draft: an AI agent over MCP or the built-in assistant, for the person; or a
-   * content source's read, from a document, for nobody (CON-603).
+   * Who wrote the draft: an AI agent over MCP, for the person; or a content source's read, from
+   * a document, for nobody (CON-603).
    */
-  by: z.enum(['agent', 'assistant', 'source']),
+  by: z.enum(['agent', 'source']),
   fields: z.partialRecord(z.enum(markedFields), z.enum(fieldMarks)),
   flags: z.array(flagSchema).check(z.maxLength(20)),
-  /** The evidence entries taken from web pages Footnote read; absent when there are none. */
-  external: z.optional(z.array(externalSchema).check(z.maxLength(toolInputLimits.evidence))),
 })
 export type Provenance = z.infer<typeof provenanceSchema>
-
-const sameEntry = (entry: { url?: string; quote?: string }, source: ExternalSource) =>
-  entry.url === source.url && entry.quote === source.quote
-
-/** The external sources that still stand for an evidence entry of the draft, as they are. */
-function externalOf(draft: Draft, external: readonly ExternalSource[] | undefined) {
-  const kept = (external ?? []).filter((source) =>
-    (draft.evidence ?? []).some((entry) => sameEntry(entry, source)),
-  )
-  return kept.length ? { external: kept } : {}
-}
 
 /** A marked field's value in a draft; the summary and the body read their markup first. */
 export function fieldValue(draft: Draft, field: MarkedField): unknown {
@@ -107,25 +72,21 @@ export function keepMarks(provenance: Provenance, before: Draft, after: Draft): 
   const uncertain =
     provenance.flags.some((flag) => flag.code === 'uncertain_dates') &&
     same(before.validity, after.validity)
-  // An entry the person changed is theirs: it no longer stands for the page Footnote read.
   return {
     by: provenance.by,
     fields,
     flags: [...provenanceFlags(after), ...(uncertain ? [uncertainDates] : [])],
-    ...externalOf(after, provenance.external),
   }
 }
 
 /**
- * The provenance of a saved draft: the marks of the fields it holds, the flags of its words, the
- * evidence entries taken from web pages Footnote read, and whether the person was unsure of the
- * dates (flagged only when the draft has dates to check).
+ * The provenance of a saved draft: the marks of the fields it holds, the flags of its words, and
+ * whether the person was unsure of the dates (flagged only when the draft has dates to check).
  */
 export function provenanceOf(
   by: Provenance['by'],
   marks: Partial<Record<MarkedField, FieldMark>>,
   draft: Draft,
-  external?: readonly ExternalSource[],
   datesUncertain = false,
 ): Provenance {
   const fields: Provenance['fields'] = {}
@@ -146,7 +107,6 @@ export function provenanceOf(
     by,
     fields,
     flags: [...provenanceFlags(draft), ...(uncertain ? [uncertainDates] : [])],
-    ...externalOf(draft, external),
   }
 }
 

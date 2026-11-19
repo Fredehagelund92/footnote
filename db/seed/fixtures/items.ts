@@ -593,8 +593,7 @@ function buildItem(random: Random, flags: Random, usedIds: Set<string>): Context
   const riskLevel: RiskLevel = random.chance(0.08) ? 'high' : kind === 'note' ? 'low' : 'normal'
   const createdVia: CreationChannel = random.weighted([
     ['form', 50],
-    ['assistant', 20],
-    ['chat', 12],
+    ['chat', 32],
     ['import', 12],
     ['command_line', 4],
     ['mcp', 2],

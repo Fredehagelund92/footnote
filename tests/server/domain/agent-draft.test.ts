@@ -434,11 +434,11 @@ describe('provenance', () => {
       validity: { start: '2026-10-01', end: null },
     }
     const flag = { code: 'uncertain_dates', field: 'validity', words: [] }
-    const saved = provenanceOf('assistant', { validity: 'prefilled' }, draft, undefined, true)
+    const saved = provenanceOf('agent', { validity: 'prefilled' }, draft, true)
     expect(saved.flags).toEqual([flag])
     // Nothing to check without dates, and nothing flagged when the person knew them.
-    expect(provenanceOf('assistant', {}, { summary: 'x' }, undefined, true).flags).toEqual([])
-    expect(provenanceOf('assistant', {}, draft).flags).toEqual([])
+    expect(provenanceOf('agent', {}, { summary: 'x' }, true).flags).toEqual([])
+    expect(provenanceOf('agent', {}, draft).flags).toEqual([])
     // Another field changed: the dates are still unsure. The dates changed: someone decided them.
     expect(
       keepMarks(saved, draft, {
