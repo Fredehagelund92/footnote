@@ -11,7 +11,7 @@ import { kindHint, kindLabel, type Kind } from '@/model/items'
 /** A word's sentence, from the ten words Help shows. */
 export const wordOf = (word: string) => WORDS.find(([w]) => w === word)?.[1]
 
-const cell = (text: string) => text.replace(/\|/g, '\\|')
+const cell = (text: string) => text.replace(/[\\|]/g, '\\$&')
 
 /** An include's list as Markdown, or null for an include that names nothing. */
 export function includeMarkdown(name: DocInclude, arg: string): string | null {
