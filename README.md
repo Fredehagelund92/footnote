@@ -145,9 +145,11 @@ refuses to start and says so. See [the Cube connector](docs/connectors/cube.md).
 To sign in as yourself, add your name and email to the top of `db/seed/people.local.yml` with
 `roles: [administrator]`, then start with `docker compose up --build`, so the image takes the file in.
 
-For dbt, Footnote reads the `semantic_manifest.json` that `dbt parse` writes, from a link, object storage, a Git
-repository or a folder: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md). Start Footnote
-with `docker compose up`, as above. Tokens and signed links stay in a secret store in Docker's `footnote_keys` volume.
+For dbt, Footnote reads the `semantic_manifest.json` that `dbt parse` writes, from a link, object storage or a Git
+repository, which an admin adds in Settings, Integrations: see [the dbt MetricFlow connector](src/connectors/dbt-metricflow/README.md).
+A folder on the server (`FOOTNOTE_SERVER_FOLDERS`) is for a service you run yourself: `compose.yaml` shares none. With
+no Cube model named, `docker compose up` loads the demo too, and your dbt names arrive beside it. Tokens and signed
+links stay in a secret store in Docker's `footnote_keys` volume.
 
 ## What you get
 
