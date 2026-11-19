@@ -489,13 +489,13 @@ export function createRouter({
   }
   /**
    * Whether Ask's model may read with its tools: yes unless its model check failed the tool call.
-   * A model not checked yet is checked meanwhile, and reads with them.
+   * A model not checked yet, or whose check could not tell and is due again, is checked meanwhile.
    */
   const readsWithTools = async (tx: Queryable, log: FastifyBaseLogger) => {
     if (!modelChecks || models.mode !== 'live') return true
     const choice = await readWordsModel(tx, models)
     const check = modelChecks.known(choice.id)
-    if (!check) void modelChecks.of(choice, 'assistant')
+    void modelChecks.of(choice, 'assistant')
     if (answersWithTools(check)) return true
     log.info({ model: choice.id }, 'ask answers with its router: its model failed the tool call')
     return false

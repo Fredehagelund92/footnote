@@ -219,6 +219,20 @@ describe('the checks the service keeps', () => {
     expect(check).toHaveBeenCalledTimes(2)
   })
 
+  it('shows the new check from known() once a due check that could not tell is made again', async () => {
+    let now = 0
+    const check = vi
+      .fn<() => Promise<ModelCheck>>()
+      .mockResolvedValueOnce(made('unknown'))
+      .mockResolvedValue(made('fail'))
+    const checks = createModelChecks({ check, now: () => now })
+    await checks.of(local(), 'assistant')
+    now += 5 * 60_000 + 1
+    expect(checks.known(local().id)?.tools).toBe('unknown')
+    await checks.of(local(), 'assistant')
+    expect(checks.known(local().id)?.tools).toBe('fail')
+  })
+
   it('keeps a check that threw as one that could not tell', async () => {
     const checks = createModelChecks({ check: () => Promise.reject(new TypeError('fetch failed')) })
     expect(await checks.of(local(), 'assistant')).toMatchObject({
