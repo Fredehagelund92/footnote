@@ -13,7 +13,7 @@ const PLACEHOLDER = 'INLINE_SCRIPT_HASHES'
 
 /** The CSP source of each inline script in a page: 'sha256-<base64>' of its exact text. */
 export function inlineScriptHashes(html: string): string[] {
-  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
+  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)]
     .filter(([, attributes]) => !/\bsrc\s*=/i.test(attributes!))
     .map(([, , body]) => `'sha256-${createHash('sha256').update(body!).digest('base64')}'`)
 }
