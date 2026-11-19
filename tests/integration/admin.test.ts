@@ -127,7 +127,7 @@ describe('settings and limits', () => {
     })
   })
 
-  it('takes a model setting only for a provider and model the registry has', async () => {
+  it('takes a model setting only for a provider the registry has, and a model it lists or one with prices', async () => {
     const path = '/settings/models.judge'
     const [current] = (await ok<Setting[]>('GET', '/settings', 'admin')).filter(
       (s) => s.key === 'models.judge',
@@ -153,6 +153,16 @@ describe('settings and limits', () => {
       value: { provider: 'vercel-gateway', model: 'google/gemini-9-pro' },
     })
     expect(unlistedGoogle.statusCode).toBe(422)
+    // A price below 0 is refused before the registry is asked.
+    const negative = await call('PUT', path, 'admin', {
+      ...change,
+      value: {
+        provider: 'vercel-gateway',
+        model: 'google/gemini-9-pro',
+        prices: { input: -1, output: 1 },
+      },
+    })
+    expect(negative.statusCode).toBe(422)
     // The scripted models need no key, so a listed gateway model is taken as it is.
     const value = { provider: 'vercel-gateway', model: 'anthropic/claude-opus-5.5' }
     const saved = await ok<Setting>('PUT', path, 'admin', { ...change, value })
@@ -165,8 +175,20 @@ describe('settings and limits', () => {
       reason: 'Judge with Gemini',
     })
     expect(savedGemini.value).toEqual(gemini)
-    await ok<Setting>('PUT', path, 'admin', {
+    // A model the gateway does not list is taken with its prices.
+    const priced = {
+      provider: 'vercel-gateway',
+      model: 'google/gemini-9-pro',
+      prices: { input: 1.25, output: 10 },
+    }
+    const savedPriced = await ok<Setting>('PUT', path, 'admin', {
       version: savedGemini.version,
+      value: priced,
+      reason: 'Judge with a newer Gemini',
+    })
+    expect(savedPriced.value).toEqual(priced)
+    await ok<Setting>('PUT', path, 'admin', {
+      version: savedPriced.version,
       value: 'different_family',
       reason: 'Back to the default judge',
     })

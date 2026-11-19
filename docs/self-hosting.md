@@ -41,11 +41,30 @@ The demo answers Ask on scripted models: they list what is written, and nothing 
 MODELS=live ANTHROPIC_API_KEY=sk-ant-... docker compose up
 ```
 
-That is the only step. Ask and the test runs answer on Claude Sonnet 5.5, and the test runs are judged by Claude Opus 5.5. For Vercel's AI Gateway, set `VERCEL_AI_GATEWAY_API_KEY` instead, and an admin points each `models.*` setting at `vercel-gateway` ([Change a setting](administration.md#change-a-setting), [Model providers](evaluations.md#model-providers)).
+That is the only step. Ask and the test runs answer on Claude Sonnet 5.5, and the test runs are judged by Claude Opus 5.5.
+
+Another provider is one line too. `FOOTNOTE_MODEL` names `<provider>:<model>` for every role, and `FOOTNOTE_MODEL_PRICES` gives its price in US dollars per million tokens, input then output:
+
+```sh
+# OpenAI
+MODELS=live OPENAI_API_KEY=sk-... FOOTNOTE_MODEL=openai:gpt-6-luna \
+  FOOTNOTE_MODEL_PRICES=0.1,0.5 docker compose up
+# OpenRouter, or another hosted server that speaks OpenAI's API
+MODELS=live OPENAI_BASE_URL=https://openrouter.ai/api/v1 OPENAI_API_KEY=sk-or-... \
+  FOOTNOTE_MODEL=openai:anthropic/claude-sonnet-5.5 FOOTNOTE_MODEL_PRICES=2,10 docker compose up
+# Ollama on this computer: nothing leaves it
+MODELS=live OPENAI_BASE_URL=http://host.docker.internal:11434/v1 \
+  FOOTNOTE_MODEL=openai:gpt-oss:20b FOOTNOTE_MODEL_PRICES=0,0 docker compose up
+# A gateway that speaks Anthropic's API, such as LiteLLM, with a bearer token
+MODELS=live ANTHROPIC_BASE_URL=http://host.docker.internal:4000/v1 \
+  ANTHROPIC_AUTH_TOKEN=sk-... docker compose up
+```
+
+The line sets only the roles no one has changed. After that, an admin's `models.*` settings decide ([Change a setting](administration.md#change-a-setting), [Model providers](evaluations.md#model-providers)). With one model, the test runs' judge is that same model. Name another with `FOOTNOTE_JUDGE_MODEL` and `FOOTNOTE_JUDGE_MODEL_PRICES`. Models other than Claude work, but their answers are less complete.
 
 **What leaves this computer.** For each question, Ask sends Anthropic the chat so far, the text of the items it reads, their owners' names, and whether the person asking is an admin and which domains they own. It sends no e-mail address and not the asker's name. Test runs send their test questions and the items they read.
 
-Through the gateway, Vercel receives the same and passes it to Anthropic. Put no company data in until your company approves the provider.
+On another provider, that provider receives the same, and the model's vendor too when the provider passes it on. A model server on this computer sends nothing out. Put no company data in until your company approves the provider.
 
 **What it costs.** On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs also start by themselves, such as soon after the first start and after a definition changes: two runs of the demo's tests cost USD 1.12. The service stops calling the model at these limits, which an admin can change:
 

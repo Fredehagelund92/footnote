@@ -41,6 +41,7 @@ describe('loadConfig', () => {
       models: 'mock',
       askLoop: true,
       modelEnv: {},
+      startModels: { model: undefined, judge: undefined },
       cubeModelDir: undefined,
       serverFolders: {},
       domainOverridesFile: undefined,
@@ -348,6 +349,57 @@ describe('loadConfig', () => {
     expect(config).toMatchObject({ models: 'mock', modelEnv: {} })
     // Which keys a live service needs depends on the models.* settings, checked at start-up.
     expect(loadConfig({ DATABASE_URL: databaseUrl, MODELS: 'live' }).models).toBe('live')
+    // The openai provider's key and address and Anthropic's bearer token, an empty value left out.
+    expect(
+      loadConfig({
+        DATABASE_URL: databaseUrl,
+        OPENAI_API_KEY: '',
+        OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1',
+        ANTHROPIC_AUTH_TOKEN: 'gw-token',
+      }).modelEnv,
+    ).toEqual({ OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1', ANTHROPIC_AUTH_TOKEN: 'gw-token' })
+  })
+
+  it('reads the one-line start, split at the first colon, with prices for an unlisted model', () => {
+    const start = (env: Record<string, string>) =>
+      loadConfig({ DATABASE_URL: databaseUrl, ...env }).startModels
+    expect(
+      start({
+        FOOTNOTE_MODEL: 'openai:gpt-oss:20b',
+        FOOTNOTE_MODEL_PRICES: '0,0',
+        FOOTNOTE_JUDGE_MODEL: 'anthropic:claude-haiku-4-5',
+      }),
+    ).toEqual({
+      model: { provider: 'openai', model: 'gpt-oss:20b', prices: { input: 0, output: 0 } },
+      judge: { provider: 'anthropic', model: 'claude-haiku-4-5' },
+    })
+    expect(
+      start({ FOOTNOTE_JUDGE_MODEL: 'openai:gpt-6-luna', FOOTNOTE_JUDGE_MODEL_PRICES: '0.1,0.5' }),
+    ).toEqual({
+      model: undefined,
+      judge: { provider: 'openai', model: 'gpt-6-luna', prices: { input: 0.1, output: 0.5 } },
+    })
+    // A listed model needs no prices; an empty value is unset.
+    expect(
+      start({ FOOTNOTE_MODEL: 'anthropic:claude-opus-5-5', FOOTNOTE_MODEL_PRICES: '' }),
+    ).toEqual({
+      model: { provider: 'anthropic', model: 'claude-opus-5-5' },
+      judge: undefined,
+    })
+    expect(() => start({ FOOTNOTE_MODEL: 'openai:gpt-6-luna' })).toThrow(
+      'FOOTNOTE_MODEL: Provider openai does not list gpt-6-luna: set FOOTNOTE_MODEL_PRICES to <input>,<output> in US dollars per million tokens, 0,0 for a model that costs nothing',
+    )
+    for (const value of ['gpt-6-luna', ':gpt-6-luna', 'openai:', 'Open AI:x'])
+      expect(() => start({ FOOTNOTE_MODEL: value })).toThrow(
+        'FOOTNOTE_MODEL: Expected <provider>:<model>, such as openai:gpt-oss:20b',
+      )
+    for (const prices of ['1', '-1,2', '1,2,3', 'one,two'])
+      expect(() =>
+        start({ FOOTNOTE_MODEL: 'openai:gpt-6-luna', FOOTNOTE_MODEL_PRICES: prices }),
+      ).toThrow(/FOOTNOTE_MODEL_PRICES: Expected <input>,<output> in US dollars per million tokens/)
+    expect(() => start({ FOOTNOTE_JUDGE_MODEL_PRICES: '1,5' })).toThrow(
+      'FOOTNOTE_JUDGE_MODEL_PRICES: Expected FOOTNOTE_JUDGE_MODEL too: these are its prices',
+    )
   })
 
   it('answers Ask with its loop unless FOOTNOTE_ASK_LOOP=off, and takes only on or off', () => {

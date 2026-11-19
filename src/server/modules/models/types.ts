@@ -19,10 +19,16 @@ export type Effort = 'none' | 'low' | 'medium' | 'high'
  */
 export type Prices = { input: number; output: number; cacheRead?: number; cacheWrite?: number }
 
-/** A role's assignment: a provider from the registry and a model it lists. */
-export type ModelRef = { provider: string; model: string }
+/**
+ * A role's assignment: a provider from the registry and a model. A model the provider does not
+ * list needs `prices`; for a listed model they replace the built-in prices.
+ */
+export type ModelRef = { provider: string; model: string; prices?: Prices }
 
-/** A model a provider may serve. A model a provider does not list is refused. */
+/**
+ * A model a provider lists, with its built-in prices. Any other model is served only with prices
+ * in its setting; its vendor and line are then read from its name.
+ */
 export type ListedModel = {
   /** The company whose model it is, such as `anthropic`, whichever provider serves it. */
   vendor: string
@@ -40,8 +46,23 @@ export type ProviderEntry = {
   adapter: string
   /** The company the requests go to, in plain words: it receives every question and answer. */
   operator: string
+  /**
+   * The host of the operator's own API. A base URL at another host is someone else's server that
+   * speaks the same protocol, so who receives the requests is worked out from its address instead.
+   */
+  operatorHost?: string
   /** The environment variable that holds the key. The key itself is never in a setting. */
   apiKeyEnv: string
+  /**
+   * The environment variable that may hold a bearer token in place of the key, as gateways that
+   * speak the provider's protocol take one. Never both.
+   */
+  authTokenEnv?: string
+  /**
+   * A base URL on this computer or a private network needs no key, as a local model server such
+   * as Ollama takes none.
+   */
+  keyOptionalWhenPrivate?: boolean
   /** The environment variable that may override `baseUrl`. */
   baseUrlEnv: string
   baseUrl: string
@@ -52,13 +73,17 @@ export type ProviderEntry = {
    * `baseUrl` that answers `{ total_used }` in dollars. The spend ledger is checked against it.
    */
   creditsPath?: string
-  /** The only models this provider may serve, best first: a `different_family` judge is the first of another line. */
+  /** The models this provider lists, best first: a `different_family` judge is the first of another line. */
   models: Record<string, ListedModel>
 }
 
-export type Connection = { apiKey: string; baseUrl: string }
+/**
+ * A provider's key or bearer token, and its base URL. There is neither only for a server that
+ * takes none.
+ */
+export type Connection = { apiKey: string | undefined; authToken?: string; baseUrl: string }
 
-/** What an adapter makes for one listed model. */
+/** What an adapter makes for one model. */
 export type AdaptedModel = {
   model: LanguageModelV4
   /** Passed to generateText and streamText as `providerOptions`. */

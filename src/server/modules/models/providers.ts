@@ -3,9 +3,10 @@ import type { ModelRef, ProviderEntry } from './types.ts'
 /**
  * The provider registry: every way this service may reach a language model. A provider is a
  * configuration entry naming an adapter, the environment variables for its key and base URL, and
- * the models it may serve with their prices. Adding a vendor or a second gateway is one entry here,
+ * the models it lists with their prices. Adding a vendor or a second gateway is one entry here,
  * plus one adapter in `adapters/` only when its protocol is new. Each role is assigned a provider
- * and a model in the versioned settings (`models.<role>`).
+ * and a model in the versioned settings (`models.<role>`); a model the entry does not list is
+ * served only with prices in that setting.
  *
  * Questions, test questions, item text and answers sent to a model leave the company to the
  * provider's operator and the model's vendor: Anthropic for Claude, Google for Gemini, and Vercel
@@ -17,7 +18,11 @@ export const modelProviders: readonly ProviderEntry[] = [
     name: 'anthropic',
     adapter: 'anthropic',
     operator: 'Anthropic',
+    operatorHost: 'api.anthropic.com',
     apiKeyEnv: 'ANTHROPIC_API_KEY',
+    // A gateway that speaks the Messages API at ANTHROPIC_BASE_URL may take a bearer token
+    // instead, as OpenRouter, LiteLLM, Ollama and Vercel's gateway do.
+    authTokenEnv: 'ANTHROPIC_AUTH_TOKEN',
     baseUrlEnv: 'ANTHROPIC_BASE_URL',
     baseUrl: 'https://api.anthropic.com/v1',
     // List prices of the direct API (Claude API skill tables, cached 2026-09-25). A prompt cache write
@@ -47,6 +52,7 @@ export const modelProviders: readonly ProviderEntry[] = [
     name: 'vercel-gateway',
     adapter: 'openai-compatible',
     operator: 'Vercel',
+    operatorHost: 'ai-gateway.vercel.sh',
     apiKeyEnv: 'VERCEL_AI_GATEWAY_API_KEY',
     baseUrlEnv: 'VERCEL_AI_GATEWAY_BASE_URL',
     baseUrl: 'https://ai-gateway.vercel.sh/v1',
@@ -93,10 +99,38 @@ export const modelProviders: readonly ProviderEntry[] = [
       },
     },
   },
+  {
+    // OpenAI's Chat Completions API, or any server that speaks it at OPENAI_BASE_URL: a hosted
+    // one such as OpenRouter or Groq, a company gateway such as LiteLLM, or a model server on this
+    // computer such as Ollama (http://host.docker.internal:11434/v1 from the container), which
+    // takes no key. It lists no model: each setting gives its model's prices.
+    name: 'openai',
+    adapter: 'openai-compatible',
+    operator: 'OpenAI',
+    operatorHost: 'api.openai.com',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    keyOptionalWhenPrivate: true,
+    baseUrlEnv: 'OPENAI_BASE_URL',
+    baseUrl: 'https://api.openai.com/v1',
+    adapterOptions: { effort: 'reasoning_effort', promptCache: 'none', structuredOutputs: true },
+    models: {},
+  },
 ]
 
 /** Vendor names as people read them; a vendor missing here is shown by its id. */
-export const vendorNames: Record<string, string> = { anthropic: 'Anthropic', google: 'Google' }
+export const vendorNames: Record<string, string> = {
+  anthropic: 'Anthropic',
+  google: 'Google',
+  openai: 'OpenAI',
+}
+
+/** Every environment variable a provider reads: its key, bearer token and base URL. */
+export const providerEnvNames = (entries: readonly ProviderEntry[] = modelProviders): string[] =>
+  entries.flatMap((entry) => [
+    entry.apiKeyEnv,
+    ...(entry.authTokenEnv ? [entry.authTokenEnv] : []),
+    entry.baseUrlEnv,
+  ])
 
 /** Every role's model when its setting is missing (plan section 2.3). */
 export const defaultModel: ModelRef = { provider: 'anthropic', model: 'claude-sonnet-5-5' }

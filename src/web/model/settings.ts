@@ -35,10 +35,29 @@ const dollars = (micros: unknown) => {
   const amount = n(micros) / 1_000_000
   return `$${amount.toLocaleString('en-GB', { maximumFractionDigits: amount < 10 ? 2 : 0 })}`
 }
+/** A model's price in US dollars per million tokens, as its setting gives it. */
+const price = (value: unknown) =>
+  `$${n(value).toLocaleString('en-GB', { maximumFractionDigits: 4 })}`
+/** A role's model and, when its setting gives them, the prices its spend is counted at. */
 const model = (value: unknown) => {
   const provider = field(value, 'provider')
   const name = field(value, 'model')
-  return typeof provider === 'string' && typeof name === 'string' ? `${name} (${provider})` : 'None'
+  if (typeof provider !== 'string' || typeof name !== 'string') return 'None'
+  const prices = field(value, 'prices')
+  if (!prices) return `${name} (${provider})`
+  const cache = [
+    field(prices, 'cacheRead') === undefined
+      ? null
+      : `${price(field(prices, 'cacheRead'))} cache read`,
+    field(prices, 'cacheWrite') === undefined
+      ? null
+      : `${price(field(prices, 'cacheWrite'))} cache write`,
+  ].filter(Boolean)
+  return `${name} (${provider}), ${[
+    `${price(field(prices, 'input'))} input`,
+    `${price(field(prices, 'output'))} output`,
+    ...cache,
+  ].join(', ')} per million tokens`
 }
 const text = (value: unknown, empty: string) => (typeof value === 'string' && value ? value : empty)
 

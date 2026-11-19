@@ -14,17 +14,38 @@ feature uses yet) names a provider and a model in its setting, `models.<role>`, 
 | ---------------- | ------------------- | --------------------------- | ---------------------------- | --------------------------- |
 | `anthropic`      | `anthropic`         | `ANTHROPIC_API_KEY`         | `ANTHROPIC_BASE_URL`         | Anthropic                   |
 | `vercel-gateway` | `openai-compatible` | `VERCEL_AI_GATEWAY_API_KEY` | `VERCEL_AI_GATEWAY_BASE_URL` | Vercel, Anthropic or Google |
+| `openai`         | `openai-compatible` | `OPENAI_API_KEY`            | `OPENAI_BASE_URL`            | OpenAI, or the server named |
 
-Each entry also lists the only models it may serve, with the vendor, the model line and the price
-per million tokens; any other model is refused. The gateway serves Anthropic's Claude models
+Each entry also lists models with their vendor, model line and price per million tokens. A model
+the entry does not list is served only when its setting gives its prices, in US dollars per million
+tokens, such as `{"provider": "vercel-gateway", "model": "google/gemini-3-flash", "prices": {"input":
+0.5, "output": 3}}`; `cacheRead` and `cacheWrite` are optional, and 0 is allowed for a model that
+costs nothing. Its vendor is the `vendor/` prefix of its name, else the provider's name, and its
+family is the whole name. Prices in the setting of a listed model replace its built-in ones. The
+service logs every price a setting gives at start-up, and Settings, Advanced shows it. The gateway serves Anthropic's Claude models
 (including `anthropic/claude-haiku-5.5`, the cheapest, at USD 0.10 in and 0.50 out) and
 one Google model, `google/gemini-2.5-flash-lite` (vendor `google`, line `gemini-flash-lite`), for
 demo data. Keys live only in `.env.local` (or the environment);
 a setting names a provider, never a key, and keys are never logged or returned. With `MODELS=live`
 the service checks every role's setting at start-up and on every change (`PUT /settings/{key}`), and
-refuses an unknown provider, an unlisted model or a missing key with a message that names the
+refuses an unknown provider, an unlisted model without prices or a missing key with a message that names the
 setting. To answer and judge through the gateway, set its key and change `models.eval_answer`,
 `models.judge` (or keep `different_family`) and `models.assistant` to `vercel-gateway`.
+
+`anthropic` is Anthropic's own API, or a gateway that speaks its Messages API at
+`ANTHROPIC_BASE_URL`, such as OpenRouter (`https://openrouter.ai/api/v1`), LiteLLM, Ollama
+(`http://localhost:11434/v1`) or Microsoft Foundry. Such a gateway may take
+`ANTHROPIC_AUTH_TOKEN`, sent as a bearer token, in place of `ANTHROPIC_API_KEY`; set only one. A
+Claude model keeps its prompt cache this way; a model name the gateway uses that this entry does
+not list needs its prices in the setting.
+
+`openai` is OpenAI's own API, or any server that speaks its Chat Completions API at
+`OPENAI_BASE_URL`: a hosted one such as OpenRouter or Groq, a company gateway such as LiteLLM, or a
+model server such as Ollama or vLLM. It lists no model, so each setting gives its prices, and a
+server on this computer or a private network needs no key. Who receives the requests is worked out
+from a base URL that is not the operator's own, for `ANTHROPIC_BASE_URL` too: "this computer" for a
+loopback address, "your network (10.0.0.12)" for a private one, and "the host at openrouter.ai"
+otherwise, with the model's vendor when its name gives one, such as `anthropic/claude-sonnet-5.5`.
 
 **Data leaves the company.** With `MODELS=live`, questions, test questions, item text and answers go
 to the provider's operator and the model's vendor (the table's last column): a Gemini model sends

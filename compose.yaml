@@ -66,9 +66,16 @@ services:
       # written: the provider packages fail on an empty address, so an unset one must stay unset.
       MODELS:
       ANTHROPIC_API_KEY:
+      ANTHROPIC_AUTH_TOKEN:
       ANTHROPIC_BASE_URL:
       VERCEL_AI_GATEWAY_API_KEY:
       VERCEL_AI_GATEWAY_BASE_URL:
+      OPENAI_API_KEY:
+      OPENAI_BASE_URL:
+      FOOTNOTE_MODEL:
+      FOOTNOTE_MODEL_PRICES:
+      FOOTNOTE_JUDGE_MODEL:
+      FOOTNOTE_JUDGE_MODEL_PRICES:
     volumes:
       # Your own model's folder, or an empty volume nothing reads when you name none: the demo
       # never depends on a folder Docker shares from this computer.

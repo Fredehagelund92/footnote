@@ -22,16 +22,19 @@ export {
 } from './types.ts'
 export { startCreditsCheck, type CreditsCheck } from './credits.ts'
 export { ModelConfigError, ModelVendorError } from './errors.ts'
-export { defaultModel, modelProviders, vendorNames } from './providers.ts'
+export { defaultModel, modelProviders, providerEnvNames, vendorNames } from './providers.ts'
 export { modelAdapters } from './adapters/index.ts'
 export {
   checkModelSetting,
   checkModelSettings,
   differentFamily,
+  fillModelSettings,
   parseModelSetting,
   readModelSettings,
+  settingPrices,
   type JudgeSetting,
   type ModelSettings,
+  type StartModels,
 } from './settings.ts'
 export { gradingTag, mentions, type GradingInput } from './mock.ts'
 export { fixedWordsModel, scriptedWordsModel } from './words-mock.ts'
