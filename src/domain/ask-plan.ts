@@ -1586,7 +1586,6 @@ const kindWord: Record<ItemKind, string> = {
   issue: 'warning',
   note: 'rule',
   guide: 'guide',
-  example: 'example',
 }
 
 const sourceLine = (s: PlannerPrevious['sources'][number], i: number) =>

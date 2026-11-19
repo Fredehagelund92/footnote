@@ -213,8 +213,7 @@ export type KindWords = { readonly label: string; readonly hint: string }
 
 /**
  * The four kinds, by the value stored for each (docs/product.md, section 7). A kind shows as a
- * neutral icon; the label is in its tooltip and in Details. The earlier fifth kind, `example`,
- * is no longer offered.
+ * neutral icon; the label is in its tooltip and in Details.
  */
 export const kinds = {
   event: { label: 'Event', hint: 'Something that happened on a date, like a stop or a new rule.' },

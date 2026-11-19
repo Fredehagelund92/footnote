@@ -392,11 +392,11 @@ in local currency" and "lags by one day".
 "What to rule out before explaining a jump" ends with "Then check whether a campaign or a holiday
 weekend started that week."
 
-### 9.4 Examples (3)
+### 9.4 Guides to a good answer (3)
 
-Their text is in `db/seed/fixtures/items.ts`, as is every template's. An example opens with the
-question it answers, which is what makes it an example to the draft rules, and its second sentence
-says what a good answer does in full words ("A good answer compares Returns in France with the month
+Their text is in `db/seed/fixtures/items.ts`, as is every template's. Each is a guide that opens
+with the question it answers, which is what makes it a guide to a good answer to the draft rules,
+and its second sentence says what a good answer does in full words ("A good answer compares Returns in France with the month
 before and a year earlier."), since Ask's answer says that sentence for it.
 
 ## 10. The demo issues and the facts about any value
@@ -571,12 +571,7 @@ The seed's 18 (`db/seed/test-questions.ts`) use the same words and ids as the go
 example: "Why did units sold in Norway drop in August?", "Are test accounts counted as
 first-time buyers?" and "Is footwear gross sales in Canada for the last 2 days final?".
 
-## 13. The web lookup example
-
-This was the in-app assistant's example of a real page to look up. It left with the assistant on
-30 October 2026, so no demo text names a real law.
-
-## 14. Writing new demo text
+## 13. Writing new demo text
 
 1. **Use the words on this page.** If a story needs an idea the page doesn't have, add it here in
    the same change.
@@ -585,7 +580,8 @@ This was the in-app assistant's example of a real page to look up. It left with 
    definition. Each maps to a template here.
 3. **Keep the sentence shapes the draft rules read.** An event's first sentence has a date ("on 4
    August 2026") and a listed event verb (closed, switched, started, stopped, paused, took
-   effect). A guide starts "Before you", "How to" or "Comparing". A data problem says "is down",
+   effect). A guide starts "Before you", "How to" or "Comparing", or asks the question a good answer
+   answers. A data problem says "is down",
    "arrive late" or "since".
 4. **No word the glossary bans, no `%`, no causal words.** Write "percent". Write "the stop came
    on 4 August", not "orders fell because of the stop".
@@ -595,7 +591,7 @@ This was the in-app assistant's example of a real page to look up. It left with 
 6. **Keep the random draws.** A template's lists keep their length, and a hand-written fact
    replaces words by id, as `story-facts.ts` does.
 
-## 15. The demo's present
+## 14. The demo's present
 
 `db/seed/story.ts` runs after the library and its quality history, with the real clock, through
 the service's own API and MCP server, so a new install opens as the README shows it:

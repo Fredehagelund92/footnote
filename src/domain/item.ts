@@ -10,11 +10,11 @@ import * as z from 'zod/mini'
 import { limits } from './proposal-rules.ts'
 
 /**
- * The five kinds of item (requirements, section 2.1 "Kind"). An `event` is a standing fact: it
+ * The four kinds of item (requirements, section 2.1 "Kind"). An `event` is a standing fact: it
  * starts on a date and usually has no end. An `issue` is temporary: while it lasts it is a live
  * warning, and once it ends it is history, delivered only for questions about its own period.
  */
-export const itemKinds = ['note', 'event', 'guide', 'example', 'issue'] as const
+export const itemKinds = ['note', 'event', 'guide', 'issue'] as const
 export type ItemKind = (typeof itemKinds)[number]
 
 /**

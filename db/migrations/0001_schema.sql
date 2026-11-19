@@ -645,7 +645,6 @@ CREATE TYPE public.item_kind AS ENUM (
     'note',
     'event',
     'guide',
-    'example',
     'issue'
 );
 

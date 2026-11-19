@@ -201,7 +201,7 @@ A context item has one of four kinds. A kind shows as an icon only (neutral colo
 | **Rule**    | Ruler     | `note`    | A fixed way to read the numbers, like a house rule.               |
 | **Guide**   | Route     | `guide`   | What to check before you explain a change.                        |
 
-The stored values are the earlier names. Screens, help and agents use the labels. The earlier fifth kind, Example, is no longer offered.
+The stored values are the earlier names. Screens, help and agents use the labels.
 
 ## 8. Statuses and freshness
 

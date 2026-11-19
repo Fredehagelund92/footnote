@@ -338,7 +338,6 @@ function kindWords(items: readonly ServingItem[]) {
     issue: ['issue', 'issues'],
     note: ['note', 'notes'],
     guide: ['guide', 'guides'],
-    example: ['example', 'examples'],
   }
   return list(
     itemKinds.flatMap((kind) => {

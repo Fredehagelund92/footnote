@@ -11,12 +11,10 @@ import type {
 import {
   answerRecords,
   recogniseRecords,
-  recordsKinds,
   refusedAnswer,
   type RecordsAsk,
   type RecordsIntent,
   type RecordsItem,
-  type RecordsKind,
   type RecordsRecognition,
   type RecordsWorld,
 } from '../../../domain/records.ts'
@@ -129,9 +127,6 @@ async function timesOf(
   return new Map(rows.map((r) => [r.id, r]))
 }
 
-const isRecordsKind = (kind: string): kind is RecordsKind =>
-  (recordsKinds as readonly string[]).includes(kind)
-
 /**
  * The Context list's items as the records keep them, with their times moved to the service's day.
  * Each date is the field the list shows: the last check is its `lastChecked`, and an item is due
@@ -143,14 +138,14 @@ export async function itemsOf(
   moment: Pick<ReturnType<typeof momentOf>, 'moved'>,
   dated = true,
 ): Promise<RecordsItem[]> {
-  const listed = index.items.filter((i) => isRecordsKind(i.kind))
+  const listed = index.items
   const times = await timesOf(tx, dated ? listed : [])
   const moved = (iso: string | null | undefined) => (iso ? moment.moved(iso) : null)
   return listed.map((i) => {
     const t = times.get(i.id)
     return {
       id: i.id,
-      kind: i.kind as RecordsKind,
+      kind: i.kind,
       areaId: i.areaId,
       title: i.title,
       status: i.status === 'retired' ? 'archived' : i.trust === 'needs_check' ? 'due' : 'live',
@@ -225,7 +220,7 @@ function auditItemsOf(index: ScopedIndex, conflicts: ConflictList | null): Audit
       r.holder.id === id ? [r.other.id] : r.other.id === id ? [r.holder.id] : [],
     )
   return index.items.flatMap((i): AuditItem[] =>
-    isRecordsKind(i.kind) && i.status === 'accepted'
+    i.status === 'accepted'
       ? [
           {
             id: i.id,

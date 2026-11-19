@@ -66,7 +66,6 @@ const kindWords: Record<ItemKind, [string, string]> = {
   issue: ['warning', 'warnings'],
   note: ['rule', 'rules'],
   guide: ['guide', 'guides'],
-  example: ['example', 'examples'],
 }
 const list = (names: readonly string[], and = 'and') =>
   names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} ${and} ${names.at(-1)}`
@@ -340,7 +339,6 @@ function searchOnce(
   const candidates = bundle.items.filter(
     (item) =>
       (!asked.kinds.length || asked.kinds.includes(item.kind)) &&
-      item.kind !== 'example' &&
       overlaps(item.validity, window) &&
       aboutScope(bundle, item, asked.scope) &&
       canRead(bundle, item, today),

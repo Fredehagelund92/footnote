@@ -10,8 +10,8 @@ import { whenLabel, type Validity } from './validity'
 /** A domain's id: `sales`, `customer_value`. Domains are created and deleted, so any string. */
 export type DomainId = string
 
-/** The four kinds the app writes; the item model's fifth, `example`, is not offered. */
-export type Kind = Exclude<ItemKind, 'example'>
+/** The four kinds the app writes. */
+export type Kind = ItemKind
 
 /** A draft was never published: agents never got it, so it can be deleted. A published item is archived instead. */
 export type Status = 'Draft' | 'Live' | 'Due for a check' | 'Archived'

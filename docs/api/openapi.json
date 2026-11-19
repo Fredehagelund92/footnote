@@ -32,7 +32,6 @@
                           "note",
                           "event",
                           "guide",
-                          "example",
                           "issue"
                         ],
                         "type": "string"
@@ -466,7 +465,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -1285,7 +1283,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -2122,7 +2119,6 @@
                                   "note",
                                   "event",
                                   "guide",
-                                  "example",
                                   "issue"
                                 ],
                                 "type": "string"
@@ -2965,7 +2961,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -3740,7 +3735,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -4559,7 +4553,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -5355,7 +5348,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -6174,7 +6166,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -6976,7 +6967,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -7795,7 +7785,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -9796,7 +9785,6 @@
                                     "note",
                                     "event",
                                     "guide",
-                                    "example",
                                     "issue"
                                   ],
                                   "type": "string"
@@ -9949,7 +9937,6 @@
                                     "note",
                                     "event",
                                     "guide",
-                                    "example",
                                     "issue"
                                   ],
                                   "type": "string"
@@ -10286,7 +10273,6 @@
                               "note",
                               "event",
                               "guide",
-                              "example",
                               "issue"
                             ],
                             "type": "string"
@@ -10428,7 +10414,6 @@
                                       "note",
                                       "event",
                                       "guide",
-                                      "example",
                                       "issue"
                                     ],
                                     "type": "string"
@@ -10481,7 +10466,6 @@
                                       "note",
                                       "event",
                                       "guide",
-                                      "example",
                                       "issue"
                                     ],
                                     "type": "string"
@@ -12946,7 +12930,6 @@
                                           "note",
                                           "event",
                                           "guide",
-                                          "example",
                                           "issue"
                                         ],
                                         "type": "string"
@@ -13099,7 +13082,6 @@
                                           "note",
                                           "event",
                                           "guide",
-                                          "example",
                                           "issue"
                                         ],
                                         "type": "string"
@@ -13436,7 +13418,6 @@
                                     "note",
                                     "event",
                                     "guide",
-                                    "example",
                                     "issue"
                                   ],
                                   "type": "string"
@@ -13578,7 +13559,6 @@
                                             "note",
                                             "event",
                                             "guide",
-                                            "example",
                                             "issue"
                                           ],
                                           "type": "string"
@@ -13631,7 +13611,6 @@
                                             "note",
                                             "event",
                                             "guide",
-                                            "example",
                                             "issue"
                                           ],
                                           "type": "string"
@@ -21391,7 +21370,6 @@
                               "note",
                               "event",
                               "guide",
-                              "example",
                               "issue"
                             ],
                             "type": "string"
@@ -23429,7 +23407,6 @@
                                       "note",
                                       "event",
                                       "guide",
-                                      "example",
                                       "issue"
                                     ],
                                     "type": "string"
@@ -23520,7 +23497,6 @@
                                   "note",
                                   "event",
                                   "guide",
-                                  "example",
                                   "issue"
                                 ],
                                 "type": "string"
@@ -34443,7 +34419,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -34597,7 +34572,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -34777,7 +34751,6 @@
                                           "note",
                                           "event",
                                           "guide",
-                                          "example",
                                           "issue"
                                         ],
                                         "type": "string"
@@ -34830,7 +34803,6 @@
                                           "note",
                                           "event",
                                           "guide",
-                                          "example",
                                           "issue"
                                         ],
                                         "type": "string"
@@ -34883,7 +34855,6 @@
                                           "note",
                                           "event",
                                           "guide",
-                                          "example",
                                           "issue"
                                         ],
                                         "type": "string"
@@ -34936,7 +34907,6 @@
                                           "note",
                                           "event",
                                           "guide",
-                                          "example",
                                           "issue"
                                         ],
                                         "type": "string"
@@ -36320,7 +36290,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -37403,7 +37372,6 @@
                               "note",
                               "event",
                               "guide",
-                              "example",
                               "issue"
                             ],
                             "type": "string"
@@ -38133,7 +38101,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -38718,7 +38685,6 @@
                           "note",
                           "event",
                           "guide",
-                          "example",
                           "issue"
                         ],
                         "type": "string"
@@ -41534,7 +41500,6 @@
                             "note",
                             "event",
                             "guide",
-                            "example",
                             "issue"
                           ],
                           "type": "string"
@@ -42145,7 +42110,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -42736,7 +42700,6 @@
                               "note",
                               "event",
                               "guide",
-                              "example",
                               "issue"
                             ],
                             "type": "string"
@@ -43231,7 +43194,6 @@
                               "note",
                               "event",
                               "guide",
-                              "example",
                               "issue"
                             ],
                             "type": "string"
@@ -43912,9 +43874,6 @@
                                   "guide": {
                                     "type": "number"
                                   },
-                                  "example": {
-                                    "type": "number"
-                                  },
                                   "issue": {
                                     "type": "number"
                                   }
@@ -43923,7 +43882,6 @@
                                   "note",
                                   "event",
                                   "guide",
-                                  "example",
                                   "issue"
                                 ]
                               },
@@ -47507,7 +47465,6 @@
                               "note",
                               "event",
                               "guide",
-                              "example",
                               "issue"
                             ],
                             "type": "string"
@@ -82248,7 +82205,6 @@
                                         "note",
                                         "event",
                                         "guide",
-                                        "example",
                                         "issue"
                                       ],
                                       "type": "string"
@@ -90300,7 +90256,6 @@
                                                   "note",
                                                   "event",
                                                   "guide",
-                                                  "example",
                                                   "issue"
                                                 ],
                                                 "type": "string"
@@ -90467,7 +90422,6 @@
                                                   "note",
                                                   "event",
                                                   "guide",
-                                                  "example",
                                                   "issue"
                                                 ],
                                                 "type": "string"
@@ -90848,7 +90802,6 @@
                                               "note",
                                               "event",
                                               "guide",
-                                              "example",
                                               "issue"
                                             ],
                                             "type": "string"
@@ -90998,7 +90951,6 @@
                                               "note",
                                               "event",
                                               "guide",
-                                              "example",
                                               "issue"
                                             ],
                                             "type": "string"
@@ -91281,7 +91233,6 @@
                                                         "note",
                                                         "event",
                                                         "guide",
-                                                        "example",
                                                         "issue"
                                                       ],
                                                       "type": "string"
@@ -91453,7 +91404,6 @@
                                                         "note",
                                                         "event",
                                                         "guide",
-                                                        "example",
                                                         "issue"
                                                       ],
                                                       "type": "string"
@@ -101404,7 +101354,6 @@
                                   "note",
                                   "event",
                                   "guide",
-                                  "example",
                                   "issue"
                                 ],
                                 "type": "string"
@@ -101554,7 +101503,6 @@
                                   "note",
                                   "event",
                                   "guide",
-                                  "example",
                                   "issue"
                                 ],
                                 "type": "string"
@@ -101837,7 +101785,6 @@
                                             "note",
                                             "event",
                                             "guide",
-                                            "example",
                                             "issue"
                                           ],
                                           "type": "string"
@@ -102004,7 +101951,6 @@
                                             "note",
                                             "event",
                                             "guide",
-                                            "example",
                                             "issue"
                                           ],
                                           "type": "string"

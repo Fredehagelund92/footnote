@@ -104,14 +104,13 @@ export const toolWords: Readonly<Record<AgentToolName, { title: string; line: st
 
 /**
  * A kind as agents read it (docs/product.md, section 7): the label, in lower case. The stored
- * names stay the earlier ones. Example is no longer offered, and an item that still has it says so.
+ * names stay the earlier ones.
  */
 export const agentKinds: Readonly<Record<ItemKind, string>> = {
   event: 'event',
   issue: 'warning',
   note: 'rule',
   guide: 'guide',
-  example: 'example',
 }
 /** The kinds an agent may filter by, and the stored kind each one is. */
 export const kindFilters = {

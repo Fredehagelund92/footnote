@@ -91,7 +91,7 @@ describe('the dates a text names', () => {
 
 describe('the kind a text suggests', () => {
   it.each([
-    ['How did Orders change in Norway in August 2026?', 'example'],
+    ['How did Orders change in Norway in August 2026?', 'guide'],
     ['How to investigate a drop in Orders', 'guide'],
     ['Orders in Poland arrive two days late while the provider moves.', 'issue'],
     ['Partner reporting for France was down for twelve days', 'issue'],

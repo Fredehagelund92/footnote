@@ -355,10 +355,9 @@ export function createInboxFeedService(
     if (!bundle) return []
     const today = clock.today()
     // The items Context lists and counts as due, so one domain's number is the same on every
-    // screen: an example is not one the app shows.
+    // screen.
     const due = bundle.items.filter(
       (item) =>
-        item.kind !== 'example' &&
         areas.includes(item.areaId) &&
         (item.checkFlag !== null || (item.reviewDate !== null && item.reviewDate < today)),
     )

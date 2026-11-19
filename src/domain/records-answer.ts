@@ -67,7 +67,7 @@ export type CannotReason = (typeof cannotReasons)[number]
 export const limitSchema = z.object({ reason: z.enum(limitReasons), sentence: z.string() })
 export type AnswerLimit = z.infer<typeof limitSchema>
 
-/** The kinds the Context list shows. An item of the fifth, `example`, is not counted. */
+/** The kinds the Context list shows. */
 export const recordsKinds = ['event', 'issue', 'note', 'guide'] as const
 export type RecordsKind = (typeof recordsKinds)[number]
 

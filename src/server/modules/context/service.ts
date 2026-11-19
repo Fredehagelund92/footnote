@@ -66,7 +66,7 @@ const reasons = {
   restored: (version: number) => `Restored from version ${version}.`,
 }
 
-const kindName = (kind: string) => (kind in kinds ? kinds[kind as Kind].label : 'Example')
+const kindName = (kind: string) => kinds[kind as Kind].label
 const isItemId = (id: string) => /^itm_[a-z0-9]{8,16}$/.test(id)
 const plainError = (error: unknown) =>
   error instanceof ORPCError ? error.message : "It couldn't be changed."

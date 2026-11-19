@@ -226,15 +226,15 @@ Checked by the copy test and by lint (`footnote/plain-words`, the glossary in `w
 | a draft called "checked context"                                                                                                                 | Based on this draft                                                         |
 | Based on checked context, Covers part of it, Nothing written down, Context disagrees, May be out of date, Couldn't check, Not covered, as labels | Checked, Partial, Not found, Conflict, Outdated, Not checked                |
 | Something happened, A problem with the data, Good to know, How to look into it, Caveat                                                           | Event, Warning, Rule, Guide, Don't conclude                                 |
-| Example, as a kind                                                                                                                               | (no longer offered)                                                         |
-| Users                                                                                                                                            | People                                                                      |
-| administrator, auditor, approver, steward                                                                                                        | Admin, Member, owner                                                        |
-| AI app, client                                                                                                                                   | agent                                                                       |
-| Try a question                                                                                                                                   | Try it                                                                      |
-| proposal, accept, retire                                                                                                                         | suggestion, publish, archive                                                |
-| Back to <workspace name>                                                                                                                         | Back to app                                                                 |
-| "gap" for a person, "agent" for a person                                                                                                         | the support team, someone on our team                                       |
-| an em dash                                                                                                                                       | a plain dash, a comma or a full stop                                        |
+
+| Users | People |
+| administrator, auditor, approver, steward | Admin, Member, owner |
+| AI app, client | agent |
+| Try a question | Try it |
+| proposal, accept, retire | suggestion, publish, archive |
+| Back to <workspace name> | Back to app |
+| "gap" for a person, "agent" for a person | the support team, someone on our team |
+| an em dash | a plain dash, a comma or a full stop |
 
 The code keeps its own words (item, area, retire, edition, scope, proposal). Only what people read changes. [`words.ts`](../../src/domain/words.ts) maps one to the other.
 

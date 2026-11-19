@@ -22,7 +22,7 @@ import { anyDate, shiftDate } from '@domain/validity'
 import type { Link, LinkEnd, Rel } from '@/lib/links'
 import { mentionParts, mentionToken, parseMentionId } from '@/lib/mentions'
 import type { Version, VersionKind } from '@/model/history'
-import type { Fact, Kind, LogEntry, ScopeTerm } from '@/model/items'
+import type { Fact, LogEntry, ScopeTerm } from '@/model/items'
 import { dateLabel, whenLabel } from '@/model/validity'
 import type { ItemPage } from './client'
 import { dueWords, ownersOf, statusOf, validityOf, type Names } from './http-map'
@@ -267,19 +267,14 @@ export function dayShiftOf(index: { today: string; loadedAt: string }): number {
 
 /* ---------- a context item ---------- */
 
-/** The four kinds the app writes; an item of the fifth, `example`, is not one the app shows. */
-const kindOf = (kind: string): Kind | null =>
-  kind === 'event' || kind === 'issue' || kind === 'note' || kind === 'guide' ? kind : null
-
 /** The text of an item or a draft as the app writes it: the markup when there is one. */
 const text = (plain: string | undefined, markup: string | undefined, words: Words) =>
   markup !== undefined ? textFromService(markup, words) : (plain ?? '')
 
 /** A published item as its page reads it: its text, where it comes from and what not to conclude. */
-export function factOfPage(page: ServiceItemPage, names: Names, words: Words): Fact | null {
+export function factOfPage(page: ServiceItemPage, names: Names, words: Words): Fact {
   const item = page.item
-  const kind = kindOf(item.kind)
-  if (!kind) return null
+  const kind = item.kind
   const valid = validityOf(item)
   const evidence = item.evidence[0]
   const body = text(item.body, item.bodyMarkup, words)
@@ -330,7 +325,7 @@ export function factOfDraft(
     summary: text(draft.summary, draft.summaryMarkup, words),
     ...(body ? { body } : {}),
     domain: draft.areaId ?? proposal.areaId ?? '',
-    kind: kindOf(draft.kind ?? 'note') ?? 'note',
+    kind: draft.kind ?? 'note',
     where: scope.map((t) => t.name),
     scope,
     valid,
@@ -525,15 +520,14 @@ export function factOfReadDraft(draft: Draft, names: Names, words: Words): Fact 
   return factOfDraft({ id: 'draft', title: '', areaId: null, draft, proposerId: '' }, names, words)
 }
 
-/** What the item page answers: the item and its versions, or null for one the app does not show. */
+/** What the item page answers: the item and its versions. */
 export function itemPageOf(
   page: ServiceItemPage,
   names: Names,
   words: Words,
   shift: number,
-): ItemPage | null {
+): ItemPage {
   const item = factOfPage(page, names, words)
-  if (!item) return null
   const pair = page.pairs.find((p) => p.otherId === item.disagreesWith)
   return {
     item,
