@@ -29,8 +29,8 @@ so in its notes.
    - writes the new section of `CHANGELOG.md` from the commit titles since the last release;
    - raises the version in `package.json`, `package-lock.json`, `.release-please-manifest.json`,
      `docs/api/openapi.json`, the supported versions in `SECURITY.md`, and the two images
-     `compose.images.yaml` pulls, so the README's Quick start at a release's tag runs that
-     release's images.
+     `compose.images.yaml` pulls, so the demo from the published images at a release's tag
+     ([Self-host Footnote](self-hosting.md#from-the-published-images)) runs that release's images.
 
    It makes the pull request again on top of `main` after every merge, even one that adds no line
    to the changelog, so the pull request is never behind `main`.
@@ -56,8 +56,8 @@ so in its notes.
       app), each tagged `0.1.0`, `0.1` and `latest`;
    5. it signs the build provenance of both images with GitHub's artifact attestations, and checks
       that each platform has its SBOM and provenance and that the signature verifies;
-   6. it checks that `compose.images.yaml` names exactly the images it pushed, then runs the
-      README's Quick start as written at the tag, without signing in to ghcr.io:
+   6. it checks that `compose.images.yaml` names exactly the images it pushed, then starts the
+      demo from them as a stranger would at the tag, without signing in to ghcr.io:
       `docker compose -f compose.yaml -f compose.images.yaml up`. On that demo it runs the demo
       journey and the eight demo questions in a browser (`.github/workflows/demo-images.yml`).
       Until they pass, there is no GitHub Release;
@@ -107,6 +107,10 @@ To choose the next number yourself, end the message of the squash commit with th
 **What's new** in the app (`docs/help/changelog.md`) is a different page: a few changes people
 notice, in the app's words, written by hand ([the help pages](help/README.md#whats-new)). Check
 that it is current before you merge a release pull request.
+
+**The pictures** of the app, in the README and on the landing page, are captures of the demo taken
+by a script. Before you merge a release pull request, take them again ([the pictures](../site/README.md#the-pictures))
+and merge any that changed in a pull request of their own, so the release shows the app as it is.
 
 ## The site
 

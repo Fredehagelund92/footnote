@@ -13,7 +13,13 @@
 /** The public repository: Edit on GitHub, links to its documents and the demo model's files. */
 export const REPOSITORY_URL = 'https://github.com/Fredehagelund92/footnote'
 
-/** Where to ask for a connector: the issue template for one (.github/ISSUE_TEMPLATE/connector.yml). */
+/**
+ * The public docs (site/README.md): the newest release's pages, each at `${DOCS_URL}/<page>/`.
+ * The README links here, and its test holds every such link to this address.
+ */
+export const DOCS_URL = 'https://getfootnote.vercel.app/docs'
+
+/** Where to ask for a connector:the issue template for one (.github/ISSUE_TEMPLATE/connector.yml). */
 export const CONNECTOR_REQUEST_URL = `${REPOSITORY_URL}/issues/new?template=connector.yml`
 
 /** The name when `FOOTNOTE_PRODUCT_NAME` is not set. */

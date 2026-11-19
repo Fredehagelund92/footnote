@@ -1,4 +1,4 @@
-# Footnote on this computer: PostgreSQL 18, the service and the web app (README, "Quick start").
+# Footnote on this computer: PostgreSQL 18, the service and the web app (README, "Try it").
 #
 #   docker compose up       then open http://localhost:8080
 #

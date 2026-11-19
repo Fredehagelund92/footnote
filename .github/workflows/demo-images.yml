@@ -6,8 +6,8 @@ name: Demo from the images
 #
 # - Every night, and by hand, it builds main's images (docker compose build), so a change that
 #   breaks the demo only inside the images is found before a release.
-# - release.yml calls it with the two images it published. It then runs the README's Quick start
-#   as written at the tag: compose.images.yaml names the release's version, written by
+# - release.yml calls it with the two images it published. It then starts the demo from them as
+#   docs/self-hosting.md says, at the tag: compose.images.yaml names the release's version, written by
 #   release-please, and must name exactly the images the release pushed. They are pulled without
 #   signing in, as a stranger pulls them.
 on:
