@@ -55,3 +55,15 @@ changes on purpose, write it again and read the change in review:
 ```sh
 npx vitest run --project server tests/server/connectors/conformance.test.ts -t dbt -u
 ```
+
+## The real files
+
+`real/` holds what a real `dbt parse` wrote for dbt Labs' public
+[jaffle-shop](https://github.com/dbt-labs/jaffle-shop) sample (commit `5beb145`, latest spec), with
+a few `meta` keys added to `models/marts/orders.yml`: a domain on the semantic model and on the
+model's own config (which dbt drops), a label and other names on `ordered_at`, a domain that is not
+a domain id on `is_food_order`, and a domain and other names on the `orders` metric.
+`jaffle-shop.core.json` is from dbt Core 1.12.7 (dbt-duckdb 1.11.1, MetricFlow 0.214.0) with
+`--no-version-check`, as the project asks for dbt 2; `jaffle-shop.fusion.json` is from dbt 2.0.12.
+Each is cut to the `orders` and `order_items` semantic models and the metrics built on them, saved
+queries out, and made neutral as above. `dbt-metricflow-real.test.ts` reads them.
