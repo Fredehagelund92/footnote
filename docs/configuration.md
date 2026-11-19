@@ -51,7 +51,7 @@ The login server's own settings are on [Sign in your own agent](ai-sign-in.md#th
 | `VERCEL_AI_GATEWAY_API_KEY` | None    | The key for the `vercel-gateway` provider                     |
 | `FOOTNOTE_ASK_LOOP`         | `on`    | `off` answers Ask with its fixed rules and planner instead    |
 
-With `live`, each role's provider and model come from the `models.*` settings, and the service refuses to start when a provider, a model or a key is missing, or the provider does not list the model.
+With `live`, each role's provider and model come from the `models.*` settings, and the service refuses to start when a provider, a model or a key is missing, or the provider does not list the model and its setting gives no prices.
 
 Ask answers with one model that reads with Footnote's own read tools, as the person asking ([Ask's loop](evaluations.md#asks-loop)). `FOOTNOTE_ASK_LOOP=off` answers with its fixed rules and planner instead. What the loop shows is not checked yet beyond its citations. With `MODELS=mock` it runs a scripted reader.
 

@@ -25,14 +25,25 @@ const days = int(1, 3650)
 const micros = int(0, 1_000_000_000_000)
 const perMinute = int(1, 10_000)
 const toolName = z.string().check(z.regex(/^[a-z_]{1,40}$/))
+/** US dollars per million tokens; 0 is allowed, for a model that costs nothing, such as a local one. */
+const dollarsPerMillion = z.number().check(z.minimum(0), z.maximum(10_000))
 /**
- * A role's model: a provider from the service's provider registry and a model that provider
- * lists. The service refuses one it cannot serve. What is sent to the model leaves the company to
- * that provider and the model's vendor.
+ * A role's model: a provider from the service's provider registry and a model. A model the
+ * provider does not list needs its `prices`, so the spend limits still count it; for a listed
+ * model, `prices` replace the built-in ones. The service refuses one it cannot serve. What is
+ * sent to the model leaves the company to that provider and the model's vendor.
  */
 const modelRef = z.strictObject({
   provider: z.string().check(z.regex(/^[a-z][a-z0-9-]{0,39}$/)),
   model: z.string().check(z.regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/)),
+  prices: z.optional(
+    z.strictObject({
+      input: dollarsPerMillion,
+      output: dollarsPerMillion,
+      cacheRead: z.optional(dollarsPerMillion),
+      cacheWrite: z.optional(dollarsPerMillion),
+    }),
+  ),
 })
 
 /**

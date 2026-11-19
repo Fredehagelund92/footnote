@@ -3,11 +3,12 @@ import type { Queryable } from '../../db/database.ts'
 import { ModelConfigError } from './errors.ts'
 import type { ModelPort } from './port.ts'
 import { defaultModel } from './providers.ts'
-import { modelRoles, type ModelRef, type ModelRole } from './types.ts'
+import { modelRoles, type ModelRef, type ModelRole, type Prices } from './types.ts'
 
 /**
  * Each role's model, from the versioned settings (`models.<role>`, FR-809): a provider from the
- * registry and a model it lists. The judge may instead be `different_family`.
+ * registry and a model, with prices for a model it does not list. The judge may instead be
+ * `different_family`.
  */
 
 export const differentFamily = 'different_family'
@@ -49,6 +50,27 @@ export function checkModelSettings(port: ModelPort, settings: ModelSettings): vo
     const value = settings[role]
     if (value !== differentFamily) port.check(`models.${role}`, value)
   }
+}
+
+/**
+ * The roles whose setting gives its own prices, for the log at start-up: a hosted model priced at
+ * 0 by mistake would make the spend limits count nothing for it.
+ */
+export function settingPrices(
+  settings: ModelSettings,
+): { setting: string; id: string; prices: Prices }[] {
+  return modelRoles.flatMap((role) => {
+    const value = settings[role]
+    return value !== differentFamily && value.prices
+      ? [
+          {
+            setting: `models.${role}`,
+            id: `${value.provider}/${value.model}`,
+            prices: value.prices,
+          },
+        ]
+      : []
+  })
 }
 
 /** Checks a new value of a `models.<role>` setting before it is saved; other keys pass. */

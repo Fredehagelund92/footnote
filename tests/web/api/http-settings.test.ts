@@ -244,6 +244,16 @@ describe('Settings, Advanced', () => {
         setting('retention.delivery_days', 1),
         setting('models.judge', 'different_family'),
         setting('models.assistant', { provider: 'anthropic', model: 'claude-sonnet-5-5' }),
+        setting('models.eval_answer', {
+          provider: 'vercel-gateway',
+          model: 'google/gemini-9-pro',
+          prices: { input: 1.25, output: 10, cacheRead: 0.125 },
+        }),
+        setting('models.test_authoring', {
+          provider: 'anthropic',
+          model: 'qwen3:8b',
+          prices: { input: 0, output: 0 },
+        }),
         setting('business.about', ''),
         setting('serving.legacy', 1, false),
         setting('serving.unlisted', 1),
@@ -284,6 +294,13 @@ describe('Settings, Advanced', () => {
     })
     expect(rows['models.judge']?.value).toBe('Another line than the answering model')
     expect(rows['models.assistant']?.value).toBe('claude-sonnet-5-5 (anthropic)')
+    // A model priced by its setting shows the prices its spend is counted at, 0 included.
+    expect(rows['models.eval_answer']?.value).toBe(
+      'google/gemini-9-pro (vercel-gateway), $1.25 input, $10 output, $0.125 cache read per million tokens',
+    )
+    expect(rows['models.test_authoring']?.value).toBe(
+      'qwen3:8b (anthropic), $0 input, $0 output per million tokens',
+    )
     expect(rows['business.about']?.value).toBe('No text yet')
     // An editable setting the list does not name still shows, as the service stores it.
     expect(groups.at(-1)).toEqual({

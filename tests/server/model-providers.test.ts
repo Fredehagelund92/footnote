@@ -12,6 +12,7 @@ import {
   ModelConfigError,
   modelProviders,
   ModelVendorError,
+  settingPrices,
   startCreditsCheck,
   type Connection,
   type ModelSettings,
@@ -127,10 +128,10 @@ describe('the provider registry', () => {
     ).toThrow(/ACME_BASE_URL must be an http or https URL/)
   })
 
-  it('refuses a model its provider does not list, and a provider it does not know', () => {
+  it('refuses a model its provider does not list without prices, and a provider it does not know', () => {
     const port = withAcme({ ACME_API_KEY: 'k', ANTHROPIC_API_KEY: 'k' })
     expect(() => port.choose('assistant', { provider: 'acme', model: 'acme-huge-9' })).toThrow(
-      'models.assistant names model acme-huge-9, which provider acme does not list; add it with its prices to the provider registry first',
+      'models.assistant names model acme-huge-9, which provider acme does not list. Give its prices in US dollars per million tokens in the setting: {"provider":"acme","model":"acme-huge-9","prices":{"input":1,"output":5}}. A model that costs nothing has prices of 0.',
     )
     // A model listed by one provider is not thereby allowed on another.
     expect(() =>
@@ -139,6 +140,70 @@ describe('the provider registry', () => {
     expect(() => port.choose('judge', { provider: 'nobody', model: 'x' })).toThrow(
       /models\.judge names provider nobody, which is not in the provider registry \(anthropic, vercel-gateway, acme\)/,
     )
+  })
+
+  it('serves a model its provider does not list when the setting gives its prices', async () => {
+    const port = withAcme({ ACME_API_KEY: 'k' })
+    // A `vendor/model` name gives the vendor; the family is the whole name.
+    const prefixed = port.choose('assistant', {
+      provider: 'acme',
+      model: 'beta/beta-huge-3',
+      prices: { input: 0.5, output: 2 },
+    })
+    expect(prefixed).toMatchObject({
+      id: 'acme/beta/beta-huge-3',
+      provider: 'acme',
+      name: 'beta/beta-huge-3',
+      vendor: 'beta',
+      family: 'beta/beta-huge-3',
+      prices: { input: 0.5, output: 2 },
+      recipients: 'Acme Models and beta',
+    })
+    // Spend is counted at the setting's prices: 1,000 at $0.5 and 100 at $2 a million tokens.
+    expect(
+      costMicros(prefixed.prices, { inputTokens: 1_000, outputTokens: 100, cacheReadTokens: 0 }),
+    ).toBe(700)
+    // A bare name is the provider's own model.
+    expect(
+      port.choose('assistant', {
+        provider: 'acme',
+        model: 'acme-huge-9',
+        prices: { input: 0, output: 0 },
+      }),
+    ).toMatchObject({ vendor: 'acme', family: 'acme/acme-huge-9', prices: { input: 0, output: 0 } })
+    // Its answers are still held to its vendor: the stub answers as acme/beta/beta-huge-3.
+    await expect(generateText({ model: prefixed.model, prompt: 'Hello.' })).rejects.toThrow(
+      'beta/beta-huge-3 was answered by acme/beta/beta-huge-3, a model of another vendor than beta',
+    )
+  })
+
+  it("lets a setting's prices replace a listed model's built-in ones", () => {
+    const port = withAcme({ ACME_API_KEY: 'k' })
+    const listed = { provider: 'acme', model: 'acme-large-2' }
+    expect(port.choose('assistant', listed).prices).toEqual({
+      input: 3,
+      output: 12,
+      cacheRead: 0.3,
+    })
+    expect(port.choose('assistant', { ...listed, prices: { input: 2, output: 8 } })).toMatchObject({
+      family: 'acme/acme-large',
+      prices: { input: 2, output: 8 },
+    })
+  })
+
+  it('judges a model its provider lists no line of with that model itself', () => {
+    const port = withAcme({ ACME_API_KEY: 'k' })
+    const answer = port.choose('eval_answer', {
+      provider: 'acme',
+      model: 'beta/beta-huge-3',
+      prices: { input: 1, output: 4 },
+    })
+    expect(port.otherLine('judge', answer)).toMatchObject({
+      id: 'acme/beta/beta-huge-3',
+      family: 'beta/beta-huge-3',
+      effort: 'low',
+      prices: { input: 1, output: 4 },
+    })
   })
 
   it('refuses a registry with a repeated name or a missing adapter', () => {
@@ -201,6 +266,24 @@ describe('the provider registry', () => {
     expect(() =>
       checkModelSettings(mock, settings({ assistant: { provider: 'vercel', model: 'x' } })),
     ).toThrow(ModelConfigError)
+  })
+
+  it('takes prices of 0 or more in a model setting, and names the roles they price', () => {
+    const port = withAcme({ ACME_API_KEY: 'k', ANTHROPIC_API_KEY: 'k' })
+    const local = { provider: 'acme', model: 'qwen3:8b', prices: { input: 0, output: 0 } }
+    expect(() => checkModelSetting(port, 'models.assistant', local)).not.toThrow()
+    for (const prices of [
+      { input: -1, output: 0 },
+      { input: 1 },
+      { input: 1, output: 1, extra: 1 },
+    ])
+      expect(() => checkModelSetting(port, 'models.assistant', { ...local, prices })).toThrow(
+        /models\.assistant must name a provider and a model/,
+      )
+    expect(settingPrices(settings({ assistant: local }))).toEqual([
+      { setting: 'models.assistant', id: 'acme/qwen3:8b', prices: { input: 0, output: 0 } },
+    ])
+    expect(settingPrices(settings())).toEqual([])
   })
 
   it('checks a changed model setting before it is saved, and lets other settings pass', () => {
@@ -513,12 +596,19 @@ describe("the gateway's Google model (Gemini 2.5 Flash-Lite)", () => {
     })
   })
 
-  it('is accepted as a setting, while an unlisted Google model is still refused', () => {
+  it('is accepted as a setting, while an unlisted Google model needs its prices', () => {
     expect(() => checkModelSetting(port(), 'models.eval_answer', ref)).not.toThrow()
     expect(() => checkModelSetting(port(), 'models.judge', ref)).not.toThrow()
     expect(() => checkModelSetting(port(), 'models.eval_answer', unlisted)).toThrow(
-      'models.eval_answer names model google/gemini-9-pro, which provider vercel-gateway does not list; add it with its prices to the provider registry first',
+      /^models\.eval_answer names model google\/gemini-9-pro, which provider vercel-gateway does not list\. Give its prices/,
     )
+    const priced = { ...unlisted, prices: { input: 1.25, output: 10 } }
+    expect(() => checkModelSetting(port(), 'models.eval_answer', priced)).not.toThrow()
+    expect(port().choose('eval_answer', priced)).toMatchObject({
+      vendor: 'google',
+      family: 'google/gemini-9-pro',
+      recipients: 'Vercel and Google',
+    })
     // The model is the gateway's; the Anthropic API does not serve it.
     expect(() =>
       checkModelSetting(port(), 'models.eval_answer', { ...ref, provider: 'anthropic' }),

@@ -20,7 +20,7 @@ import type {
  * calls a model; only the evaluation runner, its judges and Ask's words do. A plain string
  * model would route through an AI gateway the service did not choose, so every model here is an
  * object made by the adapter of a provider in the registry (`providers.ts`), for a model that
- * provider lists. `MODELS=mock` puts the scripted mock behind every role instead.
+ * provider lists or one its setting gives prices for. `MODELS=mock` puts the scripted mock behind every role instead.
  */
 
 export type ModelMode = 'mock' | 'live'
@@ -101,12 +101,13 @@ export function createModelPort(options: ModelPortOptions): ModelPort {
       throw new ModelConfigError(
         `${setting} names provider ${ref.provider}, which is not in the provider registry (${[...providers.keys()].join(', ')})`,
       )
-    const listed = Object.hasOwn(entry.models, ref.model) ? entry.models[ref.model] : undefined
-    if (!listed)
+    const known = Object.hasOwn(entry.models, ref.model) ? entry.models[ref.model] : undefined
+    if (known) return { entry, listed: ref.prices ? { ...known, prices: ref.prices } : known }
+    if (!ref.prices)
       throw new ModelConfigError(
-        `${setting} names model ${ref.model}, which provider ${entry.name} does not list; add it with its prices to the provider registry first`,
+        `${setting} names model ${ref.model}, which provider ${entry.name} does not list. Give its prices in US dollars per million tokens in the setting: {"provider":"${entry.name}","model":"${ref.model}","prices":{"input":1,"output":5}}. A model that costs nothing has prices of 0.`,
       )
-    return { entry, listed }
+    return { entry, listed: unlisted(entry, ref.model, ref.prices) }
   }
   if (options.mode === 'mock') return mockPort(options.mockPrices ?? free, effort, resolve)
 
@@ -133,7 +134,7 @@ export function createModelPort(options: ModelPortOptions): ModelPort {
   }
   const cache = new Map<string, ModelChoice>()
   const choose = (role: ModelRole, ref: ModelRef = defaultModel): ModelChoice => {
-    const key = `${role}:${ref.provider}:${ref.model}`
+    const key = `${role}:${ref.provider}:${ref.model}:${JSON.stringify(ref.prices ?? null)}`
     const cached = cache.get(key)
     if (cached) return cached
     const setting = `models.${role}`
@@ -160,7 +161,12 @@ export function createModelPort(options: ModelPortOptions): ModelPort {
     otherLine(role, answer) {
       const entry = providers.get(answer.provider)!
       const vendor = Object.entries(entry.models).filter(([, m]) => m.vendor === answer.vendor)
-      const [name] = vendor.find(([, m]) => `${m.vendor}/${m.line}` !== answer.family) ?? vendor[0]!
+      const [name] = vendor.find(([, m]) => `${m.vendor}/${m.line}` !== answer.family) ??
+        vendor[0] ?? [undefined]
+      // The provider lists no model of the vendor (one only its setting prices): the answering
+      // model judges itself, which a run records as a judge of the same family.
+      if (name === undefined)
+        return choose(role, { provider: entry.name, model: answer.name, prices: answer.prices })
       return choose(role, { provider: entry.name, model: name })
     },
     check(setting, ref) {
@@ -238,6 +244,18 @@ function mockPort(
     },
     creditsUsed: () => Promise.resolve(null),
   }
+}
+
+/**
+ * A model the provider does not list, priced by its setting. Its vendor is the prefix of a
+ * `vendor/model` name, such as `google` in `google/gemini-3-flash`, else the provider's own name;
+ * its line is the whole name without that prefix, so its family is `vendor/model`.
+ */
+function unlisted(entry: ProviderEntry, name: string, prices: Prices): ListedModel {
+  const slash = name.indexOf('/')
+  return slash > 0
+    ? { vendor: name.slice(0, slash), line: name.slice(slash + 1), prices }
+    : { vendor: entry.name, line: name, prices }
 }
 
 function recipients(entry: ProviderEntry, listed: ListedModel): string {

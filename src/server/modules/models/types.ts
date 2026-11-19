@@ -19,10 +19,16 @@ export type Effort = 'none' | 'low' | 'medium' | 'high'
  */
 export type Prices = { input: number; output: number; cacheRead?: number; cacheWrite?: number }
 
-/** A role's assignment: a provider from the registry and a model it lists. */
-export type ModelRef = { provider: string; model: string }
+/**
+ * A role's assignment: a provider from the registry and a model. A model the provider does not
+ * list needs `prices`; for a listed model they replace the built-in prices.
+ */
+export type ModelRef = { provider: string; model: string; prices?: Prices }
 
-/** A model a provider may serve. A model a provider does not list is refused. */
+/**
+ * A model a provider lists, with its built-in prices. Any other model is served only with prices
+ * in its setting; its vendor and line are then read from its name.
+ */
 export type ListedModel = {
   /** The company whose model it is, such as `anthropic`, whichever provider serves it. */
   vendor: string
@@ -52,13 +58,13 @@ export type ProviderEntry = {
    * `baseUrl` that answers `{ total_used }` in dollars. The spend ledger is checked against it.
    */
   creditsPath?: string
-  /** The only models this provider may serve, best first: a `different_family` judge is the first of another line. */
+  /** The models this provider lists, best first: a `different_family` judge is the first of another line. */
   models: Record<string, ListedModel>
 }
 
 export type Connection = { apiKey: string; baseUrl: string }
 
-/** What an adapter makes for one listed model. */
+/** What an adapter makes for one model. */
 export type AdaptedModel = {
   model: LanguageModelV4
   /** Passed to generateText and streamText as `providerOptions`. */

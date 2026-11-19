@@ -30,6 +30,7 @@ export {
   differentFamily,
   parseModelSetting,
   readModelSettings,
+  settingPrices,
   type JudgeSetting,
   type ModelSettings,
 } from './settings.ts'

@@ -35,6 +35,7 @@ import {
   createModelPort,
   ModelConfigError,
   readModelSettings,
+  settingPrices,
 } from './modules/models/index.ts'
 import { createRelay, outboxRelayJob, type Relay } from './modules/notifications/index.ts'
 import { createLoginServer, loadKeyRing } from './modules/oauth/index.ts'
@@ -130,7 +131,12 @@ async function compose(
         logger.warn({ err: error }, 'model settings not checked: the database is not reachable')
         return null
       })
-      if (settings) checkModelSettings(models, settings)
+      if (settings) {
+        checkModelSettings(models, settings)
+        // Spend is counted at these prices; one at 0 counts nothing against the limits.
+        for (const priced of settingPrices(settings))
+          logger.info(priced, 'model priced by its setting, in US dollars per million tokens')
+      }
     }
   } catch (error) {
     if (!(error instanceof ModelConfigError)) throw error

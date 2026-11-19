@@ -3,9 +3,10 @@ import type { ModelRef, ProviderEntry } from './types.ts'
 /**
  * The provider registry: every way this service may reach a language model. A provider is a
  * configuration entry naming an adapter, the environment variables for its key and base URL, and
- * the models it may serve with their prices. Adding a vendor or a second gateway is one entry here,
+ * the models it lists with their prices. Adding a vendor or a second gateway is one entry here,
  * plus one adapter in `adapters/` only when its protocol is new. Each role is assigned a provider
- * and a model in the versioned settings (`models.<role>`).
+ * and a model in the versioned settings (`models.<role>`); a model the entry does not list is
+ * served only with prices in that setting.
  *
  * Questions, test questions, item text and answers sent to a model leave the company to the
  * provider's operator and the model's vendor: Anthropic for Claude, Google for Gemini, and Vercel
