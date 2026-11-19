@@ -11,9 +11,8 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   relative_to, to read a follow-up's period against the last question's, and gave the days it
   read. Read by hand, the breaks listed are that run's own words: V06 gives the floor of 5 beside
   a topic the reader sees no count for (the grader reads it as a hidden count), GP10 repeats an
-  item's "use ... from 19 January 2026" in its own voice, V04 says what Ask does not answer, H24
-  says Ask does not answer and cites no item under a Partial read, V08 says "0 of 6", F12 names
-  a third France item, G06 names an April item among October's checks, V02 starts its decline
+  item's "use ... from 19 January 2026" in its own voice, V04 says what Ask does not answer, V08
+  says "0 of 6", F12 names a third France item, G06 names an April item among October's checks, V02 starts its decline
   with "No", H04 and H06 as before, and H24 names the owners of two domains by the domains'
   own mentions ("the owners of Paid media and Sales are Paid media and Sales").
   About 25 steps follow tool results that are not the same from one run to the next (an Inbox
@@ -26,7 +25,6 @@ askEvalSuite({
   brokenToday: {
     hidden: ['V06'],
     advice: ['V04', 'GP10'],
-    state: ['H24'],
     whole: ['H24'],
     never: ['V02', 'V08', 'F12', 'G06', 'H04', 'H06'],
   },
