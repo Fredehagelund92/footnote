@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { spansIn, voiceBreak } from '../../../src/domain/answer-voice.ts'
+import { spansIn, voiceBreak, voiceBreakOf } from '../../../src/domain/answer-voice.ts'
 
 // Ask's one voice (H14 of the hardening plan): each sentence below is one a real model wrote in
 // the release judgement's run (A6, A7, A8), or one that keeps the voice and must stay.
@@ -58,5 +58,20 @@ describe('one voice', () => {
       'Paid search in Norway rose after the campaign.',
     ])
       expect(breaks(s), s).toBeNull()
+  })
+})
+
+describe('the words that break the voice', () => {
+  it('are the words a second writing is told to leave out', () => {
+    const words = (s: string) => voiceBreakOf(s, 'Footnote')?.words
+    expect(words("Tell me the metric's name, and I'll check what is written about it.")).toEqual([
+      'me',
+      "I'll",
+    ])
+    expect(words('Ask checked 21 published context items you can see.')).toEqual(['Ask checked'])
+    expect(words('Ask finds every other definition in the read with at least one owner.')).toEqual([
+      'the read',
+    ])
+    expect(words('Gross sales is the value of every order at full price.')).toBeUndefined()
   })
 })

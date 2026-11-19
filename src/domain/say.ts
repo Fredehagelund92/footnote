@@ -97,6 +97,13 @@ export const offTopicSaid =
  */
 export const refusalOffers: readonly string[] = ['What changed this week?', 'List the conflicts']
 
+/**
+ * What Ask's loop says it can answer instead, after it declines a question about one person's work:
+ * the questions about people it does answer.
+ */
+export const personInstead =
+  'It can tell you who owns a domain or a metric, who last checked a context item and when, and what changed this week.'
+
 /** What Ask says when it cannot answer the question asked, and reads nothing (FR-720). */
 export const cannotSaid: Record<CannotReason, string> = {
   numbers:

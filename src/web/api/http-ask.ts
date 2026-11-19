@@ -386,6 +386,8 @@ export const loopAnswerOf = (
     ...(turn.conflict.length === 2 ? { conflict: turn.conflict } : {}),
     ...(turn.definitions.length ? { definitions: turn.definitions } : {}),
     ...(turn.kind === 'question' ? { reply: 'clarify' as const, choices: turn.choices } : {}),
+    // A decline ends with questions to press, as every refusal does.
+    ...(turn.kind === 'answer' && turn.choices.length ? { choices: turn.choices } : {}),
     ...(turn.stopped ? { stopped: turn.stopped } : {}),
   }
 }
