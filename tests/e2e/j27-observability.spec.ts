@@ -445,18 +445,19 @@ test("Feedback: what was said about answers, reports by state, and nobody's name
   await expect(
     page.locator('[data-slot="kpi"]').filter({ hasText: 'Something was wrong' }),
   ).toContainText('7')
-  const tabs = page.getByRole('tablist', { name: 'Reports' })
-  await expect(tabs.getByRole('tab', { name: new RegExp(`^All ${reports()}`) })).toHaveAttribute(
-    'aria-selected',
+  const tabs = page.getByRole('radiogroup', { name: 'Reports' })
+  await expect(tabs.getByRole('radio', { name: new RegExp(`^All ${reports()}`) })).toHaveAttribute(
+    'aria-checked',
     'true',
   )
-  await tabs.getByRole('tab', { name: /^In the Inbox 1/ }).click()
-  const panel = page.getByRole('tabpanel')
+  await tabs.getByRole('radio', { name: /^In the Inbox 1/ }).click()
+  await expect(page.getByRole('region', { name: 'In the Inbox' })).toBeVisible()
+  const panel = page.locator('#reports [role="region"]')
   await expect(panel.getByRole('listitem')).toHaveCount(1)
   await expect(
     panel.getByRole('link', { name: 'Orders lags by one day in the source tool' }),
   ).toHaveAttribute('href', `/inbox?card=${card('flag-germany')}`)
-  await tabs.getByRole('tab', { name: /^All/ }).click()
+  await tabs.getByRole('radio', { name: /^All/ }).click()
   // An agent's report carries its kind, never a person's name.
   await expect(
     panel.getByRole('listitem').filter({ hasText: 'From an agent' }).first(),

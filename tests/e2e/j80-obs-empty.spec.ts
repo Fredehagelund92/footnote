@@ -31,7 +31,7 @@ test('Feedback: a list with nothing in it says why it is empty', async ({ page }
   await go(page, '/observability/feedback')
   await page.getByRole('button', { name: /^Domain: / }).click()
   await page.getByRole('menuitemradio', { name: 'Customer value' }).click()
-  await page.getByRole('tab', { name: /^In the Inbox 0/ }).click()
+  await page.getByRole('radio', { name: /^In the Inbox 0/ }).click()
   await expect(page.locator('[data-slot="list-empty"]')).toHaveText(
     'No report in Customer value waits in the Inbox: every one this week has been looked at.',
   )

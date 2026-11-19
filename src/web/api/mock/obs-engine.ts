@@ -108,7 +108,7 @@ export type Report = {
 export type Rating = { at: number; domain: DomainId; good: number; wrong: number }
 
 export const REPORT_WORDS: Record<ReportState, string> = {
-  inbox: 'In your Inbox',
+  inbox: 'In the Inbox',
   looked: 'Looked at',
   fine: 'Not a problem',
 }

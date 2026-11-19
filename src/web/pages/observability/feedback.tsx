@@ -31,6 +31,7 @@ import { DomainDot } from '@/components/footnote/tag-chip'
 import { Bars } from '@/components/obs/charts'
 import { shareChange } from '@domain/observability'
 import { DomainChip, Kpi, kpiChange, RangeSwitch } from '@/components/obs/controls'
+import { TextSwitch } from '@/components/footnote/switches'
 import {
   dateLabel,
   HIDE_UNDER,
@@ -213,32 +214,20 @@ function Feedback({ busy }: { busy: boolean }) {
       </div>
       <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-3-2)">
         <div id="reports" className="scroll-mt-16">
-          <div
-            role="tablist"
-            aria-label="Reports"
-            className="flex flex-wrap gap-x-1 border-b px-3 md:px-4"
-          >
-            {(['all', 'inbox', 'looked', 'fine'] as const).map((k) => {
-              const n = k === 'all' ? reports.length : reports.filter((r) => r.state === k).length
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === k}
-                  onClick={() => setTab(k)}
-                  className={cn(
-                    '-mb-px flex h-10 items-center gap-1.5 border-b-2 border-transparent px-2 text-sm whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
-                    tab === k && 'border-foreground font-medium text-foreground',
-                  )}
-                >
-                  {k === 'all' ? 'All' : k === 'inbox' ? 'In the Inbox' : REPORT_WORDS[k]}
-                  <span className="text-xs tabular-nums">{n}</span>
-                </button>
-              )
-            })}
+          {/* One line of states; a narrow page scrolls it sideways rather than wrapping it. */}
+          <div className="overflow-x-auto border-b px-4 py-1.5 md:px-5">
+            <TextSwitch
+              label="Reports"
+              options={(['all', 'inbox', 'looked', 'fine'] as const).map((k) => ({
+                value: k,
+                label: k === 'all' ? 'All' : REPORT_WORDS[k],
+                count: k === 'all' ? reports.length : reports.filter((r) => r.state === k).length,
+              }))}
+              value={tab}
+              onChange={setTab}
+            />
           </div>
-          <div role="tabpanel" aria-label={tab === 'all' ? 'All reports' : REPORT_WORDS[tab]}>
+          <div role="region" aria-label={tab === 'all' ? 'All reports' : REPORT_WORDS[tab]}>
             {shown.length === 0 && (
               <p
                 data-slot="list-empty"

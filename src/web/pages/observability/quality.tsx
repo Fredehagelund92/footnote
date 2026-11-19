@@ -396,9 +396,16 @@ function QuestionRow({ q, canChange }: { q: SavedQuestion; canChange: boolean })
           <p className="text-sm font-medium text-pretty">{q.question}</p>
           <span className="shrink-0 text-xs text-muted-foreground">{q.when}</span>
         </div>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-          <DomainDot id={q.domain} />
-          {domains[q.domain]?.name} - saved by {q.savedBy} - {q.why}
+        {/* The dot stays with its domain's name; the rest wraps after them. */}
+        <p className="mt-0.5 text-xs text-pretty text-muted-foreground">
+          <span
+            data-slot="domain"
+            className="inline-flex items-center gap-1.5 align-middle whitespace-nowrap"
+          >
+            <DomainDot id={q.domain} />
+            {domains[q.domain]?.name}
+          </span>{' '}
+          - saved by {q.savedBy} - {q.why}
         </p>
         {q.diff && (
           <>

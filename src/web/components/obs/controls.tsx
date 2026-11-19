@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Changed } from '@/components/footnote/changed'
 import { DomainDot } from '@/components/footnote/tag-chip'
+import { TextSwitch } from '@/components/footnote/switches'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -30,31 +31,17 @@ import { useDomains } from '@/lib/workspace'
 // link (or Back) lands the same way: 7, 30 or 90 days. Overview's domain and kind of agent are in
 // its Filter menu (components/obs/topic-filters.tsx).
 
-/** 7, 30 or 90 days: one row of three, a radio group to a screen reader. */
+/** 7, 30 or 90 days: words to choose from, a radio group to a screen reader. */
 export function RangeSwitch({ value }: { value: Range }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Time"
-      className="flex h-8 shrink-0 items-stretch rounded-md border bg-background p-0.5 max-sm:h-10"
-    >
-      {RANGES.map((r) => (
-        <button
-          key={r}
-          type="button"
-          role="radio"
-          aria-checked={value === r}
-          // Days chosen on the chart belong to the range they were chosen in.
-          onClick={() => setQuery({ range: r === 7 ? undefined : String(r), days: undefined })}
-          className={cn(
-            'rounded-sm px-2.5 text-sm whitespace-nowrap text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
-            value === r && 'bg-muted font-medium text-foreground',
-          )}
-        >
-          {r} days
-        </button>
-      ))}
-    </div>
+    <TextSwitch
+      label="Time"
+      options={RANGES.map((r) => ({ value: String(r), label: `${r} days` }))}
+      value={String(value)}
+      // Days chosen on the chart belong to the range they were chosen in.
+      onChange={(r) => setQuery({ range: r === '7' ? undefined : r, days: undefined })}
+      className="shrink-0"
+    />
   )
 }
 

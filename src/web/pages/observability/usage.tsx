@@ -286,7 +286,7 @@ function Tools({ tools, notFound }: { tools: UsageData['tools']; notFound: strin
           <th className="h-9 px-4 text-left font-medium md:pl-5">Tool</th>
           <th className={th}>Calls</th>
           <th className={cn(th, '@max-2xl/main:hidden')}>Answered</th>
-          <th className={cn(th, '@max-2xl/main:hidden')}>Needed more detail</th>
+          <th className={cn(th, '@max-2xl/main:hidden')}>Could not be read</th>
           <th className={cn(th, '@max-2xl/main:hidden')}>Not found</th>
           <th className={cn(th, 'md:pr-5 @max-2xl/main:hidden')}>Failed</th>
         </tr>
@@ -303,7 +303,7 @@ function Tools({ tools, notFound }: { tools: UsageData['tools']; notFound: strin
               <span className="mt-0.5 block text-xs text-muted-foreground @2xl/main:hidden">
                 {[
                   t.answered && `${t.answered} answered`,
-                  t.detail && `${t.detail} needed more detail`,
+                  t.detail && `${t.detail} could not be read`,
                   t.nothing && `${t.nothing} not found`,
                   t.failed && `${t.failed} failed`,
                 ]
