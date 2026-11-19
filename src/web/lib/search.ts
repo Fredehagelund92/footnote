@@ -48,11 +48,8 @@ export const rootSearch = lenient(
  */
 export const shellSearch = lenient(
   z.object({
-    // An old peek's `fact` stays until the root route renames it to `context` (lib/router.ts).
     dock: z.optional(
-      z
-        .string()
-        .check(z.regex(/^(review|context|fact|def|ask|try|topic|share|where|conflict)(\..+)?$/)),
+      z.string().check(z.regex(/^(review|context|def|ask|try|topic|share|where|conflict)(\..+)?$/)),
     ),
     flag: text,
     ptab: oneOf(['overview', 'steps', 'warnings']),
@@ -135,7 +132,6 @@ export const observabilitySearch = lenient(
     chips: text,
     // The days chosen on the chart: "2026-10-12..2026-10-18", or one day.
     days: z.optional(z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}(\.\.\d{4}-\d{2}-\d{2})?$/))),
-    period: oneOf(['month', 'quarter']),
   }),
 )
 

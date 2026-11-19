@@ -7,7 +7,7 @@ import { expect, go, inMockUntil, onMockOnly, test } from './go.ts'
 test('Overview groups topics by metric and values, opens to the months, and never gives a small month away', async ({
   page,
 }) => {
-  await go(page, '/observability/questions')
+  await go(page, '/observability')
   await expect(page.getByRole('button', { name: /Group Metric and values/ })).toBeVisible()
   const orders = page
     .getByRole('row')
@@ -50,18 +50,18 @@ test('Overview groups topics by metric and values, opens to the months, and neve
 test('Overview shows each exact topic, or a domain at a time, and filters by month', async ({
   page,
 }) => {
-  await go(page, '/observability/questions?group=none')
+  await go(page, '/observability?group=none')
   await expect(page.getByRole('button', { name: 'Orders in Norway, September 2026' })).toBeVisible()
   await expect(
     page.getByRole('row').filter({ hasText: 'Orders in Germany, November 2026' }),
   ).toContainText('Fewer than 5')
-  await go(page, '/observability/questions?group=domain')
+  await go(page, '/observability?group=domain')
   const table = page
     .locator('table')
     .filter({ has: page.getByRole('columnheader', { name: /Topic/ }) })
   await expect(table.getByRole('button', { name: /^Sales/ })).toContainText('96 asked')
   await expect(table.getByRole('button', { name: /^No domain/ })).toBeVisible()
-  await go(page, '/observability/questions?group=none&month=2026-09')
+  await go(page, '/observability?group=none&month=2026-09')
   await expect(
     page.getByRole('button', { name: /^Month asked about is September 2026\./ }),
   ).toBeVisible()

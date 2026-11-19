@@ -3051,98 +3051,6 @@ begin
   return null;
 end $$;
 
-CREATE FUNCTION public.observability_views_from_keys() RETURNS integer
-    LANGUAGE plpgsql
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare
-  v record;
-  n integer := 0;
-begin
-  for v in select id, name, filters, filters_before_keys, filters_after_keys
-             from observability_views where filters_before_keys is not null
-  loop
-    if v.filters = v.filters_after_keys then
-      update observability_views set filters = v.filters_before_keys where id = v.id;
-      n := n + 1;
-    else
-      raise notice 'observability view % (%) was changed after the move to keys; kept as it is',
-        v.id, v.name;
-    end if;
-    update observability_views
-       set filters_before_keys = null, filters_after_keys = null where id = v.id;
-  end loop;
-  return n;
-end
-$$;
-
-CREATE FUNCTION public.observability_views_to_keys() RETURNS integer
-    LANGUAGE plpgsql
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare
-  v record;
-  chip jsonb;
-  chips jsonb;
-  v_name text;
-  v_keys text[];
-  v_found text[];
-  v_flag text;
-  v_dim text;
-  n integer := 0;
-begin
-  for v in select id, filters from observability_views
-            where filters_before_keys is null and filters -> 'chips' @> '[{"key": "market"}]'
-  loop
-    chips := '[]'::jsonb;
-    for chip in select value from jsonb_array_elements(v.filters -> 'chips')
-    loop
-      if chip ->> 'key' <> 'market' then
-        chips := chips || jsonb_build_array(chip);
-        continue;
-      end if;
-      v_keys := '{}';
-      v_flag := null;
-      for v_name in select jsonb_array_elements_text(chip -> 'values')
-      loop
-        select coalesce(array_agg(distinct t.key), '{}') into v_found
-          from serving_vocabulary((select seq from live_edition)) t
-         where t.kind = 'dimension_value'
-           and (lower(t.name) = lower(v_name)
-                or exists (select 1 from unnest(t.aliases) a where lower(a) = lower(v_name)));
-        if cardinality(v_found) = 0 then v_flag := 'unknown'; exit; end if;
-        if cardinality(v_found) > 1 then v_flag := 'shared'; exit; end if;
-        v_keys := v_keys || v_found[1];
-      end loop;
-      if v_flag is null and cardinality(v_keys) = 0 then v_flag := 'unknown'; end if;
-      if v_flag is null then
-        if (select count(distinct split_part(k, '/', 1)) from unnest(v_keys) k) > 1 then
-          v_flag := 'shared';
-        else
-          v_dim := 'dim:' || substr(split_part(v_keys[1], '/', 1), 5);
-          if v.filters -> 'chips' @> jsonb_build_array(jsonb_build_object('key', v_dim)) then
-            v_flag := 'taken';
-          end if;
-        end if;
-      end if;
-      chips := chips || jsonb_build_array(
-        case when v_flag is null
-          then jsonb_strip_nulls(jsonb_build_object(
-                 'key', v_dim, 'not', chip -> 'not', 'values', to_jsonb(v_keys)))
-          else chip || jsonb_build_object('flag', v_flag)
-        end);
-    end loop;
-    update observability_views
-       set filters_before_keys = filters,
-           filters = jsonb_set(filters, '{chips}', chips),
-           filters_after_keys = jsonb_set(filters, '{chips}', chips)
-     where id = v.id;
-    n := n + 1;
-  end loop;
-  return n;
-end
-$$;
-
 CREATE FUNCTION public.outbox_notify() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -4741,8 +4649,6 @@ CREATE TABLE public.observability_views (
     filters jsonb NOT NULL,
     created_by uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    filters_before_keys jsonb,
-    filters_after_keys jsonb,
     CONSTRAINT observability_views_filters_check CHECK (((jsonb_typeof(filters) = 'object'::text) AND (octet_length((filters)::text) <= 65536))),
     CONSTRAINT observability_views_name_check CHECK ((char_length(btrim(name)) BETWEEN 1 AND 60))
 );

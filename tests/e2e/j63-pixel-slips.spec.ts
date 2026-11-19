@@ -36,7 +36,7 @@ test.describe('at 1440 px', () => {
   })
 
   test('the Inbox title starts at the same x as every other page title', async ({ page }) => {
-    await go(page, '/observability/overview')
+    await go(page, '/observability')
     const overview = await page
       .locator('[data-slot=page-scroll]')
       .getByRole('heading', { name: 'Overview', exact: true })

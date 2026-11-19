@@ -75,8 +75,7 @@ applies the domain names and the renames below to what it read.
 | `CUBE_RENAMES_FILE`         | Renamed members | A JSON file: old id to new id.                                                            |
 
 An administrator sets one versioned setting on the source's page, `sources.cube_model_url` (Model
-folder address), described under "Links to model files". An old link to it on Limits opens it
-there.
+folder address), described under "Links to model files".
 
 ## Run a local refresh
 

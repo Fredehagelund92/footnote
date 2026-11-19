@@ -8,7 +8,6 @@ import {
   chipSentence,
   facet,
   FIELD_KEYS,
-  fromLegacy,
   MAX_CHIPS,
   moved,
   narrowed,
@@ -101,40 +100,6 @@ describe('the chips in the address', () => {
     expect(withValues(full, 'answer', ['missing'])).toBe(full)
   })
 
-  it("read an old link's market by name, as a dimension's chip when the name is one value", () => {
-    const old = chipsFrom(new URLSearchParams('market=!Norway&answer=missing&chips=market,answer'))
-    expect(old).toEqual([
-      { key: 'market', not: true, values: ['Norway'] },
-      { key: 'answer', values: ['missing'] },
-    ])
-    const topic = (values: Topic['values']) => ({ values }) as Topic
-    const norway = { dimension: 'dim:market', value: 'val:market/norway', name: 'Norway' }
-    expect(fromLegacy(old, [topic([norway])])).toEqual({
-      chips: [
-        { key: 'dim:market', not: true, values: ['val:market/norway'] },
-        { key: 'answer', values: ['missing'] },
-      ],
-    })
-    // A name two values share stays as it was, and says why: never merged into one of them.
-    const shared = fromLegacy(old, [
-      topic([norway]),
-      topic([{ dimension: 'dim:store', value: 'val:store/norway', name: 'Norway' }]),
-    ])
-    expect(shared.chips).toBe(old)
-    expect(shared.why).toBe(
-      'Norway is a value of 2 dimensions: Market, Store. Choose one in the filter.',
-    )
-    expect(fromLegacy(old, []).why).toBe('No topic in this range asked about Norway.')
-  })
-
-  it('read an old link: one domain, a month and "found" for every answer that found something', () => {
-    expect(chipsFrom(new URLSearchParams('domain=sales&month=2026-10&answer=found'))).toEqual([
-      { key: 'answer', values: ['grounded', 'partial', 'conflict', 'stale'] },
-      { key: 'domain', values: ['sales'] },
-      { key: 'month', values: ['2026-10'] },
-    ])
-  })
-
   it('drop what a field cannot hold: an unknown state, a bad month, a kind of agent left out', () => {
     expect(
       chipsFrom(new URLSearchParams('answer=missing,nope&month=2026-1,2026-09&agent=!Cursor')),
@@ -151,7 +116,7 @@ describe('the chips in the address', () => {
 
   it('keep a value with a comma, a "!" or a "%" in it', () => {
     const chips: Filters = [
-      { key: 'market', values: ['Norway, Sweden', '!Iceland', '100% online'] },
+      { key: 'topic', values: ['Norway, Sweden', '!Iceland', '100% online'] },
       { key: 'metric', not: true, values: ['Orders, net'] },
     ]
     expect(roundTrip(chips)).toEqual(chips)

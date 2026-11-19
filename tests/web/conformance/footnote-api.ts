@@ -2716,10 +2716,10 @@ export function describeFootnoteApi(
       async () => {
         await api().signIn({ name: person })
         const name = `Found nothing ${Date.now()}`
-        // Its chips, in their order: is, and a market left out.
+        // Its chips, in their order: is, and a metric left out.
         const filters = [
           { key: 'answer' as const, values: ['missing'] },
-          { key: 'market' as const, not: true, values: ['Norway, Sweden'] },
+          { key: 'metric' as const, not: true, values: ['Orders, net'] },
         ]
         const { id } = await api().saveView({ name, filters })
         const saved = (await api().getSavedViews()).find((v) => v.id === id)

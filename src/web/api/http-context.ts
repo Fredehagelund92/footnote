@@ -119,8 +119,8 @@ export function textFromService(markup: string, words: Words): string {
 
 /**
  * A mention as the service can keep it, or null: a person, or a word no longer there, is kept as
- * its words. A value is kept by its key; a market named by its word, as older text names it, is
- * found among the markets only.
+ * its words. A value is kept by its key; a market named by its word is found among the markets
+ * only.
  */
 function targetOf(id: string, words: Words): string | null {
   const { kind, key } = parseMentionId(id)

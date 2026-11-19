@@ -44,9 +44,7 @@ test('the row sits between Help and Settings and swaps the sidebar to its own me
   await expect(page).toHaveURL(/\/inbox/)
 })
 
-test('it opens on Overview, and old links to Overview, Questions and Summary land there too', async ({
-  page,
-}) => {
+test('it opens on Overview', async ({ page }) => {
   await go(page, '/observability')
   const sidebar = page.locator('[data-sidebar=sidebar]').first()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Overview')
@@ -58,27 +56,10 @@ test('it opens on Overview, and old links to Overview, Questions and Summary lan
   )
   await expect(page.getByRole('link', { name: /^Checked answers/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Topics' })).toBeVisible()
-  // Overview's own old address keeps its view.
-  await go(page, `/observability/overview?range=30&domain=${domainId('marketing')}`)
-  await expect(page).toHaveURL(
-    new RegExp(`/observability\\?range=30&domain=${domainId('marketing')}$`),
-  )
+  // Its view is in the address.
+  await go(page, `/observability?range=30&domain=${domainId('marketing')}`)
   await expect(page.getByRole('radio', { name: '30 days' })).toHaveAttribute('aria-checked', 'true')
   await expect(page.getByRole('button', { name: /^Domain is Marketing\./ })).toBeVisible()
-  // Questions' old address opens the same page at its topics, with its filters, and Overview lit.
-  await go(page, '/observability/questions?answer=missing&group=none')
-  await expect(page).toHaveURL(/\/observability\/questions\?answer=missing&group=none$/)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Overview')
-  await expect(sidebar.getByRole('link', { name: /^Overview/ })).toHaveAttribute('data-active')
-  await expect(page.getByRole('button', { name: /^Answer is Not found\./ })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Topics' })).toBeInViewport()
-  // The Summary's own period goes; the domain stays.
-  await go(page, `/observability/summary?period=quarter&domain=${domainId('marketing')}`)
-  await expect(page).toHaveURL(new RegExp(`/observability\\?domain=${domainId('marketing')}$`))
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Overview')
-  await go(page, '/observability/summary/0b6e3c3e-5d8f-4f0c-9a51-7b0d7a3a9f10')
-  await expect(page).toHaveURL(/\/observability$/)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Overview')
 })
 
 test('owners see it for their domains without Usage; someone who only suggests has no row', async ({
@@ -239,7 +220,7 @@ test("Overview: nothing connected, too few to show, and an owner's own domain", 
 test("Overview's topics: views with counts, a filter as a chip, and a view saved for everyone", async ({
   page,
 }) => {
-  await go(page, '/observability/questions')
+  await go(page, '/observability')
   const views = page.getByRole('radiogroup', { name: 'Views' })
   // Views count exact topics (16); the table groups them by metric and values, so Germany's two months are one row.
   await expect(views.getByRole('radio', { name: /^All topics 16/ })).toHaveAttribute(
@@ -273,7 +254,7 @@ test("Overview's topics: views with counts, a filter as a chip, and a view saved
 test('The answer panel replays a topic: what an agent gets, the steps, and what to look at', async ({
   page,
 }) => {
-  await go(page, '/observability/questions')
+  await go(page, '/observability')
   await page.locator('tbody [data-row-open]', { hasText: 'Orders in Spain' }).click()
   const panel = page.locator('[data-slot=resizable-panel]').last()
   await expect(panel.getByRole('heading', { name: 'Orders in Spain, October 2026' })).toBeVisible()
@@ -315,8 +296,8 @@ test('The answer panel replays a topic: what an agent gets, the steps, and what 
 })
 
 test('The replay runs on what agents got before the last publish', async ({ page }) => {
-  await go(page, '/observability/questions')
-  await go(page, `/observability/questions?dock=topic.${topicId('units-sold-all')}`)
+  await go(page, '/observability')
+  await go(page, `/observability?dock=topic.${topicId('units-sold-all')}`)
   const panel = page.locator('[data-slot=resizable-panel]').last()
   const before = beforeLastPublish()
   await panel
@@ -409,7 +390,7 @@ test('Saved questions are saved from Ask, counted everywhere from one list, and 
   await expect(
     page.getByRole('link', { name: /8 saved questions - 5 same - 1 changed - 2 need a look/ }),
   ).toHaveAttribute('href', `/observability/quality?domain=${domainId('sales')}`)
-  await go(page, '/observability/overview')
+  await go(page, '/observability')
   await expect(page.getByRole('link', { name: /Saved questions/ })).toContainText(
     /10\s*same\s*of 13/,
   )

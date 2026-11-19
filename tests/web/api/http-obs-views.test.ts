@@ -5,8 +5,7 @@ import { savedViewOf } from '@/api/http-obs'
 import { chipsFrom, chipsTo, type Chip, type DimKey, type Filters } from '@/lib/obs-views'
 
 // Overview's saved views on the http binding: a view's chips go to the service as they are, by
-// keys, and come back the same, through the address too. An old Value chip the service flagged
-// (migration 0046) still reads as it was, for the bar to say why it was not moved.
+// keys, and come back the same, through the address too.
 
 const viewOf = (filters: ObsView['filters']): ObsView => ({
   id: '00000000-0000-4000-8000-000000000001',
@@ -79,16 +78,5 @@ describe('a saved view by keys', () => {
     expect(
       obsViewSaveInputSchema.safeParse({ name: 'x', filters: { chips: foreign } }).success,
     ).toBe(false)
-  })
-
-  it('reads an old Value chip the move flagged as it was, and a view from before chips as chips', () => {
-    expect(
-      savedViewOf(viewOf({ chips: [{ key: 'market', values: ['Alder'], flag: 'shared' }] }))
-        .filters,
-    ).toEqual([{ key: 'market', values: ['Alder'] }])
-    expect(savedViewOf(viewOf({ answer: ['missing'], domain: 'finance' })).filters).toEqual([
-      { key: 'answer', values: ['missing'] },
-      { key: 'domain', values: ['finance'] },
-    ])
   })
 })

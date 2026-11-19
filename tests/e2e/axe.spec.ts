@@ -62,17 +62,16 @@ const places = [
   '/settings/integrations?state=failed',
   '/settings/integrations?state=reauth',
   // Overview: the numbers, the chart and the topics; narrowed to an answer, a view and a domain;
-  // Questions' old address at the topics; and a topic's answer panel beside the table.
+  // the topics in another order; and a topic's answer panel beside the table.
   '/observability',
   '/observability?answer=missing',
   '/observability?view=look&group=domain',
-  '/observability/questions',
-  '/observability/questions?sort=name&dir=desc',
-  '/observability/questions?dock=topic.orders-spain',
+  '/observability?sort=name&dir=desc',
+  '/observability?dock=topic.orders-spain',
   // The filter bar: chips that keep and leave out, in an order of their own, and the facets with a
-  // kind of agent not shown; an old link's chip a name could not be read for.
+  // kind of agent not shown.
   '/observability?d.market=norway&answer=!missing&chips=d.market,answer',
-  '/observability?d.campaign=*&market=Narnia',
+  '/observability?d.campaign=*',
   // Days selected on the chart, read as a chip, with a part of a bar drilled into.
   '/observability?range=30&days=2026-10-12..2026-10-18&answer=missing',
   '/observability?state=empty',

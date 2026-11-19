@@ -154,7 +154,6 @@ const ICONS: Record<FieldKey, React.ReactNode> = {
   answer: <Swatch state="missing" className="mx-0.5" />,
   domain: <LayersIcon />,
   agent: <BotIcon />,
-  market: <TagIcon />,
   metric: <SigmaIcon />,
   month: <CalendarIcon />,
   gap: <InboxIcon />,
@@ -490,7 +489,7 @@ function PickerBody({
         rows: [],
         note: `${MAX_CHIPS} filters is the most a view keeps: take one off to add another.`,
       })
-    const offered = fields.filter((f) => f.key !== 'topic' && f.key !== 'market')
+    const offered = fields.filter((f) => f.key !== 'topic')
     if (!typed) {
       out.push({
         id: 'fields',

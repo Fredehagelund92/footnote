@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ListFilterIcon, PanelLeftIcon, TriangleAlertIcon, XIcon } from '@/components/icons'
+import { ListFilterIcon, PanelLeftIcon, XIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
@@ -54,8 +54,6 @@ export type FilterBarProps = {
   recent: DimKey[]
   /** An admin pins a dimension for everyone, or unpins it. */
   onPin?: (key: DimKey, on: boolean) => void
-  /** Why an old Value chip was not read as a dimension's, when it was not. */
-  legacy?: string
   /** The facets beside the topics, or in a sheet on a narrow page. */
   facets: { on: boolean; toggle: () => void; sheet: boolean }
   /** Days chosen on the chart, in words; `onEdit` goes to the chart, where they change. */
@@ -88,7 +86,6 @@ export function FilterBar({
   pinned,
   recent,
   onPin,
-  legacy,
   facets,
   time,
   onClearAll,
@@ -188,7 +185,6 @@ export function FilterBar({
       <ChipRow
         chips={chips}
         words={words}
-        legacy={legacy}
         sentenceOf={sentenceOf}
         onChange={change}
         onRemove={remove}
@@ -317,7 +313,6 @@ function TimeChip({
 type RowProps = {
   chips: Filters
   words: (key: FilterKey, v: string) => string
-  legacy?: string
   sentenceOf: (c: Chip) => string
   onChange: (chips: Filters, said: string, instant?: boolean) => void
   onRemove: (key: FilterKey) => void
@@ -398,7 +393,6 @@ function ChipItem({
   index,
   chips,
   words,
-  legacy,
   sentenceOf,
   onChange,
   onRemove,
@@ -437,7 +431,6 @@ function ChipItem({
   const last = index === chips.length - 1
   // How it matches flips between is and is not: a topic's words and a kind of agent have one way.
   const flips = c.key !== 'topic' && c.key !== 'agent'
-  const old = c.key === 'market' && legacy
   const edit = () => shell.current && c.key !== 'topic' && onEdit(c.key, shell.current)
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -556,11 +549,9 @@ function ChipItem({
           type="button"
           tabIndex={-1}
           aria-hidden
-          title={old ? legacy : undefined}
           className={cn(part, 'min-w-0 shrink font-medium')}
           onClick={edit}
         >
-          {old && <TriangleAlertIcon className="size-3 shrink-0 text-caution" />}
           <span className={cn('truncate', anyValue(c) && 'font-normal')}>{values}</span>
         </button>
         <button
@@ -572,7 +563,6 @@ function ChipItem({
           <XIcon className="size-3" />
         </button>
       </span>
-      {old && <span className="sr-only">{legacy}</span>}
       {dropAfter && <DropLine side="right" />}
     </li>
   )

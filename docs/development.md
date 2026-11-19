@@ -74,7 +74,7 @@ To run the whole product instead, with its database and your own Cube model, see
 | Area        | What                                                                                                                                                                                   |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App         | Vite 8 single page app, React 19, TypeScript strict mode                                                                                                                               |
-| Routes      | TanStack Router, file based (`src/web/routes`), with zod search params ([docs/product.md](product.md), section 5); old addresses redirect                                              |
+| Routes      | TanStack Router, file based (`src/web/routes`), with zod search params ([docs/product.md](product.md), section 5)                                                                      |
 | Data        | TanStack Query on one API boundary, `FootnoteApi`, with two bindings: the mock over the demo world, and the Footnote service through a client typed from the API contract              |
 | Shell       | Sidebar (Inbox, Ask, Context, Definitions; Help, Observability and Settings at its foot) that folds to a rail, a header with the breadcrumb and the theme menu, one right dock, search |
 | Components  | shadcn/ui on Base UI (style `base-nova`), Footnote's own parts in `components/footnote`, a Tiptap editor, sonner toasts                                                                |
@@ -459,7 +459,7 @@ package is there.
 | ESLint / typescript-eslint | With `eslint-plugin-better-tailwindcss` for the class rules.                                                             |
 | Fastify / pino             | The service's HTTP server and its JSON logger (the one Fastify uses).                                                    |
 | pg                         | The PostgreSQL driver.                                                                                                   |
-| pg-boss                    | The job queue and cron schedules, in PostgreSQL. Its schema is vendored in the baseline migration (`0001_schema.sql`). |
+| pg-boss                    | The job queue and cron schedules, in PostgreSQL. Its schema is vendored in the baseline migration (`0001_schema.sql`).   |
 | eslint-plugin-boundaries   | The module boundaries, with `eslint-import-resolver-typescript` to follow the path aliases.                              |
 | Stylelint                  | With `stylelint-declaration-strict-value` for hand written CSS.                                                          |
 | cn                         | The class merge helper the shadcn CLI now emits. It is pre 1.0; `@/lib/utils` re-exports it, so swapping it is one line. |

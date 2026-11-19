@@ -57,10 +57,7 @@ export function ObsPage({
   )
 }
 
-/**
- * A page of Observability; Overview when the address names none, or one that is not a page.
- * Questions' old address opens Overview at its topics.
- */
+/** A page of Observability; Overview when the address names none, or one that is not a page. */
 export function ObservabilityPage({ section }: { section?: string }) {
   const me = useMe()
   const current = obsSectionOf(section)
@@ -83,7 +80,7 @@ export function ObservabilityPage({ section }: { section?: string }) {
         </Empty>
       </Page>
     )
-  if (current === 'overview') return <OverviewPage topicsFirst={section === 'questions'} />
+  if (current === 'overview') return <OverviewPage />
   if (current === 'quality') return <QualityPage />
   if (current === 'feedback') return <FeedbackPage />
   if (current === 'usage') return <UsagePage />

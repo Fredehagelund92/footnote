@@ -151,17 +151,6 @@ test('every dimension, any value, and a dimension no agent asked about', async (
     expect(row).toContain('Black Friday')
 })
 
-test("an old link's market by name is read as the one value it names", async ({ page }) => {
-  await go(page, '/observability?range=30&market=Norway')
-  await expect(page).toHaveURL(/d\.market=norway/)
-  await expect(page).not.toHaveURL(/[?&]market=/)
-  await expect(page.getByRole('button', { name: /^Market is Norway\./ })).toBeVisible()
-  // A name no topic asked about stays as it was, and says why.
-  await go(page, '/observability?range=30&market=Narnia')
-  await expect(page.getByRole('button', { name: /^Value is Narnia\./ })).toBeVisible()
-  await expect(page.getByText('No topic in this range asked about Narnia.')).toBeAttached()
-})
-
 test('a By facet switches between dimensions, and an admin pins one for everyone', async ({
   page,
 }) => {

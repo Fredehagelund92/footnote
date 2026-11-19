@@ -83,8 +83,6 @@ export function valueOf(t: Topic, key: FieldKey): string | undefined {
   switch (key) {
     case 'domain':
       return t.domain
-    case 'market':
-      return t.where
     case 'metric':
       return t.named === 'none' || !t.metric ? undefined : t.metric
     case 'month':
@@ -239,8 +237,8 @@ const VIEW_FILTERS: Record<string, ObsFilter> = {
 
 /**
  * The chips and the view as the service's filters take them, for its counts of dimensions and
- * values, and in words what it cannot take (`left`): a topic's words, an old Value chip, and a
- * view that is not one field's filter. A metric's name becomes its keys, from the topics that have
+ * values, and in words what it cannot take (`left`): a topic's words, and a view that is not one
+ * field's filter. A metric's name becomes its keys, from the topics that have
  * it. The domain the service reads and the kind of agent are its view already.
  */
 export function wireFilters(
@@ -254,7 +252,7 @@ export function wireFilters(
   const domain = readDomain(chips)
   for (const c of chips) {
     if (c.key === 'agent' || (c.key === 'domain' && domain)) continue
-    if (c.key === 'topic' || c.key === 'market') {
+    if (c.key === 'topic') {
       left.push(chipSentence(c, domains))
       continue
     }
@@ -277,53 +275,6 @@ export function wireFilters(
 
 /** Whether a view is one of the workspace's saved ones: its chips are in the address already. */
 const chipsView = (id: string) => !BUILT_IN.some((v) => v.id === id)
-
-/**
- * An old Value chip ("market=Norway", by name) as a dimension's chip, when each of its names is
- * one value, all of one dimension, among the topics: by their keys. Otherwise it stays as it was,
- * and `why` says why: a name that two values share is never merged into one of them.
- */
-export function fromLegacy(
-  chips: Filters,
-  topics: readonly Topic[],
-): { chips: Filters; why?: string } {
-  const c = chipOf(chips, 'market')
-  if (!c) return { chips }
-  const keysOf = (name: string) => [
-    ...new Map(
-      topics
-        .flatMap((t) => t.values)
-        .filter((v) => v.name === name)
-        .map((v) => [v.value, v]),
-    ).values(),
-  ]
-  const found = c.values.map((name) => ({ name, keys: keysOf(name) }))
-  const shared = found.find((f) => f.keys.length > 1)
-  if (shared) {
-    const dims = [...new Set(shared.keys.map((k) => k.dimension))].map(nameOf)
-    return {
-      chips,
-      why:
-        dims.length > 1
-          ? `${shared.name} is a value of ${dims.length} dimensions: ${dims.join(', ')}. Choose one in the filter.`
-          : `${shared.name} names ${shared.keys.length} values of ${dims[0]}. Choose one in the filter.`,
-    }
-  }
-  const missing = found.find((f) => !f.keys.length)
-  if (missing) return { chips, why: `No topic in this range asked about ${missing.name}.` }
-  const dims = new Set(found.map((f) => f.keys[0]!.dimension))
-  if (dims.size > 1)
-    return { chips, why: 'Its values are of different dimensions. Choose each in the filter.' }
-  const key = [...dims][0] as DimKey
-  if (!isDim(key) || chipOf(chips, key))
-    return { chips, why: `${nameOf(key)} is filtered already. Choose its values there.` }
-  const chip: Chip = {
-    key,
-    ...(c.not ? { not: true } : {}),
-    values: found.map((f) => f.keys[0]!.value),
-  }
-  return { chips: chips.map((x) => (x === c ? chip : x)) }
-}
 
 /* ---------- facets: each value with what it counts ---------- */
 

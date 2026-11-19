@@ -71,7 +71,6 @@ import {
   chipsTo,
   facet,
   facetSize,
-  fromLegacy,
   narrowed,
   passes,
   readDomain,
@@ -107,8 +106,8 @@ import { ObsPage } from '@/pages/observability'
 // the topics, and the numbers then add up what those topics may show ("83+"). Days chosen on the
 // chart (a drag, or B and Shift and the arrows) are kept in the address too, and the numbers then
 // add up the bars chosen as they show. A part of a bar adds its answer as a chip. A row opens the
-// answer panel, a replay of what an agent gets for it. Questions' old address opens it at the
-// topics. Never the words of a question, never who asked.
+// answer panel, a replay of what an agent gets for it. Never the words of a question, never who
+// asked.
 
 const pct = (n: number) => `${n > 0 ? '+' : ''}${n}`
 
@@ -117,7 +116,7 @@ const CHECKED = 'Checked answers'
 /** What a hidden headline count says: true whether it is small itself or keeps a small one safe. */
 const HIDDEN = 'hidden, to protect small counts'
 
-export function OverviewPage({ topicsFirst }: { topicsFirst?: boolean }) {
+export function OverviewPage() {
   // Another range, domain or agent keeps this view until the next has loaded: the numbers count
   // to the new ones and the bars move, instead of a skeleton.
   const load = useObsPageQuery('overview', true)
@@ -133,7 +132,7 @@ export function OverviewPage({ topicsFirst }: { topicsFirst?: boolean }) {
         skeleton={<ObsSkeleton section="overview" kpis={4} body="overview" />}
       >
         <ObsDrawn.Provider value={drawn}>
-          <OverviewOf topicsFirst={!!topicsFirst} busy={load.isPlaceholderData} />
+          <OverviewOf busy={load.isPlaceholderData} />
         </ObsDrawn.Provider>
       </Loadable>
     </ObsPage>
@@ -141,11 +140,11 @@ export function OverviewPage({ topicsFirst }: { topicsFirst?: boolean }) {
 }
 
 /** The page for what its data says: nothing asked yet, too few to count, or the counts. */
-function OverviewOf({ topicsFirst, busy }: { topicsFirst: boolean; busy: boolean }) {
+function OverviewOf({ busy }: { busy: boolean }) {
   const view = useObsView()
   if (view.state === 'empty') return <NothingConnected />
   if (view.state === 'quiet') return <TooFew view={view} />
-  return <Explorer view={view} topicsFirst={topicsFirst} busy={busy} />
+  return <Explorer view={view} busy={busy} />
 }
 
 function Head({ view }: { view: ObsView }) {
@@ -164,15 +163,7 @@ function Head({ view }: { view: ObsView }) {
   )
 }
 
-function Explorer({
-  view,
-  topicsFirst,
-  busy,
-}: {
-  view: ObsView
-  topicsFirst: boolean
-  busy: boolean
-}) {
+function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
   const domains = useDomains()
   const domainList = useDomainList()
   const write = useWrite()
@@ -182,16 +173,7 @@ function Explorer({
   const dock = useDock()
   const saved = useSavedViews()
   const reduced = useReducedMotion()
-  // An old link's Value chip ("market=Norway") that names one value of one dimension is read as
-  // that dimension's chip, in place of the old address; one a name could mean two values of stays.
-  const read = chipsFrom(query)
-  const legacy = fromLegacy(read, obs.data.topics)
-  const chips = legacy.chips
-  React.useEffect(() => {
-    if (legacy.chips !== read) void changeQuery(chipsTo(legacy.chips, query), { replace: true })
-    // Once for each address.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addressOf(query)])
+  const chips = chipsFrom(query)
   // An owner reads their own domains, one at a time: their domain is no chip, as they can't take
   // it off. A kind of agent is for admins.
   const own = view.owned && view.domain ? view.domain : undefined
@@ -382,10 +364,10 @@ function Explorer({
     },
   }
 
-  // Opened from Questions' old address or on a topic: the topics are what it was opened for.
+  // Opened on a topic: the topics are what it was opened for.
   const topicsAt = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
-    if (!topicsFirst && !peeked) return
+    if (!peeked) return
     const at = topicsAt.current
     const column = at?.parentElement
     const scroller = at?.closest<HTMLElement>('[data-slot=page-scroll]')
@@ -471,7 +453,6 @@ function Explorer({
             pinned={pinned}
             recent={recent}
             onPin={onPin}
-            legacy={legacy.why}
             facets={{ on: rail, toggle: toggleFacets, sheet: !wide }}
           />
         )}

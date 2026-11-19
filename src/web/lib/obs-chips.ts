@@ -7,24 +7,17 @@ import type { DomainId } from '@/model/items'
 // out and `*` is any value. Apart from the rest of the filters (lib/obs-views.ts), as every page of
 // Observability reads its domain and kind of agent from here, and the app's first load carries it.
 
-/**
- * The fixed fields a chip can filter on, in the order the facets list them. `market` is the old
- * "Value" field: a value's name in any dimension. It is still read from an old link or saved view,
- * and is no longer offered: a dimension's chip takes its place.
- */
+/** The fixed fields a chip can filter on, in the order the facets list them. */
 export const FIELD_KEYS = [
   'answer',
   'domain',
   'agent',
-  'market',
   'metric',
   'month',
   'gap',
   'reported',
   'topic',
 ] as const
-/** The fields before dimensions, under their old name: every key a chip of a field can have. */
-export const FILTER_KEYS = FIELD_KEYS
 export type FieldKey = (typeof FIELD_KEYS)[number]
 /** A dimension, by its key in the definitions: `dim:store`. */
 export type DimKey = `dim:${string}`
@@ -44,7 +37,6 @@ export const FILTER_WORDS: Record<FieldKey, string> = {
   answer: 'Answer',
   domain: 'Domain',
   agent: 'Agent kind',
-  market: 'Value',
   metric: 'Metric',
   month: 'Month asked about',
   gap: 'In the Inbox',
@@ -57,7 +49,6 @@ const PARAM: Record<FieldKey, string> = {
   answer: 'answer',
   domain: 'domain',
   agent: 'agent',
-  market: 'market',
   metric: 'metric',
   month: 'month',
   gap: 'gap',
@@ -129,10 +120,8 @@ function split(raw: string) {
 
 /**
  * The chips in the address, in their order: each field in its own param ("answer=missing,partial",
- * "market=!Norway" for is not), each dimension in its own ("d.store=alder_row", "d.channel=*"), and
- * `chips` when they are in another order than the fields' then the dimensions'. The old
- * "answer=found" is every answer that found something; the old "market=Norway" is read as it was,
- * a value's name in any dimension, until the page finds the one value it names (lib/obs-views.ts).
+ * "answer=!missing" for is not), each dimension in its own ("d.store=alder_row", "d.channel=*"),
+ * and `chips` when they are in another order than the fields' then the dimensions'.
  */
 export function chipsFrom(q: URLSearchParams): Filters {
   const chips: Filters = []
@@ -140,7 +129,6 @@ export function chipsFrom(q: URLSearchParams): Filters {
     const raw = q.get(PARAM[key])
     if (!raw) continue
     let { not, values } = split(raw)
-    if (key === 'answer' && values.join() === 'found') values = SHOWN.filter((s) => s !== 'missing')
     values = [...new Set(values.filter((v) => allowed(key, v)))].slice(0, MAX_VALUES)
     // A topic's words are searched for; a kind of agent is one, as the service counts one kind
     // against all of them.

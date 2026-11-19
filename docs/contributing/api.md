@@ -1031,17 +1031,10 @@ over its months) found nothing at least the minimum times.
   taken again, changed or deleted. The change counts on Summary and in a snapshot come from
   `cl_obs_changes`, which runs as the owner, so they are the same whoever reads.
 - `GET /observability/views`, `POST /observability/views` (`{ name, filters }`) and
-  `DELETE /observability/views/{id}`: the views people save on Questions, for everyone in the
+  `DELETE /observability/views/{id}`: the views people save on Overview, for everyone in the
   workspace (`observability_views`): a name, unique whatever its case, and filters, never a
   question: `chips`, up to 20 in order, each a field or a dimension once (`dim:store` with its
-  values' keys, `val:store/alder_row`, or `*` for any value; `not` leaves them out), or from before
-  chips the fields answer states, a domain, a kind of agent, what waits in the Inbox and a month.
-  An old `market` chip keeps values by name; migration 0046 moved each to its dimension's chip
-  where every name is one value of one dimension, and flagged any other (`flag`: `shared`,
-  `unknown` or `taken`). `select observability_views_from_keys()` undoes the move for each view whose filters are still
-  exactly what the move produced (`filters_after_keys`); a view changed since keeps its current
-  filters, is not converted back, and is named in a notice, so a rollback right after the deploy
-  restores every view and a later one loses no edit. Only whoever
+  values' keys, `val:store/alder_row`, or `*` for any value; `not` leaves them out). Only whoever
   saved a view, or an administrator, removes it.
 
 ## Settings, domains and agents
