@@ -1,5 +1,12 @@
 import { DEMO_DEFINITIONS, demoTool } from './integrations'
-import { ruleWords, type AlertSettings, type Raised, type Rule, type RuleId } from '@/model/alerts'
+import {
+  ruleWords,
+  type AlertSettings,
+  type Raised,
+  type RaisedPage,
+  type Rule,
+  type RuleId,
+} from '@/model/alerts'
 import type { DomainId } from '@/model/items'
 
 // The demo world's alert rules and what they raised lately, and the mock's record of what people
@@ -106,10 +113,36 @@ export const RAISED: Raised[] = [
   },
 ]
 
+/** How many raises a page of the list holds, as on the service. */
+const RAISED_PAGE = 20
+
+/**
+ * A page of the raises a reader may read (an owner, their own domains'), of one rule or of all,
+ * after the raise `after` names, with the counts the service gives beside it.
+ */
+export function raisedPage(
+  owned: DomainId[] | null,
+  { rule, after }: { rule?: RuleId; after?: string } = {},
+): RaisedPage {
+  const readable = RAISED.filter((r) => !owned || (r.domain && owned.includes(r.domain)))
+  const counts = new Map<RuleId, number>()
+  for (const r of readable) counts.set(r.rule, (counts.get(r.rule) ?? 0) + 1)
+  const of = readable.filter((r) => !rule || r.rule === rule)
+  const from = after ? of.findIndex((r) => r.id === after) + 1 : 0
+  const raised = of.slice(from, from + RAISED_PAGE)
+  return {
+    total: readable.length,
+    byRule: [...counts].map(([r, count]) => ({ rule: r, count })).sort((a, b) => b.count - a.count),
+    raised,
+    next: from + RAISED_PAGE < of.length ? raised.at(-1)!.id : null,
+  }
+}
+
 export function createAlerts() {
   let settings: AlertSettings = { off: [], muted: {}, thresholds: {} }
   return {
-    read: () => ({ rules: RULES, raised: RAISED, settings }),
+    read: (owned: DomainId[] | null) => ({ rules: RULES, raised: raisedPage(owned), settings }),
+    raised: raisedPage,
     /** An admin turns a rule on or off for everyone. */
     setOn(id: RuleId, on: boolean) {
       settings = {

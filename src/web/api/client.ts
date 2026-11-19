@@ -27,7 +27,7 @@ import type { Version } from '@/model/history'
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import type { Conflict, ConflictDecision, ConflictRow, SettleConflict } from '@/model/conflicts'
 import type { InboxCard, Outcome, Waiting } from '@/model/inbox'
-import type { Alerts, RuleId } from '@/model/alerts'
+import type { Alerts, RaisedPage, RuleId } from '@/model/alerts'
 import type { FigureAsk, FigureReport, FigureTry, FigureView } from '@/model/figures'
 import type {
   ConnectChoice,
@@ -669,6 +669,11 @@ export interface FootnoteApi {
 
   // Alerts: rules that raise Inbox cards
   getAlerts: () => Promise<Alerts>
+  /**
+   * What the rules raised, a page at a time, newest first: of one rule, or of all, after the raise
+   * `after` names (a page's `next`). Each page says how many raised in all and by each rule.
+   */
+  getRaised: (input: { rule?: RuleId; after?: string }) => Promise<RaisedPage>
   /** An admin turns a rule on or off for everyone. */
   setAlertRule: (input: { id: RuleId; on: boolean }) => Promise<void>
   /** An owner mutes a rule for their domains: its cards stop reaching them, not anyone else. */
@@ -960,6 +965,7 @@ export const footnoteApiMethods = [
   'saveView',
   'removeView',
   'getAlerts',
+  'getRaised',
   'setAlertRule',
   'muteAlert',
   'setAlertThreshold',
@@ -1048,6 +1054,7 @@ export const readMethods = [
   'getSavedQuestions',
   'getSavedCheck',
   'getAlerts',
+  'getRaised',
   'getSavedViews',
   'readQuestion',
   'ask',

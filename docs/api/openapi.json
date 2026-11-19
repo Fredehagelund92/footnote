@@ -101136,6 +101136,35 @@
                         ]
                       }
                     },
+                    "reply": {
+                      "type": "object",
+                      "properties": {
+                        "median": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "p95": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "median",
+                        "p95"
+                      ]
+                    },
                     "speed": {
                       "type": "array",
                       "items": {
@@ -101246,6 +101275,7 @@
                     "callsBefore",
                     "tools",
                     "agents",
+                    "reply",
                     "speed",
                     "spend"
                   ]
@@ -108457,7 +108487,7 @@
     "/alerts/raised": {
       "get": {
         "operationId": "alerts.raised",
-        "summary": "What the alert rules raised lately, newest first, each with whom its Inbox card reached: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)",
+        "summary": "What the alert rules raised, newest first, a page at a time, of one rule or of all, each with whom its Inbox card reached, and how many raised in all and by each rule: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)",
         "tags": [
           "quality"
         ],
@@ -108472,6 +108502,35 @@
             },
             "allowEmptyValue": true,
             "allowReserved": true
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "gap",
+                "saved",
+                "disagree",
+                "share",
+                "fail",
+                "spend",
+                "sync",
+                "due"
+              ],
+              "type": "string"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
           }
         ],
         "responses": {
@@ -108480,110 +108539,155 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "rule": {
-                        "enum": [
-                          "gap",
-                          "saved",
-                          "disagree",
-                          "share",
-                          "fail",
-                          "spend",
-                          "sync",
-                          "due"
-                        ],
-                        "type": "string"
-                      },
-                      "areaIds": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "subject": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "card": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "card"
-                            ]
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "rules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rule": {
+                            "enum": [
+                              "gap",
+                              "saved",
+                              "disagree",
+                              "share",
+                              "fail",
+                              "spend",
+                              "sync",
+                              "due"
+                            ],
+                            "type": "string"
                           },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "topic": {
-                                "type": "string"
-                              },
-                              "pair": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "topic"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "page": {
-                                "enum": [
-                                  "overview",
-                                  "usage"
-                                ],
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "page"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "connector": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "connector"
-                            ]
+                          "count": {
+                            "type": "number"
                           }
+                        },
+                        "required": [
+                          "rule",
+                          "count"
                         ]
-                      },
-                      "raisedAt": {
-                        "type": "string"
-                      },
-                      "reached": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
                       }
                     },
-                    "required": [
-                      "id",
-                      "rule",
-                      "areaIds",
-                      "title",
-                      "subject",
-                      "raisedAt",
-                      "reached"
-                    ]
-                  }
+                    "raises": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "rule": {
+                            "enum": [
+                              "gap",
+                              "saved",
+                              "disagree",
+                              "share",
+                              "fail",
+                              "spend",
+                              "sync",
+                              "due"
+                            ],
+                            "type": "string"
+                          },
+                          "areaIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "card": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "card"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "topic": {
+                                    "type": "string"
+                                  },
+                                  "pair": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "topic"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "page": {
+                                    "enum": [
+                                      "overview",
+                                      "usage"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "page"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "connector": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "connector"
+                                ]
+                              }
+                            ]
+                          },
+                          "raisedAt": {
+                            "type": "string"
+                          },
+                          "reached": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "rule",
+                          "areaIds",
+                          "title",
+                          "subject",
+                          "raisedAt",
+                          "reached"
+                        ]
+                      }
+                    },
+                    "more": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "rules",
+                    "raises",
+                    "more"
+                  ]
                 }
               }
             }

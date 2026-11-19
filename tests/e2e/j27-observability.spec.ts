@@ -555,6 +555,32 @@ test('Answer tests run on their own only once an Admin turns them on, having rea
   await expect(section.getByRole('button', { name: 'Turn on' })).toBeVisible()
 })
 
+test('Alerts: Raised lately says how many it shows of how many, and one click on Not found lists only those', async ({
+  page,
+}) => {
+  await go(page, '/observability/alerts')
+  const list = page.getByRole('list', { name: 'Raised lately' })
+  const byRule = page.getByRole('radiogroup', { name: 'Raised by rule' })
+  const all = byRule.getByRole('radio', { name: /^All\s?\d+$/ })
+  await expect(all).toHaveAttribute('aria-checked', 'true')
+  const total = Number((await all.innerText()).match(/\d+$/)![0])
+  const shown = await list.getByRole('link').count()
+  await expect(
+    page.getByText(
+      shown < total ? `${shown} of ${total}, newest first.` : `All ${total}, newest first.`,
+    ),
+  ).toBeVisible()
+  // One click on the rule lists its raises, and no other rule's.
+  const notFound = byRule.getByRole('radio', { name: /^Not found\s?\d+$/ })
+  const raised = Number((await notFound.innerText()).match(/\d+$/)![0])
+  await notFound.click()
+  await expect(notFound).toHaveAttribute('aria-checked', 'true')
+  await expect(list.getByRole('link')).toHaveCount(Math.min(raised, 20))
+  for (const title of await list.getByRole('link').allInnerTexts())
+    expect(title).toMatch(/: not found, \d+ times/)
+  await expect(page.getByText(`All ${raised}, newest first.`)).toBeVisible()
+})
+
 test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, mute for owners', async ({
   page,
 }) => {

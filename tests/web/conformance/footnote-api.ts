@@ -2843,7 +2843,8 @@ export function describeFootnoteApi(
     it.skipIf(lacks('signIn', 'getAlerts'))(
       'lists the eight alert rules as sentences, each threshold one its sentence offers, and what they raised lately',
       async () => {
-        const { rules, raised, settings } = await (await signedIn()).getAlerts()
+        const { rules, raised: first, settings } = await (await signedIn()).getAlerts()
+        const raised = first.raised
         expect(rules.map((r) => r.id)).toEqual([
           'gap',
           'saved',
@@ -2880,6 +2881,32 @@ export function describeFootnoteApi(
         expect(raised.some((r) => r.rule === 'saved' && r.href.startsWith('/inbox?card='))).toBe(
           true,
         )
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'getAlerts', 'getRaised'))(
+      'says how many raised in all and by rule, lists one rule by itself, and pages to the oldest',
+      async () => {
+        const live = await signedIn()
+        const { raised: first } = await live.getAlerts()
+        expect(first.byRule.reduce((n, c) => n + c.count, 0)).toBe(first.total)
+        expect(first.raised.length).toBeLessThanOrEqual(Math.min(20, first.total))
+        // One rule: each of its raises, and only its.
+        const rare = first.byRule.at(-1)!
+        const only = await live.getRaised({ rule: rare.rule })
+        expect(only.raised.map((r) => r.rule)).toEqual(
+          Array.from({ length: Math.min(20, rare.count) }, () => rare.rule),
+        )
+        expect(only.total).toBe(first.total)
+        // Every page after the first, until none is older: each raise once, newest first.
+        const seen = [...first.raised]
+        for (let next = first.next; next;) {
+          const page = await live.getRaised({ after: next })
+          seen.push(...page.raised)
+          next = page.next
+        }
+        expect(seen).toHaveLength(first.total)
+        expect(new Set(seen.map((r) => r.id)).size).toBe(first.total)
       },
     )
 

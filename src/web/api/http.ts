@@ -91,7 +91,7 @@ import {
 import { inboxOf, refOf, reviewOf, workspaceOf, type SheetRef } from './http-inbox'
 import { peopleOf } from './http-people'
 import { savedCheckOf, savedQuestionOf } from './http-saved'
-import { alertsOf } from './http-alerts'
+import { alertsOf, raisedPageOf } from './http-alerts'
 import {
   emptyObs,
   familyOf,
@@ -279,6 +279,7 @@ export const wiredMethods = [
   'removeSavedQuestion',
   'keepNewAnswer',
   'getAlerts',
+  'getRaised',
   'setAlertRule',
   'muteAlert',
   'setAlertThreshold',
@@ -2373,7 +2374,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         return obsUsageOf(await read(() => client.obs.usage({ range })), range, now)
       if (section === 'alerts') {
         const raised = await read(() => client.alerts.raised({ limit: 1 }))
-        return emptyObs(range, raised.length ? 'normal' : 'empty')
+        return emptyObs(range, raised.total ? 'normal' : 'empty')
       }
       return emptyObs(range)
     },
@@ -2475,6 +2476,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       ])
       return alertsOf(rules, raised, new Date())
     },
+    getRaised: async ({ rule, after }) =>
+      raisedPageOf(
+        await read(() =>
+          client.alerts.raised({ ...(rule ? { rule } : {}), ...(after ? { after } : {}) }),
+        ),
+        new Date(),
+      ),
     setAlertRule: async ({ id, on }) => {
       const input = { rule: id, enabled: on }
       await write('alerts.setRule', input, (o) => client.alerts.setRule(input, o))

@@ -1210,10 +1210,13 @@ the contract is in `src/contract/alerts.ts`.
   log keeps each change (`alert.rule_changed`).
 - `POST /alerts/rules/{rule}/mute` (`{ areaIds, muted }`): mutes or unmutes a rule for domains the
   person owns. A rule for administrators only cannot be muted.
-- `GET /alerts/raised` (`limit`, 20 by default): what the rules raised lately, newest first, each
-  with its domains, title, where it sends people (its Inbox card, a topic, a page, or a connected
-  tool) and whom it reached, by name. Administrators read every raise; an owner those about a
-  domain they own.
+- `GET /alerts/raised` (`limit`, 20 by default and at most 100; `rule`, only that rule's raises;
+  `after`, the page after the raise with that id): what the rules raised, newest first, a page at
+  a time, each with its domains, title, where it sends people (its Inbox card, a topic, a page, or
+  a connected tool) and whom it reached, by name, and `more` when older ones follow. Beside the
+  page, `total` and `rules` count every raise the person may read, in all and by each rule that
+  raised any, whatever the page, so Alerts says "20 of 198" and lists one rule by itself.
+  Administrators read every raise; an owner those about a domain they own.
 
 ## Figures in Ask
 

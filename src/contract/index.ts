@@ -97,7 +97,7 @@ import {
 import {
   alertMuteInputSchema,
   alertRaisedInputSchema,
-  alertRaiseSchema,
+  alertRaisedSchema,
   alertRuleRecordSchema,
   alertRulesSchema,
   alertSetRuleInputSchema,
@@ -2392,10 +2392,10 @@ export const contract = {
         path: '/alerts/raised',
         tags: ['quality'],
         summary:
-          'What the alert rules raised lately, newest first, each with whom its Inbox card reached: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)',
+          'What the alert rules raised, newest first, a page at a time, of one rule or of all, each with whom its Inbox card reached, and how many raised in all and by each rule: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)',
       })
       .input(alertRaisedInputSchema)
-      .output(z.array(alertRaiseSchema)),
+      .output(alertRaisedSchema),
   },
   schema: {
     item: publicRoute

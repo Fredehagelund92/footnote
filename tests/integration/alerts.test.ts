@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { AlertRaise, AlertRuleRecord, AlertRules } from '../../src/contract/alerts.ts'
+import type { AlertRaised, AlertRuleRecord, AlertRules } from '../../src/contract/alerts.ts'
 import type { Feed } from '../../src/contract/inbox.ts'
 import { buildApp } from '../../src/server/app.ts'
 import type { Clock } from '../../src/server/clock.ts'
@@ -70,7 +70,7 @@ async function ok<T>(name: string, method: 'GET' | 'POST', path: string, body?: 
   return response.json<T>()
 }
 const rules = (name: string) => ok<AlertRules>(name, 'GET', '/alerts/rules')
-const raised = (name: string) => ok<AlertRaise[]>(name, 'GET', '/alerts/raised')
+const raised = async (name: string) => (await ok<AlertRaised>(name, 'GET', '/alerts/raised')).raises
 const feed = (name: string) => ok<Feed>(name, 'GET', '/inbox/feed')
 const setRule = (name: string, rule: string, body: object) =>
   api(name, 'POST', `/alerts/rules/${rule}`, body)
@@ -359,6 +359,40 @@ describe('privacy', () => {
     expect(mine.some((r) => r.rule === 'spend')).toBe(false)
     // The last raise of an admins-only rule is not an owner's to read either.
     expect((await rules('owner')).rules.find((r) => r.rule === 'spend')!.last).toBeNull()
+  })
+
+  it('counts every raise by rule, lists one rule by itself, and pages to the oldest', async () => {
+    const page = (name: string, query = '') =>
+      ok<AlertRaised>(name, 'GET', `/alerts/raised${query}`)
+    const all = await page('admin', '?limit=2')
+    const { rows } = await client.query<{ rule: string; count: number }>(
+      'select rule, count(*)::int as count from alert_raises group by rule order by 2 desc, 1',
+    )
+    expect(all.rules).toEqual(rows)
+    expect(all.total).toBe(rows.reduce((n, r) => n + r.count, 0))
+    expect(all.raises).toHaveLength(2)
+    expect(all.more).toBe(all.total > 2)
+    // One rule, all of its raises and no other's, with the counts of every rule beside them.
+    const gaps = await page('admin', '?rule=gap')
+    expect(gaps.raises.map((r) => r.rule)).toEqual(
+      Array.from({ length: rows.find((r) => r.rule === 'gap')!.count }, () => 'gap'),
+    )
+    expect(gaps.rules).toEqual(rows)
+    // Page by page after the last raise read: each once, newest first, to the oldest.
+    const seen = [...all.raises]
+    for (let at = all; at.more;) {
+      at = await page('admin', `?limit=2&after=${at.raises.at(-1)!.id}`)
+      seen.push(...at.raises)
+    }
+    expect(seen.map((r) => r.id)).toEqual(
+      (await page('admin', `?limit=100`)).raises.map((r) => r.id),
+    )
+    expect(seen).toHaveLength(all.total)
+    // An owner's counts are of what they may read: their own domains'.
+    const mine = await page('owner')
+    expect(mine.total).toBe(mine.rules.reduce((n, r) => n + r.count, 0))
+    expect(mine.rules.some((r) => r.rule === 'spend')).toBe(false)
+    expect(mine.total).toBeLessThan(all.total)
   })
 
   it('the serving and analytics roles read none of it', async () => {

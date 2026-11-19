@@ -1,5 +1,7 @@
+import * as React from 'react'
 import { ArrowUpRightIcon, BellIcon, UsersIcon } from '@/components/icons'
-import { useAlerts, useWrite } from '@/api/queries'
+import { useAlerts, useRaisedPages, useWrite } from '@/api/queries'
+import { alertRule } from '@domain/alerts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -16,7 +18,17 @@ import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DomainDot } from '@/components/footnote/tag-chip'
-import { lastOf, rulesFor, thresholdOf, type AlertSettings, type Rule } from '@/model/alerts'
+import { ShowMoreButton } from '@/components/footnote/show-more'
+import { TextSwitch, type TextOption } from '@/components/footnote/switches'
+import {
+  lastOf,
+  rulesFor,
+  thresholdOf,
+  type AlertSettings,
+  type RaisedPage,
+  type Rule,
+  type RuleId,
+} from '@/model/alerts'
 import type { DomainId } from '@/model/items'
 import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
 import { useDomains, useMe } from '@/lib/workspace'
@@ -25,6 +37,9 @@ import { ObsPage } from '@/pages/observability'
 // Alerts: what raises a card in the Inbox, as rules of one sentence each, and what was raised
 // lately. The Inbox is the only place an alert goes. An admin turns a rule off for everyone and
 // changes its threshold in the sentence; an owner mutes a rule for their own domains.
+
+/** How many raises a page of Raised lately holds, as the service reads them. */
+const RAISED_PAGE = 20
 
 export function AlertsPage() {
   const load = useObsPageQuery('alerts')
@@ -44,14 +59,9 @@ export function AlertsPage() {
 function Alerts() {
   const view = useObsView()
   const me = useMe()
-  const { rules: all, raised: lately, settings: s } = useAlerts()
-  const domains = useDomains()
+  const { rules: all, raised, settings: s } = useAlerts()
   const rules = rulesFor(all, me.admin)
   const owned = view.owned
-  const raised =
-    view.state === 'empty'
-      ? []
-      : lately.filter((r) => !owned || (r.domain && owned.includes(r.domain)))
   const head = 'text-xs font-medium text-muted-foreground'
   return (
     <Frame>
@@ -89,68 +99,109 @@ function Alerts() {
         )}
       </section>
 
-      <FrameSection
-        title="Raised lately"
-        description="Newest first. Each one is a card in the Inbox."
-        className="border-t-0"
-      >
-        {raised.length ? (
-          <ul className="border-t">
-            {raised.map((r) => (
-              <li
-                key={r.id}
-                className="flex flex-wrap items-start gap-x-3 gap-y-1 border-b px-4 py-3 last:border-b-0 md:px-5"
-              >
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border text-muted-foreground">
-                  <BellIcon className="size-4" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <a
-                    href={r.href}
-                    className="text-sm font-medium underline-offset-4 hover:underline"
-                  >
-                    {r.title}
-                  </a>
-                  <p className="text-xs text-muted-foreground">
-                    {r.domain && (
-                      <span className="mr-1.5 inline-flex items-center gap-1.5 align-middle">
-                        <DomainDot id={r.domain} />
-                        {domains[r.domain]?.name} -
-                      </span>
-                    )}{' '}
-                    {r.line}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground max-sm:basis-full max-sm:pl-11">
-                  {r.when}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty className="border-t py-10">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <BellIcon />
-              </EmptyMedia>
-              <EmptyTitle>
-                {view.state === 'empty'
-                  ? 'Nothing has raised an alert yet'
-                  : 'Nothing raised for your domains lately'}
-              </EmptyTitle>
-              <EmptyDescription>
-                When a rule above fires, its card goes to the Inbox and shows here too.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-      </FrameSection>
+      <RaisedLately first={raised} empty={view.state === 'empty'} />
       <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
         <UsersIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         Owners see and mute alerts for their own domains. Admins turn rules off and change the
         levels. Email and chat are for later.
       </p>
     </Frame>
+  )
+}
+
+/**
+ * What the rules raised, newest first, and how many: "20 of 198", by rule with each one's count, so
+ * a rare raise (Conflict, Not found) is one click away under many check-date reminders, and Show
+ * more for the older ones. An owner reads only their own domains' raises.
+ */
+function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
+  const domains = useDomains()
+  const [rule, setRule] = React.useState<RuleId | null>(null)
+  const pages = useRaisedPages(rule, first)
+  const counts = pages.data?.pages[0] ?? first
+  const raised = empty ? [] : (pages.data?.pages.flatMap((p) => p.raised) ?? [])
+  const of = rule ? (counts.byRule.find((c) => c.rule === rule)?.count ?? 0) : counts.total
+  const left = of - raised.length
+  const switches: TextOption<RuleId | 'all'>[] = [
+    { value: 'all', label: 'All', count: counts.total },
+    ...counts.byRule.map((c) => ({ value: c.rule, label: alertRule(c.rule).name, count: c.count })),
+  ]
+  return (
+    <FrameSection
+      title="Raised lately"
+      description={
+        raised.length
+          ? `${raised.length < of ? `${raised.length} of ${of}` : `All ${of}`}, newest first. Each one is a card in the Inbox.`
+          : 'Each one is a card in the Inbox.'
+      }
+      className="border-t-0"
+    >
+      {/* Every rule that raised, on one line: a narrow page scrolls it sideways. */}
+      {!empty && counts.byRule.length > 1 && (
+        <div className="overflow-x-auto px-4 pb-3 md:px-5">
+          <TextSwitch
+            label="Raised by rule"
+            options={switches}
+            value={rule ?? 'all'}
+            onChange={(v) => setRule(v === 'all' ? null : v)}
+          />
+        </div>
+      )}
+      {raised.length ? (
+        <ul aria-label="Raised lately" className="border-t">
+          {raised.map((r) => (
+            <li
+              key={r.id}
+              className="flex flex-wrap items-start gap-x-3 gap-y-1 border-b px-4 py-3 last:border-b-0 md:px-5"
+            >
+              <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border text-muted-foreground">
+                <BellIcon className="size-4" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <a href={r.href} className="text-sm font-medium underline-offset-4 hover:underline">
+                  {r.title}
+                </a>
+                <p className="text-xs text-muted-foreground">
+                  {r.domain && (
+                    <span className="mr-1.5 inline-flex items-center gap-1.5 align-middle">
+                      <DomainDot id={r.domain} />
+                      {domains[r.domain]?.name} -
+                    </span>
+                  )}{' '}
+                  {r.line}
+                </p>
+              </div>
+              <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground max-sm:basis-full max-sm:pl-11">
+                {r.when}
+              </span>
+            </li>
+          ))}
+          {pages.hasNextPage && (
+            <li className="border-t px-4 py-2 md:px-5">
+              <ShowMoreButton
+                more={left}
+                next={Math.min(RAISED_PAGE, left)}
+                onClick={() => void pages.fetchNextPage()}
+              />
+            </li>
+          )}
+        </ul>
+      ) : (
+        <Empty className="border-t py-10">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BellIcon />
+            </EmptyMedia>
+            <EmptyTitle>
+              {empty ? 'Nothing has raised an alert yet' : 'Nothing raised for your domains lately'}
+            </EmptyTitle>
+            <EmptyDescription>
+              When a rule above fires, its card goes to the Inbox and shows here too.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
+    </FrameSection>
   )
 }
 

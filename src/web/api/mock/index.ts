@@ -429,6 +429,11 @@ export function createMockApi() {
     const person = workspace.people().find((p) => p.name === me())
     return { admin: !!person?.admin, owns: person?.owns ?? [] }
   }
+  /** The domains a reader's raises are narrowed to, as row security does: null for an admin. */
+  const ownedOf = () => {
+    const reader = obsReader()
+    return reader.admin ? null : reader.owns
+  }
   const copy = <T>(value: T): T => (value === undefined ? value : structuredClone(value))
   const read = <T>(method: FootnoteApiMethod, key: string, run: () => T) =>
     scenario.read(method, key, () => copy(run()))
@@ -1043,7 +1048,8 @@ export function createMockApi() {
       }),
 
     // Alerts
-    getAlerts: () => now(() => alerts.read()),
+    getAlerts: () => now(() => alerts.read(ownedOf())),
+    getRaised: (input) => now(() => alerts.raised(ownedOf(), input)),
     setAlertRule: ({ id, on }) => now(() => alerts.setOn(id, on)),
     muteAlert: ({ id, domains, muted }) => now(() => alerts.setMuted(id, domains, muted)),
     setAlertThreshold: ({ id, value }) => now(() => alerts.setThreshold(id, value)),
