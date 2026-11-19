@@ -229,6 +229,7 @@ test('a chat whose answers are no longer kept opens from the history on its ques
     const kept = JSON.parse(localStorage.getItem(key)!) as { answers?: unknown }[]
     localStorage.setItem(key, JSON.stringify(kept.map(({ answers: _, ...chat }) => chat)))
   })
+  await page.reload()
   await go(page, '/ask?n=j49k2')
   await chats(page).getByText(QUESTION).click()
   await expect(log.getByText(QUESTION)).toHaveCount(1)

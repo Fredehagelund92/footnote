@@ -123,6 +123,12 @@ describe('the model settings at start-up', () => {
       let text = ''
       request.on('data', (chunk: Buffer) => (text += chunk.toString()))
       request.on('end', () => {
+        if (text === '') {
+          // The free key check at start-up: GET /v1/models, no body.
+          response.setHeader('content-type', 'application/json')
+          response.end(JSON.stringify({ object: 'list', data: [] }))
+          return
+        }
         const body = JSON.parse(text) as Record<string, unknown>
         bodies.push(body)
         response.setHeader('content-type', 'application/json')
