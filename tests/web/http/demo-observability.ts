@@ -210,35 +210,24 @@ export async function seedObservability(client: pg.Client): Promise<Map<string, 
     )
   }
 
-  // Answers people marked good in Ask, each week of the 14 the mock draws; this week 38, 32 the
-  // week before, and something wrong 3 times.
-  const mondays = Array.from({ length: 14 }, (_, i) =>
-    iso(
-      Date.parse(`${last}T00:00:00Z`) -
-        ((new Date(`${last}T00:00:00Z`).getUTCDay() + 6) % 7) * DAY -
-        (13 - i) * 7 * DAY,
-    ),
-  )
-  for (const [i, monday] of mondays.slice(0, -2).entries())
-    await client.query(
-      `insert into assistant_ratings (verdict, area_id, created_hour)
-       select 'helpful', 'area_sales', $1::date + interval '10 hours' from generate_series(1, $2)`,
-      [monday, fixture.goodByWeek.values[i]],
-    )
-  for (const [from, n] of [
-    [iso(Date.parse(`${last}T00:00:00Z`) - 13 * DAY), 32],
-    [iso(Date.parse(`${last}T00:00:00Z`) - 6 * DAY), 38],
-  ] as const)
-    await client.query(
-      `insert into assistant_ratings (verdict, area_id, created_hour)
-       select 'helpful', 'area_sales', $1::date + (g % 7) * interval '1 day' + interval '11 hours'
-         from generate_series(1, $2) g`,
-      [from, n],
-    )
+  // Answers people marked in Ask, the mock's own days and domains, at 11:00 on each day.
   await client.query(
     `insert into assistant_ratings (verdict, area_id, created_hour)
-     select 'wrong', 'area_sales', $1::date + interval '12 hours' from generate_series(1, 3)`,
-    [last],
+     select r.verdict::feedback_verdict, 'area_' || r.domain, r.day + interval '11 hours'
+       from jsonb_to_recordset($1) as x(day date, domain text, good int, wrong int)
+       cross join lateral (select 'helpful' as verdict, x.day, x.domain from generate_series(1, x.good)
+                           union all
+                           select 'wrong', x.day, x.domain from generate_series(1, x.wrong)) r`,
+    [
+      JSON.stringify(
+        fixture.ratings.map((r) => ({
+          day: iso(r.at),
+          domain: r.domain,
+          good: r.good,
+          wrong: r.wrong,
+        })),
+      ),
+    ],
   )
 
   // This month's model spend, and the caps the mock shows.

@@ -104,6 +104,9 @@ export type Report = {
   href: string
 }
 
+/** Answers marked in Ask on a day (its UTC midnight), in a domain: good, and something wrong. */
+export type Rating = { at: number; domain: DomainId; good: number; wrong: number }
+
 export const REPORT_WORDS: Record<ReportState, string> = {
   inbox: 'In your Inbox',
   looked: 'Looked at',
@@ -129,8 +132,8 @@ export type ObsData = {
   /** The values of the Market dimension: a topic's place is a market or something else. */
   markets: string[]
   reports: Report[]
-  goodByWeek: { labels: string[]; values: number[] }
-  feedbackWeek: { good: number; goodChange: number; wrong: number }
+  /** Answers marked in Ask, a day and a domain at a time. */
+  ratings: Rating[]
   toolCalls: {
     name: string
     calls: number

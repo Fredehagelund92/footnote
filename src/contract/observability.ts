@@ -331,9 +331,14 @@ export const obsFeedbackSchema = z.object({
       state: z.enum(['inbox', 'looked', 'fine']),
     }),
   ),
-  /** Answers people marked good in the assistant, each week of the last 14, oldest first. */
-  goodByWeek: z.array(z.object({ week: day, count: shown })),
-  week: z.object({ good: shown, goodBefore: shown, wrong: shown }),
+  /**
+   * Answers people marked in Ask, each week (from Monday) of the range, oldest first: good and
+   * wrong, counted from `from`, the week's first day in the range. `soFar` marks the week still
+   * under way, its last day not counted yet.
+   */
+  byWeek: z.array(z.object({ from: day, good: shown, wrong: shown, soFar: z.boolean() })),
+  /** Answers marked in the range, and in the range before it. */
+  week: z.object({ good: shown, wrong: shown, goodBefore: shown, wrongBefore: shown }),
 })
 
 export const obsUsageInputSchema = z.strictObject({ range })

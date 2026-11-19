@@ -98497,16 +98497,16 @@
                         ]
                       }
                     },
-                    "goodByWeek": {
+                    "byWeek": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "week": {
+                          "from": {
                             "type": "string",
                             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
                           },
-                          "count": {
+                          "good": {
                             "anyOf": [
                               {
                                 "type": "number"
@@ -98515,11 +98515,26 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "wrong": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "soFar": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
-                          "week",
-                          "count"
+                          "from",
+                          "good",
+                          "wrong",
+                          "soFar"
                         ]
                       }
                     },
@@ -98527,6 +98542,16 @@
                       "type": "object",
                       "properties": {
                         "good": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wrong": {
                           "anyOf": [
                             {
                               "type": "number"
@@ -98546,7 +98571,7 @@
                             }
                           ]
                         },
-                        "wrong": {
+                        "wrongBefore": {
                           "anyOf": [
                             {
                               "type": "number"
@@ -98559,8 +98584,9 @@
                       },
                       "required": [
                         "good",
+                        "wrong",
                         "goodBefore",
-                        "wrong"
+                        "wrongBefore"
                       ]
                     }
                   },
@@ -98568,7 +98594,7 @@
                     "state",
                     "minimumCount",
                     "reports",
-                    "goodByWeek",
+                    "byWeek",
                     "week"
                   ]
                 }

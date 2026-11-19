@@ -438,9 +438,13 @@ test("Feedback: what was said about answers, reports by state, and nobody's name
   page,
 }) => {
   await go(page, '/observability/feedback')
-  await expect(page.getByText('Something was wrong').locator('..').locator('..')).toContainText(
-    'Fewer than 5',
-  )
+  // The share of good answers leads, worked out from counts that are shown: 38 of 45.
+  const good = page.locator('[data-slot="kpi"]').filter({ hasText: 'Good answers' })
+  await expect(good).toContainText('84%')
+  await expect(good).toContainText('38 of 45 marked in Ask, this week')
+  await expect(
+    page.locator('[data-slot="kpi"]').filter({ hasText: 'Something was wrong' }),
+  ).toContainText('7')
   const tabs = page.getByRole('tablist', { name: 'Reports' })
   await expect(tabs.getByRole('tab', { name: new RegExp(`^All ${reports()}`) })).toHaveAttribute(
     'aria-selected',

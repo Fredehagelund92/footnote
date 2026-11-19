@@ -26,8 +26,8 @@ import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { Bars } from '@/components/obs/charts'
-import { countChange } from '@domain/observability'
-import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'
+import { shareChange } from '@domain/observability'
+import { Kpi, kpiChange, RangeSwitch } from '@/components/obs/controls'
 import { HIDE_UNDER, REPORT_WORDS, shownCount, type ReportState } from '@/model/observability'
 import { ObsPage } from '@/pages/observability'
 
@@ -61,6 +61,15 @@ export function FeedbackPage() {
   )
 }
 
+/**
+ * The share of answers marked good, in whole per cent, and how many were marked: only when both
+ * counts are shown and something was marked, so it never gives a hidden count away.
+ */
+function goodShare(good: number | null, wrong: number | null) {
+  if (good === null || wrong === null || good + wrong === 0) return null
+  return { pct: Math.round((good / (good + wrong)) * 100), marked: good + wrong }
+}
+
 /** A count as a number cell says it: counting to its new value, or "Fewer than 5". */
 const figure = (n: number | null) =>
   n === null || (n > 0 && n < HIDE_UNDER) ? shownCount(n) : <CountUp value={n} />
@@ -76,10 +85,11 @@ function Feedback({ busy }: { busy: boolean }) {
   const shown = reports.filter((r) => tab === 'all' || r.state === tab)
   // The range drawn: while another loads, the one on screen.
   const range = obs.data.range
-  const weeks = range === 90 ? 13 : 8
+  const byWeek = feedback?.byWeek ?? []
   const good = feedback?.week.good ?? null
   const wrong = feedback?.week.wrong ?? null
-  const goodBefore = feedback?.week.goodBefore ?? null
+  const share = goodShare(good, wrong)
+  const before = feedback ? goodShare(feedback.week.goodBefore, feedback.week.wrongBefore) : null
   const people = reports.filter((r) => !r.agent).length
   const agents = reports.filter((r) => r.agent).length
   if (view.state === 'empty')
@@ -108,16 +118,26 @@ function Feedback({ busy }: { busy: boolean }) {
         action={<RangeSwitch value={view.range} />}
       />
       <div className="grid grid-cols-2 gap-px border-t bg-border @3xl/main:grid-cols-4">
+        {/* The share of good is worked out only from counts that are shown, so it never gives a
+            hidden one away. */}
         <Kpi
           icon={<ThumbsUpIcon />}
-          label="Good answer"
-          value={figure(good)}
+          label="Good answers"
+          value={share ? <CountUp value={share.pct} suffix="%" /> : figure(good)}
           change={
-            good !== null && goodBefore !== null
-              ? kpiChange(countChange(good, goodBefore), moreOrFewer, 'up')
+            share && before
+              ? kpiChange(
+                  shareChange(good!, share.marked, feedback!.week.goodBefore!, before.marked),
+                  (c) => `${c.by > 0 ? '+' : ''}${c.by} pts`,
+                  'up',
+                )
               : undefined
           }
-          sub={`${rangeLabel(range)}, in Ask`}
+          sub={
+            share
+              ? `${good!.toLocaleString('en-GB')} of ${share.marked.toLocaleString('en-GB')} marked in Ask, ${rangeLabel(range)}`
+              : `marked good in Ask, ${rangeLabel(range)}`
+          }
         />
         <Kpi
           icon={<ThumbsDownIcon />}
@@ -237,15 +257,33 @@ function Feedback({ busy }: { busy: boolean }) {
         </div>
         <div className="border-t @4xl/main:border-t-0 @4xl/main:border-l">
           <FrameSection
-            title="Good answer, by week"
-            description="Thumbs under an answer in Ask. Only the verdict and the domain are kept."
+            title="Good and wrong, by week"
+            description="Thumbs under an answer in Ask. Only the verdict, the domain and the hour are kept."
           >
             <div className="px-3 pb-3">
               <Bars
-                values={(feedback?.goodByWeek.values ?? []).slice(-weeks)}
-                labels={(feedback?.goodByWeek.labels ?? []).slice(-weeks)}
-                caption="Good answers, by week"
+                parts={[
+                  { name: 'Good', values: byWeek.map((w) => w.good), fill: 'var(--chart-2)' },
+                  {
+                    name: 'Something was wrong',
+                    values: byWeek.map((w) => w.wrong),
+                    fill: 'var(--caution)',
+                  },
+                ]}
+                labels={byWeek.map((w) => w.label)}
+                soFar={byWeek.at(-1)?.soFar}
+                caption="Good answers and something wrong, by week"
               />
+              <ul className="mt-2 flex gap-x-4 px-1 text-xs text-muted-foreground">
+                <li className="flex items-center gap-1.5">
+                  <span className="size-2.5 bg-chart-2" aria-hidden />
+                  Good
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="size-2.5 bg-caution" aria-hidden />
+                  Something was wrong
+                </li>
+              </ul>
             </div>
           </FrameSection>
           <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
