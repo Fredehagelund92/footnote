@@ -102,6 +102,12 @@ saved questions follows each publish instead (FR-526).
   stores per question whether it was served, delivered its expected items, left out the forbidden
   ones and gave the expected status (item ids and booleans; never a wording). The first pass is
   the live edition's; every edition sealed after it gets one.
+- **Runs on their own** (decision 6): `evals.automatic_runs` is off as installed, so no test run
+  starts by itself: not the weekly run, not a triggered run, and no resume of a run the service
+  started. A run starts only when an administrator starts one (`npm run eval`). An administrator
+  turns them on in Settings, Advanced, Answer tests, which first shows what one run of every
+  domain is estimated to cost (`GET /evals/automatic`). The retrieval pass calls no model and
+  always runs.
 - **Triggered full runs**: no answer test runs in the review, so `evals.retrieval` queues a full
   run (no baseline move) of a domain whose newest full or scheduled run is
   older than a change it did not see: new tool descriptions (`tool_descriptions`), a successful
@@ -145,8 +151,8 @@ saved questions follows each publish instead (FR-526).
   passes what code fails is more lenient than the record of what reached the agent.
 - **Reliability mode**: `npm run eval -- --pass-rule all` counts a wording only when every try
   passes (pass^k); the default is the majority (FR-515). A run records its rule.
-- **Weekly scorecard** (FR-517, FR-518): `evals.weekly` runs the full set of every domain on
-  Mondays at 04:00 UTC while the service runs. A finished run moves the domain's baseline, lists
+- **Weekly scorecard** (FR-517, FR-518): with runs on their own, `evals.weekly` runs the full set
+  of every domain on Mondays at 04:00 UTC while the service runs. A finished run moves the domain's baseline, lists
   regressions against the previous one, measures the held-out targets of requirements section
   1.7, and posts an `eval.scorecard` outbox event. A scheduled run that has not finished within a
   day, stopped or not, fails with an `eval_run_unfinished` alert; the watchdog alerts when eight days pass without one.

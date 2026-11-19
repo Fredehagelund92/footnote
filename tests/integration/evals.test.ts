@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { APICallError, type LanguageModelV4GenerateResult } from '@ai-sdk/provider'
 import { MockLanguageModelV4 } from 'ai/test'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { EvalRun } from '../../src/contract/evals.ts'
+import type { AutomaticRuns, EvalRun } from '../../src/contract/evals.ts'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
 import type { Draft } from '../../src/domain/draft.ts'
 import { goldenQuestionSchema, type GoldenQuestionInput } from '../../src/domain/golden-question.ts'
@@ -577,11 +577,15 @@ describe('runs that stop before every answer is made (R4, R6)', () => {
     )
     expect(calls.rows).toEqual([{ outcome: 'throttled', n: 30, cost: '0' }])
 
-    // The job tries it again a while later, by itself, a few times.
+    // While runs on their own are off, as installed, the job leaves it as it is.
     await client.query("update eval_runs set finished_at=now()-interval '16 minutes' where id=$1", [
       run.id,
     ])
+    expect(await workOn()).toMatchObject({ resumed: 0 })
+    // With them on, the job tries it again a while later, by itself, a few times.
+    await setting('evals.automatic_runs', true)
     expect(await workOn()).toMatchObject({ resumed: 1 })
+    await setting('evals.automatic_runs', false)
     d = await stoppedOf(run.id)
     expect(d.run.state).toBe('incomplete')
 
@@ -783,8 +787,37 @@ describe('weekly scorecard and baseline', () => {
     await client.query(
       "update golden_questions set set_aside_reason=null where id='norway-held-out'",
     )
-    const [, weekly] = evalJobs({ port: models, clock })
+    const [, weekly, retrieval] = evalJobs({ port: models, clock })
     const context = { database, logger, signal: new AbortController().signal }
+    const runs = async () =>
+      Number((await client.query<{ n: string }>('select count(*) as n from eval_runs')).rows[0]!.n)
+    // As installed, no test run starts by itself: not the weekly one, nor one a change queues.
+    const before = await runs()
+    expect(await weekly!.run(context)).toEqual({ off: true })
+    expect(await retrieval!.run(context)).toMatchObject({ queued: 'off' })
+    expect(await runs()).toBe(before)
+    // An admin reads what a run of every domain is estimated to cost, then turns them on.
+    const read = await call('GET', '/evals/automatic', 'admin')
+    expect(read.statusCode, read.body).toBe(200)
+    const automatic = read.json<AutomaticRuns>()
+    expect(automatic).toMatchObject({
+      on: false,
+      live: false,
+      modelId: expect.stringMatching(/^mock\//),
+    })
+    expect(automatic.domains).toBeGreaterThan(0)
+    expect(automatic.questions).toBeGreaterThanOrEqual(automatic.domains)
+    // Answers the earlier runs made are reused from the cell cache, so they cost nothing again.
+    expect(automatic.costMicros).toBeGreaterThanOrEqual(0)
+    // The estimate is the admin's: it plans every domain's tests, held-out ones too.
+    expect((await call('GET', '/evals/automatic', 'owner')).statusCode).toBe(403)
+    const on = await call('PUT', '/settings/evals.automatic_runs', 'admin', {
+      version: automatic.version,
+      value: true,
+      reason: 'Turned on after reading the estimate',
+    })
+    expect(on.statusCode, on.body).toBe(200)
+    expect((await call('GET', '/evals/automatic', 'admin')).json<AutomaticRuns>().on).toBe(true)
     expect(await weekly!.run(context)).toMatchObject({ areas: 2, queued: 2 })
     expect(await weekly!.run(context)).toMatchObject({ areas: 0, queued: 0 })
     await work()

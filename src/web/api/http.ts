@@ -243,6 +243,7 @@ export const wiredMethods = [
   'endAgentPolicy',
   'checkConnect',
   'advancedPage',
+  'setAutomaticRuns',
   'checkHistory',
   'exportHistory',
   'exportContext',
@@ -2156,19 +2157,31 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     advancedPage: async () => {
       const now = new Date()
       const words = await settingsWords()
-      const [settings, drafts, terms, history, changes, operations, editions, people, areas] =
-        await Promise.all([
-          read(() => client.settings.list()),
-          read(() => client.items.deleted()),
-          read(() => client.terms.deleted()),
-          read(() => client.audit.search({ limit: 20 })),
-          read(() => client.items.changes()),
-          // The job runner answers on its own: a page without it still shows the rest.
-          read(() => client.operations.overview()).catch(() => null),
-          read(() => client.editions.list({ limit: 3 })),
-          readPeople(),
-          read(() => client.areas.list()),
-        ])
+      const [
+        settings,
+        drafts,
+        terms,
+        history,
+        changes,
+        operations,
+        editions,
+        people,
+        areas,
+        tests,
+      ] = await Promise.all([
+        read(() => client.settings.list()),
+        read(() => client.items.deleted()),
+        read(() => client.terms.deleted()),
+        read(() => client.audit.search({ limit: 20 })),
+        read(() => client.items.changes()),
+        // The job runner answers on its own: a page without it still shows the rest.
+        read(() => client.operations.overview()).catch(() => null),
+        read(() => client.editions.list({ limit: 3 })),
+        readPeople(),
+        read(() => client.areas.list()),
+        // An estimate plans every domain's tests; a page without it still shows the rest.
+        read(() => client.evals.automatic()).catch(() => null),
+      ])
       const domainName = (id: string) => areas.find((a) => a.id === id)?.name ?? id
       return {
         settings: words.settingsOf(settings, (id) => people.name(id), now),
@@ -2179,7 +2192,29 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         }),
         jobs: operations ? words.jobsOf(operations, now) : null,
         editions: words.editionsOf(editions, now),
+        answerTests: tests && {
+          on: tests.on,
+          version: tests.version,
+          live: tests.live,
+          domains: tests.domains,
+          questions: tests.questions,
+          costMicros: tests.costMicros,
+          budgetMicros: tests.budgetMicros,
+          model: tests.modelId,
+          judge: tests.judgeModelId,
+        },
       }
+    },
+    setAutomaticRuns: async ({ on, version }) => {
+      const input = {
+        key: 'evals.automatic_runs',
+        version,
+        value: on,
+        reason: on
+          ? 'Turned on in Settings, Advanced, after reading what a run is estimated to cost.'
+          : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     checkHistory: async () => {
       const chain = await read(() => client.audit.verify())

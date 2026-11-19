@@ -43,7 +43,7 @@ import {
   type RunRow,
   type RunStop,
 } from './runs.ts'
-import { readEvalSettings, type EvalSettings } from './settings.ts'
+import { automaticRuns, readEvalSettings, type EvalSettings } from './settings.ts'
 import { capReached, formatUsd } from './spend.ts'
 
 /**
@@ -155,15 +155,18 @@ async function housekeeping(database: Database, options: WorkOptions, summary: W
     )
   summary.expired = expired.length
   // R6: a run the service started that stopped only because the provider kept failing is tried
-  // again a while later, a few times. A run with a cost ceiling was approved at the command line,
-  // with its own models: it is resumed there. `resumeRun` leaves a run only its command works.
-  const stopped = await database.query<{ id: string }>(
-    `select id::text from eval_runs
+  // again a while later, a few times, while automatic runs are on (decision 6). A run with a cost
+  // ceiling was approved at the command line, with its own models: it is resumed there.
+  // `resumeRun` leaves a run only its command works.
+  const stopped = !(await automaticRuns(database))
+    ? []
+    : await database.query<{ id: string }>(
+        `select id::text from eval_runs
       where state='incomplete' and cost_ceiling_micros is null
         and summary->'stopped'->>'reason'='infrastructure'
         and coalesce((summary->>'resumes')::int,0) < ${AUTO_RESUMES}
         and finished_at < now() - interval '${AUTO_RESUME_AFTER}'`,
-  )
+      )
   for (const run of stopped)
     if (await database.transaction(null, (tx) => resumeRun(tx, run.id))) summary.resumed++
   // A held-out run is worked by its command alone, under a lease the command renews. One whose

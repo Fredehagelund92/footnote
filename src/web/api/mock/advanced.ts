@@ -21,7 +21,13 @@ const capped = {
 }
 
 /** Every tuning setting in the demo: the values it was installed with, but for the name and caps. */
-function settingsOf(name: string, about: string, autoPublish: boolean, pins: Pins) {
+function settingsOf(
+  name: string,
+  about: string,
+  autoPublish: boolean,
+  pins: Pins,
+  automatic: Automatic,
+) {
   const values: [key: string, value: unknown, changed?: SettingChange][] = [
     ['workspace.name', name, { who: 'Jon Abara', when: '1 Oct', why: 'Name the workspace' }],
     ['business.about', about],
@@ -70,6 +76,10 @@ function settingsOf(name: string, about: string, autoPublish: boolean, pins: Pin
     ['models.call_limits', { concurrency: 4 }],
     ['evals.tries', 3],
     ['evals.flip_repeats', 7],
+    // Answer tests that run on their own: off as installed, until an admin turns them on.
+    automatic.changed
+      ? ['evals.automatic_runs', automatic.on, automatic.changed]
+      : ['evals.automatic_runs', automatic.on],
   ]
   return settingGroups(
     values.map(([key, value, changed]) => ({ key, value, changed: changed ?? null })),
@@ -81,15 +91,24 @@ const toolHref = `/settings/integrations/${DEMO_DEFINITIONS}`
 /** What Settings, Advanced shows in the demo, with what this visit changed on top. */
 /** The dimensions pinned on Overview in this visit, and who pinned them last. */
 export type Pins = { keys: string[]; changed?: SettingChange }
+/** Whether answer tests run on their own in this visit, and who changed it last. */
+export type Automatic = { on: boolean; version: number; changed?: SettingChange }
+
+/**
+ * One run of every domain's answer tests, as the demo's week would be estimated on Claude: its
+ * test questions, three tries each, judged by Opus.
+ */
+const DEMO_RUN = { domains: 3, questions: 14, costMicros: 420_000 }
 
 export function advancedOf(
   log: readonly LogEntry[],
   about = '',
   autoPublish = false,
   pins: Pins = { keys: [] },
+  automatic: Automatic = { on: false, version: 1 },
 ): Advanced {
   return {
-    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins),
+    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic),
     // Newest first: drafts and terms. Published context is archived, never deleted.
     deleted: [
       ...log
@@ -195,6 +214,15 @@ export function advancedOf(
         change: 'Archived: Payment provider switched in Norway',
       },
     ],
+    answerTests: {
+      on: automatic.on,
+      version: automatic.version,
+      live: true,
+      ...DEMO_RUN,
+      budgetMicros: 2_000_000,
+      model: 'anthropic/claude-sonnet-5-5',
+      judge: 'anthropic/claude-opus-5-5',
+    },
   }
 }
 

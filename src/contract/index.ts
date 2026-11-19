@@ -132,6 +132,7 @@ import {
 } from './review.ts'
 
 import {
+  automaticRunsSchema,
   importReportSchema,
   importSchema,
   runDetailSchema,
@@ -1737,6 +1738,16 @@ export const contract = {
         .input(importSchema)
         .output(importReportSchema),
     },
+    automatic: evals
+      .meta({ scope: 'admin' })
+      .route({
+        method: 'GET',
+        path: '/evals/automatic',
+        tags: ['evals'],
+        summary:
+          'Whether test runs start by themselves, and what a run of every domain is estimated to cost now (decision 6)',
+      })
+      .output(automaticRunsSchema),
     runs: {
       list: maintain
         .route({

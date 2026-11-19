@@ -1191,6 +1191,9 @@ export function createRouter({
           context.evals.questions.import(input),
         ),
       },
+      automatic: authorized.evals.automatic.handler(({ context }) =>
+        context.evals.runs.automatic(),
+      ),
       runs: {
         list: authorized.evals.runs.list.handler(({ context, input }) =>
           context.evals.runs.list(input),
