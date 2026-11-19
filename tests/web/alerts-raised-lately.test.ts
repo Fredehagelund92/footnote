@@ -147,7 +147,7 @@ describe('Raised lately', () => {
     expect(asked.at(-1)).toEqual({ rule: 'gap', domain: 'sales' })
   })
 
-  it('with a domain chosen and its read held shows loading, not empty or unfiltered counts', async () => {
+  it('with a domain chosen and its read held shows loading, not empty or unfiltered counts', () => {
     mount(() => new Promise<RaisedPage>(() => {}), 'sales')
     expect(text()).toContain('Loading the raises')
     expect(text()).not.toContain('Nothing raised')
