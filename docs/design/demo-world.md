@@ -608,12 +608,21 @@ the service's own API and MCP server, so a new install opens as the README shows
   test accounts" (340 accounts, and the returns team's 28 from 1 October 2026), Maria's "Card
   payments in Spain failed from 14 to 16 October 2026", and Lars Dahl's suggestion to archive
   "Payment provider switched in Norway on 9 July 2025".
-- **Saved questions.** Jon saves the Norway question and "Why are Germany's orders low for
-  yesterday?".
+- **Saved questions, in all three states.** Jon saves the Norway question and "Why are Germany's
+  orders low for yesterday?", which answer the same. Tomas Eriksen saves the Norway question for
+  Marketing before anything answers it, so after Jon's publish it has changed. Jon saves "How are
+  orders counted in the United Kingdom?" while his item answers it, so after Sofia's item it needs
+  a look, and its alert card is raised once. One check runs at the end, as the check job would.
 - **What agents asked.** About 160 calls a week over the eight whole weeks before this one, and
   this week so far, from Claude Code, the Claude app, Cursor and ChatGPT: the Norway, Germany,
   United Kingdom and Spain orders questions most, and two about 2023, before the library starts,
   which find nothing.
+- **What people and agents said, and what it cost.** Maria and Ines report the Norway answer from
+  Ask, and both reports wait in the Inbox. Agents report on six of the answers they got this week:
+  helpful, missing, unclear and wrong. Over the same weeks people marked answers good or wrong in
+  Ask, about one in six wrong, two in three in Sales and the rest in Marketing. This month's model
+  spend is USD 5.09: Ask and one answer test run. So every Observability page has a row and a
+  drawn mark at 7 days.
 
 The sign-in page offers the people in `db/seed/people.local.yml`, the administrator Ravi Kapoor
 first.
