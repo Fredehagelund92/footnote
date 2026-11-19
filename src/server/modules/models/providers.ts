@@ -18,6 +18,7 @@ export const modelProviders: readonly ProviderEntry[] = [
     name: 'anthropic',
     adapter: 'anthropic',
     operator: 'Anthropic',
+    operatorHost: 'api.anthropic.com',
     apiKeyEnv: 'ANTHROPIC_API_KEY',
     baseUrlEnv: 'ANTHROPIC_BASE_URL',
     baseUrl: 'https://api.anthropic.com/v1',
@@ -48,6 +49,7 @@ export const modelProviders: readonly ProviderEntry[] = [
     name: 'vercel-gateway',
     adapter: 'openai-compatible',
     operator: 'Vercel',
+    operatorHost: 'ai-gateway.vercel.sh',
     apiKeyEnv: 'VERCEL_AI_GATEWAY_API_KEY',
     baseUrlEnv: 'VERCEL_AI_GATEWAY_BASE_URL',
     baseUrl: 'https://ai-gateway.vercel.sh/v1',
@@ -94,10 +96,30 @@ export const modelProviders: readonly ProviderEntry[] = [
       },
     },
   },
+  {
+    // OpenAI's Chat Completions API, or any server that speaks it at OPENAI_BASE_URL: a hosted
+    // one such as OpenRouter or Groq, a company gateway such as LiteLLM, or a model server on this
+    // computer such as Ollama (http://host.docker.internal:11434/v1 from the container), which
+    // takes no key. It lists no model: each setting gives its model's prices.
+    name: 'openai',
+    adapter: 'openai-compatible',
+    operator: 'OpenAI',
+    operatorHost: 'api.openai.com',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    keyOptionalWhenPrivate: true,
+    baseUrlEnv: 'OPENAI_BASE_URL',
+    baseUrl: 'https://api.openai.com/v1',
+    adapterOptions: { effort: 'reasoning_effort', promptCache: 'none', structuredOutputs: true },
+    models: {},
+  },
 ]
 
 /** Vendor names as people read them; a vendor missing here is shown by its id. */
-export const vendorNames: Record<string, string> = { anthropic: 'Anthropic', google: 'Google' }
+export const vendorNames: Record<string, string> = {
+  anthropic: 'Anthropic',
+  google: 'Google',
+  openai: 'OpenAI',
+}
 
 /** Every role's model when its setting is missing (plan section 2.3). */
 export const defaultModel: ModelRef = { provider: 'anthropic', model: 'claude-sonnet-5-5' }

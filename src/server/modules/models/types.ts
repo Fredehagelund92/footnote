@@ -46,8 +46,18 @@ export type ProviderEntry = {
   adapter: string
   /** The company the requests go to, in plain words: it receives every question and answer. */
   operator: string
+  /**
+   * The host of the operator's own API. A base URL at another host is someone else's server that
+   * speaks the same protocol, so who receives the requests is worked out from its address instead.
+   */
+  operatorHost?: string
   /** The environment variable that holds the key. The key itself is never in a setting. */
   apiKeyEnv: string
+  /**
+   * A base URL on this computer or a private network needs no key, as a local model server such
+   * as Ollama takes none.
+   */
+  keyOptionalWhenPrivate?: boolean
   /** The environment variable that may override `baseUrl`. */
   baseUrlEnv: string
   baseUrl: string
@@ -62,7 +72,8 @@ export type ProviderEntry = {
   models: Record<string, ListedModel>
 }
 
-export type Connection = { apiKey: string; baseUrl: string }
+/** A provider's key and base URL. There is no key only for a server that takes none. */
+export type Connection = { apiKey: string | undefined; baseUrl: string }
 
 /** What an adapter makes for one model. */
 export type AdaptedModel = {

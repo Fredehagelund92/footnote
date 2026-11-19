@@ -69,6 +69,8 @@ services:
       ANTHROPIC_BASE_URL:
       VERCEL_AI_GATEWAY_API_KEY:
       VERCEL_AI_GATEWAY_BASE_URL:
+      OPENAI_API_KEY:
+      OPENAI_BASE_URL:
     volumes:
       # Your own model's folder, or an empty volume nothing reads when you name none: the demo
       # never depends on a folder Docker shares from this computer.

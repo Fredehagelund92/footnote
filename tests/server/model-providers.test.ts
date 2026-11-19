@@ -20,6 +20,7 @@ import {
   type ProviderEntry,
 } from '../../src/server/modules/models/index.ts'
 import type { Database } from '../../src/server/db/database.ts'
+import { placeOf } from '../../src/server/modules/models/address.ts'
 import { answerQuestion, judgeAnswer } from '../../src/server/modules/evals/answer.ts'
 
 /*
@@ -138,7 +139,7 @@ describe('the provider registry', () => {
       port.choose('assistant', { provider: 'anthropic', model: 'anthropic/claude-sonnet-5.5' }),
     ).toThrow(/which provider anthropic does not list/)
     expect(() => port.choose('judge', { provider: 'nobody', model: 'x' })).toThrow(
-      /models\.judge names provider nobody, which is not in the provider registry \(anthropic, vercel-gateway, acme\)/,
+      /models\.judge names provider nobody, which is not in the provider registry \(anthropic, vercel-gateway, openai, acme\)/,
     )
   })
 
@@ -689,5 +690,154 @@ describe("the gateway's Claude Haiku 5.5", () => {
 
   it('leaves the default model as it was', () => {
     expect(defaultModel).toEqual({ provider: 'anthropic', model: 'claude-sonnet-5-5' })
+  })
+})
+
+describe('the openai entry (any server that speaks Chat Completions)', () => {
+  const prices = { input: 0.1, output: 0.5 }
+  const luna = { provider: 'openai', model: 'gpt-6-luna', prices }
+  const requests: { url: string; headers: Headers; body: Record<string, unknown> }[] = []
+  const serve = (served: string) => {
+    requests.length = 0
+    vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
+      requests.push({
+        url,
+        headers: new Headers(init.headers),
+        body: JSON.parse(init.body as string) as Record<string, unknown>,
+      })
+      return Promise.resolve(
+        Response.json({
+          id: 'chatcmpl-1',
+          object: 'chat.completion',
+          created: 1_791_500_000,
+          model: served,
+          choices: [
+            { index: 0, message: { role: 'assistant', content: 'Pass.' }, finish_reason: 'stop' },
+          ],
+          usage: { prompt_tokens: 1_000, completion_tokens: 50, total_tokens: 1_050 },
+        }),
+      )
+    })
+  }
+  const port = (env: Record<string, string>) => createModelPort({ mode: 'live', env })
+
+  it("sends OpenAI's own fields to OPENAI_BASE_URL with the key as a bearer token", async () => {
+    serve('gpt-6-luna')
+    const key = 'sk-placeholder-not-a-key'
+    const judge = port({ OPENAI_API_KEY: key }).choose('judge', luna)
+    expect(judge).toMatchObject({
+      id: 'openai/gpt-6-luna',
+      vendor: 'openai',
+      family: 'openai/gpt-6-luna',
+      prices,
+      recipients: 'OpenAI',
+    })
+    const result = await generateText({
+      model: judge.model,
+      instructions: { role: 'system', content: 'Grade.', providerOptions: judge.cacheBreakpoint },
+      prompt: 'Answer: 42',
+      providerOptions: judge.options,
+    })
+    expect(result.text).toBe('Pass.')
+    const [request] = requests
+    expect(request!.url).toBe('https://api.openai.com/v1/chat/completions')
+    expect(request!.headers.get('authorization')).toBe(`Bearer ${key}`)
+    // OpenAI's effort field, no prompt cache breakpoint and no gateway route.
+    expect(request!.body).toEqual({
+      model: judge.name,
+      reasoning_effort: 'low',
+      messages: [
+        { role: 'system', content: 'Grade.' },
+        { role: 'user', content: 'Answer: 42' },
+      ],
+    })
+  })
+
+  it('takes another server at OPENAI_BASE_URL, and names it as who receives the requests', async () => {
+    serve('anthropic/claude-sonnet-5.5')
+    const openRouter = port({
+      OPENAI_API_KEY: 'sk-or-placeholder',
+      OPENAI_BASE_URL: 'https://openrouter.ai/api/v1',
+    })
+    const claude = openRouter.choose('assistant', {
+      provider: 'openai',
+      model: 'anthropic/claude-sonnet-5.5',
+      prices: { input: 2, output: 10 },
+    })
+    expect(claude).toMatchObject({
+      vendor: 'anthropic',
+      family: 'anthropic/claude-sonnet-5.5',
+      recipients: 'the host at openrouter.ai and Anthropic',
+    })
+    await generateText({ model: claude.model, prompt: 'Hello.', providerOptions: claude.options })
+    expect(requests[0]!.url).toBe('https://openrouter.ai/api/v1/chat/completions')
+    // A name with no vendor in it says nothing of where the host sends it.
+    const bare = { provider: 'openai', model: 'auto', prices }
+    expect(openRouter.choose('assistant', bare).recipients).toBe('the host at openrouter.ai')
+  })
+
+  it('needs no key for a model server on this computer or a private network', async () => {
+    serve('gpt-oss:20b')
+    const local = { provider: 'openai', model: 'gpt-oss:20b', prices: { input: 0, output: 0 } }
+    const ollama = port({ OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1' }).choose('assistant', local)
+    expect(ollama).toMatchObject({
+      vendor: 'openai',
+      family: 'openai/gpt-oss:20b',
+      recipients: 'this computer',
+    })
+    await generateText({ model: ollama.model, prompt: 'Hello.', providerOptions: ollama.options })
+    expect(requests[0]!.url).toBe('http://127.0.0.1:11434/v1/chat/completions')
+    expect(requests[0]!.headers.has('authorization')).toBe(false)
+    const fromDocker = port({ OPENAI_BASE_URL: 'http://host.docker.internal:11434/v1' })
+    expect(fromDocker.choose('assistant', local).recipients).toBe('this computer')
+    const network = port({ OPENAI_BASE_URL: 'http://10.0.0.12:4000/v1' })
+    expect(network.choose('assistant', local).recipients).toBe('your network (10.0.0.12)')
+    // A server on the internet needs its key, and so does OpenAI itself.
+    const internet: Record<string, string>[] = [
+      { OPENAI_BASE_URL: 'https://api.groq.com/openai/v1' },
+      {},
+    ]
+    for (const env of internet)
+      expect(() => port(env).choose('assistant', local)).toThrow(
+        'models.assistant uses provider openai, which needs OPENAI_API_KEY. Put it in .env.local (never commit it), or use MODELS=mock.',
+      )
+  })
+
+  it('lists no model, so every setting gives its prices', () => {
+    expect(() =>
+      checkModelSetting(port({ OPENAI_API_KEY: 'k' }), 'models.assistant', {
+        provider: 'openai',
+        model: 'gpt-6-luna',
+      }),
+    ).toThrow(/^models\.assistant names model gpt-6-luna, which provider openai does not list\./)
+  })
+
+  it('names a server that speaks the Anthropic API by its address too', () => {
+    const viaGateway = port({
+      ANTHROPIC_API_KEY: 'vck-placeholder',
+      ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
+    }).choose('assistant', defaultModel)
+    expect(viaGateway.recipients).toBe('the host at ai-gateway.vercel.sh and Anthropic')
+    expect(port({ ANTHROPIC_API_KEY: 'k' }).choose('assistant', defaultModel).recipients).toBe(
+      'Anthropic',
+    )
+  })
+})
+
+describe('where a base URL is', () => {
+  it.each([
+    ['localhost', 'this computer'],
+    ['127.0.0.1', 'this computer'],
+    ['[::1]', 'this computer'],
+    ['host.docker.internal', 'this computer'],
+    ['10.0.0.12', 'private network'],
+    ['172.20.1.1', 'private network'],
+    ['192.168.1.5', 'private network'],
+    ['[fd00::1]', 'private network'],
+    ['172.32.0.1', 'internet'],
+    ['8.8.8.8', 'internet'],
+    ['openrouter.ai', 'internet'],
+  ])('reads %s as %s', (host, place) => {
+    expect(placeOf(new URL(`http://${host}:8000/v1`).hostname)).toBe(place)
   })
 })

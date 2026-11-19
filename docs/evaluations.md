@@ -14,6 +14,7 @@ feature uses yet) names a provider and a model in its setting, `models.<role>`, 
 | ---------------- | ------------------- | --------------------------- | ---------------------------- | --------------------------- |
 | `anthropic`      | `anthropic`         | `ANTHROPIC_API_KEY`         | `ANTHROPIC_BASE_URL`         | Anthropic                   |
 | `vercel-gateway` | `openai-compatible` | `VERCEL_AI_GATEWAY_API_KEY` | `VERCEL_AI_GATEWAY_BASE_URL` | Vercel, Anthropic or Google |
+| `openai`         | `openai-compatible` | `OPENAI_API_KEY`            | `OPENAI_BASE_URL`            | OpenAI, or the server named |
 
 Each entry also lists models with their vendor, model line and price per million tokens. A model
 the entry does not list is served only when its setting gives its prices, in US dollars per million
@@ -30,6 +31,14 @@ the service checks every role's setting at start-up and on every change (`PUT /s
 refuses an unknown provider, an unlisted model without prices or a missing key with a message that names the
 setting. To answer and judge through the gateway, set its key and change `models.eval_answer`,
 `models.judge` (or keep `different_family`) and `models.assistant` to `vercel-gateway`.
+
+`openai` is OpenAI's own API, or any server that speaks its Chat Completions API at
+`OPENAI_BASE_URL`: a hosted one such as OpenRouter or Groq, a company gateway such as LiteLLM, or a
+model server such as Ollama or vLLM. It lists no model, so each setting gives its prices, and a
+server on this computer or a private network needs no key. Who receives the requests is worked out
+from a base URL that is not the operator's own, for `ANTHROPIC_BASE_URL` too: "this computer" for a
+loopback address, "your network (10.0.0.12)" for a private one, and "the host at openrouter.ai"
+otherwise, with the model's vendor when its name gives one, such as `anthropic/claude-sonnet-5.5`.
 
 **Data leaves the company.** With `MODELS=live`, questions, test questions, item text and answers go
 to the provider's operator and the model's vendor (the table's last column): a Gemini model sends
