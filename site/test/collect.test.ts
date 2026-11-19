@@ -65,6 +65,15 @@ describe('collecting the versions', () => {
     expect(existsSync(join(site, 'docs/pagefind'))).toBe(false)
   })
 
+  it('forwards a page only main has to next, and the newest release wins when both have it', () => {
+    const main = build('main', 'next')
+    write(join(main, 'docs/next/new-page/index.html'), 'new page')
+    collect(site, build('one', '0.1'), '0.1')
+    collect(site, main, 'next')
+    expect(read('docs/new-page/index.html')).toContain('url=../next/new-page/')
+    expect(read('docs/privacy/index.html')).toContain('url=../0.1/privacy/')
+  })
+
   it('takes the landing page from main, and from a release only while there is none', () => {
     collect(site, build('one', '0.1'), '0.1')
     expect(read('index.html')).toBe('landing one')

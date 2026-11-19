@@ -92,11 +92,16 @@ export function collect(site: string, built: string, folder: string) {
     if (!isVersion(entry.name)) rmSync(join(docs, entry.name), { recursive: true, force: true })
   writeFileSync(join(docs, 'versions.json'), `${JSON.stringify({ latest, versions }, null, 2)}\n`)
   writeFileSync(join(docs, 'index.html'), forward(`${latest}/`))
-  for (const page of pagesOf(join(docs, latest))) {
+  // The pages of main that the newest release lacks still open, from the next folder.
+  const forwarded = new Map<string, string>()
+  if (folders.includes('next'))
+    for (const page of pagesOf(join(docs, 'next'))) forwarded.set(page, 'next')
+  for (const page of pagesOf(join(docs, latest))) forwarded.set(page, latest)
+  for (const [page, version] of forwarded) {
     if (isVersion(page.split('/')[0]!)) continue
     const from = join(docs, page)
     mkdirSync(from, { recursive: true })
-    const to = posix.join(relative(from, join(docs, latest)).split('\\').join('/'), page)
+    const to = posix.join(relative(from, join(docs, version)).split('\\').join('/'), page)
     writeFileSync(join(from, 'index.html'), forward(`${to}/`))
   }
   for (const file of ['llms.txt', 'llms-full.txt'])

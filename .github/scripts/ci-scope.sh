@@ -34,7 +34,7 @@ while IFS= read -r path; do
     # The help pages, the templates and the API description are read by the app and its tests.
     docs/help/* | docs/templates/* | docs/api/*)
       code=true ;;
-    src/* | tests/* | scripts/* | apps/*)
+    src/* | tests/* | scripts/*)
       code=true ;;
     docs/* | *.md | LICENSE)
       docs=true ;;

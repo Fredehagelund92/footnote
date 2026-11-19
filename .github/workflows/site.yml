@@ -110,6 +110,10 @@ jobs:
     if: vars.SITE_PUBLISH == 'on' && (inputs.version != '' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # One publish at a time per folder, in order, so an older build never lands on a newer one.
+    concurrency:
+      group: site-publish-${{ needs.build.outputs.folder }}
+      cancel-in-progress: false
     permissions:
       contents: write # the gh-pages branch
     steps:
