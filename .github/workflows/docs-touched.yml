@@ -1,0 +1,51 @@
+name: Docs touched
+
+# A pull request people will notice, or one that changes a setting, also changes the docs or says
+# why not (scripts/check-docs-touched.ts, docs/development.md "The docs follow the change"). The
+# docs are published per release, so a change that skips them leaves that release's docs wrong.
+# Apart from CI, so that editing the description runs it again without running CI again.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: docs-touched-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: The docs follow the change
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The change on top of its base, and the base: the base branch's copy of the check judges
+          # the change, so a pull request cannot loosen it. Only the one that adds it runs its own.
+          fetch-depth: 2
+          sparse-checkout: |
+            scripts/check-docs-touched.ts
+            .nvmrc
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: The changed files, the title and the description (scripts/check-docs-touched.ts)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if git cat-file -e HEAD^1:scripts/check-docs-touched.ts 2>/dev/null; then
+            git show HEAD^1:scripts/check-docs-touched.ts > "$RUNNER_TEMP/check-docs-touched.ts"
+          else
+            cp scripts/check-docs-touched.ts "$RUNNER_TEMP/check-docs-touched.ts"
+          fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename' \
+            | node "$RUNNER_TEMP/check-docs-touched.ts"

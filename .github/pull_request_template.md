@@ -25,6 +25,7 @@
 ## Before you send it
 
 - [ ] The words people read follow `docs/design/copy.md` and the names in `src/domain/words.ts`
+- [ ] The docs follow the change: a page under `docs/` changed, or a line here says why not, such as `No docs change: nothing a reader sees changed.`
 - [ ] The description makes sense to a stranger: it links only to files in this repository, issues and public pages
 - [ ] No real access keys, passwords or personal data, in the code or in the examples
 - [ ] Shared components you reused, and any token you added, are named here: <!-- e.g. Button, Sheet; token `--mark-add` -->

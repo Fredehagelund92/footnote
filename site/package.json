@@ -1,0 +1,51 @@
+{
+  "name": "footnote-site",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "dev:landing": "ASTRO_TELEMETRY_DISABLED=1 astro dev --config astro.landing.config.ts",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build --config astro.landing.config.ts && ASTRO_TELEMETRY_DISABLED=1 astro build && node scripts/check-site.ts",
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview --config astro.landing.config.ts",
+    "typecheck": "ASTRO_TELEMETRY_DISABLED=1 astro check",
+    "lint": "oxlint --deny-warnings",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:smoke": "playwright test",
+    "capture": "node scripts/capture.ts"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "7.3.8",
+    "@astrojs/starlight": "0.42.10",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/nunito-sans": "5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "5.3.0",
+    "@fontsource-variable/source-serif-4": "5.3.1",
+    "@fontsource/outfit": "5.3.0",
+    "astro": "7.4.11",
+    "mdast-util-from-markdown": "2.1.0",
+    "mdast-util-gfm": "3.1.0",
+    "micromark-extension-gfm": "3.0.0",
+    "sharp": "0.35.5",
+    "unist-util-visit": "5.2.0",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.0",
+    "@types/mdast": "4.0.4",
+    "@types/node": "26.6.6",
+    "oxlint": "1.93.0",
+    "playwright-core": "1.65.0",
+    "prettier": "3.10.1",
+    "typescript": "6.0.3",
+    "vfile": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

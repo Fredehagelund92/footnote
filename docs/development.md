@@ -229,7 +229,7 @@ tests/
 docs/help/            the documentation, Markdown, shown at /docs and as the static docs site (npm run docs:build)
 db/              migrations, grants, prepare.ts (npm run db:migrate) and seed/ (npm run seed, the demo Cube model)
 compose.yaml      docker compose up: PostgreSQL 18, the service and the web app, from Dockerfile and docker/
-apps/docs/        the public docs site, built from the pages in docs/ that are ready for readers: its own package (apps/docs/README.md)
+site/             the public site: the landing page, and the docs from the pages in docs/ that are ready for readers: its own package (site/README.md)
 ```
 
 ### Why this layout
@@ -261,7 +261,7 @@ belongs to both sides. The service lives in `src/server`, next to `src/web`, wit
 | `npm run db:snapshot`                     | The demo as a file, for a database without a superuser such as Neon: `take`, `restore` and `reset` (see [Run the demo on Vercel and Neon](vercel.md))                                                           |
 | `npm run start:server`                    | The service without the file watcher                                                                                                                                                                            |
 | `npm run build` / `npm run preview`       | Type check, then a production build of the web app in `dist/web` (`VITE_API_MODE=http` for the build that ships) / serve that build at http://localhost:4173                                                    |
-| `npm run site:dev` / `npm run site:build` | The public docs site (`apps/docs`, after `npm --prefix apps/docs ci`) at http://localhost:4321 / built in `apps/docs/dist`, with every link checked                                                             |
+| `npm run site:dev` / `npm run site:build` | The public site (`site`, after `npm --prefix site ci`): its docs at http://localhost:4321/docs/ / the landing page and the docs built in `site/dist`, with every link checked                                   |
 | `npm run build:vercel`                    | The web app is built and the service is bundled into one file (only the service goes into that file), for Vercel (see [Run the demo on Vercel and Neon](vercel.md))                                             |
 | `npm run size`                            | Builds the web app as it ships (http mode) and checks its first load against the budget, with the bytes, the budget and the margin; `node scripts/check-bundle-size.mjs` checks the build already in `dist/web` |
 | `npm run typecheck`                       | `tsc` for the app, the service, and the config and test code                                                                                                                                                    |
@@ -288,8 +288,10 @@ request cancels the run it replaces; runs on `main` and at night always finish.
 
 Three more workflows make releases ([Releasing Footnote](releasing.md)): `release-please.yml` keeps the
 release pull request current after every push to `main`, `release.yml`
-builds and publishes a release when a maintainer pushes a version tag, and `docs-site.yml` builds
-the public docs site, for a release and for every push to `main` that changes it.
+builds and publishes a release when a maintainer pushes a version tag, and `site.yml` builds
+the public site, for a release and for every push to `main` that changes it. `docs-touched.yml`
+checks that a pull request people will notice changes the docs too
+([The docs follow the change](#the-docs-follow-the-change)).
 
 `demo-images.yml` builds `main`'s images every night at 04:41 UTC, starts the demo from them with
 `docker compose up`, and runs the demo journey and the eight demo questions
@@ -304,12 +306,16 @@ A pull request takes the highest tier any of its files falls in.
 
 | Tier      | Paths                                                                                                                                                                                                                                   | What runs                                                                                                             |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Docs      | `docs/**`, `apps/docs/**` and Markdown files outside `src`, `tests`, `scripts` and `apps`, except the three folders the apps read: `docs/help`, `docs/templates` and `docs/api`                                                         | Type check, lint, plain words, format, unit tests (the docs check among them), build and the docs site with its links |
+| Docs      | `docs/**` and Markdown files outside `src`, `tests`, `scripts` and `site`, except the three folders the apps read: `docs/help`, `docs/templates` and `docs/api`                                                                         | Type check, lint, plain words, format, unit tests (the docs check among them) and build                               |
 | Medium    | Anything else: the web app, the domain, the contract, the tests, scripts and configuration                                                                                                                                              | Every app job: the checks, the service tests, the golden job specs in both modes, the demo install, the Docker images |
 | Sensitive | `db/**`, `src/server/**`, any path with `auth`, `sign-in`, `mcp` or `security` in it, `SECURITY.md`, `.gitleaks.toml`, `osv-scanner.toml`, `.github/**`, every `package.json` and `package-lock.json`, `.nvmrc`, `.npmrc`, Docker files | Everything                                                                                                            |
 
 Every tier also runs the security scan (known vulnerabilities in dependencies, and secrets in the
-history), the held-out seal and the migration numbers check. A path no rule names counts as Medium,
+history), the held-out seal, the migration numbers check and **The site**: the public site's own
+package ([site](../site/README.md)), type checked, linted, unit tested, built as it is published
+and at the root of a host with every link checked, then smoke tested in a browser. It runs in every
+run because the site reads the docs, the app's icons and the files its landing page cites. A change
+that touches only `site/` takes no tier, so it runs these jobs and no others. A path no rule names counts as Medium,
 and an empty change runs everything, so a gap in the rules runs more, never less. Change the rules
 in `.github/scripts/ci-scope.sh`; a change there is itself Sensitive.
 
@@ -318,6 +324,25 @@ one): the checks in two jobs, the service tests in two parts, and the golden job
 parts on the mock build and four in http mode. Every job stops after 25 minutes at most, so a hung
 part fails instead of holding the run. The first load check writes the measured sizes, the growth, the
 ceilings and the margins to its job's summary page.
+
+### The docs follow the change
+
+The docs are published once per release ([Releasing Footnote](releasing.md#the-site)), so a change
+that skips them leaves that release's docs wrong. **The docs follow the change**
+(`.github/workflows/docs-touched.yml`, `scripts/check-docs-touched.ts`) fails a pull request that
+people will notice, or that changes a setting, when nothing under `docs/` changed and the
+description does not say why:
+
+- people will notice what reaches the release notes: a title that starts `feat`, `fix` or `perf`,
+  any title with a `!`, or a description with a `BREAKING CHANGE:` or
+  `BREAKING-CHANGE:` line ([the version number and the changelog](releasing.md#the-version-number-and-the-changelog));
+- a setting is `.env.example` or the service's settings in `src/server/config`;
+- to say why not, add a line to the description, such as
+  `No docs change: the error message was already the one the docs show.`
+
+It cannot tell whether the docs that changed are the right ones; the review does that. It runs
+apart from CI, so editing the title or the description runs it again in seconds. The base
+branch's copy judges the change, so a pull request cannot loosen it.
 
 ### Migration numbers
 

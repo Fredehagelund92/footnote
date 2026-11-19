@@ -18,10 +18,10 @@ another typeface.
 The **lockup** is the symbol, then the wordmark centred on the symbol's height. It comes in two
 proportions, both from the owner's mockup:
 
-| Lockup  | Symbol | Gap | Wordmark             | `viewBox`     | Used                              |
-| ------- | ------ | --- | -------------------- | ------------- | --------------------------------- |
-| App     | 26     | 9   | 24, tracked -0.03em  | `0 0 125 26`  | Everywhere in the app, docs site  |
-| Display | 104    | 22  | 76, tracked -0.035em | `0 0 408 104` | The README and the social preview |
+| Lockup  | Symbol | Gap | Wordmark             | `viewBox`     | Used                                      |
+| ------- | ------ | --- | -------------------- | ------------- | ----------------------------------------- |
+| App     | 26     | 9   | 24, tracked -0.03em  | `0 0 125 26`  | Everywhere in the app and the public site |
+| Display | 104    | 22  | 76, tracked -0.035em | `0 0 408 104` | The README and the social preview         |
 
 The **tile** is the symbol in white at 40 of 64 on #111111, with corners of 16 of 64. An accent
 tile, the symbol in #A3470E on white with a 1 pixel #E6E6E6 border, is drawn in the mockup for
@@ -35,11 +35,12 @@ uses outside the product; the app never shows it (see Usage).
 | Sidebar, folded to the rail  | The symbol              | 20 by 20, in the same place. Clicking it expands the sidebar                                                                |
 | Phone menu sheet             | The lockup              | The same 20 high, in the sheet's 56 pixel header, on a 44 pixel target. The phone header itself shows no logo               |
 | Sign-in, consent, signed out | The lockup              | 32 high (about 154 wide), on the content column, 24 above the heading                                                       |
-| The app's Docs and docs site | The lockup              | 20 high, then a hairline and "Docs"                                                                                         |
+| The app's Docs               | The lockup              | 20 high, then a hairline and "Docs"                                                                                         |
+| The public site's header     | The lockup              | Its own size, 26 high, as on the landing page; in the docs, then a hairline and "Docs" (`site/shared/Brand.astro`)          |
 | Favicon and touch icon       | The tile                | Below                                                                                                                       |
 | Web app manifest             | The tile                | 192 and 512, and a 512 full square for masking                                                                              |
 | README on GitHub             | The display lockup      | 56 high, the light or the dark file by the reader's colour scheme (`docs/images`)                                           |
-| Social preview               | Display lockup, tagline | 1280 by 640, set in the repository settings and the docs site's `og:image`; the lockup 130 high, the tagline under it       |
+| Social preview               | Display lockup, tagline | 1280 by 640, set in the repository settings and the public site's `og:image`; the lockup 130 high, the tagline under it     |
 | Owner avatar                 | The tile, a full square | 500, the symbol 312 of 500                                                                                                  |
 
 The link home is named "Footnote". In the sidebar the symbol and the lockup are decorative SVGs

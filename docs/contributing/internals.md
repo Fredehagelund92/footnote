@@ -2,7 +2,7 @@
 
 The published docs are written for people who want to do something. What they leave out lives here: requirement ids, design reasons, source paths and how things came to be. None of these pages is on the docs site, and they are free to name all of that.
 
-When a reader page changes, change the matching page here in the same pull request, and keep ids out of the reader page (the [reader check](../../apps/docs/README.md#ready-for-readers) fails on them).
+When a reader page changes, change the matching page here in the same pull request, and keep ids out of the reader page (the [reader check](../../site/README.md#ready-for-readers) fails on them).
 
 ## Where things went
 
@@ -80,12 +80,12 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 
 ## Scanning and the restore drill
 
-- `.github/workflows/security.yml` runs from the CI workflow, and the CI gate needs it. It covers `package-lock.json` and `apps/docs/package-lock.json`, with exceptions in `osv-scanner.toml`, and `.gitleaks.toml` (the default rules, the private-profile marker and the made-up keys the tests must recognise). The marker rule is proved on two files the workflow writes, one with the marker and one without, since no file in the repository may carry it.
+- `.github/workflows/security.yml` runs from the CI workflow, and the CI gate needs it. It covers `package-lock.json` and `site/package-lock.json`, with exceptions in `osv-scanner.toml`, and `.gitleaks.toml` (the default rules, the private-profile marker and the made-up keys the tests must recognise). The marker rule is proved on two files the workflow writes, one with the marker and one without, since no file in the repository may carry it.
 - Run the scans locally:
 
   ```sh
   npm audit signatures
-  osv-scanner scan source --lockfile package-lock.json --lockfile apps/docs/package-lock.json --config osv-scanner.toml
+  osv-scanner scan source --lockfile package-lock.json --lockfile site/package-lock.json --config osv-scanner.toml
   gitleaks git --config .gitleaks.toml .
   ```
 

@@ -1,0 +1,570 @@
+/*
+  The docs in the landing page's design (site/README.md, "The design"): its tokens
+  (shared/tokens.css) under Starlight's names, its header and footer (shared/chrome.css), and its
+  marks and notes for the pages. A page is a white sheet beside the paper of the sidebar. Values
+  come from the tokens; this file holds the mapping and the few shapes Starlight draws its own way.
+*/
+
+:root,
+::backdrop {
+  --sl-color-white: var(--ink);
+  --sl-color-gray-1: var(--ink);
+  --sl-color-gray-2: var(--ink-2);
+  --sl-color-gray-3: var(--ink-3);
+  --sl-color-gray-4: var(--ink-3);
+  --sl-color-gray-5: var(--rule-2);
+  --sl-color-gray-6: var(--rule);
+  --sl-color-gray-7: var(--paper);
+  --sl-color-black: var(--sheet);
+
+  --sl-color-accent-low: var(--mark-soft);
+  --sl-color-accent: var(--mark);
+  --sl-color-accent-high: var(--mark);
+
+  --sl-color-text: var(--ink-2);
+  --sl-color-text-accent: var(--mark);
+  --sl-color-text-invert: var(--sheet);
+  --sl-color-bg: var(--sheet);
+  --sl-color-bg-nav: color-mix(in srgb, var(--sheet) 88%, transparent);
+  --sl-color-bg-sidebar: var(--paper);
+  --sl-color-bg-inline-code: var(--paper);
+  --sl-color-bg-accent: var(--mark);
+  --sl-color-hairline-light: var(--rule);
+  --sl-color-hairline: var(--rule);
+  --sl-color-hairline-shade: var(--rule);
+
+  --sl-font: var(--sans);
+  --sl-font-mono: var(--mono);
+
+  --sl-text-body: 1.0625rem;
+  --sl-line-height: 1.6;
+  --sl-line-height-headings: 1.15;
+  --sl-text-h1: clamp(1.8125rem, 3.2vw, 2.5rem);
+  --sl-text-h2: 1.625rem;
+  --sl-text-h3: 1.1875rem;
+  --sl-text-h4: 1.0625rem;
+  --sl-text-h5: 1rem;
+
+  --sl-nav-height: 62px;
+  --sl-sidebar-width: 17rem;
+  --sl-content-width: 45rem;
+}
+
+/* Starlight sets these again from 50em up, inside its own layer. */
+@media (min-width: 50em) {
+  :root {
+    --sl-nav-height: 62px;
+    --sl-text-h1: clamp(1.8125rem, 3.2vw, 2.5rem);
+    --sl-text-h2: 1.625rem;
+    --sl-text-h3: 1.1875rem;
+    --sl-text-h4: 1.0625rem;
+  }
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--hl);
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mark);
+  outline-offset: 2px;
+}
+
+/* The header: frosted like the landing page's, with its logo, links, theme button and Install. */
+.page > .header {
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+}
+
+.footnote-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.footnote-title-rule {
+  width: 1px;
+  height: 18px;
+  background: var(--rule-2);
+}
+
+.footnote-title-docs {
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.footnote-title-docs:hover {
+  color: var(--ink);
+}
+
+header .right-group {
+  gap: 10px;
+}
+
+/* The links take the place of Starlight's icons, so the hairline after them goes too. */
+header .social-icons::after {
+  content: none;
+}
+
+.footnote-nav {
+  margin-left: 0;
+  padding-right: 6px;
+}
+
+.mobile-preferences {
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-preferences .social-icons {
+  padding-block: 0.75rem;
+}
+
+@media (min-width: 50em) {
+  site-search button[data-open-modal] {
+    height: 36px;
+    border: 1px solid var(--rule-2);
+    border-radius: 9px;
+    background: var(--sheet);
+    color: var(--ink-3);
+    font-size: 15px;
+  }
+
+  site-search button[data-open-modal]:hover {
+    border-color: var(--ink-3);
+    color: var(--ink-2);
+  }
+}
+
+site-search dialog {
+  border-radius: 16px;
+}
+
+site-search dialog:focus-visible {
+  outline: 0;
+}
+
+site-search mark {
+  background: var(--hl);
+  color: inherit;
+}
+
+/* The menu button on a phone, as the landing page's icon buttons. */
+.sl-menu-button {
+  --sl-menu-button-size: 36px;
+  border: 1px solid var(--rule-2);
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-2);
+}
+
+:root[data-theme] .sl-menu-button {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+:root[data-theme] .sl-menu-button:has(~ :popover-open) {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+footnote-version[hidden] {
+  display: none;
+}
+
+/* The version switcher, framed as the landing page's small buttons beside it. */
+footnote-version label {
+  color: var(--ink-2);
+}
+
+footnote-version select {
+  width: var(--sl-select-width);
+  height: 36px;
+  margin-inline: 0;
+  border: 1px solid var(--rule-2);
+  border-radius: 9px;
+  background: var(--sheet);
+  padding-block: 0;
+  padding-inline: 1.875rem 1.75rem;
+  font-size: 14px;
+}
+
+footnote-version label:hover select {
+  border-color: var(--ink-3);
+}
+
+footnote-version option {
+  background: var(--sheet);
+  color: var(--ink);
+}
+
+footnote-version .label-icon {
+  inset-inline-start: 0.625rem;
+}
+
+footnote-version .caret {
+  inset-inline-end: 0.375rem;
+}
+
+/* The sidebar: quiet rows on the paper, the current one on the sheet. */
+.sidebar-content {
+  --sl-sidebar-item-padding-inline: 0.625rem;
+}
+
+.sidebar-content ul ul li {
+  border-inline-start: 0;
+}
+
+.sidebar-content .large {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.sidebar-content ul a {
+  border-radius: 9px;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.sidebar-content ul a:hover,
+.sidebar-content ul a:focus-visible {
+  color: var(--ink);
+}
+
+.sidebar-content ul a[aria-current='page'],
+.sidebar-content ul a[aria-current='page']:hover,
+.sidebar-content ul a[aria-current='page']:focus {
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (min-width: 50em) {
+  .sidebar-pane {
+    border-inline-end: 1px solid var(--rule);
+  }
+}
+
+/* "On this page": the notes column of a page, in the notes' serif. */
+starlight-toc a,
+mobile-starlight-toc a {
+  color: var(--ink-3);
+}
+
+starlight-toc a[aria-current='true'],
+mobile-starlight-toc a[aria-current='true'] {
+  color: var(--mark);
+}
+
+/* A page: the title as the landing page's headings, then a lead in the sans, as its ledes. */
+.content-panel + .content-panel {
+  border-top: 0;
+}
+
+.sl-container:has(h1#_top) {
+  margin-bottom: -2rem;
+}
+
+h1#_top {
+  color: var(--ink);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.sl-markdown-content > p:first-child,
+.footnote-lead {
+  color: var(--ink-2);
+  font-size: 1.1875rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.sl-markdown-content :is(h2, h3, h4) {
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.sl-markdown-content h2 {
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+
+.sl-markdown-content :is(h3, h4) {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.sl-markdown-content p,
+.sl-markdown-content li {
+  text-wrap: pretty;
+}
+
+/* Links read as text with a blue underline, as on the landing page. */
+.sl-markdown-content a:not(.sl-anchor-link) {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--mark) 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.sl-markdown-content a:not(.sl-anchor-link):hover {
+  color: var(--mark);
+  text-decoration-color: var(--mark);
+}
+
+.sl-markdown-content strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sl-markdown-content code:not(pre code) {
+  margin: 0;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.0625rem 0.3125rem;
+  color: var(--ink);
+  font-size: 0.875em;
+}
+
+.sl-markdown-content mark {
+  background: linear-gradient(var(--hl), var(--hl)) 0 88% / 100% 42% no-repeat;
+  color: inherit;
+}
+
+.sl-markdown-content table {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.sl-markdown-content th {
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sl-markdown-content th,
+.sl-markdown-content td,
+.sl-markdown-content th:first-child,
+.sl-markdown-content td:first-child {
+  padding: 0.625rem 1rem;
+}
+
+.sl-markdown-content tr td {
+  border-top: 1px solid var(--rule);
+  border-bottom: 0;
+  vertical-align: top;
+}
+
+.sl-markdown-content tbody tr:first-child td {
+  border-top: 0;
+}
+
+/* On a phone a table stands as one block per row, so a long cell keeps the width of the page. */
+@media (max-width: 40em) {
+  .sl-markdown-content table,
+  .sl-markdown-content tbody,
+  .sl-markdown-content tr,
+  .sl-markdown-content td {
+    display: block;
+  }
+
+  .sl-markdown-content thead {
+    display: none;
+  }
+
+  .sl-markdown-content tr {
+    padding: 0.75rem 1rem;
+  }
+
+  .sl-markdown-content tr + tr {
+    border-top: 1px solid var(--rule);
+  }
+
+  .sl-markdown-content td,
+  .sl-markdown-content td:first-child,
+  .sl-markdown-content tr td {
+    border: 0;
+    padding: 0;
+  }
+
+  .sl-markdown-content td:first-child {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .sl-markdown-content td + td {
+    margin-top: 0.25rem;
+  }
+
+  /* The heading row is gone, so each cell says its column (lib/remark-footnote-docs.ts). */
+  .sl-markdown-content td + td[data-label]::before {
+    color: var(--ink-3);
+    content: attr(data-label) ': ';
+  }
+}
+
+/*
+  A note (a quote whose first words are its title in bold, lib/remark-footnote-docs.ts) is set as
+  the landing page's margin notes: the serif, beside a blue rule. A quote is the same, without the
+  title.
+*/
+.footnote-note,
+.sl-markdown-content blockquote {
+  border: 0;
+  border-left: 2px solid var(--mark-soft);
+  background: none;
+  padding: 2px 0 2px 16px;
+  color: var(--ink-2);
+  font: 400 1rem/1.55 var(--serif);
+  font-style: normal;
+}
+
+.footnote-note > * + * {
+  margin-top: 0.5rem;
+}
+
+.footnote-note > p:first-child > strong:first-child {
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+/* Footnotes in a page: the landing page's blue marks, and their notes at the end of the page. */
+.sl-markdown-content sup a[data-footnote-ref] {
+  color: var(--mark);
+  font-family: var(--sans);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sl-markdown-content section[data-footnotes] {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+  color: var(--ink-2);
+  font: 400 0.875rem/1.5 var(--serif);
+}
+
+.sl-markdown-content section[data-footnotes] li::marker {
+  color: var(--mark);
+  font-family: var(--sans);
+  font-weight: 700;
+}
+
+.sl-markdown-content section[data-footnotes] li:target {
+  border-radius: 6px;
+  background: var(--mark-soft);
+  box-shadow: -6px 0 0 6px var(--mark-soft);
+}
+
+/* Previous and next, and the asides: the landing page's cards. */
+.pagination-links a {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: none;
+  background: var(--sheet);
+}
+
+.pagination-links a:hover {
+  border-color: var(--ink-3);
+}
+
+.pagination-links .link-title {
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.starlight-aside {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.sl-banner {
+  background: var(--mark-soft);
+  color: var(--ink);
+}
+
+.sl-banner a {
+  color: var(--ink);
+}
+
+/* The landing page's footer, under the page's own column. */
+.sl-container .foot {
+  margin-top: 3rem;
+  padding-inline: 0;
+}
+
+/* The home of the docs: each group's pages with their one line. */
+.footnote-group {
+  margin-top: 2.5rem;
+}
+
+.footnote-group h2 {
+  color: var(--ink);
+  font-size: 1.1875rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.footnote-group ul {
+  display: grid;
+  gap: 0 40px;
+  margin-top: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.footnote-group li {
+  display: grid;
+  gap: 0.25rem;
+  align-content: start;
+  margin: 0;
+  border-top: 1px solid var(--rule);
+  padding: 0.875rem 0 1rem;
+}
+
+.footnote-group li a {
+  font-weight: 600;
+}
+
+.footnote-group span {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+@media (min-width: 40em) {
+  .footnote-group ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The shortcut's keys on their chip, dark enough to read in both themes. */
+site-search kbd {
+  color: var(--ink-2);
+}

@@ -4,9 +4,12 @@
 # FULL=true (a push to main, the nightly run, a manual run or the full-ci label) runs everything.
 #
 #   sensitive  db, the service, sign-in, MCP, security files, workflows, packages: everything runs
-#   docs       prose nothing in the app reads, and the docs site (apps/docs): only the checks (type
-#              check, lint, unit tests, build), which build the site and check its links
+#   docs       prose nothing in the app reads: only the checks (type check, lint, unit tests,
+#              build)
 #   code       anything else: every job that runs the code
+#
+# The site (site/) is not a tier: its own job runs in every run (site/README.md), so a change that
+# touches only the site needs none of these.
 #
 # A path that matches no rule counts as code, and an empty list runs everything, so a mistake here
 # runs more, never less.
@@ -22,16 +25,16 @@ while IFS= read -r path; do
   [ -n "$path" ] || continue
   seen=true
   case "$path" in
+    site/*)
+      ;;
     db/* | src/server/* | *auth* | *sign-in* | *mcp* | *security* | *SECURITY* | \
       .gitleaks.toml | osv-scanner.toml | .github/* | package*.json | */package*.json | \
       .nvmrc | .npmrc | Dockerfile | docker/* | compose.yaml)
       sensitive=true ;;
-    apps/docs/*)
-      docs=true ;;
     # The help pages, the templates and the API description are read by the app and its tests.
     docs/help/* | docs/templates/* | docs/api/*)
       code=true ;;
-    src/* | tests/* | scripts/* | apps/*)
+    src/* | tests/* | scripts/*)
       code=true ;;
     docs/* | *.md | LICENSE)
       docs=true ;;

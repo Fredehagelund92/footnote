@@ -13,8 +13,9 @@ One setting holds the name people and agents read: `FOOTNOTE_PRODUCT_NAME`, defa
   stops the start (`src/server/config/env.ts`).
 - The web build reads the same variable (`envPrefix` in `vite.config.ts`, `src/web/lib/brand.ts`),
   and so does the page title in `src/web/index.html`. Set it for both.
-- The documentation in `docs/help` names no product ([copy](design/copy.md)), and the docs site
-  (`apps/docs`) reads the same setting and default.
+- The documentation in `docs/help` names no product ([copy](design/copy.md)), and the public site
+  (`site`) reads the same setting and default for the docs' titles and the logo. The landing page's
+  own words say Footnote.
 
 A label needs no name: the reader already knows which product they are in, so it says "Back",
 "Add to your agent" or "Reads", not the name. A sentence that reads wrongly without it ("Sign in
@@ -38,8 +39,10 @@ A name a machine, a file or a stored record depends on is fixed and does not fol
   `footnote.edition/1`;
 - the MCP server id `footnote`, the field `footnote_adds` in the tools' results, and the command
   `npm run footnote`;
-- the npm packages `footnote` and `footnote-docs`, the compose project, service and volumes, and
-  the images `ghcr.io/fredehagelund92/footnote` and `footnote-web`.
+- the npm packages `footnote` and `footnote-site`, the compose project, service and volumes, and
+  the images `ghcr.io/fredehagelund92/footnote` and `footnote-web`;
+- the public site's theme key in the browser, `footnote-theme`, and the docs' tarball
+  `footnote-docs-<version>.tar.gz`.
 
 The database roles keep their own name, `context_layer_*`, which never named the product.
 
@@ -62,7 +65,7 @@ does them:
 
 - **Rename the GitHub repository** to `footnote`. The code already links to
   `Fredehagelund92/footnote`; until the rename those links lead nowhere. GitHub then forwards the
-  old address. The docs site (`DOCS_ROOT` in `.github/workflows/docs-site.yml`) and the clone in
+  old address. The public site (`SITE_URL` in `.github/workflows/site.yml`) and the clone in
   `tests/image/git-markdown.sh` follow the repository's name on their own.
 - **Rename before the first release.** A release pushes its images under the repository's name
   (`.github/workflows/release.yml`), so a release made before the rename would push them where
@@ -76,7 +79,7 @@ does them:
 ## When the name changes
 
 1. Change `DEFAULT_PRODUCT_NAME` (`src/domain/brand.ts`), or set `FOOTNOTE_PRODUCT_NAME` where the
-   service runs and where the web app and the docs site (`apps/docs`) are built, and rebuild.
+   service runs and where the web app and the public site (`site`) are built, and rebuild.
 2. Run `npm test`: the brand tests confirm the MCP text says the new name.
 3. Replace the brand assets ([logo](design/logo.md)). Renaming the technical names above is a
    change of its own, with no old name read in their place.

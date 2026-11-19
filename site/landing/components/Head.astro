@@ -1,0 +1,38 @@
+---
+import { themeScript } from '../../shared/theme.ts'
+import { readSettings } from '../../lib/settings.ts'
+import serif from '@fontsource-variable/source-serif-4/files/source-serif-4-latin-opsz-normal.woff2?url'
+import sans from '@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url'
+
+/* The head of a landing page: the theme before the first paint, the icons, and the two fonts the
+   opening lines are set in, fetched first. */
+interface Props {
+  title: string
+  description: string
+}
+
+const { site, root } = readSettings(process.env)
+const canonical = site ? new URL(Astro.url.pathname, site).href : undefined
+// From the repository, as GitHub shows it: an image the site does not have to carry.
+const socialPreview =
+  'https://raw.githubusercontent.com/Fredehagelund92/footnote/main/docs/images/footnote-social-preview.png'
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{Astro.props.title}</title>
+<meta name="description" content={Astro.props.description} />
+<script is:inline set:html={themeScript} />
+<script is:inline>
+  document.documentElement.classList.add('js')
+</script>
+<link rel="icon" href={`${root}/favicon.svg`} type="image/svg+xml" />
+<link rel="icon" href={`${root}/favicon.ico`} sizes="32x32" />
+<link rel="apple-touch-icon" href={`${root}/apple-touch-icon.png`} />
+<link rel="preload" href={serif} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={sans} as="font" type="font/woff2" crossorigin />
+{canonical && <link rel="canonical" href={canonical} />}
+<meta property="og:title" content={Astro.props.title} />
+<meta property="og:description" content={Astro.props.description} />
+<meta property="og:image" content={socialPreview} />
+<meta name="twitter:card" content="summary_large_image" />

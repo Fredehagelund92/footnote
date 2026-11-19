@@ -222,11 +222,11 @@ source, and its owner checks it. It doesn't watch people: it counts questions by
 |                                                         | [Set up company sign-in](docs/company-sign-in.md): OpenID Connect, and who may sign in           |
 |                                                         | [Administer the service](docs/administration.md): settings, the history log, import and export   |
 
-<!-- Docs site: when it is published, add this line:
-Read these as a site at [fredehagelund92.github.io/footnote](https://fredehagelund92.github.io/footnote/). -->
+<!-- The public site: when it is published, add this line:
+Read these as a site at [fredehagelund92.github.io/footnote/docs](https://fredehagelund92.github.io/footnote/docs/). -->
 
-The help pages are also the app's own Docs, at `/docs`, and [the docs site](apps/docs/README.md), which isn't
-published yet: `npm run site:dev` runs it on your computer. [Requirements](docs/requirements.md) says what Footnote must
+The help pages are also the app's own Docs, at `/docs`, and the docs of [the public site](site/README.md), with
+its landing page, which isn't published yet: `npm run site:build` builds it on your computer. [Requirements](docs/requirements.md) says what Footnote must
 do, and [Build a connector](docs/connectors/authoring.md) how to read another source.
 
 The [documentation index](docs/README.md) lists every page. The [product page](docs/product.md) and the

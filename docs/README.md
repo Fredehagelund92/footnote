@@ -28,17 +28,17 @@ Older design pages that still apply:
 
 ## Use Footnote
 
-| Page                                               | What it says                                                      |
-| -------------------------------------------------- | ----------------------------------------------------------------- |
-| [Get started](help/get-started.md)                 | The six steps to your first checked answer, in about ten minutes  |
-| [Write context](help/write-context.md)             | What a context item is and what to put in it                      |
-| [Connect an agent](help/connect-an-agent.md)       | One prompt for Claude, Cursor or another agent                    |
-| [Review a suggestion](help/review-a-suggestion.md) | The quick view, the review, and publishing or returning           |
-| [All help pages](help/README.md)                   | The documentation, which is also the app's Docs and the docs site |
+| Page                                               | What it says                                                        |
+| -------------------------------------------------- | ------------------------------------------------------------------- |
+| [Get started](help/get-started.md)                 | The six steps to your first checked answer, in about ten minutes    |
+| [Write context](help/write-context.md)             | What a context item is and what to put in it                        |
+| [Connect an agent](help/connect-an-agent.md)       | One prompt for Claude, Cursor or another agent                      |
+| [Review a suggestion](help/review-a-suggestion.md) | The quick view, the review, and publishing or returning             |
+| [All help pages](help/README.md)                   | The documentation, which is also the app's Docs and the public docs |
 
 ## Run Footnote
 
-The docs site publishes these, and their words follow the [reader check](../apps/docs/README.md#ready-for-readers).
+The public site publishes these, and their words follow the [reader check](../site/README.md#ready-for-readers).
 
 | Page                                                    | What it says                                                           |
 | ------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -53,7 +53,7 @@ The docs site publishes these, and their words follow the [reader check](../apps
 
 ## Connect Footnote
 
-Published on the docs site too.
+Published on the public site too.
 
 | Page                                                     | What it says                                         |
 | -------------------------------------------------------- | ---------------------------------------------------- |
@@ -72,24 +72,24 @@ Published on the docs site too.
 
 For contributors, in the repository only.
 
-| Page                                                                | What it says                                                         |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| [Internals](contributing/internals.md)                              | Where the requirement ids, reasons and source paths of each page are |
-| [The tools and the API in detail](contributing/api.md)              | Every tool and operation, with its requirements                      |
-| [Sign-in: how it works](contributing/sign-in.md)                    | The flows, the threat notes and the limits                           |
-| [The connector contract](contributing/connector-contract.md)        | What a connector declares and what the core does with it             |
-| [Connector security and egress](contributing/connector-security.md) | The rules, with the code that enforces them                          |
-| [The Cube connector: internals](contributing/cube-connector.md)     | Compilation, marks and tests                                         |
-| [Connectors as packages](connectors/packaging.md)                   | How a connector could ship on its own, later                         |
-| [The database](../db/README.md)                                     | Roles, grants, migrations and the data each feature keeps            |
-| [Templates](templates/)                                             | Item and test-question files, and prompts that turn notes into items |
-| [Evaluations and the golden set](evaluations.md)                    | How answers are tested                                               |
-| [Develop Footnote](development.md) and [its tests](testing.md)      | The repository, the commands and the tests                           |
-| [The public docs site](../apps/docs/README.md)                      | Which pages are published, and how, one version at a time            |
-| [Release Footnote](releasing.md)                                    | One version number, the release pull request and the tag             |
-| [The product name](product-name.md)                                 | Where the name appears, and what follows it                          |
-| [Contributing](../CONTRIBUTING.md)                                  | How to send a change, and the rules for people and agents            |
-| [Working with coding agents](agents.md)                             | Where an agent reads first, and what it may and may not do           |
+| Page                                                                | What it says                                                          |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [Internals](contributing/internals.md)                              | Where the requirement ids, reasons and source paths of each page are  |
+| [The tools and the API in detail](contributing/api.md)              | Every tool and operation, with its requirements                       |
+| [Sign-in: how it works](contributing/sign-in.md)                    | The flows, the threat notes and the limits                            |
+| [The connector contract](contributing/connector-contract.md)        | What a connector declares and what the core does with it              |
+| [Connector security and egress](contributing/connector-security.md) | The rules, with the code that enforces them                           |
+| [The Cube connector: internals](contributing/cube-connector.md)     | Compilation, marks and tests                                          |
+| [Connectors as packages](connectors/packaging.md)                   | How a connector could ship on its own, later                          |
+| [The database](../db/README.md)                                     | Roles, grants, migrations and the data each feature keeps             |
+| [Templates](templates/)                                             | Item and test-question files, and prompts that turn notes into items  |
+| [Evaluations and the golden set](evaluations.md)                    | How answers are tested                                                |
+| [Develop Footnote](development.md) and [its tests](testing.md)      | The repository, the commands and the tests                            |
+| [The public site](../site/README.md)                                | The landing page, and which docs are published, one version at a time |
+| [Release Footnote](releasing.md)                                    | One version number, the release pull request and the tag              |
+| [The product name](product-name.md)                                 | Where the name appears, and what follows it                           |
+| [Contributing](../CONTRIBUTING.md)                                  | How to send a change, and the rules for people and agents             |
+| [Working with coding agents](agents.md)                             | Where an agent reads first, and what it may and may not do            |
 
 ## The order of authority
 

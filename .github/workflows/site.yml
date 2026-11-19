@@ -1,0 +1,152 @@
+name: Site
+
+# The public site (site/README.md): the landing page at the root, and the docs under /docs/, one
+# folder per minor release, /docs/MAJOR.MINOR/, built at its tag when release.yml calls this
+# workflow, and /docs/next/, built from main, which search engines are told to leave alone. The
+# landing page at the root follows main. A team without internet access gets the release's copy
+# from its GitHub Release: footnote-docs-<version>.tar.gz, built to be served at the root of a host.
+# Pull requests check the site in CI (ci.yml, the site job); this workflow builds what is published.
+#
+# Building changes nothing outside this run. Publishing pushes to the gh-pages branch and only runs
+# when the repository variable SITE_PUBLISH is on: a maintainer's decision, not a merge's
+# (docs/releasing.md, "The site"). Nothing here turns on GitHub Pages or sets a domain.
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - site/**
+      - src/domain/brand.ts
+      - src/domain/docs.ts
+      - src/web/public/**
+      - .github/scripts/publish-site.sh
+      - .github/workflows/site.yml
+  workflow_call:
+    inputs:
+      version:
+        description: The release, MAJOR.MINOR.PATCH. The tag being built must name it.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Rebuild one published release's docs at its tag, MAJOR.MINOR.PATCH. Empty builds main.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+# Where the landing page is served, the one setting the whole site's addresses come from. Unset,
+# it is the default GitHub Pages address, which follows the repository's name on a rename
+# (docs/product-name.md). For a custom domain, a maintainer sets the repository variable SITE_URL,
+# such as https://footnote.example. Each folder is built with that address in it and is never built
+# again by itself, so after changing SITE_URL or renaming the repository, run this workflow once on
+# main and once per published release with its version.
+env:
+  SITE_URL: ${{ vars.SITE_URL || format('https://fredehagelund92.github.io/{0}', github.event.repository.name) }}
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      folder: ${{ steps.where.outputs.folder }}
+    steps:
+      - name: Check the version names a release
+        if: inputs.version != ''
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "\"$VERSION\" is no release: write MAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version != '' && format('v{0}', inputs.version) || '' }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+        working-directory: site
+      - name: The docs folder and the reference this build is for
+        id: where
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$VERSION" ]; then
+            echo "folder=${VERSION%.*}" >> "$GITHUB_OUTPUT"
+            echo "ref=v$VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "folder=next" >> "$GITHUB_OUTPUT"
+            echo "ref=main" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the site, with the docs in their folder
+        working-directory: site
+        env:
+          DOCS_VERSION: ${{ steps.where.outputs.folder }}
+          DOCS_REF: ${{ steps.where.outputs.ref }}
+        run: npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site
+          path: site/dist
+          if-no-files-found: error
+          retention-days: 1
+      - name: Build the release's copy, served at the root of any host
+        if: inputs.version != ''
+        working-directory: site
+        env:
+          DOCS_REF: ${{ steps.where.outputs.ref }}
+          SITE_URL: ''
+          VERSION: ${{ inputs.version }}
+        run: |
+          npm run build
+          tar -czf "$RUNNER_TEMP/footnote-docs-$VERSION.tar.gz" --transform "s,^dist,footnote-docs-$VERSION," dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: inputs.version != ''
+        with:
+          name: docs-tarball
+          path: ${{ runner.temp }}/footnote-docs-${{ inputs.version }}.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish to the gh-pages branch
+    needs: build
+    # Off until a maintainer turns it on. /docs/next/ and the landing page only ever come from main.
+    if: vars.SITE_PUBLISH == 'on' && (inputs.version != '' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One publish at a time per folder, in order, so an older build never lands on a newer one.
+    concurrency:
+      group: site-publish-${{ needs.build.outputs.folder }}
+      cancel-in-progress: false
+    permissions:
+      contents: write # the gh-pages branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site
+          path: ${{ runner.temp }}/site
+      - name: Put the build in its place (.github/scripts/publish-site.sh)
+        env:
+          BUILT: ${{ runner.temp }}/site
+          FOLDER: ${{ needs.build.outputs.folder }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          bash .github/scripts/publish-site.sh "$BUILT" "$FOLDER"

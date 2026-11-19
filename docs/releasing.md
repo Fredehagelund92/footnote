@@ -1,7 +1,7 @@
 # Releasing Footnote
 
 How a version of Footnote is made: one version number, a release pull request that writes the
-changelog, and a tag that builds the images, the docs site and the GitHub Release. Only a
+changelog, and a tag that builds the images, the site and the GitHub Release. Only a
 maintainer merges the release pull request and pushes the tag; nothing is released by a merge alone.
 
 ## One version number
@@ -61,15 +61,15 @@ so in its notes.
       `docker compose -f compose.yaml -f compose.images.yaml up`. On that demo it runs the demo
       journey and the eight demo questions in a browser (`.github/workflows/demo-images.yml`).
       Until they pass, there is no GitHub Release;
-   7. it builds the docs site at the tag ([The docs site](#the-docs-site)), in parallel and apart
-      from the release, so a failed docs build never stops it;
+   7. it builds the site at the tag ([The site](#the-site)), in parallel and apart
+      from the release, so a failed site build never stops it;
    8. it creates the GitHub Release `Footnote 0.1.0`: its notes are the version's section of
       `CHANGELOG.md` (`scripts/release-notes.ts`) and the two images with their digests;
    9. it moves the release pull request's label from `autorelease: pending` to
       `autorelease: tagged`. release-please opens no new release pull request while a merged one
       is still pending;
-   10. a last job attaches the docs as `footnote-docs-0.1.0.tar.gz` to the release, only if the docs
-       build succeeded. If it failed, the run shows the failed docs job and a warning that the
+   10. a last job attaches the site as `footnote-docs-0.1.0.tar.gz` to the release, only if the site
+       build succeeded. If it failed, the run shows the failed site job and a warning that the
        tarball was not attached; the release and images are intact.
 
 The workflows use only the workflow's own token, with the least each job needs. No secret is
@@ -107,25 +107,25 @@ To choose the next number yourself, end the message of the squash commit with th
 notice, in the app's words, written by hand ([the help pages](help/README.md#whats-new)). Check
 that it is current before you merge a release pull request.
 
-## The docs site
+## The site
 
-`.github/workflows/docs-site.yml` builds the public docs site ([apps/docs](../apps/docs/README.md)):
+`.github/workflows/site.yml` builds the public site ([site](../site/README.md)): the landing page at the root and the docs under `/docs/`.
 
-- **A release** builds at its tag into `/vMAJOR.MINOR/`, and its links to repository files open at that tag. A patch release overwrites its minor's folder. Older folders are never built again, so an upgrade of the framework cannot break them.
-- **Every push to `main`** that changes the docs builds `/next/`, which tells search engines to leave it alone.
-- **The root** holds `versions.json`, which the version switcher reads, and a page that opens the newest release.
+- **A release** builds its docs at its tag into `/docs/MAJOR.MINOR/`, such as `/docs/0.1/`, and their links to repository files open at that tag. A patch release overwrites its minor's folder. Older folders are never built again, so a release's docs stay as they were at its tag, and an upgrade of the framework cannot break them.
+- **Every push to `main`** that changes the site or the docs builds `/docs/next/`, which tells search engines to leave it alone, and the landing page at the root. So a change to the docs shows in `/docs/next/` once it merges, and in a release's folder from that release on.
+- **`/docs/`** opens the newest release, and so does a page named without a version, such as `/docs/get-started/`, which is how the landing page links to the docs. `/docs/versions.json` lists the folders for the version switcher.
 
-Building changes nothing outside the run. Publishing pushes the folder to the `gh-pages` branch, which collects the versions (`.github/scripts/publish-docs.sh`), and it only runs when the repository variable `DOCS_PUBLISH` is `on`. Until then the workflow builds and stops, and each release still gets its tarball when the docs build succeeds. A failed docs build never stops the release: the tarball is skipped with a warning.
+Building changes nothing outside the run. Publishing pushes the build to the `gh-pages` branch, which collects the versions (`.github/scripts/publish-site.sh`), and it only runs when the repository variable `SITE_PUBLISH` is `on`. Until then the workflow builds and stops, and each release still gets its tarball when the site build succeeds. A failed site build never stops the release: the tarball is skipped with a warning.
 
 To publish for the first time, a maintainer decides, then:
 
-1. In **Settings, Secrets and variables, Actions, Variables**, adds `DOCS_PUBLISH` with the value `on`.
-2. Runs **Actions, Docs site, Run workflow** on `main`. This creates the `gh-pages` branch with `/next/`.
+1. In **Settings, Secrets and variables, Actions, Variables**, adds `SITE_PUBLISH` with the value `on`.
+2. Runs **Actions, Site, Run workflow** on `main`. This creates the `gh-pages` branch with the landing page and `/docs/next/`.
 3. In **Settings, Pages**, chooses **Deploy from a branch**, then `gh-pages` and `/ (root)`.
 
-The first release builds `/v0.1/`. Until then the root opens `/next/`.
+The first release builds `/docs/0.1/`. Until then `/docs/` opens `/docs/next/`.
 
-The host and path are the two `env` lines at the top of the workflow. A custom domain changes those. To stop publishing, turn the variable off.
+Every address of the site comes from one setting, `SITE_URL`. Unset, it is the default GitHub Pages address, `https://fredehagelund92.github.io/<repository>`, which follows a rename of the repository. For a custom domain, add the repository variable `SITE_URL`, such as `https://footnote.example`, set the domain in **Settings, Pages**, and run the **Site** workflow once on `main` and once per published release, giving its version (`0.1.0`): every folder is built with the address in it and is not built again by itself. Docs are published once per minor version, from the newest patch of that minor: rebuilding an older patch replaces that minor's folder with the older tag's docs. The `CNAME` file GitHub writes to `gh-pages` is kept. The same goes for renaming the repository. To stop publishing, turn `SITE_PUBLISH` off.
 
 ## Set up once
 

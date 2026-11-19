@@ -23,6 +23,7 @@
     ".": {
       "package-name": "footnote",
       "release-as": "0.1.0",
+      "exclude-paths": ["site"],
       "extra-files": [
         { "type": "json", "path": "docs/api/openapi.json", "jsonpath": "$.info.version" },
         { "type": "generic", "path": "SECURITY.md" },
