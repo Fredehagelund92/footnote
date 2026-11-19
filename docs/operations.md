@@ -95,7 +95,7 @@ The service runs its own jobs on the same database. A job that came due while th
 | `saved.check`            | Every minute     | Checks saved questions once what agents get has moved          |
 | `evals.work`             | Every minute     | Works through queued evaluations                               |
 | `evals.retrieval`        | Every minute     | Runs the free retrieval checks                                 |
-| `evals.weekly`           | Mondays          | Runs the weekly evaluation                                     |
+| `evals.weekly`           | Mondays          | Runs the weekly evaluation, when test runs are turned on       |
 | `connectors.sync`        | Every 5 minutes  | Reads each source that is due, on its own schedule             |
 | `jobs.watchdog`          | Every 5 minutes  | Raises an alert for a job that is late or a source out of date |
 | `gaps.detect`            | Every 15 minutes | Turns questions that found nothing into Not found cards        |

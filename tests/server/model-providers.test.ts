@@ -59,7 +59,7 @@ const acmeAdapter: ProviderAdapter = {
       cacheBreakpoint: {},
     })
   },
-  keyHeaders: ({ apiKey, authToken }) =>
+  keyHeaders: ({ apiKey, authToken }): Record<string, string> =>
     authToken ? { 'x-acme-token': authToken } : apiKey ? { 'x-acme-key': apiKey } : {},
 }
 const acme: ProviderEntry = {
