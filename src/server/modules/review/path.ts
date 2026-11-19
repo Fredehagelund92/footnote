@@ -172,10 +172,9 @@ export function createReviewPath(
       // A draft can be sent before anyone owns it.
       owner: v.ownerId ? { id: v.ownerId, name: person.get(v.ownerId) ?? null } : null,
       scope: [...sideOf(v, r.candidate).where],
-      // An older stored version can lack a field the schema now has: read it as not set.
-      validity: { from: v.validity.start ?? null, until: v.validity.end ?? null },
-      reviewDate: v.reviewDate ?? null,
-      sources: v.evidence.map((e) => ({ url: e.url, quote: e.quote ?? null })),
+      validity: { from: v.validity.start, until: v.validity.end },
+      reviewDate: v.reviewDate,
+      sources: v.evidence.map((e) => ({ url: e.url, quote: e.quote })),
       notToConclude: v.notToConclude,
     })
     return {

@@ -99284,7 +99284,8 @@
                         "weeks",
                         "hidden",
                         "open",
-                        "changes"
+                        "changes",
+                        "caught"
                       ]
                     },
                     "words": {
@@ -99309,16 +99310,12 @@
                               },
                               "text": {
                                 "type": "string"
-                              },
-                              "measured": {
-                                "type": "boolean"
                               }
                             },
                             "required": [
                               "key",
                               "title",
-                              "text",
-                              "measured"
+                              "text"
                             ]
                           }
                         },

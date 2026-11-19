@@ -1014,7 +1014,7 @@ over its months) found nothing at least the minimum times.
   Summary, for every domain together and for each domain, as the page showed it on the day it was
   taken: the counts after the disclosure pass (a hidden count is kept as hidden, never as its
   value), what is still open and what changed as counts alone (no topic, no item, nobody who
-  approved), what was caught (`caught`, absent in a snapshot taken before it was counted), and the
+  approved), what was caught (`caught`), and the
   sentences, what was caught and the notes said over them then
   (`src/domain/obs-summary-words.ts`), so a snapshot read later says the same after the delivery
   records are gone. No page of the web app reads them since the Summary page was withdrawn. Administrators read every snapshot, an owner those of the domains they own;

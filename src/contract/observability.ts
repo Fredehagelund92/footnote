@@ -484,17 +484,14 @@ export const obsSnapshotSummarySchema = z.extend(
   {
     open: z.object({ total: z.number() }),
     changes: z.object({ total: shown, before: shown }),
-    /** What was caught; a snapshot taken before it was counted has none. */
-    caught: z.optional(caughtSchema),
+    caught: caughtSchema,
   },
 )
 
 /** The sentences a snapshot keeps, said by fixed templates over its counts when it was taken. */
 export const obsSnapshotWordsSchema = z.object({
   sentences: z.array(z.string()),
-  caught: z.array(
-    z.object({ key: z.string(), title: z.string(), text: z.string(), measured: z.boolean() }),
-  ),
+  caught: z.array(z.object({ key: z.string(), title: z.string(), text: z.string() })),
   notes: z.array(z.string()),
 })
 
