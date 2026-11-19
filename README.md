@@ -243,7 +243,8 @@ It is for trying on one computer, not for production use. Expect rough edges and
 
 - The whole loop on the demo: write, review, publish, read over MCP, and gaps back to the owner.
 - Definitions from Cube and dbt MetricFlow, documents from Markdown in Git and Google Drive, and agents on your
-  computer over MCP, such as Claude Code.
+  computer over MCP. Claude Code and Codex have been tried from sign-in to answer; Cursor's command-line agent
+  signs in and lists the tools.
 - Company sign-in with OpenID Connect ([Set up company sign-in](docs/company-sign-in.md)
   and [Sign in your own agent](docs/ai-sign-in.md)).
 
