@@ -241,7 +241,7 @@ test('a chat whose answers are no longer kept opens from the history on its ques
   await expect(log.getByText(STATE)).toHaveCount(0)
   expect(seen.count).toBe(1)
   // Asked again by the person, it is answered once, in the same chat.
-  await log.getByRole('button', { name: 'Ask again' }).click()
+  await log.getByRole('button', { name: 'Ask again', exact: true }).click()
   await expect(log.getByText(STATE)).toHaveCount(1)
   expect(seen.count).toBe(2)
   await expect(chats(page).getByText(QUESTION)).toHaveCount(1)
