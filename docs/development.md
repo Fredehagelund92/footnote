@@ -325,7 +325,7 @@ ceilings and the margins to its job's summary page.
 the jobs with a database wait for it. It compares the commit under test with its first parent,
 the base branch, and fails within seconds when a new migration takes a number the base already
 gives another file, when two files share a number, when a migration the base has is renamed or
-deleted (unless one new baseline, `0001` under a new name, replaces them all), or when
+deleted (except the one squash of the 58 earlier files into `0001_schema.sql`, which the check accepts only while the base still holds exactly those), or when
 `db/migrations/latest.txt` does not name the last file. Its message says to rebase
 and run `npm run db:renumber` ([Generated files and rebasing](#generated-files-and-rebasing)). Run
 it yourself with `node scripts/check-migration-numbers.ts origin/main`.
