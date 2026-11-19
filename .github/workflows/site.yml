@@ -28,6 +28,11 @@ on:
         required: true
         type: string
   workflow_dispatch:
+    inputs:
+      version:
+        description: Rebuild one published release's docs at its tag, MAJOR.MINOR.PATCH. Empty builds main.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -39,7 +44,9 @@ defaults:
 # Where the landing page is served, the one setting the whole site's addresses come from. Unset,
 # it is the default GitHub Pages address, which follows the repository's name on a rename
 # (docs/product-name.md). For a custom domain, a maintainer sets the repository variable SITE_URL,
-# such as https://footnote.example, and nothing else changes.
+# such as https://footnote.example. Each folder is built with that address in it and is never built
+# again by itself, so after changing SITE_URL or renaming the repository, run this workflow once on
+# main and once per published release with its version.
 env:
   SITE_URL: ${{ vars.SITE_URL || format('https://fredehagelund92.github.io/{0}', github.event.repository.name) }}
 
@@ -51,8 +58,18 @@ jobs:
     outputs:
       folder: ${{ steps.where.outputs.folder }}
     steps:
+      - name: Check the version names a release
+        if: inputs.version != ''
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "\"$VERSION\" is no release: write MAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.version != '' && format('v{0}', inputs.version) || '' }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

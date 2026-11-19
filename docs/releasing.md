@@ -125,7 +125,7 @@ To publish for the first time, a maintainer decides, then:
 
 The first release builds `/docs/0.1/`. Until then `/docs/` opens `/docs/next/`.
 
-Every address of the site comes from one setting, `SITE_URL`. Unset, it is the default GitHub Pages address, `https://fredehagelund92.github.io/<repository>`, which follows a rename of the repository. For a custom domain, add the repository variable `SITE_URL`, such as `https://footnote.example`, set the domain in **Settings, Pages**, and run the workflow again: the `CNAME` file GitHub writes to `gh-pages` is kept. To stop publishing, turn `SITE_PUBLISH` off.
+Every address of the site comes from one setting, `SITE_URL`. Unset, it is the default GitHub Pages address, `https://fredehagelund92.github.io/<repository>`, which follows a rename of the repository. For a custom domain, add the repository variable `SITE_URL`, such as `https://footnote.example`, set the domain in **Settings, Pages**, and run the **Site** workflow once on `main` and once per published release, giving its version (`0.1.0`): every folder is built with the address in it and is not built again by itself. The `CNAME` file GitHub writes to `gh-pages` is kept. The same goes for renaming the repository. To stop publishing, turn `SITE_PUBLISH` off.
 
 ## Set up once
 

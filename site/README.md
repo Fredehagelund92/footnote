@@ -92,7 +92,7 @@ All are read when the site is built:
 
 ## Versions and publishing
 
-`.github/workflows/site.yml` builds the docs of each minor release into `/docs/MAJOR.MINOR/`, at its tag, and `/docs/next/` from `main`; the landing page at the root follows `main`. `scripts/collect.ts` puts each build in its place on the `gh-pages` branch: `/docs/` opens the newest release, and so does every page named without a version. `/docs/versions.json` lists the folders, and the switcher in the header reads it when a page opens, so an old version's pages know of newer ones without being built again. Publishing is off until a maintainer turns it on: see [Releasing Footnote](../docs/releasing.md#the-site).
+`.github/workflows/site.yml` builds the docs of each minor release into `/docs/MAJOR.MINOR/`, at its tag, and `/docs/next/` from `main`; the landing page at the root follows `main`. `scripts/collect.ts` puts each build in its place on the `gh-pages` branch: `/docs/` opens the newest release, and so does every page named without a version. `/docs/versions.json` lists the folders, and the switcher in the header reads it when a page opens, so an old version's pages know of newer ones without being built again. Publishing is off until a maintainer turns it on: see [Releasing Footnote](../docs/releasing.md#the-site). A folder is built with the site's address in it and is not built again by itself, so after changing `SITE_URL` or renaming the repository, run the workflow once on `main` and once per published release with its version.
 
 So a change to the docs in a pull request shows in `/docs/next/` once it merges, and a release's docs stay as they were at its tag.
 

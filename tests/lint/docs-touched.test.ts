@@ -26,6 +26,20 @@ describe('a pull request the docs must follow', () => {
     ).toContain('src/server/config/env.ts')
   })
 
+  it('is one whose description has a breaking change footer', () => {
+    for (const footer of ['BREAKING CHANGE: the flag is gone', 'BREAKING-CHANGE: the flag is gone'])
+      expect(
+        docsNeededFor({ title: 'refactor: x', body: `Why.\n\n${footer}\n`, paths: code }),
+      ).toContain('breaking change')
+    expect(
+      docsNeededFor({
+        title: 'refactor: x',
+        body: 'It is not a BREAKING CHANGE: here',
+        paths: code,
+      }),
+    ).toBeUndefined()
+  })
+
   it('is not one nobody notices', () => {
     for (const title of [
       'refactor: split a module',

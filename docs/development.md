@@ -306,7 +306,7 @@ A pull request takes the highest tier any of its files falls in.
 
 | Tier      | Paths                                                                                                                                                                                                                                   | What runs                                                                                                             |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Docs      | `docs/**` and Markdown files outside `src`, `tests`, `scripts` and `site`, except the three folders the apps read: `docs/help`, `docs/templates` and `docs/api`                                                                 | Type check, lint, plain words, format, unit tests (the docs check among them) and build                               |
+| Docs      | `docs/**` and Markdown files outside `src`, `tests`, `scripts` and `site`, except the three folders the apps read: `docs/help`, `docs/templates` and `docs/api`                                                                         | Type check, lint, plain words, format, unit tests (the docs check among them) and build                               |
 | Medium    | Anything else: the web app, the domain, the contract, the tests, scripts and configuration                                                                                                                                              | Every app job: the checks, the service tests, the golden job specs in both modes, the demo install, the Docker images |
 | Sensitive | `db/**`, `src/server/**`, any path with `auth`, `sign-in`, `mcp` or `security` in it, `SECURITY.md`, `.gitleaks.toml`, `osv-scanner.toml`, `.github/**`, every `package.json` and `package-lock.json`, `.nvmrc`, `.npmrc`, Docker files | Everything                                                                                                            |
 
@@ -334,7 +334,8 @@ people will notice, or that changes a setting, when nothing under `docs/` change
 description does not say why:
 
 - people will notice what reaches the release notes: a title that starts `feat`, `fix` or `perf`,
-  or any title with a `!` ([the version number and the changelog](releasing.md#the-version-number-and-the-changelog));
+  any title with a `!`, or a description with a `BREAKING CHANGE:` or
+  `BREAKING-CHANGE:` line ([the version number and the changelog](releasing.md#the-version-number-and-the-changelog));
 - a setting is `.env.example` or the service's settings in `src/server/config`;
 - to say why not, add a line to the description, such as
   `No docs change: the error message was already the one the docs show.`

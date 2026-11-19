@@ -7,7 +7,8 @@ import { readFileSync } from 'node:fs'
 
   The check is simple on purpose and says what it cannot know:
   - what people see is what reaches the release notes: a title that starts feat, fix or perf, or
-    any title with a !, as release-please reads it (docs/releasing.md);
+    any title with a !, or a description with a BREAKING CHANGE: or BREAKING-CHANGE: line, as
+    release-please reads them (docs/releasing.md);
   - what people set is a settings file: .env.example or the service's settings in
     src/server/config;
   - the docs changed when a file under docs/ did;
@@ -20,13 +21,16 @@ import { readFileSync } from 'node:fs'
 export type PullRequest = { title: string; body: string; paths: readonly string[] }
 
 const reachesReleaseNotes = /^(?:(?:feat|fix|perf)(?:\([^)]*\))?!?|[a-z]+(?:\([^)]*\))?!):/
+const breaking = /^BREAKING[ -]CHANGE:/m
 const isSetting = (path: string) => path === '.env.example' || path.startsWith('src/server/config/')
 const reason = /^\s*No docs change:\s*\S.{4,}$/im
 
 /** Why the pull request needs the docs, or undefined when it does not. */
-export function docsNeededFor({ title, paths }: PullRequest): string | undefined {
+export function docsNeededFor({ title, body, paths }: PullRequest): string | undefined {
   if (reachesReleaseNotes.test(title.trim()))
     return 'its title puts it in the release notes, so people will notice it'
+  if (breaking.test(body))
+    return 'its description has a breaking change footer, which puts it in the release notes'
   const settings = paths.filter(isSetting)
   if (settings.length) return `it changes a setting (${settings.join(', ')})`
   return undefined
@@ -54,7 +58,7 @@ if (import.meta.main) {
   for (const problem of problems) console.error(problem)
   if (problems.length) process.exit(1)
   console.log(
-    docsNeededFor({ title: process.env.TITLE ?? '', body: '', paths })
+    docsNeededFor({ title: process.env.TITLE ?? '', body: process.env.BODY ?? '', paths })
       ? 'The docs follow the change, or the description says why they need not.'
       : 'Nothing in this change needs the docs.',
   )
