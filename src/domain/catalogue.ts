@@ -50,7 +50,7 @@ export function definitionState(definition: {
  * The domain the definition source gives a term from its definitions' domains: the one they all
  * agree on. A dimension whose views lie in several domains, or in a view without one, is shared
  * and gets none, so an administrator looks after it (CON-206). The SQL twin is
- * `cl_source_domains_now` (db/migrations/0001_baseline.sql).
+ * `cl_source_domains_now` (db/migrations/0001_schema.sql).
  */
 export function agreedDomain(hints: readonly (string | null)[]): string | null {
   const distinct = new Set(hints)

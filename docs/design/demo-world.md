@@ -303,9 +303,8 @@ Words that are easy to misread here:
 Where it lives:
 
 - `src/domain/about-business.ts`: the starter text, line by line.
-- `db/migrations/0001_baseline.sql`: the first version of `business.about`, with the reason
-  "default: the starter text, an outdoor-gear retailer". A new install starts with no text
-  (`db/migrations/0010_about_starts_empty.sql`); the demo seeds write this one.
+- `db/seed/bulk.ts`: the demo seeds write it as a version of `business.about`. A new install
+  starts with no text (`db/migrations/0001_schema.sql`).
 
 ## 9. The fact templates, by kind
 

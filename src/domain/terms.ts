@@ -3,8 +3,7 @@
  * own meaning ("Peak season"); a synonym is another name for a metric, a dimension or a term
  * ("GMV" for Gross sales). One word has one meaning across the workspace, so a word that already
  * means something is refused, and the refusal names who has it. These are the rules the service
- * applies before it writes; the database keeps the same ones (db/migrations/0009_terms.sql,
- * db/migrations/0039_word_comparison.sql).
+ * applies before it writes; the database keeps the same ones (db/migrations/0001_schema.sql).
  */
 
 import { normalizeName, suggestTerms } from './vocabulary.ts'

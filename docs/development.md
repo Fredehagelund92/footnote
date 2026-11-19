@@ -326,7 +326,8 @@ ceilings and the margins to its job's summary page.
 the jobs with a database wait for it. It compares the commit under test with its first parent,
 the base branch, and fails within seconds when a new migration takes a number the base already
 gives another file, when two files share a number, when a migration the base has is renamed or
-deleted, or when `db/migrations/latest.txt` does not name the last file. Its message says to rebase
+deleted (unless one new baseline, `0001` under a new name, replaces them all), or when
+`db/migrations/latest.txt` does not name the last file. Its message says to rebase
 and run `npm run db:renumber` ([Generated files and rebasing](#generated-files-and-rebasing)). Run
 it yourself with `node scripts/check-migration-numbers.ts origin/main`.
 
@@ -458,7 +459,7 @@ package is there.
 | ESLint / typescript-eslint | With `eslint-plugin-better-tailwindcss` for the class rules.                                                             |
 | Fastify / pino             | The service's HTTP server and its JSON logger (the one Fastify uses).                                                    |
 | pg                         | The PostgreSQL driver.                                                                                                   |
-| pg-boss                    | The job queue and cron schedules, in PostgreSQL. Its schema is vendored in the baseline migration (`0001_baseline.sql`). |
+| pg-boss                    | The job queue and cron schedules, in PostgreSQL. Its schema is vendored in the baseline migration (`0001_schema.sql`). |
 | eslint-plugin-boundaries   | The module boundaries, with `eslint-import-resolver-typescript` to follow the path aliases.                              |
 | Stylelint                  | With `stylelint-declaration-strict-value` for hand written CSS.                                                          |
 | cn                         | The class merge helper the shadcn CLI now emits. It is pre 1.0; `@/lib/utils` re-exports it, so swapping it is one line. |

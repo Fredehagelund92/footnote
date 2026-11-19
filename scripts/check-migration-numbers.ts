@@ -11,7 +11,10 @@ import { migrationFilesProblem } from '../src/server/db/migrate.ts'
   1. a migration it adds takes a number the base already gives another file, as when two pull
      requests each took the next number and the other merged first;
   2. two of its files share a number;
-  3. it renames or deletes a migration the base has, which a database that applied it refuses;
+  3. it renames or deletes a migration the base has, which a database that applied it refuses,
+     unless it replaces them all with one new baseline: a single file, numbered 0001 under a name
+     the base does not use. The runner then refuses every database the old files made, naming
+     the file its history starts with, and each is made again (db/README.md);
   4. otherwise, the numbers do not run from 0001 without a gap (migrationFilesProblem);
   5. db/migrations/latest.txt does not name the last file, as when a pull request that adds one
      merges after another that changed latest.txt.
@@ -23,6 +26,13 @@ const renumber =
   'Rebase onto the base branch and run `npm run db:renumber` (docs/development.md, "Generated files and rebasing").'
 
 const number = (name: string) => name.slice(0, 4)
+
+/** Whether `head` replaces every migration `base` holds with one new baseline (rule 3). */
+export function isNewBaseline(base: readonly string[], head: readonly string[]): boolean {
+  return (
+    base.length > 0 && head.length === 1 && number(head[0]!) === '0001' && !base.includes(head[0]!)
+  )
+}
 
 /**
  * Why the migration files `head` holds cannot follow the ones `base` holds, if they cannot.
@@ -50,7 +60,8 @@ export function migrationNumberProblems(
     if (names.length > 1 && names.filter((name) => base.includes(name)).length !== 1)
       problems.push(`${names.join(' and ')} share number ${prefix}. ${renumber}`)
   }
-  for (const name of base.filter((name) => !head.includes(name)))
+  const removed = isNewBaseline(base, head) ? [] : base.filter((name) => !head.includes(name))
+  for (const name of removed)
     problems.push(
       `db/migrations/${name} is on the base branch but not in this change. Rebase if the branch is behind; otherwise keep the file as it is, since a database that applied it refuses a renamed or missing one, and add a new migration instead.`,
     )

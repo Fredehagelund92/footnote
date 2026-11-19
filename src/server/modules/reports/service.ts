@@ -17,7 +17,7 @@ import { missing } from '../../../contract/refusals.ts'
   Ask showed doesn't fit the item (FR-716): it names the integration, the metric, the values and
   the days, never the figure, and reaches the owners, the integration's data contact, or both. What the owners did after it is
   read by cl_report_outcome, so its sender sees it in their chat. Row security keeps a report to
-  its sender, the owners of its domain and administrators (db/migrations/0013_named_reports.sql);
+  its sender, the owners of its domain and administrators (db/migrations/0001_schema.sql);
   the MCP read path has no grant on it, and nothing an edition holds is built from it.
 */
 

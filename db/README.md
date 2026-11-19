@@ -11,15 +11,14 @@ databases, inherit privileges or bypass row security. Local login uses the serve
 loopback authentication, and the compose file's database trusts its own network; neither changes
 `pg_hba.conf` or installs passwords.
 
-`db/migrations` holds forward-only SQL. `0001_baseline.sql` is the whole schema: the job queue's,
-then the types, functions, tables and views, the rows a new installation starts with (the proposal
-workflow, the agent tools and clients, one version of each setting), then the indexes,
-constraints, triggers and row security. It replaced the migrations that built the schema step by
-step, and a schema-only `pg_dump` of a database it makes equals one of a database they made. A
-database those earlier migrations made cannot be upgraded: the runner refuses it, naming the
-migration its history starts with. Its data is demo data, so make it again: `docker compose down
---volumes` for the compose file's database, or drop the database and run `npm run db:migrate`
-(and `npm run seed`, or `SEED_DEMO=on`) for a local one.
+`db/migrations` holds forward-only SQL. `0001_schema.sql` is the whole schema: the job queue's,
+then the types, functions, tables and views, the rows a new installation starts with (the
+proposal, evaluation run and gap workflows, the agent tools and clients, the alert rules, one
+version of each setting), then the indexes, constraints, triggers and row security. A database
+made by other migrations cannot be upgraded: the runner refuses it, naming the migration its
+history starts with. Make it again: `docker compose down --volumes` for the compose file's
+database, or drop the database and run `npm run db:migrate` (and `npm run seed`, or
+`SEED_DEMO=on`) for a local one.
 
 The migration runner serializes callers with an advisory lock, commits one file at a time,
 and records its SHA-256. Missing, reordered or edited applied files fail before new SQL runs.

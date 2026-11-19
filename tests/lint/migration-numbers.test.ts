@@ -59,6 +59,18 @@ describe('the migration numbers of a change', () => {
       expect.stringMatching(/^Migration file 0003-mine\.sql must be named NNNN_snake_case\.sql/),
     ])
   })
+
+  it('pass one new baseline that replaces every migration, and only that', () => {
+    expect(migrationNumberProblems(base, ['0001_schema.sql'], '0001_schema.sql\n')).toEqual([])
+    // The same name is no new baseline: a database that applied it would read it as edited.
+    expect(migrationNumberProblems(base, ['0001_baseline.sql'])).toEqual([
+      expect.stringMatching(/^db\/migrations\/0002_people\.sql is on the base branch but not/),
+    ])
+    expect(migrationNumberProblems(base, ['0001_schema.sql', '0002_more.sql'])).toEqual([
+      expect.stringMatching(/^db\/migrations\/0001_baseline\.sql is on the base branch but not/),
+      expect.stringMatching(/^db\/migrations\/0002_people\.sql is on the base branch but not/),
+    ])
+  })
 })
 
 describe('the check on a real git history', () => {

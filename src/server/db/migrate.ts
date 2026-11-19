@@ -68,8 +68,8 @@ export async function migrate(client: pg.Client, directory: URL = migrationDirec
         return { name, sql, checksum: createHash('sha256').update(sql).digest('hex') }
       }),
     )
-    // A database whose history starts elsewhere was made by other migrations, such as those
-    // 0001_baseline.sql replaced, and no file here can bring it up to date.
+    // A database whose history starts at another file was made by other migrations, and no file
+    // here can bring it up to date.
     const first = applied.rows[0]
     if (first && first.name !== migrations[0]?.name) {
       throw new Error(

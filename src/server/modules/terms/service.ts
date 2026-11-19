@@ -32,7 +32,7 @@ import { missing } from '../../../contract/refusals.ts'
  * a synonym's domain is what it means. Nothing is ever removed: a deleted term keeps its row, its
  * synonyms go with it, and it can be restored. A change to many terms records one term_changes
  * row, and its Undo takes back exactly what it did, within limits.undo_seconds, by its maker only.
- * Row security and the database's own checks (db/migrations/0009_terms.sql) keep the same rules
+ * Row security and the database's own checks (db/migrations/0001_schema.sql) keep the same rules
  * on every path. Agents read the live terms through `serving_terms()` (src/domain/served-terms.ts).
  */
 export type TermsService = ReturnType<typeof createTermsService>
@@ -290,7 +290,7 @@ export function createTermsService(tx: Queryable) {
   /**
    * Why each written term misleads agents now: a sync gave its word to a metric or a dimension it
    * does not mean, what it means is no longer in the definitions, or another live term reads as
-   * the same word (two written before accents were set aside; db/migrations/0039_word_comparison.sql).
+   * the same word (two written before accents were set aside; db/migrations/0001_schema.sql).
    */
   async function conflictsOf(terms: readonly Row[]): Promise<Map<string, Term['conflict']>> {
     const holders = await tx.query<{

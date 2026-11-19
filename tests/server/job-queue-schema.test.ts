@@ -18,7 +18,7 @@ function statements(sql: string): string {
 }
 
 it('matches the schema the installed pg-boss creates', async () => {
-  const baseline = await readFile(new URL('0001_baseline.sql', migrationDirectory), 'utf8')
+  const baseline = await readFile(new URL('0001_schema.sql', migrationDirectory), 'utf8')
   const vendored = /^-- The job queue: begin\n([\s\S]*)^-- The job queue: end$/m.exec(baseline)?.[1]
   expect(vendored).toBeDefined()
   expect(statements(vendored!)).toBe(statements(getConstructionPlans('pgboss')))

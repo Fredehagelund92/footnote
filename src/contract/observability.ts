@@ -390,7 +390,7 @@ const span = z.object({ start: day, end: day })
 
 /**
  * What was caught in the period besides the answers with a warning (`numbers.warned`), each a line
- * of its own and never added up (db/migrations/0033_obs_caught.sql): how many times a saved
+ * of its own and never added up (db/migrations/0001_schema.sql): how many times a saved
  * question's answer changed after a change, in all and by kind of change; and the alerts that
  * asked an owner for a decision, and how many an owner acted on within 14 days.
  */
