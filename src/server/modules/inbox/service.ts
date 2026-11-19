@@ -843,7 +843,7 @@ export function createInboxFeedService(
         (input.action === 'still_true' ? 'Checked: still true.' : 'Archived from the Inbox.')
       if (input.action === 'still_true') {
         // Footnote v1's check (FR-139): an owner of its domain or an admin, as Mark as checked.
-        const result = await deps.review.recheck(key.id, reason, { v1: true })
+        const result = await deps.review.recheck(key.id, reason)
         const [decision] = await tx.query<{ id: string }>(
           `select id::text from decisions where proposal_id=$1 and decided_by=cl_person() and outcome='accept'
             order by decided_at desc limit 1`,

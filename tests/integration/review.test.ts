@@ -264,7 +264,7 @@ async function acceptedItem(extra: Draft = {}, who: Who = 'author') {
   expect(response.statusCode, response.body).toBe(200)
   return p.itemId!
 }
-/** The evaluation runner's job, with the scripted mock model: records levels 4 and 5. */
+/** The evaluation runner's job, with the scripted mock model. */
 async function runAnswerTests() {
   return workEvaluations(
     database,
@@ -348,7 +348,7 @@ describe('review and release', () => {
     expect((await client.query('select * from audit_verify()')).rows).toEqual([])
   })
 
-  it('publishes on one accept once levels 1 to 3 pass, at every risk, with no approver (FR-513)', async () => {
+  it('publishes on one accept once levels 1 to 3 pass, at every risk (FR-513)', async () => {
     const event = await submitted({ kind: 'event', title: 'Norway event' })
     expect((await levels(event.itemVersionId!)).map((l) => l.level)).toEqual([
       'format',
@@ -367,12 +367,7 @@ describe('review and release', () => {
     ])
     // No answer test is queued for it, now or by the job.
     await runAnswerTests()
-    const runs = await client.query('select 1 from eval_runs where item_version_id=$1', [
-      high.itemVersionId,
-    ])
-    expect(runs.rowCount).toBe(0)
-    // An approver no longer decides.
-    expect((await decide(high.id, 'accept', 'approver')).statusCode).toBe(403)
+    expect((await client.query('select 1 from eval_runs')).rowCount).toBe(0)
     const accepted = await decide(high.id, 'accept')
     expect(accepted.statusCode, accepted.body).toBe(200)
     expect(accepted.json<Decided>()).toMatchObject({
@@ -486,9 +481,8 @@ describe('review and release', () => {
     const others = await submitted({ kind: 'guide', title: 'Guide for the administrator' })
     expect((await decide(others.id, 'request_changes', 'admin')).statusCode).toBe(200)
 
-    // A contributor and an approver who is neither never decide, their own neither.
+    // A contributor never decides, their own neither.
     const normal = await submitted({ kind: 'guide', title: 'Normal guide' })
-    expect((await decide(normal.id, 'accept', 'approver')).statusCode).toBe(403)
     expect((await decide(normal.id, 'accept', 'author')).statusCode).toBe(403)
     expect((await decide(normal.id, 'accept', 'stranger')).statusCode).toBe(404)
     const stale = await call('POST', `/review/${normal.id}/publish`, 'owner', { revision: 1 })
@@ -809,26 +803,6 @@ describe('review and release', () => {
     })
     expect(await delivered()).toContain(high.itemId)
     expect((await decisions(high.id)).map((d) => d.capacity)).toEqual(['administrator'])
-  })
-
-  it('publishes an accept that waited for an approver before migration 0005 when its owner accepts again', async () => {
-    const high = await submitted({ title: 'Waited for the approver', riskLevel: 'high' })
-    // As a database before 0005 left it: the owner's accept given, the version still waiting.
-    await client.query(
-      `insert into decisions (proposal_id,item_version_id,area_id,decided_by,capacity,outcome,reason)
-       values ($1,$2,'finance',$3,'owner','accept','Reviewed')`,
-      [high.id, high.itemVersionId, people.owner],
-    )
-    expect(await delivered()).not.toContain(high.itemId)
-    // The owner's own earlier accept publishes now, with no second decision.
-    const again = await decide(high.id, 'accept')
-    expect(again.statusCode, again.body).toBe(200)
-    expect(again.json<Decided>()).toMatchObject({
-      proposal: { state: 'accepted' },
-      edition: { reason: 'proposal_accepted' },
-    })
-    expect(await delivered()).toContain(high.itemId)
-    expect((await decisions(high.id)).map((d) => d.capacity)).toEqual(['owner'])
   })
 
   it('publishes a high-risk recheck at once, as at every risk', async () => {

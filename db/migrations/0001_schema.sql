@@ -508,8 +508,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
 CREATE TYPE public.area_role AS ENUM (
-    'owner',
-    'approver'
+    'owner'
 );
 
 CREATE TYPE public.caller_kind AS ENUM (
@@ -554,8 +553,6 @@ CREATE TYPE public.creation_channel AS ENUM (
 
 CREATE TYPE public.decision_capacity AS ENUM (
     'owner',
-    'deputy',
-    'approver',
     'administrator'
 );
 
@@ -641,8 +638,7 @@ CREATE TYPE public.gap_type AS ENUM (
 );
 
 CREATE TYPE public.global_role AS ENUM (
-    'administrator',
-    'auditor'
+    'administrator'
 );
 
 CREATE TYPE public.item_kind AS ENUM (
@@ -1504,11 +1500,6 @@ CREATE FUNCTION public.cl_is_admin_now() RETURNS boolean
     SET search_path TO 'public', 'pg_temp'
     AS $$ select cl_person() is not null and cl_is_admin(cl_person(), now()) $$;
 
-CREATE FUNCTION public.cl_is_auditor_now() RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$ select cl_person() is not null and exists (select 1 from global_role_grants g where g.person_id = cl_person() and g.role in ('auditor','administrator') and g.valid_at @> now()) $$;
-
 CREATE FUNCTION public.cl_is_figure_contact(p_source text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -1519,12 +1510,6 @@ CREATE FUNCTION public.cl_is_owner_now(p_area text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$ select cl_person() is not null and cl_has_area_role(cl_person(), p_area, 'owner', now()) $$;
-
-CREATE FUNCTION public.cl_is_reviewer_now(p_area text) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$ select cl_person() is not null and (cl_has_area_role(cl_person(), p_area, 'owner', now())
-       or cl_has_area_role(cl_person(), p_area, 'approver', now())) $$;
 
 CREATE FUNCTION public.cl_item_open(p_item text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -1578,7 +1563,7 @@ begin
   end if;
   select exists (select 1 from decisions d
     where d.item_version_id = v.id and d.outcome = 'accept' and d.area_id = v.area_id
-      and ((d.capacity in ('owner', 'deputy') and cl_has_area_role(d.decided_by, v.area_id, 'owner', d.decided_at))
+      and ((d.capacity = 'owner' and cl_has_area_role(d.decided_by, v.area_id, 'owner', d.decided_at))
         or (d.capacity = 'administrator' and cl_is_admin(d.decided_by, d.decided_at)))
       and (waive or d.decided_by is distinct from v.proposer_id
            or cl_decides_own(d.decided_by, v.area_id, d.decided_at))) into owner_ok;          -- FR-202, FR-206
@@ -2454,7 +2439,7 @@ CREATE FUNCTION public.cl_version_review(p_version uuid) RETURNS TABLE(accepted_
   select (d.decided_at at time zone 'UTC')::date, d.capacity, d.area_id, d.decided_by, f.label
     from (select 1) one
     left join lateral (select x.decided_at, x.capacity, x.area_id, x.decided_by from decisions x
-       where x.item_version_id = p_version and x.outcome = 'accept' and x.capacity <> 'approver'
+       where x.item_version_id = p_version and x.outcome = 'accept'
        order by x.decided_at desc, x.id desc limit 1) d on true
     left join lateral (select e.label from item_version_service o join editions e on e.seq = lower(o.editions)
        where o.version_id = p_version order by lower(o.editions) limit 1) f on true $$;
@@ -3403,7 +3388,7 @@ begin
     select * into v from vocab_term_versions where id = new.version_id;
     select exists (select 1 from decisions d where d.vocab_version_id = v.id and d.outcome = 'accept'
         and (d.decided_by <> v.proposer_id or v.proposer_id is null or cl_decides_own(d.decided_by, v.area_id, d.decided_at))
-        and ((v.area_id is not null and d.capacity in ('owner','deputy')
+        and ((v.area_id is not null and d.capacity = 'owner'
               and cl_has_area_role(d.decided_by, v.area_id, 'owner', d.decided_at))
           or (d.capacity = 'administrator' and cl_is_admin(d.decided_by, d.decided_at)))) into ok;
     if not ok and not exists (select 1 from editions e where e.seq = lower(new.editions) and e.reason in ('bootstrap','rollback')) then
@@ -5696,9 +5681,6 @@ ALTER TABLE ONLY public.connectors
 ALTER TABLE ONLY public.decision_undos
     ADD CONSTRAINT decision_undos_pkey PRIMARY KEY (decision_id);
 
-ALTER TABLE public.decisions
-    ADD CONSTRAINT decisions_no_new_deputy CHECK ((capacity <> 'deputy'::public.decision_capacity)) NOT VALID;
-
 ALTER TABLE ONLY public.decisions
     ADD CONSTRAINT decisions_pkey PRIMARY KEY (id);
 
@@ -7287,7 +7269,7 @@ CREATE POLICY audit_insert ON public.audit_log FOR INSERT WITH CHECK (true);
 
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY audit_read ON public.audit_log FOR SELECT USING (public.cl_is_auditor_now());
+CREATE POLICY audit_read ON public.audit_log FOR SELECT USING (public.cl_is_admin_now());
 
 ALTER TABLE public.card_reads ENABLE ROW LEVEL SECURITY;
 
@@ -7468,7 +7450,7 @@ CREATE POLICY item_versions_insert ON public.item_versions FOR INSERT WITH CHECK
 
 CREATE POLICY item_versions_read ON public.item_versions FOR SELECT USING ((((EXISTS ( SELECT 1
    FROM public.item_version_service s
-  WHERE (s.version_id = item_versions.id))) AND public.cl_audience_allows(audience_groups) AND public.cl_item_open(item_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id)));
+  WHERE (s.version_id = item_versions.id))) AND public.cl_audience_allows(audience_groups) AND public.cl_item_open(item_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
 
 CREATE POLICY item_versions_source_insert ON public.item_versions FOR INSERT WITH CHECK (((public.cl_person() IS NULL) AND (public.cl_source() IS NOT NULL) AND (created_via = 'source'::public.creation_channel) AND (proposer_id IS NULL)));
 
@@ -7500,7 +7482,7 @@ CREATE POLICY proposal_events_insert ON public.proposal_events FOR INSERT WITH C
 
 CREATE POLICY proposal_events_read ON public.proposal_events FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.proposals p
-  WHERE ((p.id = proposal_events.proposal_id) AND ((proposal_events.kind <> 'commented'::text) OR (p.proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(p.area_id))))));
+  WHERE ((p.id = proposal_events.proposal_id) AND ((proposal_events.kind <> 'commented'::text) OR (p.proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(p.area_id))))));
 
 ALTER TABLE public.proposal_relations ENABLE ROW LEVEL SECURITY;
 
@@ -7530,11 +7512,11 @@ CREATE POLICY proposal_tests_read ON public.proposal_tests FOR SELECT USING (((E
 
 ALTER TABLE public.proposals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY proposals_read ON public.proposals FOR SELECT USING ((((state = 'accepted'::public.proposal_state) AND public.cl_item_open(item_id) AND public.cl_version_open(item_version_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id)));
+CREATE POLICY proposals_read ON public.proposals FOR SELECT USING ((((state = 'accepted'::public.proposal_state) AND public.cl_item_open(item_id) AND public.cl_version_open(item_version_id)) OR (proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
 
 CREATE POLICY proposals_source ON public.proposals USING (((public.cl_person() IS NULL) AND (source_id = public.cl_source()))) WITH CHECK (((public.cl_person() IS NULL) AND (source_id = public.cl_source()) AND (channel = 'source'::public.creation_channel) AND (proposer_id IS NULL)));
 
-CREATE POLICY proposals_write ON public.proposals USING (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id))) WITH CHECK (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_reviewer_now(area_id)));
+CREATE POLICY proposals_write ON public.proposals USING (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id))) WITH CHECK (((proposer_id = public.cl_person()) OR public.cl_is_admin_now() OR public.cl_is_owner_now(area_id)));
 
 ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
 

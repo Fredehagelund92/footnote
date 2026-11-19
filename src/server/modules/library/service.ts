@@ -70,7 +70,7 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
          select distinct on (d.item_version_id) d.item_version_id as version_id,
                 (d.decided_at at time zone 'UTC')::date as day, d.decided_by
            from decisions d join listed on listed.version_id = d.item_version_id
-          where d.outcome = 'accept' and d.capacity <> 'approver'
+          where d.outcome = 'accept'
           order by d.item_version_id, d.decided_at desc, d.id desc),
        names as materialized (
          select t.key, t.name from serving_vocabulary((select seq from live_edition)) t),

@@ -263,14 +263,14 @@ describe('the review sheet (FR-224)', () => {
 
   it('gives every field of both versions, so a new owner shows where the difference has none', async () => {
     // A second owner of Finance for a moment, to hand the item to.
-    const grant = [people.approver]
+    const grant = [people.member]
     await client.query(
       "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'owner')",
       grant,
     )
     const itemId = await live({ ...inMarket('slovakia'), ownerId: people.owner })
     const change = await submitted(
-      { ...inMarket('slovakia'), ownerId: people.approver },
+      { ...inMarket('slovakia'), ownerId: people.member },
       'author',
       itemId,
     )
@@ -294,7 +294,7 @@ describe('the review sheet (FR-224)', () => {
     })
     expect(s.fields.after).toEqual({
       ...s.fields.before,
-      owner: { id: people.approver, name: 'approver' },
+      owner: { id: people.member, name: 'member' },
     })
     // A new item has only an after, with its title, kind and check date; an archive only a before.
     const fresh = await sheet(

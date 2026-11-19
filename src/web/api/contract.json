@@ -1159,7 +1159,7 @@
           "tags": [
             "admin"
           ],
-          "summary": "Create a domain with a reason (FR-801), and its owners and approvers in the same step; the team is given as one grants.apply batch with the same reason"
+          "summary": "Create a domain with a reason (FR-801), and its owners in the same step; the team is given as one grants.apply batch with the same reason"
         }
       }
     },
@@ -2175,7 +2175,7 @@
       "~orpc": {
         "errorMap": {},
         "meta": {
-          "scope": "audit"
+          "scope": "admin"
         },
         "route": {
           "method": "GET",
@@ -2191,7 +2191,7 @@
       "~orpc": {
         "errorMap": {},
         "meta": {
-          "scope": "audit"
+          "scope": "admin"
         },
         "route": {
           "method": "GET",
@@ -2207,7 +2207,7 @@
       "~orpc": {
         "errorMap": {},
         "meta": {
-          "scope": "audit"
+          "scope": "admin"
         },
         "route": {
           "method": "GET",

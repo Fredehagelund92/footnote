@@ -2,7 +2,6 @@ import { ORPCError } from '@orpc/client'
 import type * as z from 'zod/mini'
 import type { decideSchema, Edition, Gate, ReviewProposal } from '../../../contract/review.ts'
 import type { ItemVersion } from '../../../domain/item-version.ts'
-import { canonicalJson } from '../../../domain/canonical.ts'
 import { addWorkingDays } from '../../../domain/review.ts'
 import { reviewQuestion } from '../../../domain/item.ts'
 import { standingOf } from '../../../domain/suggestion-standing.ts'
@@ -85,25 +84,9 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     return row?.id ?? null
   }
   /**
-   * The person's own accept of a version that still waits: one given while a high-risk version
-   * also needed an approver's (before migration 0005). It publishes now, once the checks pass.
-   */
-  async function waitingAccept(versionId: string): Promise<string | null> {
-    const [row] = await tx.query<{ id: string }>(
-      `select d.id::text from decisions d
-        where d.item_version_id=$1 and d.decided_by=cl_person() and d.outcome='accept'
-          and d.capacity<>'approver' and cl_item_version_problem($1) is null
-          and not exists(select 1 from item_version_service s where s.version_id=$1)
-        order by d.decided_at desc limit 1`,
-      [versionId],
-    )
-    return row?.id ?? null
-  }
-  /**
-   * FR-202: deciding is an owner's of the area or an administrator's, in any area. One accept
-   * publishes at every risk level: an approver no longer decides (FR-207 is withdrawn). FR-206:
-   * the proposer decides their own proposal only as an administrator or an owner of its area
-   * (cl_decides_own).
+   * FR-202: deciding is an owner's of the area or an administrator's, in any area, and one accept
+   * publishes at every risk level. FR-206: the proposer decides their own proposal only as an
+   * administrator or an owner of its area (cl_decides_own).
    */
   async function capacityFor(
     area: string,
@@ -117,7 +100,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         message: 'You wrote this suggestion, so an owner of its domain or an admin decides it.',
       })
     const choice = wanted ?? (roles.has('owner') ? 'owner' : 'administrator')
-    if (choice === 'approver' || (choice === 'administrator' ? !admin : !roles.has(choice)))
+    if (choice === 'administrator' ? !admin : !roles.has(choice))
       throw new ORPCError('FORBIDDEN', {
         message: 'Only the owners of this domain, or an admin, can decide.',
       })
@@ -237,8 +220,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     await checkedGate(p, version)
     const id = policy
       ? await insertDecision(tx, { ...decision, outcome: 'accept', autoPolicyId: policy.policyId })
-      : ((await insertDecision(tx, { ...decision, outcome: 'accept' })) ??
-        (await waitingAccept(version.id)))
+      : await insertDecision(tx, { ...decision, outcome: 'accept' })
     if (!id) throw new ORPCError('CONFLICT', { message: 'You already published this version.' })
     const data = {
       decisionId: id,
@@ -592,32 +574,24 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     },
 
     /**
-     * CON-211: an owner records "checked, still correct". The new version keeps the content and
-     * takes the current change marks and a new review date; the edition clears the needs-check flag.
+     * CON-211, FR-139: an owner or an admin records "checked, still correct". The new version keeps
+     * the content and takes the current change marks and a new review date; the edition clears the
+     * needs-check flag. A check is recorded even when nothing else moved, since who checked it, and
+     * when, is what people read.
      */
-    async recheck(
-      itemId: string,
-      reason: string,
-      /**
-       * Footnote v1's Mark as checked (FR-139): an admin checks too, and a check is recorded even when
-       * nothing else moved, since who checked it, and when, is what people read.
-       */
-      { v1 = false }: { v1?: boolean } = {},
-    ) {
+    async recheck(itemId: string, reason: string) {
       await lockReleases(tx)
       plainReason(reason)
       const live = await liveStored(itemId)
       const roles = await rolesIn(tx, live.version.areaId)
       const capacity: Capacity | null = roles.has('owner')
         ? 'owner'
-        : v1 && (await isAdmin(tx))
+        : (await isAdmin(tx))
           ? 'administrator'
           : null
       if (!capacity)
         throw new ORPCError('FORBIDDEN', {
-          message: v1
-            ? 'Only an owner of the domain or an admin can check this context item again.'
-            : 'Only an owner of the domain can check this context item again.',
+          message: 'Only an owner of the domain or an admin can check this context item again.',
         })
       const marks = await tx.query<{ ref: string; mark: string; missing: boolean }>(
         `select r.ref,d.change_mark as mark,coalesce(d.missing_since_snapshot is not null,true) as missing
@@ -630,11 +604,6 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         })
       // A changed definition the item only mentions is also checked here: the new version
       // records the current marks, so its links read as current again.
-      const [flag] = await tx.query<{ on: boolean }>(
-        `select exists(select 1 from v_overlay_on where item_id=$1 and kind='flag_on' and flag='needs_check')
-           or exists(select 1 from v_mention_status where version_id=$2 and status='source_changed') as on`,
-        [itemId, live.id],
-      )
       const days = await reviewDays(live.version)
       // A check moves the next one on: an open-ended item always has one, and an item with an end
       // date keeps one only when it was given one.
@@ -646,16 +615,6 @@ export function createReviewService(tx: Queryable, clock: Clock) {
             ? shiftDate(clock.today(), days)
             : null,
       }
-      if (
-        !v1 &&
-        !flag?.on &&
-        version.reviewDate === live.version.reviewDate &&
-        canonicalJson(version.changeMarks) === canonicalJson(live.version.changeMarks)
-      )
-        throw new ORPCError('CONFLICT', {
-          message:
-            "Nothing changed since the last check, so this context item doesn't need checking.",
-        })
       const inserted = await insertVersion(tx, itemId, version, live.id, { recheck: true })
       const [row] = await tx.query<{ id: string }>(
         `insert into proposals(action,state,area_id,item_id,item_version_id,proposer_id,channel,draft,reason,submitted_at)

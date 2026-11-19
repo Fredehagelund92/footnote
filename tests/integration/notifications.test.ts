@@ -171,9 +171,9 @@ describe('the outbox relay', () => {
       state: 'submitted',
       actorId: people.author,
     })
-    // The second owner reviews too; the author, the approver and others do not.
+    // The second owner reviews too; the author and others do not.
     expect(kinds(await inbox('admin'), p.id)).toEqual(['proposal.submitted'])
-    for (const who of ['author', 'approver', 'stranger'] as const)
+    for (const who of ['author', 'member', 'stranger'] as const)
       expect(kinds(await inbox(who), p.id)).toEqual([])
     // Inbox items hold ids and states, never the proposal's text.
     const rows = await client.query('select payload from inbox_items')

@@ -143,9 +143,9 @@ export const policies = {
   'tools.set': 'admin',
   'clients.list': 'admin',
   'clients.save': 'admin',
-  'audit.search': 'audit',
-  'audit.export': 'audit',
-  'audit.verify': 'audit',
+  'audit.search': 'admin',
+  'audit.export': 'admin',
+  'audit.verify': 'admin',
   'imports.items': 'propose',
   'connect.get': 'read',
   'connect.pending': 'read',
@@ -193,9 +193,8 @@ export function can(principal: Principal | null, operation: string): boolean {
   return (
     policy === 'read' ||
     policy === 'propose' ||
+    // FR-808: administrators search and export the history log too.
     (policy === 'admin' && roles.includes('administrator')) ||
-    // FR-808: administrators and auditors search and export the history log.
-    (policy === 'audit' && (roles.includes('administrator') || roles.includes('auditor'))) ||
     // Test results, the Quality page, editions and area dashboards: administrators (the data
     // platform team for the first release), and owners (the service narrows to
     // their areas).

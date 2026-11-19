@@ -20,9 +20,6 @@ const detail = `select a.id, a.name, a.label, a.review_days as "reviewDays", a.c
     array(select x.person_id::text from area_assignments x
       where x.area_id = a.id and x.role = 'owner' and x.valid_at @> now()
       order by lower(x.valid_at), x.person_id) as "ownerIds",
-    array(select x.person_id::text from area_assignments x
-      where x.area_id = a.id and x.role = 'approver' and x.valid_at @> now()
-      order by x.person_id) as "approverIds",
     to_char(a.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as "createdAt", a.revision
   from areas a
   where a.id = $1 and a.archived_at is null`
@@ -102,7 +99,7 @@ export async function getArea(tx: Queryable, id: string): Promise<AreaDetail> {
 /**
  * A new area is served from the start: its items reach agents as soon as they are accepted. The
  * history log records it. Its team, when named, is given in the same transaction as one batch with
- * the area's reason, so the area exists with its owners and approvers, or not at all.
+ * the area's reason, so the area exists with its owners, or not at all.
  */
 export async function createArea(
   tx: Queryable,
@@ -159,19 +156,13 @@ export async function createArea(
     subjectId: input.id,
     details: { ...fields, ...(input.reason === undefined ? {} : { reason: input.reason }) },
   })
-  const { ownerIds = [], approverIds = [] } = input.team ?? {}
-  const team: GrantChange[] = [
-    ...ownerIds.map((personId) => ({
-      op: 'grant' as const,
-      personId,
-      role: 'owner' as const,
-    })),
-    ...approverIds.map((personId) => ({
-      op: 'grant' as const,
-      personId,
-      role: 'approver' as const,
-    })),
-  ].map((change) => ({ ...change, areaId: input.id }))
+  const { ownerIds = [] } = input.team ?? {}
+  const team: GrantChange[] = ownerIds.map((personId) => ({
+    op: 'grant' as const,
+    personId,
+    role: 'owner' as const,
+    areaId: input.id,
+  }))
   if (team.length) await changeGrants(tx, team, { batch: true, reason: input.reason ?? null })
   return getArea(tx, input.id)
 }

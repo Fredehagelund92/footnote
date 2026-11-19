@@ -278,7 +278,7 @@ export async function readGate(tx: Queryable, versionId: string): Promise<Gate> 
   )
   const [row] = await tx.query<{ owner: boolean; problem: string | null }>(
     `select exists(select 1 from decisions d where d.item_version_id=v.id and d.outcome='accept'
-              and d.capacity in ('owner','deputy','administrator')) as owner,
+              and d.capacity in ('owner','administrator')) as owner,
             cl_item_version_problem(v.id) as problem
        from item_versions v where v.id=$1`,
     [versionId],

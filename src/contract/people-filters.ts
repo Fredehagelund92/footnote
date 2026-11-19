@@ -7,13 +7,7 @@ import * as z from 'zod/mini'
 */
 
 /** The role filter: any role across Footnote or in an area, or none at all ("contributor only"). */
-export const peopleRoleFilterSchema = z.enum([
-  'administrator',
-  'auditor',
-  'owner',
-  'approver',
-  'none',
-])
+export const peopleRoleFilterSchema = z.enum(['administrator', 'owner', 'none'])
 
 /** When a person last signed in: within a week, within 30 days, longer ago, or never. */
 export const peopleSignInFilterSchema = z.enum(['week', 'month', 'older', 'never'])

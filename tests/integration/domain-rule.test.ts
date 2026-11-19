@@ -29,7 +29,7 @@ import { apiDatabase, servingPool, testDatabase, transaction } from './support.t
   read the same pinned map, so a gap about Orders in Norway reported before the first sync still
   reaches its owner. Every domain is served (FR-320).
 
-  Here: Commercial (owner), Customer value (approver is its owner), Marketing (stranger is its
+  Here: Commercial (owner), Customer value (member is its owner), Marketing (stranger is its
   owner), and an author who reports gaps, as Maria does in the demo.
 */
 
@@ -110,7 +110,7 @@ async function unpinnedEdition() {
       ('dim:market','dimension',null),('val:market/norway','dimension_value','dim:market')`)
   for (const [area, person] of [
     ['area_commercial', people.owner],
-    ['area_customer_value', people.approver],
+    ['area_customer_value', people.member],
     ['area_marketing', people.stranger],
   ] as const)
     await client.query(
@@ -142,7 +142,7 @@ async function unpinnedEdition() {
   for (let n = 0; n < 2; n += 1) {
     const v = await version(client, {
       area: 'area_customer_value',
-      owner: people.approver,
+      owner: people.member,
       scope: false,
       title: `Active customers note ${n}`,
       summary: 'Active customers',
@@ -151,7 +151,7 @@ async function unpinnedEdition() {
     await client.query("insert into item_version_metrics values ($1,'metric:active_customers')", [
       v.id,
     ])
-    await accept(client, v.id, { actor: people.approver })
+    await accept(client, v.id, { actor: people.member })
     await client.query('select edition_serve_item_version($1,$2)', [seq, v.id])
   }
   await client.query('select edition_seal($1)', [seq])
@@ -320,7 +320,7 @@ describe('after a sync pins them', () => {
         [topic.rows[0]!.id],
       )
     ).rows[0]!.id
-    for (const who of ['approver', 'stranger'] as const) {
+    for (const who of ['member', 'stranger'] as const) {
       const detail = (await call('GET', `/gaps/${id}`, who)).json<GapDetail>()
       expect(detail, who).toMatchObject({
         canManage: true,

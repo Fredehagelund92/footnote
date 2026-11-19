@@ -29,10 +29,10 @@ it('refuses missing and later failed checks', async () => {
     ).rejects.toThrow('required check')
   }
 })
-// FR-206 (16 October 2026): an administrator and an owner of the area accept their own proposal at
-// every risk. FR-513 (Footnote v1): one accept and levels 1 to 3 publish it, whatever its risk.
+// FR-206: an administrator and an owner of the area accept their own proposal at every risk.
+// FR-513: one accept and levels 1 to 3 publish it, whatever its risk.
 it.each(['low', 'normal', 'high'] as const)(
-  "takes an owner's and an administrator's own accept at %s risk, with no approver",
+  "takes an owner's and an administrator's own accept at %s risk",
   async (risk) => {
     await transaction(client, async () => {
       const v = await version(client, { risk, author: people.owner })
@@ -61,25 +61,8 @@ it('still refuses a self accept by anyone who is neither an administrator nor an
         await publish(client, v.id)
       }),
     ).rejects.toThrow('no accept decision')
-  // An approver's accept alone never publishes, their own proposal's or anyone's.
-  for (const author of [people.approver, people.author])
-    await expect(
-      transaction(client, async () => {
-        const v = await version(client, { risk: 'high', author })
-        await client.query(
-          `with p as (insert into proposals
-               (action,state,area_id,item_id,item_version_id,proposer_id,channel,submitted_at)
-             select 'create','submitted',area_id,item_id,id,proposer_id,'form',now()
-               from item_versions where id=$1 returning id,item_version_id,area_id)
-           insert into decisions (proposal_id,item_version_id,area_id,decided_by,capacity,outcome,reason)
-           select id,item_version_id,area_id,$2,'approver','accept','Reviewed high risk' from p`,
-          [v.id, people.approver],
-        )
-        await publish(client, v.id)
-      }),
-    ).rejects.toThrow('no accept decision')
 })
-it('needs no approver and no answer test at high risk (FR-207 withdrawn, FR-513)', async () => {
+it('needs levels 1 to 3 only at high risk (FR-513)', async () => {
   await transaction(client, async () => {
     const v = await version(client, { risk: 'high' })
     await accept(client, v.id)
@@ -275,7 +258,7 @@ describe('a submitted version', () => {
           previous: v.id,
           risk: 'high',
           reviewDate: '2027-06-01',
-          owner: people.approver,
+          owner: people.member,
           editedBy: people.owner,
         })
         await swap(v.proposal, edited.id)
@@ -286,7 +269,7 @@ describe('a submitted version', () => {
     ['changed content', { title: 'Another title' }],
     ['changed scope', { scope: false }],
     ['no editor', { editedBy: undefined }],
-    ['another editor', { editedBy: people.approver }],
+    ['another editor', { editedBy: people.member }],
     ['no link to the submitted version', { previous: undefined }],
   ] as const)('refuses a new version with %s', async (_case, change) => {
     await expect(
@@ -310,7 +293,7 @@ describe('a submitted version', () => {
 
   it.each([
     ['the proposer', people.author],
-    ['an approver', people.approver],
+    ['someone who does not own the domain', people.member],
   ] as const)('refuses a review edit by %s', async (_who, editor) => {
     await expect(
       transaction(client, async () => {

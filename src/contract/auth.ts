@@ -1,8 +1,8 @@
 import * as z from 'zod/mini'
 import { areaSchema, personSchema } from '../domain/item.ts'
 
-export const globalRoleSchema = z.enum(['administrator', 'auditor'])
-export const areaRoleSchema = z.enum(['owner', 'approver'])
+export const globalRoleSchema = z.enum(['administrator'])
+export const areaRoleSchema = z.enum(['owner'])
 export const assignmentSchema = z.object({ areaId: z.string(), role: areaRoleSchema })
 export const permissionsSchema = z.object({
   roles: z.array(globalRoleSchema),

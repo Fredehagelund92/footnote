@@ -13,7 +13,7 @@ import { apiDatabase, servingPool, testDatabase, transaction } from './support.t
 /*
   S15 administration over authenticated HTTP: versioned settings and limits, the tool switch and
   client policies (read by the MCP gateway through the serving role on the next request), and
-  the history log's search, export and chain check for administrators and auditors.
+  the history log's search, export and chain check for administrators.
 */
 
 const { client, url } = testDatabase()
@@ -51,10 +51,6 @@ const auditRows = async () =>
 beforeAll(async () => {
   await transaction(client, async () => {
     await foundation(client)
-    // The stranger audits; the owner has only area roles.
-    await client.query("insert into global_role_grants (person_id,role) values ($1,'auditor')", [
-      people.stranger,
-    ])
   })
   for (const name of Object.keys(people) as Who[]) {
     const response = await app.inject({
@@ -356,13 +352,14 @@ describe('tool switch and client policies', () => {
 })
 
 describe('history log', () => {
-  it('lets administrators and auditors search it, newest first, a page at a time', async () => {
+  it('lets administrators search it, newest first, a page at a time', async () => {
     expect((await call('GET', '/audit', 'owner')).statusCode).toBe(403)
     expect((await call('GET', '/audit', 'author')).statusCode).toBe(403)
+    expect((await call('GET', '/audit', 'stranger')).statusCode).toBe(403)
     const all = await ok<{ entries: AuditEntry[]; next: number | null }>(
       'GET',
       '/audit?limit=200',
-      'stranger',
+      'admin',
     )
     expect(all.entries.length).toBeGreaterThanOrEqual(6)
     const seqs = all.entries.map((e) => e.seq)
@@ -379,7 +376,7 @@ describe('history log', () => {
     )
     expect([...first.entries, ...second.entries].map((e) => e.seq)).toEqual(seqs.slice(0, 4))
 
-    const tools = await ok<{ entries: AuditEntry[] }>('GET', '/audit?action=tool', 'stranger')
+    const tools = await ok<{ entries: AuditEntry[] }>('GET', '/audit?action=tool', 'admin')
     expect(tools.entries.map((e) => e.action)).toEqual(['tool.switched_on', 'tool.switched_off'])
     expect(tools.entries[0]).toMatchObject({
       actorId: people.admin,
@@ -404,7 +401,7 @@ describe('history log', () => {
     const jsonl = await ok<{ content: string; count: number; next: number | null; chain: object }>(
       'GET',
       '/audit/export',
-      'stranger',
+      'admin',
     )
     const lines = jsonl.content.trimEnd().split('\n')
     expect(lines).toHaveLength(jsonl.count)
@@ -445,7 +442,7 @@ describe('history log', () => {
         "select seq from audit_log where action='tool.switched_off'",
       )
     ).rows as [{ seq: string }]
-    expect(await ok('GET', '/audit/verify', 'stranger')).toEqual({
+    expect(await ok('GET', '/audit/verify', 'admin')).toEqual({
       verified: false,
       firstBadSeq: Number(seq),
     })

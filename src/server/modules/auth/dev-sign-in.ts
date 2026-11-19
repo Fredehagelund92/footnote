@@ -19,7 +19,7 @@ const personSchema = z
   .object({
     email: z.email().toLowerCase(),
     name: z.string().trim().min(1),
-    roles: z.array(z.enum(['administrator', 'auditor'])).default([]),
+    roles: z.array(z.enum(['administrator'])).default([]),
   })
   .strict()
 const peopleSchema = z

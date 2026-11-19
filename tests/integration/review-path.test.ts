@@ -209,7 +209,7 @@ describe('how a suggestion relates to a live item it clashes with (FR-225)', () 
   })
 
   it('refuses anyone else, another version, its own item and a decided suggestion', async () => {
-    for (const person of [people.author, people.approver, people.stranger])
+    for (const person of [people.author, people.member, people.stranger])
       await expect(answer(person, 'unrelated')).rejects.toThrow(/row-level security/)
     await expect(answer(people.owner, 'unrelated', { version: proposed })).rejects.toThrow(
       /row-level security/,

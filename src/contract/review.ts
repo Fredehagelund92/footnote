@@ -154,7 +154,7 @@ export type Gate = z.infer<typeof gateSchema>
 export const decisionSchema = z.object({
   id: z.string(),
   decidedBy: z.string(),
-  /** The capacity it was made in; `deputy` only on a decision made before the role went. */
+  /** The capacity it was made in. */
   capacity: z.enum(decisionCapacities),
   outcome: z.enum(['accept', 'request_changes', 'reject', 'retire']),
   reason: z.string(),
@@ -175,7 +175,7 @@ export const decideSchema = z.strictObject({
   revision: z.number().check(z.int(), z.minimum(1)),
   outcome: z.enum(['accept', 'request_changes', 'reject']),
   reason,
-  capacity: z.optional(z.enum(['owner', 'approver', 'administrator'])),
+  capacity: z.optional(z.enum(['owner', 'administrator'])),
   /**
    * A request for changes may carry a longer comment for the discussion, in the small Markdown
    * subset (bold, italic, code, links, lists and quotes), beside its short reason.
@@ -221,8 +221,6 @@ export const bulkSkipCodes = [
   'forbidden',
   'refused',
 ] as const
-/** What happens to a proposal the step decides: published, waiting for the approver, or decided. */
-export const bulkEffects = ['publish', 'wait', 'decide'] as const
 
 /**
  * Members of a definition source that no term links yet, as the term to propose for them: a new

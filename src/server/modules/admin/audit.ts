@@ -45,7 +45,7 @@ export async function recordAudit(
 
 type Filters = Omit<z.infer<typeof auditSearchSchema>, 'before' | 'limit'>
 
-/** Row security shows the log to administrators and auditors only (0012); filters are exact. */
+/** Row security shows the log to administrators only; filters are exact. */
 function where(filters: Filters, values: unknown[]) {
   const clauses: string[] = []
   const add = (sql: string, value: unknown) => {
@@ -76,7 +76,7 @@ const from = 'from audit_log a left join people p on p.id=a.actor_id'
 /*
   What the log's screen shows of an entry's subject: a proposal's number and title, an item's
   title. Read in the reader's transaction, so row security decides: a proposal the reader may
-  not see (an auditor and another person's draft) gives neither, and an item gives its title only
+  not see (another person's draft) gives neither, and an item gives its title only
   while its current version is served to everyone, as in the library.
 */
 const proposalOf = `(case when a.subject_type='proposal' then a.subject_id end)::uuid`

@@ -33,15 +33,11 @@ export const people: Person[] = [
 export const currentUserId = 'per_maria'
 
 /**
- * Roles beyond the owners named on each domain (several for some): a high-risk approver for Sales
- * and an admin. The bulk seed grants the same, so the mock and the service agree on who
- * may do what.
+ * Roles beyond the owners named on each domain: an admin. The bulk seed grants the same, so the
+ * mock and the service agree on who may do what.
  */
 export const roleGrants = {
-  approvers: [{ areaId: 'area_sales', personId: 'per_lars' }],
   administrators: ['per_ravi'],
-  /** Reads the history log (FR-808), and nothing else an admin does. */
-  auditors: ['per_ella'],
 } as const
 
 /** Business areas (requirements section 2.1 "Area"). Each label is a hue on the domain ring. */

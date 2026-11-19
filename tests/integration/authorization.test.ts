@@ -42,15 +42,13 @@ const roles = {
   owner: 'owner',
   otherOwner: 'stranger',
   secondOwner: 'coowner',
-  approver: 'approver',
-  auditor: 'auditor',
+  member: 'member',
   administrator: 'admin',
 } as const
 type Role = keyof typeof roles
 const members = {
   ...people,
   coowner: '00000000-0000-4000-8000-0000000000d1',
-  auditor: '00000000-0000-4000-8000-0000000000a1',
 }
 
 const app = buildApp({
@@ -115,7 +113,6 @@ function allowed(policy: string, role: Role): boolean {
   if (policy === 'public') return true
   if (role === 'anonymous') return false
   if (policy === 'admin') return role === 'administrator'
-  if (policy === 'audit') return role === 'administrator' || role === 'auditor'
   if (policy === 'maintain')
     return ['administrator', 'owner', 'otherOwner', 'secondOwner'].includes(role)
   return true
@@ -144,16 +141,13 @@ beforeAll(async () => {
   await transaction(client, async () => {
     await foundation(client)
     await client.query(
-      "insert into people (id,email,display_name) values ($1,'coowner@example.test','coowner'),($2,'auditor@example.test','auditor')",
-      [members.coowner, members.auditor],
+      "insert into people (id,email,display_name) values ($1,'coowner@example.test','coowner')",
+      [members.coowner],
     )
     await client.query(
       "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'owner'),('marketing',$2,'owner')",
       [members.coowner, people.stranger],
     )
-    await client.query("insert into global_role_grants (person_id,role) values ($1,'auditor')", [
-      members.auditor,
-    ])
     // The sweeps send every operation from one address, mostly as one administrator, within a
     // minute, so either limit would end them as the contract grows; the limits have their own
     // suite (rate-limit.test.ts).

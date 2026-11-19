@@ -23651,8 +23651,6 @@
                                         "capacity": {
                                           "enum": [
                                             "owner",
-                                            "deputy",
-                                            "approver",
                                             "administrator"
                                           ],
                                           "type": "string"
@@ -25579,8 +25577,7 @@
                         "type": "array",
                         "items": {
                           "enum": [
-                            "administrator",
-                            "auditor"
+                            "administrator"
                           ],
                           "type": "string"
                         }
@@ -25592,8 +25589,7 @@
                           "properties": {
                             "role": {
                               "enum": [
-                                "owner",
-                                "approver"
+                                "owner"
                               ],
                               "type": "string"
                             },
@@ -25941,8 +25937,7 @@
                               "type": "array",
                               "items": {
                                 "enum": [
-                                  "administrator",
-                                  "auditor"
+                                  "administrator"
                                 ],
                                 "type": "string"
                               }
@@ -25957,8 +25952,7 @@
                                   },
                                   "role": {
                                     "enum": [
-                                      "owner",
-                                      "approver"
+                                      "owner"
                                     ],
                                     "type": "string"
                                   }
@@ -26554,8 +26548,7 @@
                               "type": "array",
                               "items": {
                                 "enum": [
-                                  "administrator",
-                                  "auditor"
+                                  "administrator"
                                 ],
                                 "type": "string"
                               }
@@ -26570,8 +26563,7 @@
                                   },
                                   "role": {
                                     "enum": [
-                                      "owner",
-                                      "approver"
+                                      "owner"
                                     ],
                                     "type": "string"
                                   }
@@ -32834,8 +32826,7 @@
                   },
                   "role": {
                     "enum": [
-                      "administrator",
-                      "auditor"
+                      "administrator"
                     ],
                     "type": "string"
                   }
@@ -33129,8 +33120,7 @@
                   },
                   "role": {
                     "enum": [
-                      "administrator",
-                      "auditor"
+                      "administrator"
                     ],
                     "type": "string"
                   }
@@ -33424,8 +33414,7 @@
                   },
                   "role": {
                     "enum": [
-                      "owner",
-                      "approver"
+                      "owner"
                     ],
                     "type": "string"
                   },
@@ -33724,8 +33713,7 @@
                   },
                   "role": {
                     "enum": [
-                      "owner",
-                      "approver"
+                      "owner"
                     ],
                     "type": "string"
                   },
@@ -48110,7 +48098,7 @@
       },
       "post": {
         "operationId": "areas.create",
-        "summary": "Create a domain with a reason (FR-801), and its owners and approvers in the same step; the team is given as one grants.apply batch with the same reason",
+        "summary": "Create a domain with a reason (FR-801), and its owners in the same step; the team is given as one grants.apply batch with the same reason",
         "tags": [
           "admin"
         ],
@@ -48229,14 +48217,6 @@
                           "type": "string",
                           "format": "uuid"
                         }
-                      },
-                      "approverIds": {
-                        "type": "array",
-                        "maxItems": 50,
-                        "items": {
-                          "type": "string",
-                          "format": "uuid"
-                        }
                       }
                     },
                     "additionalProperties": false
@@ -48316,12 +48296,6 @@
                         "type": "string"
                       }
                     },
-                    "approverIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
                     "createdAt": {
                       "type": "string"
                     },
@@ -48340,7 +48314,6 @@
                     "summary",
                     "description",
                     "ownerIds",
-                    "approverIds",
                     "createdAt",
                     "revision"
                   ]
@@ -49140,12 +49113,6 @@
                         "type": "string"
                       }
                     },
-                    "approverIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
                     "createdAt": {
                       "type": "string"
                     },
@@ -49164,7 +49131,6 @@
                     "summary",
                     "description",
                     "ownerIds",
-                    "approverIds",
                     "createdAt",
                     "revision"
                   ]
@@ -49605,12 +49571,6 @@
                             "type": "string"
                           }
                         },
-                        "approverIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
                         "createdAt": {
                           "type": "string"
                         },
@@ -49629,7 +49589,6 @@
                         "summary",
                         "description",
                         "ownerIds",
-                        "approverIds",
                         "createdAt",
                         "revision"
                       ]
@@ -77153,8 +77112,7 @@
                           "type": "array",
                           "items": {
                             "enum": [
-                              "administrator",
-                              "auditor"
+                              "administrator"
                             ],
                             "type": "string"
                           }
@@ -77169,8 +77127,7 @@
                               },
                               "role": {
                                 "enum": [
-                                  "owner",
-                                  "approver"
+                                  "owner"
                                 ],
                                 "type": "string"
                               }

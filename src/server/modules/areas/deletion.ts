@@ -36,7 +36,7 @@ import { getArea } from './settings.ts'
 */
 
 type TermKind = Term['kind']
-type Role = 'owner' | 'approver'
+type Role = 'owner'
 
 /**
  * What deleting a domain would do, as the database reads it as the owner (0076). An item or a
@@ -239,10 +239,7 @@ async function removeArea(
   if (outcome === 'blocked')
     throw new ORPCError('CONFLICT', { message: "The demo domain can't be deleted." })
   const why = input.reason === undefined ? {} : { reason: input.reason }
-  const team = {
-    ownerIds: area.ownerIds,
-    approverIds: area.approverIds,
-  }
+  const team = { ownerIds: area.ownerIds }
   if (outcome === 'delete') {
     await tx.query('select cl_area_delete($1)', [input.id])
     await recordAudit(tx, {

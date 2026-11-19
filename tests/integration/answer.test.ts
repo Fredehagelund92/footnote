@@ -964,12 +964,8 @@ describe('the replay of a topic', () => {
       )
       return made
     })
-    // High risk: the owner and the domain's approver accept it.
-    await accept(client, v.id, {
-      actor: seedPersonId('per_jon'),
-      approver: true,
-      approverActor: seedPersonId('per_lars'),
-    })
+    // High risk: the owner accepts it.
+    await accept(client, v.id, { actor: seedPersonId('per_jon') })
     before = live
     await publish(client, v.id)
     live = await loadServingBundle(tx, (await heads())[0]!)

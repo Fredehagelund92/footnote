@@ -101,7 +101,6 @@ describe('areas from settings', () => {
       summary: '',
       description: '',
       ownerIds: [],
-      approverIds: [],
       revision: 1,
     })
     const areas = await ok<{ id: string; summary: string; label: string }[]>(
@@ -239,22 +238,16 @@ describe('areas from settings', () => {
   })
 
   it('shows who looks after the area, and the new area starts like any other', async () => {
-    for (const [personId, role] of [
-      [people.owner, 'owner'],
-      [people.approver, 'approver'],
-      [people.author, 'approver'],
-    ] as const)
-      await ok('POST', '/assignments/grant', 'admin', { personId, role, areaId: 'payments' })
+    await ok('POST', '/assignments/grant', 'admin', {
+      personId: people.owner,
+      role: 'owner',
+      areaId: 'payments',
+    })
     const team = await client.query<{ person_id: string; role: string }>(
       `select person_id::text, role::text from area_assignments
         where area_id='payments' and upper_inf(valid_at) order by role, person_id`,
     )
-    expect(team.rows.filter((r) => r.role === 'owner').map((r) => r.person_id)).toEqual([
-      people.owner,
-    ])
-    expect(team.rows.filter((r) => r.role === 'approver').map((r) => r.person_id)).toEqual(
-      [people.author, people.approver].sort(),
-    )
+    expect(team.rows).toEqual([{ person_id: people.owner, role: 'owner' }])
 
     // A proposal in the new area is due after its own review time (3 working days).
     const { rows } = await client.query<{ review_days: number }>(
@@ -312,8 +305,8 @@ describe('areas from settings', () => {
     }
     const put = (who: Who, payload: object) =>
       call('PUT', '/areas/payments/description', who, payload)
-    // A high-risk approver of the area, and a contributor, may not.
-    for (const who of ['approver', 'author'] as const)
+    // Someone who does not own the area, and a contributor, may not.
+    for (const who of ['member', 'author'] as const)
       expect((await put(who, { revision, ...about })).statusCode).toBe(403)
     // One line of at most 160 characters, and at most 1,500 for the description.
     for (const bad of [

@@ -14,9 +14,7 @@ import { notAllowed } from '../../../contract/refusals.ts'
 
 /*
   The people of a workspace as Footnote v1 has them (docs/product.md, section 11): Admin or Member,
-  and the domains each owns. An administrator grant is Admin; everyone else is a Member. Making
-  someone either ends an auditor grant they hold, as v1 has no auditor role; the approver role is
-  a domain's and stays until risk levels go.
+  and the domains each owns. An administrator grant is Admin; everyone else is a Member.
 */
 
 const iso = (column: string) =>
@@ -42,7 +40,7 @@ export async function listMembers(tx: Queryable): Promise<Member[]> {
 /**
  * What someone did lately, as People shows it: the context items whose current version they
  * checked last, newest first. A check is the last acceptance of the version, by the rule the
- * library's "checked by" reads (a re-check is one; an approver's accept is not). Only items the
+ * library's "checked by" reads (a re-check is one). Only items the
  * reader may read are named, so it says no more than each item's page already does.
  */
 export async function memberActivity(
@@ -60,7 +58,7 @@ export async function memberActivity(
        select distinct on (d.item_version_id) d.item_version_id as version_id, d.id, d.decided_at,
               d.decided_by
          from decisions d join listed on listed.version_id = d.item_version_id
-        where d.outcome = 'accept' and d.capacity <> 'approver'
+        where d.outcome = 'accept'
         order by d.item_version_id, d.decided_at desc, d.id desc)
      select 'checked' as what, l.id as "itemId", l.title,
             to_char((c.decided_at at time zone 'UTC')::date, 'YYYY-MM-DD') as on
@@ -108,7 +106,6 @@ export async function setMemberRole(
   await activePerson(tx, personId)
   const changes: GrantChange[] = [
     { op: input.role === 'admin' ? 'grant' : 'revoke', personId, role: 'administrator' },
-    { op: 'revoke', personId, role: 'auditor' },
   ]
   const result = await changeGrants(tx, changes, { batch: false })
   return { changed: result.changes.some((change) => change.changed) }
@@ -154,11 +151,11 @@ export async function removeMember(
       message: 'Hand over first: they are the only owner of a domain.',
       data: { areas: alone },
     })
-  const roles = await tx.query<{ role: 'administrator' | 'auditor' }>(
+  const roles = await tx.query<{ role: 'administrator' }>(
     `select role from global_role_grants where person_id=$1 and valid_at @> now() order by role`,
     [personId],
   )
-  const assignments = await tx.query<{ areaId: string; role: 'owner' | 'approver' }>(
+  const assignments = await tx.query<{ areaId: string; role: 'owner' }>(
     `select area_id as "areaId", role from area_assignments
       where person_id=$1 and valid_at @> now() order by area_id, role`,
     [personId],

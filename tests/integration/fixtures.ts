@@ -4,20 +4,9 @@ import type pg from 'pg'
 export const people = {
   author: '00000000-0000-4000-8000-000000000001',
   owner: '00000000-0000-4000-8000-000000000002',
-  approver: '00000000-0000-4000-8000-000000000003',
+  member: '00000000-0000-4000-8000-000000000003',
   admin: '00000000-0000-4000-8000-000000000004',
   stranger: '00000000-0000-4000-8000-000000000005',
-}
-
-/**
- * The schema's word for the role that accepts a domain's facts: `owner` from 0086, `steward`
- * before it. The migration tests run these fixtures on a database migrated only that far.
- */
-async function ownerWord(client: pg.Client): Promise<'owner' | 'steward'> {
-  const { rows } = await client.query<{ renamed: boolean }>(
-    "select 'owner' = any(enum_range(null::area_role)::text[]) as renamed",
-  )
-  return rows[0]!.renamed ? 'owner' : 'steward'
 }
 
 export async function foundation(client: pg.Client) {
@@ -36,8 +25,8 @@ export async function foundation(client: pg.Client) {
     insert into connectors (id,kind,type,name) values ('demo','definition_source','demo','Demo');
     insert into definitions (ref,connector_id,kind,name,change_mark) values ('demo:orders','demo','metric','Orders','1')`)
   await client.query(
-    "insert into area_assignments (area_id,person_id,role) values ('finance',$1,$3),('finance',$2,'approver')",
-    [people.owner, people.approver, await ownerWord(client)],
+    "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'owner')",
+    [people.owner],
   )
   await client.query(
     "insert into global_role_grants (person_id,role) values ($1,'administrator')",
@@ -76,7 +65,7 @@ export async function version(
   const result = await client.query<{ id: string }>(
     `insert into item_versions
     (item_id,version_no,area_id,title,summary,summary_markup,body,body_markup,risk,proposer_id,created_via,
-     valid_from,valid_until,review_date,content_digest,core_digest,supersedes_version_id,is_recheck,${await ownerWord(client)}_id,
+     valid_from,valid_until,review_date,content_digest,core_digest,supersedes_version_id,is_recheck,owner_id,
      audience_groups,edited_by)
     values ($1,(select count(*)+1 from item_versions where item_id=$1),$18,$13,$2,$3,$4,$5,$6,$7,'form',
     $15,$16,$12,sha256('content'),sha256($8::bytea),$9,$10,$11,$14,$17) returning id`,
@@ -113,11 +102,8 @@ export async function accept(
   options: {
     actor?: string
     checks?: boolean
-    approver?: boolean
-    /** The capacity of the first accept: an owner's, or an administrator's (FR-202). */
+    /** The capacity of the accept: an owner's, or an administrator's (FR-202). */
     capacity?: 'owner' | 'administrator'
-    /** Who gives the approver's accept. */
-    approverActor?: string
   } = {},
 ) {
   const proposal = await client.query<{ id: string }>(
@@ -129,19 +115,8 @@ export async function accept(
   await client.query(
     `insert into decisions (proposal_id,item_version_id,area_id,decided_by,capacity,outcome,reason)
     values ($1,$2,(select area_id from item_versions where id=$2),$3,$4,'accept','Reviewed')`,
-    [
-      proposal.rows[0]!.id,
-      id,
-      options.actor ?? people.owner,
-      options.capacity === 'administrator' ? 'administrator' : await ownerWord(client),
-    ],
+    [proposal.rows[0]!.id, id, options.actor ?? people.owner, options.capacity ?? 'owner'],
   )
-  if (options.approver)
-    await client.query(
-      `insert into decisions (proposal_id,item_version_id,area_id,decided_by,capacity,outcome,reason)
-    values ($1,$2,(select area_id from item_versions where id=$2),$3,'approver','accept','Reviewed high risk')`,
-      [proposal.rows[0]!.id, id, options.approverActor ?? people.approver],
-    )
   if (options.checks !== false)
     await client.query(
       `insert into check_results (item_version_id,level,outcome)

@@ -14,7 +14,7 @@ export type LoadedProposal = ReviewProposal & {
   /** The gap this proposal was written for, if any (FR-609). */
   sourceGapId: string | null
 }
-export type Role = 'owner' | 'approver'
+export type Role = 'owner'
 
 const fields = `p.id::text,p.number::float8 as number,p.subject::text as subject,p.action::text as action,
   p.state::text as state,p.area_id as "areaId",p.item_id as "itemId",p.item_version_id::text as "itemVersionId",

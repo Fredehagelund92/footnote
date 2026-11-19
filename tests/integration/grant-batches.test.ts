@@ -88,23 +88,17 @@ describe('creating a domain with its team', () => {
     reason: 'Payments numbers get their own owner',
   } as const
 
-  it('creates the domain and gives its owners and approvers in the same step', async () => {
+  it('creates the domain and gives its owners in the same step', async () => {
     const before = await lastSeq()
     const response = await call('/areas', 'admin', {
       ...fields,
       id: 'payments',
       name: 'Payments',
-      team: {
-        ownerIds: [people.owner, people.author],
-        approverIds: [people.approver, people.stranger],
-      },
+      team: { ownerIds: [people.owner, people.author] },
     })
     expect(response.statusCode, response.body).toBe(200)
     const created = response.json<AreaDetail>()
-    expect(created).toMatchObject({
-      id: 'payments',
-      approverIds: [people.approver, people.stranger].sort(),
-    })
+    expect(created).toMatchObject({ id: 'payments' })
     // Given in one step, so they start at the same moment, in the order of their ids.
     expect(created.ownerIds).toEqual([people.owner, people.author].sort())
     const entries = await entriesSince(before)
@@ -112,8 +106,6 @@ describe('creating a domain with its team', () => {
       ['area.created', null],
       ['assignment.granted', 'owner'],
       ['assignment.granted', 'owner'],
-      ['assignment.granted', 'approver'],
-      ['assignment.granted', 'approver'],
     ])
     const team = entries.slice(1)
     expect(new Set(team.map((entry) => entry.batch_id)).size).toBe(1)

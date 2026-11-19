@@ -1,6 +1,5 @@
 /**
- * Creating and editing an area from settings (FR-801). Its owners and approvers may be named as
- * it is created, and are later given and removed with `grants.apply` (FR-804), each change
+ * Creating and editing an area from settings (FR-801). Its owners may be named as it is created, and are later given and removed with `grants.apply` (FR-804), each change
  * recorded on its own. What the area is (its summary and description) its owners or an
  * administrator write with `areas.describe` (FR-813). An administrator deletes an area with
  * `areas.remove` and brings a deleted one back with `areas.restore` (FR-814).
@@ -58,8 +57,6 @@ const areaFields = {
 
 /** The most owners an area may be created with. */
 export const AREA_OWNERS_MAX = 50
-/** The most approvers an area may be created with. */
-export const AREA_APPROVERS_MAX = 50
 
 const areaIdField = z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/))
 
@@ -84,7 +81,6 @@ export const createAreaSchema = z.strictObject({
   team: z.optional(
     z.strictObject({
       ownerIds: z.optional(z.array(z.uuid()).check(z.maxLength(AREA_OWNERS_MAX))),
-      approverIds: z.optional(z.array(z.uuid()).check(z.maxLength(AREA_APPROVERS_MAX))),
     }),
   ),
 })
@@ -116,7 +112,6 @@ export const areaDetailSchema = z.object({
   description: z.string(),
   /** Its owners now, longest-serving first; empty while it has none. */
   ownerIds: z.array(z.string()),
-  approverIds: z.array(z.string()),
   createdAt: z.string(),
   /** One more with every edit. */
   revision: z.number(),
@@ -172,7 +167,7 @@ export const deletedDraftSchema = z.object({ ...named, author: z.string() })
 export const deletedRoleSchema = z.object({
   personId: z.string(),
   name: z.string(),
-  role: z.enum(['owner', 'approver']),
+  role: z.enum(['owner']),
 })
 
 export const removeAreaSchema = z.strictObject({

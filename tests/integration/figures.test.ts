@@ -651,12 +651,12 @@ describe('a figure that does not fit a context item', () => {
     })
     expect((await report('author', 'both')).statusCode).toBe(200)
     // Someone who may not read the report still sees which item, never who said it or what.
-    const seen = await readFigure('approver', { ...discount, items: [item] })
+    const seen = await readFigure('member', { ...discount, items: [item] })
     expect(seen).toMatchObject({ state: 'figure', against: { itemId: item } })
     expect(JSON.stringify(seen)).not.toMatch(/author|doesn't fit this/)
     // Another market's figure is not the one reported.
     expect(
-      await readFigure('approver', {
+      await readFigure('member', {
         ...discount,
         values: ['val:market/spain'],
         items: [item],
@@ -681,7 +681,7 @@ describe('a figure that does not fit a context item', () => {
   })
 
   it('goes to the data contact alone when sent to them alone', async () => {
-    expect((await report('approver', 'contact')).statusCode).toBe(200)
+    expect((await report('member', 'contact')).statusCode).toBe(200)
     const contact = await ok<{ cards: { note: string | null }[] }>(
       call('GET', '/inbox/feed', 'stranger'),
     )
@@ -694,7 +694,7 @@ describe('a figure that does not fit a context item', () => {
     )
     expect(
       adminFeed.cards.some(
-        (c) => c.note === "The figure doesn't fit this context item." && c.by === people.approver,
+        (c) => c.note === "The figure doesn't fit this context item." && c.by === people.member,
       ),
     ).toBe(false)
   })
@@ -715,7 +715,7 @@ describe('trying a figure', () => {
   }
 
   it("is an admin's only", async () => {
-    for (const who of ['author', 'owner', 'approver'] as const)
+    for (const who of ['author', 'owner', 'member'] as const)
       expect((await tryFigure(who)).statusCode).toBe(403)
     expect((await call('POST', '/figures/nobody/try', 'admin', {})).statusCode).toBe(404)
   })

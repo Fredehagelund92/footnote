@@ -3,12 +3,8 @@ import { creationChannels } from './item.ts'
 import { proposalStates } from './proposal-state.ts'
 
 export const proposalActions = ['create', 'change', 'retire', 'recheck'] as const
-/**
- * The capacities a recorded decision names. `deputy` is history only: the role went on
- * 16 October 2026, every deputy became an owner of the same domain, and a decision made as
- * deputy before keeps the word it was made with. No new decision is made as deputy.
- */
-export const decisionCapacities = ['owner', 'deputy', 'approver', 'administrator'] as const
+/** The capacities a recorded decision names: an owner of the domain, or an administrator. */
+export const decisionCapacities = ['owner', 'administrator'] as const
 export type DecisionCapacity = (typeof decisionCapacities)[number]
 const id = z.string().check(z.minLength(1))
 export const proposalSchema = z
