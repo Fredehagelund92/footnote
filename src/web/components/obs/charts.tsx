@@ -184,14 +184,19 @@ function ChartTip({
     const px = x * scale
     const py = y * scale
     const gap = reach * scale + 12
-    const left =
-      px + gap + tip.offsetWidth <= box.clientWidth
-        ? px + gap
-        : Math.max(0, px - gap - tip.offsetWidth)
-    const top = Math.max(
-      0,
-      Math.min(py - tip.offsetHeight / 2, box.clientHeight - tip.offsetHeight),
-    )
+    const w = tip.offsetWidth
+    const h = tip.offsetHeight
+    const right = px + gap + w <= box.clientWidth
+    const before = px - gap - w >= 0
+    let left: number
+    let top: number
+    if (right || before) {
+      left = right ? px + gap : px - gap - w
+      top = Math.max(0, Math.min(py - h / 2, box.clientHeight - h))
+    } else {
+      left = Math.max(0, Math.min(px - w / 2, box.clientWidth - w))
+      top = py - 12 - h >= 0 ? py - 12 - h : py + 12
+    }
     setPlace((p) => (p && p.left === left && p.top === top ? p : { left, top }))
     // Its words as well: another point's may be wider.
   }, [x, y, W, reach, children])
@@ -220,7 +225,15 @@ export type Bar = { label: string; at?: number; counts: Counts }
 function useWidth(fallback: number) {
   const ref = React.useRef<HTMLElement>(null)
   const [w, setW] = React.useState(fallback)
+  const [, refit] = React.useState(0)
   const fit = React.useCallback((width: number) => setW(Math.max(260, Math.round(width))), [])
+  React.useEffect(() => {
+    let live = true
+    void document.fonts?.ready.then(() => live && refit((n) => n + 1))
+    return () => {
+      live = false
+    }
+  }, [])
   // Every commit, not only the first: a page that takes its columns after this chart has mounted
   // (the facets beside it) re-renders it, and it reads its new width before that is painted.
   React.useLayoutEffect(() => {

@@ -127,4 +127,32 @@ test.describe('at 390', () => {
       await page.evaluate(() => document.fonts.ready)
       await labelsApart(page)
     })
+
+  test('Overview, 30 days: a tooltip that fits on neither side stays off the bar it describes', async ({
+    page,
+  }) => {
+    await go(page, '/observability?range=30')
+    const plot = page.locator('figure svg:has([data-part])').first()
+    await plot.scrollIntoViewIfNeeded()
+    const box = (await plot.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    const tip = page.locator('[data-chart-tip]').first()
+    await expect(tip).toBeVisible()
+    const t = (await tip.boundingBox())!
+    const parts = await plot
+      .locator('[data-part]')
+      .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON() as DOMRect))
+    const hovered = parts.filter(
+      (r) => r.left <= box.x + box.width / 2 && r.right >= box.x + box.width / 2,
+    )
+    expect(hovered.length).toBeGreaterThan(0)
+    const top = Math.min(...hovered.map((r) => r.top))
+    const bottom = Math.max(...hovered.map((r) => r.bottom))
+    const apart =
+      t.x + t.width <= Math.min(...hovered.map((r) => r.left)) + 0.5 ||
+      t.x >= Math.max(...hovered.map((r) => r.right)) - 0.5 ||
+      t.y + t.height <= top + 0.5 ||
+      t.y >= bottom - 0.5
+    expect(apart).toBe(true)
+  })
 })
