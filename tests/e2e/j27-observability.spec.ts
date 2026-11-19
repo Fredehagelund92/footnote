@@ -578,7 +578,9 @@ test('Alerts: Raised lately says how many it shows of how many, and one click on
   await expect(list.getByRole('link')).toHaveCount(Math.min(raised, 20))
   for (const title of await list.getByRole('link').allInnerTexts())
     expect(title).toMatch(/: not found, \d+ times/)
-  await expect(page.getByText(`All ${raised}, newest first.`)).toBeVisible()
+  await expect(
+    page.getByText(raised > 20 ? `20 of ${raised}, newest first.` : `All ${raised}, newest first.`),
+  ).toBeVisible()
 })
 
 test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, mute for owners', async ({

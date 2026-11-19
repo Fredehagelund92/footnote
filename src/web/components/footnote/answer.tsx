@@ -1820,8 +1820,8 @@ function useRating(answer: Answer) {
             verdict: next,
           }
         } catch {
-          toast.error("Your rating wasn't counted", {
-            description: 'It may not have been counted. Click it again in a moment.',
+          toast.error('Your rating may not have counted', {
+            description: 'Click it again in a moment to be sure.',
           })
         }
       queued.current -= 1

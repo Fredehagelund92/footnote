@@ -344,8 +344,8 @@ const SPEED_WEEKS = {
  * days', so the slow days count for what they weigh.
  */
 const SPEED_RANGES: Record<number, { median: number; p95: number }> = {
-  7: { median: 38, p95: 121 },
-  30: { median: 40, p95: 124 },
+  7: { median: 38, p95: 119 },
+  30: { median: 40, p95: 116 },
   90: { median: 44, p95: 137 },
 }
 

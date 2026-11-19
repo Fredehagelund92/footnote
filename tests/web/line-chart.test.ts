@@ -33,7 +33,7 @@ const labels = ['Wed 11', 'Thu 12', 'Fri 13', 'Sat 14', 'Sun 15', 'Mon 16', 'Tue
 const median = [12, 13, 14, 11, null, 15, 12]
 const p95 = [49, 60, 153, 54, null, 158, 103]
 
-function draw() {
+function draw(values: { median: (number | null)[]; p95: (number | null)[] } = { median, p95 }) {
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -41,8 +41,8 @@ function draw() {
     root!.render(
       React.createElement(LineChart, {
         series: [
-          { name: 'Median', values: median, color: 'var(--primary)' },
-          { name: '95 of 100', values: p95, color: 'var(--chart-2)' },
+          { name: 'Median', values: values.median, color: 'var(--primary)' },
+          { name: '95 of 100', values: values.p95, color: 'var(--chart-2)' },
         ],
         labels,
         height: 210,
@@ -94,4 +94,10 @@ it('leaves a gap for a day with no reply timed, never a point at 0 ms', () => {
     r.textContent?.startsWith('Sun 15'),
   )
   expect(sunday?.textContent).toBe('Sun 15No reply timedNo reply timed')
+})
+
+it('labels whole numbers on every gridline when the slowest day is just under 10 ms', () => {
+  const svg = draw({ median: [3, 4, 5, 4, 3, 4, 5], p95: [6, 7, 9, 8, 7, 9, 8] })
+  const ticks = [...svg.querySelectorAll('text')].map((t) => t.textContent).slice(0, 5)
+  expect(ticks).toEqual(['0 ms', '3 ms', '6 ms', '9 ms', '12 ms'])
 })

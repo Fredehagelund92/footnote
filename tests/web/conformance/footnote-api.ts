@@ -2729,14 +2729,16 @@ export function describeFootnoteApi(
       "says the range's own 95 of 100: no slower than its slowest day, no faster than its fastest",
       async () => {
         await api().signIn({ name: person })
-        const { reply, speed } = (await api().observabilityPage({ section: 'usage', range: 7 }))
-          .usage!
-        const days = speed.p95.filter((v) => v !== null)
-        expect(days.length).toBeGreaterThan(0)
-        expect(reply.p95).not.toBeNull()
-        expect(reply.p95!).toBeLessThanOrEqual(Math.max(...days))
-        expect(reply.p95!).toBeGreaterThanOrEqual(Math.min(...days))
-        expect(reply.median!).toBeLessThanOrEqual(reply.p95!)
+        for (const range of [7, 30, 90] as const) {
+          const { reply, speed } = (await api().observabilityPage({ section: 'usage', range }))
+            .usage!
+          const days = speed.p95.filter((v) => v !== null)
+          expect(days.length).toBeGreaterThan(0)
+          expect(reply.p95).not.toBeNull()
+          expect(reply.p95!).toBeLessThanOrEqual(Math.max(...days))
+          expect(reply.p95!).toBeGreaterThanOrEqual(Math.min(...days))
+          expect(reply.median!).toBeLessThanOrEqual(reply.p95!)
+        }
       },
     )
 

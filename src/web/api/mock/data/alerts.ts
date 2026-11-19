@@ -128,11 +128,14 @@ export function raisedPage(
   const counts = new Map<RuleId, number>()
   for (const r of readable) counts.set(r.rule, (counts.get(r.rule) ?? 0) + 1)
   const of = readable.filter((r) => !rule || r.rule === rule)
-  const from = after ? of.findIndex((r) => r.id === after) + 1 : 0
+  const at = after ? of.findIndex((r) => r.id === after) : -1
+  const from = after ? (at < 0 ? of.length : at + 1) : 0
   const raised = of.slice(from, from + RAISED_PAGE)
   return {
     total: readable.length,
-    byRule: [...counts].map(([r, count]) => ({ rule: r, count })).sort((a, b) => b.count - a.count),
+    byRule: [...counts]
+      .map(([r, count]) => ({ rule: r, count }))
+      .sort((a, b) => b.count - a.count || a.rule.localeCompare(b.rule)),
     raised,
     next: from + RAISED_PAGE < of.length ? raised.at(-1)!.id : null,
   }
