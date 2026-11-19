@@ -39,6 +39,11 @@ export class ApiError extends Error {
   /** For a 409 that is a word's refusal (FR-138): the word is taken. */
   readonly refusal: boolean
   /**
+   * For a change refused because someone published the item after the writer opened it: the
+   * version agents get now.
+   */
+  readonly stale: number | null
+  /**
    * For a change not sent because another tab signed this browser in as someone else: the app
    * moves to them, as a sign-in does.
    */
@@ -54,6 +59,7 @@ export class ApiError extends Error {
       clashes?: Clash[]
       findings?: Finding[]
       refusal?: boolean
+      stale?: number | null
       someoneElse?: boolean
       requestId?: string
     } = {},
@@ -65,6 +71,7 @@ export class ApiError extends Error {
     this.clashes = details.clashes ?? []
     this.findings = details.findings ?? []
     this.refusal = details.refusal ?? false
+    this.stale = details.stale ?? null
     this.someoneElse = details.someoneElse ?? false
     this.requestId = details.requestId
   }
@@ -117,6 +124,11 @@ const findingsOf = (data: unknown): Finding[] =>
 
 const refusalOf = (data: unknown) => isRecord(data) && isRecord(data.refusal)
 
+const staleOf = (data: unknown) =>
+  isRecord(data) && isRecord(data.stale) && typeof data.stale.version === 'number'
+    ? data.stale.version
+    : null
+
 /** The request id of each failure the service answered, by the error the client threw for it. */
 const requestIds = new WeakMap<object, string>()
 
@@ -139,6 +151,7 @@ export function toApiError(error: unknown): ApiError {
       clashes: clashesOf(error.data),
       findings: findingsOf(error.data),
       refusal: refusalOf(error.data),
+      stale: staleOf(error.data),
       requestId: requestIds.get(error),
     })
   return new ApiError('unanswered', "The app didn't reply.")

@@ -610,7 +610,7 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   `areaId` is the item's domain and each neighbour's, a metric's or a dimension's as
   Definitions shows it; `following` says whether agents follow links now (the `get_related`
   switch).
-- `POST /items/publish` takes `{ draft, itemId?, reason?, draftId?, relations? }` (FR-137). An
+- `POST /items/publish` takes `{ draft, itemId?, version?, reason?, draftId?, relations? }` (FR-137). An
   owner of the draft's domain (and, for a change, of the item's domain now) or an admin publishes
   it in one step, through the same checks and clash gate as the review; anyone else's goes to the
   domain's owners as a suggestion (`published: false`, with `ownerIds`). `relations` says how it
@@ -619,7 +619,10 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   for an item it does not clash with is left out. `draftId` names the person's own draft it
   finishes, or their suggestion an owner returned: it takes the words and is sent as itself,
   changing the item it was started from, if any; only its writer sends it (403 otherwise). A publish the checks refuse keeps
-  nothing.
+  nothing. A change to an item (`itemId`) names the `version` it was written from (400
+  otherwise): once someone has published other words since, it is refused with 409 and
+  `data.stale.version`, the version agents get now, so an older view never takes away a newer
+  change. A check since then changes no words and does not count.
 - `POST /drafts/from-text` takes `{ text }`: a draft read from pasted text, or from the page a
   single link points to, with no model. It fills the words, a kind and dates by rule and where
   it applies by the vocabulary's names, and lists in `unsure` what it guessed.

@@ -60,7 +60,7 @@ const ok = async <T>(response: Promise<{ statusCode: number; body: string; json:
 }
 
 /** A market of its own for each item, so no item clashes with another. */
-const markets = Array.from({ length: 60 }, (_, i) => `m${String(i).padStart(2, '0')}`)
+const markets = Array.from({ length: 70 }, (_, i) => `m${String(i).padStart(2, '0')}`)
 let nextMarket = 0
 
 beforeAll(async () => {
@@ -167,6 +167,95 @@ const undo = (who: Who, token: string) => call('POST', '/decisions/undo', who, {
 const indexRow = async (who: Who, id: string) =>
   (await ok<LibraryIndex>(call('GET', '/library', who))).items.find((i) => i.id === id)
 
+describe('two owners editing one live item', () => {
+  const base = 'Orders leave out the 312 accounts our teams use to test the webshop.'
+  const summary = async (item: string) =>
+    (await ok<ItemPage>(call('GET', `/items/${item}/page`, 'owner'))).item.summary
+
+  it("refuses a Save from an older view, so the first owner's published sentence stays", async () => {
+    const item = await live({ summary: base })
+    // Both open the editor on version 1; the owner saves first.
+    const first = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'owner', {
+        itemId: item,
+        version: 1,
+        draft: { summary: `${base} Stores were not covered.` },
+      }),
+    )
+    expect(first).toMatchObject({ published: true })
+    const second = await call('POST', '/items/publish', 'admin', {
+      itemId: item,
+      version: 1,
+      draft: { summary: `${base} It ended on 30 June.` },
+    })
+    expect(second.statusCode).toBe(409)
+    expect(second.json<{ message: string; data: unknown }>()).toMatchObject({
+      message:
+        'owner published a change to this context item after you opened it, so nothing was saved. Reload it to see their words; yours stay here.',
+      data: { stale: { version: 2 } },
+    })
+    expect(await summary(item)).toBe(`${base} Stores were not covered.`)
+    expect((await served(item))?.n).toBe(2)
+    // Read again, from the version agents get now, the same words keep both.
+    const both = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'admin', {
+        itemId: item,
+        version: 2,
+        draft: { summary: `${base} Stores were not covered. It ended on 30 June.` },
+      }),
+    )
+    expect(both).toMatchObject({ published: true })
+    expect(await summary(item)).toBe(`${base} Stores were not covered. It ended on 30 June.`)
+  })
+
+  it('refuses a suggestion from an older view too, and sends nothing to the owners', async () => {
+    const item = await live({ summary: base })
+    await ok(
+      call('POST', '/items/publish', 'owner', {
+        itemId: item,
+        version: 1,
+        draft: { summary: `${base} Stores were not covered.` },
+      }),
+    )
+    const suggested = await call('POST', '/items/publish', 'author', {
+      itemId: item,
+      version: 1,
+      draft: { summary: `${base} It ended on 30 June.` },
+    })
+    expect(suggested.statusCode).toBe(409)
+    const open = await client.query(
+      "select 1 from proposals where item_id = $1 and proposer_id = $2 and state = 'submitted'",
+      [item, people.author],
+    )
+    expect(open.rowCount).toBe(0)
+  })
+
+  it('lets a Save through after a check, which changes no words', async () => {
+    const item = await live({ summary: base })
+    expect((await call('POST', `/items/${item}/read`, 'owner')).statusCode).toBe(200)
+    expect((await bulk('owner', { action: 'check', rows: [item] })).done).toEqual([item])
+    expect((await served(item))?.n).toBe(2)
+    const saved = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'admin', {
+        itemId: item,
+        version: 1,
+        draft: { summary: `${base} It ended on 30 June.` },
+      }),
+    )
+    expect(saved).toMatchObject({ published: true })
+  })
+
+  it('asks a change which version it starts from', async () => {
+    const item = await live({ summary: base })
+    const r = await call('POST', '/items/publish', 'owner', {
+      itemId: item,
+      draft: { summary: `${base} Stores were not covered.` },
+    })
+    expect(r.statusCode).toBe(400)
+    expect(await summary(item)).toBe(base)
+  })
+})
+
 describe('publishing in one step (FR-137)', () => {
   it("publishes an owner's draft at once, and Undo takes it back", async () => {
     const r = await ok<PublishItemResult>(
@@ -194,6 +283,7 @@ describe('publishing in one step (FR-137)', () => {
     const r = await ok<PublishItemResult>(
       call('POST', '/items/publish', 'stranger', {
         itemId: item,
+        version: (await served(item))!.n!,
         draft: { areaId: 'marketing', ownerId: people.stranger },
       }),
     )
@@ -624,6 +714,7 @@ describe("a context item's page, history and related context", () => {
     const edited = await ok<PublishItemResult>(
       call('POST', '/items/publish', 'owner', {
         itemId: item,
+        version: (await served(item))!.n!,
         draft: { title: 'Webshop orders include store credit and gift cards' },
       }),
     )
@@ -870,6 +961,7 @@ describe('a mention of a term written in Definitions (FR-138, FR-331, FR-132)', 
     const kept = await ok<PublishItemResult>(
       call('POST', '/items/publish', 'owner', {
         itemId: item,
+        version: (await served(item))!.n!,
         draft: { title: 'Till roll orders leave out test accounts' },
       }),
     )

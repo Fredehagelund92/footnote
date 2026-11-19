@@ -729,12 +729,22 @@ export function createMockApi() {
       now(() => {
         // As the service: an overlap left alone is unrelated, so none refuses a publish.
         const id = isNew ? `itm_new_${Date.now().toString(36)}` : fact.id
+        // As the service: an edit from an older version than the one published now changes nothing.
+        const current = isNew ? undefined : factsOf(state).find((f) => f.id === id)
+        const at = current ? (current.version ?? 1) : 0
+        if (current && fact.version !== undefined && fact.version !== at)
+          throw new ApiError(
+            'conflict',
+            `${current.checkedBy || 'Someone'} published a change to this context item after you opened it, so nothing was saved. Reload it to see their words; yours stay here.`,
+            { status: 409, stale: at },
+          )
         // What the owner said of an overlap is kept on the item, as a published suggestion's is.
         const related = Object.entries(relations)
         const replaces = related.find(([, r]) => r === 'replaces')?.[0]
         const disagreesWith = related.find(([, r]) => r === 'disagree')?.[0]
         const saved = {
           ...fact,
+          version: at + 1,
           ...(replaces ? { replaces } : {}),
           ...(disagreesWith ? { disagreesWith } : {}),
         }

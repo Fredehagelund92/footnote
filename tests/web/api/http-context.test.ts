@@ -351,6 +351,7 @@ describe("a context item's page", () => {
   it('reads the item with its text, its mentions, where it comes from and its dates', () => {
     expect(factOfPage(page(), names, words)).toEqual({
       id: 'itm_norway_stop',
+      version: 2,
       title: 'Online sales to Norway stopped',
       summary: '[@ id="metric:Orders" label="Orders"] in Norway fell to nothing.',
       body: 'Parcels on their way arrived.',
