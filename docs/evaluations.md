@@ -411,7 +411,9 @@ of FR-720.10 before they are shown (below); the judges' part waits.
 - **One model, the whole chat.** The model of `models.assistant` gets a short prompt written once
   from the product's rules and promises, with no case or example in it, the chat so far, and the
   eight tools as its only reads, beside `ask_back` for one question back with its readings as
-  choices. The browser sends each earlier turn with what Ask said and the reads it made, by tool
+  choices, and `decline` for a question about one person's work, whose turn code writes: the
+  fixed sentence, what Ask can answer instead, and questions to press. Who wrote or last checked
+  one context item is a question about that item, and is answered. The browser sends each earlier turn with what Ask said and the reads it made, by tool
   and input (`reply` and `reads` in `chatTurnSchema`). The service makes each read again, as the
   person, now, before the model sees its result, and leaves out of an earlier reply each sentence
   that cites an item no read returns any more. A turn sent with a result is refused.
@@ -472,7 +474,8 @@ of FR-720.10 before they are shown (below); the judges' part waits.
   left out without a word; one that still breaks only the voice or the period says something
   true, and is shown as written. The voice rule is held by that one rewrite and a count, not by a guarantee: a remaining I or
   read narration is shown as written and counted, never hidden. On the steps recorded 19 November 2026 the
-  cases breaking it went from 43 to 5 (C2, K13, F25, G15, P10), and no merge may raise that count: the
+  cases breaking it went from 43 to 5 (C2, K13, F25, G15, P10), and, once the second writing was
+  told the very words that break it, to 1 (F25). No merge may raise that count: the
   mocked loop suite lists each break, so a new one fails the build. When the second writing cannot be made (a limit, a failing model), the
   first one's failing sentences are replaced the same way. What failed is kept in `checks`. The
   judges of FR-720.2, FR-720.6 and FR-720.7 do not read the answer yet: a judge may gate only
@@ -492,6 +495,7 @@ of FR-720.10 before they are shown (below); the judges' part waits.
 | FR-718.4 read only                               | The tools write nothing; the request writes only that Ask was used and, with a real model, its steps' spend ledger lines                                                                               | `ask-loop.test.ts`: a chat leaves every table as it was                                                                                          |
 | FR-719.1 the whole chat                          | Every earlier turn's words, and the last two turns' reads made again, in the model's messages                                                                                                          | The harness's follow-up cases; `tests/web/integration/ask-chat-cost.test.ts`: fifteen turns under the daily limit                                |
 | FR-719.2 one question back                       | `ask_back` ends the turn, with no state                                                                                                                                                                | `tests/server/ask-loop.test.ts`; the harness's X cases                                                                                           |
+| FR-719.6 what Ask declines                       | `decline` ends the turn; code writes the sentence, what Ask answers instead and the questions to press                                                                                                 | `tests/server/ask-loop.test.ts`; the harness's K16 to K18 (answered) and V13, V14 (declined)                                                     |
 | FR-719.4 a question's words kept nowhere         | The loop logs a failure by its name only                                                                                                                                                               | `ask-loop.test.ts`: a marker in a chat is in no table; the harness's `stored`                                                                    |
 | FR-719.7 limits, said                            | `ask.max_steps`, `ask.time_limit_seconds`, the spending limits, fixed sentences                                                                                                                        | `tests/server/ask-loop.test.ts` (steps, time, a failing model); `ask-loop-pool.test.ts` (spending)                                               |
 | FR-720.2 citations                               | Every mark held to the ids the chat's reads returned                                                                                                                                                   | `tests/server/ask-loop.test.ts`; the harness's citation grader                                                                                   |

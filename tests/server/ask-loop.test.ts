@@ -5,6 +5,8 @@ import {
   ASK_BACK,
   askLoop,
   cachedThrough,
+  DECLINE,
+  declinedTurn,
   loopSystem,
   readLines,
   scriptedLoopChoice,
@@ -631,6 +633,55 @@ describe('the instructions', () => {
   })
 })
 
+describe('a question about people', () => {
+  it("answers who checked one context item, and declines one person's work with decline", () => {
+    const system = loopSystem('2026-10-23', { admin: false, owns: [] })
+    // Who wrote or last checked one item is a question about that item, read when not yet read.
+    expect(system).toContain(
+      'Who wrote, published, changed or last checked one context item, one this chat named or one the question names, is a question about that item',
+    )
+    expect(system).toContain('read it with read_context when they do not give it yet')
+    // Only what one person did beyond one item, or a ranking of people, is declined, by the tool.
+    expect(system).toMatch(
+      /A question about one person's work beyond one item.*declined with decline/,
+    )
+    // The model never writes the refusal itself: code does, with what Ask answers instead.
+    expect(system).not.toContain(
+      "in words such as these: Ask does not answer questions about one person's work.",
+    )
+    expect(DECLINE).toContain(
+      'Never decline who owns something, or who wrote, published or last checked one context item',
+    )
+  })
+
+  it('declines in a fixed sentence, says what Ask can answer instead, and offers questions to press', () => {
+    expect(declinedTurn()).toMatchObject({
+      kind: 'answer',
+      text: "Ask does not answer questions about one person's work. It can tell you who owns a domain or a metric, who last checked a context item and when, and what changed this week.",
+      state: null,
+      sources: [],
+      read: [],
+      reads: [],
+      choices: ['What changed this week?', 'List the conflicts'],
+      body: [
+        {
+          t: 'p',
+          runs: [{ t: 'text', text: "Ask does not answer questions about one person's work." }],
+        },
+        {
+          t: 'p',
+          runs: [
+            {
+              t: 'text',
+              text: 'It can tell you who owns a domain or a metric, who last checked a context item and when, and what changed this week.',
+            },
+          ],
+        },
+      ],
+    })
+  })
+})
+
 describe('the question back', () => {
   it('says in its own description when to ask, with the two cases it must not ask on', () => {
     // When: a bare word, or no metric named, and the chat does not settle it.
@@ -887,6 +938,15 @@ describe("Ask's loop on a scripted model", () => {
       choices: ['France', 'Spain'],
       state: null,
     })
+  })
+
+  it('declines when the model calls decline, with nothing it wrote or read shown', async () => {
+    const { turn } = await turnWith(({ results }) =>
+      results.length
+        ? { text: 'Tomas wrote three items.', calls: [{ toolName: 'decline', input: {} }] }
+        : { calls: [{ toolName: 'find_context', input: { words: 'tomas' } }] },
+    )
+    expect(turn).toEqual(declinedTurn())
   })
 
   it("reads the chat's earlier reads again, as the person, now, before the model sees them", async () => {

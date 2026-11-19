@@ -1,4 +1,4 @@
-import { voiceBreak, type VoiceBreak } from '../../../domain/answer-voice.ts'
+import { voiceBreakOf, type VoiceBreak } from '../../../domain/answer-voice.ts'
 import { productName } from '../../brand.ts'
 import { SENTENCE_END } from './loop-body.ts'
 import { askToolDefinitions } from './tools.ts'
@@ -174,8 +174,16 @@ export function answerCheck(text: string, ctx: CheckContext): CheckFinding[] {
         sentence,
         why: `it gives ${own.join(', ')} in digits of its own, which no read returned and the person did not write`,
       })
-    const voice = voiceBreak(plain, productName)
-    if (voice) findings.push({ kind: voice, sentence, why: VOICE[voice] })
+    const voice = voiceBreakOf(plain, productName)
+    if (voice)
+      findings.push({
+        kind: voice.kind,
+        sentence,
+        why:
+          voice.kind === 'voice'
+            ? `its words ${voice.words.map((w) => `“${w}”`).join(', ')} ${VOICE.voice}`
+            : VOICE[voice.kind],
+      })
     const lower = sentence.toLowerCase()
     const counts = [
       ...plain
@@ -207,7 +215,7 @@ export function answerCheck(text: string, ctx: CheckContext): CheckFinding[] {
 /** Why a sentence breaks the voice, as the model is told when it writes the answer again. */
 const VOICE: Record<VoiceBreak, string> = {
   voice:
-    'it speaks as I or me, or tells of the reads made; speak of yourself as Ask, and state what is written',
+    'speak as I or me, or tell of a read, a search or a check that was made; leave those words out and state only what is written, as Ask, with no word of reading, searching, checking or finding',
   period: 'it gives the same days twice; give them once',
   claim: `it says what ${productName} does not record or hold, which no read returned; say only what a read returned`,
 }

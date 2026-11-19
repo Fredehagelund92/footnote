@@ -141,6 +141,21 @@ describe('the answer check, by code', () => {
     )
   })
 
+  it('names the words that break the voice, so the second writing knows what to leave out', () => {
+    const [found] = answerCheck(
+      'Ask checked 21 published context items you can see and none of them names Poland.',
+      ctx(),
+    ).filter((f) => f.kind === 'voice')
+    expect(found?.why).toBe(
+      'its words “Ask checked” speak as I or me, or tell of a read, a search or a check that was made; leave those words out and state only what is written, as Ask, with no word of reading, searching, checking or finding',
+    )
+    const [read] = answerCheck(
+      'Of those calls, fewer than 5 found no context: the read gives only that floor.',
+      ctx(),
+    ).filter((f) => f.kind === 'voice')
+    expect(read?.why).toMatch(/^its words “the read” speak as I or me/)
+  })
+
   it('replaces each sentence that failed with the fixed sentence, once for those in a row', () => {
     const text = [
       'Germany lags [itm_germany01]. It lags by 47 hours. And by 48 minutes.',

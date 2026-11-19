@@ -1546,7 +1546,7 @@ function Finished({
               />
             )}
           </div>
-          {loop.kind === 'question' && loop.choices.length > 0 && (
+          {loop.choices.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {loop.choices.map((choice) =>
                 onAsk ? (

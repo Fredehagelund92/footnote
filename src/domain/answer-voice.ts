@@ -15,7 +15,7 @@ const QUOTED = /"[^"\n]*"|“[^”\n]*”/g
 
 /** The speaker as I. Only English: the answer check holds English answers (copy.md). */
 const FIRST_PERSON =
-  /\b(?:I|I'm|I’m|I've|I’ve|I'd|I’d|I'll|I’ll)\b|\b(?:[Mm]e|[Mm]y|[Mm]yself|[Mm]ine)\b/
+  /\b(?:I'm|I’m|I've|I’ve|I'd|I’d|I'll|I’ll|I)\b|\b(?:[Mm]e|[Mm]y|[Mm]yself|[Mm]ine)\b/
 
 /**
  * A read, a search or a look-up as a thing that was made: "the first read", "a wider search".
@@ -83,11 +83,27 @@ export function spansIn(sentence: string): string[] {
  * product's name, as the answer gives it. Quoted words are the item's, and are not read.
  */
 export function voiceBreak(sentence: string, name: string): VoiceBreak | null {
+  return voiceBreakOf(sentence, name)?.kind ?? null
+}
+
+/**
+ * How one sentence breaks the voice, with the words that break it ("Ask checked", "the read
+ * gives", "I'll"), so a second writing is told exactly what to leave out; null when it keeps it.
+ */
+export function voiceBreakOf(
+  sentence: string,
+  name: string,
+): { kind: VoiceBreak; words: string[] } | null {
   const own = sentence.replace(QUOTED, ' ')
-  if (FIRST_PERSON.test(own) || READ_MADE.test(own) || READER.test(own)) return 'voice'
+  const speaks = [FIRST_PERSON, READ_MADE, READER]
+    .flatMap((x) => [...own.matchAll(new RegExp(x.source, `${x.flags}g`))])
+    .sort((a, b) => a.index - b.index)
+    .map((m) => m[0])
+  if (speaks.length) return { kind: 'voice', words: [...new Set(speaks)] }
   const spans = spansIn(own)
-  if (new Set(spans).size < spans.length) return 'period'
+  if (new Set(spans).size < spans.length) return { kind: 'period', words: [own.trim()] }
   const claim = holdsNo(name).exec(own)
-  if (claim && !MAY_CLAIM.test(objectOf(claim[1] ?? claim[2] ?? ''))) return 'claim'
+  if (claim && !MAY_CLAIM.test(objectOf(claim[1] ?? claim[2] ?? '')))
+    return { kind: 'claim', words: [claim[0].trim()] }
   return null
 }
