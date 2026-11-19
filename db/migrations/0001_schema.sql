@@ -3374,10 +3374,6 @@ begin
       raise exception 'the word "%" already means a metric or a dimension', btrim(new.name)
         using errcode = 'unique_violation', constraint = 'terms_vocabulary_word';
     end if;
-    -- A term that claims a word again is held to one word, one meaning.
-    if claims then
-      new.word_clash := false;
-    end if;
   end if;
   return new;
 end $$;
@@ -4997,7 +4993,6 @@ CREATE TABLE public.terms (
     deleted_at timestamp with time zone,
     deleted_by uuid,
     deleted_with uuid,
-    word_clash boolean DEFAULT false NOT NULL,
     CONSTRAINT terms_deleted_check CHECK (((deleted_at IS NULL) = (deleted_by IS NULL))),
     CONSTRAINT terms_deleted_with_check CHECK (((deleted_with IS NULL) OR (deleted_at IS NOT NULL))),
     CONSTRAINT terms_meaning_check CHECK (((meaning IS NULL) OR ((char_length(btrim(meaning)) >= 1) AND (char_length(btrim(meaning)) <= 4000)))),
@@ -6317,7 +6312,7 @@ CREATE INDEX term_changes_made_at ON public.term_changes USING btree (made_at DE
 
 CREATE INDEX terms_deleted ON public.terms USING btree (deleted_at DESC) WHERE (deleted_at IS NOT NULL);
 
-CREATE UNIQUE INDEX terms_one_word ON public.terms USING btree (word) WHERE ((deleted_at IS NULL) AND (NOT word_clash));
+CREATE UNIQUE INDEX terms_one_word ON public.terms USING btree (word) WHERE (deleted_at IS NULL);
 
 CREATE INDEX terms_same_as_term ON public.terms USING btree (same_as_term) WHERE (same_as_term IS NOT NULL);
 

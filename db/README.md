@@ -469,8 +469,7 @@ with its own `meaning`, or a synonym that names what it means instead (`same_as_
 metric or dimension of the vocabulary, or `same_as_term`, a term with its own meaning; never
 another synonym). `word` is the name as the service compares it (`cl_term_word`, migration 0039, the
 database's `normalizeName`: case, spaces and accents set aside), and one live term holds a word at
-most (`terms_one_word`). Two terms that only read as one word when 0039 came in both stay, the later
-one marked `word_clash` and outside that index, until it next claims a word. `terms_guard` refuses a word the live vocabulary or
+most (`terms_one_word`). `terms_guard` refuses a word the live vocabulary or
 the definitions source uses for a metric or a dimension (`cl_vocabulary_words`: names, other
 names, and the source's name, title and synonyms) whenever a term takes a word: written, renamed,
 pointed elsewhere or restored. A sync can still give a word a second meaning later; the service

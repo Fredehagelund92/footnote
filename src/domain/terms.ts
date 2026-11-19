@@ -154,10 +154,10 @@ export function lookAlikes(word: string, names: readonly string[]): string[] {
 }
 
 /**
- * Why a term would mislead an agent now: a sync gave its word a second meaning, what it means is
- * gone, or another term reads as the same word.
+ * Why a term would mislead an agent now: a sync gave its word a second meaning, or what it means
+ * is gone.
  */
-export const termConflictCodes = ['source', 'missing', 'word'] as const
+export const termConflictCodes = ['source', 'missing'] as const
 export type TermConflictCode = (typeof termConflictCodes)[number]
 
 /** A plain sentence for "these terms": "Deleted “Peak season” and 2 more." */
