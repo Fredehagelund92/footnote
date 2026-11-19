@@ -225,7 +225,7 @@ export function checkRequest(findings: readonly CheckFinding[]): string {
 export const CHECK_REQUEST =
   'Ask checked your answer against what was read before showing it, and these sentences failed:'
 
-/** Failures whose sentence is still true, so it is shown as written the second time. */
+/** Failures whose sentence is still true, so it is shown as written the second time; the harness counts them and no merge may raise that count. */
 const KEPT: ReadonlySet<CheckFinding['kind']> = new Set(['voice', 'period'])
 
 /**
