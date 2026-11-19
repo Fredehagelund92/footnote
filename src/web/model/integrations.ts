@@ -59,9 +59,9 @@ export type Connector = {
   noFileLinks?: true
   /**
    * What a definitions tool calls a group of its metrics, as its people say it: a view in Cube, a
-   * semantic model in dbt. A view when unset.
+   * semantic model in dbt, for one and for more. A view when unset.
    */
-  group?: string
+  group?: { one: string; many: string }
   /** The setting a definitions tool names a group's domain with, as people write it there. */
   domainField?: string
   /** The server setting that names where it reads from, when the server's operator sets it. */

@@ -146,8 +146,11 @@ const plural = (n: number, one: string) =>
   `${n.toLocaleString('en-GB')} ${one}${n === 1 ? '' : 's'}`
 
 /** What a definitions tool calls a group of its metrics: a view, unless it says otherwise. */
-const groupOf = (c: Connector | undefined) => c?.group ?? 'view'
+const groupOf = (c: Connector | undefined) => c?.group ?? { one: 'view', many: 'views' }
 const capitalized = (words: string) => words.charAt(0).toUpperCase() + words.slice(1)
+/** So many groups, with the word written whole for one and for more: 1 view, 7 semantic models. */
+const groupCount = (n: number, group: { one: string; many: string }) =>
+  n === 1 ? `1 ${group.one}` : `${n.toLocaleString('en-GB')} ${group.many}`
 
 const crumbs = (...rest: { label: string; href?: string }[]) => (
   <SettingsCrumbs
@@ -735,7 +738,9 @@ function FiguresSection({ c, paused }: { c: Connector; paused: boolean }) {
             the one a metric&apos;s definition comes from, never a guess.{' '}
             {fromTool === 0
               ? `No published metric comes from ${c.name} yet.`
-              : `${plural(fromTool, 'published metric')} ${fromTool === 1 ? 'comes' : 'come'} from ${c.name}, so ${c.name} answers ${fromTool === 1 ? 'it' : 'them'}.`}
+              : fromTool === 1
+                ? `1 published metric comes from ${c.name}, so ${c.name} answers it.`
+                : `${fromTool.toLocaleString('en-GB')} published metrics come from ${c.name}, so ${c.name} answers them.`}
           </span>
         </p>
       </div>
@@ -806,7 +811,7 @@ function RowDetail({ source }: { source: Source }) {
         {plural(d.metrics, 'metric')} and {plural(d.dimensions, 'dimension')}
         {d.noDomain > 0 && (
           <>
-            . {plural(d.noDomain, group)} {d.noDomain === 1 ? 'has' : 'have'} no domain
+            . {groupCount(d.noDomain, group)} {d.noDomain === 1 ? 'has' : 'have'} no domain
           </>
         )}
       </>
@@ -1559,7 +1564,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">
                 {isDefinitions && d
-                  ? `Reading ${plural(d.views, groupOf(c))}`
+                  ? `Reading ${groupCount(d.views, groupOf(c))}`
                   : `Reading ${c.name}`}
               </span>
               {source.progress && (
@@ -1658,19 +1663,19 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
               description={
                 <>
                   {/* One run of text: a name in a run of its own is set a hair differently. */}
-                  {`Each ${c.name} ${groupOf(c)} (a group of metrics), and the domain it belongs to.${c.domainField ? ' It reads' : ''}`}
+                  {`Each ${c.name} ${groupOf(c).one} (a group of metrics), and the domain it belongs to.${c.domainField ? ' It reads' : ''}`}
                   {c.domainField && (
                     <>
                       {' '}
-                      <code className="font-mono text-xs">{c.domainField}</code> on the {groupOf(c)}
-                      .
+                      <code className="font-mono text-xs">{c.domainField}</code> on the{' '}
+                      {groupOf(c).one}.
                     </>
                   )}
                 </>
               }
             >
               <DataTable
-                head={[capitalized(groupOf(c)), 'Metrics', 'Dimensions', 'Domain', 'Owners']}
+                head={[capitalized(groupOf(c).one), 'Metrics', 'Dimensions', 'Domain', 'Owners']}
                 align={['left', 'right', 'right', 'left', 'left']}
                 rows={views.map((v) => [
                   <code key="v" className="font-mono text-xs">
@@ -1687,7 +1692,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                   <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />
                   <p className="min-w-0 flex-1">
                     <span className="font-medium">
-                      {`${plural(d.noDomain, groupOf(c))} ${d.noDomain === 1 ? 'has' : 'have'} no domain.`}
+                      {`${groupCount(d.noDomain, groupOf(c))} ${d.noDomain === 1 ? 'has' : 'have'} no domain.`}
                     </span>{' '}
                     Their definitions stay shared, and no owner is told when they change.
                   </p>
@@ -2668,8 +2673,8 @@ function ScopeChooser({
   find: string
   setFind: (text: string) => void
   pick: RowSelection
-  /** One of what it lists: a folder, or what the tool calls a group of metrics. */
-  noun: string
+  /** What it lists, for one and for more: folders, or what the tool calls a group of metrics. */
+  noun: { one: string; many: string }
   mono: boolean
   /** A row unticked, or the rows shown left out. */
   onLeaveOut: () => void
@@ -2691,8 +2696,8 @@ function ScopeChooser({
               type="search"
               value={find}
               onChange={(e) => setFind(e.target.value)}
-              placeholder={`Search ${plural(rows.length, noun)}`}
-              aria-label={`Search ${noun}s`}
+              placeholder={`Search ${groupCount(rows.length, noun)}`}
+              aria-label={`Search ${noun.many}`}
               className="pl-8 text-sm"
             />
           </div>
@@ -2724,12 +2729,12 @@ function ScopeChooser({
         </div>
       </div>
       <p aria-live="polite" className="text-sm text-muted-foreground tabular-nums">
-        {`${pick.count.toLocaleString('en-GB')} of ${plural(rows.length, noun)} chosen`}
+        {`${pick.count.toLocaleString('en-GB')} of ${groupCount(rows.length, noun)} chosen`}
         {!all && `, ${matching.length.toLocaleString('en-GB')} shown`}
       </p>
       {matching.length ? (
         <ul
-          aria-label={`${noun[0]!.toUpperCase()}${noun.slice(1)}s to read`}
+          aria-label={`${capitalized(noun.many)} to read`}
           className="overflow-hidden rounded-frame border"
         >
           {shown.map((s) => (
@@ -2766,7 +2771,7 @@ function ScopeChooser({
         </ul>
       ) : (
         <p className="rounded-frame border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-          {`No ${noun} matches “${find.trim()}”.`}
+          {`No ${noun.one} matches “${find.trim()}”.`}
         </p>
       )}
       <ShowMoreButton more={more} next={next} onClick={showMore} />
@@ -2788,8 +2793,8 @@ function LeftOutNotice({
 }: {
   left: LeftOutView
   tool: string
-  /** What the tool calls a group of metrics. */
-  group: string
+  /** What the tool calls a group of metrics, for one and for more. */
+  group: { one: string; many: string }
   seen: boolean
   setSeen: (seen: boolean) => void
 }) {
@@ -2814,13 +2819,13 @@ function LeftOutNotice({
       <h3 id="left-out" className="flex items-start gap-2 font-medium">
         <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-caution" />
         {named.length
-          ? `It stops reading ${plural(named.length, group)} of ${tool}`
-          : `It stops reading members of ${tool} that are in no ${group}`}
+          ? `It stops reading ${groupCount(named.length, group)} of ${tool}`
+          : `It stops reading members of ${tool} that are in no ${group.one}`}
       </h3>
       <p>
         <span className="font-mono text-xs">{names.slice(0, 5).join(', ')}</span>
         {names.length > 5 && ` and ${names.length - 5} more`}
-        {loose && named.length > 0 && `, and members in no ${group}`}
+        {loose && named.length > 0 && `, and members in no ${group.one}`}
         {`. ${holds ? `Their ${holds} leave` : 'They leave'} Definitions from its next read. Nothing is unpublished or deleted.`}
       </p>
       {items.count > 0 && (
@@ -3043,7 +3048,7 @@ function ChoiceSteps({
             </div>
             {isDefinitions && (
               <RadioGroup
-                aria-label={`${capitalized(groupOf(c))}s to read`}
+                aria-label={`${capitalized(groupOf(c).many)} to read`}
                 value={every ? 'all' : 'chosen'}
                 onValueChange={(value) => {
                   setReadsAll(value === 'all')
@@ -3054,15 +3059,11 @@ function ChoiceSteps({
               >
                 {(
                   [
-                    [
-                      'all',
-                      `Every ${groupOf(c)}`,
-                      `A ${groupOf(c)} added to the model later is read too.`,
-                    ],
+                    ['all', `Every ${groupOf(c).one}`, 'One added to the model later is read too.'],
                     [
                       'chosen',
-                      `Only the ${groupOf(c)}s you choose`,
-                      `An allow list: a ${groupOf(c)} added later is read once you choose it.`,
+                      `Only the ${groupOf(c).many} you choose`,
+                      'An allow list: one added later is read once you choose it.',
                     ],
                   ] as const
                 ).map(([value, title, line]) => (
@@ -3085,7 +3086,7 @@ function ChoiceSteps({
               find={find}
               setFind={setFind}
               pick={pickScopes}
-              noun={isDefinitions ? groupOf(c) : 'folder'}
+              noun={isDefinitions ? groupOf(c) : { one: 'folder', many: 'folders' }}
               mono={isDefinitions}
               // A view left out of every view makes the list one of the views chosen.
               onLeaveOut={() => setReadsAll(false)}
@@ -3093,7 +3094,7 @@ function ChoiceSteps({
             {!chosen.length && (
               <p className="text-sm text-muted-foreground">
                 {isDefinitions
-                  ? `Choose at least one ${groupOf(c)}. To read nothing for a while, pause it instead.`
+                  ? `Choose at least one ${groupOf(c).one}. To read nothing for a while, pause it instead.`
                   : 'Choose at least one folder.'}
               </p>
             )}
@@ -3101,7 +3102,7 @@ function ChoiceSteps({
               <p className="flex items-start gap-2 rounded-frame border border-caution/45 bg-caution/8 p-3 text-sm">
                 <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-caution" />
                 <span>
-                  {plural(unmapped, groupOf(c))} {unmapped === 1 ? 'has' : 'have'} no{' '}
+                  {groupCount(unmapped, groupOf(c))} {unmapped === 1 ? 'has' : 'have'} no{' '}
                   {c.domainField ? (
                     <code className="font-mono text-xs">{c.domainField}</code>
                   ) : (
@@ -3135,7 +3136,7 @@ function ChoiceSteps({
                 <thead>
                   <tr className="bg-band text-left text-xs text-muted-foreground">
                     <th className="h-9 px-4 font-medium">
-                      {isDefinitions ? `${c.name} ${groupOf(c)}` : 'Folder'}
+                      {isDefinitions ? `${c.name} ${groupOf(c).one}` : 'Folder'}
                     </th>
                     <th className="h-9 px-4 font-medium">Domain</th>
                     <th className="h-9 px-4 font-medium">Owners</th>
@@ -3163,7 +3164,7 @@ function ChoiceSteps({
             </div>
             <p className="text-xs text-muted-foreground">
               {isDefinitions
-                ? `A hint never creates a domain. Leave a ${groupOf(c)} unmapped and its definitions stay shared. ${mapped} of ${chosen.length} mapped.`
+                ? `A hint never creates a domain. Definitions left unmapped stay shared. ${mapped} of ${chosen.length} mapped.`
                 : `Every folder needs a domain before it is read. ${mapped} of ${chosen.length} mapped.`}
             </p>
           </>
