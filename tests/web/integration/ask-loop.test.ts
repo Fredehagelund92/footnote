@@ -180,6 +180,71 @@ describe("Ask's loop", () => {
     }
   })
 
+  // The release judge's A3 (L6): the model's own reads of "Who owns Sales?", and words that name
+  // the Sales domain and its owners from what the last read returned.
+  it('does not read "Who owns Sales?" as the metric its read of Sales found', async () => {
+    const api = await world.as(ML)
+    decide = ({ results, step }) => {
+      if (step === 0)
+        return {
+          calls: [
+            { toolName: 'get_context', input: { about: 'Sales domain owners', no_period: true } },
+            { toolName: 'definitions', input: { domain: 'Sales', limit: 5 } },
+            { toolName: 'get_context', input: { about: 'Sales', no_period: true } },
+          ],
+        }
+      const { owners } = results.at(-1)!.value as { owners: { id: string; people: string[] }[] }
+      const sales = owners.find((o) => o.id === 'domain:area_sales')!
+      const people = sales.people.map((p) => `[@${p}]`).join(' and ')
+      return { text: `The [@domain:area_sales] domain is owned by ${people}.` }
+    }
+    try {
+      const a = await api.ask({ question: 'Who owns Sales?' })
+      // The model's read of "Sales" is read as a metric and finds items; the answer is not about it.
+      expect(a.read?.at(-1)).toMatch(
+        /^Looked up (Net revenue|Gross sales), .*: [1-9]\d* items? appl/,
+      )
+      expect(a.text).toMatch(/^The Sales domain is owned by \S+ \S+ and \S+ \S+\.$/)
+      expect(a.loop?.subject).toBeNull()
+      expect(a.state).toBeNull()
+      expect(a.loop?.defined).toBeUndefined()
+      expect(a.footer?.denominator).toBe('Out of 21 published context items you can see.')
+    } finally {
+      decide = null
+    }
+  })
+
+  // The release judge's F1.5: a reply that reads nothing new, about the first turn's item, after
+  // a turn about another market whose answer line is another.
+  it('carries the answer line of the read it cites, not of the turn before', async () => {
+    const api = await world.as(ML)
+    const reading = (about: string) => {
+      decide = ({ results, step }) =>
+        step === 0
+          ? { calls: [{ toolName: 'get_context', input: { about } }] }
+          : { text: `As written [${itemsOf(results[0]!.value)[0]?.id ?? 'itm_none0000'}].` }
+    }
+    try {
+      reading('orders in Germany')
+      const first = await api.ask({ question: 'what is written about orders in Germany?' })
+      reading('orders in Norway')
+      const second = await api.ask({ question: 'and in Norway?', turns: [turnOf(first)] })
+      expect([first.state, second.state]).toEqual(['grounded', 'conflict'])
+      const cited = first.sources[0]
+      // Reads nothing new, and cites what the first turn's read found.
+      decide = () => ({ text: `No, what is written says otherwise [${cited}].` })
+      const third = await api.ask({
+        question: 'so can I say the Germany rule still holds?',
+        turns: [turnOf(first), turnOf(second)],
+      })
+      expect(third.sources).toEqual([cited])
+      expect(third.state).toBe('grounded')
+      expect(third.loop?.subject).toMatchObject({ names: ['Orders', 'Germany'], carried: true })
+    } finally {
+      decide = null
+    }
+  })
+
   // The release judge's three questions that ended with nothing shown (A1): each needed more
   // reads than its limit let it make.
   it.each([

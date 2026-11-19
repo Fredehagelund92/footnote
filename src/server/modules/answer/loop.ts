@@ -1253,20 +1253,24 @@ export function readLines(made: readonly MadeRead[]): string[] {
 /**
  * The footer (FR-720.5), by code from the reads: what a count is out of, said once, with what the
  * subject's read found (the read line under the question names the subject); what the reads found
- * and did not read; and what may be out of date.
+ * and did not read; and what may be out of date. Words not `aboutSubject` (an aside) get what the
+ * reads are out of, never how many of the subject apply.
  */
 export function footerOf(
   made: readonly MadeRead[],
   cited: readonly string[],
   items: ReturnType<typeof itemsRead>,
+  aboutSubject = true,
 ): LoopTurn['footer'] {
   const ok = made.map((m) => m.result).filter((r): r is Obj => isObj(r) && !isError(r))
   const outOf = ok.flatMap((r) => (isObj(r.outOf) ? [r.outOf] : []))[0]
   const records = made.find((m) => m.tool === 'records' && isObj(m.result) && !isError(m.result))
-  const subject = made.find(
-    (m) =>
-      m.tool === 'get_context' && isObj(m.result) && !isError(m.result) && isObj(m.result.read),
-  )
+  const subject =
+    aboutSubject &&
+    made.find(
+      (m) =>
+        m.tool === 'get_context' && isObj(m.result) && !isError(m.result) && isObj(m.result.read),
+    )
   const of = outOf ? `${num(outOf.count).toLocaleString('en-GB')} ${str(outOf.of)}` : ''
   const applying = (r: Obj) => {
     const n = arr(r.items).length
@@ -1485,23 +1489,60 @@ function stepRuns(m: MadeRead): LoopRun[] {
 }
 const plainOf = (r: LoopRun) => (r.t === 'text' ? r.text : r.t === 'count' ? r.value : '')
 
+/**
+ * Whether words that cite no item are about something else than what the turn's subject reads
+ * were about: they name what a read named, and nothing any subject read was about, while those
+ * reads found something. "Who owns Sales?" answered with the Sales domain and its owners, after a
+ * read of "Sales" as Gross sales, is not an answer about Gross sales.
+ */
+function asideOf(
+  made: readonly MadeRead[],
+  cited: readonly string[],
+  named: ReadonlySet<string>,
+): boolean {
+  if (cited.length || !named.size) return false
+  const subjects = made.filter(
+    (m) =>
+      m.tool === 'get_context' && isObj(m.result) && !isError(m.result) && isObj(m.result.read),
+  )
+  if (
+    !subjects.some(
+      (m) => (m.result as Obj).state !== 'missing' && arr((m.result as Obj).items).length,
+    )
+  )
+    return false
+  const about = new Set(
+    subjects.flatMap((m) => {
+      const read = (m.result as Obj).read as Obj
+      return Array.isArray(read.about) ? read.about.filter((n) => typeof n === 'string') : []
+    }),
+  )
+  return ![...named].some((id) => about.has(id))
+}
+
 /** The parts of a finished turn every answer has, by code from the reads and what it cites. */
 function evidenceOf(
   made: readonly MadeRead[],
   earlier: readonly MadeRead[],
   order: readonly string[],
   hasText: boolean,
+  named: ReadonlySet<string> = new Set(),
 ) {
   const results = [...made, ...earlier].map((m) => m.result)
   const items = itemsRead(results)
   // A turn that read nothing of its own and cites what an earlier read returned, made again this
-  // turn, is about those reads.
+  // turn, is about the reads that returned what it cites, not every read of the chat: it carries
+  // their answer line, never one of a turn it does not use.
   const fromEarlier = !made.length && order.length > 0
-  const about = fromEarlier ? earlier : made
-  const state = hasText || order.length ? stateOf(about, order, items, earlier) : null
-  const subject =
-    subjectOf(about, fromEarlier, order) ?? (made.length ? null : subjectOf(earlier, true, order))
-  return { items, about, state, subject, fromEarlier }
+  const citedEarlier = earlier.filter((m) => foundIds(m).some((id) => order.includes(id)))
+  const about = fromEarlier ? (citedEarlier.length ? citedEarlier : earlier) : made
+  const aside = asideOf(about, order, named)
+  const state = !aside && (hasText || order.length) ? stateOf(about, order, items, earlier) : null
+  const subject = aside
+    ? null
+    : (subjectOf(about, fromEarlier, order) ??
+      (made.length ? null : subjectOf(earlier, true, order)))
+  return { items, about, state, subject, fromEarlier, aside }
 }
 
 /** An item's row as the turn carries it, with its number when the answer cites it. */
@@ -1518,8 +1559,9 @@ const rowsOf = (ids: readonly string[], ctx: WordsContext, cited: readonly strin
  * (FR-720.3). Every citation the words keep is a source, except under Not found, where they cite
  * only what does not apply: no source, and the items written nearest are listed (FR-720.4). An answer that cites no item and is about a definition shows that
  * definition's label, no state (decision 3); one that read nothing new and cites nothing, a reply
- * to the chat ("thanks!"), shows none of the evidence. The state, the footer, what was read and
- * the evidence are code's.
+ * to the chat ("thanks!"), shows none of the evidence; one whose words are about something else
+ * than its subject reads (`asideOf`) shows no state and no read line of that subject. The state,
+ * the footer, what was read and the evidence are code's.
  */
 export function turnOf(
   text: string,
@@ -1529,7 +1571,20 @@ export function turnOf(
 ): LoopTurn {
   const ctx = wordsContext(question, made, earlier)
   const words = wordsOf(text, ctx)
-  const { items, about, state, subject } = evidenceOf(made, earlier, words.cited, true)
+  const named = new Set(
+    words.body.flatMap((b) =>
+      (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []).flatMap((r) =>
+        r.t === 'noun' ? [r.id] : [],
+      ),
+    ),
+  )
+  const { items, about, state, subject, aside } = evidenceOf(
+    made,
+    earlier,
+    words.cited,
+    true,
+    named,
+  )
   const missing = state === 'missing'
   // Under Not found the words cite only what does not apply: nearby, not used, and no source.
   const stripped: LoopBlock[] = missing
@@ -1549,39 +1604,29 @@ export function turnOf(
   const closest = missing ? closestOf(about, subject, ctx.items, []) : null
   const listed = stripped.flatMap((b) => (b.t === 'list' ? b.rows : []))
   const replyOnly = !made.length && !sources.length
-  const defined = words.cited.length
-    ? undefined
-    : definedOf(plain, definitionsRead(about.map((m) => m.result)), subject, state)
+  // A listing of Definitions, by a domain or a kind, reads no one definition.
+  const definitionsOf = (reads: readonly MadeRead[]) =>
+    definitionsRead(
+      reads.flatMap((m) =>
+        m.tool !== 'definitions' || Array.isArray(m.input.names) ? [m.result] : [],
+      ),
+    )
+  const defined =
+    words.cited.length || aside ? undefined : definedOf(plain, definitionsOf(about), subject, state)
   return {
     kind: 'answer',
     text: plain,
     sources,
     state: defined ? null : state,
-    footer: replyOnly ? emptyFooter : footerOf(about, sources, items),
+    // Words about something else say what was read out of, not how many of the subject apply.
+    footer: replyOnly ? emptyFooter : footerOf(about, sources, items, !aside),
     read: replyOnly ? [] : [...againLine(earlier), ...readLines(made)],
     subject: replyOnly ? null : subject,
     nearby: missing ? [...new Set([...words.cited, ...nearbyOf(about)])] : [],
     conflict: state === 'conflict' ? disagreeing(about, sources) : [],
     definitions: replyOnly
       ? []
-      : definitionsShown(
-          question,
-          plain,
-          // A listing of Definitions, by a domain or a kind, reads no one definition.
-          definitionsRead(
-            made.flatMap((m) =>
-              m.tool !== 'definitions' || Array.isArray(m.input.names) ? [m.result] : [],
-            ),
-          ),
-          subject,
-          new Set(
-            words.body.flatMap((b) =>
-              (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []).flatMap((r) =>
-                r.t === 'noun' ? [r.id] : [],
-              ),
-            ),
-          ),
-        ),
+      : definitionsShown(question, plain, definitionsOf(made), subject, named),
     ...(defined ? { defined } : {}),
     choices: [],
     reads: readsBack(made),

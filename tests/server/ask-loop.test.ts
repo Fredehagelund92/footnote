@@ -305,6 +305,113 @@ describe('what code writes from the reads', () => {
     expect(t.state).toBe('grounded')
     expect(turnOf('I cannot answer that.', [], earlier).state).toBeNull()
   })
+
+  it('carries only the answer line of the earlier read it cites, not of the turn before', () => {
+    // "So can I tell my manager customers in Norway lost interest?" after a turn about Spain:
+    // the reply reads nothing new and cites the Norway item an earlier turn read.
+    const subject = (state: string, names: string[], cited: object): MadeRead => {
+      const read = get(state, [cited])
+      const result = read.result as { read: object }
+      return { ...read, result: { ...result, read: { ...result.read, names } } }
+    }
+    const norway = subject('grounded', ['Orders', 'Norway'], item('itm_norway001'))
+    const spain = subject(
+      'stale',
+      ['Orders', 'Spain'],
+      item('itm_spain0001', { outOfDate: 'its check date has passed' }),
+    )
+    const t = turnOf('No, what is written says otherwise [itm_norway001].', [], [norway, spain])
+    expect(t.state).toBe('grounded')
+    expect(t.subject).toMatchObject({ names: ['Orders', 'Norway'], carried: true })
+    expect(t.footer.stale).toBeNull()
+  })
+})
+
+describe('a turn whose words are about something its subject read is not', () => {
+  // "Who owns Sales?": the model looked up "Sales", the engine read it as Gross sales, and the
+  // words name the Sales domain and its owners, citing no item.
+  const owners = [
+    { id: 'domain:area_sales', name: 'Sales' },
+    { id: 'person:p1', name: 'Jon Abara' },
+    { id: 'person:p2', name: 'Sofia Brandt' },
+  ]
+  const unread: MadeRead = {
+    tool: 'get_context',
+    input: { about: 'Sales domain owners', no_period: true },
+    result: {
+      read: { words: 'Sales domain owners' },
+      unread: { why: ['it names no metric, value or date the workspace knows'] },
+      items: [],
+      outOf,
+      ids: [],
+    },
+  }
+  const listing: MadeRead = {
+    tool: 'definitions',
+    input: { domain: 'Sales', limit: 5 },
+    result: {
+      found: 1,
+      definitions: [
+        {
+          id: 'metric:gross_sales',
+          name: 'Gross sales',
+          words: 'The value of all orders placed, before returns and discounts.',
+          from: 'Cube (sales.gross_sales)',
+        },
+      ],
+      names: [{ id: 'metric:gross_sales', name: 'Gross sales' }],
+      ids: ['metric:gross_sales'],
+    },
+  }
+  const grossSales = (state: string): MadeRead => {
+    const read = get(state, [item('itm_gross0001')])
+    const result = read.result as { read: object }
+    return {
+      ...read,
+      input: { about: 'Sales', no_period: true },
+      result: {
+        ...result,
+        read: {
+          ...result.read,
+          names: ['Gross sales'],
+          about: ['metric:gross_sales'],
+          period: '17 Nov 2026',
+          assumedToday: true,
+        },
+        names: [{ id: 'metric:gross_sales', name: 'Gross sales' }, ...owners],
+        owners: [{ id: 'domain:area_sales', people: ['person:p1', 'person:p2'] }],
+      },
+    }
+  }
+  const words = 'The [@domain:area_sales] domain is owned by [@person:p1] and [@person:p2].'
+
+  it('is not read as that subject: no frame, no answer line and no Definition label', () => {
+    const t = turnOf(words, [unread, listing, grossSales('grounded')], [], 'Who owns Sales?')
+    expect(t.text).toBe('The Sales domain is owned by Jon Abara and Sofia Brandt.')
+    expect(t.subject).toBeNull()
+    expect(t.state).toBeNull()
+    expect(t.defined).toBeUndefined()
+    expect(t.definitions).toEqual([])
+    // It says what it is out of, never how many of a subject it did not use apply.
+    expect(t.footer.denominator).toBe('Out of 21 published context items you can see.')
+    // Who owns it, and what was read, still show.
+    expect(t.owners).toEqual([{ domain: 'domain:area_sales', people: ['person:p1', 'person:p2'] }])
+    expect(t.read).toHaveLength(3)
+  })
+
+  it('keeps the frame when the words name the subject, or the subject read found nothing', () => {
+    const named = turnOf(
+      '[@metric:gross_sales] is in [@domain:area_sales], owned by [@person:p1].',
+      [grossSales('grounded')],
+      [],
+      'Who owns gross sales?',
+    )
+    expect(named.subject).toMatchObject({ names: ['Gross sales'] })
+    expect(named.state).toBe('grounded')
+    const nothing = turnOf(words, [grossSales('missing')], [], 'Who owns Sales?')
+    expect(nothing.subject).toMatchObject({ names: ['Gross sales'] })
+    expect(nothing.state).toBe('missing')
+  })
 })
 
 describe('a turn that uses no context item', () => {
@@ -409,9 +516,10 @@ describe('a turn that uses no context item', () => {
       turnOf('Sales has [@metric:orders].', [{ ...listing, input: { names: ['Orders'] } }], [], 'q')
         .definitions,
     ).toHaveLength(1)
-    expect(
-      turnOf('Sales has [@metric:orders].', [listing], [], 'List the metrics in Sales').definitions,
-    ).toEqual([])
+    const listed = turnOf('Sales has [@metric:orders].', [listing], [], 'List the metrics in Sales')
+    expect(listed.definitions).toEqual([])
+    // Nor is it about a definition: no Definition label.
+    expect(listed.defined).toBeUndefined()
     // An earlier turn read it: a follow-up that reads again does not show it again.
     expect(
       turnOf('Sofia Brandt owns it.', [subject('partial')], [definitions(words)], 'Who owns that?')
