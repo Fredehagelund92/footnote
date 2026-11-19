@@ -408,6 +408,33 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).not.toMatch(/What Ask read|Definition|Used|records/)
   })
 
+  it('A decline: its two sentences, then the questions to press, with no state and nothing read', () => {
+    const said = [
+      "Ask does not answer questions about one person's work.",
+      'It can tell you who owns a domain or a metric, who last checked a context item and when, and what changed this week.',
+    ]
+    const turn: LoopTurn = {
+      ...example('loop-checked'),
+      text: said.join(' '),
+      body: said.map((t) => ({ t: 'p' as const, runs: [{ t: 'text' as const, text: t }] })),
+      state: null,
+      sources: [],
+      subject: null,
+      definitions: [],
+      read: [],
+      footer: { denominator: null, notSeen: null, stale: null },
+      reads: [],
+      items: [],
+      owners: [],
+      choices: ['What changed this week?', 'List the conflicts'],
+    }
+    const el = render(turn, 'what did Tomas write this week?')
+    expect(text(el)).toMatch(
+      /^Ask does not answer questions about one person's work\.It can tell you who owns a domain or a metric, who last checked a context item and when, and what changed this week\.What changed this week\?List the conflicts/,
+    )
+    expect(text(el)).not.toMatch(/Checked|Not found|Partial|What Ask read|Used/)
+  })
+
   it('A question back: the question and its readings as choices, with no state', () => {
     const el = render(example('loop-question'))
     expect(text(el)).toContain('Which switch do you mean?')

@@ -5,7 +5,7 @@ name: Release
 # the Dockerfile, the service and the web app, are built natively for linux/amd64 and linux/arm64,
 # pushed to ghcr.io with an SBOM and the build provenance, and signed with GitHub's build
 # provenance. Each is scanned before it is tagged. Before the release names them, the demo journey
-# and the eight demo questions run on the tagged images as the README's Quick start pulls them
+# and the eight demo questions run on the tagged images as compose.images.yaml pulls them
 # (demo-images.yml). The site is built at the tag (site.yml), apart from all of that. The
 # GitHub Release gets the notes release-please wrote into CHANGELOG.md. Last, a separate job
 # attaches the docs as a tarball when the docs build succeeded; if it failed, the release and

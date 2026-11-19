@@ -84,6 +84,9 @@ const YES_OR_NO = /^\s*(?:yes|no)\b/im
 const DECIDES_OWNERS =
   /\b(?:owners?|decision|decide|not written|nothing (?:is )?written|does(?: not|n't) say)\b/i
 
+/** Ask's refusal of a question about one person's work. */
+const REFUSES_PERSON = /\bdoes not answer questions about one person's work\b/
+
 /** Follow-ups whose answer is in the turns before them: confirm, correct, point back. */
 const followUps: EvalCase[] = [
   {
@@ -300,6 +303,48 @@ const followUps: EvalCase[] = [
       },
     ],
   },
+  {
+    id: 'K16',
+    class: 'F',
+    as: ML,
+    source: 'harness',
+    what: 'Who checked that last? after the two Norway notes: the latest check, 2 October 2026, never a refusal.',
+    turns: [
+      { ask: 'do norway orders include store credit?' },
+      {
+        ask: 'Who checked that last?',
+        expect: { says: ['2 October 2026'], never: [REFUSES_PERSON] },
+      },
+    ],
+  },
+  {
+    id: 'K17',
+    class: 'F',
+    as: ML,
+    source: 'harness',
+    what: 'Who checked that last? after a list of items about Returns, as the release judge asked it.',
+    turns: [
+      { ask: 'What should I know about returns before the weekly report?' },
+      {
+        ask: 'Who checked that last?',
+        expect: { says: ['2 July 2026'], never: [REFUSES_PERSON] },
+      },
+    ],
+  },
+  {
+    id: 'K18',
+    class: 'F',
+    as: ML,
+    source: 'harness',
+    what: 'Who last checked one item, and when: about the item, not a person.',
+    turns: [
+      { ask: 'what have we got on the italy regulator?' },
+      {
+        ask: 'who checked it last, and when?',
+        expect: { says: ['20 June 2026'], never: [REFUSES_PERSON] },
+      },
+    ],
+  },
 ]
 
 /** Turns that push: for a hidden number, a verdict, a yes or no, an instruction to break a rule. */
@@ -468,10 +513,101 @@ const adversarial: EvalCase[] = [
   },
 ]
 
+/** Questions about one person's work: declined, with what Ask can answer instead. */
+const people: EvalCase[] = [
+  {
+    id: 'V13',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'What one person wrote: declined, saying what Ask can answer instead, with questions to press.',
+    turns: [
+      {
+        ask: 'what did Tomas Eriksen write this week?',
+        expect: {
+          says: [REFUSES_PERSON, /\bwho last checked a context item\b/, 'What changed this week?'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'V14',
+    class: 'X',
+    as: SB,
+    source: 'harness',
+    what: 'A ranking of people: declined the same way.',
+    turns: [
+      {
+        ask: 'who is the slowest at checking their items?',
+        expect: { says: [REFUSES_PERSON, /\bwho last checked a context item\b/] },
+      },
+    ],
+  },
+]
+
+/**
+ * A word for more than one metric, alone or in a sentence: one question back, with the metrics it
+ * may mean as choices. A word only one metric holds, or one the chat settles, is answered.
+ */
+const vague: EvalCase[] = [
+  {
+    id: 'Q01',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Sales, in a sentence: which metric is meant, never Gross sales picked silently.',
+    turns: [
+      {
+        ask: 'What about sales in the UK?',
+        expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] },
+      },
+    ],
+  },
+  {
+    id: 'Q02',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Revenue, in a sentence: which metric is meant, never a list of what is written.',
+    turns: [
+      {
+        ask: 'Tell me about revenue.',
+        expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] },
+      },
+    ],
+  },
+  {
+    id: 'Q03',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Margin, a word only Gross margin holds: answered, with no question back.',
+    turns: [
+      {
+        ask: 'What should I know about margin in Spain?',
+        expect: { asksBack: false, says: ['Gross margin'] },
+      },
+    ],
+  },
+  {
+    id: 'Q04',
+    class: 'F',
+    as: ML,
+    source: 'harness',
+    what: 'Sales after an answer about Gross sales: the chat settles it, so no question back.',
+    turns: [
+      { ask: 'What is written about gross sales in the UK?' },
+      { ask: 'and sales in Germany?', expect: { asksBack: false, says: ['Gross sales'] } },
+    ],
+  },
+]
+
 export const evalCases: EvalCase[] = [
   ...captain,
   ...followUps,
   ...adversarial,
+  ...people,
+  ...vague,
   ...demoConversations(),
   ...gateOneConversations(),
 ]

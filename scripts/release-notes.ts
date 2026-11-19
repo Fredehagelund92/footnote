@@ -60,7 +60,7 @@ export function releaseNotes({
   return [
     ...(version.startsWith('0.')
       ? [
-          `Footnote ${version.split('.').slice(0, 2).join('.')} is for trying Footnote on one computer. It is not ready for production use. To run it, follow the [Quick start](https://github.com/${repository}/blob/${tag}/README.md#quick-start) at this tag.`,
+          `Footnote ${version.split('.').slice(0, 2).join('.')} is for trying Footnote on one computer. It is not ready for production use. To run it, follow [Try it](https://github.com/${repository}/blob/${tag}/README.md#try-it) in the README at this tag.`,
           '',
         ]
       : []),

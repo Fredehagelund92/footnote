@@ -96,7 +96,7 @@ it(
         alert: ['disagree'],
       },
     ])
-    // What agents asked: every answer line the README names, from the apps people use, and the
+    // What agents asked: every answer line, from the apps people use, and the
     // README's question about orders in Norway answered Checked with the Norway item first.
     const { rows: calls } = await client.query<{
       states: string[]

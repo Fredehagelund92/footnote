@@ -83,6 +83,8 @@ export {
   askLoop,
   cachedThrough,
   EARLIER_TURNS,
+  DECLINE,
+  declinedTurn,
   footerOf,
   LOOP_MAX_TOKENS,
   LOOP_SECONDS,
