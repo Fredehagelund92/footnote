@@ -222,18 +222,18 @@ describe('settings and limits', () => {
     const [current] = (await ok<Setting[]>('GET', '/settings', 'admin')).filter(
       (s) => s.key === 'business.about',
     )
-    // A fresh Footnote starts with no text (0009): versions nobody changed by hand, the last empty.
-    // The starter text is the guide's worked example, which a person may start from.
-    expect(current).toMatchObject({ version: 2, value: '', changedBy: null, editable: true })
+    // A fresh Footnote starts with no text, a version nobody changed by hand. The starter text is
+    // the guide's worked example, which a person may start from.
+    expect(current).toMatchObject({ version: 1, value: '', changedBy: null, editable: true })
     expect((await serving.policy('claude-code')).about).toBe('')
     const started = await ok<Setting>('PUT', path, 'admin', {
-      version: 2,
+      version: 1,
       value: ABOUT_BUSINESS_STARTER,
       reason: 'Start from the guide',
     })
-    expect(started).toMatchObject({ version: 3, value: ABOUT_BUSINESS_STARTER })
+    expect(started).toMatchObject({ version: 2, value: ABOUT_BUSINESS_STARTER })
     expect((await serving.policy('claude-code')).about).toBe(ABOUT_BUSINESS_STARTER)
-    const change = { version: 3, reason: 'Say we also sell in two stores' }
+    const change = { version: 2, reason: 'Say we also sell in two stores' }
     expect(
       (await call('PUT', path, 'admin', { ...change, value: 'x'.repeat(ABOUT_BUSINESS_MAX + 1) }))
         .statusCode,
@@ -247,7 +247,7 @@ describe('settings and limits', () => {
         '  We run a webshop and two stores.\r\n\r\n\r\n- First-time buyer: a first paid order.  ',
     })
     const text = 'We run a webshop and two stores.\n\n- First-time buyer: a first paid order.'
-    expect(saved).toMatchObject({ version: 4, value: text, changedBy: people.admin })
+    expect(saved).toMatchObject({ version: 3, value: text, changedBy: people.admin })
     expect(await auditRows()).toBe(before + 1)
     const [audit] = (
       await client.query<{ action: string; actor_id: string; details: Record<string, unknown> }>(
@@ -257,12 +257,12 @@ describe('settings and limits', () => {
     expect(audit).toMatchObject({
       action: 'setting.changed',
       actor_id: people.admin,
-      details: { from: 3, to: 4, value: text, reason: change.reason },
+      details: { from: 2, to: 3, value: text, reason: change.reason },
     })
     expect((await serving.policy('claude-code')).about).toBe(text)
     // Empty is allowed: then nothing is given.
     const empty = await ok<Setting>('PUT', path, 'admin', {
-      version: 4,
+      version: 3,
       value: ' ',
       reason: 'Off for the pilot',
     })
