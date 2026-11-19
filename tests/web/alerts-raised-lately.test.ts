@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import * as React from 'react'
+import type { DomainId } from '@/model/items'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -53,20 +54,23 @@ const page = (ids: string[], total: number, notFound: number, next: string | nul
 })
 const first = page(['a1', 'a2'], 12, 9, 'c1')
 
-function mount(getRaised: FootnoteApi['getRaised']) {
+function mount(getRaised: FootnoteApi['getRaised'], domain?: DomainId) {
   bindApi({ getRaised } as unknown as FootnoteApi)
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  act(() =>
-    root!.render(
-      React.createElement(
-        QueryClientProvider,
-        { client },
-        React.createElement(RaisedLately, { first, empty: false }),
+  const render = (d?: DomainId) =>
+    act(() =>
+      root!.render(
+        React.createElement(
+          QueryClientProvider,
+          { client },
+          React.createElement(RaisedLately, { first, empty: false, domain: d }),
+        ),
       ),
-    ),
-  )
+    )
+  render(domain)
+  return render
 }
 const flush = () => act(() => new Promise<void>((r) => setTimeout(r, 0)))
 const text = () => host!.textContent ?? ''
@@ -127,5 +131,50 @@ describe('Raised lately', () => {
     await flush()
     expect(text()).not.toContain("Couldn't refresh")
     expect(host!.querySelectorAll('li a')).toHaveLength(3)
+  })
+
+  it("with a domain chosen reads that domain's raises, their counts too", async () => {
+    const asked: Parameters<FootnoteApi['getRaised']>[0][] = []
+    mount((input) => {
+      asked.push(input)
+      return Promise.resolve(page(['s1'], 6, 5, null))
+    }, 'sales')
+    await flush()
+    expect(asked).toEqual([{ domain: 'sales' }])
+    expect(text()).toContain('1 of 6, newest first')
+    click(radio(/Not found/))
+    await flush()
+    expect(asked.at(-1)).toEqual({ rule: 'gap', domain: 'sales' })
+  })
+
+  it('with a domain chosen and its read held shows loading, not empty or unfiltered counts', () => {
+    mount(() => new Promise<RaisedPage>(() => {}), 'sales')
+    expect(text()).toContain('Loading the raises')
+    expect(text()).not.toContain('Nothing raised')
+    expect(host!.querySelector('[role=radiogroup]')).toBeNull()
+    expect(text()).not.toContain('12')
+  })
+
+  it('a domain change after a rule was chosen goes back to All with the new domain rows', async () => {
+    const asked: Parameters<FootnoteApi['getRaised']>[0][] = []
+    const render = mount((input) => {
+      asked.push(input)
+      return Promise.resolve(
+        input.domain === 'marketing' ? page(['m1', 'm2'], 4, 1, null) : page(['s1'], 6, 5, null),
+      )
+    }, 'sales')
+    await flush()
+    click(radio(/Not found/))
+    await flush()
+    render('marketing')
+    await flush()
+    expect(asked.at(-1)).toEqual({ domain: 'marketing' })
+    expect(host!.querySelectorAll('li a')).toHaveLength(2)
+    expect(text()).not.toContain('Nothing raised')
+    expect(radio(/^All/).getAttribute('aria-checked')).toBe('true')
+    render('sales')
+    await flush()
+    expect(asked.at(-1)).toEqual({ domain: 'sales' })
+    expect(radio(/^All/).getAttribute('aria-checked')).toBe('true')
   })
 })

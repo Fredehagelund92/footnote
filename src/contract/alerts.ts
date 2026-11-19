@@ -67,6 +67,8 @@ export const alertRaisedInputSchema = z.strictObject({
   rule: z.optional(z.enum(alertRuleIds)),
   /** The page after this raise, by its id: the next older ones. */
   after: z.optional(z.string().check(z.uuid())),
+  /** Only the raises about this domain, in the counts too. */
+  areaId: z.optional(areaId),
 })
 
 /**

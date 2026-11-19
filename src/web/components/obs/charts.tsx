@@ -1416,38 +1416,51 @@ export function LineChart({
   )
 }
 
+/** One part of each bar: its name in the tooltip and the table, a count per bar, and its fill. */
+export type BarPart = { name: string; values: (number | null)[]; fill: string }
+
 /**
- * One series as bars: a count a week, the last one in the accent. A hidden count (null) draws no
- * bar, only a dashed mark on the baseline, so it never reads as a zero, and it reads "Fewer than 5".
+ * Counts as bars, a bar a week, each split into its parts (good and wrong), stacked from the
+ * baseline in their order. A hidden count (null) draws no part, only a dashed mark where it would
+ * start, so it never reads as a zero, and it reads "Fewer than 5". With `soFar` the last bar is a
+ * week still under way: drawn faded, marked "so far", so a short week never reads as a drop.
  */
 export function Bars({
-  values,
+  parts,
   labels,
   caption,
+  soFar = false,
   height = 170,
 }: {
-  values: (number | null)[]
+  parts: BarPart[]
   labels: string[]
   caption: string
+  soFar?: boolean
   height?: number
 }) {
   const [box, W] = useWidth(520)
   const helpId = React.useId()
+  const n = labels.length
   const format = (v: number) => v.toLocaleString('en-GB')
-  const said = (i: number) => `${labels[i]}: ${valueWords(values[i] ?? null, format, FEWER)}`
-  const point = usePoint(values.length, said, box)
+  const open = (i: number) => soFar && i === n - 1
+  const named = (i: number) => (open(i) ? `${labels[i]}, so far` : labels[i]!)
+  const partsSaid = (i: number) =>
+    parts.map((p) => `${p.name} ${valueWords(p.values[i] ?? null, format, FEWER)}`).join(', ')
+  const said = (i: number) => `${named(i)}: ${partsSaid(i)}`
+  const point = usePoint(n, said, box)
   const H = height
-  const ticks = axisTicks(Math.max(...values.map((v) => v ?? 0), 1))
+  const sum = (i: number) => parts.reduce((t, p) => t + (p.values[i] ?? 0), 0)
+  const ticks = axisTicks(Math.max(...labels.map((_, i) => sum(i)), 1))
   const top = ticks.at(-1)!
-  const pad = { l: axisRoom(ticks, format), r: 6, t: 10, b: 22 }
+  const pad = { l: axisRoom(ticks, format), r: 6, t: 18, b: 22 }
   const plotW = W - pad.l - pad.r
   const plotH = H - pad.t - pad.b
-  const slot = plotW / Math.max(1, values.length)
+  const slot = plotW / Math.max(1, n)
   const bw = Math.min(28, slot * 0.62)
   const y = (v: number) => pad.t + plotH - (v / top) * plotH
   const mid = (i: number) => pad.l + slot * i + slot / 2
   const shown = xLabels(
-    values.map((_, i) => mid(i)),
+    labels.map((_, i) => mid(i)),
     labels,
     LABEL_INSET,
     W - LABEL_INSET,
@@ -1468,10 +1481,7 @@ export function Bars({
         className="block h-auto w-full touch-pan-y"
         aria-hidden
         {...point.plot((clientX, el) =>
-          Math.max(
-            0,
-            Math.min(values.length - 1, Math.floor((drawnX(clientX, el, W) - pad.l) / slot)),
-          ),
+          Math.max(0, Math.min(n - 1, Math.floor((drawnX(clientX, el, W) - pad.l) / slot))),
         )}
       >
         <rect x={0} y={0} width={W} height={H} fill="transparent" />
@@ -1495,29 +1505,55 @@ export function Bars({
             </text>
           </g>
         ))}
-        {values.map((v, i) => {
+        {labels.map((_, i) => {
           const x = pad.l + slot * i + (slot - bw) / 2
+          let base = 0
           return (
             // A bar is its week in this range: another range has other weeks, so other bars.
-            <g key={`${values.length}-${i}`} opacity={at !== null && at !== i ? 0.55 : 1}>
-              {v === null ? (
-                <line
-                  x1={x}
-                  x2={x + bw}
-                  y1={y(0) - 2}
-                  y2={y(0) - 2}
-                  stroke="var(--chart-2)"
-                  strokeDasharray="2 2"
-                />
-              ) : (
-                <rect
-                  className="bar-move"
-                  x={x}
-                  y={y(v)}
-                  width={bw}
-                  height={y(0) - y(v)}
-                  fill={i === values.length - 1 ? 'var(--primary)' : 'var(--chart-2)'}
-                />
+            <g
+              key={`${n}-${i}`}
+              data-bar={i}
+              data-so-far={open(i) || undefined}
+              opacity={at !== null && at !== i ? 0.55 : 1}
+            >
+              {parts.map((p) => {
+                const v = p.values[i] ?? null
+                const from = base
+                base += v ?? 0
+                return v === null ? (
+                  <line
+                    key={p.name}
+                    data-part={p.name}
+                    x1={x}
+                    x2={x + bw}
+                    y1={y(from) - 2}
+                    y2={y(from) - 2}
+                    stroke="var(--chart-2)"
+                    strokeDasharray="2 2"
+                  />
+                ) : (
+                  <rect
+                    key={p.name}
+                    data-part={p.name}
+                    className="bar-move"
+                    x={x}
+                    y={y(from + v)}
+                    width={bw}
+                    height={y(from) - y(from + v)}
+                    fill={p.fill}
+                    fillOpacity={open(i) ? 0.45 : 1}
+                  />
+                )
+              })}
+              {open(i) && (
+                <text
+                  x={x + bw / 2}
+                  y={y(base) - 5}
+                  textAnchor="middle"
+                  className="fill-muted-foreground text-xs"
+                >
+                  so far
+                </text>
               )}
             </g>
           )
@@ -1548,11 +1584,19 @@ export function Bars({
         ))}
       </svg>
       {at !== null && (
-        <ChartTip x={mid(at)} y={y(values[at] ?? 0)} reach={bw / 2} W={W}>
-          <p className="font-medium">
-            {labels[at]}:{' '}
-            <span className="tabular-nums">{valueWords(values[at] ?? null, format, FEWER)}</span>
-          </p>
+        <ChartTip x={mid(at)} y={y(sum(at))} reach={bw / 2} W={W}>
+          <p className="font-medium">{named(at)}</p>
+          {parts.map((p) => (
+            <p key={p.name} className="flex items-center gap-1.5">
+              <svg aria-hidden width="8" height="8" className="shrink-0">
+                <rect width="8" height="8" fill={p.fill} />
+              </svg>
+              {p.name}:{' '}
+              <span className="tabular-nums">
+                {valueWords(p.values[at] ?? null, format, FEWER)}
+              </span>
+            </p>
+          ))}
         </ChartTip>
       )}
       <p id={helpId} className="sr-only">
@@ -1563,11 +1607,23 @@ export function Bars({
       </p>
       <table className="sr-only">
         <caption>{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Week</th>
+            {parts.map((p) => (
+              <th key={p.name} scope="col">
+                {p.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
-          {values.map((v, i) => (
+          {labels.map((_, i) => (
             <tr key={i}>
-              <th scope="row">{labels[i]}</th>
-              <td>{valueWords(v, format, FEWER)}</td>
+              <th scope="row">{named(i)}</th>
+              {parts.map((p) => (
+                <td key={p.name}>{valueWords(p.values[i] ?? null, format, FEWER)}</td>
+              ))}
             </tr>
           ))}
         </tbody>

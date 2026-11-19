@@ -395,6 +395,18 @@ describe('privacy', () => {
     expect(mine.total).toBeLessThan(all.total)
   })
 
+  it("narrows to one domain's raises, in the counts too", async () => {
+    const all = await ok<AlertRaised>('admin', 'GET', '/alerts/raised?limit=100')
+    const finance = await ok<AlertRaised>('admin', 'GET', '/alerts/raised?limit=100&areaId=finance')
+    expect(finance.raises.map((r) => r.id)).toEqual(
+      all.raises.filter((r) => r.areaIds.includes('finance')).map((r) => r.id),
+    )
+    expect(finance.total).toBe(finance.raises.length)
+    expect(finance.total).toBe(finance.rules.reduce((n, r) => n + r.count, 0))
+    expect(finance.total).toBeGreaterThan(0)
+    expect(finance.total).toBeLessThan(all.total)
+  })
+
   it('the serving and analytics roles read none of it', async () => {
     for (const table of ['alert_rules', 'alert_mutes', 'alert_raises'])
       for (const role of [localRoles.serve, localRoles.readonly]) {

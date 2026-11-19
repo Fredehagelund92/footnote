@@ -2473,10 +2473,14 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       ])
       return (await alertWords()).alertsOf(rules, raised, new Date())
     },
-    getRaised: async ({ rule, after }) =>
+    getRaised: async ({ rule, after, domain }) =>
       (await alertWords()).raisedPageOf(
         await read(() =>
-          client.alerts.raised({ ...(rule ? { rule } : {}), ...(after ? { after } : {}) }),
+          client.alerts.raised({
+            ...(rule ? { rule } : {}),
+            ...(after ? { after } : {}),
+            ...(domain ? { areaId: domain } : {}),
+          }),
         ),
         new Date(),
       ),

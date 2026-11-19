@@ -203,7 +203,11 @@ beforeAll(async () => {
      insert into assistant_ratings (verdict, area_id, created_hour)
      select 'helpful', 'finance', '2026-10-20T10:00:00Z' from generate_series(1, 6);
      insert into assistant_ratings (verdict, area_id, created_hour)
-     select 'wrong', 'finance', '2026-10-20T10:00:00Z' from generate_series(1, 2);`,
+     select 'wrong', 'finance', '2026-10-20T10:00:00Z' from generate_series(1, 2);
+     insert into assistant_ratings (verdict, area_id, created_hour)
+     select 'helpful', 'finance', '2026-10-13T10:00:00Z' from generate_series(1, 7);
+     insert into assistant_ratings (verdict, area_id, created_hour)
+     select 'wrong', 'finance', '2026-10-13T10:00:00Z' from generate_series(1, 5);`,
   )
   const [closed] = (
     await client.query<{ id: string }>(`select id::text from feedback where verdict = 'wrong'`)
@@ -470,10 +474,30 @@ describe('Feedback (obs.feedback)', () => {
     ])
     expect(feedback.reports[0]!.card).toMatch(/^feedback:/)
     expect(JSON.stringify(feedback)).not.toMatch(/owner@example|display_name/)
-    expect(feedback.week).toEqual({ good: 6, goodBefore: 0, wrong: null })
-    expect(feedback.goodByWeek).toHaveLength(14)
+    expect(feedback.week).toEqual({ good: 6, wrong: null, goodBefore: 7, wrongBefore: 5 })
+    // Friday 16 to Thursday 22 October touches two weeks; the second is under way.
+    expect(feedback.byWeek).toEqual([
+      { from: '2026-10-16', good: 0, wrong: 0, soFar: false },
+      { from: '2026-10-19', good: 6, wrong: null, soFar: true },
+    ])
     const owner = await ok<ObsFeedback>('owner', '/observability/feedback?range=7')
     expect(new Set(owner.reports.map((r) => r.areaId))).toEqual(new Set(['finance']))
+  })
+
+  it('counts good and wrong a week at a time over the weeks of the range, the last one so far', async () => {
+    const feedback = await ok<ObsFeedback>('admin', '/observability/feedback?range=30')
+    // 23 September to 22 October: five weeks from Monday, the first counted from the range's
+    // first day, so the bars add up to the cells.
+    expect(feedback.byWeek).toEqual([
+      { from: '2026-09-23', good: 0, wrong: 0, soFar: false },
+      { from: '2026-09-28', good: 0, wrong: 0, soFar: false },
+      { from: '2026-10-05', good: 0, wrong: 0, soFar: false },
+      // Wrong 2 times this week is hidden, so the 5 before it is too: the cell's 7 less the weeks
+      // shown would give the 2 away (FR-614).
+      { from: '2026-10-12', good: 7, wrong: null, soFar: false },
+      { from: '2026-10-19', good: 6, wrong: null, soFar: true },
+    ])
+    expect(feedback.week).toMatchObject({ good: 13, wrong: 7 })
   })
 
   it('lists a named report from Ask with who sent it, up to now, and where it stands', async () => {

@@ -6,7 +6,9 @@ import { queryKeys, useAlerts, useWrite } from '@/api/queries'
 import { alertRule } from '@domain/alerts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { ObsEmpty } from '@/components/obs/obs-empty'
+import { open } from '@/lib/events'
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import { Switch } from '@/components/ui/switch'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable, LoadError, RefreshError } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
+import { DomainChip } from '@/components/obs/controls'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { ShowMoreButton } from '@/components/footnote/show-more'
 import { TextSwitch, type TextOption } from '@/components/footnote/switches'
@@ -32,7 +35,7 @@ import {
   type RuleId,
 } from '@/model/alerts'
 import type { DomainId } from '@/model/items'
-import { OBS_PURPOSE, useObsPageQuery, useObsView } from '@/lib/obs'
+import { OBS_PURPOSE, useDomainChoice, useObsPageQuery, useObsView } from '@/lib/obs'
 import { useDomains, useMe } from '@/lib/workspace'
 import { ObsPage } from '@/pages/observability'
 
@@ -64,10 +67,15 @@ function Alerts() {
   const { rules: all, raised, settings: s } = useAlerts()
   const rules = rulesFor(all, me.admin)
   const owned = view.owned
+  const choice = useDomainChoice()
   const head = 'text-xs font-medium text-muted-foreground'
   return (
     <Frame>
-      <FrameSection title="Alerts" description={OBS_PURPOSE.alerts} />
+      <FrameSection
+        title="Alerts"
+        description={OBS_PURPOSE.alerts}
+        action={<DomainChip value={choice.asked} choices={choice.choices} all />}
+      />
       <section aria-labelledby="alert-rules" className="border-t">
         <h3 id="alert-rules" className="sr-only">
           Rules
@@ -101,7 +109,7 @@ function Alerts() {
         )}
       </section>
 
-      <RaisedLately first={raised} empty={view.state === 'empty'} />
+      <RaisedLately first={raised} empty={view.state === 'empty'} domain={choice.asked} />
       <p className="flex items-start gap-2 border-t px-4 py-4 text-sm text-muted-foreground md:px-5">
         <UsersIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         Owners see and mute alerts for their own domains. Admins turn rules off and change the
@@ -117,15 +125,23 @@ function Alerts() {
  * the Alerts read's, so what refreshes that refreshes these too. Another rule keeps the rows on
  * screen until its own have loaded.
  */
-export function useRaisedPages(rule: RuleId | null, first: RaisedPage) {
+export function useRaisedPages(
+  rule: RuleId | null,
+  domain: DomainId | undefined,
+  first: RaisedPage,
+) {
   const client = useQueryClient()
   return useInfiniteQuery({
-    queryKey: [...queryKeys.alerts, 'raised', rule ?? 'all'],
+    queryKey: [...queryKeys.alerts, 'raised', rule ?? 'all', domain ?? 'all'],
     queryFn: ({ pageParam }) =>
-      api.getRaised({ ...(rule ? { rule } : {}), ...(pageParam ? { after: pageParam } : {}) }),
+      api.getRaised({
+        ...(rule ? { rule } : {}),
+        ...(domain ? { domain } : {}),
+        ...(pageParam ? { after: pageParam } : {}),
+      }),
     initialPageParam: '',
     getNextPageParam: (last) => last.next ?? undefined,
-    ...(rule === null
+    ...(rule === null && !domain
       ? {
           initialData: { pages: [first], pageParams: [''] },
           initialDataUpdatedAt: () => client.getQueryState(queryKeys.alerts)?.dataUpdatedAt,
@@ -140,14 +156,33 @@ export function useRaisedPages(rule: RuleId | null, first: RaisedPage) {
  * a rare raise (Conflict, Not found) is one click away under many check-date reminders, and Show
  * more for the older ones. An owner reads only their own domains' raises.
  */
-export function RaisedLately({ first, empty }: { first: RaisedPage; empty: boolean }) {
+export function RaisedLately({
+  first,
+  empty,
+  domain,
+}: {
+  first: RaisedPage
+  empty: boolean
+  domain: DomainId | undefined
+}) {
   const domains = useDomains()
-  const [rule, setRule] = React.useState<RuleId | null>(null)
-  const pages = useRaisedPages(rule, first)
-  const counts = pages.data?.pages[0] ?? first
+  const [chosen, setChosen] = React.useState<{ rule: RuleId | null; domain: DomainId | undefined }>(
+    {
+      rule: null,
+      domain,
+    },
+  )
+  if (chosen.domain !== domain) setChosen({ rule: null, domain })
+  const rule = chosen.domain === domain ? chosen.rule : null
+  const setRule = (r: RuleId | null) => setChosen({ rule: r, domain })
+  const pages = useRaisedPages(rule, domain, first)
+  const loading = !empty && !pages.data && !pages.isError
+  const counts = pages.data?.pages[0] ?? (domain ? { ...first, total: 0, byRule: [] } : first)
   const raised = empty ? [] : (pages.data?.pages.flatMap((p) => p.raised) ?? [])
   const of = rule ? (counts.byRule.find((c) => c.rule === rule)?.count ?? 0) : counts.total
   const stale = pages.isPlaceholderData
+  if (rule && pages.data && !stale && !counts.byRule.some((c) => c.rule === rule))
+    setChosen({ rule: null, domain })
   const left = of - raised.length
   const switches: TextOption<RuleId | 'all'>[] = [
     { value: 'all', label: 'All', count: counts.total },
@@ -176,6 +211,10 @@ export function RaisedLately({ first, empty }: { first: RaisedPage; empty: boole
       )}
       {pages.isError && !pages.data ? (
         <LoadError what="the raises" onRetry={() => void pages.refetch()} className="border-t" />
+      ) : loading ? (
+        <p role="status" className="border-t px-4 py-6 text-sm text-muted-foreground md:px-5">
+          Loading the raises
+        </p>
       ) : raised.length ? (
         <ul aria-label="Raised lately" aria-busy={stale} className="border-t">
           {raised.map((r) => (
@@ -225,19 +264,28 @@ export function RaisedLately({ first, empty }: { first: RaisedPage; empty: boole
           )}
         </ul>
       ) : (
-        <Empty className="border-t py-10">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <BellIcon />
-            </EmptyMedia>
-            <EmptyTitle>
-              {empty ? 'Nothing has raised an alert yet' : 'Nothing raised for your domains lately'}
-            </EmptyTitle>
-            <EmptyDescription>
-              When a rule above fires, its card goes to the Inbox and shows here too.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        // On a new install the next step is an agent: what agents ask is what most rules read.
+        <ObsEmpty
+          cells={[]}
+          icon={<BellIcon />}
+          title={
+            empty
+              ? 'Nothing has raised an alert yet'
+              : domain
+                ? `Nothing raised for ${domains[domain]?.name ?? 'this domain'} lately`
+                : 'Nothing raised for your domains lately'
+          }
+          sentence="When a rule above fires, its card goes to the Inbox and shows here too."
+          next={
+            empty ? (
+              <Button onClick={() => open('connect')}>Connect an agent</Button>
+            ) : (
+              <a href="/inbox" className={cn(buttonVariants({ variant: 'outline' }))}>
+                Open the Inbox
+              </a>
+            )
+          }
+        />
       )}
     </FrameSection>
   )

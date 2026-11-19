@@ -39,13 +39,17 @@ import { gapFixtures } from './fixtures/gaps.ts'
      the Conflict line, and the conflict view compares them.
   3. Suggestions waiting for the owners of Sales: Ines Duarte's change to "Units sold excludes test
      accounts", Maria's new item about card payments in Spain, and Lars Dahl's suggestion to archive
-     an item whose time has passed. Jon saves two questions from Ask.
+     an item whose time has passed. Jon and Tomas save questions from Ask: one answers the same,
+     one has changed, one needs a look.
   4. What agents asked: about 160 calls to the MCP server a week, over the eight whole weeks
      before this one and this week so far, from Claude Code, the Claude app, Cursor and ChatGPT,
      each answered by the server as it answers any agent on the live edition: Checked, Conflict,
      Outdated, and Not found for what nobody wrote down. The records keep no question and no
      person (FR-602); the seed only moves their hour to the hour they stand for, and the conflict
      alert is raised once, as the alert job would.
+  5. What people and agents said, and what it cost: reports from Ask, agents' reports on what they
+     got, answers marked good or wrong in Ask over the same weeks, and this month's model spend, so
+     every Observability page has something to show over the last 7 days.
 
   It runs with the real clock, after the demo, on a database the demo was just loaded into, as the
   superuser: the API calls go through the service's own role.
@@ -243,6 +247,14 @@ async function tellStory(
     notToConclude: 'Fewer orders in Norway after 4 August do not mean fewer customers.',
   })
   const norwayProposal = await suggest(call, 'maria', norwayDraft)
+  // Tomas, owner of Marketing, saves the question about Norway before anything answers it: Not
+  // found. Jon's publish answers it, and a check finds it Changed: Jon owns Sales, not Marketing,
+  // so his publish does not take the new answer for it.
+  await call('POST', '/saved-questions', 'tomas', {
+    areaId: 'area_marketing',
+    question: 'How did orders in Norway change in October 2026?',
+    origin: 'ask',
+  })
   // It answers the gap agents raised about orders in Norway in October (db/seed/fixtures/gaps.ts):
   // Maria wrote it for that gap, so Jon's publish covers it, on the edition that carries it.
   const gap = gapFixtures.find(
@@ -303,6 +315,13 @@ async function tellStory(
       'United Kingdom orders include orders paid with store credit and gift cards, on the day the customer pays.',
     ),
   )
+  // Jon saves the question while one item answers it, Checked; Sofia's item then disagrees, so a
+  // check finds it Needs a look.
+  await call('POST', '/saved-questions', 'jon', {
+    areaId: 'area_sales',
+    question: 'How are orders counted in the United Kingdom?',
+    origin: 'ask',
+  })
   const cardOnly = await publishItem(
     'sofia',
     ukDraft(
@@ -639,6 +658,74 @@ async function askAgents(pool: pg.Pool, client: pg.Client, norway: string, now: 
   return calls.length
 }
 
+/**
+ * What people and agents said about answers, and what AI cost: two reports from Ask through the
+ * service, waiting for the owners of Sales; and, as the service would have kept them over the
+ * weeks the calls reach, agents' reports on answers they got this week, the answers people marked
+ * good or wrong in Ask (verdict, domain and hour only, FR-712) and this month's model spend.
+ */
+async function sayAndSpend(call: Call, client: pg.Client, norway: string, now: Date) {
+  await call('POST', '/reports', 'maria', {
+    question: 'How did orders in Norway change in October 2026?',
+    itemId: norway,
+    part: 'answer',
+    what: 'It should say that parcels already on their way still arrived in the first days.',
+  })
+  await call('POST', '/reports', 'ines', {
+    question: 'How did orders in Norway change in October 2026?',
+    itemId: norway,
+    part: 'item',
+    what: 'The source link opens the notice in Norwegian only.',
+  })
+  const today = now.toISOString().slice(0, 10)
+  const monday = shiftDate(today, -((new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7))
+  // Agents' reports, each on an answer an agent got this week, by the kind of agent that got it.
+  await client.query(
+    `insert into feedback (verdict, note, client_label, delivery_id, area_id, created_hour)
+     select r.verdict::feedback_verdict, r.note, d.client_label, d.id, t.area_id,
+            least(d.delivered_hour + interval '1 hour', date_trunc('hour', $2::timestamptz))
+       from jsonb_to_recordset($3) as r(n int, verdict text, note text)
+       join lateral (select d.* from deliveries d join topics t on t.id = d.topic_id
+                      where d.delivered_hour >= $1::date and t.area_id is not null
+                      order by d.delivered_hour, d.id offset r.n * 7 limit 1) d on true
+       join topics t on t.id = d.topic_id`,
+    [
+      shiftDate(today, -6),
+      now.toISOString(),
+      JSON.stringify([
+        { n: 0, verdict: 'helpful', note: null },
+        { n: 1, verdict: 'missing', note: 'Nothing about returns in that market.' },
+        { n: 2, verdict: 'helpful', note: null },
+        { n: 3, verdict: 'unclear', note: 'Is this the whole month or the days so far?' },
+        { n: 4, verdict: 'wrong', note: null },
+        { n: 5, verdict: 'helpful', note: null },
+      ]),
+    ],
+  )
+  // Answers marked in Ask: each working day of the weeks the calls reach, more good than wrong,
+  // two in three in Sales and the rest in Marketing, never after now.
+  await client.query(
+    `insert into assistant_ratings (verdict, area_id, created_hour)
+     select case when (n + extract(doy from day)::int) % 6 = 0 then 'wrong' else 'helpful' end::feedback_verdict,
+            case when n % 3 = 2 then 'area_marketing' else 'area_sales' end,
+            day + make_interval(hours => 9 + n)
+       from generate_series($1::date, $2::date, interval '1 day') day,
+            generate_series(0, 6) n
+      where extract(isodow from day) < 6 and day + make_interval(hours => 9 + n) < $3::timestamptz`,
+    [shiftDate(monday, -7 * WEEKS), today, now.toISOString()],
+  )
+  // This month's model spend: Ask, and an answer test run from Settings, beside the weekly runs'
+  // calls, which the scripted model answers at no cost.
+  await client.query(
+    `insert into llm_spend_monthly (month, feature, calls, cost_micros, provider)
+     values ($1::date, 'assistant', 64, 3840000, 'mock'), ($1::date, 'eval', 1, 1250000, 'mock')
+     on conflict (month, feature, provider) do update
+       set calls = llm_spend_monthly.calls + excluded.calls,
+           cost_micros = llm_spend_monthly.cost_micros + excluded.cost_micros`,
+    [`${today.slice(0, 7)}-01`],
+  )
+}
+
 /** What `loadStory` added. */
 export type StoryCounts = { items: number; suggestions: number; calls: number }
 
@@ -654,6 +741,7 @@ export async function loadStory(seedUrl: string, now = new Date()): Promise<Stor
     const { norway } = await tellStory(api.call, databaseFromPool(api.pool))
     await client.query('begin')
     const calls = await askAgents(api.pool, client, norway, now)
+    await sayAndSpend(api.call, client, norway, now)
     // Someone used Ask: the setup checklist's one step that leaves no other record.
     await client.query(
       `insert into setup_marks (step) values ('ask') on conflict (step) do nothing`,
@@ -662,6 +750,11 @@ export async function loadStory(seedUrl: string, now = new Date()): Promise<Stor
     // The alert job's conflict rule, once, so the owners of Sales find the conflict in their Inbox
     // from the first start; the job raises the rest on its schedule.
     await raiseAlerts(databaseFromPool(api.pool), systemClock(), createBundleCache(), ['disagree'])
+    // The saved questions checked once on what agents get now, as the check job would on its next
+    // minute: Same, Changed and Needs a look; and the card for the one that needs a look, as the
+    // alert job would raise it.
+    await api.call('POST', '/saved-questions/check', 'ravi', {})
+    await raiseAlerts(databaseFromPool(api.pool), systemClock(), createBundleCache(), ['saved'])
     return { items: 3, suggestions: 3, calls }
   } catch (error) {
     await client.query('rollback').catch(() => undefined)
