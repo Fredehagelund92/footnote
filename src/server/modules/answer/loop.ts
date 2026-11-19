@@ -28,6 +28,7 @@ import {
   conversationRetry,
   costMicros,
   createCallMeter,
+  keyRefused,
   spendLimitReached,
   type ModelChoice,
   type SpendLimits,
@@ -96,8 +97,13 @@ export const LOOP_STEPS = 6
 export const LOOP_SECONDS = 30
 /** Enough for an answer of a few short paragraphs, or a step's reads. */
 export const LOOP_MAX_TOKENS = 1_200
+/**
+ * The turns whose reads a turn makes again and sends the model: the latest. An older turn is sent
+ * as its question and what Ask said, so a long chat costs about what its third turn does (H20).
+ */
+export const EARLIER_TURNS = 2
 /** The most earlier reads a turn makes again: the latest ones. */
-const EARLIER_READS = 24
+const EARLIER_READS = 16
 
 /** The step and time limits, from the settings, each in its range. */
 export async function readLoopLimits(tx: Queryable) {
@@ -287,12 +293,69 @@ function serialReads(deps: Pick<LoopDeps, 'database' | 'person' | 'toolsIn' | 'o
   }
 }
 
-/** The chat's earlier reads, the latest `EARLIER_READS`, each with where it sits. */
+/**
+ * The chat's earlier reads: those of its last `EARLIER_TURNS` turns, the latest `EARLIER_READS`,
+ * each with where it sits.
+ */
 function earlierReadsOf(turns: readonly ChatTurnInput[]) {
+  const from = turns.length - EARLIER_TURNS
   const all = turns.flatMap((t, turn) =>
-    (t.reads ?? []).flatMap((r, n) => (isToolName(r.tool) ? [{ turn, n, read: r }] : [])),
+    turn < from
+      ? []
+      : (t.reads ?? []).flatMap((r, n) => (isToolName(r.tool) ? [{ turn, n, read: r }] : [])),
   )
   return all.slice(-EARLIER_READS)
+}
+
+/**
+ * The messages of a step with a prompt cache breakpoint on the last, and on no other: the next
+ * step sends them again and more, so it reads them from the cache, at a tenth of the price on
+ * Claude (H20). The SDK sends a step's messages on to the next, so the mark moves rather than
+ * adds up; Claude takes four marks at most, and the system instructions carry one of their own.
+ */
+export function cachedThrough(
+  messages: readonly ModelMessage[],
+  breakpoint: ModelChoice['cacheBreakpoint'],
+): ModelMessage[] {
+  const keys = Object.keys(breakpoint)
+  if (!keys.length) return [...messages]
+  type Options = ModelMessage['providerOptions']
+  const without = (options: Options): Options => {
+    const rest = Object.fromEntries(
+      Object.entries(options ?? {}).filter(([k]) => !keys.includes(k)),
+    )
+    return Object.keys(rest).length ? rest : undefined
+  }
+  const withOptions = <T extends { providerOptions?: Options }>(item: T, options: Options): T => {
+    const { providerOptions: _, ...bare } = item
+    return (options ? { ...bare, providerOptions: options } : bare) as T
+  }
+  // Some providers read the mark from a message's last part rather than from the message.
+  const unmarked = (m: ModelMessage): ModelMessage => {
+    const bare = withOptions(m, without(m.providerOptions))
+    return Array.isArray(bare.content)
+      ? ({
+          ...bare,
+          content: (bare.content as { providerOptions?: Options }[]).map((part) =>
+            withOptions(part, without(part.providerOptions)),
+          ),
+        } as ModelMessage)
+      : bare
+  }
+  const marked = (m: ModelMessage): ModelMessage => {
+    const bare = unmarked(m)
+    const message = withOptions(bare, { ...bare.providerOptions, ...breakpoint })
+    if (message.role === 'system') return message
+    const parts = (
+      typeof message.content === 'string'
+        ? [{ type: 'text', text: message.content }]
+        : [...message.content]
+    ) as { providerOptions?: Options }[]
+    if (!parts.length) return message
+    parts[parts.length - 1] = withOptions(parts[parts.length - 1]!, breakpoint)
+    return { ...message, content: parts } as ModelMessage
+  }
+  return messages.map((m, i) => (i < messages.length - 1 ? unmarked(m) : marked(m)))
 }
 
 const ITEM_ID = /^itm_[a-z0-9]{8,16}$/
@@ -461,6 +524,8 @@ export function stoppedSentence(
       return spend?.message ?? 'Ask has reached its spending limit, so it did not answer.'
     case 'model':
       return `Ask's model did not answer just now, ${shown ?? 'so nothing is shown'}.`
+    case 'key':
+      return `The model provider refused Ask's key, ${shown ?? 'so nothing is shown'}. An administrator needs to give ${productName} a key that works.`
   }
 }
 
@@ -739,7 +804,10 @@ export async function* askLoop(
         const stop = await spendStop(now)
         if (stop) throw new SpendLimitStop(stop)
         // The last step reads nothing: it answers from what was read.
-        return stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}
+        return {
+          messages: cachedThrough(now, choice.cacheBreakpoint),
+          ...(stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}),
+        }
       },
       maxOutputTokens: LOOP_MAX_TOKENS,
       // The model call meter retries what is worth retrying.
@@ -847,7 +915,8 @@ export async function* askLoop(
     else if (ToolChoiceViolationError.isInstance(error)) yield await stopped('steps')
     else {
       deps.onError?.(error)
-      yield await stopped('model')
+      // A wrong or revoked key fails every question alike: said as such (T2).
+      yield await stopped(keyRefused(error) ? 'key' : 'model')
     }
   } finally {
     // A call still open (stopped, timed out) is recorded as aborted.

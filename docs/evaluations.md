@@ -108,6 +108,12 @@ saved questions follows each publish instead (FR-526).
   stores per question whether it was served, delivered its expected items, left out the forbidden
   ones and gave the expected status (item ids and booleans; never a wording). The first pass is
   the live edition's; every edition sealed after it gets one.
+- **Runs on their own** (decision 6): `evals.automatic_runs` is off as installed, so no test run
+  starts by itself: not the weekly run, not a triggered run, and no resume of a run the service
+  started. A run starts only when an administrator starts one (`npm run eval`). An administrator
+  turns them on in Settings, Advanced, Answer tests, which first shows what one run of every
+  domain is estimated to cost (`GET /evals/automatic`). The retrieval pass calls no model and
+  always runs.
 - **Triggered full runs**: no answer test runs in the review, so `evals.retrieval` queues a full
   run (no baseline move) of a domain whose newest full or scheduled run is
   older than a change it did not see: new tool descriptions (`tool_descriptions`), a successful
@@ -151,8 +157,8 @@ saved questions follows each publish instead (FR-526).
   passes what code fails is more lenient than the record of what reached the agent.
 - **Reliability mode**: `npm run eval -- --pass-rule all` counts a wording only when every try
   passes (pass^k); the default is the majority (FR-515). A run records its rule.
-- **Weekly scorecard** (FR-517, FR-518): `evals.weekly` runs the full set of every domain on
-  Mondays at 04:00 UTC while the service runs. A finished run moves the domain's baseline, lists
+- **Weekly scorecard** (FR-517, FR-518): with runs on their own, `evals.weekly` runs the full set
+  of every domain on Mondays at 04:00 UTC while the service runs. A finished run moves the domain's baseline, lists
   regressions against the previous one, measures the held-out targets of requirements section
   1.7, and posts an `eval.scorecard` outbox event. A scheduled run that has not finished within a
   day, stopped or not, fails with an `eval_run_unfinished` alert; the watchdog alerts when eight days pass without one.
@@ -484,7 +490,7 @@ of FR-720.10 before they are shown (below); the judges' part waits.
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | FR-718.3 earlier turns checked again             | Reads made again as the person; sentences citing what they no longer return left out                                                                                                                   | `tests/web/integration/ask-loop.test.ts`: an item hidden between two turns, an edited reply, a result sent back; `tests/server/ask-loop.test.ts` |
 | FR-718.4 read only                               | The tools write nothing; the request writes only that Ask was used and, with a real model, its steps' spend ledger lines                                                                               | `ask-loop.test.ts`: a chat leaves every table as it was                                                                                          |
-| FR-719.1 the whole chat                          | Every earlier turn, its words and its reads made again, in the model's messages                                                                                                                        | The harness's follow-up cases                                                                                                                    |
+| FR-719.1 the whole chat                          | Every earlier turn's words, and the last two turns' reads made again, in the model's messages                                                                                                          | The harness's follow-up cases; `tests/web/integration/ask-chat-cost.test.ts`: fifteen turns under the daily limit                                |
 | FR-719.2 one question back                       | `ask_back` ends the turn, with no state                                                                                                                                                                | `tests/server/ask-loop.test.ts`; the harness's X cases                                                                                           |
 | FR-719.4 a question's words kept nowhere         | The loop logs a failure by its name only                                                                                                                                                               | `ask-loop.test.ts`: a marker in a chat is in no table; the harness's `stored`                                                                    |
 | FR-719.7 limits, said                            | `ask.max_steps`, `ask.time_limit_seconds`, the spending limits, fixed sentences                                                                                                                        | `tests/server/ask-loop.test.ts` (steps, time, a failing model); `ask-loop-pool.test.ts` (spending)                                               |

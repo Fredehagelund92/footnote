@@ -1,13 +1,16 @@
-import type { LanguageModelV4GenerateResult } from '@ai-sdk/provider'
+import { APICallError, type LanguageModelV4GenerateResult } from '@ai-sdk/provider'
 import { dynamicTool, generateText, jsonSchema } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  checkModelKeys,
   checkModelSetting,
   checkModelSettings,
   costMicros,
   createModelPort,
   defaultModel,
+  keyCheckLine,
+  keyRefused,
   modelAdapters,
   ModelConfigError,
   modelProviders,
@@ -22,6 +25,8 @@ import {
 import type { Database } from '../../src/server/db/database.ts'
 import { placeOf } from '../../src/server/modules/models/address.ts'
 import { answerQuestion, judgeAnswer } from '../../src/server/modules/evals/answer.ts'
+import { reportModelKeys } from '../../src/server/service.ts'
+import { cachedThrough } from '../../src/server/modules/answer/loop.ts'
 
 /*
   The provider registry: a provider is a configuration entry plus an adapter for its protocol.
@@ -54,6 +59,8 @@ const acmeAdapter: ProviderAdapter = {
       cacheBreakpoint: {},
     })
   },
+  keyHeaders: ({ apiKey, authToken }): Record<string, string> =>
+    authToken ? { 'x-acme-token': authToken } : apiKey ? { 'x-acme-key': apiKey } : {},
 }
 const acme: ProviderEntry = {
   name: 'acme',
@@ -300,6 +307,125 @@ describe('the provider registry', () => {
     expect(() => checkModelSetting(port, 'models.assistant', 'claude-sonnet-5-5')).toThrow(
       /models\.assistant must name a provider and a model/,
     )
+  })
+})
+
+describe('a wrong key at start-up (T2)', () => {
+  const anthropicKey = 'sk-ant-placeholder-not-a-key'
+  /** A fetch that answers each URL's status, and records what was asked. */
+  const answering = (status: (url: string) => number) => {
+    const requests: { url: string; headers: Headers; method: string }[] = []
+    vi.stubGlobal('fetch', (url: string, init: RequestInit) => {
+      requests.push({ url, headers: new Headers(init.headers), method: init.method ?? 'GET' })
+      const code = status(url)
+      return Promise.resolve(
+        code === 200
+          ? Response.json({ data: [] })
+          : Response.json({ error: 'no' }, { status: code }),
+      )
+    })
+    return requests
+  }
+
+  it("asks the provider, at no cost, whether it takes the key, in its own protocol's header", async () => {
+    const requests = answering(() => 200)
+    const port = createModelPort({
+      mode: 'live',
+      env: { ANTHROPIC_API_KEY: anthropicKey, VERCEL_AI_GATEWAY_API_KEY: 'vck-placeholder' },
+    })
+    expect(await port.checkKey('anthropic')).toEqual({ outcome: 'accepted' })
+    expect(await port.checkKey('vercel-gateway')).toEqual({ outcome: 'accepted' })
+    // A read of the models list: no model is called, nothing is spent.
+    expect(requests.map((r) => [r.method, r.url])).toEqual([
+      ['GET', 'https://api.anthropic.com/v1/models'],
+      ['GET', 'https://ai-gateway.vercel.sh/v1/models'],
+    ])
+    expect(requests[0]!.headers.get('x-api-key')).toBe(anthropicKey)
+    expect(requests[0]!.headers.get('authorization')).toBeNull()
+    expect(requests[1]!.headers.get('authorization')).toBe('Bearer vck-placeholder')
+    // The mock has no key to check.
+    expect(await createModelPort({ mode: 'mock' }).checkKey('anthropic')).toEqual({
+      outcome: 'accepted',
+    })
+  })
+
+  it('sends a bearer token as Authorization, never as a key, and names its variable when refused', async () => {
+    const requests = answering(() => 401)
+    const port = createModelPort({ mode: 'live', env: { ANTHROPIC_AUTH_TOKEN: 'gateway-token' } })
+    const [refused] = await checkModelKeys(port, settings())
+    expect(requests[0]!.headers.get('authorization')).toBe('Bearer gateway-token')
+    expect(requests[0]!.headers.has('x-api-key')).toBe(false)
+    expect(keyCheckLine(refused!)).toContain('refused the key in ANTHROPIC_AUTH_TOKEN (HTTP 401)')
+  })
+
+  it('sends no key header when a model server on this computer needs none', async () => {
+    const requests = answering(() => 200)
+    const port = createModelPort({
+      mode: 'live',
+      env: { OPENAI_BASE_URL: 'http://127.0.0.1:11434/v1' },
+    })
+    expect(await port.checkKey('openai')).toEqual({ outcome: 'accepted' })
+    expect(requests[0]!.headers.has('authorization')).toBe(false)
+  })
+
+  it('logs a refused key as an error that names its variable, at start-up', async () => {
+    answering(() => 401)
+    const port = createModelPort({ mode: 'live', env: { ANTHROPIC_API_KEY: anthropicKey } })
+    const keys = await checkModelKeys(port, settings())
+    // Every role on one provider: it is asked once.
+    expect(keys).toEqual([
+      {
+        provider: 'anthropic',
+        check: { outcome: 'refused', status: 401, variable: 'ANTHROPIC_API_KEY' },
+      },
+    ])
+    const logged: { level: string; line: unknown }[] = []
+    const logger = {
+      error: (line: unknown) => logged.push({ level: 'error', line }),
+      warn: (line: unknown) => logged.push({ level: 'warn', line }),
+      info: (line: unknown) => logged.push({ level: 'info', line }),
+    }
+    await reportModelKeys(port, settings(), logger as never)
+    expect(logged).toEqual([
+      {
+        level: 'error',
+        line: 'The model provider anthropic refused the key in ANTHROPIC_API_KEY (HTTP 401). Ask and the test runs cannot use a model until it is replaced; the rest of the service works.',
+      },
+    ])
+    expect(JSON.stringify(logged)).not.toContain(anthropicKey)
+  })
+
+  it('says a key it could not ask about was not checked, never that it was refused', async () => {
+    vi.stubGlobal('fetch', () => Promise.reject(new TypeError('fetch failed')))
+    const port = createModelPort({ mode: 'live', env: { ANTHROPIC_API_KEY: anthropicKey } })
+    const [down] = await checkModelKeys(port, settings())
+    expect(keyCheckLine(down!)).toBe(
+      'The key of model provider anthropic was not checked: anthropic could not be reached (TypeError).',
+    )
+    answering(() => 503)
+    const [failing] = await checkModelKeys(port, settings())
+    expect(failing!.check).toEqual({ outcome: 'unchecked', reason: 'anthropic answered HTTP 503' })
+    answering(() => 200)
+    const [taken] = await checkModelKeys(port, settings())
+    expect(keyCheckLine(taken!)).toBeNull()
+  })
+
+  it('reads a refusal through the errors a model call is wrapped in', () => {
+    const refused = (statusCode: number) =>
+      new APICallError({
+        message: 'invalid x-api-key',
+        url: 'https://api.anthropic.com/v1/messages',
+        requestBodyValues: {},
+        statusCode,
+        isRetryable: false,
+      })
+    expect(keyRefused(refused(401))).toBe(true)
+    expect(keyRefused(refused(403))).toBe(true)
+    expect(keyRefused(new Error('wrapped', { cause: refused(401) }))).toBe(true)
+    expect(keyRefused(Object.assign(new Error('retried'), { lastError: refused(401) }))).toBe(true)
+    expect(keyRefused(refused(500))).toBe(false)
+    expect(keyRefused(refused(429))).toBe(false)
+    expect(keyRefused(new Error('The scripted provider failed.'))).toBe(false)
   })
 })
 
@@ -898,5 +1024,67 @@ describe('the anthropic entry at a gateway that speaks the Messages API', () => 
     expect(() => port({}).choose('assistant', haiku)).toThrow(
       'models.assistant uses provider anthropic, which needs ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN. Put it in .env.local (never commit it), or use MODELS=mock.',
     )
+  })
+})
+
+describe('the prompt cache mark on the wire (H20)', () => {
+  it('reaches a gateway on the last message of a later step, as the SDK reads it', async () => {
+    const served = 'anthropic/claude-opus-5.5'
+    const bodies: { messages: { role: string; content: unknown; cache_control?: unknown }[] }[] = []
+    vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(init.body as string) as (typeof bodies)[number])
+      return Promise.resolve(
+        Response.json({
+          id: 'x',
+          created: 1,
+          model: served,
+          choices: [
+            { index: 0, message: { role: 'assistant', content: 'Fine.' }, finish_reason: 'stop' },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }),
+      )
+    })
+    const choice = createModelPort({
+      mode: 'live',
+      env: { VERCEL_AI_GATEWAY_API_KEY: 'vck-placeholder' },
+    }).choose('judge', { provider: 'vercel-gateway', model: 'anthropic/claude-opus-5.5' })
+    const call = { type: 'tool-call' as const, toolCallId: 'c1', toolName: 'find', input: {} }
+    const result = (id: string) => ({
+      type: 'tool-result' as const,
+      toolCallId: id,
+      toolName: 'find',
+      output: { type: 'text' as const, value: 'ok' },
+    })
+    const messages = cachedThrough(
+      [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: [{ ...call }] },
+        { role: 'tool', content: [result('c1')] },
+        { role: 'user', content: 'last question' },
+      ],
+      choice.cacheBreakpoint,
+    )
+    await generateText({ model: choice.model, messages, providerOptions: choice.options })
+    const wire = bodies[0]!.messages
+    expect(wire.at(-1)).toEqual({
+      role: 'user',
+      content: 'last question',
+      cache_control: { type: 'ephemeral' },
+    })
+    expect(JSON.stringify(wire.slice(0, -1))).not.toContain('cache_control')
+
+    const toolLast = cachedThrough(
+      [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: [{ ...call }] },
+        { role: 'tool', content: [result('c1')] },
+      ],
+      choice.cacheBreakpoint,
+    )
+    await generateText({ model: choice.model, messages: toolLast, providerOptions: choice.options })
+    const toolWire = bodies[1]!.messages
+    expect(JSON.stringify(toolWire.at(-1))).toContain('cache_control')
+    expect(JSON.stringify(toolWire.slice(0, -1))).not.toContain('cache_control')
   })
 })

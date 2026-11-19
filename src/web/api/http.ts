@@ -243,6 +243,7 @@ export const wiredMethods = [
   'endAgentPolicy',
   'checkConnect',
   'advancedPage',
+  'setAutomaticRuns',
   'checkHistory',
   'exportHistory',
   'exportContext',
@@ -2166,6 +2167,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         editions,
         people,
         areas,
+        tests,
         checks,
       ] = await Promise.all([
         read(() => client.settings.list()),
@@ -2178,6 +2180,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         read(() => client.editions.list({ limit: 3 })),
         readPeople(),
         read(() => client.areas.list()),
+        // An estimate plans every domain's tests; a page without it still shows the rest.
+        read(() => client.evals.automatic()).catch(() => null),
         // What the model check found is a note on each role's model; without it, none.
         read(() => client.models.checks()).catch(() => []),
       ])
@@ -2191,7 +2195,29 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         }),
         jobs: operations ? words.jobsOf(operations, now) : null,
         editions: words.editionsOf(editions, now),
+        answerTests: tests && {
+          on: tests.on,
+          version: tests.version,
+          live: tests.live,
+          domains: tests.domains,
+          questions: tests.questions,
+          costMicros: tests.costMicros,
+          budgetMicros: tests.budgetMicros,
+          model: tests.modelId,
+          judge: tests.judgeModelId,
+        },
       }
+    },
+    setAutomaticRuns: async ({ on, version }) => {
+      const input = {
+        key: 'evals.automatic_runs',
+        version,
+        value: on,
+        reason: on
+          ? 'Turned on in Settings, Advanced, after reading what a run is estimated to cost.'
+          : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     checkHistory: async () => {
       const chain = await read(() => client.audit.verify())

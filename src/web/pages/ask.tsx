@@ -45,6 +45,8 @@ import type { ChosenPeriodInput } from '@contract/answer'
 import { chatTurnOf, type Answer, type AskInput, type QuestionPart } from '@/model/ask'
 import {
   firstRead,
+  NOT_KEPT,
+  notKept,
   keptAnswers,
   nextTurnId,
   openingAnswers,
@@ -168,8 +170,11 @@ export function AskChat({
   onAnswers,
 }: {
   initial?: Answer[]
-  /** A chat whose first answer could not be read: its question, and why. It shows failed, to ask again. */
-  failedOpening?: { question: string; message: string }
+  /**
+   * A chat that opens on no answer: its question, and the line that says why (its first answer
+   * could not be read, or none was kept). It shows unanswered, to ask again.
+   */
+  failedOpening?: { question: string; line: string }
   draft?: Fact
   compact?: boolean
   /** A question typed into the box, waiting to be sent. */
@@ -188,7 +193,7 @@ export function AskChat({
       ? [
           {
             ...askedTurn('t0', failedOpening.question),
-            error: unansweredIn(failedOpening.message, isOnline()),
+            error: failedOpening.line,
           },
         ]
       : (initial ?? []).map(doneTurn),
@@ -1208,14 +1213,16 @@ function AskThread({
     <AskChat
       compact={compact}
       initial={initial}
-      {...(opening.state === 'failed'
-        ? {
-            failedOpening: {
-              question: openingQuestion(session, examples),
-              message: opening.message,
-            },
-          }
-        : {})}
+      {...(notKept(session)
+        ? { failedOpening: { question: session.question, line: NOT_KEPT } }
+        : opening.state === 'failed'
+          ? {
+              failedOpening: {
+                question: openingQuestion(session, examples),
+                line: unansweredIn(opening.message, isOnline()),
+              },
+            }
+          : {})}
       prefill={prefill}
       onAnswered={onAnswered}
       onExample={onExample}

@@ -395,6 +395,7 @@ describe('Ask with a real model (FR-701)', () => {
     otherLine: () => wordsModel(),
     check: () => undefined,
     creditsUsed: () => Promise.resolve(null),
+    checkKey: () => Promise.resolve({ outcome: 'accepted' }),
   }
   const modelLogs: string[] = []
   const withModel = buildApp({
@@ -606,6 +607,7 @@ describe('Ask with its planner (FR-719)', () => {
     otherLine: () => model(),
     check: () => undefined,
     creditsUsed: () => Promise.resolve(null),
+    checkKey: () => Promise.resolve({ outcome: 'accepted' }),
   }
   const lines: string[] = []
   const planned = buildApp({

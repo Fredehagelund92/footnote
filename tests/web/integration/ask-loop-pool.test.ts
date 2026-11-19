@@ -28,6 +28,7 @@ const live: ModelPort = {
   otherLine: () => priced,
   check: () => {},
   creditsUsed: () => Promise.resolve(null),
+  checkKey: () => Promise.resolve({ outcome: 'accepted' }),
 }
 const world = askWorld({ askLoop: true, models: live })
 

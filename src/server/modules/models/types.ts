@@ -99,6 +99,11 @@ export interface ProviderAdapter {
     entry: ProviderEntry,
     connection: Connection,
   ): (name: string, listed: ListedModel, effort: Effort) => AdaptedModel
+  /**
+   * The headers that carry the key, as this protocol sends it. With them, `GET <baseUrl>/models`
+   * says whether the provider takes the key, and costs nothing.
+   */
+  keyHeaders(connection: Connection): Record<string, string>
 }
 
 export type ModelChoice = AdaptedModel & {

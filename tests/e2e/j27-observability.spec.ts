@@ -472,15 +472,17 @@ test('Limits: every tuning setting, read only, with where its value comes from',
   await page.getByRole('link', { name: 'Limits' }).click()
   await expect(page).toHaveURL(/\/settings\/advanced$/)
   await expect(
-    page.getByText('All 37 settings and their values now. This page only shows them.'),
+    page.getByText(
+      'All 38 settings and their values now. Answer tests can be turned on here; the rest change through the API.',
+    ),
   ).toBeVisible()
   // The page says how a setting is really changed, and names no command that does not exist.
   await page.getByRole('button', { name: 'For engineers' }).click()
   await expect(page.getByText('PUT /api/v1/settings/{key}')).toBeVisible()
   await expect(page.getByText(/settings set/)).toHaveCount(0)
   const settings = page.getByRole('table', { name: 'Tuning settings' })
-  // A header for each of the 7 groups, and one for each of the 37 settings.
-  await expect(settings.getByRole('rowheader')).toHaveCount(7 + 37)
+  // A header for each of the 7 groups, and one for each of the 38 settings.
+  await expect(settings.getByRole('rowheader')).toHaveCount(7 + 38)
   await expect(
     settings.getByRole('rowheader', { name: 'AI cost this month', exact: true }),
   ).toBeVisible()
@@ -494,6 +496,36 @@ test('Limits: every tuning setting, read only, with where its value comes from',
   // Read only: nothing in the table changes a value.
   await expect(settings.getByRole('button')).toHaveCount(0)
   await expect(settings.getByRole('textbox')).toHaveCount(0)
+})
+
+test('Answer tests run on their own only once an Admin turns them on, having read the estimate', async ({
+  page,
+}) => {
+  await go(page, '/settings/advanced')
+  await page.getByRole('button', { name: 'Answer tests' }).click()
+  const section = page.getByText('Run on their own', { exact: true }).locator('..').locator('..')
+  await expect(section).toContainText('Off')
+  await expect(section).toContainText('They run only when an Admin starts one')
+  await section.getByRole('button', { name: 'Turn on' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Run answer tests on their own?' })
+  // What a run costs comes first: on a real model its estimate, else that it costs nothing.
+  await expect(dialog).toContainText(
+    /One run of every domain is estimated at \$[\d.]+|No real AI model is connected/,
+  )
+  await expect(dialog).toContainText('They start every Monday')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(section).toContainText('Off')
+  await section.getByRole('button', { name: 'Turn on' }).click()
+  await dialog.getByRole('button', { name: 'Turn on' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(section).toContainText('On')
+  const settings = page.getByRole('table', { name: 'Tuning settings' })
+  await expect(settings.getByRole('row', { name: /evals\.automatic_runs/ })).toContainText(
+    /On\s*Changed/,
+  )
+  // Off again, as installed: it asks nothing.
+  await section.getByRole('button', { name: 'Turn off' }).click()
+  await expect(section.getByRole('button', { name: 'Turn on' })).toBeVisible()
 })
 
 test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, mute for owners', async ({

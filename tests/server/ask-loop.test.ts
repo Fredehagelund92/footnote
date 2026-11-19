@@ -4,6 +4,7 @@ import type { Database } from '../../src/server/db/database.ts'
 import {
   ASK_BACK,
   askLoop,
+  cachedThrough,
   loopSystem,
   readLines,
   scriptedLoopChoice,
@@ -847,6 +848,20 @@ describe("Ask's loop on a scripted model", () => {
     expect(errors).toHaveLength(1)
   })
 
+  it('says the provider refused its key, not that it did not answer just now (T2)', async () => {
+    const { turn, errors } = await turnWith(() => ({ refuse: 401 }))
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'key', state: 'missing' })
+    expect(turn.text).toBe(
+      "The model provider refused Ask's key, so this is what is written, as agents get it. An administrator needs to give Footnote a key that works.",
+    )
+    expect(turn.text).not.toContain('just now')
+    expect(turn.body.length).toBeGreaterThan(0)
+    expect(errors).toHaveLength(1)
+    // A provider that fails on its side is still a passing failure.
+    const failing = await turnWith(() => ({ refuse: 500 }))
+    expect(failing.turn.stopped).toBe('model')
+  })
+
   it('shows the sentence alone when the plain read cannot be made', async () => {
     const { tools } = fakeTools(() => {
       throw new Error('The database is down.')
@@ -903,6 +918,57 @@ describe("Ask's loop on a scripted model", () => {
     expect(turn).toMatchObject({ sources: [], state: 'missing', nearby: ['itm_germany01'] })
     // What the turn sends back as its own reply cites by id, a nearby item too: what it wrote.
     expect(turn.said).toBe('Still nothing, as before.[itm_germany01]')
+  })
+
+  it("makes only the last two turns' reads again, and sends an older turn as its words (H20)", async () => {
+    const turn = (n: number) => ({
+      question: `question ${n}`,
+      sources: [],
+      reply: `Reply ${n}.`,
+      reads: [{ tool: 'find_context', input: { words: `words ${n}` } }],
+    })
+    let seenChat = ''
+    const { asked } = await turnWith(
+      ({ prompt }) => {
+        seenChat = JSON.stringify(prompt)
+        return { text: 'Nothing more is written.' }
+      },
+      { turns: [1, 2, 3, 4, 5].map(turn) },
+    )
+    // The reads of the last two turns, made again first.
+    expect(asked.slice(0, 2)).toEqual([
+      { name: 'find_context', input: { words: 'words 4' } },
+      { name: 'find_context', input: { words: 'words 5' } },
+    ])
+    // Every turn is in the chat, the older ones as their question and what Ask said.
+    for (const n of [1, 2, 3, 4, 5]) {
+      expect(seenChat).toContain(`question ${n}`)
+      expect(seenChat).toContain(`Reply ${n}.`)
+    }
+    expect(seenChat).not.toContain('words 3')
+  })
+
+  it('marks the end of what each step sends for the prompt cache, so the next step reads it there', async () => {
+    const breakpoint = { anthropic: { cacheControl: { type: 'ephemeral' } } }
+    const marked: unknown[][] = []
+    const model = scriptedLoopChoice('cached', ({ results, prompt }) => {
+      marked.push(prompt.map((m) => m.providerOptions ?? null))
+      return results.length
+        ? { text: 'Nothing is written [itm_germany01].' }
+        : { calls: [{ toolName: 'find_context', input: { words: 'orders' } }] }
+    })
+    await turnWith(() => ({ text: '' }), { model: { ...model, cacheBreakpoint: breakpoint } })
+    expect(marked).toHaveLength(2)
+    for (const step of marked) {
+      // The system instructions, and the last message the step sends; nothing between.
+      expect(step[0]).toEqual(breakpoint)
+      expect(step.at(-1)).toEqual(breakpoint)
+      expect(step.slice(1, -1), JSON.stringify(marked)).toEqual(step.slice(1, -1).map(() => null))
+    }
+    // A model with no prompt cache is sent the messages as they are.
+    expect(cachedThrough([{ role: 'user', content: 'hi' }], {})).toEqual([
+      { role: 'user', content: 'hi' },
+    ])
   })
 
   it('shows the words a checked sentence at a time, the first while the rest is still being written', async () => {

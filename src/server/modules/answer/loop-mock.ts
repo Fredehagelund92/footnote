@@ -1,3 +1,4 @@
+import { APICallError } from '@ai-sdk/provider'
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
@@ -28,6 +29,8 @@ export type ScriptedStep = {
   delay?: number
   /** The provider fails this call. */
   fail?: boolean
+  /** The provider refuses this call with this HTTP status, as it refuses a wrong key (401). */
+  refuse?: number
 }
 
 /** What a step of the chat so far gave: the person's last message and the reads made since. */
@@ -100,6 +103,14 @@ export function scriptedLoopChoice(
       const step = decide(seen)
       if (step.delay) await pause(step.delay, options.abortSignal)
       if (step.fail) throw new Error('The scripted provider failed.')
+      if (step.refuse)
+        throw new APICallError({
+          message: 'The scripted provider refused the key.',
+          url: 'https://scripted.invalid/v1/messages',
+          requestBodyValues: {},
+          statusCode: step.refuse,
+          isRetryable: false,
+        })
       const n = ++calls
       const pieces = typeof step.text === 'string' ? [step.text] : (step.text ?? [])
       const text = pieces.join('')

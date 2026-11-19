@@ -70,6 +70,7 @@ const adminOperations = [
   'areas.create',
   'areas.deleteEmpty',
   'areas.archived',
+  'evals.automatic',
   'evals.runs.approve',
   'settings.list',
   'settings.set',

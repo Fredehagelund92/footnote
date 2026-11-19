@@ -224,7 +224,7 @@ export type Answer = {
   /** The readings Ask's question back offers, each a reply the person can send. */
   choices?: string[]
   /** Why the loop stopped before an answer, when it did: its fixed sentence is the text. */
-  stopped?: 'steps' | 'time' | 'spending' | 'model'
+  stopped?: 'steps' | 'time' | 'spending' | 'model' | 'key'
 }
 
 /** A scope as the engine reads it: metric keys, each dimension's value keys, and its days. */
