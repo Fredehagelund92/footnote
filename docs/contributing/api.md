@@ -24,7 +24,7 @@ offers six tools, described in one list (`AGENT_TOOLS` in `src/domain/mcp-text.t
 `improve_question`, `domain_overview`, `what_changed` and `search_help` left the list, and left
 the service with the in-app assistant (30 Oct 2026).
 
-The earlier ids answered for one release and went in 0.2.0: `get_facts` (now `get_context`),
+The earlier ids no longer answer: `get_facts` (now `get_context`),
 `find_facts`, `search_facts` and `search_context` (now `find_context`), `read_item` (now
 `read_context`), `report_gap` and `give_feedback` (now `report`) and `draft_context` (now
 `suggest_context`). A call by one of them is refused as an unknown tool. Inside the service
