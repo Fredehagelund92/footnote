@@ -2,14 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createRouter, RouterProvider, type AnyRoute } from '@tanstack/react-router'
 import './styles/index.css'
-import { addressInFragment, bindRouter } from '@/lib/router'
+import { bindRouter } from '@/lib/router'
 import { mockControls, startApi } from '@/api'
 import { routeTree } from './routeTree.gen'
-
-// An invite link and a refused company sign-in name their screen after `#/`: the router reads it
-// from the path.
-const inFragment = addressInFragment(window.location)
-if (inFragment) window.history.replaceState(null, '', inFragment)
 
 // The binding first. The mock reads the review flags of the address it starts at (?demo=setup is
 // a new install from the first paint).

@@ -14,17 +14,6 @@ export function bindRouter(r: AnyRouter) {
   router = r
 }
 
-/**
- * The address an invite link or a refused company sign-in names after `#/`
- * (`/#/signin?invite=...`, `/#/signin?error=not_allowed`), as the path and search the router
- * reads; null for any other address. The fragment keeps an invite's token out of every request,
- * and main.tsx moves it into the path in the browser alone, before the router first reads it.
- */
-export function addressInFragment(location: { pathname: string; search: string; hash: string }) {
-  if (location.pathname !== '/' || location.search || !/^#\/[^/\\]/.test(location.hash)) return null
-  return location.hash.slice(1)
-}
-
 /** The validated search of the deepest match, as the query a page reads. */
 function queryOf(search: Record<string, unknown>) {
   const q = new URLSearchParams()
@@ -105,16 +94,7 @@ export function changeQuery(
   return router!.navigate({ href: href(path, Object.fromEntries(q)), replace: opts?.replace })
 }
 
-/**
- * The addresses the service answers on the web app's origin, never a page of the app: a link to
- * one, such as Sign in with your company's provider (/api/v1/auth/oidc/start), loads it.
- */
-const SERVICE_PATHS = /^\/(api|mcp|oauth|health|metrics|\.well-known)(\/|$)/
-
-/**
- * Where the plain link around `target` goes, if it is one to a page of the app on this origin that
- * opens in this tab.
- */
+/** Where the plain link around `target` goes, if it is one to this origin that opens in this tab. */
 export function inAppLink(target: EventTarget | null) {
   const a = (target as Element | null)?.closest?.('a[href]')
   if (
@@ -124,7 +104,7 @@ export function inAppLink(target: EventTarget | null) {
   )
     return null
   const url = new URL(a.href)
-  return url.origin === window.location.origin && !SERVICE_PATHS.test(url.pathname) ? url : null
+  return url.origin === window.location.origin ? url : null
 }
 
 /**

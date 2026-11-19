@@ -54,3 +54,32 @@ describe('the theme bootstrap', () => {
     expect(storageKey('theme')).toMatch(/^[a-z0-9 ]+-theme$/)
   })
 })
+
+describe('an address after #/, as invite links and refused sign-ins write it', () => {
+  async function addressFor(address: string) {
+    window.history.replaceState(null, '', address)
+    vi.stubGlobal('THEME_KEY', storageKey('theme'))
+    vi.resetModules()
+    await import('@/theme-bootstrap.js')
+    const { pathname, search, hash } = window.location
+    return pathname + search + hash
+  }
+
+  it('is the path and search the router reads', async () => {
+    expect(await addressFor('/#/signin?invite=a%2Bb')).toBe('/signin?invite=a%2Bb')
+    expect(await addressFor('/#/signin?error=not_allowed')).toBe('/signin?error=not_allowed')
+  })
+
+  it('leaves every other address alone', async () => {
+    for (const address of [
+      '/',
+      '/docs/get-started#/signin',
+      '/?theme=dark#/signin',
+      '/#section',
+      '/#//example.com',
+      '/#/\\example.com',
+      '/#/',
+    ])
+      expect(await addressFor(address), address).toBe(address)
+  })
+})

@@ -1,30 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { addressInFragment, href } from '@/lib/router'
+import { href } from '@/lib/router'
 import { contextSearch, inboxSearch, rootSearch, settingsSearch, shellSearch } from '@/lib/search'
 
 describe('addresses the app writes', () => {
   it('keep only the values that were given, as plain text', () => {
     expect(href('/ask', { example: 'missing', q: undefined })).toBe('/ask?example=missing')
     expect(href('/inbox')).toBe('/inbox')
-  })
-})
-
-describe('an address after #/, as invite links and refused sign-ins write it', () => {
-  const at = (pathname: string, search: string, hash: string) => ({ pathname, search, hash })
-  it('is the path and search the router reads', () => {
-    expect(addressInFragment(at('/', '', '#/signin?invite=a%2Bb'))).toBe('/signin?invite=a%2Bb')
-    expect(addressInFragment(at('/', '', '#/signin?error=not_allowed'))).toBe(
-      '/signin?error=not_allowed',
-    )
-  })
-  it('leaves every other address alone', () => {
-    expect(addressInFragment(at('/', '', ''))).toBeNull()
-    expect(addressInFragment(at('/docs/get-started', '', '#/signin'))).toBeNull()
-    expect(addressInFragment(at('/', '?theme=dark', '#/signin'))).toBeNull()
-    expect(addressInFragment(at('/', '', '#section'))).toBeNull()
-    expect(addressInFragment(at('/', '', '#//example.com'))).toBeNull()
-    expect(addressInFragment(at('/', '', '#/\\example.com'))).toBeNull()
-    expect(addressInFragment(at('/', '', '#/'))).toBeNull()
   })
 })
 
