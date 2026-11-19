@@ -15,21 +15,29 @@ import {
   CheckIcon,
   FlagIcon,
   LockIcon,
+  MessageSquareIcon,
   MinusIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { buttonVariants } from '@/components/ui/button'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
 import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
+import { ObsEmpty } from '@/components/obs/obs-empty'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { Bars } from '@/components/obs/charts'
 import { shareChange } from '@domain/observability'
 import { DomainChip, Kpi, kpiChange, RangeSwitch } from '@/components/obs/controls'
-import { HIDE_UNDER, REPORT_WORDS, shownCount, type ReportState } from '@/model/observability'
+import {
+  dateLabel,
+  HIDE_UNDER,
+  REPORT_WORDS,
+  shownCount,
+  type ReportState,
+} from '@/model/observability'
 import { ObsPage } from '@/pages/observability'
 
 // Feedback: what people and agents said about answers. A thumbs up or down under an answer in Ask
@@ -71,6 +79,16 @@ function goodShare(good: number | null, wrong: number | null) {
   return { pct: Math.round((good / (good + wrong)) * 100), marked: good + wrong }
 }
 
+/** Why a list of reports is empty, in one sentence: for the range, the domain and the state. */
+function emptyList(tab: 'all' | ReportState, range: string, domain: string | undefined) {
+  const where = domain ? ` in ${domain}` : ''
+  if (tab === 'inbox')
+    return `No report${where} waits in the Inbox: every one ${range} has been looked at.`
+  if (tab === 'looked') return `No report${where} ${range} has been looked at yet.`
+  if (tab === 'fine') return `No report${where} ${range} was marked Not a problem.`
+  return `Nobody reported an answer${where} ${range}. A report from Ask, or an agent's Not found, shows here.`
+}
+
 /** A count as a number cell says it: counting to its new value, or "Fewer than 5". */
 const figure = (n: number | null) =>
   n === null || (n > 0 && n < HIDE_UNDER) ? shownCount(n) : <CountUp value={n} />
@@ -98,18 +116,33 @@ function Feedback({ busy }: { busy: boolean }) {
     return (
       <Frame>
         <FrameSection title="Feedback" description={OBS_PURPOSE.feedback} />
-        <Empty className="border-t py-12">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <ThumbsUpIcon />
-            </EmptyMedia>
-            <EmptyTitle>Nothing said about answers yet</EmptyTitle>
-            <EmptyDescription>
-              When someone marks an answer in Ask, or reports one, or an agent reports a Not found,
-              it shows here. Open reports wait in the Inbox.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <ObsEmpty
+          cells={[
+            { icon: <ThumbsUpIcon />, label: 'Good answers' },
+            { icon: <ThumbsDownIcon />, label: 'Something was wrong' },
+            { icon: <FlagIcon />, label: 'Reports' },
+            { icon: <BotIcon />, label: 'From agents' },
+          ]}
+          chart={
+            <Bars
+              parts={[
+                { name: 'Good', values: [0, 0, 0, 0], fill: 'var(--chart-2)' },
+                { name: 'Something was wrong', values: [0, 0, 0, 0], fill: 'var(--caution)' },
+              ]}
+              labels={[3, 2, 1, 0].map((w) => dateLabel(obs.data.last - w * 7 * 86_400_000))}
+              caption="Nothing marked yet"
+            />
+          }
+          icon={<ThumbsUpIcon />}
+          title="Nothing said about answers yet"
+          sentence="When someone marks or reports an answer in Ask, or an agent reports a Not found, it shows here."
+          next={
+            <a href="/ask" className={cn(buttonVariants())}>
+              <MessageSquareIcon data-icon="inline-start" />
+              Ask a question
+            </a>
+          }
+        />
       </Frame>
     )
   return (
@@ -206,6 +239,14 @@ function Feedback({ busy }: { busy: boolean }) {
             })}
           </div>
           <div role="tabpanel" aria-label={tab === 'all' ? 'All reports' : REPORT_WORDS[tab]}>
+            {shown.length === 0 && (
+              <p
+                data-slot="list-empty"
+                className="border-b px-4 py-6 text-sm text-muted-foreground md:px-5"
+              >
+                {emptyList(tab, rangeLabel(range), view.domain && domains[view.domain]?.name)}
+              </p>
+            )}
             <ul>
               {shown.map((r) => {
                 const Icon = STATE_ICON[r.state]

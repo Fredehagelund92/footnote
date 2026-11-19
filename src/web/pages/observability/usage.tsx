@@ -11,15 +11,9 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { href } from '@/lib/router'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { ObsEmpty, emptyDays } from '@/components/obs/obs-empty'
+import { open } from '@/lib/events'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
 import { CountUp } from '@/components/footnote/count-up'
@@ -60,27 +54,43 @@ export function UsagePage() {
 function Usage({ busy }: { busy: boolean }) {
   const obs = useObservability()
   const view = useObsView()
+  const days = emptyDays(obs.data.last)
   if (view.state === 'empty')
     return (
       <Frame>
         <FrameSection title="Usage" description={OBS_PURPOSE.usage} />
-        <Empty className="border-t py-12">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <PlugIcon />
-            </EmptyMedia>
-            <EmptyTitle>No agent has called yet</EmptyTitle>
-            <EmptyDescription>
-              Connect an agent, and its calls show here by tool and by kind of agent. Ask in the app
-              counts toward the AI cost this month.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <a href="/settings/agents" className={cn(buttonVariants({ variant: 'outline' }))}>
-              Agents and access
-            </a>
-          </EmptyContent>
-        </Empty>
+        <ObsEmpty
+          cells={[
+            { icon: <WrenchIcon />, label: 'Tool calls' },
+            { icon: <TimerIcon />, label: 'Typical reply (median)' },
+            { icon: <CircleAlertIcon />, label: 'Could not be read' },
+            { icon: <CoinsIcon />, label: 'AI cost this month' },
+          ]}
+          chart={
+            <LineChart
+              series={[
+                { name: 'Median', values: days.map(() => null), color: 'var(--primary)' },
+                { name: '95 of 100', values: days.map(() => null), color: 'var(--chart-2)' },
+              ]}
+              labels={days}
+              height={210}
+              format={(v) => `${v} ms`}
+              missing="No reply timed"
+              caption="No reply timed yet"
+            />
+          }
+          icon={<PlugIcon />}
+          title="No agent has called yet"
+          sentence="Once an agent is connected, its calls show here by tool and by kind of agent, with what Ask costs this month."
+          next={
+            <>
+              <Button onClick={() => open('connect')}>Connect an agent</Button>
+              <a href="/settings/agents" className={cn(buttonVariants({ variant: 'outline' }))}>
+                Agents and access
+              </a>
+            </>
+          }
+        />
       </Frame>
     )
 

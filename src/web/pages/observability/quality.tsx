@@ -18,19 +18,12 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { allLoaded, Loadable } from '@/components/footnote/load-state'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
+import { ObsEmpty } from '@/components/obs/obs-empty'
 import { DifferingWords } from '@/components/footnote/differing-words'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { LineChart } from '@/components/obs/charts'
@@ -157,28 +150,45 @@ function Quality({ first }: { first: SavedCheck }) {
     return (
       <Frame>
         <FrameSection title="Quality" description={OBS_PURPOSE.quality} />
-        <Empty className="border-t py-12">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <BookmarkIcon />
-            </EmptyMedia>
-            <EmptyTitle>No saved questions yet</EmptyTitle>
-            <EmptyDescription>
-              Save a question from an answer in Ask, or from a Not found card's draft in the Inbox.
-              Every change is then checked against it, and the result shows here.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent className="flex-row justify-center">
-            <a href="/ask" className={cn(buttonVariants())}>
-              <MessageSquareIcon data-icon="inline-start" />
-              Ask a question
-            </a>
-            <a href="/inbox" className={cn(buttonVariants({ variant: 'outline' }))}>
-              <InboxIcon data-icon="inline-start" />
-              Open the Inbox
-            </a>
-          </EmptyContent>
-        </Empty>
+        <ObsEmpty
+          cells={[
+            { icon: <BookmarkIcon />, label: 'Saved questions' },
+            { icon: <CircleCheckIcon />, label: 'Same' },
+            { icon: <ArrowRightLeftIcon />, label: 'Changed' },
+            { icon: <TriangleAlertIcon />, label: 'Needs a look' },
+          ]}
+          chart={
+            <LineChart
+              series={[
+                {
+                  name: 'Answer the same',
+                  values: status.trend.labels.map(() => null),
+                  color: 'var(--primary)',
+                },
+              ]}
+              labels={status.trend.labels}
+              max={100}
+              format={(v) => `${v}%`}
+              missing="No question saved yet"
+              caption="Nothing to draw yet"
+            />
+          }
+          icon={<BookmarkIcon />}
+          title="No saved questions yet"
+          sentence="Save a question from an answer in Ask or a Not found card in the Inbox, and every change is checked against it here."
+          next={
+            <>
+              <a href="/ask" className={cn(buttonVariants())}>
+                <MessageSquareIcon data-icon="inline-start" />
+                Ask a question
+              </a>
+              <a href="/inbox" className={cn(buttonVariants({ variant: 'outline' }))}>
+                <InboxIcon data-icon="inline-start" />
+                Open the Inbox
+              </a>
+            </>
+          }
+        />
       </Frame>
     )
 

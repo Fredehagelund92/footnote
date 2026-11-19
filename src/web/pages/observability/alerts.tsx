@@ -6,7 +6,9 @@ import { queryKeys, useAlerts, useWrite } from '@/api/queries'
 import { alertRule } from '@domain/alerts'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { ObsEmpty } from '@/components/obs/obs-empty'
+import { open } from '@/lib/events'
 import {
   Select,
   SelectContent,
@@ -247,19 +249,28 @@ export function RaisedLately({
           )}
         </ul>
       ) : (
-        <Empty className="border-t py-10">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <BellIcon />
-            </EmptyMedia>
-            <EmptyTitle>
-              {empty ? 'Nothing has raised an alert yet' : 'Nothing raised for your domains lately'}
-            </EmptyTitle>
-            <EmptyDescription>
-              When a rule above fires, its card goes to the Inbox and shows here too.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        // On a new install the next step is an agent: what agents ask is what most rules read.
+        <ObsEmpty
+          cells={[]}
+          icon={<BellIcon />}
+          title={
+            empty
+              ? 'Nothing has raised an alert yet'
+              : domain
+                ? `Nothing raised for ${domains[domain]?.name ?? 'this domain'} lately`
+                : 'Nothing raised for your domains lately'
+          }
+          sentence="When a rule above fires, its card goes to the Inbox and shows here too."
+          next={
+            empty ? (
+              <Button onClick={() => open('connect')}>Connect an agent</Button>
+            ) : (
+              <a href="/inbox" className={cn(buttonVariants({ variant: 'outline' }))}>
+                Open the Inbox
+              </a>
+            )
+          }
+        />
       )}
     </FrameSection>
   )
