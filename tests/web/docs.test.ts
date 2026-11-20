@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_PRODUCT_NAME } from '@domain/brand'
@@ -7,6 +7,7 @@ import {
   blocksText,
   CHANGELOG,
   docLinks,
+  docPictures,
   docsFolder,
   inlineText,
   llmsFullTxt,
@@ -14,6 +15,7 @@ import {
   type DocBlock,
   type DocInline,
 } from '@domain/docs'
+import { picturesOf } from '../../scripts/docs-plugin.ts'
 import { readDocs } from '../../scripts/docs-read.ts'
 import { wordsToChange } from '@domain/words'
 import { format, resolveConfig } from 'prettier'
@@ -26,7 +28,7 @@ import { docControls } from '../e2e/docs-controls.ts'
 
 /*
   The docs check (docs/help/README.md): mechanical, no model. Wrong docs are worse than none, so
-  every page must read, keep to the fourteen Help pages and What's new, name the app's controls in
+  every page must read, keep to the eighteen Help pages and What's new, name the app's controls in
   the app's own words (each bold one has a row in tests/e2e/docs-controls.ts, drawn by its spec), link only to pages, headings and screens that exist, and hold the app's own
   lists as they are now. `npm run docs:sync` writes the lists into the pages when they changed.
 */
@@ -107,21 +109,25 @@ async function filled(path: string, source: string) {
 }
 
 describe('the docs check', () => {
-  it("has the fourteen Help pages, in their order, and What's new", () => {
+  it("has the eighteen Help pages, in their order, and What's new", () => {
     expect(DOC_PAGES.map((p) => p.slug)).toEqual([
       'set-up-your-workspace',
       'connect-an-agent',
       'words',
+      'ask-a-question',
+      'answer-lines',
+      'privacy',
       'write-context',
       'review-a-suggestion',
+      'keep-context-up-to-date',
+      'when-nothing-is-written-yet',
       'decide-a-conflict',
       'definitions-and-synonyms',
       'publish-without-review',
       'domains-and-owners',
       'integrations',
+      'see-what-agents-asked',
       'how-agents-use-it',
-      'answer-lines',
-      'privacy',
       'tools',
     ])
     expect(CHANGES.changes.length).toBeGreaterThan(0)
@@ -205,7 +211,41 @@ describe('the docs check', () => {
     expect(reason('A lead.\n\n> A note with no title.')).toMatch(/title in bold/)
     expect(reason('A lead.\n\n```\ncode\n```')).toMatch(/says what it is/)
     expect(reason('## No lead')).toMatch(/opens with one paragraph/)
+    expect(reason('A lead.\n\n![A screen.](../images/a.png)')).toMatch(/a picture is a file in/)
+    expect(reason('A lead.\n\n![](../images/docs/inbox-due-light.webp)')).toMatch(/says what/)
+    expect(reason('A lead, ![a screen](../images/docs/inbox-due-light.webp) in it.')).toMatch(
+      /image is not used/,
+    )
+    expect(reason('A lead.\n\n![A screen.](../images/docs/inbox-due-light.webp)')).toBe('')
     expect(reason('A lead.\n\n## Here\n\n[Up](#here)')).toBe('')
+  })
+
+  it('draws each picture from its files, in light and dark, and keeps no file no page shows', () => {
+    const pictures = docs.pages.flatMap((p) => picturesOf(p.blocks))
+    expect(pictures.length).toBeGreaterThan(0)
+    for (const { light, dark } of pictures) {
+      expect(existsSync(light), light).toBe(true)
+      expect(existsSync(dark), dark).toBe(true)
+    }
+    // Every page of docs/, the site's own pages among them, and the docs site's home.
+    const markdown = (folder: string): string[] =>
+      readdirSync(folder, { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory()
+          ? markdown(join(folder, entry.name))
+          : entry.name.endsWith('.md')
+            ? [readFileSync(join(folder, entry.name), 'utf8')]
+            : [],
+      )
+    const pages = [...markdown('docs'), readFileSync('site/src/pages/index.astro', 'utf8')].join()
+    const files = readdirSync(docPictures)
+    for (const file of files) {
+      const pair = file.replace(/-(light|dark)\./, (_all, theme: string) =>
+        theme === 'light' ? '-dark.' : '-light.',
+      )
+      expect(pair, `${file} is a picture in light or dark`).not.toBe(file)
+      expect(files, `${file} has its other theme`).toContain(pair)
+      expect(pages, `${file} is no page's picture`).toContain(file.replace(/-dark\./, '-light.'))
+    }
   })
 
   it('gives each page its reading time: its words divided by 200, rounded up', () => {
@@ -306,6 +346,7 @@ describe('the docs search', () => {
     expect(searchDocs('get_related')[0]?.slug).toBe('tools')
     expect(searchDocs('glossary')[0]?.slug).toBe('words')
     expect(searchDocs('words')[0]?.slug).toBe('words')
+    expect(searchDocs('observability')[0]?.slug).toBe('see-what-agents-asked')
     expect(searchDocs('')).toEqual([])
     expect(searchDocs('zzzzqq')).toEqual([])
   })

@@ -4,23 +4,27 @@ These Markdown files are the documentation of the web app (`src/web`). The same 
 
 ## The pages
 
-| Page                                                    | Group            |
-| ------------------------------------------------------- | ---------------- |
-| [Set up your workspace](set-up-your-workspace.md)       | Start            |
-| [Connect an agent](connect-an-agent.md)                 | Start            |
-| [Words](words.md)                                       | Start            |
-| [Write context](write-context.md)                       | Write and review |
-| [Review a suggestion](review-a-suggestion.md)           | Write and review |
-| [Decide a conflict](decide-a-conflict.md)               | Write and review |
-| [Definitions and synonyms](definitions-and-synonyms.md) | Write and review |
-| [Publish without review](publish-without-review.md)     | Write and review |
-| [Domains and owners](domains-and-owners.md)             | Set up           |
-| [Integrations](integrations.md)                         | Set up           |
-| [How agents use it](how-agents-use-it.md)               | How it works     |
-| [Answer lines](answer-lines.md)                         | How it works     |
-| [Privacy](privacy.md)                                   | How it works     |
-| [Agent tools](tools.md)                                 | Reference        |
-| [What's new](changelog.md)                              | (its own page)   |
+| Page                                                          | Group            |
+| ------------------------------------------------------------- | ---------------- |
+| [Set up your workspace](set-up-your-workspace.md)             | Start            |
+| [Connect an agent](connect-an-agent.md)                       | Start            |
+| [Words](words.md)                                             | Start            |
+| [Ask a question](ask-a-question.md)                           | Ask              |
+| [Answer lines](answer-lines.md)                               | Ask              |
+| [Privacy](privacy.md)                                         | Ask              |
+| [Write context](write-context.md)                             | Write and review |
+| [Review a suggestion](review-a-suggestion.md)                 | Write and review |
+| [Keep context up to date](keep-context-up-to-date.md)         | Write and review |
+| [When nothing is written yet](when-nothing-is-written-yet.md) | Write and review |
+| [Decide a conflict](decide-a-conflict.md)                     | Write and review |
+| [Definitions and synonyms](definitions-and-synonyms.md)       | Write and review |
+| [Publish without review](publish-without-review.md)           | Write and review |
+| [Domains and owners](domains-and-owners.md)                   | Set up           |
+| [Integrations](integrations.md)                               | Set up           |
+| [See what agents asked](see-what-agents-asked.md)             | Set up           |
+| [How agents use it](how-agents-use-it.md)                     | How it works     |
+| [Agent tools](tools.md)                                       | Reference        |
+| [What's new](changelog.md)                                    | (its own page)   |
 
 ## How a page is made
 
@@ -30,7 +34,7 @@ A page is one file named by its slug, which is also its address: `privacy.md` op
 ---
 title: Connect an agent # at most 40 characters
 line: One prompt for Claude, Cursor or another agent, and what approving does. # at most 120
-group: Start # Start | Write and review | Set up | How it works | Reference
+group: Start # Start | Ask | Write and review | Set up | How it works | Reference
 order: 2 # its place in the group
 minutes: 3 # reading time: its words divided by 200, rounded up
 reviewed: 2026-10-27 # the day someone last checked it against the app
@@ -49,7 +53,15 @@ The docs draw only what the pages use, and refuse the rest when the app is built
 - A code block that says what it is: ` ```text title="The prompt, exactly as the app shows it" `.
 - Links to another page, as `write-context.md` or `write-context.md#the-four-kinds`; to a screen of the app, as `/settings/agents`; or to a web address, as `https://...`. A link to a page or a heading that does not exist fails the build.
 
-No pictures and no HTML, other than an include.
+- A picture of a screen or a diagram, alone in its paragraph, named by its light file in `docs/images/docs`, with words that say what it shows: `![The Inbox card for an item due for a check, with Still true at its foot.](../images/docs/inbox-due-light.webp)`. The file beside it with `-dark` in place of `-light` is the same picture in dark, and the Docs area and the docs site each show the one of the reader's theme.
+
+No HTML, other than an include.
+
+## Pictures
+
+A picture shows the screen a page is about, so a reader knows it when they see it. Screens are WebP files taken from the demo's invented company, never from real data, by `npm run capture -- docs` in `site/` ([the site](../../site/README.md#the-pictures)), which takes each in light and in dark. Take them again when the screen they show changes. A diagram is an SVG file, drawn by hand in the site's colours, one for each theme, with its words as real text.
+
+The docs check fails when a picture's file, or its dark one, is not there, and when a file in `docs/images/docs` is no page's picture.
 
 ## Includes: the app's own lists
 
@@ -99,8 +111,8 @@ The words follow [Copy](../design/copy.md), the same rules as the screens:
 
 `tests/web/docs.test.ts` runs with the unit tests and fails when:
 
-- a page cannot be read: front matter missing a field or with a value outside the lists above, a `#` heading, no lead, a note without its title, a code block without its title, a picture or HTML
-- a page or What's new is missing, or a page is not one of the fourteen the test lists
+- a page cannot be read: front matter missing a field or with a value outside the lists above, a `#` heading, no lead, a note without its title, a code block without its title, a picture without its words, its file or its dark file, or HTML
+- a page or What's new is missing, or a page is not one of the eighteen the test lists
 - a link points at a page, a heading or a screen that does not exist
 - an include's Markdown is not the app's list as it is now (`npm run docs:sync` mends it)
 - a bold phrase has no row in `tests/e2e/docs-controls.ts` (the page, the screen and how it is drawn); `docs-controls.spec.ts` then opens each screen and fails when the control is not there

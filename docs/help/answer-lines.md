@@ -1,7 +1,7 @@
 ---
 title: Answer lines
 line: The six lines an answer starts with, and what each one asks of you.
-group: How it works
+group: Ask
 order: 2
 minutes: 3
 reviewed: 2026-10-30

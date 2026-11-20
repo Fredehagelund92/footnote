@@ -32,6 +32,8 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 
 ## What to put in it
 
+![The editor for a new context item, What should agents know?, with its properties: Domain Sales, Kind Event, Status Not published yet and the owners, then Applies to, When, Source and Don't conclude, and the text below them.](../images/docs/editor-light.webp)
+
 1. A title that is one plain sentence, with its date.
 2. What agents should know: two or three sentences, with what it is not if people mix it up.
 3. Where and when it applies: the metrics and markets, and the dates.
@@ -43,6 +45,8 @@ In a domain you own, it is published at once. In another domain it goes to that 
 ## An example
 
 The demo's item about the stop in Norway, owned by Sales, has every part. Here its dates leave out the year.
+
+![The context item Online sales to Norway stopped on 4 August 2026, as its page shows it: its text, the line it quotes from the customs notice, its domain, owners and when it was last checked, its source, and beside it what it links to and its history.](../images/docs/item-light.webp)
 
 | Part                    | In the example                                                                                                                                                              |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,6 +1,6 @@
 # The MCP tools and the HTTP API in detail
 
-What each MCP tool and each API operation does, with the requirement ids and the source files behind them. The reader pages are the [MCP and API reference](../reference.md) and its pages. The generated [OpenAPI description](../api/openapi.json) is the source for shapes.
+What each MCP tool and each API operation does, with the requirement ids and the source files behind them. The reader pages are [Agent tools](../help/tools.md), [Connect an agent by hand](../reference/connect-by-hand.md) and the [HTTP API overview](../reference/http-api.md). The generated [OpenAPI description](../api/openapi.json) is the source for shapes.
 
 How agents connect over MCP and what they get, and the HTTP API for definition sources, proposals, review and release, and the inbox. The API is described once in `src/contract` and published as [OpenAPI](../api/openapi.json).
 

@@ -16,6 +16,10 @@ const context: LinkContext = {
   kind: () => 'blob',
 }
 
+/** What a node tells mdast-util-to-hast to draw it as. */
+const drawn = (node: { data?: unknown } | undefined) =>
+  node?.data as { hName?: string; hProperties?: Record<string, unknown> } | undefined
+
 function read(markdown: string): Root {
   const tree = fromMarkdown(markdown)
   remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
@@ -61,6 +65,46 @@ describe('the remark plugin', () => {
     })
     remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
     expect(tree.children[0]?.data).toMatchObject({ hProperties: { tabIndex: 0 } })
+  })
+
+  it('draws a picture as a figure with its light and its dark file, at its screen size', () => {
+    const figure = read('![The card.](../images/docs/inbox-due-light.webp)')
+      .children[0] as Paragraph
+    expect(figure.data).toEqual({
+      hName: 'figure',
+      hProperties: { className: ['footnote-picture'], style: 'max-width: 564px' },
+    })
+    expect(figure.children).toMatchObject([
+      {
+        url: '../images/docs/inbox-due-light.webp',
+        data: { hProperties: { className: ['dark:sl-hidden'] } },
+      },
+      {
+        url: '../images/docs/inbox-due-dark.webp',
+        data: { hProperties: { className: ['light:sl-hidden'] } },
+      },
+    ])
+  })
+
+  it('draws the ### sections between tabs markers as tabs, each section a panel under its name', () => {
+    const tree = read(
+      'Before.\n\n<!-- tabs -->\n\n### Claude Code\n\nRun it.\n\n### VS Code\n\nStart it.\n\n<!-- /tabs -->',
+    )
+    expect(tree.children.map((node) => drawn(node)?.hName ?? node.type)).toEqual([
+      'paragraph',
+      'footnote-tabs',
+    ])
+    const [list, ...panels] = (tree.children[1] as Paragraph).children as unknown as Paragraph[]
+    expect(drawn(list)?.hProperties).toMatchObject({ role: 'tablist', hidden: true })
+    expect(list!.children.map((tab) => drawn(tab)?.hProperties)).toMatchObject([
+      { role: 'tab', id: 'tab-claude-code', ariaSelected: 'true', tabIndex: 0 },
+      { role: 'tab', id: 'tab-vs-code', ariaSelected: 'false', tabIndex: -1 },
+    ])
+    expect(panels.map((panel) => drawn(panel)?.hProperties)).toMatchObject([
+      { role: 'tabpanel', id: 'tab-claude-code-panel', ariaLabelledby: 'tab-claude-code' },
+      { role: 'tabpanel', id: 'tab-vs-code-panel', ariaLabelledby: 'tab-vs-code' },
+    ])
+    expect(() => read('<!-- tabs -->\n\n### One\n\nOpen.')).toThrow('is not closed')
   })
 
   it('drops include markers and keeps what stands between them', () => {

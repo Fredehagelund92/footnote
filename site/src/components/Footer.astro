@@ -3,10 +3,12 @@ import Default from '@astrojs/starlight/components/Footer.astro'
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
 import SiteFooter from '../../shared/SiteFooter.astro'
+import Tabs from './Tabs.astro'
 
-/* Starlight's last check and previous and next, then the landing page's footer. */
+/* Starlight's last check and previous and next, then the landing page's footer, and the script of a page's tabs. */
 const { home } = siteLinks(readSettings(process.env))
 ---
 
 <Default />
 <SiteFooter home={home} docs={Astro.locals.starlightRoute.siteTitleHref} />
+<Tabs />

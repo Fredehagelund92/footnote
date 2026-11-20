@@ -1,0 +1,44 @@
+---
+/*
+  Tabs on a page (lib/remark-footnote-docs.ts draws them): one section shows at a time, picked by
+  its tab, with the arrow keys, Home and End moving between tabs as the WAI-ARIA tabs pattern says.
+  Without this script there are no tabs, and every section shows under its name.
+*/
+---
+
+<script>
+  class FootnoteTabs extends HTMLElement {
+    connectedCallback() {
+      const list = this.querySelector<HTMLElement>('[role="tablist"]')
+      if (!list) return
+      const tabs = [...list.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+      const panels = tabs.map((tab) => document.getElementById(tab.getAttribute('aria-controls')!)!)
+      const pick = (at: number, focus = false) => {
+        tabs.forEach((tab, i) => {
+          tab.setAttribute('aria-selected', String(i === at))
+          tab.tabIndex = i === at ? 0 : -1
+          panels[i]!.hidden = i !== at
+        })
+        if (focus) tabs[at]!.focus()
+      }
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => pick(i))
+        tab.addEventListener('keydown', (event) => {
+          const to = {
+            ArrowRight: (i + 1) % tabs.length,
+            ArrowLeft: (i - 1 + tabs.length) % tabs.length,
+            Home: 0,
+            End: tabs.length - 1,
+          }[event.key]
+          if (to === undefined) return
+          event.preventDefault()
+          pick(to, true)
+        })
+      })
+      list.hidden = false
+      this.classList.add('footnote-tabs-on')
+      pick(0)
+    }
+  }
+  customElements.define('footnote-tabs', FootnoteTabs)
+</script>

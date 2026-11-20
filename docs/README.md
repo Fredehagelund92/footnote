@@ -35,6 +35,7 @@ Older design pages that still apply:
 | [Write context](help/write-context.md)                 | What a context item is and what to put in it                        |
 | [Connect an agent](help/connect-an-agent.md)           | One prompt for Claude, Cursor or another agent                      |
 | [Review a suggestion](help/review-a-suggestion.md)     | The quick view, the review, and publishing or returning             |
+| [Ask a question](help/ask-a-question.md)               | Ask about a number, and read how the answer was made                |
 | [All help pages](help/README.md)                       | The documentation, which is also the app's Docs and the public docs |
 
 ## Run Footnote
@@ -59,9 +60,8 @@ Published on the public site too.
 
 | Page                                                     | What it says                                         |
 | -------------------------------------------------------- | ---------------------------------------------------- |
-| [MCP and API reference](reference.md)                    | Which page to read, for agents and scripts           |
 | [Connect an agent by hand](reference/connect-by-hand.md) | The MCP address, the commands and the limits         |
-| [The agent tools in detail](reference/agent-tools.md)    | What each tool takes and gives back                  |
+| [Agent tools](help/tools.md)                             | The six tools, what each takes and gives back        |
 | [Sign in your own agent](ai-sign-in.md)                  | How an agent signs in, and its settings and keys     |
 | [HTTP API overview](reference/http-api.md)               | How to call the API, and what it covers              |
 | [OpenAPI description](api/openapi.json)                  | Every operation, generated from the contract         |
