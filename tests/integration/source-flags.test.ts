@@ -613,7 +613,7 @@ describe('a change of mark version', () => {
           "select change_mark from definitions where ref = 'cube:sales.revenue'",
         )
       ).rows[0]!.change_mark
-    expect(await serviceOf(later).sync('cube')).toMatchObject({ rebaselined: expect.any(Number) })
+    expect((await serviceOf(later).sync('cube')).rebaselined).toBeGreaterThan(0)
     const kept = await markOf()
     const flagged = await activeFlags()
 
