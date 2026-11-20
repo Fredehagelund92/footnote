@@ -38,6 +38,8 @@ export const TOKEN_SECONDS = 300
 const ANSWER_MAX = 1_000_000
 /** The most bytes of `/v1/meta`'s answer: the names and words of a large model. */
 const META_MAX = 20_000_000
+/** The most pages of environments a lookup by number follows. */
+const ENVIRONMENT_PAGES = 20
 /**
  * What a read keeps of an answer, as its cursor says: a cursor of another reader reads again, so
  * a change to the mapping is never kept from by an unchanged build.
@@ -199,30 +201,51 @@ class Deployment {
     return this.#json(response, 'deployment')
   }
 
-  /** The deployment's environments, in Cube Cloud's order. */
-  async environments(): Promise<Environment[]> {
-    const answer = await this.#get('/environments')
+  /** One page of the deployment's environments, and the cursor of the next when Cube Cloud has one. */
+  async #environmentPage(
+    query: Record<string, string>,
+  ): Promise<{ environments: Environment[]; next: string | null }> {
+    const answer = await this.#get('/environments', query)
     const list = Array.isArray(answer.items) ? answer.items : answer.data
     if (!Array.isArray(list))
       throw new SourceError({ code: 'fetch_failed', target: 'deployment', class: 'source' })
-    return list.flatMap((raw) => environmentOf(raw) ?? [])
+    const info = isRecord(answer.pageInfo) ? answer.pageInfo : {}
+    const next =
+      info.hasNextPage === true &&
+      typeof info.endCursor === 'string' &&
+      printable.test(info.endCursor)
+        ? info.endCursor
+        : null
+    return { environments: list.flatMap((raw) => environmentOf(raw) ?? []), next }
   }
 
-  /** The environment the settings name, or the production one when they name none. */
-  async environment(): Promise<{ environment: Environment; count: number }> {
-    const all = await this.environments()
+  /**
+   * The environment the settings name, or the production one when they name none. Production is
+   * asked for by its type, so many other environments never push it off the first page; one named
+   * by its number is looked for page after page, up to `ENVIRONMENT_PAGES`.
+   */
+  async environment(): Promise<Environment> {
     const wanted = this.#config.environment
-    const environment =
-      wanted === undefined
-        ? all.find((candidate) => candidate.type === 'production')
-        : all.find((candidate) => candidate.id === wanted)
+    let environment: Environment | undefined
+    if (wanted === undefined) {
+      const { environments } = await this.#environmentPage({ type: 'production' })
+      environment = environments.find((candidate) => candidate.type === 'production')
+    } else {
+      let after: string | null = null
+      for (let page = 0; page < ENVIRONMENT_PAGES && !environment; page += 1) {
+        const { environments, next } = await this.#environmentPage(after ? { after } : {})
+        environment = environments.find((candidate) => candidate.id === wanted)
+        if (next === null) break
+        after = next
+      }
+    }
     if (!environment)
       throw new SourceError({
         code: 'cube-cloud.environment_not_found',
         target: wanted === undefined ? 'production' : 'environment',
         class: 'config',
       })
-    return { environment, count: all.length }
+    return environment
   }
 
   /** How the latest build of the environment's branch stands: its hashes, if Cube Cloud gives them. */
@@ -281,6 +304,14 @@ class Deployment {
       await response.body?.cancel()
       throw notMeta()
     }
+    if (response.status === 401 || response.status === 403) {
+      await response.body?.cancel()
+      throw new SourceError({
+        code: 'cube-cloud.token_refused',
+        target: 'apiAddress',
+        class: 'config',
+      })
+    }
     if (!response.ok) throw await this.#refusal(response, 'apiAddress', 'apiAddress')
     const meta = parseMeta(await response.text())
     if (meta === null) throw notMeta()
@@ -316,8 +347,11 @@ function cursorOf(text: string | null): Cursor | null {
 /** The steps a check says about the environment it found. */
 function environmentStep(context: RuntimeContext<Config>, environment: Environment): CheckStep {
   const detail = `Read the ${environment.type} environment${environment.branch ? `, branch ${environment.branch}` : ''}.`
-  const given = URL.parse(context.config.apiAddress ?? '')?.host
-  const rest = environment.rest === null ? null : URL.parse(environment.rest)?.host
+  const given = URL.parse(context.config.apiAddress ?? '')
+    ? metaAddress(context.config.apiAddress!)
+    : null
+  const rest =
+    environment.rest !== null && URL.parse(environment.rest) ? metaAddress(environment.rest) : null
   if (rest && given && rest !== given)
     return {
       id: 'environment',
@@ -383,31 +417,45 @@ export const runtime = defineRuntime<Config>({
 
   async check(context): Promise<CheckReport> {
     const deployment = new Deployment(context)
-    const { environment, count } = await deployment.environment()
-    const meta = await deployment.meta(await deployment.token(environment))
-    return {
-      steps: [
-        {
-          id: 'reach',
-          title: 'Reach Cube Cloud',
-          status: 'ok',
-          detail: `Deployment ${context.config.deployment ?? ''} has ${plural(count, 'environment')}.`,
-        },
-        environmentStep(context, environment),
-        {
-          id: 'token',
-          title: 'Get a token that reads metadata',
-          status: 'ok',
-          detail: `It reads metadata only, for ${TOKEN_SECONDS / 60} minutes.`,
-        },
-        ...(await readSteps(context, meta)),
-      ],
+    const environment = await deployment.environment()
+    const token = await deployment.token(environment)
+    const steps: CheckStep[] = [
+      {
+        id: 'reach',
+        title: 'Reach Cube Cloud',
+        status: 'ok',
+        detail: `Found deployment ${context.config.deployment ?? ''}.`,
+      },
+      environmentStep(context, environment),
+      {
+        id: 'token',
+        title: 'Get a token that reads metadata',
+        status: 'ok',
+        detail: `It reads metadata only, for ${TOKEN_SECONDS / 60} minutes.`,
+      },
+    ]
+    try {
+      return { steps: [...steps, ...(await readSteps(context, await deployment.meta(token)))] }
+    } catch (error) {
+      if (!(error instanceof SourceError) || error.code !== 'cube-cloud.token_refused') throw error
+      return {
+        steps: [
+          ...steps,
+          {
+            id: 'read',
+            title: 'Read the metadata',
+            status: 'failed',
+            detail: 'The REST API refused the token.',
+            fix: 'Copy the REST API address Cube Cloud shows for this environment, and check that the security context is one it accepts.',
+          },
+        ],
+      }
     }
   },
 
   async *read(context): AsyncIterable<RuntimeMessage> {
     const deployment = new Deployment(context)
-    const { environment } = await deployment.environment()
+    const environment = await deployment.environment()
     const build = await deployment.build(environment)
     const last = cursorOf(context.cursor)
     if (build.mark !== null && last?.build === build.mark) {

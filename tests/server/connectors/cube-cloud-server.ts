@@ -87,6 +87,10 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
   let rest = ''
   /** The REST API address its environments say, when a test makes it another. */
   let shownRest: string | null = null
+  /** How many environments it answers a page with. */
+  let pageSize = 100
+  /** Each environment has a REST API address of its own: production's is the plain one. */
+  const restOf = (id: string) => `${rest}${id === '7' ? '' : `/env${id}`}/cubejs-api/v1`
 
   const send = (res: ServerResponse, status: number, body: unknown, headers = {}) => {
     res.writeHead(status, { 'content-type': 'application/json', ...headers })
@@ -131,20 +135,30 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
       // The key is limited to this one deployment.
       if (Number(match[1]) !== deployment) return send(res, 403, { error: 'Forbidden' })
       const route = match[2]!
-      if (req.method === 'GET' && route === '/environments')
+      if (req.method === 'GET' && route === '/environments') {
+        const type = url.searchParams.get('type')
+        const offset = Number(url.searchParams.get('after') ?? 0)
+        const first = Math.min(Number(url.searchParams.get('first') ?? pageSize), pageSize)
+        const matching = environments.filter((e) => type === null || e.type === type)
+        const page = matching.slice(offset, offset + first)
+        const end = offset + page.length
         return send(res, 200, {
-          items: environments.map((e) => ({
+          items: page.map((e) => ({
             id: e.id,
             type: e.type,
             branch: e.branch,
             user: null,
             api_credentials: [
-              { type: 'rest', version: 1, url: shownRest ?? `${rest}/cubejs-api/v1` },
+              { type: 'rest', version: 1, url: shownRest ?? restOf(e.id) },
               { type: 'sql', version: 1, host: 'sql.example.test', port: 5432, database: 'db' },
             ],
           })),
-          pageInfo: { hasNextPage: false },
+          pageInfo:
+            end < matching.length
+              ? { hasNextPage: true, endCursor: String(end) }
+              : { hasNextPage: false },
         })
+      }
       if (req.method === 'GET' && route === '/build-status') {
         const branch = url.searchParams.get('branchName') ?? 'main'
         const build = builds.get(branch)
@@ -210,10 +224,13 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
       if (refused(res, url.pathname)) return
       // Something else on the same host, which answers JSON that is not Cube's.
       if (url.pathname === '/elsewhere/v1/meta') return send(res, 200, { hello: 'world' })
-      if (url.pathname !== '/cubejs-api/v1/meta') return send(res, 404, { error: 'Not found' })
-      // Cube's REST API takes the token as it is, with no scheme in front.
+      const route = /^(?:\/env(\d+))?\/cubejs-api\/v1\/meta$/.exec(url.pathname)
+      if (!route) return send(res, 404, { error: 'Not found' })
+      // Cube's REST API takes the token as it is, with no scheme in front, and only the token of
+      // its own environment.
       const token = tokens.get(req.headers.authorization ?? '')
-      if (!token || token.expiresAt < clock) return send(res, 403, { error: 'Invalid token' })
+      if (!token || token.expiresAt < clock || token.environment !== (route[1] ?? '7'))
+        return send(res, 403, { error: 'Invalid token' })
       send(res, 200, metas.get(token.environment))
     })()
   })
@@ -252,6 +269,21 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
     /** Makes its environments give another REST API address than its own. */
     showRestAddress(address: string | null) {
       shownRest = address
+    },
+    /** The REST API address of an environment, as Cube Cloud shows it. */
+    apiAddressOf: restOf,
+    /** Adds development environments, ahead of the others, and answers `size` of them a page. */
+    crowd(count: number, size: number) {
+      const first = 100
+      environments.unshift(
+        ...Array.from({ length: count }, (_, i) => ({
+          id: String(first + i),
+          type: 'development' as const,
+          branch: `dev-${i}`,
+        })),
+      )
+      for (const e of environments) metas.set(e.id, metas.get(e.id) ?? fixtureMeta())
+      pageSize = size
     },
     /** Moves its clock on, so tokens expire. */
     advance(ms: number) {

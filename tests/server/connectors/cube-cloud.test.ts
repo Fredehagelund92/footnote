@@ -85,7 +85,7 @@ describe('a read', () => {
       }
     }
     expect(cloud.requests.map((r) => `${r.server} ${r.method} ${r.path}`)).toEqual([
-      'cloud GET /api/v1/deployments/42/environments',
+      'cloud GET /api/v1/deployments/42/environments?type=production',
       'cloud GET /api/v1/deployments/42/build-status?branchName=main',
       'cloud POST /api/v1/deployments/42/environments/7/tokens-for-meta-sync',
       'rest GET /cubejs-api/v1/meta',
@@ -107,13 +107,13 @@ describe('a read', () => {
     const staging = fixtureMeta()
     staging.cubes = staging.cubes.filter((cube) => cube.name !== 'growth')
     cloud.setMeta('8', staging)
-    const snapshot = await read({ environment: '8' })
+    const snapshot = await read({ environment: '8', apiAddress: cloud.apiAddressOf('8') })
     expect(snapshot.definitions.map((d) => d.ref)).not.toContain('cube:growth.revenue')
     expect(cloud.requests.map((r) => r.path)).toEqual([
       '/api/v1/deployments/42/environments',
       '/api/v1/deployments/42/build-status?branchName=next',
       '/api/v1/deployments/42/environments/8/tokens-for-meta-sync',
-      '/cubejs-api/v1/meta',
+      '/env8/cubejs-api/v1/meta',
     ])
     cloud.setMeta('8', fixtureMeta())
   })
@@ -125,6 +125,34 @@ describe('a read', () => {
       target: 'environment',
     })
     expect(error.errorClass).toBe('config')
+  })
+
+  it('finds production and a numbered environment among many, as Cube Cloud pages them', async () => {
+    const crowded = await cubeCloudHost()
+    try {
+      crowded.crowd(5, 2)
+      const at = (config: Record<string, unknown> = {}) =>
+        connector
+          .source({
+            id: 'cube-cloud',
+            name: 'Cube Cloud',
+            config: {
+              address: crowded.address,
+              deployment: crowded.deployment,
+              apiAddress: crowded.apiAddress,
+              ...config,
+            },
+            secrets: { apiKey: crowded.apiKey },
+          })
+          .read({ cursor: null })
+      expect((await at()).definitions.length).toBe(8)
+      const snapshot = await at({ environment: '8', apiAddress: crowded.apiAddressOf('8') })
+      expect(snapshot.definitions.length).toBe(8)
+      const pages = crowded.requests.filter((r) => r.path.includes('/environments?after='))
+      expect(pages.length).toBeGreaterThan(1)
+    } finally {
+      await crowded.close()
+    }
   })
 
   it('leaves out what Cube hides, and every key it does not read', async () => {
@@ -146,7 +174,7 @@ describe('the build status', () => {
     expect(again).toMatchObject({ unchanged: true, complete: true, definitions: [] })
     expect(again.sourceVersion).toBe('files-main-1')
     expect(cloud.requests.map((r) => r.path)).toEqual([
-      '/api/v1/deployments/42/environments',
+      '/api/v1/deployments/42/environments?type=production',
       '/api/v1/deployments/42/build-status?branchName=main',
     ])
   })
@@ -191,9 +219,8 @@ describe("Cube Cloud's refusals", () => {
   })
 
   it('says a token the REST API refuses means the wrong REST API address', async () => {
-    cloud.refuse(/\/v1\/meta$/, 403)
-    const error = await failure(read())
-    expect(error.warnings[0]).toEqual({ code: 'unauthorized', target: 'apiAddress' })
+    const error = await failure(read({ apiAddress: cloud.apiAddressOf('8') }))
+    expect(error.warnings[0]).toEqual({ code: 'cube-cloud.token_refused', target: 'apiAddress' })
     expect(error.errorClass).toBe('config')
   })
 
@@ -223,7 +250,7 @@ describe('a check', () => {
   it('says what it reached, the environment, the token and what the metadata holds', async () => {
     const report = await connector.check(source({ domainNames: { commerce: 'finance' } }))
     expect(report.steps.map((step) => [step.id, step.status, step.detail])).toEqual([
-      ['reach', 'ok', 'Deployment 42 has 2 environments.'],
+      ['reach', 'ok', 'Found deployment 42.'],
       ['environment', 'ok', 'Read the production environment, branch main.'],
       ['token', 'ok', 'It reads metadata only, for 5 minutes.'],
       ['read', 'ok', '5 metrics and 3 dimensions in 4 views.'],
@@ -240,6 +267,18 @@ describe('a check', () => {
       fix: 'Copy the REST API address Cube Cloud shows for this environment.',
     })
     cloud.showRestAddress(null)
+  })
+
+  it('shows why when the REST API address is another environment’s, instead of failing', async () => {
+    const report = await connector.check(source({ apiAddress: cloud.apiAddressOf('8') }))
+    expect(report.steps.map((step) => [step.id, step.status])).toEqual([
+      ['reach', 'ok'],
+      ['environment', 'warning'],
+      ['token', 'ok'],
+      ['read', 'failed'],
+    ])
+    expect(report.steps[1]!.detail).toContain('another REST API address')
+    expect(report.steps[3]!.fix).toContain('REST API address')
   })
 })
 

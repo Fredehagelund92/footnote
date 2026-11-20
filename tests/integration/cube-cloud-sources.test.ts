@@ -342,7 +342,7 @@ describe('what a read of Cube Cloud does', () => {
     const marks = await client.query('select ref, change_mark from definitions order by ref')
     expect((await read(cloudId))[cloudId]).toMatchObject({ status: 'ok' })
     expect(cloud.requests.map((r) => r.path)).toEqual([
-      '/api/v1/deployments/42/environments',
+      '/api/v1/deployments/42/environments?type=production',
       '/api/v1/deployments/42/build-status?branchName=main',
     ])
     expect(

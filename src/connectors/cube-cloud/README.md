@@ -35,8 +35,9 @@ flags nothing until one of those changes too. The connect page says so before an
 ## What a read does
 
 1. Lists the deployment's environments (`GET /api/v1/deployments/{id}/environments`) with the API
-   key, and takes the one the settings name, or the production one. A deployment without it fails
-   with `cube-cloud.environment_not_found`.
+   key, and takes the one the settings name, or the production one. The production one is asked for
+   by its type; one named by its number is looked for page after page, up to 20 pages. A
+   deployment without it fails with `cube-cloud.environment_not_found`.
 2. Asks how the latest build of that environment's branch stands
    (`GET /api/v1/deployments/{id}/build-status`). When its `filesHash` and `lastHash` are the ones
    the last read saw, the read ends there, as unchanged, and the core keeps what that read found.
@@ -61,8 +62,9 @@ title, description, format, currency, granularities, values, drill members, the 
 for (`aliasMember`) and its `meta` without the domain and the other names. Nothing else in the
 answer is read: SQL in an extended answer is never kept, hashed or passed on.
 
-A refused key fails with `unauthorized` on `apiKey`, a refused token with `unauthorized` on
-`apiAddress`, a deployment or environment Cube Cloud does not know with `not_found`, and too many
+A refused key fails with `unauthorized` on `apiKey`, a token the REST API refuses with
+`cube-cloud.token_refused` (the REST API address is not the environment's, or the security
+context is refused; the API key is fine), a deployment or environment Cube Cloud does not know with `not_found`, and too many
 requests with `rate_limited`, tried again when Cube Cloud says. Cube Cloud's own words about a
 failure never cross: only a code.
 

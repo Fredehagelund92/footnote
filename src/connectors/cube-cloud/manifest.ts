@@ -124,6 +124,12 @@ export const manifest = defineManifest({
       detail:
         'Copy the REST API address Cube Cloud shows for the deployment, ending in /cubejs-api/v1.',
     },
+    token_refused: {
+      level: 'warning',
+      title: 'The REST API refused the token',
+      detail:
+        'The REST API address is not the one of this environment, or it refuses the security context. Copy the REST API address Cube Cloud shows for the environment, and check the security context.',
+    },
     unreadable_view: {
       level: 'warning',
       title: 'A view could not be read',
