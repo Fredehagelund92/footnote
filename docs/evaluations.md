@@ -315,10 +315,13 @@ service runs it.
   many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
   lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
   The harness holds 29 held-back cases. The 40 in the hardening report is `HELD_BACK` in
-  `held-back.ts`, the router's split of its own demo cases. On the steps recorded on 19 November
-  2026, after the Ask slices H11 to H16 of the hardening plan, Ask's loop passes 14 of the 29 and
-  the router 19. 28 of the loop's 29 keep every promise; the rest fail on what they must say,
-  which the answer check does not change.
+  `held-back.ts`, the router's split of its own demo cases. The loop's steps in use are the
+  recording made on 19 November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later
+  re-keyed one step for a date fix. It is not a recording made by the change that removed the
+  legacy `get_facts` reply, which re-records nothing because the mocked loop and router replays
+  are identical before and after it. Today Ask's loop passes 14 of the 29 and the router 19.
+  28 of the loop's 29 keep every promise; the rest fail on what they must say, which the answer
+  check does not change.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                       |
