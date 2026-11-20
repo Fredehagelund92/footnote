@@ -7,7 +7,7 @@ reviewed: 2026-11-05
 ---
 
 Footnote has three parts: the service, the web app and a PostgreSQL 18 database. There are three ways to
-run them. Docker Compose is the default, and the README's [Try it](../README.md#try-it) uses it.
+run them. Docker Compose is the default, and [Try the demo](try-the-demo.md) uses it.
 To run Footnote for your own team, run the same images on a host you choose. Vercel with Neon is only
 for the demo.
 

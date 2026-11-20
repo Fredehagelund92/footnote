@@ -23,7 +23,7 @@ A suggestion from that agent publishes at once only when all of this is true:
 - The agent has not reached the most it may publish in a day. That limit is 10 unless the owner chooses another number from 1 to 50. Over it, the rest of the day's suggestions wait for review, and publishing starts again as the day's count falls.
 - The owner who set it is still an owner of the domain, and the agent may still send suggestions.
 
-Anything else waits in the owners' Inbox as usual. The agent's reply says it waits, and why.
+Anything else waits in the owners' Inbox as usual, for [a review](review-a-suggestion.md). The agent's reply says it waits, and why.
 
 When the agent connects, it is told each domain where it may publish without review, who allowed it and the daily limit, as far as its instructions have room, so it can tell the person before they say yes.
 

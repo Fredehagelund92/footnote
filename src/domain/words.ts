@@ -168,7 +168,7 @@ export const concepts = {
   },
   ask: {
     name: 'Ask',
-    definition: 'The page where a person asks and sees the same answer label an agent gets.',
+    definition: 'The page where a person asks and sees the same answer line an agent gets.',
     internal: ['assistant'],
   },
   topic: {
@@ -419,7 +419,6 @@ export const bannedWords: readonly BannedWord[] = [
     { word: 'Conflict flag', write: 'Conflict mark', concept: null },
     { word: 'the flag', write: 'the Conflict mark', concept: null },
     { word: 'queue', write: 'Waiting suggestions', concept: null },
-    { word: 'answer line', write: 'answer label', concept: null },
     { word: 'goes live', write: 'is published', concept: null },
     { word: 'go live', write: 'are published', concept: null },
     { word: 'in force now', write: 'apply today', concept: null },

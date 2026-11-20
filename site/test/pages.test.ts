@@ -34,7 +34,12 @@ describe('the pages of the site', () => {
     )
     for (const group of groups) if ('items' in group) expect(group.items.length).toBeGreaterThan(0)
     expect(groups[0]).toMatchObject({
-      items: [{ slug: 'get-started' }, { slug: 'connect-an-agent' }],
+      items: [
+        { slug: 'try-the-demo' },
+        { slug: 'set-up-your-workspace' },
+        { slug: 'connect-an-agent' },
+        { slug: 'words' },
+      ],
     })
     expect(groups.at(-1)).toEqual({ slug: 'changelog' })
   })

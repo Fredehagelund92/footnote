@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { docsPath, readSettings } from '../lib/settings.ts'
+import { docsPath, followsMain, readSettings } from '../lib/settings.ts'
 
 describe('the build settings', () => {
   it('serve a build with none at the root of its host', () => {
@@ -30,5 +30,14 @@ describe('the build settings', () => {
     expect(() => readSettings({ SITE_URL: 'https://example.com/?q=1' })).toThrow('SITE_URL')
     expect(() => readSettings({ DOCS_VERSION: '0.1.2' })).toThrow('MAJOR.MINOR or next')
     expect(() => readSettings({ DOCS_VERSION: 'v0.1' })).toThrow('MAJOR.MINOR or next')
+  })
+
+  it('say the docs follow main only once a release has docs beside them', () => {
+    expect(followsMain(readSettings({ DOCS_VERSION: 'next' }))).toBe(false)
+    expect(followsMain(readSettings({ DOCS_VERSION: 'next', DOCS_RELEASES: '' }))).toBe(false)
+    expect(followsMain(readSettings({ DOCS_VERSION: 'next', DOCS_RELEASES: '0.1' }))).toBe(true)
+    expect(followsMain(readSettings({ DOCS_VERSION: '0.1', DOCS_RELEASES: '0.1' }))).toBe(false)
+    expect(followsMain(readSettings({}))).toBe(false)
+    expect(() => readSettings({ DOCS_RELEASES: 'v0.1' })).toThrow('MAJOR.MINOR folders')
   })
 })

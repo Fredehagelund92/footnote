@@ -4,12 +4,6 @@ import { defineCollection } from 'astro:content'
 import { glob } from 'astro/loaders'
 import { z } from 'astro/zod'
 import { pagePatterns, siteGroups, slugOf } from '../lib/pages.ts'
-import { readSettings } from '../lib/settings.ts'
-
-const isNext = readSettings(process.env).version === 'next'
-
-const nextBanner =
-  'These pages follow the main branch, ahead of any release. They may name what no release has yet.'
 
 export const collections = {
   i18n: defineCollection({ loader: i18nLoader(), schema: i18nSchema() }),
@@ -37,7 +31,6 @@ export const collections = {
         ...page,
         description: page.line,
         lastUpdated: page.lastUpdated === false ? false : page.reviewed,
-        banner: isNext ? { content: nextBanner } : page.banner,
       })),
   }),
 }

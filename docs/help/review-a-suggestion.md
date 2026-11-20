@@ -45,8 +45,14 @@ The words beside it say what follows. The other buttons say what they do, such a
 
 Suggested archiving a context item, and changed your mind? Say why in its comments, in your Inbox under All, then choose Withdraw the suggestion under your comment. The owner sees your words in the review and closes it, or archives anyway. Keep the suggestion under the same comment lets it stand again.
 
+## When two items disagree
+
+In the review, an owner can say that a suggestion disagrees with a live item. The two are then in a conflict, and agents give both until someone decides it: [Decide a conflict](decide-a-conflict.md).
+
 ## Publishing several
 
 Publish the ones you've read takes only suggestions you read: the whole change on screen for a few seconds, or Mark as read. It lists them first, and Undo puts them all back.
+
+An owner can also let one named agent publish some of its suggestions without a review: [Publish without review](publish-without-review.md).
 
 > **Keys.** J and K move through the waiting suggestions, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Esc goes back to the Inbox, and ? lists them all.

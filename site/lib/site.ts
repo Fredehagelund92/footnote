@@ -5,7 +5,7 @@ import type { Settings } from './settings.ts'
 
 /*
   The addresses the landing page and the header and footer link to. A page of the docs is named by
-  its address without a version: /docs/get-started/ opens it in the newest release's docs, which
+  its address without a version: /docs/try-the-demo/ opens it in the newest release's docs, which
   the published site forwards to (scripts/collect.ts). A page or a file that does not exist stops
   the build, so a renamed page never leaves the landing page pointing nowhere.
 */

@@ -3,6 +3,9 @@ import type { SetupStep } from '@/model/inbox'
 // The setup checklist of a new install, in the order it can be done. The words are the app's;
 // which steps are done is the workspace's (src/web/api).
 
+/** The heading of the Inbox's setup card; the Set up your workspace page is named for its start. */
+export const setupHeading = 'Set up your workspace so agents can use what you know'
+
 /** A context item must say which metric it applies to, so its names come before writing. */
 export const setupSteps: SetupStep[] = [
   {

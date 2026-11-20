@@ -6,17 +6,18 @@ These Markdown files are the documentation of the web app (`src/web`). The same 
 
 | Page                                                    | Group            |
 | ------------------------------------------------------- | ---------------- |
-| [Get started](get-started.md)                           | Start            |
+| [Set up your workspace](set-up-your-workspace.md)       | Start            |
 | [Connect an agent](connect-an-agent.md)                 | Start            |
+| [Words](words.md)                                       | Start            |
 | [Write context](write-context.md)                       | Write and review |
 | [Review a suggestion](review-a-suggestion.md)           | Write and review |
-| [Settle a conflict](settle-a-conflict.md)               | Write and review |
+| [Decide a conflict](decide-a-conflict.md)               | Write and review |
 | [Definitions and synonyms](definitions-and-synonyms.md) | Write and review |
 | [Publish without review](publish-without-review.md)     | Write and review |
 | [Domains and owners](domains-and-owners.md)             | Set up           |
 | [Integrations](integrations.md)                         | Set up           |
 | [How agents use it](how-agents-use-it.md)               | How it works     |
-| [Answer labels](answer-lines.md)                        | How it works     |
+| [Answer lines](answer-lines.md)                         | How it works     |
 | [Privacy](privacy.md)                                   | How it works     |
 | [Agent tools](tools.md)                                 | Reference        |
 | [What's new](changelog.md)                              | (its own page)   |
@@ -31,7 +32,7 @@ title: Connect an agent # at most 40 characters
 line: One prompt for Claude, Cursor or another agent, and what approving does. # at most 120
 group: Start # Start | Write and review | Set up | How it works | Reference
 order: 2 # its place in the group
-minutes: 3 # reading time
+minutes: 3 # reading time: its words divided by 200, rounded up
 reviewed: 2026-10-27 # the day someone last checked it against the app
 open: # optional: the screen the page is about, opened from beside its title
   label: Open Agents and access
@@ -72,11 +73,11 @@ The Docs area and the docs site draw the list from its source in the app. What s
 | `checks`             | What to check when nothing signs in        | `src/web/lib/agents.ts`       |
 | `kinds`              | The four kinds of context, with their hint | `src/web/model/items.ts`      |
 | `word: Context item` | One of the ten words, with its sentence    | `src/web/lib/help-content.ts` |
-| `answer-lines`       | The six answer labels                      | `src/web/lib/help-content.ts` |
+| `answer-lines`       | The six answer lines                       | `src/web/lib/help-content.ts` |
 | `words`              | The ten words                              | `src/web/lib/help-content.ts` |
 | `tools`              | The six agent tools                        | `src/web/lib/agents.ts`       |
 
-Help in the app (`/help`) shows the same answer labels and words, from the same lists.
+Help in the app (`/help`) shows the same answer lines and words, from the same lists.
 
 ## What's new
 
@@ -99,7 +100,7 @@ The words follow [Copy](../design/copy.md), the same rules as the screens:
 `tests/web/docs.test.ts` runs with the unit tests and fails when:
 
 - a page cannot be read: front matter missing a field or with a value outside the lists above, a `#` heading, no lead, a note without its title, a code block without its title, a picture or HTML
-- a page or What's new is missing, or a page is not one of the thirteen the test lists
+- a page or What's new is missing, or a page is not one of the fourteen the test lists
 - a link points at a page, a heading or a screen that does not exist
 - an include's Markdown is not the app's list as it is now (`npm run docs:sync` mends it)
 - a bold phrase has no row in `tests/e2e/docs-controls.ts` (the page, the screen and how it is drawn); `docs-controls.spec.ts` then opens each screen and fails when the control is not there
