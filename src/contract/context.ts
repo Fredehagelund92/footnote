@@ -195,47 +195,46 @@ export const definitionRelatedInputSchema = z.strictObject({
  * Publish in one step (FR-137): an owner of the draft's domain, or an admin, publishes it at once;
  * anyone else sends it to the domain's owners as a suggestion.
  */
-export const publishItemInputSchema = z
-  .strictObject({
-    draft: draftSchema,
-    /** The item it changes; left out for a new item. */
-    itemId: z.optional(itemIdSchema),
-    /**
-     * The version of the item the writer started from, as its page read it; sent with `itemId`. A
-     * change refuses once someone has published other words since then (a check alone is not that),
-     * so an older view never removes a newer change.
-     */
-    version: z.optional(z.number().check(z.int(), z.minimum(1))),
-    /**
-     * The person's own draft it finishes, or their suggestion an owner returned: it takes these
-     * words and is sent as itself, instead of a new suggestion beside it. Its item, when it changes
-     * one, is its own.
-     */
-    draftId: z.optional(z.string().check(z.uuid())),
-    /** What is wrong with the current version, for a suggested change. */
-    reason: z.optional(z.string().check(z.maxLength(500))),
-    /**
-     * The gap it was written for, from a Not found card (FR-609), which the person must manage: once
-     * it is published, by the person or by an owner after them, the gap is covered and its card
-     * leaves the Inbox.
-     */
-    gapId: z.optional(z.string().check(z.uuid())),
-    /**
-     * How it relates to each live item it clashes with, as the owner said in the editor: an owner's
-     * publish waits for every one (FR-225), as Publish in the review does. An answer for an item it
-     * does not clash with is left out.
-     */
-    relations: z.optional(
-      z
-        .array(
-          z.strictObject({
-            itemId: itemIdSchema,
-            relation: z.enum(clashRelations),
-          }),
-        )
-        .check(z.maxLength(20)),
-    ),
-  })
+export const publishItemInputSchema = z.strictObject({
+  draft: draftSchema,
+  /** The item it changes; left out for a new item. */
+  itemId: z.optional(itemIdSchema),
+  /**
+   * The version of the item the writer started from, as its page read it; sent with `itemId`. A
+   * change refuses once someone has published other words since then (a check alone is not that),
+   * so an older view never removes a newer change.
+   */
+  version: z.optional(z.number().check(z.int(), z.minimum(1))),
+  /**
+   * The person's own draft it finishes, or their suggestion an owner returned: it takes these
+   * words and is sent as itself, instead of a new suggestion beside it. Its item, when it changes
+   * one, is its own.
+   */
+  draftId: z.optional(z.string().check(z.uuid())),
+  /** What is wrong with the current version, for a suggested change. */
+  reason: z.optional(z.string().check(z.maxLength(500))),
+  /**
+   * The gap it was written for, from a Not found card (FR-609), which the person must manage: once
+   * it is published, by the person or by an owner after them, the gap is covered and its card
+   * leaves the Inbox.
+   */
+  gapId: z.optional(z.string().check(z.uuid())),
+  /**
+   * How it relates to each live item it clashes with, as the owner said in the editor: an owner's
+   * publish waits for every one (FR-225), as Publish in the review does. An answer for an item it
+   * does not clash with is left out.
+   */
+  relations: z.optional(
+    z
+      .array(
+        z.strictObject({
+          itemId: itemIdSchema,
+          relation: z.enum(clashRelations),
+        }),
+      )
+      .check(z.maxLength(20)),
+  ),
+})
 export const publishItemResultSchema = z.union([
   z.object({
     published: z.literal(true),
