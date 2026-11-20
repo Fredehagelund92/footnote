@@ -1,4 +1,4 @@
-# The TLS proxy in front of Footnote, as docs/operations.md ("Run the image in production mode",
+# The TLS proxy in front of Footnote, as docs/run-in-production.md ("Run the image in production mode",
 # step 5) says: /api/v1/, /mcp, /oauth/ and /.well-known/oauth-* to the service directly, the rest
 # to the web image, with the public host (tests/image/company-sign-in.sh).
 {

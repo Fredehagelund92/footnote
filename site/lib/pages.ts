@@ -50,19 +50,25 @@ export const publishedPages = [
   'help/how-agents-use-it',
   'help/tools',
   'reference/connect-by-hand',
-  'ai-sign-in',
   'reference/http-api',
   'where-to-run',
-  'self-hosting',
-  'model-providers',
-  'operations',
-  'configuration',
+  'use-your-own-data',
+  'run-in-production',
   'company-sign-in',
+  'agent-sign-in-settings',
+  'model-providers',
+  'back-up-restore-and-upgrade',
+  'watch-the-service',
+  'configuration',
   'administration',
   'security',
   'vercel',
   'connectors',
   'connectors/cube',
+  'connectors/cube-cloud',
+  'connectors/dbt-metricflow',
+  'connectors/static-list',
+  'connectors/documents',
   'connectors/security',
   'connectors/authoring',
   'help/changelog',
@@ -72,13 +78,61 @@ export const publishedPages = [
  * The pages that moved, by the address they had: the old address forwards to the new one. Get
  * started's place is Try the demo's, the first page a newcomer reads. In the app, which has no
  * Try the demo, it opens Set up your workspace (src/domain/docs.ts). The MCP and API reference,
- * an index of the Reference pages, and The agent tools in detail are now Agent tools.
+ * an index of the Reference pages, and The agent tools in detail are now Agent tools. Self-host,
+ * Run and operate and Sign in your own agent were split into the pages their sections went to.
  */
 export const movedPages: Readonly<Record<string, string>> = {
   'get-started': 'try-the-demo',
   'settle-a-conflict': 'decide-a-conflict',
   reference: 'tools',
   'reference/agent-tools': 'tools',
+  'self-hosting': 'try-the-demo',
+  operations: 'run-in-production',
+  'ai-sign-in': 'agent-sign-in-settings',
+}
+
+/**
+ * Where the sections of a page that was split went, by its old address and each heading's id, as
+ * `page#heading`. A link to one of them opens that heading where it is now; any other link to the
+ * old address opens the page `movedPages` names.
+ */
+export const movedSections: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  'self-hosting': {
+    install: 'try-the-demo#install-and-start-it',
+    'the-demo': 'try-the-demo#look-around',
+    'connect-claude-code-to-the-demo': 'try-the-demo#connect-claude-code',
+    'from-the-published-images': 'try-the-demo#from-the-published-images',
+    'use-your-own-data': 'use-your-own-data',
+    'ask-on-a-real-model': 'model-providers#start-on-a-real-model',
+    'what-runs': 'try-the-demo#what-runs',
+    'if-the-start-goes-wrong': 'try-the-demo#if-the-start-goes-wrong',
+    'what-to-back-up': 'back-up-restore-and-upgrade#what-to-back-up',
+    'back-up': 'back-up-restore-and-upgrade#back-up',
+    'prove-the-backup-restores-the-restore-drill': 'back-up-restore-and-upgrade#the-restore-drill',
+    restore: 'back-up-restore-and-upgrade#restore',
+    upgrade: 'back-up-restore-and-upgrade#upgrade',
+    'roll-back': 'back-up-restore-and-upgrade#roll-back',
+    'running-from-source-instead': 'back-up-restore-and-upgrade#elsewhere',
+    'the-web-image': 'run-in-production#the-web-image',
+  },
+  operations: {
+    'run-the-service-locally': 'back-up-restore-and-upgrade#elsewhere',
+    'check-that-it-runs': 'watch-the-service#check-that-it-runs',
+    'run-the-image-in-production-mode': 'run-in-production#run-the-image-in-production-mode',
+    'request-limits': 'watch-the-service#request-limits',
+    'scheduled-jobs': 'watch-the-service#scheduled-jobs',
+    metrics: 'watch-the-service#metrics',
+  },
+  'ai-sign-in': {
+    'connect-your-agent': 'reference/connect-by-hand#sign-in-as-yourself',
+    'what-a-sign-in-lasts': 'agent-sign-in-settings#what-a-sign-in-lasts',
+    'see-and-end-connections': 'connect-an-agent#the-tools-each-agent-may-call',
+    'what-the-agent-can-do': 'reference/connect-by-hand#sign-in-as-yourself',
+    'the-login-server-settings': 'agent-sign-in-settings#the-login-server-settings',
+    'make-the-keys': 'agent-sign-in-settings#make-the-keys',
+    'rotate-the-signing-key': 'agent-sign-in-settings#rotate-the-signing-key',
+    'known-limits': 'agent-sign-in-settings#known-limits',
+  },
 }
 
 /** The files of the site for the content loader, as paths under docs/. */

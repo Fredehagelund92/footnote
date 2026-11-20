@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { movedPages, sitePages } from '../lib/pages.ts'
+import { movedPages, movedSections, sitePages } from '../lib/pages.ts'
 import { repository } from '../lib/repository.ts'
 
 /*
   The docs as a newcomer meets them, on the built site: the home says what the product is and
   holds its way in and its four doors on the first screen, search finds the page a newcomer asks
   for first, an old address forwards to where its page is now, and every page can be edited on
-  GitHub and copied as Markdown.
+  GitHub and copied as Markdown. A link to a heading of a page that was split opens that heading
+  where it went.
 */
 
 const pages = sitePages()
@@ -49,6 +50,19 @@ for (const [from, to] of Object.entries(movedPages))
     await page.goto(`/docs/${from}/`)
     await expect(page).toHaveURL(new RegExp(`/docs/${to}/$`))
     await expect(page.locator('h1')).toHaveText(pages.find((p) => p.slug === to)!.title)
+  })
+
+for (const [from, sections] of Object.entries(movedSections))
+  test(`a link to a heading of ${from} opens that heading where it went`, async ({ page }) => {
+    for (const [heading, target] of Object.entries(sections)) {
+      const [slug, id] = target.split('#')
+      await page.goto(`/docs/${from}/#${heading}`)
+      await expect(page).toHaveURL(new RegExp(`/docs/${slug}/${id ? `#${id}` : ''}$`))
+      await expect(page.locator('h1')).toHaveText(pages.find((p) => p.slug === slug)!.title)
+      if (id) await expect(page.locator(`[id="${id}"]`)).toBeAttached()
+    }
+    await page.goto(`/docs/${from}/#a-heading-it-never-had`)
+    await expect(page).toHaveURL(new RegExp(`/docs/${movedPages[from]}/#a-heading-it-never-had$`))
   })
 
 test('every page has Edit page, which opens its Markdown on main', async ({ request }) => {

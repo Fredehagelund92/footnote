@@ -2,15 +2,44 @@
 title: Choose a model provider
 line: The ways to reach a model, the models tested so far, and who receives what Ask and the test runs send.
 group: Run the service
-order: 3
+order: 6
 reviewed: 2026-11-19
 ---
 
 Ask and the test runs answer on a real model once you start Footnote with `MODELS=live`. Claude is the model Footnote is built and tested on. Other models work, and their answers are less complete: the [tested models](#tested-models) say by how much. Without `MODELS=live`, scripted models answer and nothing leaves this computer.
 
+## Start on a real model
+
+On one computer, as in [Try the demo](try-the-demo.md), start it with an [Anthropic API key](https://console.anthropic.com/settings/keys):
+
+```sh
+MODELS=live ANTHROPIC_API_KEY=sk-ant-... docker compose up
+```
+
+That is the only step. Ask and the test runs answer on Claude Sonnet 5.5, and the test runs are judged by Claude Opus 5.5. Another provider is one line too:
+
+```sh
+# OpenAI
+MODELS=live OPENAI_API_KEY=sk-... FOOTNOTE_MODEL=openai:gpt-6-luna \
+  FOOTNOTE_MODEL_PRICES=0.1,0.5 docker compose up
+# OpenRouter, or another hosted server that speaks OpenAI's API
+MODELS=live OPENAI_BASE_URL=https://openrouter.ai/api/v1 OPENAI_API_KEY=sk-or-... \
+  FOOTNOTE_MODEL=openai:anthropic/claude-sonnet-5.5 FOOTNOTE_MODEL_PRICES=2,10 docker compose up
+# Ollama on this computer: nothing leaves it
+MODELS=live OPENAI_BASE_URL=http://host.docker.internal:11434/v1 \
+  FOOTNOTE_MODEL=openai:gpt-oss:20b FOOTNOTE_MODEL_PRICES=0,0 docker compose up
+# A gateway that speaks Anthropic's API, such as LiteLLM, with a bearer token
+MODELS=live ANTHROPIC_BASE_URL=http://host.docker.internal:4000/v1 \
+  ANTHROPIC_AUTH_TOKEN=sk-... docker compose up
+```
+
+On Docker Engine on Linux, `host.docker.internal` names nothing until the `footnote` service has `extra_hosts: ["host.docker.internal:host-gateway"]`; use the computer's address on the Docker network instead. Docker Desktop and Colima name it.
+
+The line sets only the roles no one has changed. After that, an admin's `models.*` settings decide: see [Change a setting](administration.md#change-a-setting).
+
 ## Ways to reach a model
 
-Each way is one line at the start, as [Self-host Footnote](self-hosting.md#ask-on-a-real-model) shows. Anthropic's own API stays the default.
+Anthropic's own API stays the default.
 
 | Way to reach the model                               | Set                                                        | Covers                                                                               |
 | ---------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -67,6 +96,18 @@ It costs USD 0.15 to 0.50 a model, and stops before it spends more than `--max-c
 - **Claude keeps its prompt cache through a Messages API.** Through `ANTHROPIC_BASE_URL` it reads most of each question from the cache, which costs a tenth as much. Through a server that speaks OpenAI's API it does not, except through `vercel-gateway`, the Vercel AI Gateway's own way in.
 - **Ollama ignores the tool choice.** Ask tells its model to use no tool on its last step. A model on Ollama may call one anyway, and Ask still ends the answer at its step limit.
 - **Reasoning models are slower.** OpenAI's API has no way to turn reasoning off. A model that reasons on every step can reach Ask's time limit, `ask.time_limit_seconds`, which an admin can raise.
+
+## What it costs
+
+On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Test runs start only when an admin starts one, or lets them run on their own, every Monday and after a change agents may notice, in Settings, Advanced, Answer tests. That screen first shows what a run is estimated to cost: two runs of the demo's tests cost USD 1.12.
+
+The service stops calling the model at these limits, which an admin can change:
+
+| Setting                              | Default                                        |
+| ------------------------------------ | ---------------------------------------------- |
+| `limits.llm_daily_micros_per_person` | USD 2 a person a day                           |
+| `limits.llm_feature_monthly_micros`  | USD 250 a month for Ask, and for the test runs |
+| `limits.llm_monthly_cap_micros`      | USD 500 a month in all                         |
 
 ## What leaves this computer
 

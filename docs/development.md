@@ -1,6 +1,6 @@
 # Develop Footnote
 
-How the repository is laid out, how to run the front end, the commands, what CI runs, the rules and the versions. To run the whole product, see [Try it](../README.md#try-it) in the README; to run and configure the service, see [Run and operate the service](operations.md).
+How the repository is laid out, how to run the front end and the service, the commands, what CI runs, the rules and the versions. To run the whole product, see [Try it](../README.md#try-it) in the README; to run it in production, see [Run in production](run-in-production.md).
 
 ## The two parts
 
@@ -67,7 +67,7 @@ npm run check     # type check, lint (ESLint and Stylelint), format check, unit 
 Browser tests (Playwright) need a browser once: `npx playwright install chromium`, then
 `npm run test:e2e` for the golden job specs on the mock build.
 
-To run the whole product instead, with its database and your own Cube model, see [Self-host Footnote on one computer](self-hosting.md).
+To run the whole product instead, with its database and your own Cube model, see [Use your own data](use-your-own-data.md).
 
 ## What is in it
 
@@ -85,6 +85,36 @@ To run the whole product instead, with its database and your own Cube model, see
 Agents get the published context over MCP, signed in, with a local dev token or with an access
 key.
 
+## Run the service from source
+
+The service needs Node 26 and PostgreSQL 18. On macOS with Homebrew:
+
+```sh
+brew install postgresql@18 && brew services start postgresql@18
+cp .env.example .env.local        # adjust the database addresses if your server differs
+npm run db:migrate                # creates the roles and the database, applies the schema
+npm run dev:server                # http://127.0.0.1:3000, restarts on change
+```
+
+`npm run db:migrate` is safe to run again.
+
+The service starts empty. To load the demo, set `SEED_DEMO=on`, as `.env.example` does. It loads into a database that holds nothing yet, as long as `CUBE_MODEL_DIR` is the demo's model. Production refuses it, so a real install never gets demo data by accident.
+
+What [Back up, restore and upgrade](back-up-restore-and-upgrade.md) keeps in containers lives elsewhere here:
+
+| Part             | Where it is                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| The database     | The one `DATABASE_URL_MIGRATE` names in `.env.local`                                                                 |
+| The keys         | The files `MCP_DEV_KEY_FILE`, `FOOTNOTE_MCP_STATE_KEY_FILE` and `FOOTNOTE_OAUTH_SIGNING_KEY_FILE` name, in the clone |
+| The secret store | The folder `FOOTNOTE_SECRETS_DIR` names, when it is set. Without it, a tool that needs a secret can't connect        |
+
+Back up the database and prove the backup with these, which need PostgreSQL 18's tools on `PATH`:
+
+```sh
+pg_dump --format=custom --dbname="$DATABASE_URL_MIGRATE" > footnote.dump
+npm run db:restore-drill
+```
+
 ## Run the web app on the service
 
 The API lives under `/api/v1`; its OpenAPI document is served at `/api/v1/openapi.json` and
@@ -92,7 +122,7 @@ committed as [docs/api/openapi.json](api/openapi.json). Every operation is defin
 `src/contract`. After changing it, run `npm run api:generate`, which rewrites that document and
 the web app's route table (`src/web/api/contract.json`); a test fails while either is stale.
 
-With the service set up as in [Run the service locally](operations.md#run-the-service-locally), the demo is loaded (`SEED_DEMO=on`); start both sides. The
+With the service set up as in [Run the service from source](#run-the-service-from-source), the demo is loaded (`SEED_DEMO=on`); start both sides. The
 demo gives the weekly runs and the gaps their history ([db/README.md](../db/README.md), "Demo quality history"); on an
 empty database `npm run seed -- --items-only` loads the items alone:
 
@@ -259,10 +289,10 @@ belongs to both sides. The service lives in `src/server`, next to `src/web`, wit
 | `npm run api:generate`                    | Rewrites `docs/api/openapi.json` and `src/web/api/contract.json` from `src/contract`                                                                                                                            |
 | `npm run footnote -- <command>`           | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                         |
 | `npm run db:new-migration -- <name>`      | Adds the next numbered migration in `db/migrations`, empty, and names it in `db/migrations/latest.txt`; `npm run db:renumber` moves your branch's migrations after `main`'s after a rebase                      |
-| `npm run db:migrate`                      | Gets the database ready: roles and database when missing, migrations, grants, and the demo with `SEED_DEMO=on` (see [Run the service locally](operations.md#run-the-service-locally))                           |
+| `npm run db:migrate`                      | Gets the database ready: roles and database when missing, migrations, grants, and the demo with `SEED_DEMO=on` (see [Run the service from source](#run-the-service-from-source))                                |
 | `npm run seed`                            | Loads the demo into an empty local database by hand; `-- --items-only` and `--library golden` are the variants the tests use (see [db/README.md](../db/README.md))                                              |
 | `npm run eval -- --area <id>`             | Runs a domain's test questions on the live edition now, with the mock model; `--real` needs a key and `--max-cost-usd`; `--resume <run id>` makes what an incomplete run is missing                             |
-| `npm run db:restore-drill`                | Backs up the local database with pg_dump, restores it into a scratch database and proves it identical (see below)                                                                                               |
+| `npm run db:restore-drill`                | Backs up the local database with pg_dump, restores it into a scratch database and proves it identical (see [Run the service from source](#run-the-service-from-source))                                         |
 | `npm run db:snapshot`                     | The demo as a file, for a database without a superuser such as Neon: `take`, `restore` and `reset` (see [Run the demo on Vercel and Neon](vercel.md))                                                           |
 | `npm run start:server`                    | The service without the file watcher                                                                                                                                                                            |
 | `npm run build` / `npm run preview`       | Type check, then a production build of the web app in `dist/web` (`VITE_API_MODE=http` for the build that ships) / serve that build at http://localhost:4173                                                    |

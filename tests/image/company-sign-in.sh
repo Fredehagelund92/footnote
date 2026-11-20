@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Company sign-in on a real OpenID Connect provider: the service image in production mode, set up
-# as docs/operations.md ("Run the image in production mode") and docs/company-sign-in.md say,
+# as docs/run-in-production.md ("Run the image in production mode") and docs/company-sign-in.md say,
 # signs people in through Keycloak, in a browser (the CI job "Docker images: build, and boot the
 # service in production mode"). Build the images and install Chromium first:
 #
@@ -104,7 +104,7 @@ database=(
   -e "DATABASE_URL=postgres://context_layer_api@$run-db:5432/footnote"
 )
 
-# docs/operations.md, step 2: the keys, once, in the volume that keeps them. And
+# docs/run-in-production.md, step 2: the keys, once, in the volume that keeps them. And
 # docs/company-sign-in.md, step 3: the client secret in a file only the service's user may read.
 docker volume create "$run-keys" > /dev/null
 docker run --rm -v "$run-keys:/var/lib/footnote" "$service_image" npm run --silent keys:create

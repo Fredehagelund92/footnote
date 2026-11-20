@@ -10,7 +10,7 @@ In this order, and only as far as the task needs:
 2. [CONTRIBUTING](../CONTRIBUTING.md): the commands, the class rules, the module boundaries, the budget and how reviews work.
 3. [Develop Footnote](development.md): the folder map and every command.
 4. For a screen: [Product](product.md), the [design contract](design/design-contract.md), [copy](design/copy.md) and [components](design/components.md). The web app leads; the mockup it was built from is a reference in git history, under the tag `mockup-archive`.
-5. For the service: [db/README.md](../db/README.md), [Run and operate the service](operations.md), [the HTTP API overview](reference/http-api.md) and [the internals](contributing/internals.md).
+5. For the service: [db/README.md](../db/README.md), [Run in production](run-in-production.md), [Watch the service](watch-the-service.md), [the HTTP API overview](reference/http-api.md) and [the internals](contributing/internals.md).
 
 ## The loop
 

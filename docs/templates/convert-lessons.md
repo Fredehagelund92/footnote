@@ -8,7 +8,7 @@ read that text. Footnote never reads those files itself.
 ## Before you start
 
 - The vocabulary has the terms the lessons are about: Administration › Sources › **Propose terms
-  for these members**, accepted (see [Use your own data](../self-hosting.md#use-your-own-data)).
+  for these members**, accepted (see [Use your own data](../use-your-own-data.md)).
 - Give Claude Code three things: this file, [the item template](items.yaml), and the live term
   keys. Editions › **Export JSON** on the live edition holds every term with its key
   (`metric:...`, `dim:...`, `val:<dimension>/<value>`); `npm run footnote -- schema` prints every

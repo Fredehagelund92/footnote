@@ -1,6 +1,6 @@
 # Agent and company sign-in: how they work
 
-How sign-in works inside: the flows, the threat notes, the limits and the requirements. The reader pages are [Sign in your own agent](../ai-sign-in.md) and [Set up company sign-in](../company-sign-in.md), which hold the steps and the settings.
+How sign-in works inside: the flows, the threat notes, the limits and the requirements. The reader pages are [Connect an agent by hand](../reference/connect-by-hand.md#sign-in-as-yourself), [Agent sign-in settings](../agent-sign-in-settings.md) and [Set up company sign-in](../company-sign-in.md), which hold the steps and the settings.
 
 A person adds the Footnote MCP address to their own agent (Claude, ChatGPT, Cursor and others). The
 app finds out how to sign in, the person signs in to Footnote as themselves, approves a short consent
@@ -238,7 +238,7 @@ rejected` with a reason code (`unknown_key`, `revoked`, `malformed`) and the cli
 
 ## Settings and keys
 
-Every setting, with its default, is on [Sign in your own agent](../ai-sign-in.md#the-login-server-settings), with how to generate and rotate the signing key. A key's id (`kid`) is its RFC 7638 thumbprint, and `/oauth/jwks` publishes the public keys only. At the hosting stage a key comes from the secret store as a file.
+Every setting, with its default, is on [Agent sign-in settings](../agent-sign-in-settings.md#the-login-server-settings), with how to generate and rotate the signing key. A key's id (`kid`) is its RFC 7638 thumbprint, and `/oauth/jwks` publishes the public keys only. At the hosting stage a key comes from the secret store as a file.
 
 ## Threat notes
 

@@ -1,6 +1,6 @@
 # Footnote in containers (compose.yaml): the `service` image runs the service, and the `web` image
 # serves the web app with nginx, forwarding /api/v1 to the service. For local evaluation on one
-# computer (docs/self-hosting.md), not for production use.
+# computer (docs/try-the-demo.md), not for production use.
 #
 # The base images are pinned by digest, so a rebuild gets the same bytes. To move to a newer
 # release, pull the tag and put its digest here: docker buildx imagetools inspect <image:tag>.
@@ -30,7 +30,7 @@ RUN npm ci --omit=dev
 
 FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS service
 # pg_dump and pg_restore of PostgreSQL 18, for backups and the restore drill
-# (docs/self-hosting.md, "Back up"): Debian's own are older than the server. And git, which the
+# (docs/back-up-restore-and-upgrade.md, "Back up"): Debian's own are older than the server. And git, which the
 # sources that read a Git repository run (src/server/modules/connectors/git.ts).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates postgresql-common \
@@ -38,7 +38,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends postgresql-client-18 git \
     && apt-get purge -y --auto-remove postgresql-common \
     && rm -rf /var/lib/apt/lists/*
-# The npm the people's commands in docs/self-hosting.md run (npm run db:restore-drill): a newer
+# The npm the people's commands in docs/back-up-restore-and-upgrade.md run (npm run db:restore-drill): a newer
 # one than the base image carries, whose own packages have no known high finding.
 RUN npm install --global npm@11.21.3 && npm cache clean --force
 WORKDIR /app
@@ -53,7 +53,7 @@ COPY db db
 RUN mkdir -p /var/lib/footnote && chown node:node /var/lib/footnote
 USER node
 # Production unless told otherwise: people sign in with the company's OpenID Connect provider
-# (docs/operations.md, "Run the image in production mode"), and the image refuses to start until
+# (docs/run-in-production.md, "Run the image in production mode"), and the image refuses to start until
 # that is set up. The demo's people picker needs NODE_ENV=development, which compose.yaml sets.
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
