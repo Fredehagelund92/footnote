@@ -32,6 +32,7 @@ import { ROUND_SECONDS, type DraftRound, type DraftTool, type QuestionRound } fr
 import { byteSize, createToolService, failure } from './service.ts'
 import type { ServingReads } from './reads.ts'
 import { resolverStatusOf } from '../../domain/answer-state.ts'
+import type { PublishPermission } from '../../domain/mcp-text.ts'
 import {
   isToolName,
   personOnly,
@@ -65,6 +66,12 @@ export interface McpDependencies {
    * application's database. Without it the tool is not offered.
    */
   drafts?: DraftTool
+  /**
+   * Where the agent behind a person's token may publish without review now (FR-421), read on the
+   * application's database as that person, for a line each in the instructions at connect.
+   * Without it the instructions name none, and the reply to a suggestion still says what came of it.
+   */
+  permissions?: (agent: { personId: string; agentId: string }) => Promise<PublishPermission[]>
   /**
    * The HMAC key (at least 32 bytes) that seals `suggest_context`'s question rounds, shared by
    * every instance (FOOTNOTE_MCP_STATE_KEY_FILE). Without it the questions are never asked in the
@@ -417,13 +424,28 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       }
     }
     // What the server tells a client that connects (FR-343), with the data tool its definition
-    // sources name and About our business last. Only a request that reads the instructions loads
-    // the served edition for it.
+    // sources name, where this agent may publish without review, and About our business last. Only
+    // a request that reads the instructions loads the served edition and the permissions for it.
     const describes = body?.method === 'initialize' || body?.method === 'server/discover'
+    // A lookup that fails names none: the reply to a suggestion still says what came of it.
+    const permits =
+      describes &&
+      deps.permissions &&
+      principal.agent &&
+      principal.subject &&
+      allowed.includes('suggest_context')
+        ? await deps
+            .permissions({ personId: principal.subject, agentId: principal.agent.id })
+            .catch((error: unknown) => {
+              app.log.warn({ client, err: error }, 'MCP permissions to publish unavailable')
+              return []
+            })
+        : []
     const instructions = serverInstructions(
       describes ? await deps.source.bundle().then(dataTools, () => []) : [],
       policy.about,
       policy.calendar,
+      permits,
     )
     const handler = createMcpHandler(
       () => {
