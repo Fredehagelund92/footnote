@@ -336,9 +336,7 @@ export class ConnectorService {
           previous.mark_version !== source.markVersion &&
           lastMark !== definition.changeMark
         const changeMark =
-          previous &&
-          !previous.missing_since_snapshot &&
-          (rebaseline || lastMark === definition.changeMark)
+          previous && (rebaseline || lastMark === definition.changeMark)
             ? previous.change_mark
             : definition.changeMark
         if (rebaseline) rebaselined.push(definition.ref)

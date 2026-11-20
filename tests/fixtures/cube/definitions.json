@@ -13,7 +13,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
-      "changeMark": "33329ecf94c3a1a4a65e02c0661893eb9e9adb48784b83e976b6ae1076ad136a"
+      "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     },
     {
       "ref": "cube:marketing.orders_country",
@@ -28,7 +28,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": "country",
-      "changeMark": "4455101cbd4899f233ac98ac0625056a77559e4320bb85d0776aa067eceb785b"
+      "changeMark": "8d18545a3044af476fe60ea3978fcecbad0b1acee9de1185a475079e1b6ee5dd"
     },
     {
       "ref": "cube:marketing.orders_income",
@@ -43,7 +43,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": "income",
-      "changeMark": "33329ecf94c3a1a4a65e02c0661893eb9e9adb48784b83e976b6ae1076ad136a"
+      "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     },
     {
       "ref": "cube:operations.revenue",
@@ -58,7 +58,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
-      "changeMark": "33329ecf94c3a1a4a65e02c0661893eb9e9adb48784b83e976b6ae1076ad136a"
+      "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     },
     {
       "ref": "cube:sales.count",
@@ -73,7 +73,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
-      "changeMark": "457f3d44e4c509d0b7d0b18a78f8abaa93cd04a6bad1a7149dce33d26f7f2b68"
+      "changeMark": "519dd7aa45bb6ebecc7f45e34915b2f9114d278143d547f4c71e6f57d784be50"
     },
     {
       "ref": "cube:sales.country",
@@ -88,7 +88,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
-      "changeMark": "4455101cbd4899f233ac98ac0625056a77559e4320bb85d0776aa067eceb785b"
+      "changeMark": "8d18545a3044af476fe60ea3978fcecbad0b1acee9de1185a475079e1b6ee5dd"
     },
     {
       "ref": "cube:sales.revenue",
@@ -103,7 +103,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
-      "changeMark": "33329ecf94c3a1a4a65e02c0661893eb9e9adb48784b83e976b6ae1076ad136a"
+      "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     }
   ],
   "warnings": [

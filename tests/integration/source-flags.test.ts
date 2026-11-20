@@ -595,4 +595,37 @@ describe('a change of mark version', () => {
     )
     expect(await rebaselineNotices()).toHaveLength(1)
   }, 30_000)
+
+  it('keeps the recorded mark of a member that goes missing and returns unchanged', async () => {
+    const later = nextMarkVersion(nextMarkVersion(createCubeSource({ modelDir, renamesFile })))
+    const without = (ref: string): DefinitionSource => ({
+      ...later,
+      async read(context) {
+        const read = await later.read(context)
+        return { ...read, definitions: read.definitions.filter((d) => d.ref !== ref) }
+      },
+    })
+    const serviceOf = (source: DefinitionSource) =>
+      new ConnectorService(database, new ConnectorRegistry([source]))
+    const markOf = async () =>
+      (
+        await client.query<{ change_mark: string }>(
+          "select change_mark from definitions where ref = 'cube:sales.revenue'",
+        )
+      ).rows[0]!.change_mark
+    expect(await serviceOf(later).sync('cube')).toMatchObject({ rebaselined: expect.any(Number) })
+    const kept = await markOf()
+    const flagged = await activeFlags()
+
+    expect(await serviceOf(without('cube:sales.revenue')).sync('cube')).toMatchObject({
+      status: 'ok',
+    })
+    expect(
+      (await activeFlags()).filter((flag) => flag.flag === 'source_missing').map((f) => f.item_id),
+    ).toEqual(expect.arrayContaining([items.b, items.d]))
+
+    expect(await serviceOf(later).sync('cube')).toMatchObject({ status: 'ok', rebaselined: 0 })
+    expect(await markOf()).toBe(kept)
+    expect(await activeFlags()).toEqual(flagged)
+  }, 30_000)
 })

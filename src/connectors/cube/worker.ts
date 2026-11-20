@@ -211,17 +211,14 @@ async function compile(
           modelFile: containerFiles.get(config.name) ?? null,
           // Type, calculation, description and visibility (CON-505). The domain stays out: a
           // changed domain informs the owner and never flags an item (plan 4.3, step 7). Empty
-          // parts are kept, as mark version 1 hashed them, and the compiled member is its
-          // meaning only (mark version 2, ./meaning.ts).
-          changeMark: await meaningMark(
-            {
-              member: memberMeaning(member.name),
-              type: member.type,
-              description: member.description ?? null,
-              public: member.isVisible,
-            },
-            { keepEmpty: true },
-          ),
+          // parts are left out, and the compiled member is its meaning only (mark version 2,
+          // ./meaning.ts).
+          changeMark: await meaningMark({
+            member: memberMeaning(member.name),
+            type: member.type,
+            description: member.description ?? null,
+            public: member.isVisible,
+          }),
         })
       }
     }

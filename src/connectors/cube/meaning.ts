@@ -10,7 +10,8 @@
  * A member's calculation, type, words and metadata. Left out: Cube's bookkeeping (`ownedByCube`,
  * `included`, `drillMemberReferences`), its other names (`aliases`), its visibility (the mark has
  * it apart) and what only steers its display or suggestions (`links`, `enableSuggestions`,
- * `suggestFilterValues`, `valuesAsSegments`, `order`, `key`).
+ * `suggestFilterValues`, `valuesAsSegments`, `order`). Empty values are left out of the hash, so a
+ * compiler that starts or stops emitting an empty default moves no mark.
  */
 const meaningKeys = [
   'type',
@@ -24,6 +25,10 @@ const meaningKeys = [
   'primaryKey',
   'granularities',
   'filters',
+  'filter',
+  'grain',
+  'values',
+  'key',
   'rollingWindow',
   'cumulative',
   'multiStage',

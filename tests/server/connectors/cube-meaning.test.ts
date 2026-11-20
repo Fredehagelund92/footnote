@@ -21,9 +21,7 @@ const compiled1739 = {
   type: 'number',
 }
 const compiled1827 = { ...compiled1739, included: true }
-// The worker hashes empty parts too.
-const mark = (member: Record<string, unknown>) =>
-  meaningMark(compiledMeaning(member), { keepEmpty: true })
+const mark = (member: Record<string, unknown>) => meaningMark(compiledMeaning(member))
 
 describe('the meaning of a compiled Cube member', () => {
   it('gives Cube 1.7.39 and 1.8.27 the same mark, as the next compiler bump will', async () => {
@@ -50,6 +48,10 @@ describe('the meaning of a compiled Cube member', () => {
       { aliasMember: 'revenue_facts.gross_sales' },
       { filters: [{ sql: '() => `paid`' }] },
       { rollingWindow: { trailing: '7 day' } },
+      { filter: { type: 'exclude', dimensions: ['revenue_facts.country'] } },
+      { grain: ['revenue_facts.month'] },
+      { values: ['paid', 'refunded'] },
+      { key: 'revenue_facts.id' },
     ])
       expect(await mark({ ...compiled1739, ...changed }), JSON.stringify(changed)).not.toBe(
         await mark(compiled1739),
