@@ -242,4 +242,42 @@ describe('the changes that keep the words', () => {
     expect(mention[0]!.before!.runs.find((r) => r.link)!.text).toBe('test accounts')
     expect(passageStats(mention)).toMatchObject({ changed: 1, reworded: 0 })
   })
+
+  it('keeps a deleted passage and a moved one on different rows, two changes', () => {
+    const rows = passageDiff(
+      'Alpha first.\n\nDelete this one.\n\nBeta middle.\n\nMoved last.',
+      'Alpha first.\n\nMoved last.\n\nBeta middle.',
+    )
+    expect(rows.filter((r) => r.stop)).toHaveLength(2)
+    expect(passageStats(rows).changed).toBe(2)
+    const deleted = rows.find((r) => words(r.before) === 'Delete this one.')!
+    expect(deleted.after).toBeNull()
+    expect(deleted.stop).toBe(true)
+    const came = rows.find((r) => words(r.after) === 'Moved last.')!
+    expect(came.before).toBeNull()
+    expect(came.after!.moved).toBeTruthy()
+    expect(came).not.toBe(deleted)
+  })
+
+  it('reads a label with markup as its words, not as markup', () => {
+    const star = '[@ id="metric:b" label="Revenue*"]'
+    const rows = passageDiff(
+      'Use *[@ id="metric:b" label="Revenue*"] only* here.',
+      `Use ${star} here.`,
+    )
+    const mention = rows[0]!.after!.runs.find((r) => r.mention)
+    expect(mention).toMatchObject({ mention: star })
+    expect(rows[0]!.after!.runs.map((r) => r.text).join('')).not.toContain('](')
+  })
+
+  it('reads words that become a mention with brackets in its label as a link', () => {
+    const token = '[@ id="metric:eur" label="Revenue (EUR)"]'
+    const rows = passageDiff('Look at Revenue (EUR) today.', `Look at ${token} today.`)
+    expect(rows[0]!.words).toBe(false)
+    expect(rows[0]!.before!.runs.some((r) => r.changed)).toBe(false)
+    expect(rows[0]!.after!.runs.find((r) => r.mention)).toMatchObject({
+      mention: token,
+      link: 'added',
+    })
+  })
 })

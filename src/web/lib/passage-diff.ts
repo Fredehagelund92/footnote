@@ -105,10 +105,18 @@ function readable(before: string, after: string) {
         ids.set(token, k)
         tokens.push(token)
       }
-      const label = (/label="([^"]*)"/.exec(token)?.[1] ?? '').replace(/[[\]()]/g, '').trim()
-      return `@[${label || `m${k}`}](${k})`
+      return `@[m${k}](${k})`
     })
-  return { before: swap(before), after: swap(after), token: (k: string) => tokens[Number(k)] }
+  const label = (k: string) => {
+    const token = tokens[Number(k)] ?? ''
+    return (/label="([^"]*)"/.exec(token)?.[1] ?? '').trim() || token
+  }
+  return {
+    before: swap(before),
+    after: swap(after),
+    token: (k: string) => tokens[Number(k)],
+    label,
+  }
 }
 
 /** The number of each numbered step on one side, counted inside its list. */
@@ -147,10 +155,13 @@ function lookOf(from: string, to: string): Look {
   }
 }
 
+/** What a token reads as: its text, or a mention's label. */
+type Reads = (t: Token) => string
+
 /** Words that read the same: their text, ignoring case where a mention takes the words. */
-const sameWords = (x: Token, y: Token) =>
-  x.text === y.text ||
-  ((x.mention !== null || y.mention !== null) && x.text.toLowerCase() === y.text.toLowerCase())
+const sameWords = (reads: Reads) => (x: Token, y: Token) =>
+  reads(x) === reads(y) ||
+  ((x.mention !== null || y.mention !== null) && reads(x).toLowerCase() === reads(y).toLowerCase())
 
 /**
  * How each token of two blocks stands against the other. Words are compared, spaces are not: a
@@ -158,7 +169,11 @@ const sameWords = (x: Token, y: Token) =>
  * other marks are a new look, with another link or mention a link, and words that became a
  * mention of the same words (or a mention its words) are a link too, never words changed.
  */
-function tokenStates(a: readonly Token[], b: readonly Token[]): [TokenState[], TokenState[]] {
+function tokenStates(
+  a: readonly Token[],
+  b: readonly Token[],
+  reads: Reads,
+): [TokenState[], TokenState[]] {
   const solid = (xs: readonly Token[]) => xs.flatMap((x, i) => (x.text.trim() ? [i] : []))
   const sa = solid(a)
   const sb = solid(b)
@@ -167,9 +182,9 @@ function tokenStates(a: readonly Token[], b: readonly Token[]): [TokenState[], T
   const ops = sequenceDiff(
     sa.map((i) => a[i]!),
     sb.map((i) => b[i]!),
-    sameWords,
+    sameWords(reads),
     'del',
-    (x) => [...x.text].length,
+    (x) => [...reads(x)].length,
   )
   for (const op of ops) {
     if (op.op !== 'same') continue
@@ -191,7 +206,7 @@ function tokenStates(a: readonly Token[], b: readonly Token[]): [TokenState[], T
   // Words gone and a mention come in one place, reading the same: the words, now a link.
   const words = (xs: readonly Token[], at: readonly number[]) =>
     at
-      .map((i) => xs[i]!.text)
+      .map((i) => reads(xs[i]!))
       .join(' ')
       .replace(/\s+/g, ' ')
       .toLowerCase()
@@ -272,6 +287,7 @@ function runsOf(
 
 export function passageDiff(before: string, after: string): PassageRow[] {
   const text = readable(before, after)
+  const reads: Reads = (t) => (t.mention === null ? t.text : text.label(t.mention))
   const a = markdownBlocks(text.before)
   const b = markdownBlocks(text.after)
   const na = numbers(a)
@@ -310,19 +326,19 @@ export function passageDiff(before: string, after: string): PassageRow[] {
   const gonePassage = (k: number) => {
     const pair = movedA.get(k)
     if (!pair) return passage(a[k]!, na[k], whole(a[k]!))
-    const [ca] = tokenStates(a[k]!.tokens, b[pair.b]!.tokens)
+    const [ca] = tokenStates(a[k]!.tokens, b[pair.b]!.tokens, reads)
     const was = shapeOf(b[pair.b]!, a[k]!)
     return passage(a[k]!, na[k], ca, { moved: moveOf(pair), ...(was ? { was } : {}) })
   }
   const comePassage = (k: number) => {
     const pair = movedB.get(k)
     if (!pair) return passage(b[k]!, nb[k], whole(b[k]!))
-    const [, cb] = tokenStates(a[pair.a]!.tokens, b[k]!.tokens)
+    const [, cb] = tokenStates(a[pair.a]!.tokens, b[k]!.tokens, reads)
     const was = shapeOf(a[pair.a]!, b[k]!)
     return passage(b[k]!, nb[k], cb, { moved: moveOf(pair), ...(was ? { was } : {}) })
   }
   // A passage that only moved is no word changed, and counts once, where it goes.
-  const reads = (p: Passage | null) => !!p && !p.moved
+  const wordsOf = (p: Passage | null) => !!p && !p.moved
   const pairs = [...same, ...reworded].sort((x, y) => x.a - y.a)
   const rows: PassageRow[] = []
   let i = 0
@@ -333,22 +349,26 @@ export function passageDiff(before: string, after: string): PassageRow[] {
     const come: Passage[] = []
     for (let k = i; k < toA; k++) gone.push(gonePassage(k))
     for (let k = j; k < toB; k++) come.push(comePassage(k))
-    for (let k = 0; k < Math.max(gone.length, come.length); k++) {
-      const left = gone[k] ?? null
-      const right = come[k] ?? null
+    const row = (left: Passage | null, right: Passage | null) =>
       rows.push({
         before: left,
         after: right,
         changed: true,
-        words: reads(left) || reads(right),
-        stop: !!right || reads(left),
+        words: wordsOf(left) || wordsOf(right),
+        stop: !!right || wordsOf(left),
       })
-    }
+    // A moved half never shares a row with another passage: a deletion is its own change.
+    const plainGone = gone.filter((p) => !p.moved)
+    const plainCome = come.filter((p) => !p.moved)
+    for (let k = 0; k < Math.max(plainGone.length, plainCome.length); k++)
+      row(plainGone[k] ?? null, plainCome[k] ?? null)
+    for (const p of gone) if (p.moved) row(p, null)
+    for (const p of come) if (p.moved) row(null, p)
     i = Math.max(i, toA)
     j = Math.max(j, toB)
   }
   const pair = ({ a: x, b: y }: BlockPair) => {
-    const [ca, cb] = tokenStates(a[x]!.tokens, b[y]!.tokens)
+    const [ca, cb] = tokenStates(a[x]!.tokens, b[y]!.tokens, reads)
     const was = shapeOf(a[x]!, b[y]!)
     const words = [...ca, ...cb].some((t) => t.changed)
     const kept = [...ca, ...cb].some((t) => t.look || t.link)

@@ -877,7 +877,15 @@ function PassageView({
         data-mark="moved"
         className="-ml-2.5 rounded-r-md border-l-2 border-[var(--mark-move-line)] bg-[var(--mark-move)] py-0.5 pr-2 pl-2"
       >
+        {passage.was && side === 'after' ? (
+          <span className="sr-only">{`[${shapeWords(passage.was, shape)}] `}</span>
+        ) : null}
         {body}
+        {passage.was && side === 'after' && tag && (
+          <p className="pt-1">
+            <Tag kind="look">{shapeWords(passage.was, shape)}</Tag>
+          </p>
+        )}
         <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
           <Arrow aria-hidden className="size-3" />
           {moveWords(passage.moved, side)}

@@ -290,6 +290,19 @@ describe('K3, a new look, a move and a link in the text', () => {
     expect(legendOf(el)).toEqual(['Moved'])
   })
 
+  it('draws a moved bullet that became a paragraph with both marks', () => {
+    const el = text(
+      'Intro.\n\n- First point.\n\n- Second point.',
+      'Intro.\n\nSecond point.\n\n- First point.',
+    )
+    const moved = [...el.querySelectorAll('[data-mark="moved"]')]
+    const came = moved.find((m) => m.textContent!.includes('Moved'))!
+    expect(came.textContent).toContain('Now a paragraph')
+    expect(came.textContent).toContain('[Now a paragraph]')
+    expect(legendOf(el)).toContain('New look')
+    expect(legendOf(el)).toContain('Moved')
+  })
+
   it('tags a new link on the same words, and lists only the marks in use', () => {
     const el = text(
       'Units sold leaves out the 312 test accounts our teams use.',
