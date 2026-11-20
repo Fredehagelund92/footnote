@@ -2,7 +2,7 @@
   Metrics that look like variants of a few: a model with a metric per currency or per channel
   ("revenue_eur_web", "revenue_usd_web", "tax_eur_web"...) instead of one metric with currency
   and channel as dimensions. Test connection says so before the names are published, as Footnote
-  works best with the dimensions (docs/connectors/variants.md). It reads only the members' names,
+  works best with the dimensions (docs/help/metric-variants.md). It reads only the members' names,
   so it is a guess: it can be wrong now and then, and it only warns.
 
   A word at the end of a name is a variant when the same words follow many other names: "eur",
