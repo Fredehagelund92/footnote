@@ -194,10 +194,12 @@ export function obsFeedbackOf(f: ObsFeedback, range: Range, now: Date): ObsData 
     ...emptyObs(range, f.state),
     feedback: {
       reports,
-      goodByWeek: {
-        labels: f.goodByWeek.map((w) => dateLabel(atOf(w.week))),
-        values: f.goodByWeek.map((w) => w.count),
-      },
+      byWeek: f.byWeek.map((w) => ({
+        label: dateLabel(atOf(w.from)),
+        good: w.good,
+        wrong: w.wrong,
+        soFar: w.soFar,
+      })),
       week: f.week,
     },
   }
@@ -226,6 +228,7 @@ export function obsUsageOf(u: ObsUsage, range: Range, now: Date): ObsData {
         calls: a.calls,
         last: last(a.lastAt),
       })),
+      reply: u.reply,
       speed: {
         median: u.speed.map((s) => s.median),
         p95: u.speed.map((s) => s.p95),

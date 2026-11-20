@@ -2615,6 +2615,20 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'rateAnswer', 'takeBackRating'))(
+      'marks an answer good, and takes that one rating back once',
+      async () => {
+        const a = await signedIn()
+        const { id } = await a.rateAnswer({ verdict: 'helpful', metrics: ['metric:orders'] })
+        expect(id).toMatch(/^[0-9a-f-]{36}$/)
+        const other = await a.rateAnswer({ verdict: 'wrong', metrics: [] })
+        expect(other.id).not.toBe(id)
+        expect(await a.takeBackRating({ id })).toEqual({ taken: true })
+        expect(await a.takeBackRating({ id })).toEqual({ taken: false })
+        expect(await a.takeBackRating({ id: other.id })).toEqual({ taken: true })
+      },
+    )
+
     /** FR-614 on a page: no count from one to four, and no shown total that gives one away. */
     const expectDisclosed = (page: ObsData) => {
       const fine = (n: number | null) => n === null || n === 0 || n >= 5
@@ -2723,6 +2737,23 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'observabilityPage'))(
+      "says the range's own 95 of 100: no slower than its slowest day, no faster than its fastest",
+      async () => {
+        await api().signIn({ name: person })
+        for (const range of [7, 30, 90] as const) {
+          const { reply, speed } = (await api().observabilityPage({ section: 'usage', range }))
+            .usage!
+          const days = speed.p95.filter((v) => v !== null)
+          expect(days.length).toBeGreaterThan(0)
+          expect(reply.p95).not.toBeNull()
+          expect(reply.p95!).toBeLessThanOrEqual(Math.max(...days))
+          expect(reply.p95!).toBeGreaterThanOrEqual(Math.min(...days))
+          expect(reply.median!).toBeLessThanOrEqual(reply.p95!)
+        }
+      },
+    )
+
     it.skipIf(lacks('signIn', 'getSavedViews', 'saveView', 'removeView'))(
       'saves a view of Overview with its chips for everyone, and removes it',
       async () => {
@@ -2826,7 +2857,8 @@ export function describeFootnoteApi(
     it.skipIf(lacks('signIn', 'getAlerts'))(
       'lists the eight alert rules as sentences, each threshold one its sentence offers, and what they raised lately',
       async () => {
-        const { rules, raised, settings } = await (await signedIn()).getAlerts()
+        const { rules, raised: first, settings } = await (await signedIn()).getAlerts()
+        const raised = first.raised
         expect(rules.map((r) => r.id)).toEqual([
           'gap',
           'saved',
@@ -2863,6 +2895,32 @@ export function describeFootnoteApi(
         expect(raised.some((r) => r.rule === 'saved' && r.href.startsWith('/inbox?card='))).toBe(
           true,
         )
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'getAlerts', 'getRaised'))(
+      'says how many raised in all and by rule, lists one rule by itself, and pages to the oldest',
+      async () => {
+        const live = await signedIn()
+        const { raised: first } = await live.getAlerts()
+        expect(first.byRule.reduce((n, c) => n + c.count, 0)).toBe(first.total)
+        expect(first.raised.length).toBeLessThanOrEqual(Math.min(20, first.total))
+        // One rule: each of its raises, and only its.
+        const rare = first.byRule.at(-1)!
+        const only = await live.getRaised({ rule: rare.rule })
+        expect(only.raised.map((r) => r.rule)).toEqual(
+          Array.from({ length: Math.min(20, rare.count) }, () => rare.rule),
+        )
+        expect(only.total).toBe(first.total)
+        // Every page after the first, until none is older: each raise once, newest first.
+        const seen = [...first.raised]
+        for (let next = first.next; next;) {
+          const page = await live.getRaised({ after: next })
+          seen.push(...page.raised)
+          next = page.next
+        }
+        expect(seen).toHaveLength(first.total)
+        expect(new Set(seen.map((r) => r.id)).size).toBe(first.total)
       },
     )
 

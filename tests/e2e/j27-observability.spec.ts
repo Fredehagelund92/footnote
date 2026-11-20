@@ -363,6 +363,33 @@ test('Quality: no saved questions yet, a failed check, and offline', async ({ pa
   )
 })
 
+test("Quality loads like the other pages: its skeleton while the status is read, then Couldn't load and Retry", async ({
+  page,
+}) => {
+  test.skip(mode === 'mock', 'Observability keeps ?state for its own data on the mock')
+  // The check's status read: held until it is let go, then refused until it is not.
+  let release = () => {}
+  const held = new Promise<void>((resolve) => (release = resolve))
+  let refused = true
+  await page.route('**/api/v1/saved-questions/status*', async (route) => {
+    await held
+    if (refused) await route.fulfill({ status: 500, json: { message: 'Down for a test' } })
+    else await route.continue()
+  })
+  await go(page, '/observability/quality')
+  const main = page.getByRole('main')
+  const skeleton = main.getByRole('status', { name: 'Loading' })
+  await expect(skeleton).toBeVisible()
+  await expect(skeleton.getByRole('heading', { name: 'Quality' })).toBeVisible()
+  await expect(main.getByRole('button', { name: 'Run now' })).toHaveCount(0)
+  release()
+  const alert = main.getByRole('alert')
+  await expect(alert).toContainText("Couldn't load the saved questions.", { timeout: 20_000 })
+  refused = false
+  await alert.getByRole('button', { name: 'Retry' }).click()
+  await expect(main.getByRole('button', { name: 'Run now' })).toBeVisible()
+})
+
 test('Saved questions are saved from Ask, counted everywhere from one list, and checked in the review', async ({
   page,
 }) => {
@@ -411,21 +438,26 @@ test("Feedback: what was said about answers, reports by state, and nobody's name
   page,
 }) => {
   await go(page, '/observability/feedback')
-  await expect(page.getByText('Something was wrong').locator('..').locator('..')).toContainText(
-    'Fewer than 5',
-  )
-  const tabs = page.getByRole('tablist', { name: 'Reports' })
-  await expect(tabs.getByRole('tab', { name: new RegExp(`^All ${reports()}`) })).toHaveAttribute(
-    'aria-selected',
+  // The share of good answers leads, worked out from counts that are shown: 38 of 45.
+  const good = page.locator('[data-slot="kpi"]').filter({ hasText: 'Good answers' })
+  await expect(good).toContainText('84%')
+  await expect(good).toContainText('38 of 45 marked in Ask, this week')
+  await expect(
+    page.locator('[data-slot="kpi"]').filter({ hasText: 'Something was wrong' }),
+  ).toContainText('7')
+  const tabs = page.getByRole('radiogroup', { name: 'Reports' })
+  await expect(tabs.getByRole('radio', { name: new RegExp(`^All ${reports()}`) })).toHaveAttribute(
+    'aria-checked',
     'true',
   )
-  await tabs.getByRole('tab', { name: /^In the Inbox 1/ }).click()
-  const panel = page.getByRole('tabpanel')
+  await tabs.getByRole('radio', { name: /^In the Inbox 1/ }).click()
+  await expect(page.getByRole('region', { name: 'In the Inbox' })).toBeVisible()
+  const panel = page.locator('#reports [role="region"]')
   await expect(panel.getByRole('listitem')).toHaveCount(1)
   await expect(
     panel.getByRole('link', { name: 'Orders lags by one day in the source tool' }),
   ).toHaveAttribute('href', `/inbox?card=${card('flag-germany')}`)
-  await tabs.getByRole('tab', { name: /^All/ }).click()
+  await tabs.getByRole('radio', { name: /^All/ }).click()
   // An agent's report carries its kind, never a person's name.
   await expect(
     panel.getByRole('listitem').filter({ hasText: 'From an agent' }).first(),
@@ -526,6 +558,34 @@ test('Answer tests run on their own only once an Admin turns them on, having rea
   // Off again, as installed: it asks nothing.
   await section.getByRole('button', { name: 'Turn off' }).click()
   await expect(section.getByRole('button', { name: 'Turn on' })).toBeVisible()
+})
+
+test('Alerts: Raised lately says how many it shows of how many, and one click on Not found lists only those', async ({
+  page,
+}) => {
+  await go(page, '/observability/alerts')
+  const list = page.getByRole('list', { name: 'Raised lately' })
+  const byRule = page.getByRole('radiogroup', { name: 'Raised by rule' })
+  const all = byRule.getByRole('radio', { name: /^All\s?\d+$/ })
+  await expect(all).toHaveAttribute('aria-checked', 'true')
+  const total = Number((await all.innerText()).match(/\d+$/)![0])
+  const shown = await list.getByRole('link').count()
+  await expect(
+    page.getByText(
+      shown < total ? `${shown} of ${total}, newest first.` : `All ${total}, newest first.`,
+    ),
+  ).toBeVisible()
+  // One click on the rule lists its raises, and no other rule's.
+  const notFound = byRule.getByRole('radio', { name: /^Not found\s?\d+$/ })
+  const raised = Number((await notFound.innerText()).match(/\d+$/)![0])
+  await notFound.click()
+  await expect(notFound).toHaveAttribute('aria-checked', 'true')
+  await expect(list.getByRole('link')).toHaveCount(Math.min(raised, 20))
+  for (const title of await list.getByRole('link').allInnerTexts())
+    expect(title).toMatch(/: not found, \d+ times/)
+  await expect(
+    page.getByText(raised > 20 ? `20 of ${raised}, newest first.` : `All ${raised}, newest first.`),
+  ).toBeVisible()
 })
 
 test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, mute for owners', async ({

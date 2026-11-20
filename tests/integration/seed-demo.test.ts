@@ -84,7 +84,7 @@ it(
                 where key = 'area_sales|metric:orders|val:market/norway|2026-10')) as gap,
               exists (select 1 from setup_marks where step = 'ask') as ask,
               (select count(*)::int from saved_questions) as saved,
-              (select array_agg(rule) from alert_raises) as alert`,
+              (select array_agg(rule order by rule) from alert_raises) as alert`,
     )
     expect(present).toEqual([
       {
@@ -92,10 +92,40 @@ it(
         conflicts: 1,
         gap: 'resolved',
         ask: true,
-        saved: 2,
-        alert: ['disagree'],
+        saved: 4,
+        alert: ['disagree', 'saved'],
       },
     ])
+    // Every Observability page has something at 7 days: saved questions in all three states,
+    // reports from Ask and from agents, answers marked in Ask, and spend this month.
+    const { rows: said } = await client.query<{
+      results: string[]
+      reports: number
+      agents: number
+      good: number
+      wrong: number
+      spend: number
+    }>(
+      `select (select array_agg(r.result order by r.result) from saved_questions q
+                cross join lateral (select result from saved_question_results x where x.question_id = q.id
+                                     order by x.checked_at desc limit 1) r) as results,
+              (select count(*)::int from reports where created_at > now() - interval '7 days') as reports,
+              (select count(*)::int from feedback where created_hour > now() - interval '7 days') as agents,
+              (select count(*)::int from assistant_ratings
+                where verdict = 'helpful' and created_hour >= (now() at time zone 'UTC')::date - 7
+                  and created_hour < (now() at time zone 'UTC')::date) as good,
+              (select count(*)::int from assistant_ratings
+                where verdict = 'wrong' and created_hour >= (now() at time zone 'UTC')::date - 7
+                  and created_hour < (now() at time zone 'UTC')::date) as wrong,
+              (select sum(cost_micros)::int from llm_spend_monthly
+                where month = date_trunc('month', now())::date) as spend`,
+    )
+    expect(said[0]!.results).toEqual(['changed', 'look', 'same', 'same'])
+    expect(said[0]).toMatchObject({ reports: 2, agents: 6, spend: 5_090_000 })
+    // Enough each way in the 7 days Feedback counts, up to yesterday, that the share of good
+    // answers can show (FR-614): every such week holds five working days.
+    expect(said[0]!.good).toBeGreaterThanOrEqual(5)
+    expect(said[0]!.wrong).toBeGreaterThanOrEqual(5)
     // What agents asked: every answer line, from the apps people use, and the
     // README's question about orders in Norway answered Checked with the Norway item first.
     const { rows: calls } = await client.query<{

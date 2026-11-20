@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { marksExceptions } from '@/lib/marks'
 import { AnswerFooter } from '@/components/footnote/answer-footer'
+import type { RatingChain, Verdict } from '@/components/footnote/answer-rating'
 import { TypeGlyph } from '@/components/footnote/definition'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
@@ -1779,6 +1780,26 @@ function ContextAnswerBody({
 }
 
 /**
+ * Good and Bad answer (FR-712): a click counts the verdict, a second click on the same one takes
+ * it back, and the other one takes it back and counts its own. The service keeps only the verdict,
+ * the domain and the hour; the rating's id stays in this answer's memory, the one way back to it.
+ */
+function useRating(answer: Answer) {
+  const write = useWrite()
+  const [rated, setRated] = React.useState<Verdict | null>(null)
+  const chain = React.useRef<RatingChain | null>(null)
+  // The chain loads with the first click: most answers are never rated.
+  const rate = (verdict: Verdict) => {
+    void import('@/components/footnote/answer-rating').then((m) =>
+      m.rate((chain.current ??= m.newChain()), verdict, answer, write, setRated, (t, d) =>
+        toast.error(t, { description: d }),
+      ),
+    )
+  }
+  return { rated, rate }
+}
+
+/**
  * One row of icons under a finished answer: Copy, Good, Bad, Ask again on the chat's last answer,
  * and More with the rest (Something wrong?, Save question, Share). The last answer always shows
  * them; an earlier one on hover or focus, and always on a touch screen.
@@ -1809,7 +1830,7 @@ export function AnswerActions({
   onWrong: (wrong: boolean) => void
   canReport: boolean
 }) {
-  const [rated, setRated] = React.useState<'up' | 'down' | null>(null)
+  const { rated, rate } = useRating(answer)
   const [copied, copy] = useCopied()
   // Saving a question is for the owners of the domain it is about, and admins.
   const me = useMe()
@@ -1846,22 +1867,22 @@ export function AnswerActions({
           <CopiedIcon copied={copied} />
         </IconButton>
       )}
-      {answer.state !== 'failed' && (
+      {answer.state !== 'failed' && !draft && (
         <>
           <IconButton
             label="Good answer"
-            active={rated === 'up'}
-            onClick={() => setRated(rated === 'up' ? null : 'up')}
+            active={rated === 'helpful'}
+            onClick={() => rate('helpful')}
           >
-            {rated === 'up' ? <CheckIcon /> : <ThumbsUpIcon />}
+            {rated === 'helpful' ? <CheckIcon /> : <ThumbsUpIcon />}
           </IconButton>
           {/* One way to say it is wrong: a bad answer asks what was wrong, in the same form. */}
           <IconButton
             label="Bad answer"
-            active={rated === 'down'}
+            active={rated === 'wrong'}
             onClick={() => {
-              setRated(rated === 'down' ? null : 'down')
-              if (rated !== 'down') onWrong(true)
+              rate('wrong')
+              if (rated !== 'wrong') onWrong(true)
             }}
           >
             <ThumbsDownIcon />

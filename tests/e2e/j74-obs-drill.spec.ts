@@ -47,6 +47,10 @@ test("Quality's cells go to their groups, and Feedback's From agents to the repo
   await page.locator('a[data-slot=kpi]').filter({ hasText: 'From agents' }).click()
   await expect(page).toHaveURL(/#reports$/)
   await expect(
-    page.getByRole('tabpanel').getByRole('listitem').filter({ hasText: 'From an agent' }).first(),
+    page
+      .locator('#reports [role="region"]')
+      .getByRole('listitem')
+      .filter({ hasText: 'From an agent' })
+      .first(),
   ).toBeInViewport()
 })

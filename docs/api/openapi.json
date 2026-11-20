@@ -95080,6 +95080,666 @@
         }
       }
     },
+    "/ask/ratings": {
+      "post": {
+        "operationId": "ask.rate",
+        "summary": "Mark an answer of Ask good or wrong (FR-712): counts the verdict by domain and hour, never who rated",
+        "tags": [
+          "assistant"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "verdict": {
+                    "enum": [
+                      "helpful",
+                      "wrong"
+                    ],
+                    "type": "string"
+                  },
+                  "metrics": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^metric:[a-z0-9_]+$"
+                    }
+                  }
+                },
+                "required": [
+                  "verdict"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find it. It may have been deleted, or you may not have access."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "TOO_MANY_REQUESTS"
+                        },
+                        "status": {
+                          "const": 429
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You've sent a lot of ratings. Try again in a minute."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "retryAfterSeconds": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "retryAfterSeconds"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message",
+                        "data"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ask/ratings/take-back": {
+      "post": {
+        "operationId": "ask.takeBack",
+        "summary": "Take a rating of Ask back (FR-712) by its id",
+        "tags": [
+          "assistant"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taken": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "taken"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find it. It may have been deleted, or you may not have access."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/observability/agents": {
       "get": {
         "operationId": "obs.agents",
@@ -97847,16 +98507,16 @@
                         ]
                       }
                     },
-                    "goodByWeek": {
+                    "byWeek": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "week": {
+                          "from": {
                             "type": "string",
                             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
                           },
-                          "count": {
+                          "good": {
                             "anyOf": [
                               {
                                 "type": "number"
@@ -97865,11 +98525,26 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "wrong": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "soFar": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
-                          "week",
-                          "count"
+                          "from",
+                          "good",
+                          "wrong",
+                          "soFar"
                         ]
                       }
                     },
@@ -97877,6 +98552,16 @@
                       "type": "object",
                       "properties": {
                         "good": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wrong": {
                           "anyOf": [
                             {
                               "type": "number"
@@ -97896,7 +98581,7 @@
                             }
                           ]
                         },
-                        "wrong": {
+                        "wrongBefore": {
                           "anyOf": [
                             {
                               "type": "number"
@@ -97909,8 +98594,9 @@
                       },
                       "required": [
                         "good",
+                        "wrong",
                         "goodBefore",
-                        "wrong"
+                        "wrongBefore"
                       ]
                     }
                   },
@@ -97918,7 +98604,7 @@
                     "state",
                     "minimumCount",
                     "reports",
-                    "goodByWeek",
+                    "byWeek",
                     "week"
                   ]
                 }
@@ -100486,6 +101172,35 @@
                         ]
                       }
                     },
+                    "reply": {
+                      "type": "object",
+                      "properties": {
+                        "median": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "p95": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "median",
+                        "p95"
+                      ]
+                    },
                     "speed": {
                       "type": "array",
                       "items": {
@@ -100596,6 +101311,7 @@
                     "callsBefore",
                     "tools",
                     "agents",
+                    "reply",
                     "speed",
                     "spend"
                   ]
@@ -107807,7 +108523,7 @@
     "/alerts/raised": {
       "get": {
         "operationId": "alerts.raised",
-        "summary": "What the alert rules raised lately, newest first, each with whom its Inbox card reached: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)",
+        "summary": "What the alert rules raised, newest first, a page at a time, with the counts in all and by rule: every raise for an administrator, those about their own domains for an owner (FR-614)",
         "tags": [
           "quality"
         ],
@@ -107822,6 +108538,45 @@
             },
             "allowEmptyValue": true,
             "allowReserved": true
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "gap",
+                "saved",
+                "disagree",
+                "share",
+                "fail",
+                "spend",
+                "sync",
+                "due"
+              ],
+              "type": "string"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          },
+          {
+            "name": "areaId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,39}$"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
           }
         ],
         "responses": {
@@ -107830,110 +108585,155 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "rule": {
-                        "enum": [
-                          "gap",
-                          "saved",
-                          "disagree",
-                          "share",
-                          "fail",
-                          "spend",
-                          "sync",
-                          "due"
-                        ],
-                        "type": "string"
-                      },
-                      "areaIds": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "subject": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "card": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "card"
-                            ]
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "rules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rule": {
+                            "enum": [
+                              "gap",
+                              "saved",
+                              "disagree",
+                              "share",
+                              "fail",
+                              "spend",
+                              "sync",
+                              "due"
+                            ],
+                            "type": "string"
                           },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "topic": {
-                                "type": "string"
-                              },
-                              "pair": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "topic"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "page": {
-                                "enum": [
-                                  "overview",
-                                  "usage"
-                                ],
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "page"
-                            ]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "connector": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "connector"
-                            ]
+                          "count": {
+                            "type": "number"
                           }
+                        },
+                        "required": [
+                          "rule",
+                          "count"
                         ]
-                      },
-                      "raisedAt": {
-                        "type": "string"
-                      },
-                      "reached": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
                       }
                     },
-                    "required": [
-                      "id",
-                      "rule",
-                      "areaIds",
-                      "title",
-                      "subject",
-                      "raisedAt",
-                      "reached"
-                    ]
-                  }
+                    "raises": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "rule": {
+                            "enum": [
+                              "gap",
+                              "saved",
+                              "disagree",
+                              "share",
+                              "fail",
+                              "spend",
+                              "sync",
+                              "due"
+                            ],
+                            "type": "string"
+                          },
+                          "areaIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "subject": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "card": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "card"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "topic": {
+                                    "type": "string"
+                                  },
+                                  "pair": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "topic"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "page": {
+                                    "enum": [
+                                      "overview",
+                                      "usage"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "page"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "connector": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "connector"
+                                ]
+                              }
+                            ]
+                          },
+                          "raisedAt": {
+                            "type": "string"
+                          },
+                          "reached": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "rule",
+                          "areaIds",
+                          "title",
+                          "subject",
+                          "raisedAt",
+                          "reached"
+                        ]
+                      }
+                    },
+                    "more": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "rules",
+                    "raises",
+                    "more"
+                  ]
                 }
               }
             }

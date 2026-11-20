@@ -22,7 +22,7 @@ import type { DomainId } from '@/model/items'
 import { chipOf, chipsFrom, readDomain } from '@/lib/obs-chips'
 import { readOf } from '@/lib/read'
 import { useRoute } from '@/lib/router'
-import { useDomains, useMe } from '@/lib/workspace'
+import { useDomainList, useDomains, useMe } from '@/lib/workspace'
 
 // Observability's map: five pages in three small groups, who sees them, and what each is for.
 // Overview comes first, and is where Observability opens: the numbers, the chart and the topics in
@@ -84,6 +84,20 @@ export const obsSectionOf = (part: string | undefined): ObsSection =>
 /** The view in the address: its range, and a domain or a kind of agent; an owner's own domains. */
 export type ObsAddress = View & { owned: DomainId[] | null; label: string }
 export type ObsView = ObsAddress & { state: ObsState }
+
+/**
+ * The domain chip's choices on Quality, Feedback and Alerts: an owner's own domains, or every one
+ * that is not a sandbox; and the one in the address when it is one of them.
+ */
+export function useDomainChoice() {
+  const { query } = useRoute()
+  const me = useMe()
+  const choices = useDomainList()
+    .filter((d) => !d.sandbox && (me.admin || me.owns.includes(d.id)))
+    .map((d) => d.id)
+  const asked = query.get('domain')
+  return { choices, asked: asked && choices.includes(asked) ? asked : undefined }
+}
 
 /** A range in words, as a number cell's line under it says it: "this week", "the last 30 days". */
 export const rangeLabel = (range: Range) => (range === 7 ? 'this week' : `the last ${range} days`)

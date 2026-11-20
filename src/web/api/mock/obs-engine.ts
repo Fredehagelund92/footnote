@@ -104,8 +104,11 @@ export type Report = {
   href: string
 }
 
+/** Answers marked in Ask on a day (its UTC midnight), in a domain: good, and something wrong. */
+export type Rating = { at: number; domain: DomainId; good: number; wrong: number }
+
 export const REPORT_WORDS: Record<ReportState, string> = {
-  inbox: 'In your Inbox',
+  inbox: 'In the Inbox',
   looked: 'Looked at',
   fine: 'Not a problem',
 }
@@ -129,8 +132,8 @@ export type ObsData = {
   /** The values of the Market dimension: a topic's place is a market or something else. */
   markets: string[]
   reports: Report[]
-  goodByWeek: { labels: string[]; values: number[] }
-  feedbackWeek: { good: number; goodChange: number; wrong: number }
+  /** Answers marked in Ask, a day and a domain at a time. */
+  ratings: Rating[]
   toolCalls: {
     name: string
     calls: number
@@ -142,6 +145,7 @@ export type ObsData = {
   agentCalls: { name: string; calls: number; last: string }[]
   speedDays: { median: number[]; p95: number[] }
   speedWeeks: { median: number[]; p95: number[] }
+  speedRanges: Record<number, { median: number; p95: number }>
   spend: {
     total: number
     cap: number
@@ -223,6 +227,7 @@ export function observability(data: ObsData) {
     markets,
     speedDays: SPEED_DAYS,
     speedWeeks: SPEED_WEEKS,
+    speedRanges: SPEED_RANGES,
   } = data
 
   const topicName = (t: Pick<Topic, 'metric' | 'where'> & Partial<Pick<Topic, 'named'>>) =>
@@ -449,11 +454,13 @@ export function observability(data: ObsData) {
 
   /** The days or weeks the speed chart draws for a range, with their labels. */
   function speedOf(range: number) {
+    const reply = SPEED_RANGES[range] ?? { median: null, p95: null }
     if (range === 7)
-      return { ...SPEED_DAYS, labels: DAYS.slice(-7).map((d) => d.label), per: 'day' }
+      return { ...SPEED_DAYS, reply, labels: DAYS.slice(-7).map((d) => d.label), per: 'day' }
     const n = range === 30 ? 5 : 13
     const starts = DAYS.filter((_, i) => (DAYS.length - 1 - i) % 7 === 6).slice(-n)
     return {
+      reply,
       median: SPEED_WEEKS.median.slice(-n),
       p95: SPEED_WEEKS.p95.slice(-n),
       labels: starts.map((d) => dateLabel(d.at)),

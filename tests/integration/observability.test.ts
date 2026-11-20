@@ -203,7 +203,11 @@ beforeAll(async () => {
      insert into assistant_ratings (verdict, area_id, created_hour)
      select 'helpful', 'finance', '2026-10-20T10:00:00Z' from generate_series(1, 6);
      insert into assistant_ratings (verdict, area_id, created_hour)
-     select 'wrong', 'finance', '2026-10-20T10:00:00Z' from generate_series(1, 2);`,
+     select 'wrong', 'finance', '2026-10-20T10:00:00Z' from generate_series(1, 2);
+     insert into assistant_ratings (verdict, area_id, created_hour)
+     select 'helpful', 'finance', '2026-10-13T10:00:00Z' from generate_series(1, 7);
+     insert into assistant_ratings (verdict, area_id, created_hour)
+     select 'wrong', 'finance', '2026-10-13T10:00:00Z' from generate_series(1, 5);`,
   )
   const [closed] = (
     await client.query<{ id: string }>(`select id::text from feedback where verdict = 'wrong'`)
@@ -429,6 +433,8 @@ describe('Usage (obs.usage)', () => {
     ])
     expect(usage.speed).toHaveLength(7)
     expect(usage.speed.find((s) => s.start === '2026-10-20')!.median).toBeGreaterThan(30)
+    // The range's own percentiles, over its 43 timed calls.
+    expect(usage.reply).toEqual({ median: 50, p95: 68 })
     expect(usage.spend).toMatchObject({
       month: '2026-10-01',
       totalMicros: 17_300_000,
@@ -437,6 +443,23 @@ describe('Usage (obs.usage)', () => {
     expect((await ok<ObsUsage>('admin', '/observability/usage?range=30')).speed).toHaveLength(5)
     expect((await ok<ObsUsage>('admin', '/observability/usage?range=90')).speed).toHaveLength(13)
     expect((await api('owner', 'GET', '/observability/usage')).statusCode).toBe(403)
+  })
+
+  it("takes the median and 95 of 100 over every call of the range, never the middle of the days'", async () => {
+    // A slow Sunday with many calls: the middle of the three days' p95s would say 68 ms.
+    await client.query(
+      `insert into mcp_requests (hour, client_label, app_family, tool, status, result_status, duration_ms)
+       select '2026-10-18T10:00:00Z', 'slow-sunday', 'claude_code', 'get_context', 'ok', 'matched', 150
+         from generate_series(1, 20)`,
+    )
+    try {
+      const usage = await ok<ObsUsage>('admin', '/observability/usage?range=7')
+      const days = usage.speed.flatMap((s) => (s.p95 === null ? [] : [s.p95])).sort((a, b) => a - b)
+      expect(days).toEqual([50, 68, 150])
+      expect(usage.reply).toEqual({ median: 59, p95: 150 })
+    } finally {
+      await client.query(`delete from mcp_requests where client_label = 'slow-sunday'`)
+    }
   })
 })
 
@@ -451,10 +474,30 @@ describe('Feedback (obs.feedback)', () => {
     ])
     expect(feedback.reports[0]!.card).toMatch(/^feedback:/)
     expect(JSON.stringify(feedback)).not.toMatch(/owner@example|display_name/)
-    expect(feedback.week).toEqual({ good: 6, goodBefore: 0, wrong: null })
-    expect(feedback.goodByWeek).toHaveLength(14)
+    expect(feedback.week).toEqual({ good: 6, wrong: null, goodBefore: 7, wrongBefore: 5 })
+    // Friday 16 to Thursday 22 October touches two weeks; the second is under way.
+    expect(feedback.byWeek).toEqual([
+      { from: '2026-10-16', good: 0, wrong: 0, soFar: false },
+      { from: '2026-10-19', good: 6, wrong: null, soFar: true },
+    ])
     const owner = await ok<ObsFeedback>('owner', '/observability/feedback?range=7')
     expect(new Set(owner.reports.map((r) => r.areaId))).toEqual(new Set(['finance']))
+  })
+
+  it('counts good and wrong a week at a time over the weeks of the range, the last one so far', async () => {
+    const feedback = await ok<ObsFeedback>('admin', '/observability/feedback?range=30')
+    // 23 September to 22 October: five weeks from Monday, the first counted from the range's
+    // first day, so the bars add up to the cells.
+    expect(feedback.byWeek).toEqual([
+      { from: '2026-09-23', good: 0, wrong: 0, soFar: false },
+      { from: '2026-09-28', good: 0, wrong: 0, soFar: false },
+      { from: '2026-10-05', good: 0, wrong: 0, soFar: false },
+      // Wrong 2 times this week is hidden, so the 5 before it is too: the cell's 7 less the weeks
+      // shown would give the 2 away (FR-614).
+      { from: '2026-10-12', good: 7, wrong: null, soFar: false },
+      { from: '2026-10-19', good: 6, wrong: null, soFar: true },
+    ])
+    expect(feedback.week).toMatchObject({ good: 13, wrong: 7 })
   })
 
   it('lists a named report from Ask with who sent it, up to now, and where it stands', async () => {

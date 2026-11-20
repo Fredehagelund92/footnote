@@ -11,7 +11,8 @@ never changes an item and never publishes (I-2).
 ## Setting it up
 
 `dbt parse` writes `target/semantic_manifest.json`. It needs an adapter installed, but reaches no
-warehouse. Most projects ignore `target/`, so your pipeline puts the file somewhere Footnote can read
+warehouse. dbt Core parses only after `dbt deps` has installed the project's packages; dbt v2
+(Fusion) installs them itself. Most projects ignore `target/`, so your pipeline puts the file somewhere Footnote can read
 it. Step 2 of connecting asks where, and each place shows its own recipe:
 
 | Place          | What you give                                          | Best for                                                                                  |
@@ -36,6 +37,7 @@ that object and nothing else.
 ```yaml
 # A step of your CI, after dbt parse. Use your project's adapter in place of dbt-duckdb.
 - run: pip install dbt-core dbt-duckdb
+- run: dbt deps
 - run: dbt parse --profiles-dir .
 - run: aws s3 cp target/semantic_manifest.json s3://your-bucket/dbt/semantic_manifest.json
 ```
@@ -60,6 +62,7 @@ repository or to a branch of its own:
 ```yaml
 # A step of your CI, on the branch that holds the project.
 - run: pip install dbt-core dbt-duckdb
+- run: dbt deps
 - run: dbt parse --profiles-dir .
 - run: |
     mkdir -p semantic
@@ -199,15 +202,19 @@ them. An address or an object over it is refused by the length the host says, or
 much has arrived. A metric moved to another semantic
 model gets a new ref. dbt's own query names (`customer__region`) are not read as names.
 
-The fixture was built with dbt Core 1.12.6 and MetricFlow 0.213.0. dbt v2 (Fusion) has not been
-tried.
+The fixture was built with dbt Core 1.12.6 and MetricFlow 0.213.0. dbt Labs' public samples have
+been read too: jaffle-shop (latest spec) with dbt Core 1.12.7 and with dbt v2 (Fusion) 2.0.12,
+which give the same definitions and marks, and jaffle-sl-template (legacy spec) with dbt Core
+1.12.7. Fusion checks the semantic layer only with dbt Cloud credentials, so its file can hold a
+metric built on something missing: that metric is left out with `unresolved_metric`.
 
 ## Tests
 
 The conformance kit runs against it three times in `tests/server/connectors/conformance.test.ts`,
 through Git and a server folder, an address and object storage, with the invented shop in
 `tests/fixtures/dbt-metricflow/` (both YAML specs, and `REBUILD.md`).
-`tests/server/connectors/dbt-metricflow.test.ts` checks the mapping on both specs, and
+`tests/server/connectors/dbt-metricflow.test.ts` checks the mapping on both specs,
+`dbt-metricflow-real.test.ts` on files dbt Core and Fusion wrote for jaffle-shop, and
 `dbt-metricflow-remote.test.ts` the address and storage routes and the rules of `ctx.fetch` against
 an object store on the machine (`object-server.ts`), which checks each signature with code of its
 own. `tests/integration/dbt-sources.test.ts` takes a source through the API and the definitions

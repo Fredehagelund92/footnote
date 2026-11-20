@@ -8,13 +8,16 @@ import { logos, type Connector, type ConnectorKind } from './integrations'
 // so the first load must not.
 
 /**
- * How the app words a connector it knows well: the lead of its page, where its definitions say
- * their domain, and an example of its data endpoint. All of it is optional: a connector without
+ * How the app words a connector it knows well: the lead of its page, what it calls a group of
+ * metrics, where its definitions say their domain, and an example of its data endpoint. All of it is optional: a connector without
  * an entry is drawn from its manifest alone.
  */
 const words: Record<
   string,
-  Pick<Connector, 'lead' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'>
+  Pick<
+    Connector,
+    'lead' | 'group' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'
+  >
 > = {
   cube: {
     // From a Git repository an admin names, or a folder whoever runs the server names: the page
@@ -26,7 +29,10 @@ const words: Record<
   },
   'dbt-metricflow': {
     lead: 'Reads the semantic manifest your dbt pipeline writes, from where you keep it. Read-only, and it keeps no calculation and no value.',
-    domainField: 'meta.domain',
+    // dbt has views too, as tables are built; a group of its metrics is a semantic model, whose
+    // domain is in its config's meta.
+    group: { one: 'semantic model', many: 'semantic models' },
+    domainField: 'config.meta.domain',
     noFileLinks: true,
   },
   'google-drive': {

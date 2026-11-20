@@ -7,6 +7,7 @@ import {
   type ObsData,
   type ObsState,
   type Publish,
+  type Rating,
   type Report,
   type Topic,
 } from '../obs-engine'
@@ -280,28 +281,68 @@ const REPORTS: Report[] = [
   },
 ]
 
-/** Thumbs up under an answer in Ask, a week at a time, oldest first; only the verdict and the domain are kept. */
-const GOOD_BY_WEEK = {
-  labels: [
-    '21 Jul',
-    '28 Jul',
-    '4 Aug',
-    '11 Aug',
-    '18 Aug',
-    '25 Aug',
-    '1 Sep',
-    '8 Sep',
-    '15 Sep',
-    '22 Sep',
-    '29 Sep',
-    '6 Oct',
-    '13 Oct',
-    '20 Oct',
-  ],
-  values: [18, 21, 24, 22, 26, 25, 29, 31, 27, 35, 33, 30, 32, 38],
+/**
+ * Answers marked in Ask, a week from Monday at a time, oldest first: good, and something wrong.
+ * The last is the week under way, Monday 19 to Thursday 22 October. Only the verdict, the domain
+ * and the hour are kept (FR-712).
+ */
+const RATED_WEEKS: [good: number, wrong: number][] = [
+  [22, 8],
+  [24, 7],
+  [21, 9],
+  [25, 6],
+  [23, 8],
+  [26, 7],
+  [24, 9],
+  [27, 6],
+  [25, 7],
+  [28, 8],
+  [26, 6],
+  [29, 7],
+  [27, 5],
+  [18, 6],
+  [21, 7],
+  [24, 6],
+  [22, 8],
+  [26, 5],
+  [25, 7],
+  [29, 6],
+  [31, 5],
+  [27, 7],
+  [35, 6],
+  [33, 11],
+  [30, 6],
+  [32, 7],
+  [24, 4],
+]
+
+/**
+ * Those weeks a day at a time, each week's answers spread over its days and two in three of them
+ * in Sales, the rest in Marketing (a day wrong once is in Sales): what the board counts for a range, a week or a domain.
+ */
+function ratingsOf(): Rating[] {
+  const monday = LAST - ((new Date(LAST).getUTCDay() + 6) % 7) * DAY
+  const spread = (n: number, days: number, d: number) =>
+    Math.floor((n * (d + 1)) / days) - Math.floor((n * d) / days)
+  return RATED_WEEKS.flatMap(([good, wrong], w) => {
+    const from = monday - (RATED_WEEKS.length - 1 - w) * 7 * DAY
+    const days = Math.min(7, (LAST - from) / DAY + 1)
+    return Array.from({ length: days }, (_, d) => {
+      const g = spread(good, days, d)
+      const x = spread(wrong, days, d)
+      const at = from + d * DAY
+      return [
+        {
+          at,
+          domain: 'sales',
+          good: g - Math.floor(g / 3),
+          wrong: x - Math.floor(x / 3),
+        },
+        { at, domain: 'marketing', good: Math.floor(g / 3), wrong: Math.floor(x / 3) },
+      ]
+    }).flat()
+  })
 }
-/** This week: 38 good answers (6 more than last), and something wrong fewer than 5 times. */
-const FEEDBACK_WEEK = { good: 38, goodChange: 6, wrong: 3 }
 
 /** Each tool an agent called this week, and how the calls ended. Answering needs no model. */
 const TOOL_CALLS: {
@@ -339,6 +380,15 @@ const SPEED_WEEKS = {
   median: [52, 50, 49, 47, 47, 45, 44, 43, 42, 41, 40, 39, 38],
   p95: [151, 146, 140, 139, 133, 128, 126, 121, 119, 117, 115, 113, 112],
 }
+/**
+ * The same over each whole range, as one percentile over every reply: never the middle of the
+ * days', so the slow days count for what they weigh.
+ */
+const SPEED_RANGES: Record<number, { median: number; p95: number }> = {
+  7: { median: 38, p95: 119 },
+  30: { median: 40, p95: 116 },
+  90: { median: 44, p95: 137 },
+}
 
 /**
  * Model spend this month, from the ledger. Answering agents needs no model: the spend is Ask's
@@ -372,12 +422,12 @@ export function obsData(state: ObsState): ObsData {
     couldNotRead: COULD_NOT_READ,
     markets,
     reports: REPORTS,
-    goodByWeek: GOOD_BY_WEEK,
-    feedbackWeek: FEEDBACK_WEEK,
+    ratings: ratingsOf(),
     toolCalls: TOOL_CALLS,
     agentCalls: AGENT_CALLS,
     speedDays: SPEED_DAYS,
     speedWeeks: SPEED_WEEKS,
+    speedRanges: SPEED_RANGES,
     spend: SPEND,
   }
 }

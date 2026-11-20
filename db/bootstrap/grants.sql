@@ -102,8 +102,9 @@ grant insert on model_calls to :api;
 grant execute on function edition_pin_source_domains(bigint), cl_source_domains_behind(), serving_source_domains(bigint),
   cl_topic_domains(text, text[]), cl_manages_topic(text, text[]), cl_topics_adopt_domains() to :api;
 grant execute on function serving_source_domains(bigint) to :serve;
--- Assistant ratings: the API writes a person's thumbs as an anonymous verdict, and never changes or removes one.
-grant insert on assistant_ratings to :api;
+-- Assistant ratings: the API writes a person's thumbs in Ask as an anonymous verdict and never changes one. It
+-- removes one only when the page that rated takes it back by its random id, which nothing else holds (FR-712).
+grant insert, delete on assistant_ratings to :api;
 -- The Bin: an administrator moves items to it and restores them; a restore fills the restore columns once.
 -- A record is never deleted.
 grant insert on item_bin to :api;

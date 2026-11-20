@@ -12,7 +12,11 @@ const charts = [
     address: '/observability/quality',
     name: /^Share of saved questions that answer/,
   },
-  { page: 'Feedback', address: '/observability/feedback', name: /^Good answers, by week/ },
+  {
+    page: 'Feedback',
+    address: '/observability/feedback?range=30',
+    name: /^Good answers and something wrong, by week/,
+  },
   { page: 'Usage', address: '/observability/usage', name: /^How long a reply took/ },
 ]
 
@@ -72,6 +76,25 @@ for (const c of charts)
     await page.keyboard.press('Escape')
     await expect(tip(chart)).toHaveCount(0)
   })
+
+test('Feedback: at 30 days a bar a week, each split good and wrong, the week under way so far', async ({
+  page,
+}) => {
+  await go(page, '/observability/feedback?range=30')
+  const chart = page.getByRole('group', { name: /^Good answers and something wrong, by week/ })
+  await expect(chart.locator('svg [data-bar]')).toHaveCount(5)
+  for (const bar of await chart.locator('svg [data-bar]').all()) {
+    await expect(bar.locator('[data-part="Good"]')).toHaveCount(1)
+    await expect(bar.locator('[data-part="Something was wrong"]')).toHaveCount(1)
+  }
+  await expect(chart.locator('svg [data-so-far]')).toHaveCount(1)
+  await expect(chart.locator('svg [data-bar]').last()).toHaveAttribute('data-so-far', 'true')
+  await expect(chart.locator('svg [data-so-far]')).toContainText('so far')
+  await expect(chart.locator('table tbody tr').last().locator('th')).toHaveText(/, so far$/)
+  // Another range has its own weeks.
+  await page.getByRole('radio', { name: '90 days' }).click()
+  await expect(chart.locator('svg [data-bar]')).toHaveCount(14)
+})
 
 test("Quality: the trend is the share that answers the same, each week's of its own", async ({
   page,

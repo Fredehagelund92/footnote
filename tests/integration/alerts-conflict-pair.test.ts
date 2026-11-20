@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { AlertRaise } from '../../src/contract/alerts.ts'
+import type { AlertRaised } from '../../src/contract/alerts.ts'
 import type { PublishItemResult } from '../../src/contract/context.ts'
 import type { Draft } from '../../src/domain/draft.ts'
 import { buildApp } from '../../src/server/app.ts'
@@ -158,7 +158,7 @@ afterAll(() => app.close())
 
 describe('the subject of a Conflict alert', () => {
   const subjectOf = async (market: string) =>
-    ((await call('admin', 'GET', '/alerts/raised')) as AlertRaise[]).find(
+    ((await call('admin', 'GET', '/alerts/raised')) as AlertRaised).raises.find(
       (r) => r.rule === 'disagree' && 'topic' in r.subject && r.subject.topic === topics[market],
     )?.subject
 

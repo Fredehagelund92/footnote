@@ -11,15 +11,9 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { href } from '@/lib/router'
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { ObsEmpty, emptyDays } from '@/components/obs/obs-empty'
+import { open } from '@/lib/events'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
 import { CountUp } from '@/components/footnote/count-up'
@@ -60,27 +54,43 @@ export function UsagePage() {
 function Usage({ busy }: { busy: boolean }) {
   const obs = useObservability()
   const view = useObsView()
+  const days = emptyDays(obs.data.last)
   if (view.state === 'empty')
     return (
       <Frame>
         <FrameSection title="Usage" description={OBS_PURPOSE.usage} />
-        <Empty className="border-t py-12">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <PlugIcon />
-            </EmptyMedia>
-            <EmptyTitle>No agent has called yet</EmptyTitle>
-            <EmptyDescription>
-              Connect an agent, and its calls show here by tool and by kind of agent. Ask in the app
-              counts toward the AI cost this month.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <a href="/settings/agents" className={cn(buttonVariants({ variant: 'outline' }))}>
-              Agents and access
-            </a>
-          </EmptyContent>
-        </Empty>
+        <ObsEmpty
+          cells={[
+            { icon: <WrenchIcon />, label: 'Tool calls' },
+            { icon: <TimerIcon />, label: 'Typical reply (median)' },
+            { icon: <CircleAlertIcon />, label: 'Could not be read' },
+            { icon: <CoinsIcon />, label: 'AI cost this month' },
+          ]}
+          chart={
+            <LineChart
+              series={[
+                { name: 'Median', values: days.map(() => null), color: 'var(--primary)' },
+                { name: '95 of 100', values: days.map(() => null), color: 'var(--chart-2)' },
+              ]}
+              labels={days}
+              height={210}
+              format={(v) => `${v} ms`}
+              missing="No reply timed"
+              caption="No reply timed yet"
+            />
+          }
+          icon={<PlugIcon />}
+          title="No agent has called yet"
+          sentence="Once an agent is connected, its calls show here by tool and by kind of agent, with what Ask costs this month."
+          next={
+            <>
+              <Button onClick={() => open('connect')}>Connect an agent</Button>
+              <a href="/settings/agents" className={cn(buttonVariants({ variant: 'outline' }))}>
+                Agents and access
+              </a>
+            </>
+          }
+        />
       </Frame>
     )
 
@@ -90,8 +100,7 @@ function Usage({ busy }: { busy: boolean }) {
   const unread = usage.couldNotRead
   const agents = usage.agents
   const speed = usage.speed
-  const median = middle(speed.median)
-  const p95 = middle(speed.p95)
+  const { median, p95 } = usage.reply
   // Overview over the same days, from a row: its agents and its Not found answers.
   const inRange = view.range === 7 ? {} : { range: String(view.range) }
   // More calls is neither good nor bad: an arrow, never a colour.
@@ -162,22 +171,14 @@ function Usage({ busy }: { busy: boolean }) {
             />
             <LineChart
               series={[
-                // A day or week with no reply timed draws at zero.
-                {
-                  name: 'Median',
-                  values: speed.median.map((v) => v ?? 0),
-                  color: 'var(--primary)',
-                },
-                {
-                  name: '95 of 100',
-                  values: speed.p95.map((v) => v ?? 0),
-                  color: 'var(--chart-2)',
-                },
+                // A day or week with no reply timed is a gap in the line, never 0 ms.
+                { name: 'Median', values: speed.median, color: 'var(--primary)' },
+                { name: '95 of 100', values: speed.p95, color: 'var(--chart-2)' },
               ]}
               labels={speed.labels}
-              max={150}
               height={210}
               format={(v) => `${v} ms`}
+              missing="No reply timed"
               caption={`How long a reply took, by ${speed.per}, in milliseconds`}
             />
           </div>
@@ -235,12 +236,6 @@ function Usage({ busy }: { busy: boolean }) {
   )
 }
 
-/** The middle value of a few: the median of the days' medians; null when none was timed. */
-function middle(values: (number | null)[]) {
-  const v = values.filter((x): x is number => x !== null).sort((a, b) => a - b)
-  return v.length ? v[Math.floor(v.length / 2)]! : null
-}
-
 /** A link out of the page, quiet, at a section's right end. */
 function PageLink({ href, children }: { href: string; children: string }) {
   return (
@@ -291,7 +286,7 @@ function Tools({ tools, notFound }: { tools: UsageData['tools']; notFound: strin
           <th className="h-9 px-4 text-left font-medium md:pl-5">Tool</th>
           <th className={th}>Calls</th>
           <th className={cn(th, '@max-2xl/main:hidden')}>Answered</th>
-          <th className={cn(th, '@max-2xl/main:hidden')}>Needed more detail</th>
+          <th className={cn(th, '@max-2xl/main:hidden')}>Could not be read</th>
           <th className={cn(th, '@max-2xl/main:hidden')}>Not found</th>
           <th className={cn(th, 'md:pr-5 @max-2xl/main:hidden')}>Failed</th>
         </tr>
@@ -308,7 +303,7 @@ function Tools({ tools, notFound }: { tools: UsageData['tools']; notFound: strin
               <span className="mt-0.5 block text-xs text-muted-foreground @2xl/main:hidden">
                 {[
                   t.answered && `${t.answered} answered`,
-                  t.detail && `${t.detail} needed more detail`,
+                  t.detail && `${t.detail} could not be read`,
                   t.nothing && `${t.nothing} not found`,
                   t.failed && `${t.failed} failed`,
                 ]
@@ -390,9 +385,7 @@ function Spend() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Answering agents costs nothing. Answer tests ran once, from the command line.
-        </p>
+        <p className="mt-3 text-xs text-muted-foreground">Answering agents costs nothing.</p>
       </div>
       <table className="w-full self-start text-sm @4xl/main:border-l" aria-label="Spend limits">
         <thead>

@@ -160,6 +160,8 @@ export const policies = {
   'reports.mine': 'read',
   'ask.lookup': 'read',
   'ask.asked': 'read',
+  'ask.rate': 'read',
+  'ask.takeBack': 'read',
   'obs.agents': 'maintain',
   'obs.dimensions': 'maintain',
   'obs.values': 'maintain',
