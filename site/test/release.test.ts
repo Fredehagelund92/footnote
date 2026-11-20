@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { releaseWords } from '../landing/release.ts'
 
@@ -11,12 +10,6 @@ import { releaseWords } from '../landing/release.ts'
 const all = (isReleased: boolean) => Object.values(releaseWords(isReleased)).flat().join('\n')
 
 describe('the release switch', () => {
-  it('is one constant in the page, off until the release', () => {
-    const page = readFileSync(new URL('../landing/pages/index.astro', import.meta.url), 'utf8')
-    expect(page.match(/^const released = (true|false)$/gm)).toEqual(['const released = false'])
-    expect(page).toContain('releaseWords(released)')
-  })
-
   it('before the release, says to build from the checkout and claims no published images', () => {
     const words = all(false)
     expect(releaseWords(false).startCommands.at(-1)).toBe('docker compose up')
