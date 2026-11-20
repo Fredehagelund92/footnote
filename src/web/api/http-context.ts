@@ -400,6 +400,7 @@ export function historyOf(
     field: FIELD[entry.field] ?? entry.field,
     before: entry.before,
     after: entry.after,
+    ...(entry.version !== null ? { comparable: true as const } : {}),
     ...(entry.agent
       ? { sentBy: `${entry.agent.name} for ${names.person(entry.agent.personId)}` }
       : {}),

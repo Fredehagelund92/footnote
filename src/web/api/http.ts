@@ -85,7 +85,15 @@ import {
   wordsOf,
   type Words,
 } from './http-context'
-import { inboxOf, refOf, reviewOf, workspaceOf, type SheetRef } from './http-inbox'
+import {
+  fieldSideOf,
+  inboxOf,
+  refOf,
+  reviewOf,
+  textOf,
+  workspaceOf,
+  type SheetRef,
+} from './http-inbox'
 import { peopleOf } from './http-people'
 import { savedCheckOf, savedQuestionOf } from './http-saved'
 import type { ReplayTopic } from './http-obs'
@@ -149,6 +157,7 @@ export const wiredMethods = [
   'contextPage',
   'itemPage',
   'getItemHistory',
+  'compareVersions',
   'getRelated',
   'restoreAsDraft',
   'markViewed',
@@ -1404,6 +1413,27 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       )
     },
     getItemHistory: async ({ id }) => (await itemPage(id))?.history ?? [],
+    compareVersions: async ({ id, from, to }) => {
+      const page = await orNull(() => read(() => client.items.page({ id })))
+      if (!page) return null
+      const [a, b] = [versionAt(page.history, from), versionAt(page.history, to)]
+      if (a === null || b === null) return null
+      const input = { id, from: a, to: b }
+      const [pair, words] = await Promise.all([
+        read(() => client.items.compare(input)),
+        readWords(),
+      ])
+      return {
+        fields: {
+          before: fieldSideOf(pair.fields.before)!,
+          after: fieldSideOf(pair.fields.after)!,
+        },
+        source: {
+          before: textOf(pair.source.before, words),
+          after: textOf(pair.source.after, words),
+        },
+      }
+    },
     // From an item or a synced definition. A draft is not served, so it has nothing to follow; a
     // term written here has no links on the service yet.
     getRelated: async ({ id }) => {

@@ -1,5 +1,11 @@
 import * as React from 'react'
-import { ArrowRightIcon, MessageSquarePlusIcon, PlusIcon } from '@/components/icons'
+import {
+  ArrowDownIcon,
+  ArrowRightIcon,
+  ArrowUpIcon,
+  MessageSquarePlusIcon,
+  PlusIcon,
+} from '@/components/icons'
 import { MentionText } from '@/components/footnote/mention-chip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,10 +26,14 @@ import {
   passageDiff,
   passageStats,
   safeHref,
+  type LinkChange,
+  type Look,
+  type Move,
   type Passage,
   type PassageRow,
   type PassageRun,
 } from '@/lib/passage-diff'
+import type { BlockShape } from '@domain/markdown-blocks'
 import { useOnlyChanged } from '@/lib/review-compare'
 import { fieldRows, type FieldRow } from '@/model/review-fields'
 import type { FieldSide } from '@/model/review'
@@ -37,7 +47,9 @@ import { placeKey, placeLabel, type SourcePlace } from '@/model/source-places'
 // - FieldsDiff, the Fields table: every field but the text with its value now and suggested, a
 //   changed row tinted, a row that stays the same quiet. Its switch leaves only what changed.
 // - TextComparison, the text as a reader sees it, now beside suggested, passage beside passage,
-//   with the changed words marked inside the sentences (src/web/lib/passage-diff.ts).
+//   with the changed words marked inside the sentences (src/web/lib/passage-diff.ts), and the
+//   changes that keep the words marked as what they are: a new look dotted with a tag that says
+//   it, a new link with its tag, a moved passage in a tinted block that says where it went.
 // - TextDiff, behind one key, S: the stored text line by line, in the app's own font: line numbers, removed lines
 //   before added ones, only the changed words marked when most of a block stays (compared across
 //   its lines, so a split paragraph marks only what changed), a blank line in a change shown as
@@ -297,8 +309,8 @@ function hiddenLine(hidden: readonly FieldRow[], shown: number) {
  * The Fields table: every field of the two sides, its value now and suggested. With both sides a
  * changed row is tinted, its old value struck through and its new one underlined, and a row that
  * stays the same is quiet; the switch, on until the person turns it off and remembered for them,
- * leaves only the rows that change and names the ones it hides. A new item shows only what it
- * sets, an archive only what it had.
+ * leaves only the rows that change and names the ones it hides. A new item and an archive show
+ * every field in the column of the side they have, the other column empty and nothing marked.
  */
 export function FieldsDiff({
   before,
@@ -306,6 +318,7 @@ export function FieldsDiff({
   person,
   labels = REVIEW_SIDES,
   notes,
+  oneSide,
 }: {
   before: FieldSide | null
   after: FieldSide | null
@@ -313,6 +326,8 @@ export function FieldsDiff({
   person: string
   labels?: SideLabels
   notes?: SourceNotes
+  /** What the header says when one side is missing, in place of the review's words. */
+  oneSide?: string
 }) {
   const id = React.useId()
   const [only, setOnly] = useOnlyChanged(person)
@@ -323,7 +338,8 @@ export function FieldsDiff({
   const hides = both && only
   const shown = hides ? rows.filter((r) => r.changed || held(r)) : rows
   const hidden = hides ? rows.filter((r) => !r.changed && !held(r)) : []
-  const sides = (['before', 'after'] as const).filter((s) => (s === 'before' ? before : after))
+  // A new item and an archive keep both columns, the side they do not have left empty.
+  const sides = ['before', 'after'] as const
   return (
     <section aria-labelledby={`${id}-h`} className="overflow-hidden rounded-frame border">
       <header className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
@@ -333,7 +349,7 @@ export function FieldsDiff({
           </h3>
           {!both && (
             <span className="text-xs text-muted-foreground">
-              {after ? 'All set by the suggestion' : 'As they are now'}
+              {oneSide ?? (after ? 'All set by the suggestion' : 'As they are now')}
             </span>
           )}
         </div>
@@ -417,8 +433,9 @@ export function FieldsDiff({
                         className={cn(
                           'px-5 py-3.5 break-words @max-lg:p-0',
                           row.changed && '@max-lg:grid @max-lg:gap-0.5',
-                          // A value that stays the same is said once on a narrow pane.
+                          // A value that stays the same is said once on a narrow pane, an empty side not at all.
                           both && !row.changed && s === 'before' && '@max-lg:hidden',
+                          !(s === 'before' ? before : after) && '@max-lg:hidden',
                         )}
                       >
                         {both && row.changed && (
@@ -618,7 +635,115 @@ export function TextDiff({
 
 /* ---------- the comparison's text ---------- */
 
-/** A run of a passage: its marks and link as the reader sees them, struck or underlined if changed. */
+/** A mark's name, as a new look says it. */
+const markWord = { bold: 'bold', italic: 'italic', strike: 'struck through', code: 'code' }
+
+const upperFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/** What a new look does to the same words, as its tag says it: "Bold", "Not italic". */
+export const lookWords = (look: Look) =>
+  upperFirst(
+    [...look.added.map((m) => markWord[m]), ...look.removed.map((m) => `not ${markWord[m]}`)].join(
+      ', ',
+    ),
+  )
+
+/** What became of a passage's shape, as its tag says it: "Now numbered", "Now a heading". */
+export function shapeWords(was: BlockShape, now: BlockShape) {
+  const list = (x: BlockShape) => x.type === 'bullet' || x.type === 'number'
+  if (now.type === 'number' && was.type === 'bullet') return 'Now numbered'
+  if (now.type === 'bullet' && was.type === 'number') return 'No longer numbered'
+  if (list(now) && list(was) && 'depth' in now && 'depth' in was)
+    return now.depth > was.depth ? 'Now one step in' : 'Now one step out'
+  if (now.type === 'heading' && was.type === 'heading')
+    return now.level < was.level ? 'Now a larger heading' : 'Now a smaller heading'
+  if (now.type === 'heading') return 'Now a heading'
+  if (now.type === 'quote') return 'Now a quote'
+  if (list(now)) return now.type === 'number' ? 'Now a numbered step' : 'Now a point'
+  if (was.type === 'heading') return 'No longer a heading'
+  if (was.type === 'quote') return 'No longer a quote'
+  if (list(was)) return 'No longer a list'
+  return 'New look'
+}
+
+/** What became of a link on the same words, as its tag says it. */
+const linkWords: Record<LinkChange, string> = {
+  added: 'Link',
+  removed: 'No link',
+  address: 'New address',
+}
+
+/**
+ * A tag after words that keep their words: what changed about them, in a word or two, in the
+ * text colour on its mark's fill, edged in the mark's line.
+ */
+function Tag({ kind, children }: { kind: 'look' | 'link'; children: React.ReactNode }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'ml-1 inline-block rounded-sm border px-1 align-(--nudge) text-xs leading-4 font-medium whitespace-nowrap text-foreground',
+        kind === 'look'
+          ? 'border-[var(--mark-fmt-line)] bg-[var(--mark-fmt)]'
+          : 'border-[var(--mark-link-line)] bg-[var(--mark-link)]',
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+/** The same words with a new look: dotted, and on the suggested side tagged with what changed. */
+function LookMark({
+  look,
+  side,
+  children,
+}: {
+  look: Look
+  side: 'before' | 'after'
+  children: React.ReactNode
+}) {
+  const words = lookWords(look)
+  return (
+    <>
+      <span className="rounded-xs bg-[var(--mark-fmt)] box-decoration-clone underline decoration-[var(--mark-fmt-line)] decoration-dotted decoration-2 underline-offset-3">
+        <span className="sr-only">{side === 'after' ? `[${words}: ` : '[Look changes: '}</span>
+        {children}
+        <span className="sr-only">]</span>
+      </span>
+      {side === 'after' && <Tag kind="look">{words}</Tag>}
+    </>
+  )
+}
+
+/** The same words with a new link, or theirs taken off: tinted, tagged on the suggested side. */
+function LinkMark({
+  link,
+  side,
+  children,
+}: {
+  link: LinkChange
+  side: 'before' | 'after'
+  children: React.ReactNode
+}) {
+  return (
+    <>
+      <span className="rounded-xs bg-[var(--mark-link)] box-decoration-clone underline decoration-[var(--mark-link-line)] decoration-2 underline-offset-3">
+        <span className="sr-only">
+          {side === 'after' ? `[${linkWords[link]}: ` : '[Link changes: '}
+        </span>
+        {children}
+        <span className="sr-only">]</span>
+      </span>
+      {side === 'after' && <Tag kind="link">{linkWords[link]}</Tag>}
+    </>
+  )
+}
+
+/**
+ * A run of a passage: its marks and link as the reader sees them, struck or underlined if its
+ * words changed, dotted for a new look and tinted for a new link if they did not.
+ */
 function RunView({
   run,
   side,
@@ -645,7 +770,30 @@ function RunView({
         {node}
       </a>
     )
-  return run.changed && !plain && run.text.trim() ? <Marked side={side}>{node}</Marked> : node
+  if (plain || !run.text.trim()) return node
+  if (run.changed) return <Marked side={side}>{node}</Marked>
+  if (run.link)
+    return (
+      <LinkMark link={run.link} side={side}>
+        {node}
+      </LinkMark>
+    )
+  if (run.look)
+    return (
+      <LookMark look={run.look} side={side}>
+        {node}
+      </LookMark>
+    )
+  return node
+}
+
+/** Where a moved passage went, as the line under it says it on each side. */
+function moveWords(move: Move, side: 'before' | 'after') {
+  const way = move.up ? 'up' : 'down'
+  if (side === 'before') return `Moves ${way}`
+  return move.steps
+    ? `Moved ${way}, from step ${move.steps.from} to step ${move.steps.to}`
+    : `Moved ${way}`
 }
 
 /** How deep a list item sits: each level one step in. */
@@ -653,33 +801,59 @@ const listDepth = ['', 'pl-6', 'pl-12', 'pl-18']
 
 /**
  * A passage drawn as a reader sees it: a paragraph, a heading, a quote, a step or a point. `plain`
- * draws it without its marks, for a text only one side has.
+ * draws it without its marks, for a text only one side has. A moved passage sits in a tinted block
+ * with a line that says where it went; one with a new shape has a dotted line beside it, and on
+ * the suggested side `tag` puts the words of its new shape under it.
  */
 function PassageView({
   passage,
   side,
   plain,
+  tag,
 }: {
   passage: Passage
   side: 'before' | 'after'
   plain?: boolean
+  tag?: boolean
 }) {
-  const words = passage.runs.map((run, i) => (
-    <RunView key={i} run={run} side={side} plain={plain} />
-  ))
+  // Punctuation that follows a mention travels with its chip, so it never starts a line alone.
+  const lead = (k: number) => {
+    const next = passage.runs[k + 1]
+    return passage.runs[k]!.mention && next && !next.mention
+      ? (/^[.,;:!?)]+/.exec(next.text)?.[0] ?? '')
+      : ''
+  }
+  const words = passage.runs.map((run, i) => {
+    const carried = i > 0 ? lead(i - 1) : ''
+    const own = carried ? { ...run, text: run.text.slice(carried.length) } : run
+    const punct = lead(i)
+    const view = own.text || own.mention ? <RunView run={own} side={side} plain={plain} /> : null
+    if (!punct) return <React.Fragment key={i}>{view}</React.Fragment>
+    const next = passage.runs[i + 1]!
+    return (
+      <span key={i} className="inline-flex max-w-full items-baseline whitespace-nowrap">
+        {view}
+        <RunView run={{ ...next, text: punct }} side={side} plain={plain} />
+      </span>
+    )
+  })
   const { shape } = passage
+  let body: React.ReactNode
   switch (shape.type) {
     case 'heading':
-      return <p className="font-semibold">{words}</p>
+      body = <p className="font-semibold">{words}</p>
+      break
     case 'quote':
-      return (
+      body = (
         <blockquote className="border-l-2 pl-4 text-muted-foreground italic">{words}</blockquote>
       )
+      break
     case 'rule':
-      return <hr className="my-3" />
+      body = <hr className="my-3" />
+      break
     case 'bullet':
     case 'number':
-      return (
+      body = (
         <div className={cn('flex gap-2', listDepth[Math.min(shape.depth, listDepth.length - 1)])}>
           {shape.type === 'number' ? (
             <span className="w-5 shrink-0 text-right tabular-nums">{passage.n}.</span>
@@ -691,9 +865,44 @@ function PassageView({
           <span className="min-w-0">{words}</span>
         </div>
       )
+      break
     default:
-      return <p>{words}</p>
+      body = <p>{words}</p>
   }
+  if (plain) return body
+  if (passage.moved) {
+    const Arrow = passage.moved.up ? ArrowUpIcon : ArrowDownIcon
+    return (
+      <div
+        data-mark="moved"
+        className="-ml-2.5 rounded-r-md border-l-2 border-[var(--mark-move-line)] bg-[var(--mark-move)] py-0.5 pr-2 pl-2"
+      >
+        {body}
+        <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          <Arrow aria-hidden className="size-3" />
+          {moveWords(passage.moved, side)}
+        </p>
+      </div>
+    )
+  }
+  if (passage.was)
+    return (
+      <div
+        data-mark="look"
+        className="-ml-3.5 border-l-2 border-dotted border-[var(--mark-fmt-line)] pl-3"
+      >
+        {side === 'after' ? (
+          <span className="sr-only">{`[${shapeWords(passage.was, shape)}] `}</span>
+        ) : null}
+        {body}
+        {side === 'after' && tag && (
+          <p className="pt-1">
+            <Tag kind="look">{shapeWords(passage.was, shape)}</Tag>
+          </p>
+        )}
+      </div>
+    )
+  return body
 }
 
 /** The place a passage is commented on: its first line on the suggested side, or on the side it has. */
@@ -720,41 +929,119 @@ function placesOfRows(rows: readonly PassageRow[], before: string, after: string
   return owned
 }
 
+/** The marks a text can use, as its legend names them. */
+type MarkKind = 'removed' | 'added' | 'look' | 'moved' | 'link'
+
+/** The marks the rows use, in the legend's order. */
+function marksIn(rows: readonly PassageRow[]): MarkKind[] {
+  const runs = (r: PassageRow, s: 'before' | 'after') =>
+    (r[s]?.runs ?? []).filter((x) => x.text.trim())
+  const used = new Set<MarkKind>()
+  for (const r of rows) {
+    if (runs(r, 'before').some((x) => x.changed)) used.add('removed')
+    if (runs(r, 'after').some((x) => x.changed)) used.add('added')
+    if (
+      r.after?.was ||
+      r.before?.was ||
+      runs(r, 'after').some((x) => !x.changed && !x.link && x.look)
+    )
+      used.add('look')
+    if (r.after?.moved || r.before?.moved) used.add('moved')
+    if (
+      runs(r, 'after').some((x) => !x.changed && x.link) ||
+      runs(r, 'before').some((x) => !x.changed && x.link)
+    )
+      used.add('link')
+  }
+  return (['removed', 'added', 'look', 'moved', 'link'] as const).filter((k) => used.has(k))
+}
+
 /** The legend of the marks a text uses, and only those. */
-function Legend({ removed, added }: { removed: boolean; added: boolean }) {
-  if (!removed && !added) return null
+function Legend({ marks }: { marks: readonly MarkKind[] }) {
+  if (!marks.length) return null
   const sample = 'rounded-xs px-1 decoration-2'
+  const swatch: Record<MarkKind, React.ReactNode> = {
+    removed: (
+      <del
+        aria-hidden
+        className={cn(sample, 'bg-mark-del-word text-foreground decoration-[var(--mark-del-line)]')}
+      >
+        text
+      </del>
+    ),
+    added: (
+      <ins
+        aria-hidden
+        className={cn(
+          sample,
+          'bg-mark-add-word text-foreground underline decoration-[var(--mark-add-line)] underline-offset-3',
+        )}
+      >
+        text
+      </ins>
+    ),
+    look: (
+      <span
+        aria-hidden
+        className={cn(
+          sample,
+          'bg-[var(--mark-fmt)] text-foreground underline decoration-[var(--mark-fmt-line)] decoration-dotted underline-offset-3',
+        )}
+      >
+        text
+      </span>
+    ),
+    moved: (
+      <span
+        aria-hidden
+        className="rounded-r-xs border-l-2 border-[var(--mark-move-line)] bg-[var(--mark-move)] px-1 text-foreground"
+      >
+        text
+      </span>
+    ),
+    link: (
+      <span
+        aria-hidden
+        className={cn(
+          sample,
+          'bg-[var(--mark-link)] text-foreground underline decoration-[var(--mark-link-line)] underline-offset-3',
+        )}
+      >
+        text
+      </span>
+    ),
+  }
+  const name: Record<MarkKind, string> = {
+    removed: 'Removed',
+    added: 'Added',
+    look: 'New look',
+    moved: 'Moved',
+    link: 'New link',
+  }
   return (
     <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-      {removed && (
-        <span className="inline-flex items-center gap-1.5">
-          <del
-            aria-hidden
-            className={cn(
-              sample,
-              'bg-mark-del-word text-foreground decoration-[var(--mark-del-line)]',
-            )}
-          >
-            text
-          </del>
-          Removed
+      {marks.map((k) => (
+        <span key={k} className="inline-flex items-center gap-1.5">
+          {swatch[k]}
+          {name[k]}
         </span>
-      )}
-      {added && (
-        <span className="inline-flex items-center gap-1.5">
-          <ins
-            aria-hidden
-            className={cn(
-              sample,
-              'bg-mark-add-word text-foreground underline decoration-[var(--mark-add-line)] underline-offset-3',
-            )}
-          >
-            text
-          </ins>
-          Added
-        </span>
-      )}
+      ))}
     </p>
+  )
+}
+
+/** The column of a side with no text: its name, and what stands there instead. */
+function Missing({ label, say, first }: { label: string; say?: string; first?: boolean }) {
+  return (
+    <div
+      className={cn(
+        'min-w-0 px-6 py-4',
+        first ? 'border-b @2xl:border-r @2xl:border-b-0' : 'border-t @2xl:border-t-0',
+      )}
+    >
+      <p className="pb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-muted-foreground">{say ?? 'Nothing'}</p>
+    </div>
   )
 }
 
@@ -762,9 +1049,11 @@ function Legend({ removed, added }: { removed: boolean; added: boolean }) {
  * The text of the comparison: drawn as a reader sees it, now beside suggested, passage beside
  * passage, with removed words struck on the left and added words underlined on the right, a legend
  * of the marks in use and a footer that counts. A changed passage is a stop for N and P, and with
- * `notes` each passage is a place to comment, its threads under it. A text that stays the same,
- * or that only one side has, is shown once. On a narrow pane a changed passage shows now above
- * suggested. `action` sits in its header: the way to the lines.
+ * `notes` each passage is a place to comment, its threads under it. A text that stays the same is
+ * shown once. One that only one side has (a new item, an archive) keeps both columns: its own
+ * text in one, and in the other `missing`, what stands there instead, such as what agents hear. On
+ * a narrow pane a changed passage, and a one-sided text, shows now above suggested. `action` sits
+ * in its header: the way to the lines.
  */
 export function TextComparison({
   before,
@@ -772,12 +1061,15 @@ export function TextComparison({
   labels = REVIEW_SIDES,
   notes,
   action,
+  missing,
 }: {
   before: string
   after: string
   labels?: SideLabels
   notes?: SourceNotes
   action?: React.ReactNode
+  /** What the side with no text says: "Nothing yet. Agents hear Not found." */
+  missing?: string
 }) {
   const id = React.useId()
   const rows = React.useMemo(() => passageDiff(before, after), [before, after])
@@ -786,8 +1078,14 @@ export function TextComparison({
   const one = !before.trim() || !after.trim()
   const once = one || !stats.changed
   const side: 'before' | 'after' = after.trim() ? 'after' : 'before'
-  const removed = !once && rows.some((r) => r.before?.runs.some((x) => x.changed && x.text.trim()))
-  const added = !once && rows.some((r) => r.after?.runs.some((x) => x.changed && x.text.trim()))
+  const legend = once ? [] : marksIn(rows)
+  // A new shape's tag goes under the last passage of a run that takes the same new shape.
+  const shapeTag = (k: number) => {
+    const p = rows[k]?.after
+    if (!p?.was) return false
+    const next = rows[k + 1]?.after
+    return !next?.was || shapeWords(next.was, next.shape) !== shapeWords(p.was, p.shape)
+  }
   let n = 0
   const foot = !rows.length
     ? []
@@ -803,6 +1101,86 @@ export function TextComparison({
             `${labels.before}: ${stats.words.before} words`,
             `${labels.after}: ${stats.words.after} words`,
           ]
+  const passages = (
+    <div className="py-4 text-base">
+      {!once && (
+        <div aria-hidden className="grid grid-cols-2 pb-1.5 text-xs font-medium @max-2xl:hidden">
+          <span className="border-r px-6 text-muted-foreground">{labels.before}</span>
+          <span className="px-6">{labels.after}</span>
+        </div>
+      )}
+      {once && (
+        <p className="px-6 pb-1.5 text-xs font-medium text-muted-foreground">{labels[side]}</p>
+      )}
+      {rows.map((row, i) => {
+        const at = placeOfPassage(row)
+        const stopN = row.stop && !once ? ++n : 0
+        // Its own place, and every other line of it that holds a thread.
+        const threads = notes
+          ? [at, ...owned[i]!.filter((p) => placeKey(p) !== placeKey(at) && notes.holds(p))].map(
+              (p) => <React.Fragment key={placeKey(p)}>{notes.under(p)}</React.Fragment>,
+            )
+          : null
+        const cell = (s: 'before' | 'after') => {
+          const p = row[s]
+          return (
+            <div
+              className={cn(
+                'min-w-0 px-6 py-1.5 break-words',
+                s === 'before' && '@2xl:border-r',
+                // On a narrow pane: a passage that stays the same is said once, a missing side not at all.
+                (!p || (!row.changed && s === 'before')) && '@max-2xl:hidden',
+              )}
+              // A passage that stays the same is read once.
+              aria-hidden={!row.changed && s === 'before' ? true : undefined}
+            >
+              {row.changed && p && (
+                <span className="block text-xs text-muted-foreground @2xl:sr-only">
+                  {labels[s]}
+                </span>
+              )}
+              {p && <PassageView passage={p} side={s} tag={s === 'after' && shapeTag(i)} />}
+            </div>
+          )
+        }
+        return (
+          <React.Fragment key={i}>
+            <div
+              role={stopN ? 'group' : undefined}
+              aria-label={stopN ? `Change ${stopN} of ${stats.changed} in the text` : undefined}
+              data-review-change={stopN ? '' : undefined}
+              data-source-place={notes ? placeKey(at) : undefined}
+              tabIndex={stopN || notes ? -1 : undefined}
+              className={cn(
+                'relative',
+                !once && 'grid @max-2xl:gap-1 @2xl:grid-cols-2',
+                stopN && stop,
+                notes && place,
+              )}
+            >
+              {notes && <AddNote at={at} notes={notes} className="top-2 left-0.5" />}
+              {once ? (
+                <div className="min-w-0 px-6 py-1.5 break-words">
+                  <PassageView passage={row[side]!} side={side} plain />
+                </div>
+              ) : (
+                <>
+                  {cell('before')}
+                  {cell('after')}
+                </>
+              )}
+              {notes && (
+                <span className="hidden justify-end px-6 @2xl:col-span-2 pointer-coarse:group-focus-within/row:flex">
+                  <TouchNote at={at} notes={notes} />
+                </span>
+              )}
+            </div>
+            {threads}
+          </React.Fragment>
+        )
+      })}
+    </div>
+  )
   return (
     <section aria-labelledby={`${id}-h`} className="overflow-hidden rounded-frame border">
       <header className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-3">
@@ -810,105 +1188,42 @@ export function TextComparison({
           <h3 id={`${id}-h`} className="text-xl font-semibold">
             Text
           </h3>
-          {!one && rows.length > 0 && (
+          {one && rows.length > 0 ? (
             <Badge
-              variant={stats.changed ? 'outline' : 'secondary'}
-              className={cn(stats.changed && 'border-transparent bg-caution/8 text-caution')}
+              variant="outline"
+              className={cn(
+                'border-transparent',
+                side === 'after' ? 'bg-good/8 text-good' : 'bg-destructive/8 text-destructive',
+              )}
             >
-              {stats.changed ? 'Changed' : 'The same'}
+              {side === 'after' ? 'New' : 'Goes'}
             </Badge>
+          ) : (
+            rows.length > 0 && (
+              <Badge
+                variant={stats.reworded ? 'outline' : 'secondary'}
+                className={cn(stats.reworded && 'border-transparent bg-caution/8 text-caution')}
+              >
+                {stats.reworded ? 'Changed' : stats.changed ? 'The same words' : 'The same'}
+              </Badge>
+            )
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <Legend removed={removed} added={added} />
+          <Legend marks={legend} />
           {action}
         </div>
       </header>
       {!rows.length ? (
         <p className="px-5 py-4 text-sm text-muted-foreground">No text</p>
-      ) : (
-        <div className="py-4 text-base">
-          {!once && (
-            <div
-              aria-hidden
-              className="grid grid-cols-2 pb-1.5 text-xs font-medium @max-2xl:hidden"
-            >
-              <span className="border-r px-6 text-muted-foreground">{labels.before}</span>
-              <span className="px-6">{labels.after}</span>
-            </div>
-          )}
-          {once && (
-            <p className="px-6 pb-1.5 text-xs font-medium text-muted-foreground">{labels[side]}</p>
-          )}
-          {rows.map((row, i) => {
-            const at = placeOfPassage(row)
-            const stopN = row.changed && !once ? ++n : 0
-            // Its own place, and every other line of it that holds a thread.
-            const threads = notes
-              ? [
-                  at,
-                  ...owned[i]!.filter((p) => placeKey(p) !== placeKey(at) && notes.holds(p)),
-                ].map((p) => <React.Fragment key={placeKey(p)}>{notes.under(p)}</React.Fragment>)
-              : null
-            const cell = (s: 'before' | 'after') => {
-              const p = row[s]
-              return (
-                <div
-                  className={cn(
-                    'min-w-0 px-6 py-1.5 break-words',
-                    s === 'before' && '@2xl:border-r',
-                    // On a narrow pane: a passage that stays the same is said once, a missing side not at all.
-                    (!p || (!row.changed && s === 'before')) && '@max-2xl:hidden',
-                  )}
-                  // A passage that stays the same is read once.
-                  aria-hidden={!row.changed && s === 'before' ? true : undefined}
-                >
-                  {row.changed && p && (
-                    <span className="block text-xs text-muted-foreground @2xl:sr-only">
-                      {labels[s]}
-                    </span>
-                  )}
-                  {p && <PassageView passage={p} side={s} />}
-                </div>
-              )
-            }
-            return (
-              <React.Fragment key={i}>
-                <div
-                  role={stopN ? 'group' : undefined}
-                  aria-label={stopN ? `Change ${stopN} of ${stats.changed} in the text` : undefined}
-                  data-review-change={stopN ? '' : undefined}
-                  data-source-place={notes ? placeKey(at) : undefined}
-                  tabIndex={stopN || notes ? -1 : undefined}
-                  className={cn(
-                    'relative',
-                    !once && 'grid @max-2xl:gap-1 @2xl:grid-cols-2',
-                    stopN && stop,
-                    notes && place,
-                  )}
-                >
-                  {notes && <AddNote at={at} notes={notes} className="top-2 left-0.5" />}
-                  {once ? (
-                    <div className="min-w-0 px-6 py-1.5 break-words">
-                      <PassageView passage={row[side]!} side={side} plain />
-                    </div>
-                  ) : (
-                    <>
-                      {cell('before')}
-                      {cell('after')}
-                    </>
-                  )}
-                  {notes && (
-                    <span className="hidden justify-end px-6 @2xl:col-span-2 pointer-coarse:group-focus-within/row:flex">
-                      <TouchNote at={at} notes={notes} />
-                    </span>
-                  )}
-                </div>
-                {threads}
-              </React.Fragment>
-            )
-          })}
+      ) : one ? (
+        <div className="grid @2xl:grid-cols-2">
+          {side === 'after' && <Missing label={labels.before} say={missing} first />}
+          <div className={cn('min-w-0', side === 'before' && '@2xl:border-r')}>{passages}</div>
+          {side === 'before' && <Missing label={labels.after} say={missing} />}
         </div>
+      ) : (
+        passages
       )}
       {foot.length > 0 && (
         <p className="flex flex-wrap gap-x-6 gap-y-1 border-t bg-muted/50 px-6 py-3 text-xs text-muted-foreground">
@@ -974,7 +1289,11 @@ export function CompareBar({
       <p className="ml-auto flex flex-wrap items-center gap-2 @max-lg:ml-0 @max-lg:basis-full">
         {mode === 'edit' ? (
           <>
-            <Badge variant="outline" className="border-transparent bg-caution/8 text-caution">
+            {/* Amber says look here; with no field changed there is nothing to look at. */}
+            <Badge
+              variant={changed ? 'outline' : 'secondary'}
+              className={cn(changed && 'border-transparent bg-caution/8 text-caution')}
+            >
               {changed} changed
             </Badge>{' '}
             <Badge variant="secondary">{same} the same</Badge>

@@ -742,6 +742,29 @@ export function describeFootnoteApi(
     })
 
     it.skipIf(
+      lacks('signIn', 'getWorkspace', 'getLibrary', 'itemPage', 'saveItem', 'compareVersions'),
+    )('compares any two versions of an item agents got, the latest as it reads now', async () => {
+      const live = await signedIn()
+      const { fact, relations } = await newItem(live, 'Conformance: an item to compare', '04')
+      const { id } = await saveAnswered(live, { fact, isNew: true, relations })
+      const page = (await live.itemPage({ id }))!
+      const renamed = `${fact.title}, renamed`
+      await saveAnswered(live, { fact: { ...page.item, title: renamed }, isNew: false, relations })
+      const versions = (await live.itemPage({ id }))!.history.filter((v) => v.comparable)
+      expect(versions.length).toBeGreaterThan(1)
+      const [latest, earliest] = [versions[0]!.v, versions.at(-1)!.v]
+      const pair = (await live.compareVersions({ id, from: earliest, to: latest }))!
+      expect(pair.fields.after).toMatchObject({ title: renamed, scope: page.item.where })
+      expect([fact.title, renamed]).toContain(pair.fields.before.title)
+      expect(pair.source.after).toContain(page.item.summary)
+      // A version compared with itself is the same on both sides.
+      const self = (await live.compareVersions({ id, from: latest, to: latest }))!
+      expect(self.fields.before).toEqual(self.fields.after)
+      expect(self.source.before).toBe(self.source.after)
+      expect(await live.compareVersions({ id: 'itm_nothere001', from: 1, to: 1 })).toBeNull()
+    })
+
+    it.skipIf(
       lacks(
         'signIn',
         'getWorkspace',

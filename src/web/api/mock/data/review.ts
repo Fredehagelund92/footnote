@@ -619,7 +619,7 @@ fixtures.push(
 )
 
 /** A context item's fields, as the Fields table reads them. */
-const sideOf = (f: Fact): FieldSide => ({
+export const sideOf = (f: Fact): FieldSide => ({
   title: f.title,
   kind: kindLabel[f.kind],
   domain: domains[f.domain]?.name ?? f.domain,

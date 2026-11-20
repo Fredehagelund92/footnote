@@ -343,6 +343,7 @@ describe('the API over HTTP', () => {
       '/invites/{id}/revoke',
       '/items/bulk',
       '/items/publish',
+      '/items/{id}/compare',
       '/items/{id}/page',
       '/items/{id}/read',
       '/items/{id}/related',

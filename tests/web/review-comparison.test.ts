@@ -4,12 +4,13 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { FieldsDiff, TextComparison } from '@/components/footnote/source-review'
-import { compareCounts } from '@/lib/review-compare'
+import { compareCounts, missingWords } from '@/lib/review-compare'
+import { reviewFor } from '@/api/mock/data/review'
 import { fieldKeys, fieldLabel, fieldRows, type FieldKey } from '@/model/review-fields'
 import type { FieldSide } from '@/model/review'
 import type { SourcePlace } from '@/model/source-places'
 
-// K1 and K2 of the comparison, as the done-when lines of the slices say them: the table of
+// K1 to K4 of the comparison, as the done-when lines of the slices say them: the table of
 // fields with its tinted rows, its marks under Now and Suggested, its counts and its switch, and
 // the text in two columns with its marks inside the passages. Invented demo data only.
 
@@ -238,5 +239,143 @@ describe('K2, the text in two columns', () => {
     const legend = el.querySelector('header')!.textContent
     expect(legend).toContain('Added')
     expect(legend).not.toContain('Removed')
+  })
+})
+
+describe('K3, a new look, a move and a link in the text', () => {
+  const text = (before: string, after: string) =>
+    render(React.createElement(TextComparison, { before, after }))
+  const legendOf = (el: HTMLElement) =>
+    [...el.querySelector('header p')!.children].map((c) => c.textContent.replace(/^text/, ''))
+  const badgeOf = (el: HTMLElement) => el.querySelector('header [data-slot="badge"]')!.textContent
+
+  it('shows a change of look alone with no list or bold symbols, and says The same words', () => {
+    const r = reviewFor('sug-ines-format')!
+    const el = text(r.source.before, r.source.after)
+    expect(el.querySelector('del, ins')).toBeNull()
+    const body = el.querySelector('.py-4')!.textContent
+    expect(body).not.toMatch(/\*\*|__|(^|\s)[-*+] |(^|\s)_\w/)
+    // The look is drawn and named: bold words in bold, the steps numbered, each tagged.
+    expect(el.querySelector('strong')!.textContent).toContain('the only way to buy there')
+    expect(body).toContain('Bold')
+    expect(body).toContain('Italic')
+    // One tag for the list, under its last step; each step says it to a screen reader.
+    const tags = [...el.querySelectorAll('[aria-hidden="true"]')].filter(
+      (t) => t.textContent === 'Now numbered',
+    )
+    expect(tags).toHaveLength(1)
+    expect(body.match(/\[Now numbered\]/g)).toHaveLength(2)
+    expect(badgeOf(el)).toBe('The same words')
+    expect(legendOf(el)).toEqual(['New look'])
+  })
+
+  it('marks a moved step once on each side, not struck and not added', () => {
+    const r = reviewFor('sug-ines-order')!
+    const el = text(r.source.before, r.source.after)
+    expect(el.querySelector('del, ins')).toBeNull()
+    const moved = [...el.querySelectorAll('[data-mark="moved"]')]
+    const step =
+      "Check for a few very large orders. One big order at full price can lift a week's margin."
+    // Where it goes on the right, on the first row; where it was on the left, as step 2.
+    expect(moved.map((m) => m.textContent)).toEqual([
+      `1.${step}Moved up, from step 2 to step 1`,
+      `2.${step}Moves up`,
+    ])
+    // One change, one stop: where it goes.
+    const stops = [...el.querySelectorAll('[data-review-change]')]
+    expect(stops).toHaveLength(1)
+    expect(stops[0]!.textContent).toContain('Moved up, from step 2 to step 1')
+    expect(el.textContent).toContain('1 passage changed')
+    expect(badgeOf(el)).toBe('The same words')
+    expect(legendOf(el)).toEqual(['Moved'])
+  })
+
+  it('tags a new link on the same words, and lists only the marks in use', () => {
+    const el = text(
+      'Units sold leaves out the 312 test accounts our teams use.',
+      'Units sold leaves out the 340 [test accounts](https://wiki.example/test-accounts) our teams use.',
+    )
+    expect([...el.querySelectorAll('del:not([aria-hidden])')].map((d) => d.textContent)).toEqual([
+      '[removed: 312]',
+    ])
+    expect([...el.querySelectorAll('ins:not([aria-hidden])')].map((d) => d.textContent)).toEqual([
+      '[added: 340]',
+    ])
+    expect(el.textContent).toContain('[Link: test accounts]Link')
+    expect(badgeOf(el)).toBe('Changed')
+    expect(legendOf(el)).toEqual(['Removed', 'Added', 'New link'])
+  })
+
+  it('says The same when nothing changed at all, and shows the text once', () => {
+    const el = text('Orders fell.\n\n- Parcels arrived.', 'Orders fell.\n\n- Parcels arrived.')
+    expect(badgeOf(el)).toBe('The same')
+    expect(el.querySelector('header p')).toBeNull()
+    expect(el.textContent).toContain('The text is the same')
+  })
+})
+
+describe('K4, a new item and an archive', () => {
+  const heads = (el: HTMLElement) => [...el.querySelectorAll('thead th')].map((t) => t.textContent)
+  const cells = (el: HTMLElement, label: string) => [
+    ...bodyRows(el)
+      .find((r) => r.querySelector('th')!.textContent === label)!
+      .querySelectorAll('td'),
+  ]
+
+  it('draws a new item in the same table, the Now column empty and nothing marked', () => {
+    const el = render(React.createElement(FieldsDiff, { before: null, after: now, person: 'New' }))
+    expect(heads(el)).toEqual(['Field', 'Now', 'Suggested'])
+    expect(bodyRows(el)).toHaveLength(9)
+    const [left, right] = cells(el, 'Title')
+    expect(left!.textContent).toBe('')
+    expect(right!.textContent).toBe(now.title)
+    expect(el.querySelector('del, ins, [class*="bg-caution"]')).toBeNull()
+    expect(el.querySelector('[role="switch"]')).toBeNull()
+  })
+
+  it('draws an archive in the same table, the Suggested column empty', () => {
+    const el = render(React.createElement(FieldsDiff, { before: now, after: null, person: 'Old' }))
+    expect(heads(el)).toEqual(['Field', 'Now', 'Suggested'])
+    const [left, right] = cells(el, "Don't conclude")
+    expect(left!.textContent).toBe(now.dontConclude)
+    expect(right!.textContent).toBe('')
+    expect(el.querySelector('del, ins, [class*="bg-caution"]')).toBeNull()
+  })
+
+  it('shows a new text with no mark, and what stands on the side with none', () => {
+    const el = render(
+      React.createElement(TextComparison, {
+        before: '',
+        after: 'Card payments in Spain failed from 14 to 16 October 2026.',
+        missing: missingWords({
+          mode: 'new',
+          tryIt: { ...reviewFor('gap-spain')!.tryIt, before: { state: 'missing', text: '' } },
+        }),
+      }),
+    )
+    expect(el.querySelector('del, ins, [data-mark]')).toBeNull()
+    expect(el.querySelector('header [data-slot="badge"]')!.textContent).toBe('New')
+    // Now comes first: above on a phone, on the left when there is room.
+    const text = el.textContent
+    expect(text.indexOf('Nothing yet. Agents hear Not found.')).toBeLessThan(
+      text.indexOf('Card payments'),
+    )
+    expect(el.querySelectorAll('[data-review-change]')).toHaveLength(0)
+  })
+
+  it('shows an archive with what agents hear afterwards', () => {
+    const r = reviewFor('sug-lars-retire')!
+    const hear = missingWords(r)!
+    expect(hear).toBe(
+      `Nothing. Asked “${r.tryIt.question}”, agents will hear: “${r.tryIt.after.text}”`,
+    )
+    const el = render(
+      React.createElement(TextComparison, { before: r.source.before, after: '', missing: hear }),
+    )
+    expect(el.querySelector('del, ins, [data-mark]')).toBeNull()
+    expect(el.querySelector('header [data-slot="badge"]')!.textContent).toBe('Goes')
+    expect(el.textContent).toContain(hear)
+    expect(el.textContent).toContain('The text goes with the item')
+    expect(el.textContent.indexOf('Sweden orders')).toBeLessThan(el.textContent.indexOf(hear))
   })
 })

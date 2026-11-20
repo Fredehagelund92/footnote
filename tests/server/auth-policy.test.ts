@@ -181,6 +181,7 @@ const readOperations = [
   'items.page',
   'items.markRead',
   'items.related',
+  'items.compare',
   'items.restoreAsDraft',
   'items.publish',
   'items.bulkApply',

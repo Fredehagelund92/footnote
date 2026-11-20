@@ -106,9 +106,9 @@ describe("the comparison's text", () => {
 
   it('keeps a mention whole, as the editor wrote it', () => {
     const token = '[@ id="term:Test account" label="accounts"]'
-    const rows = passageDiff('Leaves out 312 accounts.', `Leaves out 340 ${token}.`)
+    const rows = passageDiff('Leaves out 312 people.', `Leaves out 340 ${token}.`)
     const mention = rows[0]!.after!.runs.find((r) => r.mention)
-    expect(mention).toMatchObject({ mention: token, changed: true })
+    expect(mention).toMatchObject({ mention: token, changed: true, link: null })
     expect(rows[0]!.after!.runs.map((r) => r.text).join('')).not.toContain('[@')
   })
 
@@ -124,7 +124,11 @@ describe("the comparison's text", () => {
   it('counts the passages that changed and the words of each side', () => {
     const r = reviewFor('sug-ines')!
     const rows = passageDiff(r.source.before, r.source.after)
-    expect(passageStats(rows)).toEqual({ changed: 1, words: { before: 31, after: 50 } })
+    expect(passageStats(rows)).toEqual({
+      changed: 1,
+      reworded: 1,
+      words: { before: 31, after: 50 },
+    })
     // The returns team's new sentence is marked on the right only, inside the same passage.
     expect(marked(rows[0]!.before)).toEqual(['312'])
     expect(marked(rows[0]!.after)[0]).toBe('340')
@@ -164,5 +168,78 @@ describe("the comparison's text", () => {
           expect([...marked(r.before), ...marked(r.after)]).toEqual([])
       }),
     )
+  })
+})
+
+// K3, a new look, a move and a link in the text: the kinds the review's difference tells apart that
+// keep the words get marks of their own, never a word struck and one added.
+describe('the changes that keep the words', () => {
+  const struck = (rows: PassageRow[]) =>
+    rows.flatMap((r) => [...marked(r.before), ...marked(r.after)])
+
+  it('reads the same words made bold as a new look, not words changed', () => {
+    const rows = passageDiff(
+      'The webshop was the only way to buy there.',
+      'The webshop was **the only way to buy there**.',
+    )
+    expect(struck(rows)).toEqual([])
+    expect(rows[0]).toMatchObject({ changed: true, words: false, stop: true })
+    const look = rows[0]!.after!.runs.find((r) => r.look)!
+    expect(look).toMatchObject({ text: 'the only way to buy there', marks: ['bold'] })
+    expect(look.look).toEqual({ added: ['bold'], removed: [] })
+    // The same words on the left say what they lose.
+    expect(rows[0]!.before!.runs.find((r) => r.look)!.look).toEqual({
+      added: [],
+      removed: ['bold'],
+    })
+    expect(passageStats(rows)).toMatchObject({ changed: 1, reworded: 0 })
+  })
+
+  it('reads a list made numbered as a new shape of the same words', () => {
+    const r = reviewFor('sug-ines-format')!
+    const rows = passageDiff(r.source.before, r.source.after)
+    expect(struck(rows)).toEqual([])
+    expect(rows.map((x) => x.after?.was?.type ?? null)).toEqual([null, 'bullet', 'bullet'])
+    expect(rows.map((x) => x.after?.n ?? null)).toEqual([null, 1, 2])
+    expect(passageStats(rows)).toMatchObject({ changed: 3, reworded: 0 })
+  })
+
+  it('marks a moved step once on each side, neither struck nor added, counted once', () => {
+    const r = reviewFor('sug-ines-order')!
+    const rows = passageDiff(r.source.before, r.source.after)
+    expect(struck(rows)).toEqual([])
+    const left = rows.filter((x) => x.before?.moved)
+    const right = rows.filter((x) => x.after?.moved)
+    expect(left).toHaveLength(1)
+    expect(right).toHaveLength(1)
+    expect(left[0]!.before!.moved).toEqual({ up: true, steps: { from: 2, to: 1 } })
+    expect(words(right[0]!.after)).toBe(words(left[0]!.before))
+    // The place it left is marked but is no stop of its own.
+    expect(passageStats(rows)).toMatchObject({ changed: 1, reworded: 0 })
+    expect(rows.filter((x) => x.stop)).toEqual(right)
+  })
+
+  it('reads words made a link, or a link with a new address, as a link', () => {
+    const added = passageDiff('See the notice.', 'See [the notice](https://customs.example/n).')
+    expect(struck(added)).toEqual([])
+    expect(added[0]!.after!.runs.find((r) => r.link)).toMatchObject({
+      text: 'the notice',
+      link: 'added',
+    })
+    const moved = passageDiff(
+      'See [the notice](https://customs.example/old).',
+      'See [the notice](https://customs.example/new).',
+    )
+    expect(moved[0]!.after!.runs.find((r) => r.link)!.link).toBe('address')
+    const token = '[@ id="term:Test account" label="test accounts"]'
+    const mention = passageDiff('It leaves out test accounts.', `It leaves out ${token}.`)
+    expect(struck(mention)).toEqual([])
+    expect(mention[0]!.after!.runs.find((r) => r.mention)).toMatchObject({
+      mention: token,
+      link: 'added',
+      changed: false,
+    })
+    expect(mention[0]!.before!.runs.find((r) => r.link)!.text).toBe('test accounts')
+    expect(passageStats(mention)).toMatchObject({ changed: 1, reworded: 0 })
   })
 })

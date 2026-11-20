@@ -1,9 +1,9 @@
-import type * as React from 'react'
-import { ArrowRightIcon, CircleDashedIcon, TriangleAlertIcon } from '@/components/icons'
+import * as React from 'react'
+import { CircleDashedIcon, TriangleAlertIcon } from '@/components/icons'
 import { cn, midSentence } from '@/lib/utils'
 import { DockFrame, DockMissing } from '@/components/dock'
 import { AgentAvatar, PersonAvatar } from '@/components/footnote/bits'
-import { ChangeBlock, KindLabel } from '@/components/footnote/review-parts'
+import { KindLabel } from '@/components/footnote/review-parts'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { lookOf } from '@/model/integrations'
 import { careLine, countWord, type Review } from '@/model/review'
@@ -30,7 +30,8 @@ import type { DomainId } from '@/model/items'
 // Reviewing a suggestion, in two places. The quick view (in the Inbox pane and the dock) says what
 // changes and opens the review; it never publishes. The full-screen review is where you work: the
 // queue of waiting suggestions on the left, the change in the middle, Try it and the decision on
-// the right. Every change sits in its own block under a quiet kind label, with hairlines between.
+// the right. Both show the change as the comparison: the Fields table and the text, now and
+// suggested, every change at once.
 
 /* ---------- the summary, shared by both ---------- */
 
@@ -92,32 +93,6 @@ export function Sender({ r, when, short }: { r: Review; when?: string; short?: b
   )
 }
 
-/** "Number 312 to 340": the values that moved, pulled out of the text. */
-function Moved({ r }: { r: Review }) {
-  if (!r.moved.length) return null
-  return (
-    <ul aria-label="What moved" className="flex flex-wrap gap-2">
-      {r.moved.map((m) => (
-        <li
-          key={m.label}
-          className="inline-flex h-7 items-center gap-1.5 rounded-md border bg-background px-2 text-sm"
-        >
-          <span className="text-xs text-muted-foreground">{m.label}</span>
-          {m.before && (
-            <>
-              <del className="text-muted-foreground decoration-[var(--mark-del-line)]">
-                {m.before}
-              </del>
-              <ArrowRightIcon aria-label="to" className="size-3 text-muted-foreground" />
-            </>
-          )}
-          <span className="font-medium">{m.after}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 export function Summary({
   r,
   size = 'lg',
@@ -176,6 +151,9 @@ export function Summary({
 
 /* ---------- the quick view ---------- */
 
+/** The comparison, loaded once a suggestion is opened: the first screen loads this module. */
+const PaneComparison = React.lazy(() => import('@/components/footnote/pane-comparison'))
+
 /** The live items a suggestion overlaps, in a few words: the first by its title, then how many more. */
 const overlapsWords = (items: { title: string }[]) =>
   `${items[0]?.title ?? ''}${items.length > 1 ? ` and ${items.length - 1} more` : ''}`
@@ -187,7 +165,6 @@ const overlapsWords = (items: { title: string }[]) =>
  * about, never their words.
  */
 export function QuickReview({ r, asked }: { r: Review; asked?: React.ReactNode }) {
-  const first = r.blocks[0]
   const care = careLine(r)
   const answers = answersOf(r)
   return (
@@ -214,21 +191,10 @@ export function QuickReview({ r, asked }: { r: Review; asked?: React.ReactNode }
           summary={r.counts.map((c) => `${c.n} ${countWord(c.kind, c.n)}`).join(', ')}
           defaultOpen={!answers}
         >
-          {r.formattingOnly && (
-            <p className="rounded-frame border border-dashed bg-muted/40 px-3 py-2">
-              <span className="font-medium">Formatting only. The words are the same.</span>
-            </p>
-          )}
-          <Moved r={r} />
-          {first ? (
-            <ChangeBlock block={first} index={0} total={r.blocks.length} />
-          ) : r.rewrite ? (
-            <p className="text-muted-foreground">
-              {r.rewrite.changes} changes across the text. The review shows them side by side.
-            </p>
-          ) : r.retire ? (
-            <p className="text-muted-foreground">{r.retire.reason}</p>
-          ) : null}
+          {r.retire && <p className="text-muted-foreground">{r.retire.reason}</p>}
+          <React.Suspense fallback={<div className="h-40" />}>
+            <PaneComparison r={r} />
+          </React.Suspense>
         </Fold>
         {r.note && (
           <Fold title={r.drafted ? 'About the draft' : `Why ${r.from} suggested it`}>

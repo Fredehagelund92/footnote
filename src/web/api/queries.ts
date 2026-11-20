@@ -48,6 +48,7 @@ export const queryKeys = {
   itemPages: ['itemPage'] as const,
   itemHistory: (id: string) => ['getItemHistory', id] as const,
   itemHistories: ['getItemHistory'] as const,
+  versionPair: (id: string, from: number, to: number) => ['compareVersions', id, from, to] as const,
   related: (id: string) => ['getRelated', id] as const,
   relateds: ['getRelated'] as const,
   draftFromText: (text: string) => ['draftFromText', text] as const,
@@ -201,6 +202,13 @@ export const conflictQuery = (key: string) => {
 
 export const itemHistoryQuery = (id: string) =>
   queryOptions({ queryKey: queryKeys.itemHistory(id), queryFn: () => api.getItemHistory({ id }) })
+
+/** Two versions of an item, as History compares them. */
+export const versionPairQuery = (id: string, from: number, to: number) =>
+  queryOptions({
+    queryKey: queryKeys.versionPair(id, from, to),
+    queryFn: () => api.compareVersions({ id, from, to }),
+  })
 
 /** What an agent can follow from an item or a definition, as Related shows it. */
 export const relatedQuery = (id: string) =>

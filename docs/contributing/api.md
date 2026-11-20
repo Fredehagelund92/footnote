@@ -622,6 +622,10 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
 - `POST /items/{id}/restore-draft` takes `{ version }` (FR-140): an owner of the item's domain or
   an admin gets a draft of a change with that version's words, dates and sources. What agents
   get does not change until the draft is published.
+- `GET /items/{id}/compare?from=&to=` is History's comparison: two versions of an item agents
+  got, by their numbers, `from` as before and `to` as after. Each comes as the review's Fields
+  table reads a version (`fields`, with the domain and the owner by name) and as its stored text
+  (`source`). A mention of an item hidden from the reader reads as its words.
 - `GET /items/{id}/related` is Related on a context item: its neighbours one step away, as
   `get_related` follows them on what agents get now, with how each relates to the item itself
   (`mentions`, `mentioned_by`, `replaces`, `replaced_by`, `conflicts_with`, `applies_to`).
