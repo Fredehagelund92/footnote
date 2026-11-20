@@ -182,6 +182,8 @@ export type Field = {
   landed: () => void
   /** What is written changed, so the note did: a faint wave when nothing is written. */
   changed: (faint: boolean) => void
+  /** An animation ended, so the layout is final: measure the holes again. */
+  settled: () => void
 }
 
 type Dot = { x: number; y: number; term: boolean; hole: boolean }
@@ -205,6 +207,8 @@ export function field(hero: HTMLElement): Field | undefined {
   hero.classList.add('field-on')
 
   const narrow = matchMedia('(max-width: 900px)')
+  const still = matchMedia('(prefers-reduced-motion: reduce)')
+  let off = false
   const P = pitch
   let W = 0
   let H = 0
@@ -213,6 +217,7 @@ export function field(hero: HTMLElement): Field | undefined {
   let timer = 0
   let count = 0
   let dots: Dot[] = []
+  let again = 0
   const waves: Wave[] = []
   const marks: FieldMark[] = []
   let ptr: Pointer | null = null
@@ -221,11 +226,15 @@ export function field(hero: HTMLElement): Field | undefined {
   let note: Box = { l: 0, t: 0, r: 0, b: 0, x: 0, y: 0 }
   let col = { paper: '', term: '', lp: '', lt: '', wt: '' }
 
-  const at = (x: number, y: number) =>
-    dots[Math.round((y - P / 2) / P) * cols + Math.round((x - P / 2) / P)]
+  const at = (x: number, y: number) => {
+    const i = Math.round((x - P / 2) / P)
+    const j = Math.round((y - P / 2) / P)
+    return i < 0 || i >= cols || j < 0 ? undefined : dots[j * cols + i]
+  }
   const snap = (v: number) => Math.round((v - P / 2) / P) * P + P / 2
 
   function measure() {
+    if (off) return
     const box = hero.getBoundingClientRect()
     const k = Math.min(devicePixelRatio || 1, 2)
     const css = getComputedStyle(document.documentElement)
@@ -430,7 +439,7 @@ export function field(hero: HTMLElement): Field | undefined {
   }
 
   function kick() {
-    if (!frame) frame = requestAnimationFrame(draw)
+    if (!frame && !off) frame = requestAnimationFrame(draw)
   }
 
   function wave(x: number, y: number, far: number, dur: number, k: number) {
@@ -441,6 +450,7 @@ export function field(hero: HTMLElement): Field | undefined {
 
   function land() {
     timer = 0
+    if (off) return
     const box = hero.getBoundingClientRect()
     if (!document.hidden && box.bottom > 120 && dots.length)
       for (let tries = 0; tries < 30; tries++) {
@@ -470,12 +480,13 @@ export function field(hero: HTMLElement): Field | undefined {
     later()
   }
   function later(wait = 5200 + Math.random() * 4200) {
+    if (off) return
     clearTimeout(timer)
     timer = window.setTimeout(land, wait)
   }
 
   hero.addEventListener('pointermove', (e) => {
-    if (e.pointerType === 'touch') return
+    if (off || e.pointerType === 'touch') return
     const box = hero.getBoundingClientRect()
     ptr = {
       x: e.clientX - box.left,
@@ -486,13 +497,13 @@ export function field(hero: HTMLElement): Field | undefined {
     kick()
   })
   hero.addEventListener('pointerleave', () => {
-    if (ptr) {
+    if (ptr && !off) {
       ptr.out = performance.now()
       kick()
     }
   })
   hero.addEventListener('pointerdown', (e) => {
-    if (e.target instanceof Element && e.target.closest('a, button')) return
+    if (off || (e.target instanceof Element && e.target.closest('a, button'))) return
     const box = hero.getBoundingClientRect()
     wave(e.clientX - box.left, e.clientY - box.top, 6 * P, 950, 0.95)
   })
@@ -500,10 +511,22 @@ export function field(hero: HTMLElement): Field | undefined {
     if (document.hidden) clearTimeout(timer)
     else later()
   })
+  still.addEventListener('change', () => {
+    if (!still.matches) return
+    off = true
+    clearTimeout(timer)
+    if (frame) cancelAnimationFrame(frame)
+    cancelAnimationFrame(again)
+    frame = 0
+    ptr = null
+    waves.length = 0
+    marks.length = 0
+    canvas.remove()
+    hero.classList.remove('field-on')
+  })
   new MutationObserver(measure).observe(document.documentElement, {
     attributeFilter: ['data-theme'],
   })
-  let again = 0
   addEventListener('resize', () => {
     cancelAnimationFrame(again)
     again = requestAnimationFrame(measure)
@@ -515,12 +538,15 @@ export function field(hero: HTMLElement): Field | undefined {
 
   return {
     landed() {
+      if (off) return
       measure()
       fromNote(1)
     },
     changed(faint) {
+      if (off) return
       measure()
       fromNote(faint ? 0.4 : 1)
     },
+    settled: measure,
   }
 }

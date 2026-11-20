@@ -104,6 +104,14 @@ export function hero(root: HTMLElement) {
     })
   })
 
+  let settle = 0
+  root.addEventListener('animationend', () => {
+    cancelAnimationFrame(settle)
+    settle = requestAnimationFrame(() => {
+      draw()
+      ground?.settled()
+    })
+  })
   addEventListener('resize', draw)
   addEventListener('load', draw)
   draw()
