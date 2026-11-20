@@ -21,7 +21,7 @@ import { parse } from 'yaml'
 import { includeMarkdown } from '@/lib/docs-includes'
 import { CHANGES, DOC_PAGES, llmsTxt, searchDocs } from '@/lib/docs'
 import { docTitle } from '@/lib/doc-links'
-import { setupSteps } from '@/lib/setup'
+import { setupHeading, setupSteps } from '@/lib/setup'
 import { docControls } from '../e2e/docs-controls.ts'
 
 /*
@@ -231,9 +231,7 @@ describe('the docs check', () => {
 
   it('names the setup checklist as the Inbox does, and links each of its steps to a page', () => {
     const page = DOC_PAGES.find((p) => p.slug === 'set-up-your-workspace')!
-    expect(readFileSync('src/web/pages/inbox.tsx', 'utf8')).toMatch(
-      new RegExp(`>\\s*${page.title} so agents can use what you know\\s*<`),
-    )
+    expect(setupHeading.startsWith(page.title)).toBe(true)
     const steps = page.blocks.find(
       (b): b is Extract<DocBlock, { type: 'list' }> => b.type === 'list' && b.ordered,
     )!

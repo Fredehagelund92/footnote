@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { released, releaseWords } from '../landing/release.ts'
+import { llmsFiles } from '../lib/llms.ts'
 import { repoRoot } from '../lib/pages.ts'
+import { readSettings } from '../lib/settings.ts'
 
 /*
   The landing page's release switch (landing/release.ts): one constant in the page's frontmatter
@@ -39,14 +41,16 @@ describe('the release switch', () => {
 })
 
 describe('the release words elsewhere', () => {
-  const read = (file: string) => readFileSync(`${repoRoot}/${file}`, 'utf8').replace(/\s+/g, ' ')
+  const flat = (text: string) => text.replace(/\s+/g, ' ')
 
   it('tell the same story as the switch: until the first release, nothing is released', () => {
     expect(released, 'flip these words with the switch').toBe(false)
-    expect(read('README.md')).toContain('Footnote has not had its first release yet.')
-    expect(read('docs/try-the-demo.md')).toContain('Footnote has not had its first release yet')
-    expect(read('docs/self-hosting.md')).toContain(
-      'The images are not published until the first release',
-    )
+    // The docs pages, as the site publishes them in llms-full.txt.
+    const docs = flat(llmsFiles(readSettings({})).full)
+    expect(docs).toContain('Footnote has not had its first release yet')
+    expect(docs).toContain('The images are not published until the first release')
+    // README.md is the published front page: an owned text contract, read as the file it is.
+    const readme = flat(readFileSync(`${repoRoot}/README.md`, 'utf8'))
+    expect(readme).toContain('Footnote has not had its first release yet.')
   })
 })
