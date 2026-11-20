@@ -247,6 +247,11 @@
                     "type": "string",
                     "pattern": "^itm_[a-z0-9]{8,16}$"
                   },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
                   "derivedFrom": {
                     "type": "string",
                     "format": "uuid"
@@ -38888,6 +38893,11 @@
                   "itemId": {
                     "type": "string",
                     "pattern": "^itm_[a-z0-9]{8,16}$"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
                   },
                   "draftId": {
                     "type": "string",

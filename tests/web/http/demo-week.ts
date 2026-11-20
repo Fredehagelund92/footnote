@@ -723,6 +723,19 @@ async function seedThreads(call: Inject, ids: Record<QueueCard, string>) {
   return dated
 }
 
+/** Dates each seeded term's History as the term itself: the seed writes it at the moment it runs. */
+async function dateTermHistory(client: pg.Client) {
+  // History is append-only: dated here as the seed's owner, as the comments are.
+  await client.query('set session_replication_role = replica')
+  try {
+    await client.query(
+      `update term_versions v set made_at = t.created_at from terms t where t.id = v.term_id`,
+    )
+  } finally {
+    await client.query('set session_replication_role = origin')
+  }
+}
+
 /** Dates the seeded comments as the mock does; an edited one was edited two hours later. */
 async function dateComments(client: pg.Client, comments: readonly DatedComment[]) {
   // The comments' guard keeps a comment's time as it was written: dated here as the seed's owner.
@@ -1050,6 +1063,7 @@ export async function seedDemoWeek(
       [admins],
     )
     await seedSynonyms(client)
+    await dateTermHistory(client)
   } finally {
     await client.end()
   }

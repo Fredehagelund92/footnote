@@ -763,9 +763,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     }))
     // Written from a Not found card: the publish names its gap, which it then covers.
     const gap = card ? parseCardKey(card) : null
+    // A change starts from the version the editor opened, so the service refuses it once someone
+    // has published since. Someone else's draft was not read from a version: it starts from now.
+    const version = started ? before?.version : fact.version
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
-      ...(own ? { draftId: own.id } : itemId ? { itemId } : {}),
+      ...(own
+        ? { draftId: own.id }
+        : itemId
+          ? { itemId, ...(version !== undefined ? { version } : {}) }
+          : {}),
       ...(answered.length ? { relations: answered } : {}),
       ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
     }

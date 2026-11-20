@@ -422,6 +422,11 @@ function Editor({
     }),
   )
   const [form, setForm] = React.useState<Form>(initial)
+  // The version the words started from: a read of the item since then does not move it, so a Save
+  // from this page never takes away what someone else published meanwhile.
+  const [base, setBase] = React.useState(original?.version)
+  // What agents get now, read after the service refused a Save because someone published since.
+  const [newer, setNewer] = React.useState<Fact | null>(null)
   const [sourceOpen, setSourceOpen] = React.useState(false)
   const [mainRef, wide] = useWide<HTMLDivElement>()
   usePrimaryKey()
@@ -472,7 +477,10 @@ function Editor({
   const ids = React.useId()
   const KindIcon = kindIcons[form.kind]
   const fieldId = (name: string) => `${ids}-${name}`
-  const draft = toFact(form, original?.id ?? 'draft', me.name, domains, original)
+  const draft = {
+    ...toFact(form, original?.id ?? 'draft', me.name, domains, original),
+    ...(base ? { version: base } : {}),
+  }
   React.useEffect(() => setDraft(draft))
 
   const whereNames = form.where.map((t) => t.name)
@@ -630,11 +638,25 @@ function Editor({
   const verb = isSuggest ? 'Send' : original ? 'Save' : 'Publish'
   // A refusal that names live items to relate to lists them, unanswered, under the title.
   const publish = () =>
-    commit().catch((e: unknown) => {
-      const named = toApiError(e).clashes.filter((c) => !clashes.some((k) => k.itemId === c.itemId))
+    commit().catch(async (e: unknown) => {
+      const error = toApiError(e)
+      const named = error.clashes.filter((c) => !clashes.some((k) => k.itemId === c.itemId))
       if (named.length) setClashes((k) => [...k, ...named])
+      // Someone published since this page opened: their words are shown beside these.
+      if (error.stale && original) {
+        const page = await queryClient
+          .fetchQuery({ ...itemPageQuery(original.id), staleTime: 0 })
+          .catch(() => null)
+        if (page) setNewer(page.item)
+      }
       throw e
     })
+  // Starts from what agents get now and keeps every word written here; Save then publishes them.
+  const reload = () => {
+    if (!newer) return
+    setBase(newer.version)
+    reset()
+  }
   // Retry only where sending again can help: no answer, or the service failing on its side. A
   // refusal says why instead, and the change it asks for makes Publish work again.
   // The service's own words for a refusal, as a sentence.
@@ -1049,8 +1071,9 @@ function Editor({
           </p>
         )}
         {/* What stopped a publish, in the service's words, and the live items it named to relate
-            to, answered here, under the title, at any width. */}
-        {(refusal || clashes.length > 0) && (
+            to, answered here, under the title, at any width. Words someone published since this
+            page opened show here too, until this is saved. */}
+        {(refusal || clashes.length > 0 || newer) && (
           <section
             ref={refusalRef}
             id={`${ids}-clashes`}
@@ -1072,30 +1095,53 @@ function Editor({
                   ))}
                 </span>
               </p>
-            ) : (
+            ) : clashes.length > 0 ? (
               <p className="text-muted-foreground">
                 Agents get these for the same questions. Say how this relates to each.
               </p>
+            ) : null}
+            {newer && (
+              <div aria-label="Published since you opened it" className="flex flex-col gap-2">
+                <p className="text-muted-foreground">
+                  {base === newer.version
+                    ? 'Agents get this now. Your words are kept below: add what you want of theirs, then save.'
+                    : 'Agents get this now:'}
+                </p>
+                <div className="border-l-2 border-foreground/20 pl-3">
+                  <ContextText
+                    text={[newer.summary, newer.body].filter(Boolean).join('\n\n')}
+                    dense
+                  />
+                </div>
+                {base !== newer.version && (
+                  <Button variant="outline" className="self-start" onClick={reload}>
+                    <RefreshCwIcon data-icon="inline-start" />
+                    Reload, keep my words
+                  </Button>
+                )}
+              </div>
             )}
-            <ul className="-mx-3 divide-y divide-foreground/10">
-              {clashes.map((c) => (
-                <RelationRow
-                  key={c.itemId}
-                  itemId={c.itemId}
-                  title={c.title}
-                  value={overlap[c.itemId]}
-                  onChange={(v) => {
-                    setOverlap((o) => ({ ...o, [c.itemId]: v }))
-                    reset()
-                  }}
-                  titleProps={{
-                    ...ahead(c.itemId),
-                    onClick: () => openDock('context', c.itemId),
-                  }}
-                  className="px-3 py-1"
-                />
-              ))}
-            </ul>
+            {clashes.length > 0 && (
+              <ul className="-mx-3 divide-y divide-foreground/10">
+                {clashes.map((c) => (
+                  <RelationRow
+                    key={c.itemId}
+                    itemId={c.itemId}
+                    title={c.title}
+                    value={overlap[c.itemId]}
+                    onChange={(v) => {
+                      setOverlap((o) => ({ ...o, [c.itemId]: v }))
+                      reset()
+                    }}
+                    titleProps={{
+                      ...ahead(c.itemId),
+                      onClick: () => openDock('context', c.itemId),
+                    }}
+                    className="px-3 py-1"
+                  />
+                ))}
+              </ul>
+            )}
           </section>
         )}
         {/* The properties as a calm list under the title: what it is, when and where it applies,

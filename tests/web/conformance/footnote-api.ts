@@ -618,6 +618,18 @@ export function describeFootnoteApi(
         const after = (await live.itemPage({ id }))!
         expect(after.item.title).toBe(edited.title)
         expect(after.item.summary).toBe(page.item.summary)
+        // A Save from the page as it was before that edit would take the edit away: refused.
+        const older = { ...page.item, summary: `${page.item.summary} Written from the older page.` }
+        const refused = await live
+          .saveItem({ fact: older, isNew: false, relations })
+          .catch((e: unknown) => e)
+        expect(refused).toBeInstanceOf(ApiError)
+        expect(refused).toMatchObject({ kind: 'conflict', stale: after.item.version })
+        expect((refused as ApiError).message).toMatch(/after you opened it, so nothing was saved/)
+        expect((await live.itemPage({ id }))!.item).toMatchObject({
+          title: edited.title,
+          summary: page.item.summary,
+        })
       },
     )
 

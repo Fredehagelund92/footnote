@@ -4687,6 +4687,7 @@ CREATE TABLE public.proposals (
     source_document_id text,
     agent_id uuid,
     agent_name text,
+    base_version_id uuid,
     CONSTRAINT proposals_agent_check CHECK ((((agent_id IS NULL) = (agent_name IS NULL)) AND ((agent_id IS NULL) OR (channel = 'mcp'::public.creation_channel)) AND ((agent_name IS NULL) OR ((char_length(agent_name) >= 1) AND (char_length(agent_name) <= 100))))),
     CONSTRAINT proposals_check CHECK (((subject = 'item'::public.proposal_subject) = (vocab_version_id IS NULL))),
     CONSTRAINT proposals_check1 CHECK (((state = 'draft'::public.proposal_state) OR ((item_version_id IS NOT NULL) OR (vocab_version_id IS NOT NULL) OR (action = 'retire'::public.proposal_action)))),
@@ -7021,6 +7022,9 @@ ALTER TABLE ONLY public.proposal_tests
 
 ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES auth.agents(id);
+
+ALTER TABLE ONLY public.proposals
+    ADD CONSTRAINT proposals_base_version_id_fkey FOREIGN KEY (base_version_id) REFERENCES public.item_versions(id);
 
 ALTER TABLE ONLY public.proposals
     ADD CONSTRAINT proposals_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.areas(id);

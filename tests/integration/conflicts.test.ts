@@ -152,6 +152,14 @@ async function live(d: Draft, who: Who = 'owner') {
   return r.itemId
 }
 
+/** The version of an item agents get now, which a change to it starts from. */
+const liveVersion = async (itemId: string) =>
+  (
+    await client.query<{ n: number }>(
+      'select version_no as n from serving_items((select seq from live_edition)) where item_id=$1',
+      [itemId],
+    )
+  ).rows[0]!.n
 /** Two items of one market, the second saying it disagrees with the first. `otherArea` moves the second. */
 async function pair(otherArea: 'finance' | 'marketing' = 'finance') {
   const market = markets[nextMarket++]!
@@ -345,6 +353,7 @@ describe('settling a conflict', () => {
     await ok<PublishItemResult>(
       call('POST', '/items/publish', 'owner', {
         itemId: second,
+        version: await liveVersion(second),
         draft: { title: `Changed ${second}` },
       }),
     )

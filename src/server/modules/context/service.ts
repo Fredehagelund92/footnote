@@ -775,6 +775,7 @@ export function createContextService(
   async function publish(input: {
     draft: Draft
     itemId?: string | undefined
+    version?: number | undefined
     reason?: string | undefined
     draftId?: string | undefined
     gapId?: string | undefined
@@ -786,6 +787,7 @@ export function createContextService(
       : await proposals.create({
           draft: input.draft,
           ...(input.itemId ? { itemId: input.itemId } : {}),
+          ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
           ...(input.reason ? { reason: input.reason } : {}),
         })
     // Written for a Not found card: its publish covers the gap (review's publishAccepted).
