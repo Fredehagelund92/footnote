@@ -21,7 +21,7 @@
 #   6. FOOTNOTE_WEB_PORT=8081 FOOTNOTE_PORT=3001 in front of docker compose moves both ports.
 #
 # View as, Sign out, `docker compose down --volumes`, the moved ports and the MCP address are not
-# in the "Try it" steps: docs/self-hosting.md and the old Quick start promised them, and this
+# in the "Try it" steps: docs/try-the-demo.md and the old Quick start promised them, and this
 # script keeps checking them.
 #
 # It uses the ports 8080, 3000, 8081 and 3001, and the compose project footnote: stop anything else

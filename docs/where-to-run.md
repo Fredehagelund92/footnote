@@ -20,9 +20,10 @@ for the demo.
 
 ## Docker Compose
 
-[Self-host Footnote on one computer](self-hosting.md) says how to install it, back it up, restore it,
-upgrade it and roll an upgrade back. `compose.yaml` sets `NODE_ENV` to `development`, which turns on
-the demo's people picker, so keep both ports on this computer.
+[Try the demo](try-the-demo.md) installs it, [Use your own data](use-your-own-data.md) runs it on your own
+semantic layer, and [Back up, restore and upgrade](back-up-restore-and-upgrade.md) keeps what people
+wrote. `compose.yaml` sets `NODE_ENV` to `development`, which turns on the demo's people picker, so
+keep both ports on this computer.
 
 ## A cloud host or container platform
 
@@ -34,31 +35,9 @@ keeps a folder between restarts, and ends https in front of them.
 > Fly or a managed PostgreSQL, so this page gives no steps for any of them. Expect to work out the
 > host's own part yourself.
 
-[Run the image in production mode](operations.md#run-the-image-in-production-mode) has the steps and
-the settings, [the database guide](../db/README.md) says how to set up the roles, and
+[Run in production](run-in-production.md) has the steps, the settings and the proxy in front,
+[the database guide](../db/README.md) says how to set up the roles, and
 [Set up company sign-in](company-sign-in.md) has every sign-in setting.
-
-### The proxy in front
-
-`FOOTNOTE_TRUSTED_PROXIES` is the setting people trip on. It names the addresses the proxy connects
-from, comma-separated. Your host's documentation says which ones apply. Each entry is one of:
-
-- an address;
-- a range, such as `10.0.0.0/8`;
-- `loopback`, `linklocal` or `uniquelocal`.
-
-Left unset, the service sees the proxy as the only caller and http as the only protocol:
-
-- Every caller shares one request limit before sign-in, 120 a minute, so one caller can lock
-  sign-in for everyone else.
-- The session cookie is not marked `Secure`.
-
-Name only what the proxy connects from. Anything else that can connect from an address you name
-can say it is any caller, and so get around the limit.
-
-The web image's nginx does not help here. It overwrites `X-Forwarded-For` and `X-Forwarded-Proto`
-with what it sees, so behind another proxy it hides the caller's address and the https. That is why
-`/api/v1/` goes to the service directly.
 
 ## Vercel with Neon
 

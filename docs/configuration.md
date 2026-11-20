@@ -2,7 +2,7 @@
 title: Service settings
 line: The settings the service reads from its environment when it starts, with their defaults.
 group: Run the service
-order: 5
+order: 9
 reviewed: 2026-11-10
 ---
 
@@ -31,16 +31,16 @@ The service reads its settings from the environment, once, when it starts. If on
 
 ## Sign-in and addresses
 
-| Setting                    | Default                                          | What it does                                                                          |
-| -------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `FOOTNOTE_AUTH`            | `oidc` in production, `dev` elsewhere            | How people sign in: see [Set up company sign-in](company-sign-in.md)                  |
-| `FOOTNOTE_DEV_PEOPLE_FILE` | The demo's people                                | Who the `dev` and `demo` pickers offer                                                |
-| `FOOTNOTE_WEB_ORIGINS`     | `http://localhost:5173`, `http://localhost:4173` | The web app's origins, comma-separated. The first is the address links go to          |
-| `FOOTNOTE_TRUSTED_PROXIES` | None                                             | The proxies it believes: see [The proxy in front](where-to-run.md#the-proxy-in-front) |
-| `MCP_RESOURCE_URL`         | `http://localhost:3000/mcp`                      | The MCP address                                                                       |
-| `MCP_DEV_KEY_FILE`         | `.footnote-dev-key.pem`                          | The key for dev tokens. Production refuses dev tokens                                 |
+| Setting                    | Default                                          | What it does                                                                               |
+| -------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `FOOTNOTE_AUTH`            | `oidc` in production, `dev` elsewhere            | How people sign in: see [Set up company sign-in](company-sign-in.md)                       |
+| `FOOTNOTE_DEV_PEOPLE_FILE` | The demo's people                                | Who the `dev` and `demo` pickers offer                                                     |
+| `FOOTNOTE_WEB_ORIGINS`     | `http://localhost:5173`, `http://localhost:4173` | The web app's origins, comma-separated. The first is the address links go to               |
+| `FOOTNOTE_TRUSTED_PROXIES` | None                                             | The proxies it believes: see [The proxy in front](run-in-production.md#the-proxy-in-front) |
+| `MCP_RESOURCE_URL`         | `http://localhost:3000/mcp`                      | The MCP address                                                                            |
+| `MCP_DEV_KEY_FILE`         | `.footnote-dev-key.pem`                          | The key for dev tokens. Production refuses dev tokens                                      |
 
-The login server's own settings are on [Sign in your own agent](ai-sign-in.md#the-login-server-settings).
+The login server's own settings are on [Agent sign-in settings](agent-sign-in-settings.md#the-login-server-settings).
 
 ## Models
 
@@ -93,9 +93,9 @@ A connector that cannot read a folder stops the service at start. A folder that 
 | Setting                  | Default    | What it does                                                                                                                                               |
 | ------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `FOOTNOTE_PRODUCT_NAME`  | `Footnote` | The name the app and the help pages say                                                                                                                    |
-| `FOOTNOTE_PROFILE_LABEL` | None       | A name for this install, at most 40 characters, in the header and on the sign-in page: see [Private profiles](security.md#private-profiles)                |
+| `FOOTNOTE_PROFILE_LABEL` | None       | A name for this install, at most 40 characters, in the header and on the sign-in page: see [Private profiles](use-your-own-data.md#private-profiles)       |
 | `FOOTNOTE_SUPPORT_EMAIL` | None       | Where Contact support and Report a problem write to. Unset, they open the project's GitHub issues. Read when the app and the docs are built                |
-| `FOOTNOTE_METRICS_TOKEN` | None       | Turns on [`/metrics`](operations.md#metrics). At least 32 characters                                                                                       |
+| `FOOTNOTE_METRICS_TOKEN` | None       | Turns on [`/metrics`](watch-the-service.md#metrics). At least 32 characters                                                                                |
 | `FOOTNOTE_FIXED_TODAY`   | None       | Pins the service's day for demos and tests. A day in the past is kept whole: Ask's records read it as ending at the end of that day. Refused in production |
 
 Report a problem opens a mail in the person's own mail app, or an issue on GitHub when `FOOTNOTE_SUPPORT_EMAIL` is unset, and sends nothing through the service. An issue leaves out the install's address.

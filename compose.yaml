@@ -10,7 +10,7 @@
 # anyone who reaches them can sign in as any of the demo people.
 #
 # Ask and the test runs answer on scripted models and send nothing out. MODELS=live with a key
-# answers on a real model (docs/self-hosting.md, "Ask on a real model"):
+# answers on a real model (docs/model-providers.md, "Start on a real model"):
 #
 #   MODELS=live ANTHROPIC_API_KEY=... docker compose up
 #
@@ -41,7 +41,7 @@ services:
         condition: service_healthy
     environment:
       # The demo: the people picker, the demo data and agents that sign in on this computer. The
-      # image alone starts in production mode, which needs company sign-in (docs/operations.md).
+      # image alone starts in production mode, which needs company sign-in (docs/run-in-production.md).
       NODE_ENV: development
       # The web container's nginx forwards the address of each browser that calls /api/v1, so the
       # request limits count each caller on its own. Believed only from this network's private

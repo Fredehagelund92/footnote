@@ -12,7 +12,7 @@ import {
 import { apiDatabase, testDatabase } from './support.ts'
 
 /*
-  A real model in one line (docs/self-hosting.md, "Ask on a real model"):
+  A real model in one line (docs/model-providers.md, "Start on a real model"):
   `MODELS=live ANTHROPIC_API_KEY=... docker compose up` and no other step. compose.yaml passes the
   model setting and each provider's key and address from the shell, and a new database's model
   settings start on the provider whose key that line gives, or on FOOTNOTE_MODEL. Unset, the

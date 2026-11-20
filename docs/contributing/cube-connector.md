@@ -79,7 +79,7 @@ folder address), described under "Links to model files".
 
 ## Run a local refresh
 
-After the database setup and migrations in [Run the service locally](../operations.md#run-the-service-locally):
+After the database setup and migrations in [Run the service from source](../development.md#run-the-service-from-source):
 
 ```sh
 # Uses invented demo definitions when CUBE_MODEL_DIR is unset.

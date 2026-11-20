@@ -2,7 +2,7 @@
 title: Connector security
 line: What a connector may reach, how its credentials are kept, and how its output is treated.
 group: Connectors
-order: 3
+order: 7
 reviewed: 2026-11-05
 ---
 

@@ -78,7 +78,7 @@ Pages keep the relative links that work on GitHub, and the build resolves them (
 
 After the build, `scripts/check-site.ts` reads the built pages, the landing page among them. It fails on a link or a heading that goes nowhere, on anything loaded from another host, on a `<title>` tag that reached a page's body, on a missing landing or 404 page, on a page missing from the docs or from `llms.txt`, and on a page that is an island: its own words, not the sidebar or the footer, link to no other page of the docs, or no other page's words link to it.
 
-A page that moved keeps its old address: `movedPages` in `lib/pages.ts` forwards it to where the page is now. Get started's address opens Try the demo, the first page a newcomer reads.
+A page that moved keeps its old address: `movedPages` in `lib/pages.ts` forwards it to where the page is now, and `movedSections` sends a link to one of a split page's headings to where that heading went (`src/pages/[...moved].astro`). Get started's address opens Try the demo, the first page a newcomer reads.
 
 ### For agents
 

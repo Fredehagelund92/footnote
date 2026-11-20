@@ -108,7 +108,7 @@ export function logConfiguration(config: Config, logger: Logger): void {
   // The pickers let anyone who reaches the service in as anyone, administrators included.
   if (config.auth !== 'oidc')
     logger.warn(
-      `Sign-in is the people picker (FOOTNOTE_AUTH=${config.auth}): anyone who can reach this service can sign in as any person, an administrator included. Only for trying it out on this computer; for real people, set NODE_ENV=production and sign people in with your OpenID Connect provider (docs/operations.md).`,
+      `Sign-in is the people picker (FOOTNOTE_AUTH=${config.auth}): anyone who can reach this service can sign in as any person, an administrator included. Only for trying it out on this computer; for real people, set NODE_ENV=production and sign people in with your OpenID Connect provider (docs/run-in-production.md).`,
     )
 }
 

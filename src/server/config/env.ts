@@ -77,7 +77,8 @@ const envSchema = z
     FOOTNOTE_MCP_STATE_KEY_FILE: z.string().default('.footnote-mcp-state.key'),
     // The login server for a person's own AI client (FR-403, FR-404, docs/contributing/sign-in.md).
     // `builtin` runs it in this service; `external` trusts another login server's tokens, read
-    // by issuer and key set address; `off` leaves only dev tokens. Tools and items never change.
+    // by issuer and key set address; `off` turns it off, so only access keys and, outside
+    // production, dev tokens work. Tools and items never change.
     FOOTNOTE_LOGIN_SERVER: z.enum(['builtin', 'external', 'off']).default('builtin'),
     // The issuer (`iss`) of the built-in login server's tokens. Default: the MCP address's origin.
     FOOTNOTE_OAUTH_ISSUER: z.url({ protocol: /^https?$/ }).optional(),
@@ -424,7 +425,7 @@ const withPrices = (model: ModelRef | undefined, prices: ModelRef['prices']) =>
 
 /** What a refusal adds when production has no sign-in configured. */
 export const productionSignInHint =
-  'NODE_ENV=production signs people in with your OpenID Connect provider (docs/operations.md, "Run the image in production mode"). To try it out on this computer with the demo\'s people picker instead, set NODE_ENV=development, as compose.yaml does.'
+  'NODE_ENV=production signs people in with your OpenID Connect provider (docs/run-in-production.md, "Run the image in production mode"). To try it out on this computer with the demo\'s people picker instead, set NODE_ENV=development, as compose.yaml does.'
 
 export class ConfigError extends Error {
   override name = 'ConfigError'

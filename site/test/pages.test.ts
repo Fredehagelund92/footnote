@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { linkContext, resolveLink } from '../lib/links.ts'
 import {
+  movedPages,
+  movedSections,
   publishedPages,
   shownGroups,
   sidebar,
@@ -66,6 +68,18 @@ describe('the pages of the site', () => {
       'https://github.com/Fredehagelund92/footnote/blob/v0.1.1/docs/contributing/api.md#alerts',
     )
     expect(resolveLink('privacy.md', 'docs/help/tools.md', context)).toBe('/docs/0.1/privacy/')
+  })
+
+  it('forward an old address, and each heading of a split page, to a published page', () => {
+    const slugs = pages.map((page) => page.slug)
+    for (const [from, to] of Object.entries(movedPages)) {
+      expect(slugs, `${from} is no longer a page`).not.toContain(from)
+      expect(slugs, `${from} forwards to a page`).toContain(to)
+    }
+    for (const [from, sections] of Object.entries(movedSections)) {
+      expect(movedPages, `${from} moved`).toHaveProperty([from])
+      for (const target of Object.values(sections)) expect(slugs).toContain(target.split('#')[0])
+    }
   })
 
   it('keep their address from their file', () => {

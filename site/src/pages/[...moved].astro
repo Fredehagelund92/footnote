@@ -1,0 +1,55 @@
+---
+import { movedPages, movedSections } from '../../lib/pages.ts'
+
+/*
+  The old address of a page that moved (lib/pages.ts). It forwards at once to where the page is
+  now, and a link to one of its headings to where that heading went, which the address alone
+  cannot say: a browser never sends the part after #. Without a script it forwards to the page.
+  The body lists where each part went, for a reader whose browser does neither, and so that the
+  site check follows every one of those links.
+*/
+export function getStaticPaths() {
+  return Object.keys(movedPages).map((moved) => ({ params: { moved } }))
+}
+
+const from = Astro.params.moved!
+const at = (target: string) => {
+  const [page, heading] = target.split('#')
+  return `${import.meta.env.BASE_URL}${page}/${heading ? `#${heading}` : ''}`
+}
+const to = at(movedPages[from]!)
+const parts = Object.entries(movedSections[from] ?? {}).map(([heading, target]) => ({
+  heading,
+  href: at(target),
+}))
+const sections = Object.fromEntries(parts.map(({ heading, href }) => [heading, href]))
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>This page moved</title>
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href={to} />
+    <script is:inline define:vars={{ to, sections }}>
+      const heading = decodeURIComponent(location.hash.slice(1))
+      location.replace(Object.hasOwn(sections, heading) ? sections[heading] : to + location.hash)
+    </script>
+    <noscript><meta http-equiv="refresh" content={`0;url=${to}`} /></noscript>
+  </head>
+  <body>
+    <p>This page moved to <a href={to}>{to}</a>.</p>
+    {
+      parts.length > 0 && (
+        <ul>
+          {parts.map(({ heading, href }) => (
+            <li>
+              #{heading}: <a href={href}>{href}</a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </body>
+</html>

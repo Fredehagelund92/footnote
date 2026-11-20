@@ -2,7 +2,7 @@
 title: Build a connector
 line: Add a connector for your tool, by hand or with a coding agent, from the template to a passing kit.
 group: Connectors
-order: 4
+order: 8
 reviewed: 2026-11-05
 ---
 
