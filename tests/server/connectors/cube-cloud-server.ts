@@ -147,7 +147,7 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
           items: page.map((e) => ({
             id: e.id,
             type: e.type,
-            branch: e.branch,
+            ...(e.branch ? { branch: e.branch } : {}),
             user: null,
             api_credentials: [
               { type: 'rest', version: 1, url: shownRest ?? restOf(e.id) },

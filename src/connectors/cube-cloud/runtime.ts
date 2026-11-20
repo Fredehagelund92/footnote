@@ -259,7 +259,8 @@ class Deployment {
    */
   async build(environment: Environment): Promise<Build> {
     const none = { hash: null, mark: null }
-    if (environment.unusableBranch) return none
+    if (environment.unusableBranch || (!environment.branch && environment.type !== 'production'))
+      return none
     let answer: Record<string, unknown>
     try {
       answer = await this.#get(
@@ -364,11 +365,10 @@ function cursorOf(text: string | null): Cursor | null {
 /** The steps a check says about the environment it found. */
 function environmentStep(context: RuntimeContext<Config>, environment: Environment): CheckStep {
   const detail = `Read the ${environment.type} environment${environment.branch ? `, branch ${environment.branch}` : ''}.`
-  const given = URL.parse(context.config.apiAddress ?? '')
-    ? metaAddress(context.config.apiAddress!)
-    : null
-  const rest =
-    environment.rest !== null && URL.parse(environment.rest) ? metaAddress(environment.rest) : null
+  const normalised = (address: string | null) =>
+    address !== null && URL.parse(address) ? URL.parse(metaAddress(address))!.href : null
+  const given = normalised(context.config.apiAddress ?? null)
+  const rest = normalised(environment.rest)
   if (rest && given && rest !== given)
     return {
       id: 'environment',

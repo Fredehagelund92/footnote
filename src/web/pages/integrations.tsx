@@ -1448,7 +1448,7 @@ export function ConnectorPage({ id }: { id: string }) {
   const load = useQuery(integrationPageQuery(id))
   const page = load.data
   const c = connectorById(page?.source.connector ?? id)
-  useReadDone(page, c?.name ?? '')
+  useReadDone(page, c?.label ?? '')
   return (
     <Page title={crumbs({ label: page === null ? (c?.label ?? 'Not found') : (c?.label ?? '') })}>
       <Loadable
@@ -1565,7 +1565,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
               <span className="font-medium">
                 {isDefinitions && d
                   ? `Reading ${groupCount(d.views, groupOf(c))}`
-                  : `Reading ${c.name}`}
+                  : `Reading ${c.label}`}
               </span>
               {source.progress && (
                 <span className="text-muted-foreground tabular-nums">
@@ -2992,7 +2992,7 @@ function ChoiceSteps({
           ...(mustSee ? { acceptLeftOut: seen } : {}),
         })
         dispatch({ type: 'saved' })
-        toast(`${c.name} settings saved`, {
+        toast(`${c.label} settings saved`, {
           description: 'They apply from its next read, which starts now. Kept in the history log.',
         })
         navigate(`/settings/integrations/${form.source.id}`)
@@ -3000,7 +3000,7 @@ function ChoiceSteps({
       }
       const done = await connect({ connector: c.id, ...input })
       dispatch({ type: 'saved' })
-      toast(`${c.name} connected`, {
+      toast(`${c.label} connected`, {
         description: isDefinitions
           ? 'First read now. Its names wait for you in the Inbox.'
           : `First read ${done.firstRead ? `at ${done.firstRead}` : 'now'}. Documents become suggestions; reading publishes nothing.`,
@@ -3016,7 +3016,7 @@ function ChoiceSteps({
         return
       }
       dispatch({ type: 'failed' })
-      toast(form.source ? `Couldn't save ${c.name}` : `Couldn't connect ${c.name}`, {
+      toast(form.source ? `Couldn't save ${c.label}` : `Couldn't connect ${c.label}`, {
         description: error.message,
       })
     }
@@ -3203,7 +3203,7 @@ function ChoiceSteps({
                       <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
                     <>Reading publishes and changes nothing.</>,
-                    <>{`If ${c.name} can't be reached, the last good read stays and nothing is reported.`}</>,
+                    <>{`If ${c.label} can't be reached, the last good read stays and nothing is reported.`}</>,
                   ]
                 : [
                     <>
@@ -3211,7 +3211,7 @@ function ChoiceSteps({
                       <span className="font-medium">one suggestion</span> in its owners' Inbox.
                     </>,
                     <>Reading publishes nothing. An owner publishes, or returns it with a note.</>,
-                    <>If {c.name} can't be reached, what was read stays and nothing is created.</>,
+                    <>If {c.label} can't be reached, what was read stays and nothing is created.</>,
                   ]
               ).map((t, i) => (
                 <li key={i} className="flex gap-2">
@@ -3296,7 +3296,7 @@ function ChoiceSteps({
               (mustSee && !seen)
             }
           >
-            {form.source ? 'Save changes' : isDefinitions ? `Add ${c.name}` : `Connect ${c.name}`}
+            {form.source ? 'Save changes' : isDefinitions ? `Add ${c.label}` : `Connect ${c.label}`}
           </Button>
         )}
       </FlowFooter>

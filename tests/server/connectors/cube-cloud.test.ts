@@ -213,6 +213,15 @@ describe('the build status', () => {
     cloud.renameBranch('7', 'main')
   })
 
+  it('reads every time an environment with no branch, unless it is production', async () => {
+    cloud.renameBranch('8', '')
+    const config = { environment: '8', apiAddress: cloud.apiAddressOf('8') }
+    const first = await read(config)
+    expect(first.cursor).toBeUndefined()
+    expect(cloud.requests.some((r) => r.path.includes('/build-status'))).toBe(false)
+    cloud.renameBranch('8', 'next')
+  })
+
   it('reads the metadata of a branch that has no build yet', async () => {
     cloud.dropBuild('main')
     const first = await read()
@@ -290,6 +299,13 @@ describe('a check', () => {
       status: 'warning',
       fix: 'Copy the REST API address Cube Cloud shows for this environment.',
     })
+    cloud.showRestAddress(null)
+  })
+
+  it('compares the REST API addresses as addresses, not as the text they were pasted in', async () => {
+    cloud.showRestAddress(cloud.apiAddress.replace('http://', 'HTTP://') + '/')
+    const report = await connector.check(source())
+    expect(report.steps[1]).toMatchObject({ id: 'environment', status: 'ok' })
     cloud.showRestAddress(null)
   })
 
