@@ -41,8 +41,8 @@ export function useOnlyChanged(person: string) {
 }
 
 /**
- * What the comparison counts for a review: the parts the bar counts (each field, and the text as
- * one) that change and that stay the same, and the stops N and P step through in the text as it
+ * What the comparison counts for a review: the fields that change and that stay the same, as many
+ * as the rows of the Fields table, and the stops N and P step through in the text as it
  * reads (each changed field row and each changed passage).
  */
 export function compareCounts(r: Pick<Review, 'fields' | 'source'>) {
