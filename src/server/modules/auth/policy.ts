@@ -106,6 +106,7 @@ export const policies = {
   'items.page': 'read',
   'items.markRead': 'read',
   'items.related': 'read',
+  'items.compare': 'read',
   'items.restoreAsDraft': 'propose',
   'items.publish': 'propose',
   'items.bulkApply': 'propose',

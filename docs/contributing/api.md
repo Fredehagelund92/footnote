@@ -9,7 +9,7 @@ How agents connect over MCP and what they get, and the HTTP API for definition s
 On `docker compose up`, Claude Code signs in through the web app's consent page, with no token:
 `claude mcp add --transport http footnote http://localhost:3000/mcp`, then `/mcp` and Authenticate in
 Claude Code. The token below is for the dev service, without sign-in: get the local database ready
-as in [Run the service locally](../operations.md#run-the-service-locally), start `npm run dev:server`, and add the local endpoint with a dev token:
+as in [Run the service from source](../development.md#run-the-service-from-source), start `npm run dev:server`, and add the local endpoint with a dev token:
 
 ```sh
 claude mcp add --transport http footnote http://localhost:3000/mcp \
@@ -622,6 +622,10 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
 - `POST /items/{id}/restore-draft` takes `{ version }` (FR-140): an owner of the item's domain or
   an admin gets a draft of a change with that version's words, dates and sources. What agents
   get does not change until the draft is published.
+- `GET /items/{id}/compare?from=&to=` is History's comparison: two versions of an item agents
+  got, by their numbers, `from` as before and `to` as after. Each comes as the review's Fields
+  table reads a version (`fields`, with the domain and the owner by name) and as its stored text
+  (`source`). A mention of an item hidden from the reader reads as its words.
 - `GET /items/{id}/related` is Related on a context item: its neighbours one step away, as
   `get_related` follows them on what agents get now, with how each relates to the item itself
   (`mentions`, `mentioned_by`, `replaces`, `replaced_by`, `conflicts_with`, `applies_to`).
@@ -1014,13 +1018,13 @@ Footnote v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read an
   The key is in this answer only.
 - `GET /agent-connections` and `POST /agent-connections/{id}/disconnect` (administrators): every
   person's agents, and ending one, with a reason the history log keeps
-  (docs/ai-sign-in.md).
+  (docs/help/connect-an-agent.md).
 - `GET /agents`, `POST /agents/{id}/name`, `POST /agents/{id}/tools` and
   `POST /agents/{id}/revoke`: every agent by name, with its kind, each tool it may call and where it
   publishes without review (an administrator sees all, anyone else their own apps), renaming an
   access key, switching one tool on or off for one agent, and ending it (FR-420, FR-421,
-  docs/ai-sign-in.md).
-- Publishing without review (FR-421, docs/ai-sign-in.md): `GET /agent-policies/switch` and
+  docs/help/connect-an-agent.md).
+- Publishing without review (FR-421, docs/help/publish-without-review.md): `GET /agent-policies/switch` and
   `POST /agent-policies/switch` (administrators) read and switch it for the workspace, and switching
   it off ends every policy; `GET /areas/{areaId}/agent-policies` lists one domain's policies, whether
   the workspace allows them, whether the signed-in person may set one, and the apps that suggested

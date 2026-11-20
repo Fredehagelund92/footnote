@@ -30,7 +30,7 @@ so in its notes.
    - raises the version in `package.json`, `package-lock.json`, `.release-please-manifest.json`,
      `docs/api/openapi.json`, the supported versions in `SECURITY.md`, and the two images
      `compose.images.yaml` pulls, so the demo from the published images at a release's tag
-     ([Self-host Footnote](self-hosting.md#from-the-published-images)) runs that release's images.
+     ([From the published images](try-the-demo.md#from-the-published-images)) runs that release's images.
 
    It makes the pull request again on top of `main` after every merge, even one that adds no line
    to the changelog, so the pull request is never behind `main`.

@@ -2,8 +2,8 @@
 # at ${FOOTNOTE_API_URL}, as the Vite preview server does (vite.config.ts). nginx runs as its own
 # unprivileged user, so it listens on 8080.
 
-# HSTS only when a proxy in front ends TLS and says so (docs/self-hosting.md, "Put it behind
-# HTTPS"). Over plain http it is never sent: a browser would ignore it, and on localhost it would
+# HSTS only when a proxy in front ends TLS and says so (docs/run-in-production.md, "The web
+# image"). Over plain http it is never sent: a browser would ignore it, and on localhost it would
 # pin every other local app to https.
 map $http_x_forwarded_proto $footnote_hsts {
     https "max-age=31536000";

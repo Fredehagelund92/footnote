@@ -7,6 +7,7 @@ import type {
   ReviewFields,
   ReviewSheet,
 } from '../../../contract/review-path.ts'
+import type { VersionPair } from '../../../contract/context.ts'
 import { answer, topicWords, type Answer, type AnswerBundle } from '../../../domain/answer.ts'
 import { CLAIMS_SHOWN, claimCheck } from '../../../domain/claim-check.ts'
 import { docDiff, docMarkdown, plainText, type DocSide } from '../../../domain/doc-diff.ts'
@@ -74,6 +75,10 @@ const brief = (a: Answer): AnswerBrief => ({
 /** The default reason of a publish, as the history keeps it. */
 const publishedReason = 'Published from the review.'
 const returnedReason = 'Returned with a note.'
+
+/** A version's stored text, the summary then the body, with its mention markup. */
+const markdownOf = (v: ItemVersion) =>
+  docMarkdown({ summary: v.summaryMarkup ?? v.summary, body: v.bodyMarkup ?? v.body ?? null })
 
 export function createReviewPath(
   tx: Queryable,
@@ -153,7 +158,9 @@ export function createReviewPath(
    * by name: the parts the difference does not compare are still shown, so a change of owner or
    * domain is seen.
    */
-  async function fieldsOf(r: Reading): Promise<ReviewSheet['fields']> {
+  async function fieldsOf(
+    r: Pick<Reading, 'before' | 'after' | 'candidate'>,
+  ): Promise<ReviewSheet['fields']> {
     const versions = [r.before, r.after].flatMap((v) => (v ? [v.version] : []))
     const areas = await tx.query<{ id: string; name: string }>(
       'select id,name from areas where id=any($1::text[])',
@@ -441,18 +448,8 @@ export function createReviewPath(
       clashes: r.clashes.length,
       ...(withdrawn?.by.name ? { withdrawnBy: withdrawn.by.name } : {}),
     })
-    const beforeMarkdown = r.before
-      ? docMarkdown({
-          summary: r.before.version.summaryMarkup ?? r.before.version.summary,
-          body: r.before.version.bodyMarkup ?? r.before.version.body ?? null,
-        })
-      : ''
-    const afterMarkdown = r.after
-      ? docMarkdown({
-          summary: r.after.version.summaryMarkup ?? r.after.version.summary,
-          body: r.after.version.bodyMarkup ?? r.after.version.body ?? null,
-        })
-      : ''
+    const beforeMarkdown = r.before ? markdownOf(r.before.version) : ''
+    const afterMarkdown = r.after ? markdownOf(r.after.version) : ''
     const today = clock.today()
     const ask = r.scope ? { scope: r.scope } : null
     const empty = { state: 'missing' as const, say: '', items: [] }
@@ -921,6 +918,28 @@ export function createReviewPath(
     return { edition: edition?.label ?? null }
   }
 
+  /**
+   * Two versions of one item as History compares them, the way the review compares a suggestion:
+   * their fields as the Fields table reads them and their stored text, each as the person may see
+   * it (a mention of an item hidden from them reads as its words).
+   */
+  async function versionPair(beforeId: string, afterId: string): Promise<VersionPair> {
+    const [before, after] = await Promise.all([stored(beforeId), stored(afterId)])
+    const [shownBefore, shownAfter] = await forReader(tx, [before.version, after.version])
+    const pair = {
+      before: { ...before, version: shownBefore! },
+      after: { ...after, version: shownAfter! },
+    }
+    const fields = await fieldsOf({ ...pair, candidate: await liveBundle() })
+    return {
+      fields: { before: fields.before!, after: fields.after! },
+      source: {
+        before: markdownOf(pair.before.version),
+        after: markdownOf(pair.after.version),
+      },
+    }
+  }
+
   /** What needs care before publishing, for an Inbox row: claims to check, and an unanswered clash. */
   async function care(p: LoadedProposal): Promise<{ claims: number; clash: boolean }> {
     const r = await reading(p)
@@ -939,6 +958,7 @@ export function createReviewPath(
     publishRead,
     undoDecisions,
     care,
+    versionPair,
   }
 }
 

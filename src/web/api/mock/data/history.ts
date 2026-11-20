@@ -1,7 +1,9 @@
 import type { Fact, LogEntry } from '@/model/items'
 import { parseDay } from '@/lib/dates'
-import { TODAY, type Version, type VersionKind } from '@/model/history'
+import { TODAY, type Version, type VersionKind, type VersionPair } from '@/model/history'
+import type { FieldSide } from '@/model/review'
 import { domains, people } from './world'
+import { sideOf } from './review'
 
 // The versions of a context item or a term, made up for the demo but shaped like the real table
 // (item_versions: a number, who, when and what changed). Each item gets the same history every
@@ -159,6 +161,8 @@ function seededHistory(f: Fact): Version[] {
     // Only an owner changes or checks an item; a suggester shows up in what the owner published.
     const who = i === 0 ? f.checkedBy : owners[Math.floor(rand() * owners.length)]!
     const version: Version = { v: n - i, who, on, kind, ...change(kind, f.summary, f.source) }
+    // A return publishes nothing: it is no version of its own to compare.
+    if (kind !== 'returned') version.comparable = true
     if (kind === 'published')
       version.summary = `Published a suggestion from ${suggesters[Math.floor(rand() * suggesters.length)]}.`
     if (kind === 'returned')
@@ -166,6 +170,59 @@ function seededHistory(f: Fact): Version[] {
     on = daysBefore(on, 2 + Math.floor(rand() * 12))
     return version
   })
+}
+
+/** One version's fields and stored text. */
+type Content = { fields: FieldSide; text: string }
+
+/** The change a version made, taken back: the content of the version before it. */
+function undo(v: Version, c: Content): Content {
+  switch (v.field) {
+    case 'What agents should know':
+      return { ...c, text: c.text.replace(v.after, v.before) }
+    case 'Source':
+      return {
+        ...c,
+        fields: {
+          ...c.fields,
+          sources: c.fields.sources.map((x) => (x.url === v.after ? { ...x, url: v.before } : x)),
+        },
+      }
+    case 'When': {
+      const { until: _until, ...from } = c.fields.validity
+      return { ...c, fields: { ...c.fields, validity: { ...from, ongoing: true } } }
+    }
+    default:
+      return c
+  }
+}
+
+/**
+ * Two versions of an item as History compares them, made up as its history is: the newest is the
+ * item as it reads now, and each one before it takes back the change the next one made.
+ */
+export function versionPairOf(
+  f: Fact,
+  versions: readonly Version[],
+  from: number,
+  to: number,
+): VersionPair | null {
+  const at = new Map<number, Content>()
+  let content: Content = {
+    fields: sideOf(f),
+    text: f.body ? `${f.summary}\n\n${f.body}` : f.summary,
+  }
+  for (const v of versions) {
+    if (!v.comparable) continue
+    at.set(v.v, content)
+    content = undo(v, content)
+  }
+  const [a, b] = [at.get(from), at.get(to)]
+  if (!a || !b) return null
+  return {
+    fields: { before: a.fields, after: b.fields },
+    source: { before: a.text, after: b.text },
+  }
 }
 
 /** A definition's versions: a term's edits by its writer, a synced one's changes from the tool. */

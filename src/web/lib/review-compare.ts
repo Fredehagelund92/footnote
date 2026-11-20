@@ -51,3 +51,16 @@ export function compareCounts(r: Pick<Review, 'fields' | 'source'>) {
   const passages = passagesChanged(r.source.before, r.source.after)
   return { changed: fields, same: rows.length - fields, fields, passages }
 }
+
+/**
+ * What stands in the text's empty column: for a new item, nothing yet and what agents hear today;
+ * for an archive, nothing and what they hear once it goes. Empty for an edit.
+ */
+export function missingWords(r: Pick<Review, 'mode' | 'tryIt'>) {
+  if (r.mode === 'edit') return undefined
+  const heard = r.mode === 'new' ? r.tryIt.before : r.tryIt.after
+  const nothing = r.mode === 'new' ? 'Nothing yet.' : 'Nothing.'
+  if (!heard.text) return `${nothing} Agents hear Not found.`
+  const hear = r.mode === 'new' ? 'agents hear' : 'agents will hear'
+  return `${nothing} Asked “${r.tryIt.question}”, ${hear}: “${heard.text}”`
+}

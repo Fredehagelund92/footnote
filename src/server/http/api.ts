@@ -871,6 +871,9 @@ export function createRouter({
       related: authorized.items.related.handler(async ({ input, context }) =>
         found(await context.context.related(input.id)),
       ),
+      compare: authorized.items.compare.handler(({ input, context }) =>
+        context.context.compare(input),
+      ),
       restoreAsDraft: authorized.items.restoreAsDraft.handler(({ input, context }) =>
         retryWrite(context.tx, idempotencyKey(context), 'items.restoreAsDraft', input, () =>
           context.context.restoreAsDraft(input),

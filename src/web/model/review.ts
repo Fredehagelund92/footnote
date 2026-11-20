@@ -100,7 +100,7 @@ export function gapRowWords(gap: { times: number | null; told?: number; acrossMo
   return `${agents}${gap.acrossMonths ? ' Counted across two months.' : ''}`
 }
 
-/** The quiet label each change block carries. */
+/** The quiet label each kind of change carries. */
 export type ChangeKind = 'Wording' | 'Formatting' | 'Link' | 'Order' | 'Added' | 'Removed' | 'Dates'
 
 export type Block =

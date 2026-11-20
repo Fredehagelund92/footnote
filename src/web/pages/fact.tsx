@@ -175,6 +175,7 @@ export function FactPage({ id }: { id: string }) {
         <SideSection title="History" className="border-b-0">
           <VersionHistory
             versions={history}
+            itemId={fact.id}
             canRestore={owner}
             onRestore={(version) => write('restoreAsDraft', { id: fact.id, v: version.v })}
             onUndo={(token) => write('undo', { token })}

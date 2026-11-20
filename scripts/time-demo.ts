@@ -13,7 +13,7 @@ import { chromium, type Page } from '@playwright/test'
     - the Context list: /context opened until the count of the library and its first row show,
     - a scripted answer: the README's question sent on Ask until Checked and the customs rule show.
   The scripted models answer, so no model is called and nothing is spent. A real model's answer
-  is not timed here: it needs a provider key (docs/self-hosting.md, "Ask on a real model").
+  is not timed here: it needs a provider key (docs/model-providers.md, "Start on a real model").
 
   It prints each round and the median, and adds the table to $GITHUB_STEP_SUMMARY in CI. Only a
   quiet machine gives numbers worth quoting: nothing else running beside the install.

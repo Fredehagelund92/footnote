@@ -21,14 +21,14 @@ Neither kind publishes anything. Only an owner does that.
 
 ## The connectors
 
-| Connector                                                     | Reads                                                | How often                                                         |
-| ------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------- |
-| [Cube](connectors/cube.md)                                    | Definitions, from Cube model files                   | Every hour, 15 minutes at the shortest, out of date after 6 hours |
-| [Cube Cloud](../src/connectors/cube-cloud/README.md)          | Definitions, from a Cube Cloud deployment's metadata | Every hour, 15 minutes at the shortest, out of date after 6 hours |
-| [dbt MetricFlow](../src/connectors/dbt-metricflow/README.md)  | Definitions, from dbt's built file                   | Every hour, 15 minutes at the shortest, out of date after 6 hours |
-| [Static list](../src/connectors/static-definitions/README.md) | Definitions, from a list you paste                   | Every hour, out of date after 6 hours                             |
-| [Markdown in Git](../src/connectors/git-markdown/README.md)   | Documents, from a Git repository                     | Every day, 15 minutes at the shortest, out of date after 2 days   |
-| [Google Drive](../src/connectors/google-drive/README.md)      | Documents, from Google Docs in folders               | Every day, 15 minutes at the shortest, out of date after 2 days   |
+| Connector                                                  | Reads                                                | How often                                                         |
+| ---------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------- |
+| [Cube](connectors/cube.md)                                 | Definitions, from Cube model files                   | Every hour, 15 minutes at the shortest, out of date after 6 hours |
+| [Cube Cloud](connectors/cube-cloud.md)                     | Definitions, from a Cube Cloud deployment's metadata | Every hour, 15 minutes at the shortest, out of date after 6 hours |
+| [dbt MetricFlow](connectors/dbt-metricflow.md)             | Definitions, from dbt's built file                   | Every hour, 15 minutes at the shortest, out of date after 6 hours |
+| [Static list](connectors/static-list.md)                   | Definitions, from a list you paste                   | Every hour, out of date after 6 hours                             |
+| [Markdown in Git](connectors/documents.md#markdown-in-git) | Documents, from a Git repository                     | Every day, 15 minutes at the shortest, out of date after 2 days   |
+| [Google Drive](connectors/documents.md#google-drive)       | Documents, from Google Docs in folders               | Every day, 15 minutes at the shortest, out of date after 2 days   |
 
 An admin can set each source's own schedule, within those limits.
 

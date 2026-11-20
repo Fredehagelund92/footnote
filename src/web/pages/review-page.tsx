@@ -73,7 +73,7 @@ import {
   TextDiff,
   type SourceNotes,
 } from '@/components/footnote/source-review'
-import { compareCounts } from '@/lib/review-compare'
+import { compareCounts, missingWords } from '@/lib/review-compare'
 import {
   goToThread,
   SourceThreadsSummary,
@@ -643,6 +643,7 @@ function SourceReview({ r, me, owners }: { r: Review; me: string; owners: string
           after={r.source.after}
           notes={notes}
           action={toggle}
+          missing={missingWords(r)}
         />
       )}
     </section>

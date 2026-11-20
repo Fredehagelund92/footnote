@@ -1,5 +1,5 @@
 # Secret scanning (.github/workflows/security.yml): gitleaks' default rules over the whole history,
-# and the private-profile marker (docs/security.md#private-profiles).
+# and the private-profile marker (docs/use-your-own-data.md#private-profiles).
 
 [extend]
 useDefault = true
@@ -14,8 +14,8 @@ regex = '''FOOTNOTE-PRIVATE-PROFIL[E]'''
 keywords = ["footnote-private-profil"]
 
 [[rules.allowlists]]
-description = "The page that explains the marker names it"
-paths = ['''^docs/security\.md$''']
+description = "The page that explains the marker names it, and the page that did before it moved"
+paths = ['''^docs/use-your-own-data\.md$''', '''^docs/security\.md$''']
 
 [[allowlists]]
 description = "The made-up AWS key the content-safety tests must recognise (FR-117)"

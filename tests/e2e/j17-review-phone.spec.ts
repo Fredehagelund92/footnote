@@ -3,7 +3,9 @@ import { claimsToCheck, cardIn, expect, go, place, test } from './go.ts'
 
 // J17, the review on a phone: the decision bar says the state in words and where you are, its
 // actions are 44px, nothing you can press is under 44px, and the source and its preview are both
-// in reach. A tap on a line of the text offers to comment on it there (J33).
+// in reach. A tap on a line of the text offers to comment on it there (J33). The comparison
+// stacks: a field's values one under the other, the text now above suggested, nothing cut and
+// nothing sideways (K4).
 
 test.use({ ...devices['iPhone 13'], browserName: 'chromium' })
 
@@ -69,5 +71,69 @@ test('no control is under 44px', async ({ page }) => {
         ),
     )
     expect(small, route).toEqual([])
+  }
+})
+
+test('the comparison stacks, with nothing cut and nothing sideways', async ({ page }) => {
+  for (const id of [
+    'sug-ines',
+    'sug-ines-format',
+    'sug-ines-order',
+    'sug-ines-link',
+    'sug-ines-long',
+    'sug-lars-retire',
+    'gap-spain',
+  ]) {
+    await go(page, `/inbox/${id}/review`)
+    const source = page.getByRole('region', { name: 'The source' })
+    const text = source.getByRole('region', { name: 'Text' })
+    await expect(text).toBeVisible()
+    await page.evaluate(() => document.fonts.ready)
+    const problems = await source.evaluate((root) => {
+      const edge = root.getBoundingClientRect().right + 0.5
+      const out: string[] = []
+      if (document.documentElement.scrollWidth > window.innerWidth)
+        out.push('the page scrolls sideways')
+      // Words for a screen reader only are clipped on purpose.
+      const hidden = (el: Element | null): boolean =>
+        !!el &&
+        el !== root &&
+        (getComputedStyle(el).clipPath.startsWith('inset') || hidden(el.parentElement))
+      for (const el of root.querySelectorAll<HTMLElement>('*')) {
+        const r = el.getBoundingClientRect()
+        if (!r.width || !r.height || hidden(el)) continue
+        const name = `${el.tagName} "${(el.textContent ?? '').trim().slice(0, 30)}"`
+        if (r.right > edge) out.push(`${name} ends past the edge`)
+        const style = getComputedStyle(el)
+        // A mention's chip shortens a long name by design, with an ellipsis.
+        if (
+          ['hidden', 'clip'].includes(style.overflowX) &&
+          el.scrollWidth > el.clientWidth + 1 &&
+          style.textOverflow !== 'ellipsis'
+        )
+          out.push(`${name} is cut`)
+      }
+      return out
+    })
+    expect(problems, id).toEqual([])
+    // Now above Suggested: in each changed passage, and for a text only one side has.
+    const order = await text.evaluate((region) => {
+      const top = (scope: Element, label: string) =>
+        [...scope.querySelectorAll('span, p')]
+          .filter((e) => e.textContent === label && e.getBoundingClientRect().height > 0)
+          .filter((e) => getComputedStyle(e).clipPath === 'none')[0]
+          ?.getBoundingClientRect().top
+      const scopes = [...region.querySelectorAll('[data-review-change]')]
+      const pairs = (scopes.length ? scopes : [region]).map((x) => [
+        top(x, 'Now'),
+        top(x, 'Suggested'),
+      ])
+      return pairs.filter(([now, suggested]) => now !== undefined && suggested !== undefined)
+    })
+    // A move alone has a passage on one side only, where it was and where it goes, and a text
+    // that stays the same is shown once.
+    if (!['sug-ines-order', 'sug-ines-link'].includes(id))
+      expect(order.length, id).toBeGreaterThan(0)
+    for (const [now, suggested] of order) expect(now, id).toBeLessThan(suggested!)
   }
 })

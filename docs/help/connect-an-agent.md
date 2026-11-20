@@ -50,6 +50,8 @@ Before you answer a question about company data, call get_context first and use 
 
 Your browser opens a screen that names the agent and what it can do: read published context, and send a report or a suggestion after you say yes. Choose Allow. The page says Connected, with the agent's name and yours, and it joins Connected agents.
 
+The agent stays connected for 30 days, or until it goes 7 days unused. Then it asks you to approve it again.
+
 > **Cursor and VS Code.** They have one-click install links on the same page. Claude's app and ChatGPT take the address as a connector; their steps are under Prefer to do it by hand. Codex signs in with its one command, which opens the browser; `codex mcp login` is only for when it did not.
 
 ## If nothing signs in
@@ -64,8 +66,6 @@ The page looks every few seconds. After two minutes it shows what usually helps,
 - If it says the server already exists, ask it to remove the old one and try again.
 
 <!-- /include -->
-
-> **Disconnecting.** **Disconnect** your own agent from Connected agents; an admin can disconnect any. It signs out at once, and you can connect it again.
 
 ## The tools each agent may call
 
@@ -82,3 +82,5 @@ An agent publishes only where an owner lets it [publish without review](publish-
 Admins switch each tool on or off for each agent in Details. A switch acts at the agent's next request, and it never lets an agent do more than the person allowed when they connected it: a tool they didn't allow can't be switched on. An agent with every tool off gets nothing. Every change is in the history log, with who made it.
 
 A suggestion an agent sends names it in the Inbox and the review, as "Claude Code, with Kofi's OK".
+
+> **Disconnecting.** **Disconnect** your own agent from Connected agents; an admin can disconnect any, and the history log keeps it. It signs out at once, and it can be connected again. Removing a person from the workspace disconnects their agents in the same step.

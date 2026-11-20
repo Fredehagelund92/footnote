@@ -42,33 +42,39 @@ Older design pages that still apply:
 
 The public site publishes these, and their words follow the [reader check](../site/README.md#ready-for-readers).
 
-| Page                                                    | What it says                                                           |
-| ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [Where to run Footnote](where-to-run.md)                | Docker Compose, a cloud host or container platform, and the demo       |
-| [Self-host Footnote on one computer](self-hosting.md)   | Install, back up, restore, upgrade and roll back, for local evaluation |
-| [Choose a model provider](model-providers.md)           | The ways to reach a model, the models tested, and who receives what    |
-| [Run and operate the service](operations.md)            | Run it, check it, run it in production, its jobs, limits and metrics   |
-| [Service settings](configuration.md)                    | Every setting the service reads when it starts                         |
-| [Set up company sign-in](company-sign-in.md)            | OpenID Connect, and who may sign in                                    |
-| [Administer the service](administration.md)             | Settings, the history log, import, export and the `footnote` command   |
-| [Security, scanning and the restore drill](security.md) | What is scanned and how to prove a backup restores                     |
-| [Run the demo on Vercel and Neon](vercel.md)            | For the demo only: the service as a function, and the data on Neon     |
+| Page                                                           | What it says                                                          |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [Where to run Footnote](where-to-run.md)                       | Docker Compose, a cloud host or container platform, and the demo      |
+| [Use your own data](use-your-own-data.md)                      | Your own semantic layer on one computer, and private profiles         |
+| [Run in production](run-in-production.md)                      | The images in production mode, the proxy in front and the web image   |
+| [Set up company sign-in](company-sign-in.md)                   | OpenID Connect, and who may sign in                                   |
+| [Agent sign-in settings](agent-sign-in-settings.md)            | The login server for agents, how long a sign-in lasts, and its keys   |
+| [Choose a model provider](model-providers.md)                  | The ways to reach a model, the models tested, and who receives what   |
+| [Back up, restore and upgrade](back-up-restore-and-upgrade.md) | What to back up, the restore drill, restore, upgrade and roll back    |
+| [Watch the service](watch-the-service.md)                      | Health, logs, request limits, scheduled jobs and metrics              |
+| [Service settings](configuration.md)                           | Every setting the service reads when it starts                        |
+| [Administer the service](administration.md)                    | Settings, the history log, import, export and the `footnote` command  |
+| [Security](security.md)                                        | What is scanned, what leaves the service, and how to report a problem |
+| [Run the demo on Vercel and Neon](vercel.md)                   | For the demo only: the service as a function, and the data on Neon    |
 
 ## Connect Footnote
 
 Published on the public site too.
 
-| Page                                                     | What it says                                         |
-| -------------------------------------------------------- | ---------------------------------------------------- |
-| [Connect an agent by hand](reference/connect-by-hand.md) | The MCP address, the commands and the limits         |
-| [Agent tools](help/tools.md)                             | The six tools, what each takes and gives back        |
-| [Sign in your own agent](ai-sign-in.md)                  | How an agent signs in, and its settings and keys     |
-| [HTTP API overview](reference/http-api.md)               | How to call the API, and what it covers              |
-| [OpenAPI description](api/openapi.json)                  | Every operation, generated from the contract         |
-| [Connectors](connectors.md)                              | What a connector is, and what a read may change      |
-| [The Cube connector](connectors/cube.md)                 | Reading definitions from a Cube model                |
-| [Connector security](connectors/security.md)             | What a connector may reach, and how that is enforced |
-| [Build a connector](connectors/authoring.md)             | The guide for people and coding agents               |
+| Page                                                        | What it says                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------- |
+| [Connect an agent by hand](reference/connect-by-hand.md)    | The MCP address, signing in, keys for bots and the limits |
+| [Agent tools](help/tools.md)                                | The six tools, what each takes and gives back             |
+| [HTTP API overview](reference/http-api.md)                  | How to call the API, and what it covers                   |
+| [OpenAPI description](api/openapi.json)                     | Every operation, generated from the contract              |
+| [Connectors](connectors.md)                                 | What a connector is, and what a read may change           |
+| [The Cube connector](connectors/cube.md)                    | Reading definitions from a Cube model                     |
+| [Cube Cloud](connectors/cube-cloud.md)                      | Reading definitions from a Cube Cloud deployment          |
+| [dbt MetricFlow](connectors/dbt-metricflow.md)              | Reading definitions from dbt's semantic manifest          |
+| [Static list](connectors/static-list.md)                    | Definitions an admin writes in the form                   |
+| [Markdown in Git and Google Drive](connectors/documents.md) | Documents that become suggestions for owners              |
+| [Connector security](connectors/security.md)                | What a connector may reach, and how that is enforced      |
+| [Build a connector](connectors/authoring.md)                | The guide for people and coding agents                    |
 
 ## Build Footnote
 

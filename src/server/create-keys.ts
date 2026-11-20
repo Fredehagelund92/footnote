@@ -7,8 +7,8 @@ import { loadKeyRing } from './modules/oauth/index.ts'
  * keys production never creates on its own, each only when its file does not exist yet, readable
  * by its owner only: the login server's signing key (FOOTNOTE_OAUTH_SIGNING_KEY_FILE) and the key that
  * seals suggest_context's questions (FOOTNOTE_MCP_STATE_KEY_FILE). It reads an existing key to check
- * it, and prints file names only, never key material (docs/operations.md, "Run the image in
- * production mode").
+ * it, and prints file names only, never key material (docs/run-in-production.md, "Run the image
+ * in production mode").
  */
 
 const env = process.env

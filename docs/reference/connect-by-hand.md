@@ -16,7 +16,7 @@ Settings, Agents and access, shows the address of your workspace.
 
 ## A person's agent
 
-Each agent has its own steps, the same as in Agents and access under Prefer to do it by hand, where they carry your workspace's address. Here they use the address that `docker compose up` serves. The agent signs in as you, with no token: see [Sign in your own agent](../ai-sign-in.md).
+Each agent has its own steps, the same as in Agents and access under Prefer to do it by hand, where they carry your workspace's address. Here they use the address that `docker compose up` serves. The agent signs in as you, with no key to copy, as [Sign in as yourself](#sign-in-as-yourself) says.
 
 <!-- tabs -->
 
@@ -109,6 +109,28 @@ Agents and access has an Install in VS Code link that does the first step for yo
 3. Approve the connection in the browser when it asks. If the agent reads an instructions file, add the line from the other tabs to it.
 
 <!-- /tabs -->
+
+## Sign in as yourself
+
+1. Most agents open the sign-in by themselves. In Claude Code, run `/mcp` and choose Authenticate.
+2. Your browser opens. Sign in, read which app asks and what it may do, then choose Allow or Don't allow.
+3. The browser goes back to the agent, and its tools work as you.
+
+On a computer running the demo, sign-in means choosing a person from the demo's people.
+
+The sign-in screen lists the scopes the agent asks for, all three unless it asks for fewer:
+
+| Scope      | What it allows                                        |
+| ---------- | ----------------------------------------------------- |
+| `read`     | Read context: the published context items you can see |
+| `feedback` | Report what is missing or wrong, after you say yes    |
+| `propose`  | Suggest changes, in your name, after you say yes      |
+
+An agent always reads what is published now, never drafts or comments. The request log keeps which family of app called and never who it acted for.
+
+The agent renews its own access, so a connection lasts 30 days after sign-in, or until it goes 7 days unused. Then the agent asks you to sign in again. Whoever runs the service can change both: see [Agent sign-in settings](../agent-sign-in-settings.md).
+
+> **Agents that cannot sign in.** An agent needs a client ID metadata document or dynamic client registration. One with neither uses an access key, as the next section says.
 
 ## A bot or a scheduled job
 

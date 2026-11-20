@@ -49,8 +49,8 @@ You need Docker. The first start builds Footnote and loads the demo, which can t
 It runs on your computer with invented data and calls no AI service. `docker compose up` builds
 the images from the code you cloned, so you get what this page describes. Ctrl+C stops it.
 
-[Self-host Footnote on one computer][self-hosting] has the rest, such as your own data and
-connecting Claude Code to the demo.
+[Try the demo][try-the-demo] has the rest, such as connecting Claude Code to the demo, and
+[Use your own data][own-data] runs it on your own semantic layer.
 
 ## What is true today
 
@@ -80,7 +80,7 @@ The [Footnote docs][docs] cover everything technical:
   [Agent tools][reference] has the tools.
 - [Connectors][connectors]: where Footnote reads your definitions and documents.
 - [Choose a model provider][model-providers]: the model behind Ask and the answer tests.
-- [Self-host Footnote][self-hosting]: backups and upgrades, and [where to run it][where-to-run].
+- [Back up, restore and upgrade][backups]: keep what people wrote, and [where to run it][where-to-run].
 - [Service settings][configuration]: every setting the service reads.
 
 ## Contributing
@@ -104,6 +104,7 @@ Footnote is under the [Apache License 2.0](LICENSE). You keep the copyright in y
 [connectors]: https://getfootnote.vercel.app/docs/connectors/
 [connector-authoring]: https://getfootnote.vercel.app/docs/connectors/authoring/
 [model-providers]: https://getfootnote.vercel.app/docs/model-providers/
-[self-hosting]: https://getfootnote.vercel.app/docs/self-hosting/
+[own-data]: https://getfootnote.vercel.app/docs/use-your-own-data/
+[backups]: https://getfootnote.vercel.app/docs/back-up-restore-and-upgrade/
 [where-to-run]: https://getfootnote.vercel.app/docs/where-to-run/
 [configuration]: https://getfootnote.vercel.app/docs/configuration/

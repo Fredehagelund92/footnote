@@ -640,6 +640,26 @@ export function createContextService(
     }
   }
 
+  /**
+   * Two versions of an item the person may read, by their numbers, as History compares them:
+   * `from` shown as before, `to` as after. Only versions agents got are compared.
+   */
+  async function compare(input: { id: string; from: number; to: number }) {
+    const row = await library.getIndexRow(input.id)
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
+    const found = await tx.query<{ id: string; no: number }>(
+      `select v.id::text, v.version_no as no from item_versions v
+        where v.item_id = $1 and v.version_no = any($2::int[])
+          and exists (select 1 from item_version_service s where s.version_id = v.id)`,
+      [input.id, [input.from, input.to]],
+    )
+    const idOf = (no: number) => found.find((v) => v.no === no)?.id
+    const [from, to] = [idOf(input.from), idOf(input.to)]
+    if (!from || !to)
+      throw new ORPCError('NOT_FOUND', { message: "We couldn't find that version." })
+    return path.versionPair(from, to)
+  }
+
   /** An earlier version's words as a new draft of a change, for an owner or an admin (FR-140). */
   async function restoreAsDraft(input: { id: string; version: number }) {
     const row = await library.getIndexRow(input.id)
@@ -926,6 +946,7 @@ export function createContextService(
     markRead,
     bulkApply,
     undoChange,
+    compare,
     restoreAsDraft,
     related: relatedOf,
     publish,

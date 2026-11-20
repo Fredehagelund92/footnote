@@ -42,7 +42,8 @@ import { publishedUnderLine } from '@/lib/policies'
 // A history that stays small however long it gets: one line until opened ("12 changes - last
 // edited by Jon Abara, 3 Oct"), then compact rows grouped by month, the newest five first and
 // "Show earlier" for more, so the page grows and nothing scrolls inside it. A row's tooltip says
-// what changed; a click opens that version's read-only diff in a sheet, with Restore for owners.
+// what changed; a click opens that version in a sheet, with Restore for owners. Given the item,
+// the sheet compares a version agents got with any other, as the review compares a suggestion.
 // A version published under an owner's policy, without a review round (FR-421), says so on its row
 // and in its sheet, which has Undo for an owner of the domain or an admin.
 
@@ -110,17 +111,23 @@ function Row({ version, onOpen }: { version: Version; onOpen: () => void }) {
   )
 }
 
+/** The comparison of two versions, loaded once a version is opened. */
+const HistoryComparison = React.lazy(() => import('@/components/footnote/history-comparison'))
+
 /**
  * The versions of an item, newest first. `current` says which one agents get. `onRestore` brings
- * a version's words back as a draft; without it, Restore only says so.
+ * a version's words back as a draft; without it, Restore only says so. With `itemId`, a version
+ * agents got is compared with another; otherwise the sheet shows the one field it changed.
  */
 export function VersionHistory({
   versions,
+  itemId,
   canRestore,
   onRestore,
   onUndo,
 }: {
   versions: Version[]
+  itemId?: string
   canRestore: boolean
   onRestore?: (version: Version) => Promise<unknown>
   /** Takes back a publish made under an owner's policy, by its token (FR-421, FR-227). */
@@ -187,7 +194,7 @@ export function VersionHistory({
         </div>
       </CollapsibleContent>
       <Sheet open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <SheetContent side="right" className="w-history-panel gap-0 p-0">
+        <SheetContent side="right" className="w-history-panel gap-0 overflow-y-auto p-0">
           {viewing && (
             <>
               <SheetHeader className="border-b">
@@ -216,7 +223,13 @@ export function VersionHistory({
                 </SheetDescription>
               </SheetHeader>
               <div className="@container flex flex-col gap-4 p-4">
-                <FieldDiff label={viewing.field} before={viewing.before} after={viewing.after} />
+                {itemId && viewing.comparable ? (
+                  <React.Suspense fallback={<div className="h-40" />}>
+                    <HistoryComparison itemId={itemId} versions={versions} viewing={viewing} />
+                  </React.Suspense>
+                ) : (
+                  <FieldDiff label={viewing.field} before={viewing.before} after={viewing.after} />
+                )}
                 {viewing.policy?.undo && onUndo && (
                   <div className="flex flex-col gap-1.5">
                     <Button
