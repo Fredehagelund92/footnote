@@ -136,7 +136,7 @@ Overview now holds the topics too: the numbers, questions per day and the topics
 
 2026-11-03
 
-Ask what a metric is, and the answer starts with its definition, in the words of the definitions source. With no context written about it, a Definition mark stands where the answer label would be.
+Ask what a metric is, and the answer starts with its definition, in the words of the definitions source. With no context written about it, a Definition mark stands where the answer line would be.
 
 ## The review's Preview is the item's page
 
@@ -166,7 +166,7 @@ Observability no longer has a Summary page or its monthly digests. It opens on O
 
 2026-11-02
 
-The answer label is a badge at the head of the answer, and the badge opens a card that says what it means. Sources are chips under the answer, and its actions are one row of icons. A question that gets nothing back stays in the chat, with Ask again.
+The answer line is a badge at the head of the answer, and the badge opens a card that says what it means. Sources are chips under the answer, and its actions are one row of icons. A question that gets nothing back stays in the chat, with Ask again.
 
 ## Conflicts are a filter of Context
 
@@ -190,7 +190,7 @@ Ask answers questions about what Definitions lists, such as "list 10 dimensions"
 
 2026-10-31
 
-An owner can let one agent publish low-risk new items in their domain without a review round, once an admin switches it on. Each one names the owner, and can be undone from its history.
+An owner can let one agent publish low-risk new items in their domain without a review round, once an admin switches it on. Each one names the owner, and can be undone from its history: [Publish without review](publish-without-review.md).
 
 ## Compare two items that disagree
 
@@ -244,7 +244,7 @@ An Admin can make an access key for a bot or a scheduled job in Settings. A key 
 
 2026-10-29
 
-Settings, Integrations connects a tool in five steps, from picking it to its schedule. Change settings goes through the same steps, and Disconnect stops reading it.
+Settings, Integrations connects a tool in five steps, from picking it to its schedule. Change settings goes through the same steps, and Disconnect stops reading it: [Integrations](integrations.md).
 
 ## Saved questions and alerts
 
@@ -274,7 +274,7 @@ People can sign in with the company's OpenID Connect provider. An Admin invites 
 
 2026-10-23
 
-One Help menu in the sidebar, a short Help page, a card on every answer label, and ? for the keys.
+One Help menu in the sidebar, a short Help page, a card on every answer line, and ? for the keys.
 
 ## Agents can follow links
 

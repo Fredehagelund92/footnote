@@ -143,6 +143,11 @@ test('the build before the release carries only its words, not the release words
     expect(html).not.toContain(text(line))
   for (const words of ['0.1.0', 'two minutes', 'compose.images.yaml', 'published images'])
     expect(html).not.toContain(words)
+  // No footer sends a reader to a release that is not there, here or under a page of the docs.
+  for (const path of ['/', '/docs/'])
+    await expect(
+      (await page.goto(path), page.getByRole('navigation', { name: 'Footer' })),
+    ).not.toContainText('Releases')
 })
 
 const shots = [

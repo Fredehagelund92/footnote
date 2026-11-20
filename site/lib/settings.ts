@@ -15,6 +15,8 @@ export type Settings = {
   version: string
   /** The Git reference that links to repository files open at: the release tag, or main. */
   ref: string
+  /** The folders of the releases whose docs the site carries beside this build, `0.1`. */
+  releases: string[]
   product: string
 }
 
@@ -35,13 +37,27 @@ export function readSettings(env: Record<string, string | undefined>): Settings 
   const version = env.DOCS_VERSION ?? ''
   if (version && !/^(?:\d+\.\d+|next)$/.test(version))
     throw new Error(`DOCS_VERSION is "${version}": write MAJOR.MINOR or next.`)
+  const releases = (env.DOCS_RELEASES ?? '').split(',').filter(Boolean)
+  for (const folder of releases)
+    if (!/^\d+\.\d+$/.test(folder))
+      throw new Error(
+        `DOCS_RELEASES names "${folder}": write MAJOR.MINOR folders, such as 0.1,0.2.`,
+      )
   return {
     ...readSiteUrl(env.SITE_URL ?? ''),
     version,
     ref: env.DOCS_REF || 'main',
+    releases,
     product: env.FOOTNOTE_PRODUCT_NAME || DEFAULT_PRODUCT_NAME,
   }
 }
+
+/**
+ * Whether this build's pages say they follow main, ahead of any release: only the docs of next, and
+ * only once a release's docs sit beside them. While next is all there is, nothing is ahead of it.
+ */
+export const followsMain = ({ version, releases }: Pick<Settings, 'version' | 'releases'>) =>
+  version === 'next' && releases.length > 0
 
 /** The docs' path in this build, without a trailing slash: `/footnote/docs/0.1`, or `/docs`. */
 export const docsPath = ({ root, version }: Pick<Settings, 'root' | 'version'>) =>

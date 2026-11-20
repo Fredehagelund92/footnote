@@ -74,7 +74,8 @@ use, and it will change before 1.0.
 
 The [Footnote docs][docs] cover everything technical:
 
-- [Get started][get-started]: from an empty Footnote to a first checked answer.
+- [Try the demo][try-the-demo]: the quick start, from a clone to a checked answer and Claude Code.
+- [Set up your workspace][set-up]: from an empty Footnote to a first checked answer.
 - [Connect an agent][connect-an-agent]: Claude Code and other agents, over MCP. The
   [MCP and API reference][reference] has the tools.
 - [Connectors][connectors]: where Footnote reads your definitions and documents.
@@ -96,7 +97,8 @@ Footnote is under the [Apache License 2.0](LICENSE). You keep the copyright in y
 <!-- The docs' address is DOCS_URL in src/domain/brand.ts; tests/lint/readme.test.ts holds these to it. -->
 
 [docs]: https://getfootnote.vercel.app/docs/
-[get-started]: https://getfootnote.vercel.app/docs/get-started/
+[try-the-demo]: https://getfootnote.vercel.app/docs/try-the-demo/
+[set-up]: https://getfootnote.vercel.app/docs/set-up-your-workspace/
 [connect-an-agent]: https://getfootnote.vercel.app/docs/connect-an-agent/
 [reference]: https://getfootnote.vercel.app/docs/reference/
 [connectors]: https://getfootnote.vercel.app/docs/connectors/

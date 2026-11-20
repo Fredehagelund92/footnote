@@ -1,9 +1,9 @@
 ---
-title: Answer labels
+title: Answer lines
 line: The six lines an answer starts with, and what each one asks of you.
 group: How it works
 order: 2
-minutes: 2
+minutes: 3
 reviewed: 2026-10-30
 ---
 
@@ -35,21 +35,6 @@ Ask also reads the records to say what is missing, out of date, in conflict or w
 - Ask does not give advice of its own.
 - Ask keeps no numbers, so for numbers use an agent with your data tool.
 
-## Words
+Each line names what the person can do next: [Write context](write-context.md) says how to write the missing part. The words the lines use, such as owner and context item, are on [Words](words.md).
 
-<!-- include words -->
-
-- Context item: One thing agents should know about the numbers: an event, a warning, a rule or a guide. It has a source and a check date.
-- Domain: An area of the business, such as Sales or Marketing. Every context item belongs to one.
-- Owner: The person who publishes and checks a domain's context. Agents read only what an owner has published.
-- Suggestion: A change someone else sends to an owner, from the editor or through their agent. Nothing changes until the owner publishes it.
-- Definition: A metric is a number you track, such as Orders. A dimension is a way to split a number, such as by market. A term is a word your company uses, such as Peak season.
-- Synonym: Another name for a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.
-- Not found: A question agents asked several times and found nothing written down for. Its card brings a draft.
-- Reported: Someone said a context item is wrong or unclear. The owner sees it in the Inbox.
-- Due for a check: A context item whose check date has passed, or whose definition changed at its source. The owner confirms it is still true, or edits it.
-- Don't conclude: A line that tells agents what not to read into this. Example: do not say the customs rule caused the drop.
-
-<!-- /include -->
-
-> **One list.** Help in the app shows the same lines and words, from the same source. If one changes, both change.
+> **One list.** Help in the app shows the same lines, from the same source. If one changes, both change.

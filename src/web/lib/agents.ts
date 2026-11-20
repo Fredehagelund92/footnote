@@ -203,7 +203,7 @@ export const AGENT_TOOLS: {
     title: 'Get the context for a question',
     what: 'The context that applies to a question, with one sentence to relay.',
     takes: 'The question, or a metric, markets and dates.',
-    returns: 'The answer label, the context items that apply, and one sentence to relay.',
+    returns: 'The answer line, the context items that apply, and one sentence to relay.',
   },
   {
     name: 'find_context',

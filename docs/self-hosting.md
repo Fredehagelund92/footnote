@@ -6,7 +6,7 @@ order: 2
 reviewed: 2026-11-18
 ---
 
-Run it with `docker compose` on one computer, back it up, restore it, upgrade it and roll an upgrade back. To run it anywhere else, see [Where to run Footnote](where-to-run.md).
+Run it with `docker compose` on one computer, back it up, restore it, upgrade it and roll an upgrade back. For the shortest way to the demo, see [Try the demo](try-the-demo.md). To run it anywhere else, see [Where to run Footnote](where-to-run.md).
 
 > **For local evaluation, not for production use.** Anyone who reaches this setup can sign in as an admin, the database trusts every connection in its container network, and nothing is encrypted in transit. Keep both ports on this computer, as `compose.yaml` does, and put no company data in it that this computer may not hold.
 
@@ -71,7 +71,7 @@ CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
 
 With your own model Footnote starts empty, with no demo data. The sign-in page offers the sample people of [the local people file](../db/seed/people.local.yml). Sign in as Ravi Kapoor, the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context applies to those names.
 
-On a Mac the folder must be one Docker shares, or Footnote refuses to start and says so. See [the Cube connector](connectors/cube.md).
+On a Mac the folder must be one Docker shares, or Footnote refuses to start and says so. See [the Cube connector](connectors/cube.md), and [Connectors](connectors.md) for every tool it reads.
 
 To sign in as yourself, add your name and email to the top of [the local people file](../db/seed/people.local.yml) with `roles: [administrator]`, then start with `docker compose up --build`, so the image takes the file in.
 

@@ -3,7 +3,7 @@ title: Agent tools
 line: The six tools an agent can call, with what each takes and returns.
 group: Reference
 order: 1
-minutes: 3
+minutes: 2
 reviewed: 2026-11-03
 ---
 
@@ -18,7 +18,7 @@ The six tools an agent can call. All read, apart from the two that send somethin
 The context that applies to a question, with one sentence to relay.
 
 - Takes: The question, or a metric, markets and dates.
-- Returns: The answer label, the context items that apply, and one sentence to relay.
+- Returns: The answer line, the context items that apply, and one sentence to relay.
 
 ### find_context
 

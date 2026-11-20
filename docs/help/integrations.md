@@ -3,7 +3,7 @@ title: Integrations
 line: Connect where metrics are defined and where documents live, and what is read.
 group: Set up
 order: 2
-minutes: 4
+minutes: 3
 reviewed: 2026-11-19
 ---
 
@@ -13,7 +13,7 @@ Connect where metrics are defined and where documents live, and what is read fro
 
 Metric and dimension names arrive from the tool where they are defined, and stay read-only. dbt calls a group of metrics a semantic model, and its domain is read from `config.meta.domain`.
 
-A read makes a name for each new one, and an owner publishes them on one card in the Inbox. Until then, Definitions doesn't list them. When a definition changes there, the context that relies on it comes back to its owners to check.
+A read makes a name for each new one, and an owner publishes them on one card in the Inbox, as [Set up your workspace](set-up-your-workspace.md#publish-the-names) shows. Until then, [Definitions](definitions-and-synonyms.md) doesn't list them. When a definition changes there, the context that relies on it comes back to its owners to check.
 
 ## Documents
 
@@ -21,7 +21,13 @@ A folder shared with a service account, or Markdown in a repository. A read neve
 
 ## Connect one
 
-Five steps on one page: pick the tool, connect it and **Test connection**, choose the views, semantic models or folders to read, map each to a domain, and say why it is added. A folder's documents go to its domain's owners; a view or semantic model left without a domain stays shared. Only admins connect a tool.
+Only admins connect a tool. It takes five steps on one page:
+
+1. Pick: the tool.
+2. Connect: its settings, then **Test connection**.
+3. Choose: the views, semantic models or folders to read.
+4. Map: each to a domain. A folder's documents go to its domain's owners; a view or semantic model left without a domain stays shared.
+5. Schedule: how often it is read and what each read does. Then say why it is added.
 
 **Change settings** goes through the same steps, filled in. A token or a key left empty stays as it is. **Disconnect** stops reading the tool and forgets its key: its open suggestions are withdrawn, and what owners published stays.
 

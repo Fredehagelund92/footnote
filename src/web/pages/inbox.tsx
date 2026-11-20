@@ -85,7 +85,7 @@ import {
 } from '@/api/queries'
 import type { UndoOffer } from '@/api/client'
 import { useUndo } from '@/lib/undo'
-import { definitionsStep, setupSteps } from '@/lib/setup'
+import { definitionsStep, setupHeading, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
@@ -1109,9 +1109,7 @@ function Setup() {
           <div className="grid grid-cols-1 gap-px bg-border p-px">
             <Cell className="gap-0 py-0">
               <CardHeader className="border-b px-4 py-4 md:px-5">
-                <CardTitle className="text-base">
-                  Set up your workspace so agents can use what you know
-                </CardTitle>
+                <CardTitle className="text-base">{setupHeading}</CardTitle>
                 <CardDescription>
                   Your team writes down what the numbers don't show, and every agent reads it before
                   it answers. Name your metrics, then write: about ten minutes to your first answer.{' '}

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { SitePage } from '../lib/pages.ts'
-import { checkSite } from '../scripts/check-site.ts'
+import { checkIslands, checkSite } from '../scripts/check-site.ts'
 
 let dist: string
 const pages = [{ slug: 'privacy', title: 'Privacy' }] as SitePage[]
@@ -100,6 +100,41 @@ describe('the built site', () => {
     expect(checkSite(dist, settings, pages)).toEqual([
       'privacy: the page was not built',
       'privacy: llms.txt does not list Privacy',
+    ])
+  })
+})
+
+describe('the links between the pages of the docs', () => {
+  const three = [
+    { slug: 'privacy', title: 'Privacy' },
+    { slug: 'words', title: 'Words' },
+    { slug: 'tools', title: 'Agent tools' },
+  ] as SitePage[]
+  /** A page whose words link to some pages, and whose sidebar and footer link to every page. */
+  const page = (slug: string, links: string[]) =>
+    write(
+      `docs/0.1/${slug}/index.html`,
+      `<html><body><nav><a href="/footnote/docs/0.1/tools/">Agent tools</a></nav><div class="sl-markdown-content">${links
+        .map((to) => `<a href="/footnote/docs/0.1/${to}/#a">${to}</a>`)
+        .join(
+          ' ',
+        )}</div><footer><a href="/footnote/docs/0.1/tools/">Next</a></footer></body></html>`,
+    )
+
+  it('pass when every page links to another and another links to it', () => {
+    page('privacy', ['words'])
+    page('words', ['tools'])
+    page('tools', ['privacy', 'tools'])
+    expect(checkIslands(dist, settings, three)).toEqual([])
+  })
+
+  it('fail on a page with no link out or no link in, counting only the words of a page', () => {
+    page('privacy', ['words', 'privacy'])
+    page('words', ['privacy'])
+    page('tools', [])
+    expect(checkIslands(dist, settings, three)).toEqual([
+      'tools: Agent tools links to no other page of the docs',
+      'tools: no other page of the docs links to Agent tools',
     ])
   })
 })

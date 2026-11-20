@@ -7,7 +7,7 @@ describe("the landing page's links", () => {
   it('name a page of the docs without a version, so it opens the newest release', () => {
     expect(links.home).toBe('/footnote/')
     expect(links.docs()).toBe('/footnote/docs/')
-    expect(links.docs('get-started')).toBe('/footnote/docs/get-started/')
+    expect(links.docs('try-the-demo')).toBe('/footnote/docs/try-the-demo/')
     expect(links.docs('reference/agent-tools#ask')).toBe(
       '/footnote/docs/reference/agent-tools/#ask',
     )

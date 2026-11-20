@@ -8,7 +8,7 @@ reviewed: 2026-11-19
 
 Let people sign in with your company's OpenID Connect provider: Okta, Microsoft Entra ID, Google, Keycloak, Auth0 or any other that publishes a discovery document. A person's own agent then signs in through the same web session.
 
-SAML providers work through an OIDC broker, such as Keycloak, Dex or the provider's own OIDC bridge.
+SAML providers work through an OIDC broker, such as Keycloak, Dex or the provider's own OIDC bridge. [Service settings](configuration.md#sign-in-and-addresses) has the settings around it, such as `FOOTNOTE_AUTH`.
 
 ## Set it up
 

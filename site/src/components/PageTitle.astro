@@ -1,0 +1,49 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro'
+import { sitePageMarkdown } from '../../lib/llms.ts'
+import { readSettings } from '../../lib/settings.ts'
+
+/*
+  The page's title, and beside it a button that copies the page as Markdown, as llms-full.txt gives
+  it, for a reader who hands the page to an agent. The Markdown is in the page itself, so copying
+  needs no request. The docs' home is no page of Markdown, so it has no button.
+*/
+const markdown = sitePageMarkdown(readSettings(process.env), Astro.locals.starlightRoute.entry.id)
+---
+
+<div class="footnote-title">
+  <Default />
+  {
+    markdown && (
+      <footnote-copy class="footnote-copy" data-pagefind-ignore>
+        <button type="button" class="btn btn-line btn-sm" aria-describedby="footnote-copied">
+          Copy as Markdown
+        </button>
+        <span id="footnote-copied" role="status" />
+        <template>{markdown}</template>
+      </footnote-copy>
+    )
+  }
+</div>
+
+<script>
+  class FootnoteCopy extends HTMLElement {
+    connectedCallback() {
+      const button = this.querySelector('button')!
+      const status = this.querySelector('[role="status"]')!
+      const markdown = this.querySelector('template')!.content.textContent ?? ''
+      let timer: ReturnType<typeof setTimeout> | undefined
+      button.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(markdown)
+          status.textContent = 'Copied'
+        } catch {
+          status.textContent = 'Could not copy: select the page instead'
+        }
+        clearTimeout(timer)
+        timer = setTimeout(() => (status.textContent = ''), 2500)
+      })
+    }
+  }
+  customElements.define('footnote-copy', FootnoteCopy)
+</script>

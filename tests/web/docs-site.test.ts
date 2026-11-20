@@ -19,7 +19,13 @@ describe('the docs site', () => {
   })
 
   it('draws every page, with its title, its words and the lists it includes', () => {
-    expect(slugs).toEqual([undefined, ...DOC_PAGES.map((p) => p.slug), 'changelog'])
+    expect(slugs).toEqual([
+      undefined,
+      ...DOC_PAGES.map((p) => p.slug),
+      'changelog',
+      'get-started',
+      'settle-a-conflict',
+    ])
     for (const slug of slugs) {
       const html = render(slug)
       expect(html, slug).toContain(`>${headOf(slug).title.replaceAll("'", '&#x27;')}</h1>`)
@@ -29,5 +35,11 @@ describe('the docs site', () => {
     expect(render('tools')).toContain('suggest_context')
     expect(render('changelog')).toContain('<time dateTime="2026-10-23"')
     expect(render(undefined)).toContain('Documentation')
+  })
+
+  it('draws a page that moved at its old address too, under its new title', () => {
+    expect(headOf('settle-a-conflict').title).toBe('Decide a conflict')
+    expect(render('settle-a-conflict')).toContain('>Decide a conflict</h1>')
+    expect(headOf('get-started').title).toBe('Set up your workspace')
   })
 })

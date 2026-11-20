@@ -2,7 +2,7 @@ import { unified } from '@astrojs/markdown-remark'
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import { linkContext } from './lib/links.ts'
-import { repoRoot, sidebar, sitePages } from './lib/pages.ts'
+import { movedPages, repoRoot, sidebar, sitePages } from './lib/pages.ts'
 import { remarkFootnoteDocs } from './lib/remark-footnote-docs.ts'
 import { docsPath, readSettings } from './lib/settings.ts'
 
@@ -49,6 +49,10 @@ export default defineConfig({
   // The web app's icons and logo, so a change there reaches the site.
   publicDir: '../src/web/public',
   devToolbar: { enabled: false },
+  // A page that moved: its old address forwards to where it is now.
+  redirects: Object.fromEntries(
+    Object.entries(movedPages).map(([from, to]) => [`/${from}/`, `${base}/${to}/`]),
+  ),
   markdown: {
     // Astro's default processor runs no remark plugins.
     processor: unified({
@@ -121,6 +125,7 @@ export default defineConfig({
       // The landing page's header and footer, its theme button and its theme in the head.
       components: {
         Footer: './src/components/Footer.astro',
+        PageTitle: './src/components/PageTitle.astro',
         Search: './src/components/Search.astro',
         SiteTitle: './src/components/SiteTitle.astro',
         SocialIcons: './src/components/SocialIcons.astro',
