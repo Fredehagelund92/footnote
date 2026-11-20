@@ -39,6 +39,10 @@ keeps a folder between restarts, and ends https in front of them.
 [the database guide](../db/README.md) says how to set up the roles, and
 [Set up company sign-in](company-sign-in.md) has every sign-in setting.
 
+### The proxy in front
+
+The proxy in front of the containers is now in [Run in production](run-in-production.md#the-proxy-in-front).
+
 ## Vercel with Neon
 
 This runs Footnote's demo only. [Run the demo on Vercel and Neon](vercel.md) has the whole setup. It is

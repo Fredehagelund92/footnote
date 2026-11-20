@@ -116,6 +116,7 @@ export const movedSections: Readonly<Record<string, Readonly<Record<string, stri
     'the-web-image': 'run-in-production#the-web-image',
   },
   operations: {
+    'run-the-service-locally': 'back-up-restore-and-upgrade#elsewhere',
     'check-that-it-runs': 'watch-the-service#check-that-it-runs',
     'run-the-image-in-production-mode': 'run-in-production#run-the-image-in-production-mode',
     'request-limits': 'watch-the-service#request-limits',

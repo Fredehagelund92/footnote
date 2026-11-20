@@ -82,6 +82,51 @@ describe('the pages of the site', () => {
     }
   })
 
+  it('forward every heading of the deleted pages', () => {
+    const old: Record<string, string[]> = {
+      'self-hosting': [
+        'install',
+        'the-demo',
+        'connect-claude-code-to-the-demo',
+        'from-the-published-images',
+        'use-your-own-data',
+        'ask-on-a-real-model',
+        'what-runs',
+        'if-the-start-goes-wrong',
+        'what-to-back-up',
+        'back-up',
+        'prove-the-backup-restores-the-restore-drill',
+        'restore',
+        'upgrade',
+        'roll-back',
+        'running-from-source-instead',
+        'the-web-image',
+      ],
+      operations: [
+        'run-the-service-locally',
+        'check-that-it-runs',
+        'run-the-image-in-production-mode',
+        'request-limits',
+        'scheduled-jobs',
+        'metrics',
+      ],
+      'ai-sign-in': [
+        'connect-your-agent',
+        'what-a-sign-in-lasts',
+        'see-and-end-connections',
+        'what-the-agent-can-do',
+        'the-login-server-settings',
+        'make-the-keys',
+        'rotate-the-signing-key',
+        'known-limits',
+      ],
+    }
+    for (const [from, headings] of Object.entries(old)) {
+      for (const heading of headings)
+        expect(movedSections[from], `${from}#${heading}`).toHaveProperty([heading])
+    }
+  })
+
   it('keep their address from their file', () => {
     expect(slugOf('help/privacy.md')).toBe('privacy')
     expect(slugOf('connectors/cube.md')).toBe('connectors/cube')

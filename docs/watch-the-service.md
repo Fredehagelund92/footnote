@@ -68,7 +68,9 @@ Problems are error log lines with an `alert` field:
 
 - `job_failed`, after a job's last retry;
 - `job_overdue` and `connector_stale`, from the watchdog;
-- `eval_run_unfinished`, for a scheduled test run that did not finish within 24 hours. A job that only waits out an earlier failure, as the saved check does, is backing off, not succeeding: the failure stands until a run goes well, and the watchdog sees the job overdue meanwhile.
+- `eval_run_unfinished`, for a scheduled test run that did not finish within 24 hours.
+
+A job that only waits out an earlier failure, as the saved check does, is backing off, not succeeding: the failure stands until a run goes well, and the watchdog sees the job overdue meanwhile.
 
 ## Metrics
 
