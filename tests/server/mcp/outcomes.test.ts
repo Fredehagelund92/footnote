@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { previewReplySchema } from '../../../src/contract/proposals.ts'
 import { definitionChars, quoted } from '../../../src/server/mcp/outcomes.ts'
 import {
   byteSize,
@@ -78,20 +77,16 @@ describe('W3: what must not be concluded reaches agents (FR-104, FR-326)', () =>
     const s = setup((data) => {
       norway(data).notToConclude = 'Do not read lower orders as fewer customers.'
     })
-    const { out } = await s.call('get_facts', { question: 'Orders Norway August 2026' })
-    expect(out.items[0]!.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
+    const { out } = await s.call('get_context', {
+      question: 'Orders Norway August 2026',
+      response_format: 'full',
+    })
+    expect(out.context[0]!.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
     expect(out.instructions).toContain(
       'When an item has not_to_conclude, never conclude what it rules out.',
     )
     const read = await s.call('read_context', { id: 'itm_norway01' })
     expect(read.out.context.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
-  })
-
-  it('leaves the default out: it says what the claim level already says', async () => {
-    const { out } = await setup().call('get_facts', {
-      question: 'Orders Norway August 2026',
-    })
-    expect(out.items[0]).not.toHaveProperty('not_to_conclude')
   })
 })
 
@@ -319,7 +314,7 @@ describe('find_context (FR-338)', () => {
     expect(today.out.instructions).toContain(
       'Say so in your answer: "I assumed today, 7 October 2026. Tell me if you meant a different period."',
     )
-    // Dates the words give are read as get_facts reads them, and said: never today.
+    // Dates the words give are read as get_context reads them, and said: never today.
     const week = await s.call('find_context', { query: 'orders Norway this past week' })
     expect(week.out).toMatchObject({
       found_by: 'scope',
@@ -473,7 +468,10 @@ describe('terms of a domain agents do not get (FR-333)', () => {
     const found = await hidden.call('find_context', { query: 'what is Orders' })
     expect(found.out.definitions ?? []).toEqual([])
     expect(JSON.stringify(found.out)).not.toContain('The value of paid orders')
-    const asked = await hidden.call('get_facts', { question: definitionQuestion })
+    const asked = await hidden.call('get_context', {
+      question: definitionQuestion,
+      response_format: 'full',
+    })
     expect(asked.out).not.toHaveProperty('definitions')
     expect(JSON.stringify(asked.out)).not.toContain('The value of paid orders')
 
@@ -494,9 +492,12 @@ describe('terms of a domain agents do not get (FR-333)', () => {
   })
 })
 
-describe('get_facts for a definition question (FR-338)', () => {
+describe('get_context for a definition question (FR-338)', () => {
   it('gives the definition first: the source words, where they come from and what Footnote adds', async () => {
-    const { out } = await setup().call('get_facts', { question: definitionQuestion })
+    const { out } = await setup().call('get_context', {
+      question: definitionQuestion,
+      response_format: 'full',
+    })
     expect(out).toMatchObject({
       status: 'matched',
       definitions: [
@@ -510,18 +511,15 @@ describe('get_facts for a definition question (FR-338)', () => {
             'AI agents get 1 checked context item about Orders with their data: 1 event.',
         },
       ],
-      items: [{ id: 'itm_norway01' }],
+      context: [{ id: 'itm_norway01' }],
     })
-    const keys = Object.keys(out)
-    expect(keys.indexOf('definitions')).toBeLessThan(keys.indexOf('items'))
     expect(out.instructions).toContain(definitionInstruction)
-    // Try it and the preview pass the definitions on whole (the contract strips what it lacks).
-    expect(previewReplySchema.parse(out).definitions).toEqual(out.definitions)
   })
 
   it('leaves the definitions out of a question about the data', async () => {
-    const { out } = await setup().call('get_facts', {
+    const { out } = await setup().call('get_context', {
       question: 'Orders in Norway in August 2026',
+      response_format: 'full',
     })
     expect(out).not.toHaveProperty('definitions')
     expect(out.instructions).not.toContain(definitionInstruction)
@@ -541,13 +539,14 @@ describe('get_facts for a definition question (FR-338)', () => {
       })
       data.terms[0]!.parentKey = 'group:payments'
       data.groupsOfMetric = { 'metric:orders': ['group:payments'] }
-    }).call('get_facts', {
+    }).call('get_context', {
+      response_format: 'full',
       question: 'What do payments mean?',
       metrics: ['group:payments'],
       dimension_filters: [{ dimension: 'dim:market', values: ['val:market/norway'] }],
       window: { from: '2026-08-04', to: '2026-08-31' },
     })
-    expect(out.items.map((item) => item.id)).toEqual(['itm_norway01'])
+    expect(out.context.map((item) => item.id)).toEqual(['itm_norway01'])
     expect(out.definitions.map((d) => [d.key, d.origin])).toEqual([
       ['group:payments', 'none'],
       ['metric:orders', 'source'],

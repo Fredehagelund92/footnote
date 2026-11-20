@@ -60,7 +60,7 @@ const importQuestions = (questions: object[], dryRun = false) =>
 beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
-    // The refund rule ended before August: get_facts never delivers it for an August question.
+    // The refund rule ended before August: get_context never delivers it for an August question.
     const refunds = await version(client, {
       title: 'Refund rule',
       summary: 'Orders are counted net of refunds.',

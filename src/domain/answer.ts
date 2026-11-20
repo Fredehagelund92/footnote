@@ -29,7 +29,14 @@ import {
   type Resolution,
 } from './resolver.ts'
 import { answerStateOf } from './answer-state.ts'
-import { askedGroups, askedMetrics, contextSaid, scopeWords, type Voice } from './say.ts'
+import {
+  askedGroups,
+  askedMetrics,
+  contextSaid,
+  peopleVoice,
+  scopeWords,
+  type Voice,
+} from './say.ts'
 import {
   assumedDate,
   extractScope,
@@ -104,7 +111,7 @@ export type AnswerOptions = {
   maxItems?: number
   /** A clock in milliseconds, to time the steps; without it every step takes 0 ms. */
   now?: () => number
-  /** Whose words `say` is in; the words of get_facts without it, the reply a draft's preview reads. */
+  /** Whose words `say` is in: a person's (`peopleVoice`) without it. */
   voice?: Voice
   /**
    * Answering a person in Ask, not an agent: the dates are read as people write them, and an item
@@ -376,7 +383,7 @@ export function* lookUp(
     calendar,
     maxItems = ANSWER_MAX_ITEMS,
     now = () => 0,
-    voice,
+    voice = peopleVoice,
     person = false,
   }: AnswerOptions,
 ): Generator<AnswerStep, Answer, void> {

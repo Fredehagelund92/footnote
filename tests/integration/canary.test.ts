@@ -20,7 +20,7 @@ import { apiDatabase, servingPool, testDatabase, transaction } from './support.t
 
 /**
  * The runtime canary (requirements section 12, FR-602, FR-613): one signed-in test person makes
- * 1,000 get_facts calls carrying a marker sentence, through the real HTTP and MCP path, with a
+ * 1,000 get_context calls carrying a marker sentence, through the real HTTP and MCP path, with a
  * browser cookie, a user agent and a forwarded address attached, from an agent whose self-chosen
  * name and version carry markers too. Afterwards no new database row, no log line and no export
  * may hold the person, their session, their token, their address, the sentence or the app's own
@@ -128,7 +128,7 @@ beforeAll(async () => {
   )
   await client.query(
     `insert into settings_versions (key,version,value,reason)
-     select key,version+1,'{"get_facts":10000}','canary load' from settings_current
+     select key,version+1,'{"get_context":10000}','canary load' from settings_current
      where key='limits.mcp_rate_per_minute'`,
   )
   await client.query(

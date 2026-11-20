@@ -260,7 +260,7 @@ function samples(): Record<string, string[]> {
     label: [liveLabel],
     kind: ['metric'],
     key: ['privacy.min_count'],
-    tool: ['get_facts'],
+    tool: ['get_context'],
     job: ['retention.run'],
     question: ['00000000-0000-4000-8000-00000000abcd'],
     batchId: ['00000000-0000-4000-8000-00000000abcd'],

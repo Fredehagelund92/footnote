@@ -21,8 +21,8 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
 The server offers six tools ([the product page](../product.md#10-what-agents-get)), described in
 one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
 `read_context`, `report`, `suggest_context` and `get_related`. A call by any other id is refused
-as an unknown tool. Inside the service `get_facts` is the name of the reply a draft's preview and
-the evals read; no agent can call it.
+as an unknown tool. The review's delivery check and the evals read `get_context`'s full reply,
+made by the same code with nothing recorded.
 
 Footnote's server instructions (FR-343) tell the agent what Footnote holds and what the data tool holds,
 to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
@@ -398,7 +398,7 @@ archive and a rollback also take an `Idempotency-Key`.
 - Level 2 probes the item's own scope with the resolver: inside it and on its first day it must
   be delivered (an exact match, a partial one with no dimension filter); the day before, its end
   day, another value of a filtered dimension and an unrelated metric must stay silent. Level 3
-  runs the candidate through `get_facts`'s code: its probe delivers it, replaced items are
+  runs the candidate through `get_context`'s code: its probe delivers it, replaced items are
   absent, the reply fits, and no active test question of the domain turns from pass to fail. Both
   look at the item as delivered once nothing stops it.
 - No answer test gates a proposal (FR-513). A failed level 1 to 3 blocks acceptance, with no
