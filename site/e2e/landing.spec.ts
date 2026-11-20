@@ -20,10 +20,10 @@ async function open(page: Page, theme: (typeof themes)[number] = 'light') {
   await page.evaluate(() => document.fonts.ready)
 }
 
-/** No violation of WCAG 2.1 A or AA, of any impact. */
+/** No violation of WCAG 2.2 A or AA, of any impact. */
 async function expectAxeClean(page: Page) {
   const { violations } = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze()
   expect(
     violations.map((v) => `${v.id}: ${v.nodes.map((node) => node.target.join(' ')).join(', ')}`),
@@ -61,6 +61,38 @@ test.describe('with reduced motion', () => {
           await expectAxeClean(page)
         }
       })
+})
+
+test('with motion, the leaders end on their marks once the animations are done', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  await tab(page, 'Conflict').click()
+  await page.waitForFunction(() => {
+    const root = document.querySelector('.hero')
+    return !document.getAnimations().some((a) => {
+      const target = (a.effect as KeyframeEffect | null)?.target
+      return !!target && !!root?.contains(target)
+    })
+  })
+  await expect(hero(page).locator('.wires path')).toHaveCount(4)
+  const gaps = await page.evaluate(() => {
+    const root = document.querySelector('.hero')!
+    const box = root.getBoundingClientRect()
+    const marks = [...root.querySelectorAll<HTMLElement>('.pane .fm[data-to]')].filter(
+      (m) => m.offsetParent,
+    )
+    return [...root.querySelectorAll('.wires path')].map((path, i) => {
+      const [x, y] = path.getAttribute('d')!.slice(1).split(/[ VHQ]/)[0]!.split(',').map(Number)
+      const r = marks[i]!.getBoundingClientRect()
+      const person = !!marks[i]!.closest('.person')
+      const ex = (person ? r.right + 5 : r.left - 5) - box.left
+      const ey = r.top + r.height / 2 - box.top
+      return Math.max(Math.abs(x! - ex), Math.abs(y! - ey))
+    })
+  })
+  for (const gap of gaps) expect(gap).toBeLessThanOrEqual(3)
 })
 
 test('the three buttons show what the demo answers, by mouse and by keyboard', async ({ page }) => {

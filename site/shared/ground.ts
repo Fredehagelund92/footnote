@@ -1,5 +1,5 @@
 /*
-  The ground's moving part, on the landing page and in the docs (shared/Ground.astro): now and
+  The ground's moving part, in the docs and on the 404 page (shared/Ground.astro): now and
   then a footnote mark lands on a dot of the paper, numbered like the notes on a page. The dots
   around it light up in a widening ring, and a dotted leader runs from it toward the page, as a
   note points at its line; then it all fades. It draws on one canvas only while a mark is landing,

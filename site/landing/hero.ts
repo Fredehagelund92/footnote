@@ -128,6 +128,7 @@ export function hero(root: HTMLElement) {
     if (!document.documentElement.classList.contains('anim') || root.classList.contains('done'))
       return
     requestAnimationFrame(() => {
+      if (root.classList.contains('done')) return
       root.classList.add('play')
       // The note lands 2.15 s into the opening; the wave runs out from it as it settles.
       setTimeout(() => ground?.landed(), 2500)
