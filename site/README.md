@@ -26,9 +26,17 @@ The two parts are two Astro builds of this one package: `astro.landing.config.ts
 
 ## The landing page
 
-`landing/pages/index.astro` is the landing page as it was approved: its words and its look, with its fonts and pictures served from here. Its claims carry footnotes that cite the test or file in the repository that holds them, at the build's reference (`lib/site.ts`). A link to a page of the docs names it without a version, `/docs/get-started/`, so it opens the newest release's page. A docs page or a repository file that does not exist stops the build.
+`landing/pages/index.astro` is the landing page as it was approved, "Two readers": paper for people, a terminal for agents, and the note on the seam between them. The first screen asks one question of both, and its three buttons, Checked, Conflict and Not found, show what each reads when something is written, when two items disagree, and when nothing is. The agent's side is `get_context`'s reply on the demo, word for word, and the person's side says the same. A timeline on the seam follows a context item from draft to checked to due for a check, and the rest of the page rests on a white sheet, with everything for agents on one dark band. `landing/styles/landing.css` holds its look, and `landing/hero.ts` its first screen: the opening, which plays once, the three buttons and the dotted leaders from each mark to its note.
 
-The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks.
+A link to a page of the docs names it without a version, `/docs/get-started/`, so it opens the newest release's page (`lib/site.ts`). A docs page that does not exist stops the build.
+
+The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks. The page's fonts are the site's files with each font's whole range of weights (`landing/styles/fonts.css`), so its headline's 770 is drawn as designed.
+
+`e2e/landing.spec.ts` checks the first screen on the built site: its three states by mouse and keyboard, the finished state with reduced motion (no canvas, nothing moving), axe at WCAG AA in each state, the release words, and screenshot baselines. Each platform keeps its own baselines, and one with none skips them: `npm run test:smoke -- e2e/landing.spec.ts --update-snapshots` writes them.
+
+### The release switch
+
+Until the first release the install section says what is true of a checkout: `docker compose up` builds Footnote on the reader's computer and can take ten minutes, and the page says it is not released yet. `const released = false` in the page's frontmatter is the switch: `landing/release.ts` holds both sets of words, and the page renders one, so a build before the release carries none of the release's words. At the release it says the 0.1.0 words: the first start pulls the published images. Flip it only once a stranger can pull both images named in `compose.images.yaml` without signing in.
 
 ### The pictures
 
@@ -79,7 +87,7 @@ The landing page's design is the whole site's, so the docs read as part of it:
 
 The theme is one for the whole site (`shared/theme.ts`): light until the reader picks dark, and the pick holds from the landing page to the docs.
 
-The ground is the paper's dot field (`shared/ground.css`): around the sheet on the landing page, and on the sidebar in the docs. Now and then a footnote mark lands on a dot, the dots around it light up in a ring, and a dotted leader runs toward the page (`shared/ground.ts`). It draws only while a mark is landing, rests while the tab is hidden, and never runs with reduced motion. The header is clear over the top of a page and takes the sheet's colour and a hairline once the page scrolls (`shared/Scrolled.astro`).
+The ground is the paper's dot field (`shared/ground.css`): around the sheet on the 404 page, and on the sidebar in the docs. Now and then a footnote mark lands on a dot, the dots around it light up in a ring, and a dotted leader runs toward the page (`shared/ground.ts`). It draws only while a mark is landing, rests while the tab is hidden, and never runs with reduced motion. The landing page's first screen draws its own ground, on both halves, with `field` in the same file: the dots answer the pointer with a leader to the note, a wave runs out from the note when it lands or changes, and marks land now and then. It is never made with reduced motion, and the still dots stay. The header is clear over the top of a page and takes the sheet's colour and a hairline once the page scrolls (`shared/Scrolled.astro`).
 
 ## Settings
 
