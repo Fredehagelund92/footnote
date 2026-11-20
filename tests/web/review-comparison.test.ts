@@ -145,7 +145,8 @@ describe('K1, the table of fields', () => {
       comment: () => {},
     }
     const el = render(React.createElement(FieldsDiff, { before: now, after, person: 'Kept', notes }))
-    const names = bodyRows(el).map((r) => r.querySelector('th')!.textContent)
+    // The name cell also holds the comment button, so compare what comes before it.
+    const names = bodyRows(el).map((r) => r.querySelector('th')!.textContent!.replace(/Comment on .*$/, ''))
     expect(names).toEqual(['Title, changed', 'KindKept: it has a comment'])
     const others = fieldRows(now, after).filter((r) => !r.changed && r.key !== 'kind')
     expect(others).toHaveLength(7)
