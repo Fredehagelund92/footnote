@@ -85,11 +85,9 @@ for (const [width, scheme] of [
     await expect(page.locator('[data-skeleton-head]')).toBeVisible()
     await expect(page.getByText(/No definitions/)).toHaveCount(0)
 
-    // Then the definitions, with every row drawn.
+    // Then the definitions, with the rows in view drawn: the list draws only those (J84).
     await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible({ timeout: 60_000 })
-    await expect(page.locator('tbody tr:not([data-skeleton-row])').nth(20)).toBeAttached({
-      timeout: 30_000,
-    })
+    await expect(page.locator('tbody tr[data-index]').nth(9)).toBeAttached({ timeout: 30_000 })
     await expect(page.locator('tbody [data-skeleton-row]')).toHaveCount(0)
     await expect(page.getByRole('status', { name: 'Loading' })).toHaveCount(0)
 

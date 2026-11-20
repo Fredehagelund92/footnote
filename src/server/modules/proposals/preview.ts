@@ -198,6 +198,8 @@ export function previewDelivery(
     () => new Date(clock.today() + 'T12:00:00Z'),
     undefined,
     web,
+    // A check asks for every metric and value an item applies to, past the agent tool's caps.
+    'check',
   )
   return execute(
     'get_context',

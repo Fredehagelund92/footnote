@@ -40,6 +40,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { Checkbox } from '@/components/ui/checkbox'
+import { GuideLink } from '@/components/footnote/guide-link'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -1964,6 +1965,19 @@ function ReadFound({ read }: { read: ConnectRead }) {
           </span>
         </p>
       ))}
+      {/* A metric per currency or channel is said before its names are published, with the page on why. */}
+      {read.variants && (
+        <p className="flex items-start gap-2">
+          <span className="mt-0.5 flex">{stepLook.warning}</span>
+          <span className="flex min-w-0 flex-col gap-1">
+            <span>
+              {read.variants.title}
+              <span className="block text-muted-foreground">{read.variants.detail}</span>
+            </span>
+            <GuideLink slug="metric-variants" />
+          </span>
+        </p>
+      )}
     </li>
   )
 }
@@ -2649,6 +2663,16 @@ function PickStep({ c }: { c: Connector }) {
               ? `You need someone who can make a read-only key for your ${isDefinitions ? `Git repository that holds your ${c.name} files` : 'Git repository'}. Only admins can connect a source.`
               : `${c.access.join(' ')} Only admins can connect a source.`}
       </p>
+      {/* Before the first read: a metric for each currency makes a name for each, which agents miss. */}
+      {isDefinitions && (
+        <div className="flex flex-col gap-1 text-sm">
+          <p className="text-muted-foreground">
+            Keep a currency, a channel or a region as a dimension, not as a metric for each one.
+            Agents then find what is written about revenue when someone asks about revenue.
+          </p>
+          <GuideLink slug="metric-variants" />
+        </div>
+      )}
     </>
   )
 }

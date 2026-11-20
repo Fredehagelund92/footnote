@@ -80,6 +80,7 @@ import {
 } from '../../domain/say.ts'
 import {
   findContextInput,
+  checkContextInput,
   getContextInput,
   readInput,
   relatedInput,
@@ -492,6 +493,11 @@ export function createToolService(
   reads?: ServingReads,
   /** The web app's address, for each delivered item's page (FR-347); without it, a path on it. */
   web: string | null = null,
+  /**
+   * Who asks: an agent, whose get_context lists are capped, or Footnote's own checks, which ask
+   * for every name an item applies to (`checkContextInput`).
+   */
+  asker: 'agent' | 'check' = 'agent',
 ) {
   const urlOf = (id: string) => itemUrl(web, id)
   /**
@@ -745,7 +751,7 @@ export function createToolService(
         return await outcome(input, principal, maxBytes, onEdition, today, calendar)
       const args =
         name === 'get_context'
-          ? getContextInput.parse(input)
+          ? (asker === 'check' ? checkContextInput : getContextInput).parse(input)
           : name === 'read_context'
             ? readInput.parse(input)
             : relatedInput.parse(input)

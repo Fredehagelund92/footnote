@@ -1,0 +1,100 @@
+import type { Definition } from '@/lib/definitions'
+
+// A catalogue with a metric per currency and per sales channel, for Definitions at that size
+// (`?demo=variants`): twenty money measures of an invented shop, by fifty currencies and five
+// channels, 5,000 metrics in all, as a model that keeps one metric for each would name them.
+
+const currencies = [
+  'eur',
+  'usd',
+  'gbp',
+  'sek',
+  'nok',
+  'dkk',
+  'chf',
+  'pln',
+  'czk',
+  'huf',
+  'jpy',
+  'cad',
+  'aud',
+  'nzd',
+  'sgd',
+  'hkd',
+  'krw',
+  'inr',
+  'brl',
+  'mxn',
+  'zar',
+  'try',
+  'ils',
+  'aed',
+  'sar',
+  'thb',
+  'myr',
+  'idr',
+  'php',
+  'vnd',
+  'cny',
+  'twd',
+  'ron',
+  'bgn',
+  'isk',
+  'clp',
+  'cop',
+  'pen',
+  'ars',
+  'egp',
+  'ngn',
+  'kes',
+  'mad',
+  'qar',
+  'kwd',
+  'bhd',
+  'omr',
+  'jod',
+  'uah',
+  'kzt',
+]
+const channels = ['web', 'app', 'store', 'wholesale', 'marketplace']
+const measures = [
+  'Revenue',
+  'Net revenue',
+  'Gross revenue',
+  'Discounts',
+  'Refunds',
+  'Tax',
+  'Shipping fees',
+  'Gross margin',
+  'Cost of goods',
+  'Gift card sales',
+  'Subscription revenue',
+  'Marketplace fees',
+  'Payment fees',
+  'Chargebacks',
+  'Store credit',
+  'Loyalty discounts',
+  'Duties',
+  'Handling fees',
+  'Insurance fees',
+  'Returns value',
+]
+
+/** The 5,000 metrics, each read-only from the definitions tool. */
+export function variantDefinitions(tool: string): Definition[] {
+  return measures.flatMap((label) =>
+    currencies.flatMap((code) =>
+      channels.map<Definition>((channel) => ({
+        name: `${label} (${code.toUpperCase()}) ${channel}`,
+        type: 'metric',
+        definition: `${label} for orders paid in ${code.toUpperCase()} through the ${channel} channel.`,
+        synced: true,
+        tool,
+        sourceNames: [],
+        domain: 'sales',
+        group: 'Sales',
+        updated: '22 Oct 2026',
+      })),
+    ),
+  )
+}

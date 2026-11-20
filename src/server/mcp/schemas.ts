@@ -95,6 +95,23 @@ export const getContextInput = z.strictObject({
   response_format: contextFormat.default('concise'),
 })
 export type GetContextInput = z.infer<typeof getContextInput>
+/**
+ * get_context's input as Footnote's own checks give it (the publish gate's delivery check, the
+ * test questions): the agent tool's, without its caps on how many names a list holds. The caps
+ * guard what an agent may send; an item may apply to hundreds of metrics, and its check asks for
+ * every one of them.
+ */
+export const checkContextInput = getContextInput.extend({
+  metrics: z.array(z.string().min(1).max(toolInputLimits.name)).optional(),
+  dimension_filters: z
+    .array(
+      z.strictObject({
+        dimension: z.string().min(1).max(toolInputLimits.name),
+        values: z.array(z.string().min(1).max(toolInputLimits.name)),
+      }),
+    )
+    .optional(),
+})
 export const readInput = z.strictObject({
   id: z.string().regex(/^itm_[a-z0-9]{8,16}$/),
   edition,

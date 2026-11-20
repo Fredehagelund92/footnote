@@ -16,6 +16,7 @@ import { CHOSEN_SCOPES_MAX } from '../../../contract/sources.ts'
 import { builtInManifests } from '../../../connectors/manifests.ts'
 import { noSecretStoreWords, secretsInUse } from '../../../domain/connector-config.ts'
 import { durationSeconds } from '../../../domain/connector-manifest.ts'
+import { variantShape } from '../../../domain/metric-variants.ts'
 import { reservedSourceIds, sourceIdFrom } from '../../../domain/source-id.ts'
 import { durationText } from '../../../domain/source-schedule.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -123,17 +124,21 @@ function summary(
   steps: SourceCheck['steps'],
 ): SourceCheck {
   const scopes = groupsOf(snapshot)
+  const metrics = snapshot.definitions.filter((definition) => definition.kind === 'metric')
+  // A metric per currency or channel is said before its names are published (O3).
+  const variants = variantShape(metrics.map((definition) => definition.name))
   return {
     ok: true,
     steps,
     version: snapshot.sourceVersion,
     complete: snapshot.complete && warnings.every((warning) => warning.code !== 'taken'),
     views: scopes.length,
-    metrics: snapshot.definitions.filter((definition) => definition.kind === 'metric').length,
-    dimensions: snapshot.definitions.filter((definition) => definition.kind === 'dimension').length,
+    metrics: metrics.length,
+    dimensions: snapshot.definitions.length - metrics.length,
     warnings: warnings.slice(0, 200),
     // Each group a model holds may be chosen, up to as many as a source may list.
     scopes: scopes.slice(0, CHOSEN_SCOPES_MAX),
+    ...(variants ? { variants } : {}),
   }
 }
 

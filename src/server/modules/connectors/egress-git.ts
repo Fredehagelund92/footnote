@@ -14,9 +14,12 @@ import { canonicalAddress, folderParts, GitFetchError, withGitCheckout } from '.
   of one commit that is removed when its work ends. A connector never runs git itself.
 */
 
-/** The most files a tree lists, and the largest file it reads. */
+/**
+ * The most files a tree lists, and the largest file it reads: as much as `ctx.fetch` hands over. A
+ * connector keeps its own lower cap by the sizes the listing gives, as Cube does for each file.
+ */
 export const TREE_FILES_MAX = 10_000
-export const TREE_FILE_BYTES_MAX = 2_000_000
+export const TREE_FILE_BYTES_MAX = 20_000_000
 
 /**
  * A tree over a folder: only what is inside it. A link is listed as a file, never followed: its

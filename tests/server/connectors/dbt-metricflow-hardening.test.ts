@@ -117,7 +117,7 @@ describe('a connection that drops while the file arrives', () => {
 
   it('still says a file over the cap is unreadable', async () => {
     behaviours.set('/huge', (socket) =>
-      socket.end('HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-length: 5000000\r\n\r\n'),
+      socket.end('HTTP/1.1 200 OK\r\nconnection: close\r\ncontent-length: 25000000\r\n\r\n'),
     )
     const error = await failure(
       connector.source(address(rawAddress('/huge'))).read({ cursor: null }),

@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { legacyManifest, type Manifest } from '../server/connectors/dbt-metricflow-fixture.ts'
+import {
+  legacyManifest,
+  withMetric,
+  type Manifest,
+} from '../server/connectors/dbt-metricflow-fixture.ts'
 import { objectHost, type ObjectHost } from '../server/connectors/object-server.ts'
 
 /*
@@ -262,4 +266,54 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   })
   await expect(page.getByRole('log')).toContainText('Checkout was down for a day')
   await shot('15-ask')
+
+  // Setup is at 5 of 6, one step left. Ten more items rely on Net revenue, and then its
+  // calculation changes in dbt: the Inbox shows the eleven Due for a check under the checklist,
+  // without waiting for the last step.
+  const read = async <T>(path: string) => (await page.request.get(`/api/v1${path}`)).json() as T
+  const metric = (await read<{ metrics: { id: string; name: string }[] }>('/vocabulary')).metrics
+  // The vocabulary names a metric by its key without its kind: a draft's scope says the kind.
+  const netRevenue = `metric:${metric.find((m) => m.name === 'Net revenue')!.id.replace(/^metric:/, '')}`
+  const sales = (await read<{ id: string; name: string }[]>('/areas')).find(
+    (area) => area.name === 'Sales',
+  )!.id
+  for (let n = 1; n <= 10; n++)
+    await post(page, '/items/publish', {
+      draft: {
+        areaId: sales,
+        title: `Net revenue note ${n}`,
+        summary: `Net revenue note ${n} for the finance team.`,
+        scope: { metrics: [netRevenue], dimensions: [], dimensionValues: [] },
+        validity: { start: '2026-01-01', end: null },
+        evidence: [
+          { url: `https://finance.example/note-${n}`, quote: 'Noted.', date: '2026-01-01' },
+        ],
+      },
+    })
+  store.put(
+    '/link/semantic_manifest.json',
+    JSON.stringify(
+      withMetric(ownManifest(), 'net_revenue', (m) => {
+        m.type_params.expr = 'revenue - discounts - 0'
+      }),
+    ),
+  )
+  const [source] = await read<{ id: string; type: string }[]>('/sources').then((all) =>
+    all.filter((s) => s.type === 'dbt-metricflow'),
+  )
+  await post(page, `/sources/${source!.id}/read`, {})
+  await page.goto('/inbox')
+  await expect(page.getByText('5 of 6 done')).toBeVisible()
+  const due = page.getByRole('region', { name: 'Needs you' })
+  await expect(async () => {
+    await page.reload()
+    await expect(due.getByRole('link', { name: /^Due for a check 11 in all domains/ })).toBeVisible(
+      {
+        timeout: 2_000,
+      },
+    )
+  }).toPass({ timeout: 60_000 })
+  await shot('16-setup-due')
+  await due.getByRole('link').click()
+  await expect(page).toHaveURL(/\/context\?due=1$/)
 })

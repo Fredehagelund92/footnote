@@ -573,6 +573,24 @@ function testFailureOf(
   return "It couldn't be read."
 }
 
+/** The words one split takes: "eur, usd, gbp and 47 more". */
+const splitWords = ({ words, examples }: { words: number; examples: string[] }) =>
+  words > examples.length
+    ? `${examples.join(', ')} and ${(words - examples.length).toLocaleString('en-GB')} more`
+    : examples.length > 1
+      ? `${examples.slice(0, -1).join(', ')} and ${examples.at(-1)}`
+      : (examples[0] ?? '')
+
+/** What a read that looks like a metric per currency or channel says, before its names are published. */
+export function variantsWords(shape: NonNullable<SourceCheck['variants']>) {
+  const n = (count: number) => count.toLocaleString('en-GB')
+  const splits = shape.splits.map(splitWords).join(', and by ')
+  return {
+    title: 'Many metrics look like variants of a few',
+    detail: `${n(shape.variants)} of ${n(shape.metrics)} metrics look like ${n(shape.bases)} metrics, each split by ${splits}. Agents find what is written about them only by each one's exact name. One metric each, with these as dimensions, works best.`,
+  }
+}
+
 /** What Test connection found, in the flow's words: the check's steps, and what may be read. */
 export function connectTestOf(check: SourceCheck, type?: string): ConnectTest {
   const connector = type === undefined ? undefined : connectorById(type)
@@ -615,6 +633,7 @@ export function connectTestOf(check: SourceCheck, type?: string): ConnectTest {
             metrics: check.metrics,
             dimensions: check.dimensions,
             warnings: readWarnings(check.warnings, connector.warnings),
+            ...(check.variants ? { variants: variantsWords(check.variants) } : {}),
           },
         }
       : {}),

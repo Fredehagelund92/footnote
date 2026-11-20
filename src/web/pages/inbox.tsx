@@ -5,6 +5,7 @@ import {
   AtSignIcon,
   MessageSquareTextIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   ChevronUpIcon,
   CircleCheckIcon,
   ClockIcon,
@@ -69,7 +70,7 @@ import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { openDock, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
-import { navigate, setQuery, useRoute } from '@/lib/router'
+import { href, navigate, setQuery, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import {
   conflictQuery,
@@ -1022,7 +1023,11 @@ function whereContextGoes(me: Person, domains: Domain[]) {
   }`
 }
 
-function Setup() {
+/**
+ * A new install's Inbox: the checklist, and what already waits, so a first test that changes a
+ * definition sees its items Due for a check without finishing every step. `due` is how many.
+ */
+function Setup({ due }: { due: number }) {
   const {
     setup: { done: setupDone, serverSource },
     domains: domainList,
@@ -1176,6 +1181,7 @@ function Setup() {
               </CardFooter>
             </Cell>
           </div>
+          {due > 0 && <DueRow due={due} />}
         </div>
       </div>
       {reviewing && (
@@ -1184,6 +1190,44 @@ function Setup() {
         </React.Suspense>
       )}
     </div>
+  )
+}
+
+/**
+ * The Inbox's Due for a check row, under the checklist while setup is unfinished: how many, in
+ * whose domains, and a link to them in Context.
+ */
+function DueRow({ due }: { due: number }) {
+  const me = useMe()
+  const Icon = cardIcon.check
+  return (
+    <section aria-label="Needs you" className="mt-4 grid grid-cols-1 gap-px bg-border p-px">
+      <Cell className="gap-0 py-0">
+        <a
+          href={href('/context', { due: '1' })}
+          className="flex min-h-16 items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
+        >
+          <span
+            aria-hidden
+            className="flex size-10 shrink-0 items-center justify-center text-muted-foreground"
+          >
+            <Icon className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1 space-y-1">
+            <span className="block text-sm leading-snug font-medium">
+              Due for a check{' '}
+              <span className="font-normal text-muted-foreground tabular-nums">
+                {due.toLocaleString('en-GB')} {dueScope(me)}
+              </span>
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              A definition they rely on changed in its tool, or their check date passed.
+            </span>
+          </span>
+          <ChevronRightIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+        </a>
+      </Cell>
+    </section>
   )
 }
 
@@ -1424,7 +1468,7 @@ export function InboxPage() {
     )
   }
 
-  if (install === 'new') return <Setup />
+  if (install === 'new') return <Setup due={needing.filter((r) => groupOf(r) === 'check').length} />
 
   const allDone = tab === 'needs' && needing.length === 0
 

@@ -2,6 +2,7 @@ import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
+import { variantDefinitions } from './data/variants'
 import { ApiError } from '@/api/errors'
 import type { DomainId } from '@/model/items'
 import {
@@ -54,6 +55,12 @@ export function createDefinitions() {
 
   return {
     list: () => all,
+
+    /** Adds a metric per currency and channel, 5,000 of them, for Definitions at that size. */
+    loadVariants() {
+      if (!all.some((d) => d.name === 'Revenue (EUR) web'))
+        all = [...all, ...variantDefinitions(demoTool(DEMO_DEFINITIONS))]
+    },
 
     /** Saves a term; a renamed one replaces the old entry where it stood. Synced items are never saved here. */
     saveTerm(previous: string | undefined, next: Definition) {

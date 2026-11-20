@@ -453,6 +453,31 @@ describe('the runtime on the server’s folder', () => {
     })
   })
 
+  it('says a file over the cap is too large, with its size, and the most it reads', async () => {
+    const huge: FolderTree = {
+      ...tree({}),
+      files: () => Promise.resolve([{ path: 'semantic_manifest.json', size: 25_000_000 }]),
+      text: () => Promise.resolve(null),
+    }
+    const report = await runtime.check(context(huge))
+    expect(report.steps).toEqual([
+      {
+        id: 'reach',
+        title: 'Reach the file',
+        status: 'ok',
+        detail: 'Read the folder on the server.',
+      },
+      {
+        id: 'read',
+        title: 'Read the semantic manifest',
+        status: 'failed',
+        detail: 'The file is 25 MB; the most it reads is 20 MB.',
+        fix: expect.stringContaining('as a dimension') as string,
+      },
+    ])
+    await expect(read(huge)).rejects.toMatchObject({ code: 'unreadable_file' })
+  })
+
   it('reads a file the listing, cut short on a large tree, does not hold', async () => {
     const cut: FolderTree = {
       ...tree({ 'semantic_manifest.json': JSON.stringify(legacyManifest) }),

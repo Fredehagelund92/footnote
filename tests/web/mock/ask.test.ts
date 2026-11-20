@@ -24,7 +24,7 @@ describe('reading a typed question', () => {
     expect(answer.state).toBeNull()
     expect(answer.sources).toEqual([])
     expect(answer.said).toBe(
-      'Nothing was looked up yet. The question needs a metric or a market, such as Active customers, Average order value or Churn rate.',
+      'Nothing was looked up yet. The question needs a metric, such as Active customers, Average order value or Churn rate.',
     )
     // Agents keep the engine's words; the person is told what the question lacks.
     expect(answer.text).toBe("The question doesn't name a metric or a market.")

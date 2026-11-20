@@ -26,8 +26,8 @@ interface Config {
   domainNames?: Record<string, string>
 }
 
-/** The largest file a read takes, as a Git read does. */
-const FILE_BYTES_MAX = 2_000_000
+/** The largest file a read takes, as the core's fetch and a Cube model in all. */
+const FILE_BYTES_MAX = 20_000_000
 /** The longest cursor kept: the core's 500, less what it puts in front of it. */
 const CURSOR_MAX = 480
 /** How long before a signed link stops working a check says so. */
@@ -38,6 +38,32 @@ const REMOTE_FILE = 'semantic_manifest.json'
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n.toLocaleString('en')} ${n === 1 ? one : many}`
+
+/** A file over the cap, with its size when the host or the tree said it. */
+class TooLarge extends SourceError {
+  readonly bytes: number | null
+  constructor(bytes: number | null, target: string) {
+    super({ code: 'unreadable_file', target, class: 'source' })
+    this.bytes = bytes
+  }
+}
+
+const megabytes = (bytes: number) =>
+  `${(bytes / 1_000_000).toLocaleString('en', { maximumFractionDigits: 1 })} MB`
+
+/** What a check says of a file over the cap: how large it is, and the most a read takes. */
+function tooLargeStep(bytes: number | null): CheckStep {
+  const most = megabytes(FILE_BYTES_MAX)
+  // A size that rounds to the cap reads as over it, never as the same number.
+  const size = bytes !== null && megabytes(bytes) !== most ? megabytes(bytes) : `over ${most}`
+  return {
+    id: 'read',
+    title: 'Read the semantic manifest',
+    status: 'failed',
+    detail: `The file is ${size}; the most it reads is ${most}.`,
+    fix: 'Make it smaller: a currency or a channel as a dimension takes far less room than a metric for each.',
+  }
+}
 
 /** The file, or that it is not dbt's semantic manifest, such as its manifest.json. */
 function parsed(text: string, path: string): SemanticManifest {
@@ -53,9 +79,9 @@ function parsed(text: string, path: string): SemanticManifest {
 
 /**
  * The semantic manifest of the tree: read and parsed, or a failure that says why in a code. A
- * file that is not there is for an administrator to fix; one the tree cannot hand over (over
- * 2 MB, a link, not text) is unreadable; one that is not dbt's semantic manifest, such as its
- * manifest.json, is the wrong file.
+ * file that is not there is for an administrator to fix; one over the cap is too large, with its
+ * size; one the tree cannot hand over (a link, not text) is unreadable; one that is not dbt's
+ * semantic manifest, such as its manifest.json, is the wrong file.
  */
 async function semanticManifest(
   tree: FolderTree,
@@ -64,9 +90,9 @@ async function semanticManifest(
   const text = await tree.text(path)
   if (text === null) {
     // The listing stops at 10,000 entries, so it only tells which failure this is.
-    const listed = await tree.files()
-    if (!listed.some((file) => file.path === path))
-      throw new SourceError({ code: 'not_found', target: path, class: 'config' })
+    const listed = (await tree.files()).find((file) => file.path === path)
+    if (!listed) throw new SourceError({ code: 'not_found', target: path, class: 'config' })
+    if (listed.size > FILE_BYTES_MAX) throw new TooLarge(listed.size, path)
     throw new SourceError({ code: 'unreadable_file', target: path, class: 'source' })
   }
   return { file: parsed(text, path), text }
@@ -189,6 +215,9 @@ async function textOf(response: Response, host: string, signal: AbortSignal): Pr
   try {
     bytes = await response.arrayBuffer()
   } catch (error) {
+    // The core's cap is the one failure of its own a body has: as much as it takes has arrived.
+    if (error instanceof SourceError && error.code === 'unreadable_file')
+      throw new TooLarge(null, host)
     if (error instanceof SourceError || signal.aborted) throw error
     throw new SourceError({ code: 'unreachable', target: host, class: 'transient' })
   }
@@ -217,6 +246,12 @@ async function fetched(
   if (!response.ok) {
     void response.body?.cancel()
     throw refusal(response, host)
+  }
+  // The length the host says is refused before anything of the body is read.
+  const length = Number(response.headers.get('content-length'))
+  if (length > FILE_BYTES_MAX) {
+    void response.body?.cancel()
+    throw new TooLarge(length, host)
   }
   const etag = response.headers.get('etag')
   const modified = response.headers.get('last-modified')
@@ -304,6 +339,16 @@ async function readSteps(
   ]
 }
 
+/** A read's steps, or the step that says the file is over the cap and how large it is. */
+async function readOrTooLarge(steps: () => Promise<CheckStep[]>): Promise<CheckStep[]> {
+  try {
+    return await steps()
+  } catch (error) {
+    if (error instanceof TooLarge) return [tooLargeStep(error.bytes)]
+    throw error
+  }
+}
+
 /**
  * The runtime of dbt MetricFlow: `semantic_manifest.json`, read through `ctx.fetch`, `ctx.git` or
  * `ctx.folder`, made into definitions by the pure mapping. It runs no dbt and reaches no warehouse
@@ -314,38 +359,39 @@ export const runtime = defineRuntime<Config>({
     if (remote(context)) {
       const link = linkSteps(context)
       if (link.some((step) => step.status === 'failed')) return { steps: link }
-      const found = await fetched(context, null)
-      const file = parsed(found!.text, REMOTE_FILE)
+      const reach: CheckStep = {
+        id: 'reach',
+        title: 'Reach the file',
+        status: 'ok',
+        detail: `Read it at ${hostOf(context)}.`,
+      }
       return {
         steps: [
-          {
-            id: 'reach',
-            title: 'Reach the file',
-            status: 'ok',
-            detail: `Read it at ${hostOf(context)}.`,
-          },
+          reach,
           ...link,
-          ...(await readSteps(context, file)),
+          ...(await readOrTooLarge(async () => {
+            const found = await fetched(context, null)
+            return readSteps(context, parsed(found!.text, REMOTE_FILE))
+          })),
         ],
       }
     }
     const path = context.config.file ?? REMOTE_FILE
-    return onTree(context, async (tree, commit): Promise<CheckReport> => {
-      const { file } = await semanticManifest(tree, path)
-      return {
-        steps: [
-          {
-            id: 'reach',
-            title: 'Reach the file',
-            status: 'ok',
-            detail: commit
-              ? `Read commit ${commit.slice(0, 7)} of ${context.config.ref ?? ''}.`
-              : 'Read the folder on the server.',
-          },
-          ...(await readSteps(context, file)),
-        ],
-      }
-    })
+    return onTree(context, async (tree, commit): Promise<CheckReport> => ({
+      steps: [
+        {
+          id: 'reach',
+          title: 'Reach the file',
+          status: 'ok',
+          detail: commit
+            ? `Read commit ${commit.slice(0, 7)} of ${context.config.ref ?? ''}.`
+            : 'Read the folder on the server.',
+        },
+        ...(await readOrTooLarge(async () =>
+          readSteps(context, (await semanticManifest(tree, path)).file),
+        )),
+      ],
+    }))
   },
 
   async *read(context): AsyncIterable<RuntimeMessage> {

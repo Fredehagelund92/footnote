@@ -25,7 +25,12 @@ import {
   type RequestRecord,
   type ResultStatus,
 } from './records.ts'
-import { invalidInputOf, invalidInputResult, lenientInputSchema } from './invalid-input.ts'
+import {
+  contextExample,
+  invalidInputOf,
+  invalidInputResult,
+  lenientInputSchema,
+} from './invalid-input.ts'
 import { createLimiter } from '../http/rate-limit.ts'
 import type { Metrics } from '../observability/metrics.ts'
 import { ROUND_SECONDS, type DraftRound, type DraftTool, type QuestionRound } from './draft-tool.ts'
@@ -481,8 +486,16 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
               const issues = invalidInputOf(args)
               if (issues) {
                 status = 'invalid_input'
+                // get_context's example names this install's own metric, never the demo's.
+                const example =
+                  tool === 'get_context'
+                    ? await deps.source.bundle().then(
+                        (bundle) => contextExample(bundle.terms),
+                        () => undefined,
+                      )
+                    : undefined
                 return {
-                  ...invalidInputResult(tool, issues),
+                  ...invalidInputResult(tool, issues, example),
                   _meta: { tool_schema_digest: toolSchemaDigest },
                 }
               }

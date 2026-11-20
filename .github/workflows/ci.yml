@@ -527,13 +527,19 @@ jobs:
       - run: npm ci
       - uses: ./.github/actions/playwright
       - name: Golden job specs, the addresses and axe on the production build
-        run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
+        run: npm run test:e2e -- --project=chromium --project=reduced-motion --shard=${{ matrix.shard }}/3
+      - name: The timings at 5,000 rows, alone on the runner
+        if: ${{ !cancelled() && matrix.shard == 3 }}
+        run: npm run test:e2e -- --project=scale --workers=1
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report/scale
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-report-web-${{ matrix.shard }}
           path: |
             playwright-report/e2e
+            playwright-report/scale
             test-results/e2e
           retention-days: 7
 

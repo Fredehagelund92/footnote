@@ -1,5 +1,6 @@
 import * as z from 'zod'
 import { notLookedUp } from '../../domain/say.ts'
+import type { Term } from '../../domain/vocabulary.ts'
 import { tools, toolInputSchema, type ToolName } from './tools.ts'
 
 /*
@@ -35,6 +36,31 @@ export const exampleCalls: Record<ToolName, Record<string, unknown>> = {
   report: { kind: 'wrong', reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e' },
   suggest_context: draftCall,
   get_related: { id: 'itm_0a1b2c3d' },
+}
+
+/**
+ * get_context's valid call on this install, by its own names: its first metric A to Z, and a
+ * value of one of its dimensions when it has one. An install with no metric names none: an
+ * example from another workspace's words would send the agent after a metric that is not there.
+ */
+export function contextExample(
+  terms: readonly Pick<Term, 'key' | 'kind' | 'name' | 'parentKey'>[],
+): Record<string, unknown> {
+  const byName = [...terms].sort((a, b) => a.name.localeCompare(b.name, 'en'))
+  const metric = byName.find((term) => term.kind === 'metric')
+  const value = byName.find((term) => term.kind === 'dimension_value' && term.parentKey)
+  const dimension = value && terms.find((term) => term.key === value.parentKey)
+  const window = { from: '2026-08-01', to: '2026-08-31' }
+  if (!metric) return { question: 'What should I know about August 2026?', window }
+  const at = value && dimension ? ` in ${value.name}` : ''
+  return {
+    question: `What should I know about ${metric.name}${at} in August 2026?`,
+    metrics: [metric.name],
+    ...(value && dimension
+      ? { dimension_filters: [{ dimension: dimension.name, values: [value.name] }] }
+      : {}),
+    window,
+  }
 }
 
 /** A Standard Schema issue, with what Zod adds to it when it is there. */
@@ -126,13 +152,19 @@ function distinct(issues: readonly Issue[]): Issue[] {
   return issues.filter((i) => i.code === 'invalid_type' || !mistyped.has(fieldOf(i)))
 }
 
-/** The error a tool answers arguments that do not fit with (isError, status `invalid_input`). */
-export function invalidInputResult(name: ToolName, all: readonly Issue[]) {
+/**
+ * The error a tool answers arguments that do not fit with (isError, status `invalid_input`), with
+ * one valid call: the install's own (`contextExample`) when given, else the tool's fixed one.
+ */
+export function invalidInputResult(
+  name: ToolName,
+  all: readonly Issue[],
+  example: Record<string, unknown> = exampleCalls[name],
+) {
   const issues = distinct(all)
   const problems = issues.slice(0, MAX_PROBLEMS).map(problemOf)
   const more = issues.length - problems.length
   const takes = fieldsOf(name)
-  const example = exampleCalls[name]
   // The person hears that nothing was looked up; the agent reads what to fix and one valid call.
   const say = `${notLookedUp} The request was missing something or had a value that doesn't fit.`
   const next = [

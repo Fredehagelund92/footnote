@@ -61,14 +61,17 @@ import {
   typeLabel,
   toolOf,
   connectorOf,
+  listIndex,
   type Definition,
+  type ListIndex,
   type DefinitionType,
   useDefinitions,
   useGlossary,
 } from '@/lib/definitions'
+import { WindowRows, type WindowRowsHandle } from '@/components/footnote/window-rows'
 import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
-import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
+import { matches, matchesWords, usePublishOrder, useRowKeys, words, wordsIn } from '@/lib/list'
 import { href, navigate, useRoute } from '@/lib/router'
 import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
@@ -118,12 +121,29 @@ const CUES: Record<Cue, string> = {
 }
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
-const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
+const plural = (n: number, one: string) =>
+  `${n.toLocaleString('en-GB')} ${one}${n === 1 ? '' : 's'}`
 const COLS = 8
 
 /* ---------- the list ---------- */
 
+/** A row's cue: its conflict includes the words folded into it, so folding never hides one. */
+function cueFor(d: Definition, index: ListIndex, synonymRows: boolean): Cue | undefined {
+  if (index.conflictOf(d) || (!synonymRows && index.alsoCalled(d).some((x) => index.conflictOf(x))))
+    return 'conflict'
+  if (d.changed) return 'changed'
+  return d.type !== 'dimension' && !d.sameAs && index.contextAbout(d).length === 0
+    ? 'none'
+    : undefined
+}
+
 const NO_DEFINITIONS: Definition[] = []
+/** A line of the list: a group's heading, or a definition. */
+type Line = { heading: string; rows: Definition[]; open: boolean } | Definition
+const NO_LINES: Line[] = []
+const keyOfLine = (l: Line) => ('heading' in l ? `group:${l.heading}` : l.name)
+/** The heights the lines are drawn at (h-8 and h-row), until a phone's taller rows are measured. */
+const heightOfLine = (l: Line) => ('heading' in l ? 32 : 36)
 
 /**
  * How many columns a table draws now, for the rows that span them all (a group, Add, the skeleton).
@@ -205,54 +225,71 @@ export function DefinitionsPage() {
   const reader = connectorById(connectorOf(all))
   const source = reader ?? connectorByTool(tool)
   const GROUPS = groupsOf(tool)
-  const about = (d: Definition) => glossary.contextAbout(d, facts).length
-  // A row's conflict includes the words folded into it, so folding never hides one.
-  const cueOf = (d: Definition): Cue | undefined =>
-    glossary.conflictOf(d) ||
-    (!synonymRows && glossary.alsoCalled(d).some((x) => glossary.conflictOf(x)))
-      ? 'conflict'
-      : d.changed
-        ? 'changed'
-        : d.type !== 'dimension' && !d.sameAs && about(d) === 0
-          ? 'none'
-          : undefined
-  // The rows: every definition and term, and a synonym only in the audit view (or when what it names is gone).
-  const rows = all.filter((d) => synonymRows || !glossary.foldsInto(d))
-  const otherNames = (d: Definition) =>
-    synonymRows ? [] : glossary.alsoCalled(d).map((x) => x.name)
+  // Each row's other names and context, worked out once for the list, not once a row: a search
+  // must keep up with the hand at 5,000 rows.
+  const index = React.useMemo(() => listIndex(glossary.all, facts), [glossary, facts])
+  const about = (d: Definition) => index.contextAbout(d).length
+  const cueOf = (d: Definition) => cueFor(d, index, synonymRows)
+  // The rows: every definition and term, and a synonym only in the audit view (or when what it
+  // names is gone). What a search reads of each, and its cue, is worked out when the list changes,
+  // not on each key: the filters, the counts and the sort read them for every row.
+  const { rows, said } = React.useMemo(() => {
+    const rows = all.filter((d) => synonymRows || !glossary.foldsInto(d))
+    const said = new Map(
+      rows.map((d) => {
+        const names = `${d.name} ${d.sourceNames.join(' ')} ${(synonymRows ? [] : index.alsoCalled(d).map((x) => x.name)).join(' ')}`
+        return [
+          d.name,
+          {
+            cue: cueFor(d, index, synonymRows),
+            names: names.toLowerCase(),
+            words: wordsIn(
+              `${names} ${plainText(d.definition)} ${d.sameAs ?? ''} ${d.group ?? ''}`,
+            ),
+          },
+        ]
+      }),
+    )
+    return { rows, said }
+  }, [all, glossary, index, synonymRows])
+  const otherNames = (d: Definition) => (synonymRows ? [] : index.alsoCalled(d).map((x) => x.name))
+  const cueOfRow = (d: Definition) => (said.has(d.name) ? said.get(d.name)!.cue : cueOf(d))
+  const asked = words(text)
   const pass = (d: Definition, skip?: 'view' | 'domain' | 'cue') =>
     (skip === 'view' || view === 'all' || d.type === view) &&
     (skip === 'domain' || !domain.length || (d.domain && domain.includes(d.domain))) &&
-    (skip === 'cue' || !cues.length || cues.includes(cueOf(d)!)) &&
-    matches(
-      text,
-      `${d.name} ${d.sourceNames.join(' ')} ${otherNames(d).join(' ')} ${plainText(d.definition)} ${d.sameAs ?? ''} ${d.group ?? ''}`,
-    )
+    (skip === 'cue' || !cues.length || cues.includes(cueOfRow(d)!)) &&
+    (!asked.length || matchesWords(asked, said.get(d.name)?.words ?? wordsIn(d.name)))
   // Found by one of its other names: the row says which, quietly.
   const matchedBy = (d: Definition) =>
     text.trim() && !matches(text, d.name)
       ? [...otherNames(d), ...d.sourceNames].find((n) =>
-          words(text).some((w) => n.toLowerCase().includes(w)),
+          asked.some((w) => n.toLowerCase().includes(w)),
         )
       : undefined
-  const nameHits = (d: Definition) =>
-    words(text).filter((w) =>
-      `${d.name} ${d.sourceNames.join(' ')} ${otherNames(d).join(' ')}`.toLowerCase().includes(w),
-    ).length
   const onSort = (k: Sort, press?: Press) => move(press, () => setSort(clicked(SORTS, sorting, k)))
-  const shown = rows
-    .filter((d) => pass(d))
-    .sort((a, b) =>
-      sort === 'coverage'
-        ? Number(cueOf(b) === 'none') - Number(cueOf(a) === 'none') || a.name.localeCompare(b.name)
-        : sort === 'context'
-          ? way * (about(b) - about(a))
-          : sort === 'updated'
-            ? way * (Date.parse(b.updated) - Date.parse(a.updated))
-            : sort === 'best'
-              ? nameHits(b) - nameHits(a) || a.name.localeCompare(b.name)
-              : way * a.name.localeCompare(b.name),
-    )
+  const passing = rows.filter((d) => pass(d))
+  // How many of the query's words each row's names hold, once a key, for Best match.
+  const hits = new Map(
+    sort === 'best'
+      ? passing.map((d) => [
+          d.name,
+          asked.filter((w) => said.get(d.name)?.names.includes(w)).length,
+        ])
+      : [],
+  )
+  const shown = passing.sort((a, b) =>
+    sort === 'coverage'
+      ? Number(cueOfRow(b) === 'none') - Number(cueOfRow(a) === 'none') ||
+        a.name.localeCompare(b.name)
+      : sort === 'context'
+        ? way * (about(b) - about(a))
+        : sort === 'updated'
+          ? way * (Date.parse(b.updated) - Date.parse(a.updated))
+          : sort === 'best'
+            ? hits.get(b.name)! - hits.get(a.name)! || a.name.localeCompare(b.name)
+            : way * a.name.localeCompare(b.name),
+  )
   const keyOf = (d: Definition) =>
     group === 'type'
       ? `${typeLabel[d.type]}s`
@@ -271,6 +308,14 @@ export function DefinitionsPage() {
           .map((key) => ({ key, rows: shown.filter((d) => keyOf(d) === key) }))
   const visible = groups.flatMap((g) => (folded.includes(g.key) ? [] : g.rows))
   const order = visible.map((d) => d.name)
+  // One flat list of lines, not a fragment per group: a row keeps its place in the tree when the
+  // grouping changes, so it moves to its new place instead of being drawn again. Only the lines in
+  // view are drawn (WindowRows).
+  const lines: Line[] = groups.flatMap((g) => {
+    const open = !folded.includes(g.key)
+    return [...(g.key ? [{ heading: g.key, rows: g.rows, open }] : []), ...(open ? g.rows : [])]
+  })
+  const drawn = React.useRef<WindowRowsHandle>(null)
   usePublishOrder('definitions', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
@@ -281,8 +326,14 @@ export function DefinitionsPage() {
   const measurable = all.filter((d) => d.type !== 'dimension' && !d.sameAs)
   const uncovered = measurable.filter((d) => about(d) === 0)
   const filters = domain.length + cues.length + Number(synonymRows)
-  const typeCount = (t: View) =>
-    rows.filter((d) => (t === 'all' || d.type === t) && pass(d, 'view')).length
+  // Each view's count, in one pass over the rows.
+  const byView: Record<View, number> = { all: 0, metric: 0, dimension: 0, term: 0 }
+  for (const d of rows)
+    if (pass(d, 'view')) {
+      byView.all++
+      byView[d.type]++
+    }
+  const typeCount = (t: View) => byView[t]
   const mix = (rows: Definition[]) =>
     (['metric', 'dimension', 'term'] as DefinitionType[])
       .map(
@@ -293,6 +344,7 @@ export function DefinitionsPage() {
       .filter(Boolean)
       .join(', ')
   const rowKeys = useRowKeys({
+    rows: { order, reveal: (name, then) => drawn.current?.reveal(name, then) },
     onMove: (name) => peeked && openDock('def', name),
     // Escape closes the peek first, then clears the selection.
     onEscape: () => {
@@ -312,14 +364,14 @@ export function DefinitionsPage() {
 
   /** A flag only when something needs a look: a conflict, a definition its tool changed, or no description in it. */
   const foldedConflict = (d: Definition) =>
-    synonymRows ? undefined : glossary.alsoCalled(d).find((x) => glossary.conflictOf(x))
+    synonymRows ? undefined : index.alsoCalled(d).find((x) => index.conflictOf(x))
   const flagOf = (d: Definition) =>
-    glossary.conflictOf(d)
-      ? { icon: TriangleAlertIcon, tip: glossary.conflictOf(d)!.message }
+    index.conflictOf(d)
+      ? { icon: TriangleAlertIcon, tip: index.conflictOf(d)!.message }
       : foldedConflict(d)
         ? {
             icon: TriangleAlertIcon,
-            tip: `Another name for it has a conflict: ${glossary.conflictOf(foldedConflict(d)!)!.message}`,
+            tip: `Another name for it has a conflict: ${index.conflictOf(foldedConflict(d)!)!.message}`,
           }
         : d.changed
           ? {
@@ -335,7 +387,7 @@ export function DefinitionsPage() {
 
   // Rows that leave (deleted in bulk) fade out first.
   const leaving = useLeavingRows()
-  const row = (d: Definition) => {
+  const row = (d: Definition, measure: React.ComponentProps<'tr'>) => {
     const target = d.sameAs ? glossary.find(d.sameAs) : undefined
     const flag = flagOf(d)
     const n = about(d)
@@ -349,7 +401,7 @@ export function DefinitionsPage() {
     const isSel = sel.isSelected(d.name)
     return (
       <tr
-        key={d.name}
+        {...measure}
         aria-selected={isSel}
         data-state={isSel ? 'selected' : undefined}
         data-peeked={peeked === d.name || undefined}
@@ -393,9 +445,9 @@ export function DefinitionsPage() {
               {target && <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />}
               <AlsoCalledChips
                 names={otherNames(d)}
-                conflicts={glossary
+                conflicts={index
                   .alsoCalled(d)
-                  .filter((x) => glossary.conflictOf(x))
+                  .filter((x) => index.conflictOf(x))
                   .map((x) => x.name)}
                 matched={matchedBy(d)}
               />
@@ -531,7 +583,7 @@ export function DefinitionsPage() {
                 >
                   {view === 'all' ? 'All' : `${typeLabel[view]}s`}
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {typeCount(view)}
+                    {typeCount(view).toLocaleString('en-GB')}
                   </span>
                   <ChevronDownIcon />
                 </DropdownMenuTrigger>
@@ -592,7 +644,7 @@ export function DefinitionsPage() {
                         }
                       >
                         <FilterValue
-                          count={all.filter((d) => cueOf(d) === c && pass(d, 'cue')).length}
+                          count={all.filter((d) => cueOfRow(d) === c && pass(d, 'cue')).length}
                         >
                           {CUES[c]}
                         </FilterValue>
@@ -683,8 +735,10 @@ export function DefinitionsPage() {
                   plural(rows.length, 'definition')
                 ) : (
                   <>
-                    <span className="font-semibold text-foreground">{shown.length}</span> of{' '}
-                    {plural(rows.length, 'definition')}
+                    <span className="font-semibold text-foreground">
+                      {shown.length.toLocaleString('en-GB')}
+                    </span>{' '}
+                    of {plural(rows.length, 'definition')}
                   </>
                 )}
               </Count>
@@ -740,7 +794,8 @@ export function DefinitionsPage() {
                 <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className="font-medium">
-                    {uncovered.length} of {measurable.length} have no context yet.
+                    {uncovered.length.toLocaleString('en-GB')} of{' '}
+                    {measurable.length.toLocaleString('en-GB')} have no context yet.
                   </span>{' '}
                   <span className="text-muted-foreground">
                     Agents asking about them get Not found.
@@ -808,66 +863,71 @@ export function DefinitionsPage() {
                     </Th>
                   </tr>
                 </thead>
-                <tbody
+                <WindowRows
+                  handle={drawn}
+                  entries={rowsShown ? lines : NO_LINES}
+                  keyOf={keyOfLine}
+                  estimate={heightOfLine}
+                  colSpan={cols}
+                  keep={[peeked]}
                   onKeyDown={(e) => {
                     sel.onKeyDown(e)
                     rowKeys(e)
                   }}
-                >
-                  {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
-                  {(phase === 'skeleton' || (ready && !showRows)) && (
-                    <TableBodySkeleton colSpan={cols} />
-                  )}
-                  {rowsShown && shown.length === 0 && (
-                    <tr>
-                      <td colSpan={cols} className="px-6 py-10 text-center text-sm">
-                        <p className="font-medium">No definitions match</p>
-                        <p className="mt-1 text-muted-foreground">
-                          {[
-                            text.trim() && `Searching for “${text.trim()}”`,
-                            view !== 'all' && `${typeLabel[view]}s only`,
-                            cues.length && `Status is ${cues.map((c) => CUES[c]).join(' or ')}`,
-                            domain.length &&
-                              `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
-                          ]
-                            .filter(Boolean)
-                            .join(', ')}
-                          .
-                        </p>
-                        <Button variant="outline" className="mt-3" onClick={clearAll}>
-                          Clear search and filters
-                        </Button>
-                      </td>
-                    </tr>
-                  )}
-                  {/* One flat list of rows, not a fragment per group: a row keeps its place in the
-                    tree when the grouping changes, so it moves to its new place instead of being
-                    drawn again. */}
-                  {rowsShown &&
-                    groups.flatMap((g) => {
-                      const open = !folded.includes(g.key)
-                      return [
-                        g.key ? (
-                          <GroupRow
-                            key={`group:${g.key}`}
-                            label={g.key}
-                            detail={mix(g.rows)}
-                            open={open}
-                            colSpan={cols}
-                            onToggle={() => setFolded((x) => toggle(x, g.key))}
-                          />
-                        ) : null,
-                        ...(open ? g.rows.map(row) : []),
-                      ]
-                    })}
-                  {rowsShown && (
-                    <AddRow
-                      label="New term"
-                      colSpan={cols}
-                      onClick={() => navigate('/definitions/new')}
-                    />
-                  )}
-                </tbody>
+                  before={
+                    <>
+                      {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
+                      {(phase === 'skeleton' || (ready && !showRows)) && (
+                        <TableBodySkeleton colSpan={cols} />
+                      )}
+                      {rowsShown && shown.length === 0 && (
+                        <tr>
+                          <td colSpan={cols} className="px-6 py-10 text-center text-sm">
+                            <p className="font-medium">No definitions match</p>
+                            <p className="mt-1 text-muted-foreground">
+                              {[
+                                text.trim() && `Searching for “${text.trim()}”`,
+                                view !== 'all' && `${typeLabel[view]}s only`,
+                                cues.length && `Status is ${cues.map((c) => CUES[c]).join(' or ')}`,
+                                domain.length &&
+                                  `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
+                              ]
+                                .filter(Boolean)
+                                .join(', ')}
+                              .
+                            </p>
+                            <Button variant="outline" className="mt-3" onClick={clearAll}>
+                              Clear search and filters
+                            </Button>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  }
+                  render={(l, measure) =>
+                    'heading' in l ? (
+                      <GroupRow
+                        {...measure}
+                        label={l.heading}
+                        detail={mix(l.rows)}
+                        open={l.open}
+                        colSpan={cols}
+                        onToggle={() => setFolded((x) => toggle(x, l.heading))}
+                      />
+                    ) : (
+                      row(l, measure)
+                    )
+                  }
+                  after={
+                    rowsShown && (
+                      <AddRow
+                        label="New term"
+                        colSpan={cols}
+                        onClick={() => navigate('/definitions/new')}
+                      />
+                    )
+                  }
+                />
                 {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
                 <tfoot
                   className={cn(
@@ -885,7 +945,7 @@ export function DefinitionsPage() {
                         , with{' '}
                         {new Set(
                           shown.flatMap((d) =>
-                            d.sameAs ? [] : glossary.contextAbout(d, facts).map((f) => f.id),
+                            d.sameAs ? [] : index.contextAbout(d).map((f) => f.id),
                           ),
                         ).size.toLocaleString('en-GB')}{' '}
                         context items about them
