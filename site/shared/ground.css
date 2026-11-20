@@ -1,5 +1,5 @@
 /* The ground: a dot field on the paper around the page, as Altertable draws it (28 px pitch,
-   ink at 10 percent, fixed to the window, fading in over the top and bottom 140 px). On the
+   ink at 11 percent, fixed to the window, fading in over the top and bottom 140 px). On the
    landing page it shows around the sheet; in the docs, on the sidebar's paper. */
 body::before {
   content: '';
@@ -7,7 +7,7 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(circle, var(--dot) 1.1px, transparent 1.4px);
+  background-image: radial-gradient(circle, var(--dot) 1.1px, transparent 1.6px);
   background-size: 28px 28px;
   background-position: 14px 14px;
   -webkit-mask-image: linear-gradient(

@@ -30,7 +30,7 @@ The two parts are two Astro builds of this one package: `astro.landing.config.ts
 
 A link to a page of the docs names it without a version, `/docs/get-started/`, so it opens the newest release's page (`lib/site.ts`). A docs page that does not exist stops the build.
 
-The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks. The page's fonts are the site's files with each font's whole range of weights (`landing/styles/fonts.css`), so its headline's 770 is drawn as designed.
+The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks. The site's fonts carry each font's whole range of weights (`shared/fonts.css`), so the headline's 770 is drawn as designed.
 
 `e2e/landing.spec.ts` checks the first screen on the built site: its three states by mouse and keyboard, the finished state with reduced motion (no canvas, nothing moving), axe at WCAG 2.2 AA in each state, with motion the dotted leaders ending on their marks once the animations are done, the release words, and screenshot baselines. Each platform keeps its own baselines, and one with none skips them: `npm run test:smoke -- e2e/landing.spec.ts --update-snapshots` writes them.
 
@@ -80,14 +80,14 @@ Each version of the docs has its own `llms.txt` and `llms-full.txt` (`lib/llms.t
 
 The landing page's design is the whole site's, so the docs read as part of it:
 
-- `shared/tokens.css` holds its palette in light and dark: cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and links, and a highlighter yellow for what was checked;
-- `shared/fonts.css` holds its two voices: Schibsted Grotesk for Footnote and Source Serif 4 for what an agent says, with JetBrains Mono for code and Outfit for the wordmark;
+- `shared/tokens.css` holds its palette in light and dark: cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and links, a highlighter yellow for what was checked, and the terminal an agent reads in;
+- `shared/fonts.css` holds its two voices: Schibsted Grotesk for Footnote and Source Serif 4 for what an agent says, with JetBrains Mono for code and Outfit for the wordmark. The landing page and the docs load the same files;
 - `shared/chrome.css`, `shared/Brand.astro`, `shared/ThemeToggle.astro` and `shared/SiteFooter.astro` are its header, logo, theme button and footer, on the landing page and on every page of the docs;
-- `src/styles/theme.css` maps the tokens to Starlight's names, and sets the docs' notes as the landing page's margin notes, in the serif beside a blue rule, and a page's footnotes as its blue marks. Code blocks are dark in both themes, as the landing page's commands.
+- `src/styles/theme.css` maps the tokens to Starlight's names, and sets the docs' notes as the landing page's margin notes, in the serif beside a blue rule, and a page's footnotes as its blue marks. Code blocks are the landing page's terminal in both themes: its ink, its rule and its dim grey for comments and keys (`astro.config.ts`). A command shows no window around it, as on the landing page.
 
 The theme is one for the whole site (`shared/theme.ts`): light until the reader picks dark, and the pick holds from the landing page to the docs.
 
-The ground is the paper's dot field (`shared/ground.css`): around the sheet on the 404 page, and on the sidebar in the docs. Now and then a footnote mark lands on a dot, the dots around it light up in a ring, and a dotted leader runs toward the page (`shared/ground.ts`). It draws only while a mark is landing, rests while the tab is hidden, and never runs with reduced motion. The landing page's first screen draws its own ground, on both halves, with `field` in the same file: the dots answer the pointer with a leader to the note, a wave runs out from the note when it lands or changes, and marks land now and then. It is never made with reduced motion, and the still dots stay. The header is clear over the top of a page and takes the sheet's colour and a hairline once the page scrolls (`shared/Scrolled.astro`).
+The ground is the paper's dot field (`shared/ground.css`): around the sheet on the 404 page, and on the sidebar in the docs. The docs' home also has the still dots behind its title, fading out before its groups; a reading page has none, and nor does the home with reduced motion. `e2e/docs-home.spec.ts` checks that and keeps screenshot baselines of the home, as the landing page's spec does. Now and then a footnote mark lands on a dot, the dots around it light up in a ring, and a dotted leader runs toward the page (`shared/ground.ts`). It draws only while a mark is landing, rests while the tab is hidden, and never runs with reduced motion. The landing page's first screen draws its own ground, on both halves, with `field` in the same file: the dots answer the pointer with a leader to the note, a wave runs out from the note when it lands or changes, and marks land now and then. It is never made with reduced motion, and the still dots stay. The header is clear over the top of a page and takes the sheet's colour and a hairline once the page scrolls (`shared/Scrolled.astro`).
 
 ## Settings
 

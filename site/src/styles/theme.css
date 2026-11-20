@@ -77,9 +77,10 @@ body {
   outline-offset: 2px;
 }
 
-/* The page is a sheet on the paper: the paper shows under the header and beside the sidebar. */
+/* The page is a sheet on the paper: the paper shows under the header and beside the sidebar. It
+   is the landing page's paper for a person, which in dark is lighter than the sheet. */
 body {
-  background: var(--paper);
+  background: var(--paper-side);
 }
 
 .main-frame {
@@ -549,6 +550,23 @@ h1#_top {
   color: var(--ink);
 }
 
+/* A code block is the landing page's terminal (astro.config.ts). A command stands alone there,
+   with no window around it, so a terminal without a title shows no title bar; its name stays for
+   a screen reader. */
+.expressive-code .frame.is-terminal:not(.has-title) .header {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A title is the bar of the landing page's files, with its rule under the whole bar. */
+.expressive-code .frame.has-title:not(.is-terminal) .header {
+  border-bottom: 1px solid var(--term-rule);
+}
+
 /* The landing page's footer, under the page's own column. */
 .sl-container .foot {
   margin-top: 3rem;
@@ -603,4 +621,33 @@ h1#_top {
 /* The shortcut's keys on their chip, dark enough to read in both themes. */
 site-search kbd {
   color: var(--ink-2);
+}
+
+/* The docs' home has the landing page's dot ground behind its title, still and quiet, fading out
+   before the groups, in line with the dots of the paper beside it. A reading page has none, and nor
+   does the home with reduced motion. */
+.main-frame:has(.footnote-group) {
+  position: relative;
+  isolation: isolate;
+}
+
+.main-frame:has(.footnote-group)::before {
+  content: '';
+  position: absolute;
+  inset: var(--sl-nav-height) 0 auto var(--sl-content-inline-start, 0);
+  z-index: -1;
+  height: 520px;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--dot) 1.1px, transparent 1.6px);
+  background-size: 28px 28px;
+  background-position: calc(14px - var(--sl-content-inline-start, 0px))
+    calc(14px - var(--sl-nav-height));
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent);
+  mask-image: linear-gradient(to bottom, #000 35%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-frame:has(.footnote-group)::before {
+    content: none;
+  }
 }

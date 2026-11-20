@@ -1,12 +1,15 @@
 /*
   The site's design tokens, from the landing page, which the docs read too (site/README.md, "The
   design"): cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and
-  links, and a highlighter yellow for what was checked. Schibsted Grotesk is Footnote talking,
-  Source Serif 4 is what an agent says. Light unless the reader picks dark (shared/theme.ts).
+  links, a highlighter yellow for what was checked, and the terminal an agent reads in. Schibsted
+  Grotesk is Footnote talking, Source Serif 4 is what an agent says. Light unless the reader picks
+  dark (shared/theme.ts).
 */
 
 :root {
   --paper: #f2f4f7;
+  /* The paper a person reads on, beside the terminal; in dark it is lighter than the sheet. */
+  --paper-side: var(--paper);
   --sheet: #ffffff;
   --ink: #151922;
   --ink-2: #424958;
@@ -21,12 +24,14 @@
   --ok-bg: #e3f3ea;
   --warn: #8a5a0b;
   --warn-bg: #f5ead2;
-  --code-bg: #121620;
-  --code-ink: #e6e9f0;
-  --code-dim: #8b94a7;
+  --term: #0d1118;
+  --term-ink: #e6e9f0;
+  --term-dim: #8b94a7;
+  --term-rule: #232a38;
+  --term-text: #b9c0cf;
   --shadow: 0 1px 2px rgba(21, 25, 34, 0.05), 0 14px 36px -22px rgba(21, 25, 34, 0.32);
   --logo: #111111;
-  --dot: rgba(21, 25, 34, 0.085);
+  --dot: rgba(21, 25, 34, 0.11);
   --sans: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --serif: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -37,6 +42,7 @@
 }
 :root[data-theme='dark'] {
   --paper: #0a0d14;
+  --paper-side: #141a26;
   --sheet: #0f131c;
   --ink: #e8ebf2;
   --ink-2: #b4bbca;
@@ -45,16 +51,15 @@
   --rule-2: #2c3444;
   --mark: #93a6ff;
   --mark-soft: #1c2448;
-  --hl: rgba(255, 210, 60, 0.26);
+  --hl: rgba(255, 210, 60, 0.3);
   --ok: #7fd3a4;
   --ok-bg: #14291e;
   --warn: #e6bc6a;
   --warn-bg: #3a2e17;
-  --code-bg: #06080d;
-  --code-ink: #e6e9f0;
-  --code-dim: #7d879b;
+  --term: #05070b;
+  --term-rule: #1b2130;
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 44px -22px rgba(0, 0, 0, 0.8);
   --logo: #ffffff;
-  --dot: rgba(232, 235, 242, 0.075);
+  --dot: rgba(232, 235, 242, 0.09);
   color-scheme: dark;
 }
