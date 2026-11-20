@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 364" width="960" height="364" role="img" aria-labelledby="title desc">
+  <title id="title">Run in production</title>
+  <desc id="desc">People and agents reach your TLS proxy over https. The proxy sends /api/v1/, /mcp, /oauth/ and /.well-known/oauth-* to the service image directly, and every other path to the web image. The service uses a PostgreSQL 18 database and keeps its keys and secrets in a volume at /var/lib/footnote.</desc>
+  <style>
+    .bg { fill: #0f131c; }
+    .box { fill: #141a26; stroke: #2c3444; stroke-width: 1.5; }
+    .key { fill: #1c2448; stroke: #93a6ff; stroke-width: 1.5; }
+    .ok { fill: #14291e; stroke: #7fd3a4; stroke-width: 1.5; }
+    .warn { fill: #3a2e17; stroke: #e6bc6a; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .line { fill: none; stroke: #8b94a7; stroke-width: 1.5; }
+    .back { fill: none; stroke: #e6bc6a; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .head { fill: #8b94a7; }
+    .headwarn { fill: #e6bc6a; }
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #e8ebf2; }
+    .t { font-size: 18px; font-weight: 600; }
+    .s { font-size: 15.5px; fill: #b4bbca; }
+    .m { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14.5px; fill: #b4bbca; }
+    .l { font-size: 14.5px; fill: #8b94a7; }
+    .lw { font-size: 14.5px; fill: #e6bc6a; }
+    .okt { fill: #7fd3a4; font-weight: 600; font-size: 13px; }
+  </style>
+  <rect class="bg" width="960" height="364"/>
+<rect class="box" x="24" y="134" width="180" height="80" rx="10"/>
+<text class="t" x="40" y="165">People and agents</text>
+<text class="s" x="40" y="190">over https</text>
+<rect class="key" x="244" y="110" width="190" height="128" rx="10"/>
+<text class="t" x="260" y="141">Your TLS proxy</text>
+<text class="s" x="260" y="166">sends each path</text>
+<text class="s" x="260" y="188">where it belongs</text>
+<rect class="box" x="490" y="24" width="240" height="196" rx="10"/>
+<text class="t" x="506" y="55">The service image</text>
+<text class="s" x="506" y="80">the API and the login</text>
+<text class="s" x="506" y="102">server for agents</text>
+<text class="m" x="506" y="124">/api/v1/</text>
+<text class="m" x="506" y="146">/mcp</text>
+<text class="m" x="506" y="168">/oauth/</text>
+<text class="m" x="506" y="190">/.well-known/oauth-*</text>
+<rect class="box" x="490" y="244" width="240" height="96" rx="10"/>
+<text class="t" x="506" y="275">The web image</text>
+<text class="s" x="506" y="300">every other path:</text>
+<text class="s" x="506" y="322">the app itself</text>
+<rect class="box" x="760" y="24" width="180" height="80" rx="10"/>
+<text class="t" x="776" y="55">PostgreSQL 18</text>
+<text class="s" x="776" y="80">the data</text>
+<rect class="box" x="760" y="120" width="180" height="100" rx="10"/>
+<text class="t" x="776" y="151">The keys volume</text>
+<text class="s" x="776" y="176">keys and secrets</text>
+<text class="m" x="776" y="198">/var/lib/footnote</text>
+<path class="line" d="M204 174 L233.0 174.0"/><path class="head" d="M242 174 L233.0 169.0 L233.0 179.0 Z"/>
+<path class="line" d="M434 150 L480.8 115.4"/><path class="head" d="M488 110 L477.8 111.3 L483.7 119.4 Z"/>
+<path class="line" d="M434 200 L482.5 262.9"/><path class="head" d="M488 270 L486.5 259.8 L478.5 265.9 Z"/>
+<path class="line" d="M730 64 L749.0 64.0"/><path class="head" d="M758 64 L749.0 59.0 L749.0 69.0 Z"/>
+<path class="line" d="M730 170 L749.0 170.0"/><path class="head" d="M758 170 L749.0 165.0 L749.0 175.0 Z"/>
+</svg>

@@ -1,12 +1,12 @@
 ---
 title: Connect an agent by hand
-line: The MCP address, the command for each kind of client, and the limits on what it may send.
+line: The MCP address, each agent's own steps, access keys for bots, and the limits on what an agent may send.
 group: Reference
 order: 3
-reviewed: 2026-11-05
+reviewed: 2026-11-20
 ---
 
-Add the MCP server to an agent yourself, or give a bot or a script its own way in. For a person's agent, the [prompt](../help/connect-an-agent.md) does all of this for you. The [MCP and API reference](../reference.md) lists the pages for builders.
+Add the MCP server to an agent yourself, or give a bot or a script its own way in. For a person's agent, the [prompt](../help/connect-an-agent.md) does all of this for you. What each tool takes and gives back is in [Agent tools](../help/tools.md).
 
 ## The address
 
@@ -16,27 +16,115 @@ Settings, Agents and access, shows the address of your workspace.
 
 ## A person's agent
 
-For Claude Code:
+Each agent has its own steps, the same as in Agents and access under Prefer to do it by hand, where they carry your workspace's address. Here they use the address that `docker compose up` serves. The agent signs in as you, with no token: see [Sign in your own agent](../ai-sign-in.md).
 
-```sh
-claude mcp add --transport http footnote http://localhost:3000/mcp
-```
+<!-- tabs -->
 
-Then run `/mcp` in Claude Code and choose Authenticate. The agent signs in as you, with no token: see [Sign in your own agent](../ai-sign-in.md).
+### Claude Code
 
-Cursor and VS Code have one-click install links in Agents and access. Claude's app and ChatGPT take the address as a connector. Any other agent adds a remote MCP server over HTTP in its own way.
+1. Run this in a terminal:
+
+   ```sh
+   claude mcp add --transport http footnote http://localhost:3000/mcp
+   ```
+
+2. Add this line to CLAUDE.md if the project has one, otherwise AGENTS.md, so it checks first:
+
+   ```text
+   Before you answer a question about company data, call get_context first and use what it returns.
+   ```
+
+3. In Claude Code, type `/mcp`, choose the server you added, press Authenticate, and approve the connection in the browser.
+
+### Claude, the app
+
+1. Copy the address, `http://localhost:3000/mcp`.
+2. In Claude, open Customize, then Connectors. Press + Add, then Add custom connector, and paste the address.
+3. Press Add, then Connect, and approve the connection in the browser.
+4. On a Team or Enterprise plan an owner adds it under Organization settings, Connectors; then each person presses Connect.
+
+### Cursor
+
+Agents and access has an Add to Cursor link that does the first step for you.
+
+1. Add this to `.cursor/mcp.json`:
+
+   ```json
+   { "mcpServers": { "footnote": { "url": "http://localhost:3000/mcp" } } }
+   ```
+
+2. Add this line to AGENTS.md, so it checks first:
+
+   ```text
+   Before you answer a question about company data, call get_context first and use what it returns.
+   ```
+
+3. In Cursor's settings, under MCP, press Connect and approve the connection in the browser.
+
+### VS Code
+
+Agents and access has an Install in VS Code link that does the first step for you.
+
+1. Add this to `.vscode/mcp.json`:
+
+   ```json
+   { "servers": { "footnote": { "type": "http", "url": "http://localhost:3000/mcp" } } }
+   ```
+
+2. Add this line to AGENTS.md, so it checks first:
+
+   ```text
+   Before you answer a question about company data, call get_context first and use what it returns.
+   ```
+
+3. Start the server from the file, and approve the connection in the browser.
+
+### Codex
+
+1. Run this in a terminal, and approve the connection in the browser it opens:
+
+   ```sh
+   codex mcp add footnote --url http://localhost:3000/mcp
+   ```
+
+2. Add this line to AGENTS.md, so it checks first:
+
+   ```text
+   Before you answer a question about company data, call get_context first and use what it returns.
+   ```
+
+3. If the browser did not open, run `codex mcp login footnote` and approve the connection in the browser.
+
+### ChatGPT
+
+1. Copy the address, `http://localhost:3000/mcp`.
+2. In ChatGPT on the web, open Settings, Apps and Connectors, Advanced settings, and turn on Developer mode.
+3. Press Create, name it, paste the address, choose OAuth (sign in through the browser), and approve the connection in the browser.
+4. On a Business or Enterprise plan an admin turns on connectors first.
+
+### Other agents
+
+1. Copy the address, `http://localhost:3000/mcp`.
+2. Add it where your agent lists its connectors or MCP servers, over HTTP.
+3. Approve the connection in the browser when it asks. If the agent reads an instructions file, add the line from the other tabs to it.
+
+<!-- /tabs -->
 
 ## A bot or a scheduled job
 
-A job with nobody there to approve a sign-in uses an access key. An admin makes one in [Agents and access](../help/connect-an-agent.md#a-bot-or-a-scheduled-job).
+A job that runs on its own, with nobody there to approve a sign-in, uses an access key. Admins make them:
 
-The job calls the MCP address and sends the key as its bearer token:
+1. In Settings, Agents and access, open Tools and access keys.
+2. Press Create an access key, give it a name, such as what the job does, then press Create and Copy. The key is shown once: keep it where the job keeps its secrets.
+3. Give the job the MCP address, with the key as its bearer token:
 
-```text
-Authorization: Bearer hak_...
-```
+   ```text
+   Authorization: Bearer hak_...
+   ```
 
-A key can read and send reports. It names no person, so it never sends a suggestion. It lasts until it is deleted, and it keeps working after the person who made it leaves, so delete it when the job ends.
+A key reads published context and sends reports. It names no person, so it never sends a suggestion: a key can never have suggest_context.
+
+It shows in Connected agents by its name, with who made it and when it was last used. Rename it, or switch its tools off for a while, in its Details. A key has no end date, and it keeps working after the person who made it leaves, so delete it when the job ends. Deleting it ends it at once.
 
 ## On your own computer, with a dev token
 

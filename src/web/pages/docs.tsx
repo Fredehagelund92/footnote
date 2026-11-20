@@ -47,7 +47,13 @@ import {
 } from '@/lib/docs'
 import { NotFound } from '@/components/footnote/not-found'
 import { wordOf } from '@/lib/docs-includes'
-import { movedTo, type DocBlock, type DocInline, type DocTarget } from '@domain/docs'
+import {
+  movedTo,
+  type DocBlock,
+  type DocInline,
+  type DocPicture,
+  type DocTarget,
+} from '@domain/docs'
 
 // The documentation site. Its pages are the Markdown files in docs/help, read at build time
 // (lib/docs.ts), so the app's Docs area and the static docs site (npm run docs:build) show the same
@@ -367,6 +373,25 @@ function Include({ block }: { block: Extract<DocBlock, { type: 'include' }> }) {
   }
 }
 
+/** A picture of a screen or a diagram, in the theme the app is in. */
+function Picture({ picture }: { picture: DocPicture }) {
+  const size = { width: picture.width, height: picture.height, alt: picture.alt }
+  return (
+    <figure
+      className="overflow-hidden rounded-frame border"
+      style={{ maxWidth: picture.drawnWidth }}
+    >
+      <img {...size} src={picture.light} loading="lazy" className="h-auto w-full dark:hidden" />
+      <img
+        {...size}
+        src={picture.dark}
+        loading="lazy"
+        className="hidden h-auto w-full dark:block"
+      />
+    </figure>
+  )
+}
+
 function ArticleBody({ blocks }: { blocks: readonly DocBlock[] }) {
   return (
     <div className="flex flex-col gap-4 text-base leading-7">
@@ -448,6 +473,8 @@ function ArticleBody({ blocks }: { blocks: readonly DocBlock[] }) {
             )
           case 'include':
             return <Include key={i} block={b} />
+          case 'picture':
+            return <Picture key={i} picture={b} />
         }
       })}
     </div>

@@ -9,6 +9,8 @@ reviewed: 2026-11-19
 
 Connect where metrics are defined and where documents live, and what is read from each.
 
+![Integrations in Settings: under Connected, one tool that holds definitions and one that holds documents, each read today; under Available, three more tools, each with Connect.](../images/docs/integrations-light.webp)
+
 ## Definitions
 
 Metric and dimension names arrive from the tool where they are defined, and stay read-only. dbt calls a group of metrics a semantic model, and its domain is read from `config.meta.domain`.

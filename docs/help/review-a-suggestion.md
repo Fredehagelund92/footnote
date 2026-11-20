@@ -13,6 +13,8 @@ A suggestion waits in its owner's Inbox. The quick view says what changes; the r
 
 Select a suggestion in the Inbox to see, side by side, what agents say today and what they will say after you publish. It also shows who sent it, and anything that needs care, such as details to compare with the source.
 
+![The Inbox with a suggestion open beside the list: Units sold excludes test accounts, sent by Ines Duarte from a chat. For the question How many test accounts does units sold leave out in Norway?, Agents say today and After you publish are side by side, both Checked, with the changed words underlined. Review is at the foot.](../images/docs/inbox-light.webp)
+
 - A suggestion that clashes with live context shows what agents would hear if you publish it as it is.
 - A suggestion to archive shows what they will say after you archive.
 
@@ -22,11 +24,13 @@ The button at the foot opens the full screen and says what you decide there:
 
 - Review
 - Compare with what's published, for a suggestion about the same thing as published context
-- Check the draft, for a draft of what agents could not answer
+- Check the first version, for a draft of what agents could not answer
 
 The words beside it say what follows. The other buttons say what they do, such as Edit or Archive.
 
 ## The review
+
+![The review of Ines Duarte's suggestion to raise the test-account count from 312 to 340. Fields shows the source as it is now beside the suggested one, with the change marked. Beside it, Try it and decide shows what agents will say, with Send back with a note and Publish.](../images/docs/review-light.webp)
 
 - The change, as agents will read it: the fields that change as a table, then the text with what was taken out and what was added. N and P step through the changes.
 - Preview: the item as its page will read once you publish it. The review keeps to the source or the preview as you go through the waiting suggestions.

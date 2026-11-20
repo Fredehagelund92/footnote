@@ -49,6 +49,7 @@ describe('the pages of the site', () => {
     const onlyHelp = pages.filter((page) => page.file.startsWith('docs/help/'))
     expect(shownGroups(onlyHelp)).toEqual([
       'Start',
+      'Ask',
       'Write and review',
       'Set up',
       'How it works',

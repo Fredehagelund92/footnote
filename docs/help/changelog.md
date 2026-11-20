@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-18
+reviewed: 2026-11-20
 ---
+
+## The docs show the screens
+
+2026-11-20
+
+Docs pages can now show the screen they are about, in light or dark as you read them. New pages cover [asking a question](ask-a-question.md), [keeping context up to date](keep-context-up-to-date.md), [a question nothing answers](when-nothing-is-written-yet.md) and [what agents asked](see-what-agents-asked.md). [Agent tools](tools.md) is now one page, with what each tool takes and gives back.
 
 ## A new name and a new mark
 

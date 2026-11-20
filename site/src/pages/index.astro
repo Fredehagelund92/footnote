@@ -2,10 +2,15 @@
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
 import { shownGroups, sitePages } from '../../lib/pages.ts'
 import { readSettings } from '../../lib/settings.ts'
+import loopDark from '../../../docs/images/docs/loop-dark.svg?url'
+import loopLight from '../../../docs/images/docs/loop-light.svg?url'
+import whereDark from '../../../docs/images/docs/where-it-sits-dark.svg?url'
+import whereLight from '../../../docs/images/docs/where-it-sits-light.svg?url'
 
 /*
   The docs' home: what the product is, in the README's words, the way in for a newcomer, a door for
-  each kind of reader, then every page by its group.
+  each kind of reader, two diagrams of how it works and where it sits, then every page by its group.
+  Each diagram has a file for each theme (docs/help/README.md, "Pictures"), and the theme shows one.
 */
 const pages = sitePages()
 const { product } = readSettings(process.env)
@@ -14,6 +19,22 @@ const path = (slug: string) => {
   return `${import.meta.env.BASE_URL}${slug}/`
 }
 const changes = pages.filter((page) => !page.group)
+const diagrams = [
+  {
+    light: loopLight,
+    dark: loopDark,
+    width: 960,
+    height: 304,
+    alt: 'The loop. A person writes down why a number moved. The owner checks and publishes it. An agent asks with get_context and reads what applies, and the answer starts with its line, such as Checked. When nothing is written, the answer says Not found, and the question comes back to the owner as a card in the Inbox, under Nothing written yet.',
+  },
+  {
+    light: whereLight,
+    dark: whereDark,
+    width: 960,
+    height: 360,
+    alt: `Where ${product} sits. Cube or dbt define the metrics and dimensions, and ${product} reads their names. Documents in Google Drive or Git become suggestions for their owners. ${product} holds context items, each with an owner and a check date, and the names, but no data rows. Agents ask over MCP and read what applies; people write, check and ask in the web app.`,
+  },
+]
 const line = 'What it is, where to start, and every page: writing context, agents, and running it.'
 const doors = [
   {
@@ -23,8 +44,8 @@ const doors = [
   },
   {
     who: 'I ask questions',
-    slug: 'answer-lines',
-    what: 'What the line an answer starts with says, and what it asks of you.',
+    slug: 'ask-a-question',
+    what: 'Ask about a number, and read the line its answer starts with.',
   },
   {
     who: 'I connect an agent',
@@ -69,6 +90,28 @@ const doors = [
       ))
     }
   </nav>
+  {
+    diagrams.map((diagram) => (
+      <figure class="footnote-picture">
+        <img
+          class="dark:sl-hidden"
+          src={diagram.light}
+          alt={diagram.alt}
+          width={diagram.width}
+          height={diagram.height}
+          loading="lazy"
+        />
+        <img
+          class="light:sl-hidden"
+          src={diagram.dark}
+          alt={diagram.alt}
+          width={diagram.width}
+          height={diagram.height}
+          loading="lazy"
+        />
+      </figure>
+    ))
+  }
   {
     shownGroups(pages).map((group) => (
       <section class="footnote-group">

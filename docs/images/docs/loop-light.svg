@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 304" width="960" height="304" role="img" aria-labelledby="title desc">
+  <title id="title">The loop</title>
+  <desc id="desc">A person writes down why a number moved. The owner checks and publishes it. An agent asks with get_context and reads what applies, and the answer starts with its line, such as Checked. When nothing is written, the answer says Not found, and the question comes back to the owner as a card in the Inbox, under Nothing written yet.</desc>
+  <style>
+    .bg { fill: #ffffff; }
+    .box { fill: #f2f4f7; stroke: #cdd2db; stroke-width: 1.5; }
+    .key { fill: #e4e9fd; stroke: #2a48db; stroke-width: 1.5; }
+    .ok { fill: #e3f3ea; stroke: #1d7a4b; stroke-width: 1.5; }
+    .warn { fill: #f5ead2; stroke: #8a5a0b; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .line { fill: none; stroke: #686f7e; stroke-width: 1.5; }
+    .back { fill: none; stroke: #8a5a0b; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .head { fill: #686f7e; }
+    .headwarn { fill: #8a5a0b; }
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #151922; }
+    .t { font-size: 18px; font-weight: 600; }
+    .s { font-size: 15.5px; fill: #424958; }
+    .m { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14.5px; fill: #424958; }
+    .l { font-size: 14.5px; fill: #686f7e; }
+    .lw { font-size: 14.5px; fill: #8a5a0b; }
+    .okt { fill: #1d7a4b; font-weight: 600; font-size: 13px; }
+  </style>
+  <rect class="bg" width="960" height="304"/>
+<rect class="box" x="24" y="40" width="210" height="100" rx="10"/>
+<text class="t" x="40" y="71">A person writes</text>
+<text class="s" x="40" y="96">why a number moved,</text>
+<text class="s" x="40" y="118">as a context item</text>
+<rect class="box" x="258" y="40" width="210" height="100" rx="10"/>
+<text class="t" x="274" y="71">The owner checks</text>
+<text class="s" x="274" y="96">and publishes it, with</text>
+<text class="s" x="274" y="118">a date to check it again</text>
+<rect class="box" x="492" y="40" width="210" height="100" rx="10"/>
+<text class="t" x="508" y="71">An agent asks</text>
+<text class="s" x="508" y="96">and reads what applies</text>
+<text class="m" x="508" y="118">get_context</text>
+<rect class="ok" x="726" y="40" width="210" height="100" rx="10"/>
+<text class="t" x="742" y="71">The answer</text>
+<text class="s" x="742" y="96">starts with its line,</text>
+<text class="s" x="742" y="118">such as Checked</text>
+<path class="line" d="M234 90 L247.0 90.0"/><path class="head" d="M256 90 L247.0 85.0 L247.0 95.0 Z"/>
+<path class="line" d="M468 90 L481.0 90.0"/><path class="head" d="M490 90 L481.0 85.0 L481.0 95.0 Z"/>
+<path class="line" d="M702 90 L715.0 90.0"/><path class="head" d="M724 90 L715.0 85.0 L715.0 95.0 Z"/>
+<rect class="warn" x="492" y="200" width="444" height="80" rx="10"/>
+<text class="t" x="508" y="231">Nothing is written about it</text>
+<text class="s" x="508" y="256">The answer says Not found, instead of guessing.</text>
+<path class="back" d="M831 140 L831.0 189.0"/><path class="headwarn" d="M831 198 L836.0 189.0 L826.0 189.0 Z"/>
+<path class="back" d="M492 240 L363 240 L363 151"/>
+<path class="back" d="M363 158 L363.0 151.0"/><path class="headwarn" d="M363 142 L358.0 151.0 L368.0 151.0 Z"/>
+<text class="lw" x="350" y="236" text-anchor="end">Back to the owner’s Inbox,</text>
+<text class="lw" x="350" y="256" text-anchor="end">under Nothing written yet</text>
+</svg>

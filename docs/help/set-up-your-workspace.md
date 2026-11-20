@@ -22,6 +22,8 @@ Here you write down what your numbers mean, so AI tools stop guessing. Your Inbo
 
 <!-- /include -->
 
+![The setup checklist in the Inbox: Set up your workspace so agents can use what you know, 1 of 6 done. Add your first domain is done, and each of the other five steps has its button: Write, Connect, Write context, Ask and Copy the prompt.](../images/docs/setup-light.webp)
+
 ## The page for each step
 
 1. Say what the business is about: [About our business](write-context.md#about-our-business).
@@ -34,6 +36,8 @@ Here you write down what your numbers mean, so AI tools stop guessing. Your Inbo
 ## Publish the names
 
 Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card, and nothing is published until you publish it.
+
+![The card 5 new metrics and dimensions from dbt. Under Look at these first are Basket value, Total and Total (refunds), each with a name to keep or change, Publish and Leave out. Under Ready to publish is Completed orders, and at the foot Publish all.](../images/docs/names-light.webp)
 
 - **Publish all** makes the ready names live at once, so context can apply to them and agents can use them.
 - **Look at these first** holds a name that would give a word a second meaning, such as two metrics both called Revenue. Keep it, change it, or leave it out. Nothing is picked for you.

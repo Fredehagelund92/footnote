@@ -18,6 +18,7 @@ export const repoRoot = resolve(process.cwd(), '..')
 /** The sidebar's groups, in order: docs/help's, then the operators' and integrators' pages. */
 export const siteGroups = [
   'Start',
+  'Ask',
   'Write and review',
   'Set up',
   'How it works',
@@ -33,20 +34,22 @@ export const publishedPages = [
   'help/set-up-your-workspace',
   'help/connect-an-agent',
   'help/words',
+  'help/ask-a-question',
+  'help/answer-lines',
+  'help/privacy',
   'help/write-context',
   'help/review-a-suggestion',
+  'help/keep-context-up-to-date',
+  'help/when-nothing-is-written-yet',
   'help/decide-a-conflict',
   'help/definitions-and-synonyms',
   'help/publish-without-review',
   'help/domains-and-owners',
   'help/integrations',
+  'help/see-what-agents-asked',
   'help/how-agents-use-it',
-  'help/answer-lines',
-  'help/privacy',
   'help/tools',
-  'reference',
   'reference/connect-by-hand',
-  'reference/agent-tools',
   'ai-sign-in',
   'reference/http-api',
   'where-to-run',
@@ -68,11 +71,14 @@ export const publishedPages = [
 /**
  * The pages that moved, by the address they had: the old address forwards to the new one. Get
  * started's place is Try the demo's, the first page a newcomer reads. In the app, which has no
- * Try the demo, it opens Set up your workspace (src/domain/docs.ts).
+ * Try the demo, it opens Set up your workspace (src/domain/docs.ts). The MCP and API reference,
+ * an index of the Reference pages, and The agent tools in detail are now Agent tools.
  */
 export const movedPages: Readonly<Record<string, string>> = {
   'get-started': 'try-the-demo',
   'settle-a-conflict': 'decide-a-conflict',
+  reference: 'tools',
+  'reference/agent-tools': 'tools',
 }
 
 /** The files of the site for the content loader, as paths under docs/. */

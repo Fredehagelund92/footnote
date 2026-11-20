@@ -38,6 +38,8 @@ Logs never hold a header, a body, a query string, a credential or a person. The 
 
 ## Run the image in production mode
 
+![Production layout. People and agents reach your TLS proxy over https. The proxy sends /api/v1/, /mcp, /oauth/ and /.well-known/oauth-* to the service image directly, and every other path to the web image. The service uses a PostgreSQL 18 database and keeps its keys and secrets in a volume at /var/lib/footnote.](images/docs/production-light.svg)
+
 The service image starts in production mode unless told otherwise. People sign in with your company's provider, and the people picker, dev tokens and the demo are refused. With no sign-in set up, it refuses to start and names the missing settings.
 
 `compose.yaml` sets `NODE_ENV=development`, the one setting the demo needs. That turns on the people picker, where anyone can sign in as anyone, an admin included.
