@@ -207,8 +207,8 @@ function tokenStates(
   const words = (xs: readonly Token[], at: readonly number[]) =>
     at
       .map((i) => reads(xs[i]!))
-      .join(' ')
-      .replace(/\s+/g, ' ')
+      .join('')
+      .replace(/\s+/g, '')
       .toLowerCase()
   let k = 0
   while (k < ops.length) {
@@ -306,7 +306,14 @@ export function passageDiff(before: string, after: string): PassageRow[] {
     ...extra,
   })
   const whole = (block: DocBlock) => block.tokens.map(() => ({ ...plainState(), changed: true }))
-  const { same, moved, reworded } = alignBlocks(a, b)
+  const labelled = (blocks: readonly DocBlock[]): DocBlock[] =>
+    blocks.map((block) => {
+      const tokens = block.tokens.map((t) =>
+        t.mention === null ? t : { ...t, text: text.label(t.mention) },
+      )
+      return { ...block, tokens, text: tokens.map((t) => t.text).join('') }
+    })
+  const { same, moved, reworded } = alignBlocks(labelled(a), labelled(b))
   // A passage moved stands where it was on the left and where it is on the right, its words the
   // same: up when fewer passages that stay come before it now than did.
   const movedA = new Map<number, BlockPair>(moved.map((p) => [p.a, p]))

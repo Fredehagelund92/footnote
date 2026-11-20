@@ -294,4 +294,28 @@ describe('the changes that keep the words', () => {
       'End.',
     ])
   })
+
+  it('pairs a short bullet whose words became a mention, as one link change', () => {
+    const token = '[@ id="metric:net" label="Net revenue"]'
+    const rows = passageDiff('- Net revenue', `- ${token}`)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.before).not.toBeNull()
+    expect(rows[0]!.after).not.toBeNull()
+    expect(rows[0]!.words).toBe(false)
+    expect(rows[0]!.after!.runs.find((r) => r.mention)).toMatchObject({
+      mention: token,
+      link: 'added',
+    })
+  })
+
+  it('pairs a bullet whose mention changes target but keeps its label', () => {
+    const rows = passageDiff(
+      '- [@ id="metric:a" label="Net revenue"]',
+      '- [@ id="metric:b" label="Net revenue"]',
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.words).toBe(false)
+    expect(rows[0]!.before).not.toBeNull()
+    expect(rows[0]!.after).not.toBeNull()
+  })
 })
