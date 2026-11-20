@@ -28,7 +28,7 @@ import { docControls } from '../e2e/docs-controls.ts'
 
 /*
   The docs check (docs/help/README.md): mechanical, no model. Wrong docs are worse than none, so
-  every page must read, keep to the eighteen Help pages and What's new, name the app's controls in
+  every page must read, keep to the nineteen Help pages and What's new, name the app's controls in
   the app's own words (each bold one has a row in tests/e2e/docs-controls.ts, drawn by its spec), link only to pages, headings and screens that exist, and hold the app's own
   lists as they are now. `npm run docs:sync` writes the lists into the pages when they changed.
 */
@@ -109,7 +109,7 @@ async function filled(path: string, source: string) {
 }
 
 describe('the docs check', () => {
-  it("has the eighteen Help pages, in their order, and What's new", () => {
+  it("has the nineteen Help pages, in their order, and What's new", () => {
     expect(DOC_PAGES.map((p) => p.slug)).toEqual([
       'set-up-your-workspace',
       'connect-an-agent',
@@ -127,6 +127,7 @@ describe('the docs check', () => {
       'domains-and-owners',
       'integrations',
       'see-what-agents-asked',
+      'metric-variants',
       'how-agents-use-it',
       'tools',
     ])

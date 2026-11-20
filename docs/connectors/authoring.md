@@ -200,8 +200,8 @@ To read a failure, the test's name says the rule, and the assertion names the re
 - Taking a domain from a key the tool drops in its output.
 - Putting a guessed value type such as `string` on a dimension the tool calls only `categorical`.
 - Treating a measure, an entity or a join key as a definition.
-- Reading a file over the Git cap of 2 MB and failing silently: it is `unreadable_file`.
-- Fetching a file with no `maxBytes`: the cap of 20 MB is for APIs, not for one file.
+- Reading a file over the Git cap of 20 MB and failing silently: it is `unreadable_file`.
+- Fetching a file with no `maxBytes` and no cap of its own: 20 MB is the most, not a size to aim for.
 - Putting a signed link in a setting, or its path in a warning's target. Settings go in the history log.
 - Giving a `visibleIf` field a `required` with no thought for stored sources, which have no value for it.
 - Committing a fixture built against a real warehouse or with real names.

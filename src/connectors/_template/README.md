@@ -33,7 +33,7 @@ names, the environment); and each warning, with what an administrator does about
 ## Schedule and limits
 
 Read every hour by default, at most every 15 minutes, out of date after 6 hours. A read takes at
-most 90 seconds and 100,000 definitions; the file is at most 2 MB, the largest file a Git read
+most 90 seconds and 100,000 definitions; the file is at most 20 MB, the largest file a Git read
 hands over. TODO: any limit of your own.
 
 ## Tests

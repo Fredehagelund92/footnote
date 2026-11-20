@@ -103,6 +103,45 @@ Taking a view out of the list marks its definitions missing at the next read. Ea
 
 The server's file is read at each read. A file that is not a JSON list of names, each once, fails the read rather than reading every view.
 
+## A metric per currency
+
+Model a currency, a sales channel or a region as a dimension, not as a measure for each one: [Variants: a dimension, not a metric each](../help/metric-variants.md) says why. Keep one measure, and let the question filter by the dimension:
+
+```yaml
+cubes:
+  - name: orders
+    measures:
+      - name: revenue
+        type: sum
+        sql: amount
+    dimensions:
+      - name: currency_code
+        type: string
+        sql: currency_code
+```
+
+When a reader picks the currency an amount is shown in, a `switch` dimension and a `case` measure (Cube 1.7 and later) keep that one measure too:
+
+```yaml
+dimensions:
+  - name: currency
+    type: switch
+    values: [EUR, USD]
+measures:
+  - name: amount
+    multi_stage: true
+    type: number
+    case:
+      switch: '{CUBE.currency}'
+      when:
+        - value: USD
+          sql: '{CUBE.amount_usd}'
+      else:
+        sql: '{CUBE.amount_eur}'
+```
+
+A model that a Jinja loop fills with a measure for each currency is skipped, as every Jinja file is. When most of a model's measures look like variants of a few, **Test connection** says so before any name is published.
+
 ## Links to model files
 
 Set the model folder's address to link each view to its file. On the Cube source's page, set **Model folder address**, for example:

@@ -1250,6 +1250,7 @@ export function createMockApi() {
       if (demo !== lastDemo) {
         lastDemo = demo
         if (demo === 'names') names.load()
+        if (demo === 'variants') definitions.loadVariants()
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
         if ((demo === 'done' || demo === 'week') && state.user) {
@@ -1259,7 +1260,8 @@ export function createMockApi() {
       }
       return {
         fault: result.fault,
-        data: result.data || state !== before || mentions || demo === 'names',
+        data:
+          result.data || state !== before || mentions || demo === 'names' || demo === 'variants',
       }
     },
     offline: scenario.offline,

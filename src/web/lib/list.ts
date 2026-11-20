@@ -59,12 +59,19 @@ export function useRowKeys({
 /** The search words, as typed. */
 export const words = (query: string) => query.toLowerCase().split(/\s+/).filter(Boolean)
 
+/** A text's words as a search reads them: lower case, split at anything but letters and digits. */
+export const wordsIn = (text: string) => text.toLowerCase().split(/[^\p{L}\p{N}]+/u)
+
+/**
+ * As `matches`, on the query's words and a text's words read once (`words`, `wordsIn`): a long
+ * list splits each row when the list changes, not on every key.
+ */
+export const matchesWords = (asked: readonly string[], hay: readonly string[]) =>
+  asked.every((w) => hay.some((h) => h.startsWith(w)))
+
 /** As in the Footnote app: every word must match the start of a word in the text. */
 export function matches(query: string, text: string) {
-  const ws = words(query)
-  if (!ws.length) return true
-  const hay = text.toLowerCase().split(/[^\p{L}\p{N}]+/u)
-  return ws.every((w) => hay.some((h) => h.startsWith(w)))
+  return matchesWords(words(query), wordsIn(text))
 }
 
 /* The order a list shows, so its peek can say "3 of 17" and step to the next row. */

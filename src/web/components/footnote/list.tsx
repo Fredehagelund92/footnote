@@ -177,7 +177,9 @@ export function FilterValue({ children, count }: { children: React.ReactNode; co
   return (
     <span className="flex w-full items-center gap-2">
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {count.toLocaleString('en-GB')}
+      </span>
     </span>
   )
 }

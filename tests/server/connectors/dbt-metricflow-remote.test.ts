@@ -15,6 +15,7 @@ import {
 import { SourceError } from '../../../src/domain/connector-runtime.ts'
 import { checkManifest, type ConnectorManifest } from '../../../src/domain/connector-manifest.ts'
 import { latestManifest, legacyManifest } from './dbt-metricflow-fixture.ts'
+import { twentyFiveHundred, variantManifest } from './metric-variants-fixture.ts'
 import { objectHost, type ObjectHost } from './object-server.ts'
 
 /*
@@ -127,9 +128,9 @@ describe('reading the file at an address', () => {
     expect(busy).toMatchObject({ errorClass: 'transient', retryAfter: 120 })
   })
 
-  it('refuses a file over 2 MB, said first or found on the way, and one it cannot read', async () => {
-    store.put('/public/big.json', Buffer.alloc(2_000_001, 0x20))
-    store.trickle('/public/stream.json', 3_000_000)
+  it('refuses a file over 20 MB, said first or found on the way, and one it cannot read', async () => {
+    store.put('/public/big.json', Buffer.alloc(20_000_001, 0x20))
+    store.trickle('/public/stream.json', 21_000_000)
     store.put('/public/packed.json', Buffer.from([0x1f, 0x8b]), { encoding: 'gzip' })
     store.put('/public/binary.json', Buffer.from([0xff, 0xfe, 0x00]))
     for (const path of ['big', 'stream', 'packed', 'binary'])
@@ -138,6 +139,35 @@ describe('reading the file at an address', () => {
           connector.source(address(store.address(`/public/${path}.json`))).read({ cursor: null }),
         ),
       ).toMatchObject({ code: 'unreadable_file' })
+  })
+})
+
+describe('a file of thousands of metrics', () => {
+  it('reads one of 2,500 metrics whole, the size of a project with a metric per currency', async () => {
+    const text = JSON.stringify(variantManifest(twentyFiveHundred))
+    expect(text.length).toBeGreaterThan(2_000_000)
+    store.put('/link/variants.json', text)
+    const read = await connector.source(address(store.link('/link/variants.json'))).read({
+      cursor: null,
+    })
+    expect(read.complete).toBe(true)
+    expect(read.definitions.filter((d) => d.kind === 'metric')).toHaveLength(2_500)
+  })
+
+  it('says how large a file over the cap is, and the most it reads', async () => {
+    store.put('/link/huge.json', Buffer.alloc(25_000_000, 0x20))
+    store.trickle('/public/streamed.json', 21_000_000)
+    const step = async (link: string) =>
+      (await connector.check(address(link))).steps.find((s) => s.id === 'read')
+    expect(await step(store.link('/link/huge.json'))).toMatchObject({
+      status: 'failed',
+      detail: 'The file is 25 MB; the most it reads is 20 MB.',
+    })
+    // A host that says no length is stopped once the cap has arrived: its size is not known.
+    expect(await step(store.address('/public/streamed.json'))).toMatchObject({
+      status: 'failed',
+      detail: 'The file is over 20 MB; the most it reads is 20 MB.',
+    })
   })
 })
 

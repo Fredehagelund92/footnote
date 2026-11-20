@@ -512,6 +512,38 @@ const kindWords: Record<Term['kind'], string> = {
   dimension_value: 'value',
 }
 /**
+ * Every metric, for a question that names none, those whose names share its words first: "What
+ * should I know about revenue?" offers Revenue (EUR) before Chargebacks (AED), so the examples an
+ * agent is given are the ones it most likely meant. Among as close, the shorter name first (the
+ * metric itself before Net revenue), then A to Z by name.
+ */
+function closestMetrics(question: string, terms: readonly Term[]): string[] {
+  // Words of three letters or more: "of" and "in" match too many names to say which is meant.
+  const wordsOf = (text: string) =>
+    normalizeName(text)
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((word) => word.length > 2)
+  const asked = new Set(wordsOf(question))
+  return terms
+    .filter((term) => term.kind === 'metric')
+    .map((term) => {
+      const names = [term.name, ...term.aliases]
+      const shared = Math.max(
+        ...names.map((name) => wordsOf(name).filter((word) => asked.has(word)).length),
+      )
+      return { key: term.key, name: term.name, shared }
+    })
+    .sort(
+      (a, b) =>
+        b.shared - a.shared ||
+        (b.shared ? a.name.length - b.name.length : 0) ||
+        a.name.localeCompare(b.name, 'en') ||
+        (a.key < b.key ? -1 : 1),
+    )
+    .map((term) => term.key)
+}
+
+/**
  * A name Footnote does not know, in words, with the closest names it does: "No metric in Footnote has
  * the member traffic.sessions as its definition. Did you mean Sessions (metric:sessions)?"
  */
@@ -702,14 +734,7 @@ export function extractScope(
   // A word with two meanings is the one thing to settle: it needs no list of other metrics.
   const contested = issues.some((issue) => issue.meanings)
   if (!metrics.length && !Object.keys(filters).length && !contested)
-    issues.push({
-      field: 'scope',
-      input: question,
-      options: terms
-        .filter((term) => term.kind === 'metric')
-        .map((term) => term.key)
-        .sort(),
-    })
+    issues.push({ field: 'scope', input: question, options: closestMetrics(question, terms) })
   const read = {
     metrics: unique(metrics),
     filters: Object.fromEntries(

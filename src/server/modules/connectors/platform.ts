@@ -291,13 +291,22 @@ export const FETCH_BYTES_MAX = 20_000_000
 /** The most redirects one request to `ctx.fetch` follows. */
 const FETCH_REDIRECTS_MAX = 3
 
-/** An answer that fails with `unreadable_file` once it holds more than the cap. */
+/**
+ * An answer whose body fails with `unreadable_file` once it holds more than the cap. One whose
+ * stated length is over it fails at once, and nothing of it is read; its status and headers still
+ * come back, so a connector can say how large it is.
+ */
 function capped(response: Response, maxBytes: number, target: string): Response {
   const tooLarge = () => new SourceError({ code: 'unreadable_file', target, class: 'source' })
   if (!response.body) return response
   if (Number(response.headers.get('content-length')) > maxBytes) {
     void response.body.cancel()
-    throw tooLarge()
+    // It fails when read, not before: a connector that only looks at the headers cancels it.
+    const refused = new ReadableStream<Uint8Array>(
+      { pull: (controller) => controller.error(tooLarge()) },
+      { highWaterMark: 0 },
+    )
+    return new Response(refused, { status: response.status, headers: response.headers })
   }
   let held = 0
   const body = response.body.pipeThrough(

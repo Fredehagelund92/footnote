@@ -170,7 +170,9 @@ export function TextSwitch<T extends string>({
                 {o.icon}
                 {o.label}
                 {o.count !== undefined && (
-                  <span className="text-xs text-muted-foreground tabular-nums">{o.count}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {o.count.toLocaleString('en-GB')}
+                  </span>
                 )}
               </button>
             </React.Fragment>

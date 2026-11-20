@@ -71,8 +71,18 @@ export function connectorOf(defs: readonly Pick<Definition, 'synced' | 'connecto
   return ids.size === 1 ? [...ids][0] : undefined
 }
 
-// Words are compared as the service compares them: case, spaces and accents aside.
-const same = (a: string, b: string) => termWord(a) === termWord(b)
+// Words are compared as the service compares them: case, spaces and accents aside. Each name's
+// word is worked out once: a list of thousands compares the same names many times over.
+const words = new Map<string, string>()
+const wordOf = (name: string) => {
+  let word = words.get(name)
+  if (word === undefined) {
+    if (words.size > 50_000) words.clear()
+    words.set(name, (word = termWord(name)))
+  }
+  return word
+}
+const same = (a: string, b: string) => wordOf(a) === wordOf(b)
 export const findDefinition = (all: Definition[], name: string | undefined) =>
   name ? (all.find((d) => d.name === name) ?? all.find((d) => same(d.name, name))) : undefined
 
@@ -308,6 +318,67 @@ export const goesWith = (all: Definition[], names: string[]) =>
   all.filter(
     (d) => d.sameAs && names.some((n) => same(d.sameAs!, n)) && !names.some((n) => same(d.name, n)),
   )
+
+/**
+ * What a list draws of each definition, worked out once for the whole list: its other names
+ * ("Also called") and the live context about it. The glossary's own rules each look at every
+ * definition, which costs nothing on a screen of one but grew with the square of the list on
+ * Definitions: 5,000 rows took seconds a key. These give the same answers from an index.
+ */
+export function listIndex(all: Definition[], facts: Fact[]) {
+  // Synonyms by what they point at, and by what they finally mean, each by its word.
+  const pointing = new Map<string, Definition[]>()
+  const ending = new Map<string, Definition[]>()
+  const add = (map: Map<string, Definition[]>, word: string, d: Definition) =>
+    map.set(word, [...(map.get(word) ?? []), d])
+  for (const d of all) {
+    if (!d.sameAs) continue
+    add(pointing, wordOf(d.sameAs), d)
+    add(ending, wordOf(meaningOf(all, d).name), d)
+  }
+  // The served items by each name they apply to, as a metric's context is found.
+  const where = new Map<string, Fact[]>()
+  for (const f of facts)
+    if (servedToAgents(f))
+      for (const w of new Set(f.where.map((n) => n.toLowerCase())))
+        where.set(w, [...(where.get(w) ?? []), f])
+  const about = new Map<string, Fact[]>()
+  const conflicts = new Map<string, Conflict | undefined>()
+  return {
+    /** As `alsoCalled`: every synonym that ends at this definition. */
+    alsoCalled: (d: Definition) =>
+      (ending.get(wordOf(d.name)) ?? []).filter((x) => !same(x.name, d.name)),
+    /** As `conflictOf`, with no term being edited: once for each definition of the list. */
+    conflictOf(d: Definition): Conflict | undefined {
+      if (d.type !== 'term') return undefined
+      if (!conflicts.has(d.name)) conflicts.set(d.name, conflictOf(all, d))
+      return conflicts.get(d.name)
+    },
+    /** As `contextAbout`: the live context about a metric or a term. */
+    contextAbout(d: Definition): Fact[] {
+      const known = about.get(d.name)
+      if (known) return known
+      const target = meaningOf(all, d)
+      let found: Fact[]
+      if (target.type === 'dimension') found = []
+      else if (target.type === 'term') found = contextAbout(all, d, facts)
+      else {
+        const names = [
+          target.name,
+          ...target.sourceNames,
+          ...(pointing.get(wordOf(target.name)) ?? []).map((s) => s.name),
+        ].map((n) => n.toLowerCase())
+        const ids = new Set(names.flatMap((n) => where.get(n) ?? []))
+        // In the order of the items, as the glossary's own rule gives them.
+        found = ids.size ? facts.filter((f) => ids.has(f)) : []
+      }
+      about.set(d.name, found)
+      return found
+    },
+  }
+}
+
+export type ListIndex = ReturnType<typeof listIndex>
 
 /** The glossary's rules over one list of definitions, for a screen to call without passing it. */
 export function glossary(all: Definition[]) {

@@ -243,7 +243,7 @@ describe('get_context says, for each status', () => {
   it('need_more_detail with no name in the question: never an absence', async () => {
     const reply = await setup()('get_context', { question: 'Anything written down this week?' })
     const say = sayOf(reply)
-    expect(say).toBe(`${notLookedUp} The question needs a metric or a market, such as Orders.`)
+    expect(say).toBe(`${notLookedUp} The question needs a metric, such as Orders.`)
     expect(say).not.toContain('Nothing is written down')
   })
 

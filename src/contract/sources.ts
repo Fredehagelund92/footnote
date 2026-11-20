@@ -208,6 +208,19 @@ export const sourceCheckSchema = z.object({
       }),
     ),
   ),
+  /**
+   * When many of the metrics read look like variants of a few, such as a metric per currency
+   * (src/domain/metric-variants.ts): how many, of how many metrics, and the words each split
+   * takes, so Test connection can say so before the names are published. Absent otherwise.
+   */
+  variants: z.optional(
+    z.object({
+      variants: count,
+      metrics: count,
+      bases: count,
+      splits: z.array(z.object({ words: count, examples: z.array(z.string()) })),
+    }),
+  ),
 })
 
 /**

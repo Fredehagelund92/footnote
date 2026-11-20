@@ -4,27 +4,28 @@ These Markdown files are the documentation of the web app (`src/web`). The same 
 
 ## The pages
 
-| Page                                                          | Group            |
-| ------------------------------------------------------------- | ---------------- |
-| [Set up your workspace](set-up-your-workspace.md)             | Start            |
-| [Connect an agent](connect-an-agent.md)                       | Start            |
-| [Words](words.md)                                             | Start            |
-| [Ask a question](ask-a-question.md)                           | Ask              |
-| [Answer lines](answer-lines.md)                               | Ask              |
-| [Privacy](privacy.md)                                         | Ask              |
-| [Write context](write-context.md)                             | Write and review |
-| [Review a suggestion](review-a-suggestion.md)                 | Write and review |
-| [Keep context up to date](keep-context-up-to-date.md)         | Write and review |
-| [When nothing is written yet](when-nothing-is-written-yet.md) | Write and review |
-| [Decide a conflict](decide-a-conflict.md)                     | Write and review |
-| [Definitions and synonyms](definitions-and-synonyms.md)       | Write and review |
-| [Publish without review](publish-without-review.md)           | Write and review |
-| [Domains and owners](domains-and-owners.md)                   | Set up           |
-| [Integrations](integrations.md)                               | Set up           |
-| [See what agents asked](see-what-agents-asked.md)             | Set up           |
-| [How agents use it](how-agents-use-it.md)                     | How it works     |
-| [Agent tools](tools.md)                                       | Reference        |
-| [What's new](changelog.md)                                    | (its own page)   |
+| Page                                                           | Group            |
+| -------------------------------------------------------------- | ---------------- |
+| [Set up your workspace](set-up-your-workspace.md)              | Start            |
+| [Connect an agent](connect-an-agent.md)                        | Start            |
+| [Words](words.md)                                              | Start            |
+| [Ask a question](ask-a-question.md)                            | Ask              |
+| [Answer lines](answer-lines.md)                                | Ask              |
+| [Privacy](privacy.md)                                          | Ask              |
+| [Write context](write-context.md)                              | Write and review |
+| [Review a suggestion](review-a-suggestion.md)                  | Write and review |
+| [Keep context up to date](keep-context-up-to-date.md)          | Write and review |
+| [When nothing is written yet](when-nothing-is-written-yet.md)  | Write and review |
+| [Decide a conflict](decide-a-conflict.md)                      | Write and review |
+| [Definitions and synonyms](definitions-and-synonyms.md)        | Write and review |
+| [Publish without review](publish-without-review.md)            | Write and review |
+| [Domains and owners](domains-and-owners.md)                    | Set up           |
+| [Integrations](integrations.md)                                | Set up           |
+| [See what agents asked](see-what-agents-asked.md)              | Set up           |
+| [Variants: a dimension, not a metric each](metric-variants.md) | Set up           |
+| [How agents use it](how-agents-use-it.md)                      | How it works     |
+| [Agent tools](tools.md)                                        | Reference        |
+| [What's new](changelog.md)                                     | (its own page)   |
 
 ## How a page is made
 
@@ -112,7 +113,7 @@ The words follow [Copy](../design/copy.md), the same rules as the screens:
 `tests/web/docs.test.ts` runs with the unit tests and fails when:
 
 - a page cannot be read: front matter missing a field or with a value outside the lists above, a `#` heading, no lead, a note without its title, a code block without its title, a picture without its words, its file or its dark file, or HTML
-- a page or What's new is missing, or a page is not one of the eighteen the test lists
+- a page or What's new is missing, or a page is not one of the nineteen the test lists
 - a link points at a page, a heading or a screen that does not exist
 - an include's Markdown is not the app's list as it is now (`npm run docs:sync` mends it)
 - a bold phrase has no row in `tests/e2e/docs-controls.ts` (the page, the screen and how it is drawn); `docs-controls.spec.ts` then opens each screen and fails when the control is not there

@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
 import {
+  contextExample,
   exampleCalls,
   fieldsOf,
   invalidInputOf,
@@ -13,6 +14,40 @@ it('shows each tool a call that its own schema accepts', () => {
   expect(Object.keys(exampleCalls).sort()).toEqual([...toolNames].sort())
   for (const name of toolNames)
     expect(tools[name].inputSchema.safeParse(exampleCalls[name]).success, name).toBe(true)
+})
+
+it("gives get_context's example in the install's own names, and none it does not have", () => {
+  const term = (key: string, name: string, parentKey: string | null = null) => ({
+    key,
+    kind: key.startsWith('metric:')
+      ? ('metric' as const)
+      : key.startsWith('dim:')
+        ? ('dimension' as const)
+        : ('dimension_value' as const),
+    name,
+    parentKey,
+  })
+  const own = contextExample([
+    term('metric:revenue_eur', 'Revenue (EUR)'),
+    term('metric:chargebacks_aed', 'Chargebacks (AED)'),
+  ])
+  expect(own).toEqual({
+    question: 'What should I know about Chargebacks (AED) in August 2026?',
+    metrics: ['Chargebacks (AED)'],
+    window: { from: '2026-08-01', to: '2026-08-31' },
+  })
+  expect(JSON.stringify(own)).not.toMatch(/market|norway|orders/i)
+  const withValue = contextExample([
+    term('metric:revenue', 'Revenue'),
+    term('dim:channel', 'Channel'),
+    term('val:channel/web', 'Web', 'dim:channel'),
+  ])
+  expect(withValue).toMatchObject({
+    question: 'What should I know about Revenue in Web in August 2026?',
+    dimension_filters: [{ dimension: 'Channel', values: ['Web'] }],
+  })
+  for (const example of [own, withValue, contextExample([])])
+    expect(tools.get_context.inputSchema.safeParse(example).success).toBe(true)
 })
 
 it('lets arguments that fit through as they are, and marks the rest with their issues', async () => {

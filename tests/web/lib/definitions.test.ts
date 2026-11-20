@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createDefinitions } from '@/api/mock/definitions'
-import { connectorOf, glossary, parseTags } from '@/lib/definitions'
+import { connectorOf, glossary, listIndex, parseTags } from '@/lib/definitions'
+import { facts } from '@/api/mock/data/world'
 
 // Synonyms are typed as tags: a comma, Enter or a paste makes them, each word once, the person's
 // casing kept; a word that already means something else says who has it.
@@ -175,5 +176,21 @@ describe('the connector the synced definitions come from', () => {
     expect(connectorOf([])).toBeUndefined()
     expect(connectorOf([synced('cube'), synced('cube-cloud')])).toBeUndefined()
     expect(connectorOf([{ synced: false, connector: 'cube' }])).toBeUndefined()
+  })
+})
+
+describe('the index a long list reads', () => {
+  it('gives the glossary’s own answers for every definition, at a lookup each', () => {
+    const all = createDefinitions().list()
+    const rules = glossary(all)
+    const index = listIndex(all, facts)
+    for (const d of all) {
+      expect(index.alsoCalled(d), d.name).toEqual(rules.alsoCalled(d))
+      expect(index.contextAbout(d), d.name).toEqual(rules.contextAbout(d, facts))
+      expect(index.conflictOf(d), d.name).toEqual(rules.conflictOf(d))
+    }
+    expect(all.some((d) => index.alsoCalled(d).length > 0)).toBe(true)
+    expect(all.some((d) => index.contextAbout(d).length > 0)).toBe(true)
+    expect(all.some((d) => index.conflictOf(d))).toBe(true)
   })
 })

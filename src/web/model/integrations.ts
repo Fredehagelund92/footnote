@@ -406,6 +406,11 @@ export type ConnectRead = {
   metrics: number
   dimensions: number
   warnings: { title: string; detail?: string; level?: 'warning' | 'info'; count: number }[]
+  /**
+   * When many metrics look like variants of a few, such as a metric per currency: what it says,
+   * with the page on modelling them as a dimension.
+   */
+  variants?: { title: string; detail: string }
 }
 
 /** A view or folder chosen to read, and the domain it maps to (none: a view left shared). */

@@ -265,7 +265,7 @@ export function issueWords(bundle: Names, issues: readonly ScopeIssue[]) {
       return 'The window given is not a period that can be read: pass window with from and to.'
     if (issue.field === 'scope') {
       const examples = issue.options.slice(0, 3).map((key) => nameOf(bundle, key))
-      return `The question names no metric, market or other name in the vocabulary${examples.length ? `: name one, such as ${list(examples)}` : ''}.`
+      return `The question names no metric or other name in the vocabulary${examples.length ? `: name one, such as ${list(examples, 'or')}` : ''}.`
     }
     return `'${issue.input}' could not be read.`
   })
@@ -297,7 +297,7 @@ function issueSay(bundle: Names, issues: readonly ScopeIssue[], question?: strin
             : ''
       }`
     if (issue.field === 'scope')
-      return `The question needs a metric or a market${issue.options.length ? `, such as ${names('or')}` : ''}.`
+      return `The question needs a metric${issue.options.length ? `, such as ${names('or')}` : ''}.`
     return `"${issue.input}" can't be read.`
   })
   const more = issues.length - words.length

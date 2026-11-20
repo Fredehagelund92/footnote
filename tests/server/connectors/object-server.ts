@@ -137,7 +137,10 @@ export async function objectHost() {
         object.modified !== null &&
         req.headers['if-modified-since'] === object.modified)
     if (unchanged) return done(304, headers)
-    res.writeHead(200, headers).end(object.body)
+    // A store says how long an object is first, as S3, Google Cloud Storage and Azure do.
+    res
+      .writeHead(200, { ...headers, 'content-length': String(object.body.length) })
+      .end(object.body)
   }
 
   const server = createServer(answer)

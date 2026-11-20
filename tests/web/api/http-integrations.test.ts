@@ -643,6 +643,35 @@ describe('the connect flow, on the manifests', () => {
     expect(said.failure).toBeUndefined()
   })
 
+  it('says a read of a metric per currency and channel looks like variants of a few', () => {
+    const check: SourceCheck = {
+      ok: true,
+      steps: [],
+      version: 'abc',
+      complete: true,
+      views: 1,
+      metrics: 5_000,
+      dimensions: 4,
+      warnings: [],
+      variants: {
+        variants: 4_980,
+        metrics: 5_000,
+        bases: 20,
+        splits: [
+          { words: 5, examples: ['web', 'app', 'store'] },
+          { words: 50, examples: ['eur', 'usd', 'gbp'] },
+        ],
+      },
+    }
+    expect(connectTestOf(check, 'dbt-metricflow').read?.variants).toEqual({
+      title: 'Many metrics look like variants of a few',
+      detail:
+        "4,980 of 5,000 metrics look like 20 metrics, each split by web, app, store and 2 more, and by eur, usd, gbp and 47 more. Agents find what is written about them only by each one's exact name. One metric each, with these as dimensions, works best.",
+    })
+    const { variants: _, ...dimensions } = check
+    expect(connectTestOf(dimensions, 'dbt-metricflow').read).not.toHaveProperty('variants')
+  })
+
   it("sends the settings written, and keeps a source's settings the form doesn't draw", () => {
     expect(configOf({ repository: ' https://git.example/handbook.git ', folder: '' })).toEqual({
       repository: 'https://git.example/handbook.git',

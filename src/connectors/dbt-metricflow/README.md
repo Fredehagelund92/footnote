@@ -115,6 +115,35 @@ The server's domain map (`FOOTNOTE_DOMAIN_OVERRIDES`) gives a semantic model wit
 FOOTNOTE_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'
 ```
 
+## A metric per currency
+
+Model a currency, a sales channel or a region as a dimension of the semantic model, and keep one
+metric for each amount: [Variants: a dimension, not a metric each](../../../docs/help/metric-variants.md)
+says why. A question in one currency then filters by the dimension, as MetricFlow does at query
+time:
+
+```yaml
+semantic_models:
+  - name: orders
+    dimensions:
+      - name: currency_code
+        type: categorical
+    measures:
+      - name: revenue_amount
+        agg: sum
+        expr: amount
+metrics:
+  - name: revenue
+    label: Revenue
+    type: simple
+    type_params:
+      measure: revenue_amount
+```
+
+A metric with a `filter` on one currency for each currency makes one name per variant, and a much
+larger file. When most of a file's metrics look like variants of a few, Test connection says so
+before any name is published.
+
 ## Settings
 
 | Field                   | What it is                                                                                                                                                                   |
@@ -188,7 +217,7 @@ later cannot take them.
 | `dbt-metricflow.not_a_semantic_manifest` | The read fails: the file is not this one, often `manifest.json`. Point File at the right one.                                                    |
 | `dbt-metricflow.not_read_only`           | The read fails: a shared access signature may do more than read. Make one with `sp=r`.                                                           |
 
-A file over the cap, compressed or not UTF-8 fails with `unreadable_file`, and one that is not there
+A file over the cap of 20 MB, compressed or not UTF-8 fails with `unreadable_file`, and one that is not there
 with `not_found`. A refused key or an expired link is `unauthorized`; S3 also says this for a file
 that is not there, to a key that may not list the bucket. A redirect to another host or port, or more than
 three, is `redirect_refused`, and a host that is not public `private_address`.
@@ -196,10 +225,12 @@ three, is `redirect_refused`, and a host that is not public `private_address`.
 ## Schedule and limits
 
 Read every hour by default, at most every 15 minutes, out of date after 6 hours. A read takes at
-most 90 seconds and 100,000 definitions. The file is at most 2 MB (2,000,000 bytes) wherever it
-lives, the largest file a Git read hands over: about 2,400 definitions at the size dbt writes
-them. An address or an object over it is refused by the length the host says, or as soon as that
-much has arrived. A metric moved to another semantic
+most 90 seconds and 100,000 definitions. The file is at most 20 MB (20,000,000 bytes) wherever it
+lives, as much as the core's fetch hands over and a Cube model holds in all: about 21,000
+definitions at the size dbt writes them. An address or an object over it is refused by the length
+the host says, or as soon as that much has arrived. Test connection says how large the file is and
+the most it reads ("The file is 25 MB; the most it reads is 20 MB."), or that it is over the cap
+when the host gave no length. A metric moved to another semantic
 model gets a new ref. dbt's own query names (`customer__region`) are not read as names.
 
 The fixture was built with dbt Core 1.12.6 and MetricFlow 0.213.0. dbt Labs' public samples have

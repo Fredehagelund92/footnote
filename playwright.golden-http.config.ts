@@ -52,6 +52,9 @@ export default defineConfig({
     // J48 asks the mock for a model of hundreds of views (?views=); the service's Cube is the
     // server's own there, whose views are its file's (tests/integration/cube-view-list.test.ts).
     /\/j48-view-allowlist\.spec\.ts$/,
+    // J84 asks the mock for 5,000 definitions with a metric per currency (?demo=variants); the
+    // service reads such a model in tests/integration/metric-variants.test.ts.
+    /\/j84-definitions-at-scale\.spec\.ts$/,
     // J3 states asks for each answer state by a question the mock's recorded turns answer with it,
     // and opens the mock's Not looked up example; the service's demo week has no check that fails.
     /\/j3-ask-states\.spec\.ts$/,

@@ -691,3 +691,34 @@ describe('a question whose answer is the definition', () => {
     ['Why did churn rate go up?', plain],
   ])('asks about data: %s', (question, read) => expect(asksWhatItIs(question, read)).toBe(false))
 })
+
+describe('a question that names no metric, on a metric per currency', () => {
+  const metric = (key: string, name: string): Term => ({
+    key: `metric:${key}`,
+    kind: 'metric',
+    name,
+    aliases: [],
+    parentKey: null,
+    areaId: null,
+    definitionRefs: [],
+  })
+  const shop = [
+    metric('chargebacks_aed', 'Chargebacks (AED)'),
+    metric('chargebacks_eur', 'Chargebacks (EUR)'),
+    metric('net_revenue_aed', 'Net revenue (AED)'),
+    metric('revenue_eur', 'Revenue (EUR)'),
+    metric('revenue_aed', 'Revenue (AED)'),
+  ]
+
+  it('offers the metrics its words name first, the plain one before Net revenue', () => {
+    const read = extractScope('What should I know about revenue?', shop, '2026-10-08')
+    expect(read).toMatchObject({ status: 'need_more_detail' })
+    expect(read.status === 'need_more_detail' && read.issues[0]!.options).toEqual([
+      'metric:revenue_aed',
+      'metric:revenue_eur',
+      'metric:net_revenue_aed',
+      'metric:chargebacks_aed',
+      'metric:chargebacks_eur',
+    ])
+  })
+})

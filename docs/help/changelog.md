@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-20
 ---
 
+## A metric for each currency
+
+2026-11-20
+
+Test connection says when many metrics look like variants of a few, such as a metric for each currency, and links to [a page on modelling them as a dimension](metric-variants.md). It also reads a dbt file of up to 20 MB, and says how large a larger one is.
+
+One context item can apply to hundreds of metrics and publishes in one step. When a question names no metric, agents are offered the metrics its words name. Definitions stays quick at thousands of rows, and the Inbox shows what is due for a check before setup is done.
+
 ## The docs show the screens
 
 2026-11-20
