@@ -98,13 +98,6 @@ export type TopicCalls = { count: number | null; atLeast: number; nothing?: numb
 export const listedTopics = <T extends TopicCalls>(rows: readonly T[], minimum: number): T[] =>
   rows.filter((row) => (row.count ?? row.atLeast) >= minimum)
 
-/** A topic's calls in a table: the number, "13+", or "Fewer than 5" when not even a floor shows. */
-export function askedCell(row: TopicCalls, minimum: number): string {
-  const n = (v: number) => v.toLocaleString('en-GB')
-  if (row.count !== null) return n(row.count)
-  return row.atLeast >= minimum ? `${n(row.atLeast)}+` : `Fewer than ${minimum}`
-}
-
 /**
  * One week of a gap as a reader who cannot manage it sees it (FR-614). People's reports (case 5)
  * are left out of it entirely: anyone signed in may add them, so a reader who reported a few

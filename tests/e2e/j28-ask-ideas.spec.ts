@@ -1,8 +1,9 @@
 import type { Locator, Page } from '@playwright/test'
 import { card, expect, go, mode, moveTo, onMockOnly, signInAs, test } from './go.ts'
 
-// J28: the three Ask ideas to try first. An answer travels with its state and its sources; a
-// sentence shows where it says that; the empty page shows what is asked this week.
+// J28: the Ask ideas to try first. A shared answer travels with its state and its sources; the
+// empty page shows what is asked this week; the box docks once a question is asked; and nothing in
+// the chat suggests what to ask.
 
 /** Asks a question from an empty Ask, as typed. */
 async function ask(page: Page, question: string) {
@@ -13,32 +14,12 @@ async function ask(page: Page, question: string) {
   await box.press('Enter')
 }
 
-const grounded = 'Why did orders in Norway drop in August?'
-
 /*
-  What each mode answers. The mock's answers are written by hand. On the service the answer engine
-  decides from the demo week's items: Orders in Norway also gets the two items about gift cards,
-  which disagree, so it is a Conflict there; and the regulator's pause is about Return on ad spend,
-  not Orders. The words are the items' own first sentences.
+  Questions with a recorded answer of Ask's loop on the demo week: on the mock it is the recorded
+  turn (src/web/api/mock/data/loop-answers.json), on the service the scripted reader gives the same.
 */
-const world =
-  mode === 'http'
-    ? {
-        share: 'What should I know about Orders in Germany?',
-        shareState: 'Checked (1 item)',
-        shareSource:
-          /1 Orders lags by one day in the source tool - Sofia Brandt, checked 12 Sep(t)? 2026/,
-        firstSentence: /^A new customs rule stopped all online sales to Norway from 4 August 2026/,
-        sentences: 4,
-      }
-    : {
-        share: grounded,
-        shareState: 'Checked (2 items)',
-        shareSource:
-          /1 Online sales to Norway stopped on 4 August 2026 - Jon Abara, checked 3 Oct 2026/,
-        firstSentence: /^Online sales to Norway stopped on 4 August 2026/,
-        sentences: 3,
-      }
+const checked = 'How many test accounts does units sold leave out in Norway?'
+const missing = 'How did orders in Spain change in October 2026?'
 
 /** The six state words, as a line says one. */
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
@@ -46,7 +27,7 @@ const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 test('Share copies an answer for Slack with its state and sources, or as a card; a link is for later', async ({
   page,
 }) => {
-  await ask(page, world.share)
+  await ask(page, checked)
   await page.getByRole('button', { name: 'More' }).last().click()
   await page.getByRole('menuitem', { name: 'Share' }).click()
   // It opens beside the answer, in the right panel, so the answer stays in view.
@@ -59,8 +40,11 @@ test('Share copies an answer for Slack with its state and sources, or as a card;
   )
   await expect(tabs.getByRole('tab', { name: /Link/ })).toHaveAttribute('aria-disabled', 'true')
   const message = share.getByRole('tabpanel', { name: 'Slack message' })
-  await expect(message).toContainText(world.shareState)
-  await expect(message).toContainText(world.shareSource)
+  await expect(message).toContainText('Checked (1 item)')
+  await expect(message).toContainText(
+    // Who checked it is the workspace's own: the mock and the demo week name different people.
+    /1 Units sold excludes test accounts - [A-Z][a-z]+ [A-Z][a-z]+, checked 2 Jul 2026/,
+  )
   await expect(share.getByRole('button', { name: 'Copy for Slack' })).toBeFocused()
   await tabs.getByRole('tab', { name: /Card/ }).click()
   await expect(share.getByRole('tabpanel', { name: 'Card' })).toContainText(
@@ -70,75 +54,14 @@ test('Share copies an answer for Slack with its state and sources, or as a card;
   await expect(page.getByText('Card copied')).toBeVisible()
 
   // Nothing written down travels as Not found, with no list of sources.
-  await ask(page, 'How did orders in Spain change in October 2026?')
+  await ask(page, missing)
   await page.getByRole('button', { name: 'More' }).last().click()
   await page.getByRole('menuitem', { name: 'Share' }).click()
-  const missing = page
+  const nothing = page
     .getByRole('region', { name: 'Share this answer' })
     .getByRole('tabpanel', { name: 'Slack message' })
-  await expect(missing).toContainText('Not found. Nothing is written about this yet.')
-  await expect(missing.getByRole('listitem')).toHaveCount(0)
-})
-
-test('Only a sentence with a source behind it is a button: a press shows its sources, another puts them away', async ({
-  page,
-}) => {
-  await ask(page, grounded)
-  const log = page.getByRole('log')
-  const first = log.getByRole('button', { name: world.firstSentence })
-  await expect(first).toHaveAttribute('tabindex', '0')
-  // Ask's own sentence, the last, cites nothing: plain words, with no role and no tab stop.
-  const own = log
-    .locator('span', { has: page.locator('.sr-only', { hasText: "Ask's own wording" }) })
-    .last()
-  await expect(own).toBeVisible()
-  await expect(own).not.toHaveAttribute('role', 'button')
-  await expect(own).not.toHaveAttribute('tabindex')
-  await expect(own).not.toHaveAttribute('aria-pressed')
-  await expect(own).toHaveCSS('cursor', 'auto')
-
-  await first.press('Enter')
-  await expect(page).toHaveURL(/dock=where\..*wn=1/)
-  await expect(first).toHaveAttribute('aria-pressed', 'true')
-  await expect(
-    page
-      .getByRole('region', { name: 'Where it says that' })
-      .getByRole('region', { name: 'From Online sales to Norway stopped on 4 August 2026' }),
-  ).toBeVisible()
-  await first.press(' ')
-  await expect(page).not.toHaveURL(/dock=/)
-  await expect(first).toHaveAttribute('aria-pressed', 'false')
-})
-
-test('Show me where it says that: a sentence walks back to its item and the source line, exact phrases marked', async ({
-  page,
-}) => {
-  await ask(page, grounded)
-  const log = page.getByRole('log')
-  await log.getByRole('button', { name: world.firstSentence }).click()
-  await expect(page).toHaveURL(/dock=where\..*wn=1/)
-  const panel = page.getByRole('region', { name: 'Where it says that' })
-  await expect(panel.getByText(`Sentence 1 of ${world.sentences}`)).toBeVisible()
-  const chain = panel.getByRole('region', {
-    name: 'From Online sales to Norway stopped on 4 August 2026',
-  })
-  // The date is marked at all three steps; "new customs rule" is the owner's wording, not the source's.
-  await expect(chain.locator('mark', { hasText: '4 August 2026' })).toHaveCount(3)
-  await expect(chain.locator('blockquote mark', { hasText: /customs rule/ })).toHaveCount(0)
-  await expect(
-    chain.getByText('Fewer orders in Norway after 4 August do not mean fewer customers.'),
-  ).toBeVisible()
-  await expect(log.getByRole('button', { pressed: true })).toContainText(/online sales to Norway/i)
-
-  // The number keys move between sentences; Ask's own sentence, the last, says it has no item.
-  const last = world.sentences
-  await page.keyboard.press(String(last))
-  await expect(panel.getByText(`Sentence ${last} of ${last}`)).toBeVisible()
-  await expect(panel.getByText(/It is Ask's own wording/)).toBeVisible()
-  await panel.getByRole('button', { name: 'Previous sentence' }).click()
-  await expect(panel.getByText(`Sentence ${last - 1} of ${last}`)).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(page).not.toHaveURL(/dock=/)
+  await expect(nothing).toContainText('Not found. Nothing is written about this yet.')
+  await expect(nothing.getByRole('listitem')).toHaveCount(0)
 })
 
 test('Asked this week: topics with the state Ask gives now and a count; an owner gets the waiting draft', async ({
@@ -164,11 +87,11 @@ test('Asked this week: topics with the state Ask gives now and a count; an owner
   await week.getByRole('button', { name: 'Show fewer' }).click()
   await expect(rows).toHaveCount(4)
 
-  // Asking a row gets the state its row showed.
-  const shown = (await rows.first().getByText(STATE).first().textContent())!
+  // Asking a row asks its question: Ask's loop answers it, with a state of its own reads.
   await rows.first().getByRole('button').click()
   const log = page.getByRole('log')
-  await expect(log.getByText(shown, { exact: true }).first()).toBeVisible()
+  await expect(log.getByText('What should I know about Orders in Norway?')).toBeVisible()
+  await expect(log.getByText(STATE).first()).toBeVisible()
 })
 
 /**
@@ -184,11 +107,9 @@ async function suggestsNothing(page: Page) {
   await expect(page.getByRole('list', { name: 'Questions Ask can answer' })).toHaveCount(0)
 }
 
-test('once a message is sent, nothing in the chat suggests what to ask, except at the end of a refusal', async ({
-  page,
-}) => {
+test('once a message is sent, nothing in the chat suggests what to ask', async ({ page }) => {
   // Checked.
-  await ask(page, world.share)
+  await ask(page, checked)
   const log = page.getByRole('log')
   await expect(log.getByText('Checked', { exact: true }).first()).toBeVisible()
   await expect(log.getByRole('button', { name: 'Good answer' })).toBeVisible()
@@ -200,31 +121,27 @@ test('once a message is sent, nothing in the chat suggests what to ask, except a
     await box.press('Enter')
   }
   // Not found keeps its next step, and only that.
-  await follow('How did orders in Spain change in October 2026?')
+  await follow(missing)
   await expect(log.getByText('Not found', { exact: true }).first()).toBeVisible()
   await expect(log.getByText(/Write context for/).first()).toBeVisible()
   await suggestsNothing(page)
-  // A question that names nothing to look up says what Ask answers, in words.
-  await follow('tell me a joke')
-  await expect(log.getByText('Nothing was looked up').last()).toBeVisible()
-  await expect(log.getByText(/^Ask answers three kinds of question/).last()).toBeVisible()
+  // Two items that disagree offer the comparison, never a question.
+  await follow('Do Norway orders include gift-card money?')
+  await expect(log.getByText('Conflict', { exact: true }).first()).toBeVisible()
+  await expect(log.getByRole('button', { name: 'Compare the two' })).toBeVisible()
   await suggestsNothing(page)
-  // A question about one person's work is refused, and ends with questions to press.
-  await follow('what did Tomas Eriksen write this week?')
-  await expect(
-    log.getByText("Ask does not answer questions about one person's work."),
-  ).toBeVisible()
-  await expect(log.getByRole('button', { name: 'What changed this week?' })).toBeVisible()
 })
 
 test('someone who does not own the domain gets no unfinished control under Not found', async ({
   page,
 }) => {
   await signInAs(page, 'Tomas Eriksen')
-  await ask(page, 'How did orders in Spain change in October 2026?')
+  await ask(page, missing)
   const log = page.getByRole('log')
   await expect(log.getByText('Not found', { exact: true }).first()).toBeVisible()
-  await expect(log.getByRole('button', { name: /Tell the owner/ })).toHaveCount(0)
+  // Not theirs to write: the next step is to tell the owners, which sends at once (J66).
+  await expect(log.getByRole('link', { name: /^Write context/ })).toHaveCount(0)
+  await expect(log.getByRole('button', { name: 'Tell the owner' })).toBeVisible()
   await expect(page.getByText(/Coming soon|comes later/)).toHaveCount(0)
 })
 

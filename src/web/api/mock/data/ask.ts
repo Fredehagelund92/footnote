@@ -1,21 +1,17 @@
-import { findDefinition, meaningOf, synonymIn, type Definition } from '@/lib/definitions'
+import { findDefinition, synonymIn, type Definition } from '@/lib/definitions'
 import { servedToAgents, type DomainId, type Fact } from '@/model/items'
 import { facts, markets, metrics } from './world'
 import { definitionSeed } from '../definitions'
 import { unreadSaid } from '@domain/say'
-import { lookupFailedNote } from '@domain/words'
 import { asksDefinition } from '@domain/scope'
-import type { Term } from '@domain/vocabulary'
-import { parseMentionId, plainText, type MentionRef } from '@/lib/mentions'
+import { plainText } from '@/lib/mentions'
 import {
-  closestNames,
   NAMES_NOTHING,
   scopeText,
   stateLabel,
   type Answer,
   type AskedDefinition,
   type Example,
-  type QuestionPart,
 } from '@/model/ask'
 
 /** The definitions the matcher reads synonyms from: the mock's, as they stand (mock/index.ts). */
@@ -27,17 +23,19 @@ export const readDefinitionsFrom = (read: () => Definition[]) => {
 /** Limits a question can carry beyond its metric and markets: a domain, or named context items. `pool` is the context as it is now. */
 type Limit = { domain?: DomainId; only?: string[]; pool?: Fact[] }
 
+/** The question whose answer the mock gives to a question it holds no answer for: nothing covers it. */
+export const NOTHING_COVERS = 'What is the weather in Oslo today?'
+
+/**
+ * The questions the mock offers, each answered as Ask's loop answers it on the demo week with no
+ * model key (loop-answers.json); `failed` is the answer when the service could not answer at all.
+ */
 export const examples: Example[] = [
   {
     id: 'grounded',
     label: stateLabel.grounded,
     starter: true,
-    question: 'Why did orders in Norway drop in August?',
-  },
-  {
-    id: 'partial',
-    label: stateLabel.partial,
-    question: 'How did orders do in Norway and Spain last quarter?',
+    question: 'How many test accounts does units sold leave out in Norway?',
   },
   {
     id: 'missing',
@@ -58,154 +56,16 @@ export const examples: Example[] = [
     question: 'Why did Norway returns drop at the end of April?',
   },
   {
-    id: 'correction',
-    label: 'An answer that needs correction',
-    question: 'How many test accounts does units sold leave out in Norway?',
+    id: 'definition',
+    label: 'Definition',
+    question: 'What is net revenue?',
   },
   {
     id: 'failed',
     label: stateLabel.failed,
     question: 'What changed in returns in the United Kingdom this week?',
   },
-  {
-    id: 'synonym',
-    label: 'Asked in a synonym',
-    question: 'Why did purchases in Norway drop in August?',
-  },
-  {
-    id: 'figconflict',
-    label: 'A figure that does not fit the context',
-    question: 'Did discount cost in Norway fall after 9 May?',
-  },
-  {
-    id: 'nodata',
-    label: 'No figure to read',
-    question: 'What was net promoter score in Norway in August?',
-  },
 ]
-
-const curated: Record<string, Omit<Answer, 'id' | 'question'>> = {
-  grounded: {
-    metric: 'Orders',
-    markets: ['Norway'],
-    dates: '1 to 31 Aug 2026',
-    state: 'grounded',
-    text: "Online sales to Norway stopped on 4 August 2026 under a new customs rule, and there are no stores there [1]. Price promotions in Norway have been paused since 9 May 2026 [2]. The context doesn't say how much each of these moved orders.",
-    sources: ['itm_norway_stop', 'itm_za26xpzv'],
-    said: '2 context items apply to Orders in Norway from 1 to 31 August 2026. Nothing else was looked up.',
-    leftOut: '1 context item about Germany (another market).',
-  },
-  partial: {
-    metric: 'Orders',
-    markets: ['Norway', 'Spain'],
-    dates: '1 Jul to 30 Sep 2026',
-    state: 'partial',
-    note: "There's context for Norway and nothing for Spain. “Last quarter” was read as 1 Jul to 30 Sep 2026; use Change it under the question if you meant other dates.",
-    text: 'For Norway, online sales stopped on 4 August 2026, so orders there from that day are close to nothing [1]. For Spain, nothing is written down for these dates.',
-    sources: ['itm_norway_stop'],
-    said: '1 context item applies to Orders in Norway from 1 July to 30 September 2026. Nothing is written down for Spain. Dates assumed: last quarter.',
-    times: 4,
-  },
-  missing: {
-    metric: 'Orders',
-    markets: ['Spain'],
-    dates: '1 to 31 Oct 2026',
-    state: 'missing',
-    text: "Nobody has written down anything about Orders in Spain in October 2026. That doesn't mean there's no explanation, only that none is written down yet.",
-    sources: [],
-    said: 'Nothing is written down for Orders in Spain from 1 to 31 October 2026. No match does not prove that nothing applies.',
-    times: 9,
-  },
-  conflict: {
-    metric: 'Orders',
-    markets: ['Norway'],
-    state: 'conflict',
-    text: 'One context item says Norway orders count store credit and gift cards [1]. Another says they count card and cash payments only [2]. Both are kept until an owner chooses.',
-    sources: ['itm_gift_store_credit', 'itm_gift_card_only'],
-    conflict: ['itm_gift_store_credit', 'itm_gift_card_only'],
-    said: '2 context items apply to Orders in Norway, and they disagree. Give both sides; do not pick one.',
-  },
-  stale: {
-    metric: 'Returns',
-    markets: ['Norway'],
-    dates: '20 Apr to 10 May 2026',
-    state: 'stale',
-    note: 'Based on 1 context item whose check date passed on 2 Oct.',
-    text: "From 28 April 2026, Norway returns count only refunds that reached the customer's bank, and earlier weeks read about 4 percent higher [1]. It doesn't say anything else moved returns.",
-    sources: ['itm_ra39ow6c'],
-    said: '1 context item applies to Returns in Norway from 20 April to 10 May 2026. It may be out of date: its check date passed on 2 October.',
-  },
-  correction: {
-    metric: 'Units sold',
-    markets: ['Norway'],
-    state: 'grounded',
-    text: "Units sold in Norway leaves out the 312 accounts our teams use to test the webshop, and the new app's test accounts from 29 May 2026 [1].",
-    sources: ['itm_s90n5xps'],
-    said: '1 context item applies to Units sold in Norway. Nothing else was looked up.',
-    correction: {
-      note: 'There are 340 test accounts now, and the returns team has used 28 more since October.',
-      correct:
-        "Units sold in Norway leaves out the 340 accounts our teams use to test the webshop, and the returns team's 28 from 1 October 2026.",
-      link: 'https://wiki.example/data/definitions/units-sold-october',
-    },
-  },
-  figconflict: {
-    metric: 'Discount cost',
-    markets: ['Norway'],
-    dates: '9 to 31 May 2026',
-    state: 'grounded',
-    text: "The Norway regulator paused all price promotions on 9 May 2026, and no paid campaign has run there since [1]. The context doesn't say how much this moved discount cost.",
-    sources: ['itm_za26xpzv'],
-    said: '1 context item applies to Discount cost in Norway from 9 to 31 May 2026. Nothing else was looked up.',
-  },
-  nodata: {
-    metric: 'Net promoter score',
-    markets: ['Norway'],
-    dates: '1 to 31 Aug 2026',
-    state: 'missing',
-    text: "Nobody has written down anything about net promoter score in Norway in August 2026. That doesn't mean there's no explanation, only that none is written down yet.",
-    sources: [],
-    said: 'Nothing is written down for Net promoter score in Norway from 1 to 31 August 2026. No match does not prove that nothing applies.',
-  },
-  failed: {
-    metric: 'Returns',
-    markets: ['United Kingdom'],
-    dates: '19 to 25 Oct 2026',
-    state: 'failed',
-    note: lookupFailedNote,
-    text: '',
-    sources: [],
-    said: "The check failed. Do not say that nothing is known; say that the check couldn't run.",
-  },
-}
-
-/** The question's words, without case, marks or order: "Why did @Orders drop in @Norway in August?" reads like the example. */
-const wordsOf = (q: string) =>
-  q
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .sort()
-    .join(' ')
-
-/** The example a question is, however it was typed or scoped, so the same question always gets the same answer. */
-export const exampleFor = (question: string) =>
-  examples.find((e) => wordsOf(e.question) === wordsOf(question))
-
-export function exampleAnswer(id: string): Answer {
-  const ex = examples.find((e) => e.id === id) ?? examples[0]!
-  // Not curated: read like a typed question, so the synonym resolves the way it would live.
-  if (!curated[ex.id]) {
-    const read = readQuestion(ex.question)
-    return {
-      ...answerFor(ex.question, read.metric, read.markets, '1 to 31 Aug 2026'),
-      id: ex.id,
-      alias: read.alias,
-    }
-  }
-  return explain({ id: ex.id, question: ex.question, ...curated[ex.id]! })
-}
 
 const MONTH_NAMES = [
   'january',
@@ -279,23 +139,6 @@ const stems = metrics.flatMap((m) => {
 const metricTerms = metrics
   .map((m) => ({ key: `metric:${m.name.toLowerCase().replace(/\W+/g, '_')}`, name: m.name }))
   .sort((a, b) => (a.key < b.key ? -1 : 1))
-
-/** The metrics and markets as terms, for the names closest to a question's words. */
-const closeTerms = (): Term[] => {
-  const term = (key: string, kind: Term['kind'], name: string, aliases: string[]): Term => ({
-    key,
-    kind,
-    name,
-    aliases,
-    parentKey: null,
-    areaId: null,
-    definitionRefs: [],
-  })
-  return [
-    ...metrics.map((m) => term(`metric:${m.name}`, 'metric', m.name, m.otherNames ?? [])),
-    ...markets.map((m) => term(`val:market/${m}`, 'dimension_value', m, [])),
-  ]
-}
 
 /**
  * Reads a metric and markets from plain words, the way get_context does, with no model. Either may
@@ -440,7 +283,6 @@ function answerCore(
       ...base,
       state: null,
       text: NAMES_NOTHING,
-      closest: closestNames(question, closeTerms()),
       sources: [],
       said,
     }
@@ -453,7 +295,6 @@ function answerCore(
       text: `Nobody has written down anything about ${scope}. That doesn't mean there's no explanation, only that none is written down yet.`,
       sources: [],
       said: `Nothing is written down for ${scope}. No match does not prove that nothing applies.`,
-      times: 3,
     }
   }
   const sources = all.map((f) => f.id)
@@ -506,51 +347,12 @@ function answerCore(
   }
 }
 
-/**
- * A question scoped with '@': a metric (or a term that means one), markets, a domain or context
- * items, each taking the place of what would be read from the words. The rest is read as usual.
- */
-export function answerForScope(
-  question: string,
-  scope: MentionRef[],
-  parts?: QuestionPart[],
-  pool?: Fact[],
-): Answer {
-  // The same question gets the same answer, scoped or not.
-  const ex = exampleFor(question)
-  if (ex) return { ...exampleAnswer(ex.id), question, scope, parts }
-  const read = readQuestion(question)
-  const keys = (...kinds: string[]) =>
-    scope
-      .map((m) => parseMentionId(m.id))
-      .filter((m) => kinds.includes(m.kind))
-      .map((m) => m.key)
-  const word = keys('metric', 'term')
-    .map((k) => findDefinition(definitionsNow(), k))
-    .map((d) => d && meaningOf(definitionsNow(), d))
-    .find((d) => d?.type === 'metric')
-  const ms = keys('market')
-  const domain: DomainId | undefined = keys('domain')[0]
-  const only = keys('context')
-  const answer = answerFor(
-    question,
-    word?.name ?? read.metric,
-    ms.length ? ms : read.markets,
-    undefined,
-    { domain, only: only.length ? only : undefined, pool },
-  )
-  return { ...answer, alias: word ? undefined : read.alias, scope, parts }
-}
-
-/** An answer from the context as it is now (`pool`), the way a typed question gets it: an example by its words, or the matcher. */
+/** What get_context would give for a question, from the context as it is now (`pool`): the matcher's answer. */
 export function askQuestion(question: string, pool?: Fact[]): Answer {
-  const ex = exampleFor(question)
-  if (ex) return { ...exampleAnswer(ex.id), question }
   const read = readQuestion(question)
   const defined = definitionOf(question, read.metric)
   return {
     ...answerFor(question, read.metric, read.markets, undefined, { pool }),
-    alias: read.alias,
     ...(defined ? { definitions: [defined] } : {}),
   }
 }
@@ -569,3 +371,15 @@ function definitionOf(question: string, metric: string): AskedDefinition | null 
     tool: d.tool,
   }
 }
+
+/** Every question the mock answers with a recorded turn of Ask's loop (loop-answers.json). */
+export const mockQuestions: readonly string[] = [
+  ...examples.flatMap((e) => (e.id === 'failed' ? [] : [e.question])),
+  'How did orders in Norway change in October 2026?',
+  'Why did orders in Norway drop in August?',
+  'Did discount cost in Norway fall after 9 May?',
+  'Do United Kingdom orders include store credit or not?',
+  'Define our customer happiness index.',
+  NOTHING_COVERS,
+  'Before the weekly note goes out: has anything changed in how gross margin is counted for Spain since the price promotions came back?',
+]

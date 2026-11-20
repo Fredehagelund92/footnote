@@ -112,7 +112,7 @@ describe('the model check over HTTP', () => {
     await vi.waitFor(() => expect(check).toHaveBeenCalledTimes(3))
     const rows = await ok<ModelCheckRow[]>('GET', '/models/checks', 'admin')
     expect(rows.map((r) => [r.role, r.model, r.check?.tools, r.words])).toEqual([
-      ['assistant', 'openai/gpt-oss:20b', 'fail', 'Can’t call tools, so Ask answers without them'],
+      ['assistant', 'openai/gpt-oss:20b', 'fail', 'Can’t call tools, which Ask needs to read'],
       ['eval_answer', 'anthropic/claude-sonnet-5-5', 'pass', 'Calls tools, as answer tests need'],
       ['judge', 'anthropic/claude-opus-5-5', 'pass', 'Keeps to a JSON schema, as judging needs'],
     ])
@@ -190,7 +190,7 @@ describe('npm run models:check', () => {
         "Checking each role's model: three tiny calls a model, to this computer, with no company data.",
       )
       expect(result.stdout).toContain(
-        'models.assistant: openai/gpt-oss:20b: tools fail, no tools when told fail, JSON schema pass. Can’t call tools, so Ask answers without them.',
+        'models.assistant: openai/gpt-oss:20b: tools fail, no tools when told fail, JSON schema pass. Can’t call tools, which Ask needs to read.',
       )
       expect(result.stdout).toContain('  tools: HTTP 400: model does not support tools')
       expect(result.stdout).toContain(

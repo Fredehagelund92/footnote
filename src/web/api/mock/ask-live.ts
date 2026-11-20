@@ -3,56 +3,59 @@ import { loopAnswerOf } from '@/api/http-ask'
 import type { Answer } from '@/model/ask'
 import type { AskLive } from '@/model/ask-turn'
 import { ApiError } from '../errors'
+import { NOTHING_COVERS } from './data/ask'
+import loopAnswers from './data/loop-answers.json'
 
-// How the mock's answers arrive in a live chat, so Ask on the mock reads as it does on the service
-// with a real model: a look-up, what it found, the engine's answer with its state and sources, then
-// the words a sentence at a time. The times are the mock's, named here so they can be tuned; the
-// service's come from the real work.
+// How the mock's answers arrive in a live chat, so Ask on the mock reads as it does on the service:
+// the working line while Ask reads, then the turn. The time is the mock's, named here so it can be
+// tuned; the service's comes from the real work.
 
-/** Looking up, before the look-up has found its context items. */
-export const MOCK_LOOK_MS = 400
-/** Reading what it found, before the engine's answer. */
-export const MOCK_READ_MS = 400
-/** Each sentence of the words, as a model writes it. */
-export const MOCK_SENTENCE_MS = 350
+/** Reading, before the turn is in. */
+export const MOCK_READ_MS = 800
 
-/** The states a model writes words for, as on the service: an answer with items. */
-const written: readonly (Answer['state'] & string)[] = ['grounded', 'partial', 'conflict', 'stale']
-
-/** An answer's words as sentences, each with the citations after its stop. */
-const sentences = (text: string) =>
-  text
-    .trim()
-    .split(/(?<=[.!?](?:\s*\[\d+\])*)\s+(?=[^\s[])/)
-    .filter(Boolean)
-
-/** The answer's way in: its events in time, stopped by `live.signal`; then the answer itself. */
+/** The answer's way in: the working line, then the answer itself, stopped by `live.signal`. */
 export async function playAnswer(answer: Answer, live: AskLive): Promise<Answer> {
-  const wait = (ms: number) =>
-    new Promise<void>((done, fail) => {
-      const stopped = () => fail(new DOMException('The answer was stopped.', 'AbortError'))
-      if (live.signal?.aborted) return stopped()
-      const timer = setTimeout(done, ms)
-      live.signal?.addEventListener('abort', () => (clearTimeout(timer), stopped()), {
-        once: true,
-      })
-    })
-  const tell = live.onEvent ?? (() => undefined)
-  // Read by the planner: what it chose to look up comes first, as the service sends it.
-  if (answer.reading?.working) tell({ type: 'plan', working: answer.reading.working })
-  await wait(MOCK_LOOK_MS)
-  // A records answer is counted, not looked up: it comes whole.
-  if (answer.records) return answer
-  tell({ type: 'found', items: answer.sources.length })
-  await wait(MOCK_READ_MS)
-  // The engine's answer comes first; the words a model writes follow it.
-  tell({ type: 'answer', answer })
-  if (answer.state && written.includes(answer.state) && answer.sources.length)
-    for (const text of sentences(answer.text)) {
-      await wait(MOCK_SENTENCE_MS)
-      tell({ type: 'sentence', text })
-    }
+  await new Promise<void>((done, fail) => {
+    const stopped = () => fail(new DOMException('The answer was stopped.', 'AbortError'))
+    if (live.signal?.aborted) return stopped()
+    const timer = setTimeout(done, MOCK_READ_MS)
+    live.signal?.addEventListener('abort', () => (clearTimeout(timer), stopped()), { once: true })
+    live.onEvent?.({ type: 'plan', working: 'Reading the context…' })
+  })
   return answer
+}
+
+/** The names the mock's turns carry with them: each key as it is, as no vocabulary is read. */
+const sameNames = {
+  metric: (k: string) => k,
+  value: (k: string) => k,
+  metricKey: () => undefined,
+  marketKey: () => undefined,
+}
+
+/** A question's words as the recorded turns are found by: any case, spacing or final mark. */
+const wordsOf = (question: string) =>
+  question
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[?.!]+$/, '')
+
+const recorded = new Map(
+  Object.entries(loopAnswers as unknown as Record<string, LoopTurn>).map(([q, turn]) => [
+    wordsOf(q),
+    turn,
+  ]),
+)
+
+/**
+ * Ask's answer on the mock: the turn the service's scripted reader gave the same question on the
+ * demo week (tests/web/integration/ask-mock-answers.test.ts writes them), or, for a question it
+ * holds none for, the turn for a question nothing covers, as asked.
+ */
+export function recordedAnswer(question: string): Answer {
+  const turn = recorded.get(wordsOf(question)) ?? recorded.get(wordsOf(NOTHING_COVERS))!
+  return loopAnswerOf(turn, question, sameNames)
 }
 
 /**
@@ -62,22 +65,16 @@ export async function playAnswer(answer: Answer, live: AskLive): Promise<Answer>
  * `loop-used-trust` six with two that need a look (loop-used.ts).
  */
 export async function loopExample(id: string): Promise<Answer> {
-  const names = {
-    metric: (k: string) => k,
-    value: (k: string) => k,
-    metricKey: () => undefined,
-    marketKey: () => undefined,
-  }
   const sized = /^loop-used-(?:(\d+)(?:-look-(\d+))?|trust)$/.exec(id)
   if (sized) {
     const { usedTurn } = await import('./loop-used')
     const turn = sized[1]
       ? usedTurn(Number(sized[1]), { look: Number(sized[2] ?? 0) })
       : usedTurn(6, { look: 2 })
-    return { ...loopAnswerOf(turn, 'Give me all about Orders', names), id: `example-${id}` }
+    return { ...loopAnswerOf(turn, 'Give me all about Orders', sameNames), id: `example-${id}` }
   }
   const { default: examples } = await import('./data/loop-examples.json')
   const found = (examples as unknown as Record<string, { question: string; turn: LoopTurn }>)[id]
   if (!found) throw new ApiError('not-found', 'This example is not offered any more.')
-  return { ...loopAnswerOf(found.turn, found.question, names), id: `example-${id}` }
+  return { ...loopAnswerOf(found.turn, found.question, sameNames), id: `example-${id}` }
 }

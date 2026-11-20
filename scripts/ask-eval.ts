@@ -8,24 +8,23 @@ import { createModelPort, ModelConfigError } from '../src/server/modules/models/
 
 /*
   Ask's evaluation harness from the command line (docs/evaluations.md, "Ask's evaluation
-  harness"). With no flags it runs today's main on the demo week on the last real plans, with no
-  model, as every build does, and prints the report; --answerer loop runs Ask's loop instead, on
-  the last real run's steps. With --real it asks a real model: the judge's agreement with its
+  harness"). With no flags it runs Ask's loop on the demo week on the last real run's steps, with
+  no model, as every build does, and prints the report. With --real it asks a real model: the judge's agreement with its
   labels first (--no-judge-set leaves it out), then every case three times, each reply a model
   wrote read by the judge, stopping before --max-cost-usd is spent. It runs in a database of its
   own, copied from the test template, so it never reads or writes another one.
 
-    npm run eval:ask-harness [-- --answerer loop]
-    npm run eval:ask-harness -- --real --max-cost-usd 0.50 [--answerer loop] [--tries 3] [--record]
+    npm run eval:ask-harness
+    npm run eval:ask-harness -- --real --max-cost-usd 0.50 [--tries 3] [--record]
       [--model <provider>:<model> [--prices <input>,<output>]]
       [--judge <provider>:<model> [--judge-prices <input>,<output>]]
       [--no-judge-set] [--cases C1,K04] [--out report.json] [--resume earlier-report.json.jsonl]
-    npm run eval:ask-harness -- --replay earlier-report.json.jsonl [--answerer loop]
+    npm run eval:ask-harness -- --replay earlier-report.json.jsonl
 
   --model names the answering model and --judge the judge, each on any provider in the registry,
   as FOOTNOTE_MODEL does (docs/model-providers.md); both are Claude Haiku 5.5 through the Vercel
   gateway unless named. A model its provider does not list needs its prices, in US dollars per
-  million tokens. --record keeps the plans (the loop's steps) and the judge's verdicts the builds
+  million tokens. --record keeps the loop's steps and the judge's verdicts the builds
   replay, so it takes only those default models. A real run journals each graded try next to its
   report (<out>.jsonl), with what it has spent; --resume goes on with such a run, asking only what
   it had not, and counts its spend against the same ceiling; --replay grades such a run's replies
@@ -43,7 +42,6 @@ const { values } = parseArgs({
     out: { type: 'string' },
     resume: { type: 'string' },
     replay: { type: 'string' },
-    answerer: { type: 'string', default: 'main' },
     'no-judge-set': { type: 'boolean', default: false },
     model: { type: 'string' },
     prices: { type: 'string' },
@@ -116,8 +114,6 @@ if (values.cases) env.ASK_EVAL_CASES = values.cases
 if (values.resume) env.ASK_EVAL_RESUME = values.resume
 if (values.replay) env.ASK_EVAL_REPLAY = values.replay
 if (values['no-judge-set']) env.ASK_EVAL_JUDGE_SET = '0'
-if (values.answerer !== 'main' && values.answerer !== 'loop')
-  fail("--answerer is main (the router, the planner and the words) or loop (Ask's loop).")
 const out = values.out ?? join(mkdtempSync(join(tmpdir(), 'ask-eval-')), 'report.json')
 env.ASK_EVAL_OUT = out
 
@@ -128,9 +124,7 @@ const run = spawnSync(
     'run',
     '--project',
     'integration',
-    values.answerer === 'loop'
-      ? 'tests/web/integration/ask-eval-loop.test.ts'
-      : 'tests/web/integration/ask-eval.test.ts',
+    'tests/web/integration/ask-eval-loop.test.ts',
     '--hookTimeout=600000',
   ],
   { stdio: 'inherit', env: { ...process.env, ...env } },

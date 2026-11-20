@@ -5,9 +5,8 @@ import { askWorld } from './ask-world.ts'
 
 /*
   Ask's loop and the service's pool (FR-719.7): a turn holds no connection while its model works
-  or while it waits for one. Today's main deadlocks once as many live asks are in flight as the
-  pool has connections (a look-up holds one for its request while its planner opens a second);
-  here a slow scripted model on the live path, with the spending checks and the meter, answers N
+  or while it waits for one, so as many live asks as the pool has connections never deadlock it.
+  Here a slow scripted model on the live path, with the spending checks and the meter, answers N
   asks at once for N equal to the test pool's 4 connections and twice that.
 */
 
@@ -30,7 +29,7 @@ const live: ModelPort = {
   creditsUsed: () => Promise.resolve(null),
   checkKey: () => Promise.resolve({ outcome: 'accepted' }),
 }
-const world = askWorld({ askLoop: true, models: live })
+const world = askWorld({ models: live })
 
 /** What comes back within `ms`, or a failure that says the asks waited on each other. */
 const within = <T>(work: Promise<T>, ms: number) =>

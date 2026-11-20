@@ -22,12 +22,10 @@ const LONG =
 
 export function createChats() {
   let threads: Stored[] = [
-    seeded('synonym', 'Today', '09:40'),
     seeded('grounded', 'Today', '09:12'),
     seeded('conflict', 'Today', '08:40'),
     seeded('missing', 'Today', '08:05'),
-    seeded('partial', 'Yesterday', '16:30'),
-    seeded('correction', 'Yesterday', '14:02'),
+    seeded('definition', 'Yesterday', '16:30'),
     {
       id: 'margin-spain',
       title: LONG,

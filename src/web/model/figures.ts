@@ -46,12 +46,12 @@ export type FigureAsk = {
 }
 
 /**
- * What an answer asks of the data. An answer read as keys asks for every value it was read for, of
- * any dimension: "footwear orders in August" is read for Footwear, so its figure is never the orders
- * of every product. An answer with no keys asks for its markets by name.
+ * What an answer asks of the data. An answer of Ask's loop asks for every value its subject was
+ * read for, of any dimension: "footwear orders in August" is read for Footwear, so its figure is
+ * never the orders of every product. Any other answer asks for its markets by name.
  */
 export function figureAskOf(
-  answer: Pick<Answer, 'metric' | 'markets' | 'dates' | 'state' | 'sources' | 'keys' | 'loop'>,
+  answer: Pick<Answer, 'metric' | 'markets' | 'dates' | 'state' | 'sources' | 'loop'>,
 ): FigureAsk {
   // Ask's loop: the values the read about its subject was read for.
   const read = answer.loop?.subject?.about.flatMap((id) =>
@@ -60,7 +60,6 @@ export function figureAskOf(
   return {
     metric: answer.metric,
     markets: answer.markets,
-    ...(answer.keys ? { values: Object.values(answer.keys.filters).flat() } : {}),
     ...(read ? { values: read } : {}),
     dates: answer.dates,
     state: answer.state,

@@ -7,6 +7,7 @@ import { card, expect, go, onMockOnly, onServiceOnly, signInAs, test } from './g
 // one side sees which buttons cannot act and why. The same view is a page under Context and the
 // conflict dock. The conflicts are found in the Context list: Conflicts filters the one table to
 // the items in a conflict, and each such item carries the Conflict chip, which leads to the pair.
+// An answer of Ask on a conflict sets the two side by side and leads to the same comparison.
 
 /** The Conflict chip of the item that disagrees with this one, in the Context list. */
 const chipWith = (page: Page, other: string | RegExp) =>
@@ -257,19 +258,31 @@ test('the quick view says the pair at once, and its button needs no second read'
   })
 })
 
-test('Ask groups the two that disagree and leads to the comparison', async ({ page }) => {
-  await onMockOnly('example answer', async () => {
-    await go(page, '/ask?example=conflict')
-    // The badge's card names the two; the pair sits under the answer.
-    await page.getByRole('log').getByRole('button', { name: 'Conflict', exact: true }).hover()
-    await expect(page.getByRole('dialog', { name: 'What Conflict means' })).toContainText(
-      'These two disagree',
-    )
-    await page.mouse.move(0, 0)
-    await expect(page.getByRole('group', { name: 'The two items' })).toBeVisible()
-    await page.getByRole('button', { name: 'Compare and decide' }).click()
-    await expect(page).toHaveURL(/dock=conflict\./)
-  })
+test('Ask sets the two that disagree side by side and leads to the comparison', async ({
+  page,
+}) => {
+  await go(page, `/ask?n=${Date.now()}`)
+  const box = page.getByRole('textbox', { name: 'Ask a question' })
+  await box.click()
+  await box.pressSequentially('Do Norway orders include gift-card money?')
+  await box.press('Enter')
+  const log = page.getByRole('log')
+  await expect(log.getByRole('button', { name: 'Conflict', exact: true })).toBeVisible()
+  // Under the words, the pair, each item by its number in the sources, and who decides which holds.
+  await expect(log.getByText('These two disagree', { exact: true })).toBeVisible()
+  for (const title of [
+    'Norway orders are card and cash payments only',
+    'Norway orders count store credit',
+  ])
+    await expect(log.getByRole('button', { name: new RegExp(`^\\d .*${title}`) })).toBeVisible()
+  await expect(log.getByText(/^Which one holds is for the owners of/)).toBeVisible()
+  await log.getByRole('button', { name: 'Compare the two' }).click()
+  await expect(page).toHaveURL(/dock=conflict\./)
+  await expect(
+    page
+      .getByRole('region', { name: 'Conflict', exact: true })
+      .getByRole('heading', { name: 'Two items say different things about Orders in Norway.' }),
+  ).toBeVisible()
 })
 
 test('the Conflict alert card shows the pair and leads to the comparison', async ({ page }) => {

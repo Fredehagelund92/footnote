@@ -234,9 +234,8 @@ export function FigureLink({ view }: { view: Extract<FigureView, { kind: 'link' 
 }
 
 /**
- * The data an answer of Ask's loop asks about, read as the router's answer reads it (FR-716): one
- * figure line, the figure beside the item it doesn't fit, a link into the tool while figures are
- * off, or why there is none. Nothing while it reads, and nothing when there is nothing to show.
+ * The data an answer of Ask's loop asks about (FR-716): one figure line, the figure beside the
+ * item it doesn't fit, a link into the tool while figures are off, or why there is none. Nothing while it reads, and nothing when there is nothing to show.
  */
 export function AnswerFigure({ answer }: { answer: Answer }) {
   const figures = useFigures()

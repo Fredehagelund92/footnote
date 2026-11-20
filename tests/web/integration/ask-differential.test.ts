@@ -1,26 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { people } from '@/api/mock/data/world'
-import type { FootnoteApi } from '@/api/client'
-import type { RecordsFound } from '../../../src/domain/records-answer.ts'
 import { devPeople } from '../http/demo-week.ts'
 import { askWorld } from './ask-world.ts'
 import { disclosure, type Cell } from './ask-disclosure.ts'
 
 /*
   Ask's differential tests (docs/evaluations.md): on the demo week, through the real service, for
-  each person, every count Ask states must be the number the page it comes from shows that person:
-  Definitions, Context's filters, the Inbox and Observability. A count Ask keeps by a path of its
-  own fails here, whoever asks. The questions are read by the rules or the scripted planner: what
-  is compared is the count, not how the question was read.
+  each person, every count Asked this week states must be the number that person's Observability
+  shows. A count Ask keeps by a path of its own fails here, whoever asks.
 */
 
 const world = askWorld()
 
-const records = async (api: FootnoteApi, question: string): Promise<RecordsFound> => {
-  const { records: found } = await api.ask({ question })
-  if (!found || found.refused) throw new Error(`"${question}" was not answered from the records`)
-  return found
-}
 const persons = devPeople()
   .map((p) => p.name)
   .filter((name) => people.some((p) => p.name === name))
@@ -28,44 +19,7 @@ const persons = devPeople()
 const { expectedRows } = disclosure((name) => world.as(name))
 
 describe.each(persons)('as %s', (name) => {
-  it('Ask counts Definitions as the page does', async () => {
-    const api = await world.as(name)
-    const definitions = await api.getDefinitions()
-    const of = (type: string) => definitions.filter((d) => d.type === type).length
-    expect((await records(api, 'how many metrics do we have?')).total).toBe(of('metric'))
-    expect((await records(api, 'how many dimensions do we have?')).total).toBe(of('dimension'))
-  })
-
-  it("Ask counts Context's filters as the page does", async () => {
-    const api = await world.as(name)
-    const { items } = await api.getLibrary()
-    const listed = items.filter((f) => f.status !== 'Draft')
-    const status = (s: string) => listed.filter((f) => f.status === s).length
-    expect((await records(api, 'how many context items are there?')).total).toBe(listed.length)
-    expect((await records(api, 'what is due for a check?')).total).toBe(status('Due for a check'))
-    expect((await records(api, 'what is archived?')).total).toBe(status('Archived'))
-    expect((await records(api, 'how many events are there?')).total).toBe(
-      listed.filter((f) => f.kind === 'event').length,
-    )
-    const sales = listed.filter((f) => f.domain === 'area_sales' || f.domain === 'sales')
-    expect((await records(api, 'what is due for a check in Sales?')).total).toBe(
-      sales.filter((f) => f.status === 'Due for a check').length,
-    )
-    expect((await records(api, 'which items conflict?')).total).toBe(
-      (await api.conflicts({ whose: 'all' })).length,
-    )
-  })
-
-  it('Ask counts the Inbox as the page does', async () => {
-    const api = await world.as(name)
-    const inbox = await api.getInbox()
-    const mine = inbox.cards.filter((c) => c.for === name && !inbox.done[c.id])
-    expect((await records(api, 'what is waiting on me?')).total).toBe(
-      mine.length + inbox.mentions.length,
-    )
-  })
-
-  it("Ask's counts of what agents asked are the reader's Observability", async () => {
+  it("Asked this week counts what agents asked as the reader's Observability does", async () => {
     const api = await world.as(name)
     const expected = await expectedRows(name)
     const week = await api.askedThisWeek()
@@ -74,10 +28,5 @@ describe.each(persons)('as %s', (name) => {
     expect(new Map(week.rows.map((r) => [r.title, r.count]))).toEqual(
       new Map(listed.map(([title, c]) => [title, cellOf(c)])),
     )
-    const most = await records(api, 'what are agents asking about most?')
-    const shown = (most.sections ?? []).flatMap((s) => s.rows).concat(most.rows)
-    for (const row of shown)
-      if (row.type === 'topic')
-        expect(cellOf(expected.get(row.title)!), row.title).toBe(row.cells[0])
   })
 })

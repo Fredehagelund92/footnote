@@ -3,7 +3,7 @@ import { expect, go, mode, signOut, test } from './go.ts'
 
 // J49, the Ask chat session: a chat joins the history with its first answered turn, whichever
 // button asked it; a chat this page started opens again, on Back, as the history opens it; one
-// stopped turn does not stop the rest of a chat being kept (the loop's, on the mock: ?loop=1); a
+// stopped turn does not stop the rest of a chat being kept; a
 // chat keeps its first answer, so a reload asks nothing; and Not looked up is not an answer: it does
 // not join, and Ask again that gets it keeps the answer the turn had; and the chats leave the
 // browser at sign-out; a chat whose answers are no longer kept opens on its question and asks
@@ -120,8 +120,8 @@ test('the dock starts a chat the same way: a stopped first question joins once a
 test('Back to a chat this page started opens it as the history does, with what was kept', async ({
   page,
 }) => {
-  test.skip(mode === 'http', "the loop's answers come from the mock flag")
-  await held(page, '/ask?n=j49e&loop=1')
+  test.skip(mode === 'http', "the service's history holds no other chat to open")
+  await held(page, '/ask?n=j49e')
   const log = page.getByRole('log')
   await ask(page, QUESTION)
   await until(page, log.getByText(STATE).first())
@@ -144,8 +144,8 @@ test('Back to a chat this page started opens it as the history does, with what w
 })
 
 test('one stopped turn does not stop the rest of a chat being kept', async ({ page }) => {
-  test.skip(mode === 'http', "the loop's answers come from the mock flag")
-  const answers = await held(page, '/ask?n=j49f&loop=1')
+  test.skip(mode === 'http', "the service's history holds no other chat to open")
+  const answers = await held(page, '/ask?n=j49f')
   const log = page.getByRole('log')
   await ask(page, QUESTION)
   await until(page, log.getByText(STATE).first())

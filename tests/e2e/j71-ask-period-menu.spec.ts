@@ -3,7 +3,6 @@ import { expect, go, mode, test } from './go.ts'
 // J71: the period on the read line is a menu (period slice R12). A question that names no dates is
 // read at today, "Today · assumed"; choosing Any date asks it again at any date, and the new
 // answer's read line says so. The service answers with Ask's loop and its scripted reader.
-test.use({ askLoop: true })
 test.skip(mode === 'mock', "The mock's loop answers are examples, read at the dates they were")
 
 test('choosing Any date on "Today · assumed" asks again at any date', async ({ page }) => {

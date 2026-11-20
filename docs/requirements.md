@@ -1449,7 +1449,7 @@ Rows L01 to L12 test the link rules (FR-131 and FR-331 to FR-335). The item in m
 
 ## Appendix B. Ask's earlier text (superseded 8 Nov 2026)
 
-FR-718 to FR-720 as they stood until 8 November 2026 (commit `3f65c3d0`), word for word, with their status now Superseded. They describe how Ask was built: fixed word patterns first, a planner that chose one read from a closed list, and templates for the words. FR-718 to FR-720 in section 5.7 supersede them. The build follows them until the rebuild of Ask ships; after that they are history.
+FR-718 to FR-720 as they stood until 8 November 2026 (commit `3f65c3d0`), word for word, with their status now Superseded. They describe how Ask was built: fixed word patterns first, a planner that chose one read from a closed list, and templates for the words. FR-718 to FR-720 in section 5.7 supersede them. The rebuild of Ask shipped as its loop, so they are history.
 
 | ID | Requirement | Priority | Status |
 | --- | --- | --- | --- |

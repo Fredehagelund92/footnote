@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { vagueMetricWord } from '../../../src/domain/ask-held.ts'
 import { servedWords, type WrittenTerm } from '../../../src/domain/served-terms.ts'
-import { PLAN_TODAY, planTerms } from '../../../src/server/modules/answer/plan-world.ts'
+import { WORLD_TODAY, worldTerms } from './case-world.ts'
 
 /*
   A word that names no one metric, wherever it sits in the question (A5 of the release judgement,
@@ -10,9 +10,10 @@ import { PLAN_TODAY, planTerms } from '../../../src/server/modules/answer/plan-w
 */
 
 const around = { domains: ['Sales', 'Marketing'], people: ['Jon Abara', 'Sofia Brandt'] }
-const vague = (question: string, titles: string[] = [], terms = planTerms) =>
-  vagueMetricWord(question, terms, PLAN_TODAY, { ...around, titles })?.metrics.map((m) => m.name) ??
-  null
+const vague = (question: string, titles: string[] = [], terms = worldTerms) =>
+  vagueMetricWord(question, terms, WORLD_TODAY, { ...around, titles })?.metrics.map(
+    (m) => m.name,
+  ) ?? null
 
 describe('a word that names no one metric', () => {
   it('is asked about in a sentence as it is alone: another name some metrics share, or a group', () => {
@@ -20,7 +21,7 @@ describe('a word that names no one metric', () => {
     expect(vague('sales')).toEqual(['Net revenue', 'Gross sales'])
     expect(vague('Tell me about revenue.')).toEqual(['Net revenue', 'Gross sales', 'Units sold'])
     expect(vague('revenue')).toEqual(['Net revenue', 'Gross sales', 'Units sold'])
-    expect(vagueMetricWord('Tell me about revenue.', planTerms, PLAN_TODAY)?.word).toBe('revenue')
+    expect(vagueMetricWord('Tell me about revenue.', worldTerms, WORLD_TODAY)?.word).toBe('revenue')
   })
 
   it('is no question back when the words name one metric, by its own name or a word only it has', () => {
@@ -68,7 +69,7 @@ describe('a word that names no one metric', () => {
       conflict: true,
       alsoMeans: ['metric:gross_sales'],
     }
-    const terms = servedWords(planTerms, [sales], { all: false, areas: [] }).vocabulary
+    const terms = servedWords(worldTerms, [sales], { all: false, areas: [] }).vocabulary
     expect(vague('What about sales in the UK?', [], terms)).toEqual(
       expect.arrayContaining(['Net revenue', 'Gross sales']),
     )

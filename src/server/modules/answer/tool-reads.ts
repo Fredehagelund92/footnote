@@ -9,7 +9,7 @@ import { todayIn, type Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import type { ServingBundle } from '../editions/index.ts'
 import type { ScopedIndex } from '../library/index.ts'
-import { itemsOf, momentOf, type RecordsReads } from './records.ts'
+import { itemsOf, momentOf } from './records.ts'
 import { askedFor, liveBundle, type BundleCache } from './service.ts'
 
 /*
@@ -45,8 +45,8 @@ export type ToolReads = {
   conflicts: () => Promise<ConflictList>
   /** The person's own Inbox: what needs them. */
   inbox: () => Promise<Feed>
-  /** What agents asked, as this reader may have it (FR-614). */
-  asked: RecordsReads['asked']
+  /** What agents asked, as this reader may have it (FR-614), with the minimum count shown. */
+  asked: () => ReturnType<typeof askedFor>
   /** The workspace's calendar (R8): its fiscal year start and the time zone of `today`. */
   calendar: Calendar
   /** Today in the workspace's time zone. */

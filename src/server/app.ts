@@ -86,11 +86,9 @@ export interface AppDependencies {
   trustedProxies?: readonly string[]
   /** What a run of Ask's cases hears or replaces. Never set by the service. */
   askTrace?: AskTrace
-  /** FOOTNOTE_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). The service sets it from the config (on by default); a bare app answers with its router. */
-  askLoop?: boolean
   /**
-   * The model check (`models/capability.ts`), with real models: Ask answers with its router while
-   * its model failed the tool call. A bare app keeps none.
+   * The model check (`models/capability.ts`), with real models: made again by an Ask turn, or
+   * after a role's setting changes. A bare app keeps none.
    */
   modelChecks?: ModelChecks
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show. None by default. */
@@ -131,7 +129,6 @@ export function buildApp({
   readPage,
   trustedProxies = [],
   askTrace,
-  askLoop = false,
   modelChecks,
   profileLabel,
 }: AppDependencies): FastifyInstance {
@@ -213,7 +210,6 @@ export function buildApp({
     workspaceSources,
     ...(readPage ? { readPage } : {}),
     ...(askTrace ? { askTrace } : {}),
-    askLoop,
     ...(modelChecks ? { modelChecks } : {}),
     profileLabel: profileLabel ?? null,
   })

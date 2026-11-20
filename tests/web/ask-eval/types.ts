@@ -4,8 +4,8 @@ import type { AnswerState } from '@/model/ask'
 /*
   Ask's evaluation harness (docs/evaluations.md, "Ask's evaluation harness"): conversations asked
   as a person through whatever answers them, graded by code on the promises Ask makes and, on a
-  real run, by a judge that can only fail a turn. Nothing here knows how an answer is made: today's
-  router is one answerer, a model in a tool loop will be another, and both are graded the same way.
+  real run, by a judge that can only fail a turn. Nothing here knows how an answer is made: Ask's
+  loop is one answerer, a fake in a unit test another, and both are graded the same way.
 */
 
 /** Who asks: their name, and the app's own binding signed in as them. */

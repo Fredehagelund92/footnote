@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { systemClock } from '../../src/server/clock.ts'
 import { checkedModelsFor, TestRunRefused } from '../../src/server/modules/evals/index.ts'
 import {
-  answersWithTools,
   checkModel,
   checkWords,
   createModelChecks,
@@ -107,11 +106,10 @@ describe('the model check', () => {
     expect(bodies[0]!.tool_choice).toEqual({ type: 'function', function: { name: 'record' } })
     expect(bodies[1]!.tool_choice).toBe('none')
     expect(bodies[2]!.response_format).toMatchObject({ type: 'json_schema' })
-    expect(answersWithTools(check)).toBe(true)
     expect(testRunRefusal(check)).toBeNull()
   })
 
-  it('fails a model whose server turns tools away, which sends Ask to its router and refuses test runs', async () => {
+  it('fails a model whose server turns tools away, which Ask needs and test runs refuse', async () => {
     const bodies = server('toolless')
     const check = await checkModel(local())
     expect(check).toMatchObject({ tools: 'fail', noTools: 'fail', json: 'pass' })
@@ -122,13 +120,12 @@ describe('the model check', () => {
     // The plain call that followed was answered: the server works, its tools do not.
     expect(bodies).toHaveLength(4)
     expect(bodies[3]).not.toHaveProperty('tools')
-    expect(answersWithTools(check)).toBe(false)
     expect(testRunRefusal(check)).toBe(
       "Test runs answer by calling tools, and openai/gpt-oss:20b failed the tool call of the model check (HTTP 400: model does not support tools). Set models.eval_answer to a model that calls tools; npm run models:check checks each role's model.",
     )
     expect(roleFails('assistant', check)).toBe(true)
     expect(roleFails('judge', check)).toBe(false)
-    expect(checkWords('assistant', check)).toBe('Can’t call tools, so Ask answers without them')
+    expect(checkWords('assistant', check)).toBe('Can’t call tools, which Ask needs to read')
     expect(checkWords('eval_answer', check)).toBe(
       'Can’t call tools, so answer tests refuse to start',
     )
@@ -142,8 +139,6 @@ describe('the model check', () => {
       'noTools: an answer against the tool choice',
       'json: no object that fits the schema',
     ])
-    // Ask still reads with its tools: its step limit ends a turn that keeps calling them.
-    expect(answersWithTools(check)).toBe(true)
     expect(checkWords('assistant', check)).toMatch(/^Calls tools, but also when told not to/)
     const judge = withJsonText(local(), check)
     expect(judge.jsonSchema).toBe(false)
@@ -160,7 +155,6 @@ describe('the model check', () => {
       "a plain call was turned away too, so the model or its provider is not reachable as set (HTTP 400: No available providers match the 'only' filter: openai.)",
     ])
     expect(bodies).toHaveLength(4)
-    expect(answersWithTools(check)).toBe(true)
     expect(testRunRefusal(check)).toBeNull()
   })
 
@@ -169,7 +163,6 @@ describe('the model check', () => {
     const check = await checkModel(local())
     expect(check).toMatchObject({ tools: 'unknown', noTools: 'unknown', json: 'unknown' })
     expect(check.notes).toEqual(['tools: HTTP 503', 'noTools: HTTP 503', 'json: HTTP 503'])
-    expect(answersWithTools(check)).toBe(true)
     expect(testRunRefusal(check)).toBeNull()
     expect(roleFails('eval_answer', check)).toBe(false)
     expect(checkWords('assistant', check)).toBe('Couldn’t tell, so Ask reads with its tools')

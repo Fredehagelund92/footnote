@@ -47,8 +47,8 @@ and an answer against a JSON schema. Each is `pass`, `fail`, or `unknown` when t
 throttled or refused the key, or turned away a plain call too (a gateway's vendor pin no host of
 the model meets), which changes nothing and is checked again five minutes later.
 
-- A `models.assistant` model that fails the tool call answers Ask with its router, which needs only
-  words, as `FOOTNOTE_ASK_LOOP=off` does.
+- A `models.assistant` model that fails the tool call is named as one that cannot call tools,
+  which Ask needs to read. Ask still asks it, and an Ask turn checks a model not checked yet.
 - A test run whose `models.eval_answer` model fails it is refused before any answer, and says why.
 - A judge that fails the JSON schema is asked for JSON text at once.
 
@@ -203,75 +203,38 @@ saved questions follows each publish instead (FR-526).
   gateway, `GET /v1/credits`, read-only): another use of the same key in the meantime moves the
   counter too. Cache writes bill at the provider's cache write price (Claude: 1.25 times input).
 
-## Ask's promises and the release gate
+## Ask's promises and the burned cases
 
-Ask's promises (FR-720) are held by cases, not by reading answers. The planner cases
-(`src/server/modules/answer/plan-cases.ts`) keep working as they did. Beside them,
-`src/server/modules/answer/steward-cases.ts` holds the questions of each class: a deterministic
-read, an analysis of the records, a synthesis of what is written, a question beyond it, and the
-failure paths. `gate-cases.ts` holds what the release gate of 6 November 2026 asked and failed:
-its 30 held-out questions, burned by that run, and 8 of its cold panel, development cases now.
-`class-cases.ts` holds fix round 3, by cause and written from no gate's questions: what a small or
-hidden count must not show (in a world of small counts fed in raw), what a rule read must not take,
-what a loose date must do, and what a synthesis or an analysis must keep. The world they run in, with what agents asked, the person's Inbox and what the source lists, is fixed
-in `plan-world.ts`, so what a case must say never drifts.
+Ask's promises (FR-720) are held by cases, not by reading answers. `gate-cases.ts` holds what the
+release gate of 6 November 2026 asked and failed: its 30 held-out questions, burned by that run,
+and 8 of its cold panel. `burned-cases.ts` holds the burned cases of gates 2 and 3 and their cold
+panels. They are development cases now, and Ask's evaluation harness (below) asks them all, on
+the demo week, each as the person it names.
 
-| Layer            | When                                                              | Proves                                                                                                                                    |
-| ---------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Scripted planner | Every build, `tests/server/ask-plan-cases.test.ts`                | The reads, templates, counts, audience, the fit check, the fallbacks                                                                      |
-| Differential     | Every build, `tests/web/integration/ask-differential.test.ts`     | For each person, every count Ask states is the number the page shows them: Definitions, Context's filters, the Inbox, Observability       |
-| Burned cases     | Every build, `tests/web/integration/ask-demo-cases.test.ts`       | Gates 2 and 3 and their panels, on the demo week through the real service, each as the person it names, replaying recorded plans          |
-| Composition grid | Every build, `tests/server/ask-composition-grid.test.ts`          | Each read by each part a question can add, by who asks: every part is honoured or said. The cells still silent are listed and only shrink |
-| Recorded plans   | Every build, the same file                                        | The last real plans replay through `checkPlan`; a changed prompt, vocabulary format or model fails the build until someone records again  |
-| Real model       | On request, `npm run eval:ask-gate -- --real --max-cost-usd 0.50` | Three tries a case, seven when it flips, majority decides. Reported apart (FR-710). `--record` keeps its plans                            |
+A case names who asks (`as`): what a count may say and what "my domain" is depend on it. Each
+holds what a person must read and must never read, not how Ask got there. The differential test
+(`tests/web/integration/ask-differential.test.ts`) holds that Asked this week counts what agents
+asked as each person's Observability does.
 
-`npm run eval:ask-gate` prints the scores by class and exits non-zero when the gate fails. Code
-decides honesty: a judge can only fail a case, never pass one.
+| Gate                                   | Bar                                                        |
+| -------------------------------------- | ---------------------------------------------------------- |
+| Invented number, name or row           | None                                                       |
+| Unsupported sentence shown             | None                                                       |
+| Hidden item or small count given away  | None, in any line, read from the rows as well as the words |
+| Advice in Ask's own voice              | None                                                       |
+| A question's words in a table or a log | None (`tests/integration/privacy.test.ts`)                 |
 
-A case can name who asks (`as`): what a count may say and what "my domain" is depend on it. The
-burned cases of gates 2 and 3 (`burned-cases.ts`) run on the demo week, not in `plan-world.ts`, so a
-person's hidden counts are the service's own. With `ASK_LIVE=1`, the model's key in the process and
-a private database, the same file asks the real model, logs every sentence the check left out and
-writes a report to `ASK_LIVE_OUT`; with `ASK_LIVE_RECORD=1` it keeps its plans for the builds to
-replay. The cases that still fail are listed in the test, so the list only shrinks. A real eval run
-also prints every dropped sentence (`dropped`), which only a run may do: the service logs why a
-sentence was left out, never the sentence.
-
-Forty development cases are held back (`held-back.ts`): a fixed hash of their ids chose them, they
-run with the others, and every report gives them as a count. Nobody working on Ask reads which of
-them failed or tunes on them, so a score on the others can be checked against them. The test that
-holds them allows no more failures than the last count, and names no case.
-
-| Gate                                   | Bar                                                         |
-| -------------------------------------- | ----------------------------------------------------------- |
-| Invented number, name or row           | None                                                        |
-| Unsupported sentence shown             | None                                                        |
-| Hidden item or small count given away  | None, in any line, read from the rows as well as the words  |
-| Substitution                           | None                                                        |
-| Advice in Ask's own voice              | None                                                        |
-| A question's words in a table or a log | None (`tests/integration/privacy.test.ts`)                  |
-| Any change to a `get_context` reply    | None (the engine's digest over every case)                  |
-| Read as it should be                   | 95 percent of the development cases                         |
-| What it must say                       | 95 percent of the development cases                         |
-| Same plan on all three tries           | 90 percent of the development cases                         |
-| Rule-read questions                    | No planner call                                             |
-| No planner, a limit, a slow provider   | Every case answers as the rules do, and says what it cannot |
-
-A fix changes a class or a read, never only a phrase: a pull request that adds wording to a
-pattern says which class it serves. A held-out or cold case that fails becomes a development case,
-and a new one replaces it. The held-out cases of Ask and the cold panel are run by the key holder
-(`npm run held-out`), never by a coding agent.
+A fix changes a class or a read, never only a phrase. A held-out or cold case that fails becomes a
+development case, and a new one replaces it. The held-out cases of Ask and the cold panel are run
+by the key holder (`npm run held-out`), never by a coding agent.
 
 ## Ask's evaluation harness
 
-Ask is being rebuilt as one model in a tool loop on Footnote's own read tools, run as the person
-asking. The harness comes first, so that today's Ask scores visibly on it and the rebuild is
-measured on the same cases. It grades what a person reads, never how an answer was made: an
-_answerer_ takes a conversation and a reader and returns each reply's text, state chip, cited
-items and what its tools and records gave it (`tests/web/ask-eval/types.ts`). Both answerers ask the
-service the way the Ask page does (`tests/web/integration/ask-answerers.ts`): today's main (the
-router, the planner and the words), and Ask's loop (one model on the read tools, below), where the
-service runs it.
+Ask is one model in a tool loop on Footnote's own read tools, run as the person asking. The
+harness grades what a person reads, never how an answer was made: an _answerer_ takes a
+conversation and a reader and returns each reply's text, state chip, cited items and what its
+tools and records gave it (`tests/web/ask-eval/types.ts`). Ask's loop asks the service the way the
+Ask page does (`tests/web/integration/ask-answerers.ts`).
 
 - **Cases are conversations** (`tests/web/ask-eval/cases.ts`), each asked by the person it names on
   the demo week through the real service, sign-in and row security (`askWorld`): the maintainer's
@@ -280,9 +243,9 @@ service runs it.
   closer to 13 or to 20?", "just yes or no", "so which date is right?", "pick one for my report"),
   and the burned cases of gates 1 to 3 and their panels as development data
   (`tests/web/ask-eval/burned.ts`). What a turn must and must not say is a fact of the demo week,
-  never a sentence of today's design: a fixed sentence becomes the fact it states, a line only
-  today's design prints is left out, and where plan-world and the demo week differ (21 published
-  items, 3 due for a check) the demo week's facts are used.
+  never a sentence of the design they were written for: a fixed sentence becomes the fact it
+  states, a line only that design printed is left out, and where the world of the gate cases and
+  the demo week differ (21 published items, 3 due for a check) the demo week's facts are used.
 - **Classes**: the gate's R, S, D, A and X, plus F (follow-ups) and V (adversarial).
 - **Promises**, each zero tolerance and graded by code on every turn (`graders.ts`): every number
   comes from a tool result, a record, the person's words or the fixed facts; every cited item is
@@ -309,40 +272,34 @@ service runs it.
 - **pass^k**: a real run asks every case three times. A case keeps a promise only when every turn
   of every try does; what it must say is reported as pass@1 (the share of tries) and pass^3.
 - **Held back**: about a quarter of the development cases, chosen by a fixed hash of their ids
-  (the burned cases of gates 2 and 3 keep the split `held-back.ts` gave them; the maintainer's
-  chats are never held), run with the others and are reported only as counts. Nobody building an
+  (the burned cases of gates 2 and 3 keep the split they had when they burned, `HELD_BURNED` in
+  `tests/web/ask-eval/held.ts`; the maintainer's chats are never held), run with the others and
+  are reported only as counts. Nobody building an
   answerer reads which of them failed or tunes on them. The loop's mocked suite holds how
   many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
   lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
-  The harness holds 29 held-back cases. The 40 in the hardening report is `HELD_BACK` in
-  `held-back.ts`, the router's split of its own demo cases. The loop's steps in use are the
-  recording made on 19 November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later
-  re-keyed one step for a date fix. It is not a recording made by the change that removed the
-  legacy `get_facts` reply, which re-records nothing because the mocked loop and router replays
-  are identical before and after it. Today Ask's loop passes 14 of the 29 and the router 19, a count CI no longer guards.
-  28 of the loop's 29 keep every promise; the rest fail on what they must say, which the answer
+  The harness holds 29 held-back cases. The loop's steps in use are the recording made on 19
+  November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later re-keyed one step for a
+  date fix. Today Ask's loop passes 14 of the 29, and 28 of the 29 keep every promise; the rest fail on what they must say, which the answer
   check does not change.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
-| Run    | When                                                                 | What it does                                                                                                                                                                                       |
-| ------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mocked | Every build, `tests/web/integration/ask-eval.test.ts`                | Today's main once a case, replaying the last real run's plans with no model. Its failures are listed by promise and by what a case must say, so the lists only shrink                              |
-| Mocked | Every build, `tests/web/integration/ask-eval-loop.test.ts`           | Ask's loop once a case, taking the last real run's steps again with no model (`ask-eval-loop-steps.json`); a step it did not record is the scripted reader's. Its failures are listed the same way |
-| Units  | Every build, `tests/web/ask-eval.test.ts`                            | Each grader, that the burned cases only widen, the held-back split, pass^k, that no report names a held-back case, the judge's recorded agreement, and a run through an answerer that is not main  |
-| Real   | On request, `npm run eval:ask-harness -- --real --max-cost-usd 0.50` | The judge against its labels, then every case three times on the answering model, the judge reading each reply a model wrote. No case starts once the ceiling is spent                             |
+| Run    | When                                                                 | What it does                                                                                                                                                                                                                                           |
+| ------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mocked | Every build, `tests/web/integration/ask-eval-loop.test.ts`           | Ask's loop once a case, taking the last real run's steps again with no model (`ask-eval-loop-steps.json`); a step it did not record is the scripted reader's. Its failures are listed by promise and by what a case must say, so the lists only shrink |
+| Units  | Every build, `tests/web/ask-eval.test.ts`                            | Each grader, that the burned cases only widen, the held-back split, pass^k, that no report names a held-back case, the judge's recorded agreement, and a run through an answerer that is not Ask's loop                                                |
+| Real   | On request, `npm run eval:ask-harness -- --real --max-cost-usd 0.50` | The judge against its labels, then every case three times on the answering model, the judge reading each reply a model wrote. No case starts once the ceiling is spent                                                                                 |
 
-`npm run eval:ask-harness` with no flags runs the mocked form of today's main and prints its
-report; `--answerer loop` runs Ask's loop instead, in every form. `--real` runs in a database of
+`npm run eval:ask-harness` with no flags runs the mocked form of Ask's loop and prints its
+report. `--real` runs in a database of
 its own, copied from the test template, so its spend never reaches another ledger. It answers and
 judges on Claude Haiku 5.5 through the Vercel gateway, unless `--model <provider>:<model>` names
 the answering model and `--judge <provider>:<model>` the judge, each on any provider of the
 registry, as `FOOTNOTE_MODEL` names one ([Choose a model provider](model-providers.md)); a model its
 provider does not list takes `--prices` (or `--judge-prices`) `<input>,<output>`. Each provider's
 key comes from the environment, and a missing one is refused by the flag that needs it. One
-`--real --answerer loop --tries 1 --no-judge-set` run is a row of the providers page's tested
-models, for USD 0.15 to 0.5. `--record` keeps the plans
-(`tests/web/integration/ask-eval-plans.json`), or the loop's steps, each by what the model was
-sent, and the judge's verdicts the builds replay, so it takes only the default models;
+`--real --tries 1 --no-judge-set` run is a row of the providers page's tested
+models, for USD 0.15 to 0.5. `--record` keeps the loop's steps, each by what the model was sent, and the judge's verdicts the builds replay, so it takes only the default models;
 `--no-judge-set` leaves out measuring the judge
 against its labels, `--tries` and `--cases` narrow a run, and `--out` names the report file,
 which holds every open case's turns and the held-back ones only as counts. The loop's evidence for
@@ -350,9 +307,7 @@ the judge and the number grader is every value its reads returned, the chat's ea
 again included.
 
 A real run asks one chat at a time: the loop's reads for a reply are the last ones the service's
-trace heard, and today's main holds one of the service's database connections for its whole
-request while its real planner opens a second to check the spending limits, so as many live chats
-at once as the pool has connections wait on each other for good. The loop does not
+trace heard. Live chats at once never wait on each other for the service's database connections
 (`tests/web/integration/ask-loop-pool.test.ts`). A message the service
 gives no reply to is sent once more; a second miss ends that try as unanswered, which counts as
 missing what the case must say and is reported apart, never as a promise broken. The run journals
@@ -386,7 +341,7 @@ SDK's shape.
   40 by name, then how many more), a metric's group, the other metrics in it and how many items
   name it; one name alone gives what changed in its definition and when. `read_context` gives an
   item's History, newest first: the day and what changed, never who changed it. The figure of a
-  loop answer's subject is read by the page, as the router's answer reads it (FR-716).
+  loop answer's subject is read by the page (FR-716).
 - **No dead ends.** A search that finds nothing says what it searched (the names, the period and
   the kinds) out of how many published items the person may read, what is nearby and why it does
   not apply, and who owns the subject. Given `widen`, it searches once more by another name of the
@@ -397,7 +352,7 @@ SDK's shape.
 | FR-718.1 as the person, through their reads | Every tool reads the person's own services in their transaction                                | `tests/web/integration/ask-tools.test.ts`: per persona, Definitions, Context's filters, Conflicts, Inbox, Observability |
 | FR-718.2 what is hidden stays hidden        | The edition narrowed to the Context list; per-reader asked counts; no comment or draft is read | `tests/integration/audience.test.ts` (every tool, every role, the hidden item); drafts and small counts per persona     |
 | FR-718.4 read only, not an agent            | No write, no delivery record, no demand                                                        | `ask-tools.test.ts`: every tool for every persona leaves every table as it was                                          |
-| FR-718.5 agents see no change               | The MCP tools are only called, never changed                                                   | `tests/server/ask-tools.test.ts` (the MCP tools and their schema digest); the engine digest in `ask-plan-cases.test.ts` |
+| FR-718.5 agents see no change               | The MCP tools are only called, never changed                                                   | `tests/server/ask-tools.test.ts` (the MCP tools and their schema digest)                                                |
 | FR-719.3 no dead ends                       | `searched`, `nothing`, `nearby`, `owners`, `outOf` and one `widen`                             | `ask-tools.test.ts`, "no dead ends"                                                                                     |
 | FR-719.4 a question's words kept nowhere    | The tools keep nothing and log nothing                                                         | `tests/integration/privacy.test.ts`: a marker given to every tool is in no table, and no table changes                  |
 | FR-719.5 text is data                       | An item's words come back only as its fields                                                   | `ask-tools.test.ts`, "text is data": an instruction written into an item                                                |
@@ -405,10 +360,9 @@ SDK's shape.
 
 ### Ask's loop
 
-Ask answers with one model in a tool loop on these tools in place of its router, through the same
-endpoint (`ask.lookup`, `src/server/modules/answer/loop.ts`). It is on by default, and
-`FOOTNOTE_ASK_LOOP=off` answers with the router. Its words pass the code's part of the answer check
-of FR-720.10 before they are shown (below); the judges' part waits.
+Ask answers with one model in a tool loop on these tools, through `ask.lookup`
+(`src/server/modules/answer/loop.ts`). Its words pass the code's part of the answer check of
+FR-720.10 before they are shown (below); the judges' part waits.
 
 - **One model, the whole chat.** The model of `models.assistant` gets a short prompt written once
   from the product's rules and promises, with no case or example in it, the chat so far, and the

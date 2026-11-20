@@ -23,7 +23,6 @@ export {
 } from './types.ts'
 export { startCreditsCheck, type CreditsCheck } from './credits.ts'
 export {
-  answersWithTools,
   checkedRoles,
   checkModel,
   checkWords,
@@ -57,7 +56,6 @@ export {
   type ProviderKey,
 } from './settings.ts'
 export { gradingTag, mentions, type GradingInput } from './mock.ts'
-export { fixedWordsModel, scriptedWordsModel } from './words-mock.ts'
 export {
   formatUsd,
   readSpendLimits,

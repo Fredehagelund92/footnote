@@ -1,10 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import { exampleAnswer } from '@/api/mock/data/ask'
 import { facts } from '@/api/mock/data/world'
 import { answeredOn, cardFooter, slackText, stateLineOf } from '@/lib/share'
+import type { Answer } from '@/model/ask'
 
+const answers: Record<string, Answer> = {
+  grounded: {
+    id: 'grounded',
+    question: 'Why did orders in Norway drop in August?',
+    metric: 'Orders',
+    markets: ['Norway'],
+    state: 'grounded',
+    text: "Online sales to Norway stopped on 4 August 2026 under a new customs rule, and there are no stores there [1]. Price promotions in Norway have been paused since 9 May 2026 [2]. The context doesn't say how much each of these moved orders.",
+    sources: ['itm_norway_stop', 'itm_za26xpzv'],
+    said: '',
+  },
+  missing: {
+    id: 'missing',
+    question: 'How did orders in Spain change in October 2026?',
+    metric: 'Orders',
+    markets: ['Spain'],
+    state: 'missing',
+    text: 'Nothing written covers Orders and Spain.',
+    sources: [],
+    said: '',
+  },
+}
 const of = (id: string) => {
-  const a = exampleAnswer(id)
+  const a = answers[id]!
   return { a, used: a.sources.map((s) => facts.find((f) => f.id === s)!) }
 }
 

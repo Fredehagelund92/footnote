@@ -24,7 +24,7 @@ import { conflictOf, conflictRowOf, decisionOf } from './http-conflicts'
 import { createORPCClient } from '@orpc/client'
 import type { AnyContractRouter, ContractRouterClient } from '@orpc/contract'
 import { OpenAPILink } from '@orpc/openapi-client/fetch'
-import type { Asked, LookupEvent } from '@contract/answer'
+import type { Asked, ChosenPeriodInput, LookupEvent } from '@contract/answer'
 import type { Contract } from '@contract/index'
 import type { Feed } from '@contract/inbox'
 import type { ProposalRecord } from '@contract/proposals'
@@ -38,7 +38,7 @@ import { canonicalJson } from '@domain/canonical'
 import { termWord } from '@domain/terms'
 import { parseCardKey, type CardAction } from '@domain/inbox'
 import { plainOf } from '@/components/templates/comment-box/utils'
-import { recordsAnswer, replyAnswer, reportedOn, reportOutcomeWords } from '@/model/ask'
+import { reportedOn, reportOutcomeWords } from '@/model/ask'
 import type { FactAction } from '@/lib/bulk'
 import { parseMentionId } from '@/lib/mentions'
 import { setToday } from '@/lib/today'
@@ -60,17 +60,14 @@ import {
 } from './client'
 import { answeredAs, ApiError, toApiError } from './errors'
 import {
-  answerOf,
   askedWeekOf,
   browserShelf,
   createChatShelf,
   examplesOf,
   failedAnswer,
-  lookupFields,
   loopAnswerOf,
   namesOf,
   nothingLiveAnswer,
-  type ReadScope,
   type Shelf,
 } from './http-ask'
 import { daysOfDates, figureTryOf, figureViewOf } from './http-figures'
@@ -918,17 +915,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   const chats = createChatShelf(shelf ?? browserShelf())
   /** What each question's first answer said, for its chat's line in the history search. */
   const said = new Map<string, string>()
-  /** The scope each offered question asks with, by its words, so a click gets its row's state. */
-  const offeredScopes = new Map<string, ReadScope>()
 
   const readVocabulary = () => read(() => client.vocabulary.get())
 
   /** Asked this week, or nothing while nothing is shared with agents yet. */
   async function readAsked(): Promise<Asked | null> {
     try {
-      const asked = await read(() => client.ask.asked())
-      for (const e of examplesOf(asked)) offeredScopes.set(e.question.toLowerCase(), e.scope)
-      return asked
+      return await read(() => client.ask.asked())
     } catch (error) {
       if (toApiError(error).status === 412) return null
       throw error
@@ -936,67 +929,25 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /**
-   * The engine's answer to a question: its steps run on the service, then the answer, then a real
-   * model's words a checked sentence at a time. Each is passed on to `seen` as it arrives, and
-   * `signal` stops the look-up, the model's call with it.
+   * A turn of Ask's loop: what each read does as it starts, the words so far as each sentence
+   * passes the check, then the whole turn. Each event is passed on to `seen` as it arrives, and
+   * `signal` stops the turn, the model's call with it.
    */
   async function lookUp(
-    input: { question: string; turns?: ChatTurn[] } & Partial<ReturnType<typeof lookupFields>>,
+    input: { question: string; turns?: ChatTurn[]; period?: ChosenPeriodInput },
     seen: (event: LookupEvent) => void,
     signal?: AbortSignal,
   ) {
     const events = await readPosted((o) =>
       client.ask.lookup(input, { ...o, ...(signal ? { signal } : {}) }),
     )
-    let answer: Extract<LookupEvent, { type: 'answer' }>['answer'] | undefined
-    // The words a real model wrote from the answer's items, when the service has one.
-    const written: string[] = []
-    // A question about the context's own records: its one event, and nothing looked up.
-    let records: Extract<LookupEvent, { type: 'records' }>['records'] | undefined
-    // A short question back, or a question off topic: its one event, and nothing looked up.
-    let reply: Extract<LookupEvent, { type: 'reply' }>['reply'] | undefined
-    let reading: Extract<LookupEvent, { type: 'records' }>['reading']
-    // Ask's loop, where the service runs it: its one finished turn.
     let turn: Extract<LookupEvent, { type: 'turn' }>['turn'] | undefined
-    try {
-      for await (const event of events) {
-        if (event.type === 'answer') answer = event.answer
-        else if (event.type === 'sentence') written.push(event.text)
-        else if (event.type === 'records') ({ records, reading } = event)
-        else if (event.type === 'reply') reply = event.reply
-        else if (event.type === 'turn') turn = event.turn
-        seen(event)
-      }
-    } catch (error) {
-      // Once the engine's answer is in, a stream that breaks ends the words there; the answer stays.
-      if (!answer || signal?.aborted) throw error
+    for await (const event of events) {
+      if (event.type === 'turn') turn = event.turn
+      seen(event)
     }
-    if (turn) return { turn }
-    if (records) return { records, reading }
-    if (reply) return { reply }
-    if (!answer) throw new ApiError('unanswered', 'The answer stopped before it was finished.')
-    return { answer, written: written.join(' ') || undefined }
-  }
-
-  /** The look-up's fields from the @ chips: the metrics and the markets they name. */
-  function chipFields(
-    scope: { id: string }[] | undefined,
-    names: ReturnType<typeof namesOf>,
-  ): Partial<ReturnType<typeof lookupFields>> {
-    const picked = (kind: string) =>
-      (scope ?? []).flatMap((m) =>
-        m.id.startsWith(`${kind}:`) ? [m.id.slice(kind.length + 1)] : [],
-      )
-    const metrics = [...picked('metric'), ...picked('term')].flatMap(
-      (n) => names.metricKey(n) ?? [],
-    )
-    const markets = picked('market').flatMap((n) => names.marketKey(n) ?? [])
-    return {
-      ...(metrics.length ? { metrics } : {}),
-      ...(markets.length
-        ? { dimension_filters: [{ dimension: 'dim:market', values: markets }] }
-        : {}),
-    }
+    if (!turn) throw new ApiError('unanswered', 'The answer stopped before it was finished.')
+    return turn
   }
 
   const ask: FootnoteApi['ask'] = async (
@@ -1004,55 +955,37 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     live,
   ) => {
     let words = question
-    let offered = offeredScopes.get(question.toLowerCase())
     if (example) {
       const found = examplesOf(await readAsked()).find((e) => e.id === example)
       if (!found) throw new ApiError('not-found', 'This question is not offered any more.')
       words = found.question
-      offered = found.scope
     }
     const names = namesOf(await readVocabulary())
-    const fields = scope?.length ? chipFields(scope, names) : offered ? lookupFields(offered) : {}
     const extra = {
       ...(parts?.some((p) => typeof p !== 'string') ? { parts } : {}),
       ...(scope?.length ? { scope } : {}),
       ...(period ? { period } : {}),
     }
-    // What the chat is told as the look-up runs: what it found, the engine's answer, each sentence.
+    // What the chat is told as the turn runs: what each read does, then the words so far.
     const seen = (event: LookupEvent) => {
       const tell = live?.onEvent
       if (!tell) return
-      if (event.type === 'plan') tell({ type: 'plan', working: event.plan.working })
-      // Ask's loop says what each read is doing as it starts, and once done what it found.
-      else if (event.type === 'progress') {
+      if (event.type === 'progress') {
         tell({ type: 'plan', working: event.working })
         if (event.steps)
           tell({ type: 'reads', reads: { steps: event.steps, nouns: event.nouns ?? [] } })
-      } else if (event.type === 'step' && event.step.step === 'looked_up')
-        tell({ type: 'found', items: event.step.items.length })
-      else if (event.type === 'answer')
-        tell({ type: 'answer', answer: answerOf(event.answer, words, names, extra) })
-      else if (event.type === 'sentence') tell({ type: 'sentence', text: event.text })
-      else if (event.type === 'words') tell({ type: 'words', words: event.turn })
+      } else if (event.type === 'words') tell({ type: 'words', words: event.turn })
     }
     try {
       // A follow-up carries the chat's last turns; a question scoped with @ is read as scoped.
       const carry = turns?.length && !example && !scope?.length ? { turns } : {}
-      const looked = await lookUp(
-        { question: words, ...fields, ...carry, ...(period ? { period } : {}) },
+      const turn = await lookUp(
+        { question: words, ...carry, ...(period ? { period } : {}) },
         seen,
         live?.signal,
       )
-      if (looked.turn) {
-        said.set(words.toLowerCase(), looked.turn.text.replace(/\[\d+\]/g, ''))
-        return { ...loopAnswerOf(looked.turn, words, names), ...extra }
-      }
-      if (looked.records)
-        return { ...recordsAnswer(words, looked.records, looked.reading), ...extra }
-      if (looked.reply) return { ...replyAnswer(words, looked.reply), ...extra }
-      const answer = answerOf(looked.answer, words, names, extra, looked.written)
-      said.set(words.toLowerCase(), answer.text.replace(/\[\d+\]/g, ''))
-      return answer
+      said.set(words.toLowerCase(), turn.text.replace(/\[\d+\]/g, ''))
+      return { ...loopAnswerOf(turn, words, names), ...extra }
     } catch (error) {
       // Stopped: the chat keeps what it showed.
       if (live?.signal?.aborted) throw error
@@ -2270,8 +2203,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const [asked, vocabulary] = await Promise.all([readAsked(), readVocabulary()])
       return askedWeekOf(asked, namesOf(vocabulary))
     },
-    getAskExamples: async () =>
-      examplesOf(await readAsked()).map(({ scope: _scope, ...example }) => example),
+    getAskExamples: async () => examplesOf(await readAsked()),
     listChats: async () => chats.list((await signedIn()).id),
     saveChat: async ({ id, question, answers }) =>
       answers

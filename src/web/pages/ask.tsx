@@ -119,13 +119,8 @@ const askAgainInput = (turns: readonly Turn[], i: number): AskInput => {
     scope,
     ...(answer.period ? { period: answer.period } : {}),
     ...(chat.length ? { turns: chat } : {}),
-    ...(answer.state === 'failed' ? { reread: { dates: answer.dates } } : {}),
   }
 }
-
-/** The turn a message that asks again repeats: the last that asked something. */
-const lastAsked = (turns: readonly Turn[]) =>
-  turns.findLastIndex((turn) => turn.answer.reply !== 'nothing_asked')
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -266,34 +261,26 @@ export function AskChat({
 
   /**
    * The answer to one turn, its events going to the turn as they come, and how the turn ended: the
-   * answer once it is in, or none when it was stopped. `onAnswered` is told when the engine's answer
-   * is in, if that answer joins the history.
+   * answer once it is in, or none when it was stopped.
    */
   const answerTurn = async (
     id: string,
     input: AskInput,
-    onAnswered?: () => void,
   ): Promise<{ answer: Answer | null; outcome: Outcome }> => {
     setCurrent(id)
     const controller = new AbortController()
     live.current = controller
-    let answered = false
     try {
       const answer = await api.ask(input, {
         signal: controller.signal,
-        onEvent: (event) => {
-          if (event.type === 'answer') {
-            answered = true
-            if (effectsOf(outcomeOfAnswer(event.answer)).joins) onAnswered?.()
-          }
-          update(id, event)
-        },
+        onEvent: (event) => update(id, event),
       })
       update(id, { type: 'done', answer })
       reveal(id)
       return { answer, outcome: outcomeOfAnswer(answer) }
     } catch (error) {
-      if (controller.signal.aborted) return { answer: null, outcome: { kind: 'stopped', answered } }
+      if (controller.signal.aborted)
+        return { answer: null, outcome: { kind: 'stopped', answered: false } }
       throw error
     } finally {
       if (live.current === controller) live.current = null
@@ -363,7 +350,7 @@ export function AskChat({
       // is already a chat too: once answered it joins that chat, so the history never has it twice.
       if (index === 0 && onExample?.(q)) return
       // "Try again" asks the last question again, as Ask again does, with no model in between.
-      const repeats = asksAgain(q) ? lastAsked(turns) : -1
+      const repeats = asksAgain(q) ? turns.length - 1 : -1
       const again = repeats < 0 ? null : askAgainInput(turns, repeats)
       const repeated = repeats < 0 ? null : askedWords(turns[repeats]!.answer)
       // A follow-up carries the chat's last answered turns; they stay in the browser (FR-717).
@@ -397,7 +384,6 @@ export function AskChat({
             ...(chat.length ? { turns: chat } : {}),
             ...(period ? { period } : {}),
           },
-          join,
         )
         // Not checked stays in the chat, with Ask again, and leaves the chat as it was.
         if (!answer || !effectsOf(outcome).joins) return
@@ -435,9 +421,7 @@ export function AskChat({
       /** The answer it had comes back. */
       const restore = () => setTurns((ts) => ts.map((t, j) => (j === i ? before : t)))
       try {
-        const { answer, outcome } = await answerTurn(id, askAgainInput(turns, i), () =>
-          onAnswered?.(words.question),
-        )
+        const { answer, outcome } = await answerTurn(id, askAgainInput(turns, i))
         if (effectsOf(outcome).restores) {
           restore()
           if (answer) toast("Couldn't ask that again", { description: answer.note })

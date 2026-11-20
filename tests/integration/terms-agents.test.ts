@@ -383,26 +383,6 @@ it('asks which one for a word a sync gave a second meaning, and serves no synony
     status: 'need_more_detail',
     say: 'Nothing was looked up yet. Peak season can mean the term Peak season or Orders. Which do you mean?',
   })
-  // Ask says the same, keeps the turn's reading, and the answer takes the period with it.
-  const lookup = async (payload: object) => {
-    const events = (await call('POST', '/ask/lookup', 'owner', payload)).body
-      .split('\n')
-      .flatMap((line) => (line.startsWith('data:') ? [JSON.parse(line.slice(5)) as object] : []))
-    return events as {
-      type: string
-      reply?: { text: string; held?: object }
-      answer?: { scope: { metrics: string[]; window: object } }
-    }[]
-  }
-  const asked = 'peak season in September 2026'
-  const reply = (await lookup({ question: asked })).find((e) => e.type === 'reply')!.reply!
-  expect(reply.text).toBe('Peak season can mean the term Peak season or Orders. Which do you mean?')
-  const turn = { question: asked, sources: [], asked: reply.text, held: reply.held }
-  const answered = await lookup({ question: 'the second one', turns: [turn] })
-  expect(answered.find((e) => e.type === 'answer')!.answer!.scope).toMatchObject({
-    metrics: ['metric:orders'],
-    window: { start: '2026-09-01', end: '2026-10-01' },
-  })
   for (const question of [questions.peak, questions.busy]) {
     const { reply } = await tool('get_context', { question })
     expect(reply, question).not.toHaveProperty('terms')
