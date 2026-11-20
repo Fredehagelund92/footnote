@@ -46,7 +46,7 @@
   --sl-text-h4: 1.0625rem;
   --sl-text-h5: 1rem;
 
-  --sl-nav-height: 62px;
+  --sl-nav-height: 65px;
   --sl-sidebar-width: 17rem;
   --sl-content-width: 45rem;
 }
@@ -54,11 +54,31 @@
 /* Starlight sets these again from 50em up, inside its own layer. */
 @media (min-width: 50em) {
   :root {
-    --sl-nav-height: 62px;
+    --sl-nav-height: 65px;
     --sl-text-h1: clamp(1.8125rem, 3.2vw, 2.5rem);
     --sl-text-h2: 1.625rem;
     --sl-text-h3: 1.1875rem;
     --sl-text-h4: 1.0625rem;
+  }
+}
+
+/* The header is the landing page's: 64 px and its rule, 56 px and its rule on a phone, with the
+   logo a size smaller on a narrow phone (shared/chrome.css), so the logo stays put between them. */
+@media (max-width: 560px) {
+  :root {
+    --sl-nav-height: 57px;
+  }
+}
+
+@media (max-width: 479px) {
+  .footnote-title .brand {
+    gap: 8px;
+    font-size: 21px;
+  }
+
+  .footnote-title .brand svg {
+    width: 22px;
+    height: 22px;
   }
 }
 
