@@ -64,6 +64,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { scopeText } from '@/model/ask'
 import type { InboxCard, Waiting } from '@/model/inbox'
 import type { DomainId, Fact } from '@/model/items'
+import { questionDates } from '@/model/validity'
+import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { openDock, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
@@ -1058,7 +1060,8 @@ function Setup() {
   )
   const [reviewing, setReviewing] = React.useState(false)
   const first = setupSteps.find((s) => !setupDone[s.id])
-  // A question about the first item, from what it applies to or, if that is empty, its own words.
+  // A question about the first item, from what it applies to or, if that is empty, its own words,
+  // on its own dates when they miss today: most first items are about a day that has passed.
   // A new install has only what this visit added, newest first.
   const item = useFacts()[0]
   const words = useQuery({
@@ -1068,8 +1071,9 @@ function Setup() {
   const read =
     item && (item.where.length ? { metric: item.where[0], markets: item.where.slice(1) } : words)
   const scope = read && scopeText({ metric: read.metric ?? '', markets: read.markets })
+  const dates = item ? questionDates(item.valid, today()) : ''
   const firstQuestion = scope
-    ? `What should I know about ${scope}?`
+    ? `What should I know about ${scope}${dates ? ` ${dates}` : ''}?`
     : 'What should I know about our numbers?'
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
   const go = (id: string) => {

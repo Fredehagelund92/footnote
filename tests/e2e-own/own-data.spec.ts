@@ -6,8 +6,8 @@ import { objectHost, type ObjectHost } from '../server/connectors/object-server.
 /*
   What a stranger does with their own semantic manifest (playwright.own-data.config.ts): on an empty
   database, with no demo, connect an invented dbt project through the app, accept the names its
-  read made, write a context item that applies to one of its metrics, publish it, and get Checked
-  from get_context and from Ask. Every step is the real service on real PostgreSQL; nothing here
+  read made, write a context item about a past day for one of its metrics, publish it, and get
+  Checked from get_context and from the question the setup writes in Ask. Every step is the real service on real PostgreSQL; nothing here
   starts from seeded names, which is how this path broke once with every test green.
 */
 
@@ -205,12 +205,10 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Draft from text' })).toBeVisible()
   expect(await demoWords(page), 'the editor and Draft from text').toEqual([])
   await page.keyboard.press('Escape')
-  await page
-    .getByRole('textbox', { name: 'Title' })
-    .fill('Net revenue left out returns before March')
+  await page.getByRole('textbox', { name: 'Title' }).fill('Checkout was down for a day')
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText(
-    'Net revenue left out returns until 1 March 2026, so earlier months read high.',
+    'Nobody could pay at the checkout for most of the day, so Net revenue reads low for it.',
   )
   await page.getByRole('button', { name: /^Applies to/ }).click()
   await page.getByRole('combobox', { name: 'Search Applies to' }).fill('Net revenue')
@@ -220,35 +218,48 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
     .first()
     .click()
   await page.keyboard.press('Escape')
-  // An event is dated by the writer: no day is picked for them. This one holds at any date.
-  await page.getByRole('button', { name: /^When/ }).click()
-  await page.getByRole('radio', { name: 'Always' }).click()
+  // An event is dated by the writer: no day is picked for them. Most first items are about a day
+  // that has passed, so this one is a day of last month.
+  const when = page.getByRole('button', { name: /^When/ })
+  await when.click()
+  await page.getByRole('radio', { name: 'A single day' }).click()
+  await page.getByRole('button', { name: 'Go to the Previous Month' }).click()
+  await page
+    .getByRole('grid')
+    .getByRole('button', { name: /^[A-Z][a-z]+day, 9 / })
+    .click()
   await page.getByRole('button', { name: 'Done' }).click()
+  const day = /\b9 [A-Z][a-z]{2,3} 20\d\d\b/.exec((await when.innerText()) ?? '')?.[0]
+  expect(day, 'the day the When says').toBeTruthy()
   await page.getByRole('button', { name: /Add a source/ }).click()
-  await page.locator('#fact-source').fill('https://finance.example/returns-change')
-  await page.locator('#fact-quote').fill('Returns are part of net revenue from 1 March 2026 on.')
+  await page.locator('#fact-source').fill('https://finance.example/checkout-outage')
+  await page.locator('#fact-quote').fill('The checkout took no payments for most of the day.')
   await page.keyboard.press('Escape')
   await shot('14-editor')
   await button(page, 'Publish').click()
   await expect(page.getByText(/^Published just now by you/)).toBeVisible()
 
-  // An agent asks over MCP, as a key that names nobody.
+  // The setup's next step asks about it, with the question already written: about the item's own
+  // day, which has passed, so the answer is the item, not Not found for today.
+  await page.goto('/inbox')
+  await button(page, 'Ask').click()
+  await expect(page).toHaveURL(/\/ask\?/)
+  const box = page.getByRole('textbox', { name: 'Ask a question' })
+  const question = `What should I know about Net revenue on ${day}?`
+  await expect(box).toHaveText(question)
+
+  // An agent asks the same over MCP, as a key that names nobody.
   const { key } = await post(page, '/access-keys', { name: 'Own data journey' })
-  const reply = await getContext(page, key as string, {
-    question: 'What should I know about Net revenue today?',
-  })
+  const reply = await getContext(page, key as string, { question })
   expect(reply).toMatchObject({ status: 'matched' })
   expect(reply.say).toMatch(/^Checked\./)
-  expect(JSON.stringify(reply)).toContain('Net revenue left out returns before March')
+  expect(JSON.stringify(reply)).toContain('Checkout was down for a day')
 
-  // And a person asks in Ask.
-  await page.goto('/ask')
-  const box = page.getByRole('textbox', { name: 'Ask a question' })
-  await box.click()
-  await page.keyboard.insertText('What should I know about Net revenue today?')
+  // And the owner presses Enter.
   await box.press('Enter')
   await expect(page.getByRole('log').getByText('Checked', { exact: true })).toBeVisible({
     timeout: 30_000,
   })
+  await expect(page.getByRole('log')).toContainText('Checkout was down for a day')
   await shot('15-ask')
 })
