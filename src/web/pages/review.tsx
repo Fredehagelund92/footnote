@@ -139,7 +139,7 @@ export function Summary({
           </span>
         </p>
       )}
-      {/* The values that moved are not repeated here: the change blocks below mark each one. */}
+      {/* The values that moved are not repeated here: the comparison below marks each one. */}
       {r.note && (
         <blockquote className="border-l-2 pl-3 text-sm text-muted-foreground italic">
           “{r.note}”

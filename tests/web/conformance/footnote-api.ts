@@ -761,6 +761,12 @@ export function describeFootnoteApi(
       const self = (await live.compareVersions({ id, from: latest, to: latest }))!
       expect(self.fields.before).toEqual(self.fields.after)
       expect(self.source.before).toBe(self.source.after)
+      const back = (await live.compareVersions({ id, from: latest, to: earliest }))!
+      expect(back.fields.before).toEqual(pair.fields.after)
+      expect(back.fields.after).toEqual(pair.fields.before)
+      expect(back.source.before).toBe(pair.source.after)
+      expect(back.source.after).toBe(pair.source.before)
+      expect(await live.compareVersions({ id, from: latest + 100, to: latest })).toBeNull()
       expect(await live.compareVersions({ id: 'itm_nothere001', from: 1, to: 1 })).toBeNull()
     })
 

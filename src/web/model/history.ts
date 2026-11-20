@@ -41,7 +41,7 @@ export type Version = {
   policy?: { undo: string | null; undone: boolean }
   /**
    * A version agents got, with words and fields of its own, which History compares with any other
-   * such version. A check that changed nothing, a return, an archive or a change of owners has none.
+   * such version. A return, an archive or a change of owners has none.
    */
   comparable?: true
 }
