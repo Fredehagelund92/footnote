@@ -28,7 +28,7 @@ The two parts are two Astro builds of this one package: `astro.landing.config.ts
 
 `landing/pages/index.astro` is the landing page as it was approved, "Two readers": paper for people, a terminal for agents, and the note on the seam between them. The first screen asks one question of both, and its three buttons, Checked, Conflict and Not found, show what each reads when something is written, when two items disagree, and when nothing is. The agent's side is `get_context`'s reply on the demo, word for word, and the person's side says the same. A timeline on the seam follows a context item from draft to checked to due for a check, and the rest of the page rests on a white sheet, with everything for agents on one dark band. `landing/styles/landing.css` holds its look, and `landing/hero.ts` its first screen: the opening, which plays once, the three buttons and the dotted leaders from each mark to its note.
 
-A link to a page of the docs names it without a version, `/docs/get-started/`, so it opens the newest release's page (`lib/site.ts`). A docs page that does not exist stops the build.
+A link to a page of the docs names it without a version, `/docs/try-the-demo/`, so it opens the newest release's page (`lib/site.ts`). A docs page that does not exist stops the build.
 
 The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks. The site's fonts carry each font's whole range of weights (`shared/fonts.css`), so the headline's 770 is drawn as designed.
 
@@ -36,7 +36,7 @@ The faint grey is one shade darker than in the approved file, so that small text
 
 ### The release switch
 
-Until the first release the install section says what is true of a checkout: `docker compose up` builds Footnote on the reader's computer and can take ten minutes, and the page says it is not released yet. `const released = false` in the page's frontmatter is the switch: `landing/release.ts` holds both sets of words, and the page renders one, so a build before the release carries none of the release's words. At the release it says the 0.1.0 words: the first start pulls the published images. Flip it only once a stranger can pull both images named in `compose.images.yaml` without signing in.
+Until the first release the install section says what is true of a checkout: `docker compose up` builds Footnote on the reader's computer and can take ten minutes, and the page says it is not released yet. `released` in `landing/release.ts` is the switch: the file holds both sets of words, and the page renders one, so a build before the release carries none of the release's words. The footer's Releases link follows it too, so until the first release no page sends a reader to a release that is not there. At the release it says the 0.1.0 words: the first start pulls the published images. Flip it only once a stranger can pull both images named in `compose.images.yaml` without signing in.
 
 ### The pictures
 
@@ -44,7 +44,7 @@ The pictures of the app are real captures of the demo, in `landing/captures`, li
 
 ## The docs
 
-The site publishes only pages written for the people who read it. `publishedPages` in `lib/pages.ts` is the list: the 13 help pages and What's new, the MCP and API reference with its pages, the pages for running the service, and the connector pages. Every help page has to be on it. Each page's front matter says its group and order, and the sidebar follows them.
+The site publishes only pages written for the people who read it. `publishedPages` in `lib/pages.ts` is the list: the 14 help pages and What's new, the MCP and API reference with its pages, the pages for running the service, and the connector pages. Every help page has to be on it. Each page's front matter says its group and order, and the sidebar follows them.
 
 The rest of `docs/` stays in the repository, `docs/contributing` among it, which holds what the published pages leave out: requirement ids, design reasons and source paths. A page that is not on the list is out of the sidebar, the search, `llms.txt`, `llms-full.txt` and the sitemap, and a published page that links to it opens it on GitHub. A group with no published page is left out of the sidebar, the docs' home and `llms.txt`.
 
@@ -70,11 +70,15 @@ Pages keep the relative links that work on GitHub, and the build resolves them (
 - a link to a screen of the app keeps its words without a link, because the site knows no instance of the app. The `open:` button of a help page is left out for the same reason;
 - a link to a file that does not exist stops the build.
 
-After the build, `scripts/check-site.ts` reads the built pages, the landing page among them. It fails on a link or a heading that goes nowhere, on anything loaded from another host, on a `<title>` tag that reached a page's body, on a missing landing or 404 page, and on a page missing from the docs or from `llms.txt`.
+After the build, `scripts/check-site.ts` reads the built pages, the landing page among them. It fails on a link or a heading that goes nowhere, on anything loaded from another host, on a `<title>` tag that reached a page's body, on a missing landing or 404 page, on a page missing from the docs or from `llms.txt`, and on a page that is an island: its own words, not the sidebar or the footer, link to no other page of the docs, or no other page's words link to it.
+
+A page that moved keeps its old address: `movedPages` in `lib/pages.ts` forwards it to where the page is now. Get started's address opens Try the demo, the first page a newcomer reads.
 
 ### For agents
 
 Each version of the docs has its own `llms.txt` and `llms-full.txt` (`lib/llms.ts`), written by the functions that write the app's (`src/domain/docs.ts`), over every page of the docs. `/docs/llms.txt` is the newest release's.
+
+Beside each page's title, **Copy as Markdown** copies the page as `llms-full.txt` gives it, for a reader who hands it to an agent. The Markdown is in the page, so copying asks no host for anything. Under each page, Edit page opens its Markdown on GitHub, on `main`, whichever version is read.
 
 ## The design
 
@@ -98,6 +102,7 @@ All are read when the site is built:
 | `SITE_URL`              | Where the landing page is served, such as `https://footnote.example`. Every address of the site follows it: the path under the host, canonical addresses, the sitemap and whole addresses in `llms.txt`. Empty: the root of any host, with no canonical addresses. On Vercel it is the project's production address, or a preview's own, unless the project sets it |
 | `DOCS_VERSION`          | The docs' folder in this build: `MAJOR.MINOR`, or `next`, which search engines are told to skip. Empty: the docs alone at `/docs/`                                                                                                                                                                                                                                  |
 | `DOCS_REF`              | The Git reference repository links open at, `main` by default                                                                                                                                                                                                                                                                                                       |
+| `DOCS_RELEASES`         | The folders of the releases whose docs the site carries beside this build, such as `0.1,0.2`. The docs of `next` say on every page that they follow main, ahead of any release, only once there is one. Empty: no banner                                                                                                                                            |
 | `FOOTNOTE_PRODUCT_NAME` | The product name in the docs' titles. A renamed build shows it in place of the logo                                                                                                                                                                                                                                                                                 |
 
 ## Publishing on Vercel
@@ -106,7 +111,7 @@ The site is served by Vercel, from this repository, at the project's `vercel.app
 
 Every deployment builds the whole site:
 
-1. this commit: the landing page, and its docs as `/docs/next/`, which search engines are told to skip;
+1. this commit: the landing page, and its docs as `/docs/next/`, which search engines are told to skip. Its pages say they follow main only once a release has docs of its own (`DOCS_RELEASES`);
 2. the docs of each release, the newest patch of each minor, as `/docs/MAJOR.MINOR/`. Each is built again from its own tag, with that tag's pages, code and lockfile, so a release's docs stay as they were at its tag, while every folder takes the deployment's address. A tag from before the site has no `site/` folder and adds nothing;
 3. `scripts/collect.ts` puts them together: `/docs/` opens the newest release, and so does every page named without a version. `/docs/versions.json` lists the folders for the switcher in the header, and `/docs/releases.json` the release tags the build looked at.
 

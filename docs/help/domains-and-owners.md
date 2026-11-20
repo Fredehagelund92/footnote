@@ -3,7 +3,7 @@ title: Domains and owners
 line: Who publishes what, how to add a domain, the sandbox, and inviting people.
 group: Set up
 order: 1
-minutes: 4
+minutes: 2
 reviewed: 2026-11-03
 ---
 

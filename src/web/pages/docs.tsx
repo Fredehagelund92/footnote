@@ -47,7 +47,7 @@ import {
 } from '@/lib/docs'
 import { NotFound } from '@/components/footnote/not-found'
 import { wordOf } from '@/lib/docs-includes'
-import type { DocBlock, DocInline, DocTarget } from '@domain/docs'
+import { movedTo, type DocBlock, type DocInline, type DocTarget } from '@domain/docs'
 
 // The documentation site. Its pages are the Markdown files in docs/help, read at build time
 // (lib/docs.ts), so the app's Docs area and the static docs site (npm run docs:build) show the same
@@ -658,7 +658,7 @@ function Landing({ onSearch }: { onSearch: () => void }) {
         <section className="bg-background px-5 py-5 md:px-6 lg:px-8">
           <h2 className="mb-2 text-sm font-medium">In the app</h2>
           <p className="text-sm leading-6 text-pretty text-muted-foreground">
-            Help, from the sidebar, has the product's own words, the answer labels and the keyboard
+            Help, from the sidebar, has the product's own words, the answer lines and the keyboard
             shortcuts, and works without leaving your page.
           </p>
           <a
@@ -752,7 +752,7 @@ function SearchDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Search the docs"
-      description="Search guides, answer labels and words"
+      description="Search guides, answer lines and words"
     >
       <Command shouldFilter={false}>
         <CommandInput placeholder="Search the docs" value={value} onValueChange={setValue} />
@@ -779,11 +779,7 @@ function SearchDialog({
           {words.length > 0 && (
             <CommandGroup className="border-t" heading="Words">
               {words.map(([w]) => (
-                <CommandItem
-                  key={w}
-                  value={`${w} (word)`}
-                  onSelect={to(guideHref('answer-lines') + '#words')}
-                >
+                <CommandItem key={w} value={`${w} (word)`} onSelect={to(guideHref('words'))}>
                   <TextQuoteIcon />
                   <span className="min-w-0 flex-1 truncate">{w}</span>
                   <span className="text-xs text-muted-foreground max-sm:hidden">Word</span>
@@ -815,7 +811,13 @@ function SearchDialog({
 const noChange = () => () => undefined
 
 /** The documentation, at the page `slug` names: the landing page without one. */
-export function DocsSite({ slug, query, go }: DocsPlace) {
+export function DocsSite({ slug: opened, query, go }: DocsPlace) {
+  // A page that moved opens where it is now, and its old address gives way to the new one.
+  const moved = movedTo(opened)
+  const slug = moved ?? opened
+  React.useEffect(() => {
+    if (moved) window.location.replace(`${docHref(moved)}${window.location.hash}`)
+  }, [moved])
   // Help's "Search the documentation" arrives with its term: the search opens with it, once the
   // page is in the browser, so the static site's drawn page and the browser's agree. After that it
   // is open while the person keeps it open.

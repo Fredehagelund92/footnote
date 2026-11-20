@@ -10,6 +10,7 @@ import {
   instructionsFor,
   toolWords,
   type AgentToolName,
+  type PublishPermission,
 } from '../../domain/mcp-text.ts'
 import { agentTreatmentSentence } from '../../domain/proposal-attributes.ts'
 import {
@@ -55,7 +56,8 @@ export const serverInstructions = (
   dataTools: readonly string[],
   about = '',
   calendar: Calendar = UTC_CALENDAR,
-): string => instructionsFor(productName, dataTools, about, calendar)
+  permissions: readonly PublishPermission[] = [],
+): string => instructionsFor(productName, dataTools, about, calendar, permissions)
 /** A tool's description for the model: the line people read first, then what the model needs. */
 const describe = (tool: AgentToolName, text: string, first = prefix) =>
   `${toolWords[tool].line} ${first}${text}`

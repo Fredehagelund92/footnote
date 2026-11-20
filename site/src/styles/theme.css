@@ -593,6 +593,106 @@ h1#_top {
   padding-inline: 0;
 }
 
+/* The home of the docs: the way in for a newcomer, then a door for each kind of reader. */
+.footnote-start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.footnote-start span {
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.sl-markdown-content .footnote-start .btn-ink,
+.sl-markdown-content .footnote-start .btn-ink:hover {
+  color: var(--sheet);
+  text-decoration: none;
+}
+
+.footnote-doors {
+  display: grid;
+  gap: 12px;
+  margin-top: 1.75rem;
+}
+
+.sl-markdown-content .footnote-doors a {
+  display: grid;
+  gap: 0.25rem;
+  align-content: start;
+  margin: 0;
+  border: 1px solid var(--rule-2);
+  border-radius: 12px;
+  background: var(--sheet);
+  padding: 0.875rem 1rem 1rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.sl-markdown-content .footnote-doors a:hover {
+  border-color: var(--ink-3);
+}
+
+.footnote-doors strong {
+  color: var(--mark);
+  font-weight: 650;
+}
+
+.footnote-doors span {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+@media (min-width: 40em) {
+  .footnote-doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The title of a page, and beside it the button that copies the page as Markdown. */
+.footnote-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.footnote-title h1#_top {
+  flex: 1 1 20rem;
+}
+
+.footnote-copy {
+  position: relative;
+  margin-top: 1.125rem;
+}
+
+/* Copied, or why not, under the button, where it moves nothing. */
+.footnote-copy [role='status'] {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  color: var(--ink-3);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 49.99em) {
+  .footnote-copy {
+    margin-top: 0;
+  }
+
+  .footnote-copy [role='status'] {
+    right: auto;
+    left: 0;
+  }
+}
+
 /* The home of the docs: each group's pages with their one line. */
 .footnote-group {
   margin-top: 2.5rem;

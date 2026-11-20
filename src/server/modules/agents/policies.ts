@@ -7,6 +7,7 @@ import type {
 } from '../../../contract/connections.ts'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import type { PolicySkip } from '../../../domain/agent-policies.ts'
+import type { PublishPermission } from '../../../domain/mcp-text.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { plainReason, recordAudit } from '../admin/index.ts'
@@ -81,6 +82,21 @@ async function openPolicies(
 /** The open policies of these agents, for their rows in Agents and access. */
 export const policiesOfAgents = (tx: Queryable, agentIds: readonly string[]) =>
   agentIds.length ? openPolicies(tx, { agentIds }) : Promise.resolve([])
+
+/**
+ * Where this agent may publish without review now: its open policies that are not paused, by
+ * domain, for the line the MCP instructions give it at connect. A policy set or ended later in the
+ * session shows in the reply to its next suggestion.
+ */
+export async function publishingPermissions(
+  tx: Queryable,
+  agentId: string,
+): Promise<PublishPermission[]> {
+  const policies = await openPolicies(tx, { agentIds: [agentId] })
+  return policies
+    .filter((policy) => policy.pause === null)
+    .map((policy) => ({ domain: policy.areaName, setBy: policy.setBy.name, perDay: policy.perDay }))
+}
 
 async function switchOn(tx: Queryable) {
   const [row] = await tx.query<{ on: boolean }>('select cl_auto_publish_on() as on')
@@ -393,7 +409,7 @@ export async function publishUnderPolicy(
       {
         id: proposalId,
         revision: c.revision,
-        reason: `Published under ${policy.setByName}'s policy for ${c.agentName ?? 'the agent'}, without a review round.`,
+        reason: `Published with ${policy.setByName}'s permission for ${c.agentName ?? 'the agent'} to publish without review in ${policy.areaName}.`,
       },
       {
         policy: {

@@ -12,11 +12,8 @@ import { fileURLToPath } from 'node:url'
   node: no install.
 */
 
-/** The suites that hold a held-back count, one an answerer. */
-export const heldCountFiles = [
-  'tests/web/integration/ask-eval-loop.test.ts',
-  'tests/web/integration/ask-eval.test.ts',
-]
+/** The suites that hold a held-back count: Ask's loop's. */
+export const heldCountFiles = ['tests/web/integration/ask-eval-loop.test.ts']
 
 /** The held-back count a suite's text holds, or null where it holds none. */
 export function heldCountIn(text: string): number | null {

@@ -9,7 +9,8 @@ import { docsPath, readSettings, type Settings } from '../lib/settings.ts'
   built: every link and every heading a link names goes somewhere, every file a page loads is in
   the build and none comes from another host, the page body holds no tag that came through as raw
   HTML, the landing page and the 404 page are there, and every page of the docs is there and in
-  llms.txt. On their Markdown: every published page is written for its readers
+  llms.txt, and is no island: its words link to another page, and another page's words link to it.
+  On their Markdown: every published page is written for its readers
   (lib/reader-ready.ts), and no help page was left off the list.
 */
 
@@ -109,12 +110,49 @@ export function checkSite(
   return problems
 }
 
+/**
+ * Every page of the docs that is an island: its own words, not the sidebar or the footer, link to
+ * no other page, or no other page's words link to it. A reader who lands on it from search then
+ * has nowhere to go but the sidebar.
+ */
+export function checkIslands(
+  dist: string,
+  settings: Pick<Settings, 'root' | 'version'>,
+  pages: readonly SitePage[],
+): string[] {
+  const docs = docsPath(settings)
+  const slugs = new Set(pages.map((page) => page.slug))
+  const into = new Map(pages.map((page) => [page.slug, 0]))
+  const out = new Map(pages.map((page) => [page.slug, 0]))
+  for (const { slug } of pages) {
+    const file = fileOf(dist, `${docs.slice(settings.root.length)}/${slug}`)
+    if (!file) continue
+    const html = readFileSync(file, 'utf8')
+    const start = html.indexOf('sl-markdown-content')
+    if (start === -1) continue
+    const end = html.indexOf('<footer', start)
+    const words = html.slice(start, end === -1 ? undefined : end)
+    for (const [, href] of words.matchAll(/<a\b[^>]*?\shref="([^"#]*)/g)) {
+      if (!href!.startsWith(`${docs}/`)) continue
+      const target = href!.slice(docs.length + 1).replace(/\/$/, '')
+      if (target === slug || !slugs.has(target)) continue
+      out.set(slug, out.get(slug)! + 1)
+      into.set(target, into.get(target)! + 1)
+    }
+  }
+  return pages.flatMap(({ slug, title }) => [
+    ...(out.get(slug) ? [] : [`${slug}: ${title} links to no other page of the docs`]),
+    ...(into.get(slug) ? [] : [`${slug}: no other page of the docs links to ${title}`]),
+  ])
+}
+
 if (import.meta.main) {
   const pages = sitePages()
   const problems = [
     ...checkPages(pages),
     ...unlistedHelpPages().map((page) => `${page}: add it to publishedPages in lib/pages.ts`),
     ...checkSite('dist', readSettings(process.env), pages),
+    ...checkIslands('dist', readSettings(process.env), pages),
   ]
   for (const problem of problems) console.error(problem)
   if (problems.length) {

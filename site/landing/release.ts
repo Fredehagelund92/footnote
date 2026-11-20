@@ -1,12 +1,19 @@
 /*
   The words on the landing page that change with the first release (site/README.md, "The release
-  switch"). The page renders one set, picked by the `released` constant in its frontmatter, so a
+  switch"). The page renders one set, picked by the `released` constant below, so a
   build before the release carries none of the release's words, even hidden. Until then the page
   says what is true of a checkout: `docker compose up` builds Footnote on the reader's computer, as
   the README's Try it does. At the release it says the 0.1.0 words: the first start pulls the
   published images. Before flipping the switch, check that a stranger can pull both images named in
   compose.images.yaml without signing in.
 */
+
+/**
+ * The release switch: false until the first release's images can be pulled. It is the one line to
+ * change at the release. The landing page's words follow it, and so does the footer's Releases
+ * link, which shows only once there is a release to open.
+ */
+export const released = false
 
 export type ReleaseWords = {
   /** Under the first screen's buttons. */
@@ -38,7 +45,7 @@ const unreleased: ReleaseWords = {
   endMeta: 'Open source under Apache-2.0. Not released yet.',
 }
 
-const released: ReleaseWords = {
+const atRelease: ReleaseWords = {
   heroMeta:
     'Open source under Apache-2.0. The first release is v0.1.0, and it runs on one computer with Docker.',
   markdownStatus: 'not in the 0.1.0 image yet',
@@ -53,4 +60,4 @@ const released: ReleaseWords = {
 
 /** The words for a build before the first release, or after it. */
 export const releaseWords = (isReleased: boolean): ReleaseWords =>
-  isReleased ? released : unreleased
+  isReleased ? atRelease : unreleased

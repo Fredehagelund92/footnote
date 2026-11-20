@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test'
   theme is one for the whole site, and search finds a page.
 */
 
-const pages = ['/', '/404.html', '/docs/', '/docs/get-started/', '/docs/configuration/']
+const pages = ['/', '/404.html', '/docs/', '/docs/try-the-demo/', '/docs/configuration/']
 const widths = [390, 1440]
 const themes = ['light', 'dark'] as const
 

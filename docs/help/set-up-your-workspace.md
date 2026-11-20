@@ -1,13 +1,13 @@
 ---
-title: Get started
-line: Here you write down what your numbers mean, so AI tools stop guessing.
+title: Set up your workspace
+line: The six steps from an empty workspace to a first checked answer, and the page for each step.
 group: Start
-order: 1
-minutes: 4
-reviewed: 2026-11-06
+order: 2
+minutes: 3
+reviewed: 2026-11-20
 ---
 
-Here you write down what your numbers mean, so AI tools stop guessing. This page takes you to your first checked answer in about ten minutes. Your Inbox shows the six steps until you have done them.
+Here you write down what your numbers mean, so AI tools stop guessing. Your Inbox shows the six steps until you have done them, under Set up your workspace so agents can use what you know.
 
 ## The six steps
 
@@ -22,6 +22,15 @@ Here you write down what your numbers mean, so AI tools stop guessing. This page
 
 <!-- /include -->
 
+## The page for each step
+
+1. Say what the business is about: [About our business](write-context.md#about-our-business).
+2. Add your first domain: [Domains and owners](domains-and-owners.md#add-a-domain).
+3. Connect your definitions: [Integrations](integrations.md#connect-one), then [publish the names](#publish-the-names).
+4. Write your first context item: [Write context](write-context.md).
+5. Ask a question about it: [Answer lines](answer-lines.md).
+6. Connect your agent: [Connect an agent](connect-an-agent.md).
+
 ## Publish the names
 
 Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card, and nothing is published until you publish it.
@@ -32,6 +41,6 @@ Each time your definitions are read, a name is made for every metric and dimensi
 
 ## Your first answer
 
-Ask about what you wrote. The answer starts with an answer label, such as Checked, and cites your context item. If it says Not found, nothing applies to that question yet: that is the honest answer, not an error.
+Ask about what you wrote. The answer starts with an answer line, such as Checked, and cites your context item. If it says Not found, nothing applies to that question yet: that is the honest answer, not an error.
 
 > **Why names come first.** A context item must say what it applies to, and it can only name what is in Definitions. That is why the names come before you write.

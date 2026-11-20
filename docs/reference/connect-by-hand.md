@@ -6,7 +6,7 @@ order: 3
 reviewed: 2026-11-05
 ---
 
-Add the MCP server to an agent yourself, or give a bot or a script its own way in. For a person's agent, the [prompt](../help/connect-an-agent.md) does all of this for you.
+Add the MCP server to an agent yourself, or give a bot or a script its own way in. For a person's agent, the [prompt](../help/connect-an-agent.md) does all of this for you. The [MCP and API reference](../reference.md) lists the pages for builders.
 
 ## The address
 

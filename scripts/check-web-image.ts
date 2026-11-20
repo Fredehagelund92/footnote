@@ -59,7 +59,13 @@ check("the app's scripts and styles: gzipped, cached for good", async () => {
 })
 
 check("the app's own addresses open the app", async () => {
-  for (const path of ['/inbox', '/context', '/settings/general', '/docs/get-started', '/x/y']) {
+  for (const path of [
+    '/inbox',
+    '/context',
+    '/settings/general',
+    '/docs/set-up-your-workspace',
+    '/x/y',
+  ]) {
     const response = await get(path)
     assert.equal(response.status, 200, path)
     assert.equal(await response.text(), page, path)

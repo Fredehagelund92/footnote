@@ -29,11 +29,13 @@ export type SiteGroup = (typeof siteGroups)[number]
 
 /** The published pages, by their path under docs/. */
 export const publishedPages = [
-  'help/get-started',
+  'try-the-demo',
+  'help/set-up-your-workspace',
   'help/connect-an-agent',
+  'help/words',
   'help/write-context',
   'help/review-a-suggestion',
-  'help/settle-a-conflict',
+  'help/decide-a-conflict',
   'help/definitions-and-synonyms',
   'help/publish-without-review',
   'help/domains-and-owners',
@@ -62,6 +64,16 @@ export const publishedPages = [
   'connectors/authoring',
   'help/changelog',
 ]
+
+/**
+ * The pages that moved, by the address they had: the old address forwards to the new one. Get
+ * started's place is Try the demo's, the first page a newcomer reads. In the app, which has no
+ * Try the demo, it opens Set up your workspace (src/domain/docs.ts).
+ */
+export const movedPages: Readonly<Record<string, string>> = {
+  'get-started': 'try-the-demo',
+  'settle-a-conflict': 'decide-a-conflict',
+}
 
 /** The files of the site for the content loader, as paths under docs/. */
 export const pagePatterns = publishedPages.map((page) => `${page}.md`)

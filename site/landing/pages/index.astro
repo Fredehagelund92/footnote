@@ -8,7 +8,7 @@ import { readSettings } from '../../lib/settings.ts'
 import SiteFooter from '../../shared/SiteFooter.astro'
 import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
-import { releaseWords } from '../release.ts'
+import { released, releaseWords } from '../release.ts'
 
 /*
   The landing page, "Two readers", as approved (site/README.md, "The landing page"): paper for
@@ -16,10 +16,6 @@ import { releaseWords } from '../release.ts'
   first screen are get_context's on the demo, word for word, and the pictures are real captures of
   the demo, taken by scripts/capture.ts.
 */
-
-// The release switch: false until the first release's images can be pulled. It is the one line to
-// change at the release (landing/release.ts says what changes, and what to check first).
-const released = false
 
 const words = releaseWords(released)
 const { docs } = siteLinks(readSettings(process.env))
@@ -164,7 +160,7 @@ const shot = (name: string) => {
     </div>
 
     <div class="hero-foot">
-      <div class="cta"><a class="btn btn-ink" href="#run">Install</a><a class="btn btn-line" href={docs('get-started')}>Read the docs</a></div>
+      <div class="cta"><a class="btn btn-ink" href="#run">Install</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
       <p class="meta">{words.heroMeta}</p>
     </div>
   </section>
@@ -230,7 +226,7 @@ const shot = (name: string) => {
           <li><i class="g old" aria-hidden="true"></i><b>Outdated</b><span>The check date has passed, or a definition the item relies on changed.</span><em>The owner looks again: Still true, or Edit.</em></li>
           <li><i class="g failed" aria-hidden="true"></i><b>Not looked up</b><span>Ask couldn't look just now. It doesn't mean nothing is written.</span><em>Try again in a minute.</em></li>
         </ul>
-        <p class="docs">In the docs: <a href={docs('answer-lines')}>The six answer lines</a></p>
+        <p class="docs">In the docs: <a href={docs('answer-lines')}>Answer lines</a></p>
       </div>
     </section>
 
@@ -349,7 +345,7 @@ Before you answer a question about company data, call get_context first and use 
           <li>Footnote reads your definitions from a Cube model folder or from the semantic_manifest.json that dbt parse writes, and never writes back.</li>
           <li>{words.versionNote}</li>
         </ul>
-        <div class="end"><a class="btn btn-ink" href={docs('self-hosting')}>Install</a><a class="btn btn-line" href={docs('get-started')}>Read the docs</a><span class="meta">{words.endMeta}</span></div>
+        <div class="end"><a class="btn btn-ink" href={docs('self-hosting')}>Install</a><a class="btn btn-line" href={docs()}>Read the docs</a><span class="meta">{words.endMeta}</span></div>
       </div>
     </section>
     <SiteFooter home="#top" docs={docs()} />

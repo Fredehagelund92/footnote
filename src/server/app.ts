@@ -27,6 +27,7 @@ import {
   ConnectorRegistry,
   type WorkspaceSources,
 } from './modules/connectors/index.ts'
+import { publishingPermissions } from './modules/agents/index.ts'
 import type { JobRunner } from './modules/jobs/index.ts'
 import type { AskTrace } from './modules/answer/index.ts'
 import { createModelPort, type ModelChecks, type ModelPort } from './modules/models/index.ts'
@@ -184,6 +185,9 @@ export function buildApp({
       app,
       {
         drafts: createDraftTool({ database, clock, web: origins[0] ?? null }),
+        // Where the agent may publish without review, for its instructions at connect (FR-421).
+        permissions: ({ personId, agentId }) =>
+          database.transaction(personId, (tx) => publishingPermissions(tx, agentId)),
         // Each delivered item's page in Footnote, on the same address (FR-347).
         web: origins[0] ?? null,
         // What a domain's definition source has beyond the vocabulary, for find_context, read

@@ -311,7 +311,7 @@ service runs it.
 - **Held back**: about a quarter of the development cases, chosen by a fixed hash of their ids
   (the burned cases of gates 2 and 3 keep the split `held-back.ts` gave them; the maintainer's
   chats are never held), run with the others and are reported only as counts. Nobody building an
-  answerer reads which of them failed or tunes on them. Each answerer's mocked suite holds how
+  answerer reads which of them failed or tunes on them. The loop's mocked suite holds how
   many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
   lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
   The harness holds 29 held-back cases. The 40 in the hardening report is `HELD_BACK` in
@@ -319,7 +319,7 @@ service runs it.
   recording made on 19 November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later
   re-keyed one step for a date fix. It is not a recording made by the change that removed the
   legacy `get_facts` reply, which re-records nothing because the mocked loop and router replays
-  are identical before and after it. Today Ask's loop passes 14 of the 29 and the router 19.
+  are identical before and after it. Today Ask's loop passes 14 of the 29 and the router 19, a count CI no longer guards.
   28 of the loop's 29 keep every promise; the rest fail on what they must say, which the answer
   check does not change.
 - **The report** prints scores by class and by promise, then the held-back counts.

@@ -12,7 +12,7 @@ import { heldCountFiles, heldCountIn, heldCountProblems } from '../../scripts/ch
   history.
 */
 
-const [loop, main] = heldCountFiles as [string, string]
+const [loop] = heldCountFiles as [string]
 const suite = (n: number) => `askEvalSuite({\n  answerer: 'loop',\n  heldPassingToday: ${n},\n})\n`
 
 describe('the held-back count of a change', () => {
@@ -31,16 +31,11 @@ describe('the held-back count of a change', () => {
   })
 
   it('fails a count lowered, or a suite that holds none any more', () => {
-    expect(
-      heldCountProblems(
-        { [loop]: suite(14), [main]: suite(19) },
-        { [loop]: suite(13), [main]: suite(19) },
-      ),
-    ).toEqual([
+    expect(heldCountProblems({ [loop]: suite(14) }, { [loop]: suite(13) })).toEqual([
       `${loop} lowers the held-back count from 14 to 13. A merge may keep the count or raise it, never lower it: fix what the change breaks in the held-back cases' answers, without reading which of them fail.`,
     ])
-    expect(heldCountProblems({ [main]: suite(19) }, { [main]: null })).toEqual([
-      `${main} holds no held-back count (heldPassingToday) any more, where its base holds 19. Keep the count in the suite.`,
+    expect(heldCountProblems({ [loop]: suite(19) }, { [loop]: null })).toEqual([
+      `${loop} holds no held-back count (heldPassingToday) any more, where its base holds 19. Keep the count in the suite.`,
     ])
   })
 })

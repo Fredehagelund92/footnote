@@ -35,7 +35,7 @@ const scopeWords: Record<ConnectionScope, { title: string; detail: string }> = {
   propose: {
     title: 'Suggest changes',
     detail:
-      'Send suggestions in your name, after you say yes. The owner of the domain checks each one before agents get it.',
+      'Send suggestions in your name, after you say yes. An owner of the domain checks each one, unless they let this agent publish some new ones without review.',
   },
 }
 
@@ -253,8 +253,7 @@ function Decide({
           </ul>
           <p className="flex gap-2 text-sm text-muted-foreground">
             <ShieldCheckIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
-            It sees only what you can see. What it suggests waits for an owner, unless the owner
-            lets it publish without review. You can disconnect it at any time in Settings, under
+            It sees only what you can see. You can disconnect it at any time in Settings, under
             Agents and access.
           </p>
         </section>
