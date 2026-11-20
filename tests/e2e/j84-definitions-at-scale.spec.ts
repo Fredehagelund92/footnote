@@ -73,13 +73,25 @@ for (const { name, width, height } of widths) {
 
       // To the end of the list in twenty moves, and on until it is there, under a second: rows
       // measured taller than they were reckoned (a phone's) make the list longer on the way.
-      const scrolled = await page.evaluate(async () => {
+      // A headless frame can take far longer than a screen's 16.7 ms, and a scroll waits on frames,
+      // so the time is counted as it would be at 60 frames a second: each frame's wait past
+      // 16.7 ms, measured on the idle page, is taken off.
+      const { took, frames, period } = await page.evaluate(async () => {
         const scroller = document.querySelector('table')!.closest('.overflow-y-auto')!
         const frame = () => new Promise((r) => requestAnimationFrame(() => r(null)))
+        const waits: number[] = []
+        for (let i = 0, last = performance.now(); i < 15; i++) {
+          await frame()
+          waits.push(performance.now() - last)
+          last = performance.now()
+        }
+        const period = [...waits].sort((a, b) => a - b)[waits.length >> 1]!
+        let frames = 0
         const started = performance.now()
         for (let i = 1; i <= 20; i++) {
           scroller.scrollTop = (scroller.scrollHeight * i) / 20
           await frame()
+          frames++
         }
         // At the end for two frames running: the last rows are drawn and measured.
         const atEnd = () => scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1
@@ -87,10 +99,15 @@ for (const { name, width, height } of widths) {
           held = atEnd() ? held + 1 : 0
           scroller.scrollTop = scroller.scrollHeight
           await frame()
+          frames++
         }
-        return performance.now() - started
+        return { took: performance.now() - started, frames, period }
       })
-      expect(scrolled, 'scroll to the end, ms').toBeLessThan(1_000)
+      const scrolled = took - frames * Math.max(0, period - 1000 / 60)
+      expect(
+        scrolled,
+        `scroll to the end, ms (${Math.round(took)} over ${frames} frames of ${Math.round(period)})`,
+      ).toBeLessThan(1_000)
       // What it took, in the report: the margin under each limit is worth seeing.
       test.info().annotations.push({
         type: 'timings',

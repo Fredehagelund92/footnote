@@ -14,11 +14,11 @@ Some models keep a metric for each currency or sales channel, such as Revenue (E
 - Agents read a question by the names in it. "Revenue in EUR" and "Why did revenue drop last week?" both name Revenue. With a metric for each variant, no metric is called Revenue: the question names nothing, and the agent is asked to name one.
 - A context item about revenue applies to one metric, not to hundreds.
 - A change to how revenue is worked out changes one definition. The context about it is due for a check once, not once for each variant.
-- Definitions stays a list people can read.
+- [Definitions](definitions-and-synonyms.md) stays a list people can read.
 
 ## What Test connection says
 
-When many of the metrics a read would hold look like variants of a few, Test connection says so before anything is published. It says how many, how many metrics they look like, and the words they are split by, such as eur, usd and gbp.
+When many of the metrics a read would hold look like variants of a few, Test connection in [Integrations](integrations.md) says so before anything is published. It says how many, how many metrics they look like, and the words they are split by, such as eur, usd and gbp.
 
 It reads only the names, so now and then it is wrong. It only warns: you can still go on.
 
