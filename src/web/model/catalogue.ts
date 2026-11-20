@@ -38,7 +38,7 @@ const words: Record<
   'cube-cloud': {
     // Beside Cube model files, which read the same tool: its headings say which.
     label: 'Cube Cloud',
-    lead: 'Reads the metadata of a Cube Cloud deployment through its API. Read-only, and it never reads data or SQL. Cube Cloud gives no calculations, so it cannot see one change on its own.',
+    lead: 'Reads the metadata of a Cube Cloud deployment through its API. Read-only, and it never reads data or SQL. Cube Cloud gives no calculations, so a change to one is seen only when what Cube Cloud shows of the member changes too: its type, how it adds up, its title, description or format.',
     domainField: 'meta.domain',
   },
   'dbt-metricflow': {

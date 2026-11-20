@@ -73,9 +73,13 @@ failure never cross: only a code.
 ### Moving from Cube model files
 
 Both connectors write `cube:` refs, and a ref belongs to one source. While the model-files source
-is connected, a Cube Cloud read leaves its refs out (`taken`). Disconnect the model-files source to
-hand them over: the next Cube Cloud read takes them, and since the two connectors compute marks
-differently, it stores the new marks without flagging any item and tells the owners once.
+is connected, a Cube Cloud read leaves its refs out (`taken`). Disconnect the model-files source an
+admin added to hand them over: the next Cube Cloud read takes them, and since the two connectors
+compute marks differently, it stores the new marks without flagging any item and tells the owners
+once. A files source set up on the server (`CUBE_MODEL_DIR`) cannot be disconnected, so its refs
+stay with it. A member the files source had already marked missing takes the new mark as a change
+when it comes back, so the items on it are flagged. A member Cube Cloud does not show (for example
+one the security context hides) stays with the disconnected source and is never marked missing.
 
 ## Schedule and limits
 

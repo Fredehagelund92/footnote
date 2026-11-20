@@ -95,7 +95,7 @@ export const manifest = defineManifest({
   access: [
     'An API key limited to this one deployment. We trade it for a token that reads metadata for 5 minutes, and never write to Cube Cloud.',
     'A read takes the names, titles, types and descriptions of public views and their members: never data, SQL or private members.',
-    'Cube Cloud gives no calculations, so a change to a calculation alone flags nothing until its type, title or description changes too.',
+    'Cube Cloud gives no calculations, so a change to a calculation alone flags nothing until something Cube Cloud shows of the member changes too: its type, aggregation, title, description, format or meta.',
   ],
   // The API key goes to the Cube Cloud address only, the metadata token to the REST API only.
   egress: { hosts: [{ fromField: 'address', signIn: true }, { fromField: 'apiAddress' }] },

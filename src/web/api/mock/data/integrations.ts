@@ -479,7 +479,7 @@ export function cubeCloudCheck(deployment: string): ConnectTest {
       {
         title: 'Reach Cube Cloud',
         status: 'ok',
-        detail: `Deployment ${deployment} has 2 environments.`,
+        detail: `Found deployment ${deployment}.`,
       },
       {
         title: 'Find the environment',

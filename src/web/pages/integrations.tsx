@@ -1205,7 +1205,7 @@ function usePauseReading(source: Source, c: Connector) {
   return (paused: boolean) =>
     void write('pauseIntegration', { id: source.id, paused }).then(
       () =>
-        toast(paused ? `Reading paused for ${c.name}` : `Reading resumed for ${c.name}`, {
+        toast(paused ? `Reading paused for ${c.label}` : `Reading resumed for ${c.label}`, {
           description: paused
             ? c.kind === 'context'
               ? 'Open suggestions stay in the Inbox. Resume from this menu.'
@@ -1213,7 +1213,7 @@ function usePauseReading(source: Source, c: Connector) {
             : `It is queued to be read${figures.on ? ', and its figures are back in Ask' : ''}.`,
         }),
       (e: unknown) =>
-        toast(paused ? `Couldn't pause ${c.name}` : `Couldn't resume ${c.name}`, {
+        toast(paused ? `Couldn't pause ${c.label}` : `Couldn't resume ${c.label}`, {
           description: toApiError(e).message,
         }),
     )
@@ -1236,7 +1236,7 @@ function ConnectorMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="outline" size="icon" aria-label={`More for ${c.name}`} />}
+        render={<Button variant="outline" size="icon" aria-label={`More for ${c.label}`} />}
       >
         <EllipsisIcon />
       </DropdownMenuTrigger>
@@ -1305,7 +1305,7 @@ function DisconnectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Disconnect {c.name}?</DialogTitle>
+          <DialogTitle>Disconnect {c.label}?</DialogTitle>
           <DialogDescription>
             {c.kind === 'definitions'
               ? 'Reading stops. The definitions already read stay, marked as no longer read, and no context is reported as stale by it again.'
@@ -1322,13 +1322,13 @@ function DisconnectDialog({
               onOpenChange(false)
               disconnect(source.id).then(
                 () => {
-                  toast(`${c.name} disconnected`, {
+                  toast(`${c.label} disconnected`, {
                     description: 'Kept in the history log. Connect it again from Integrations.',
                   })
                   navigate('/settings/integrations')
                 },
                 (e: unknown) =>
-                  toast(`Couldn't disconnect ${c.name}`, { description: toApiError(e).message }),
+                  toast(`Couldn't disconnect ${c.label}`, { description: toApiError(e).message }),
               )
             }}
           >
@@ -1353,7 +1353,7 @@ function ReadAgain({ source, c }: { source: Source; c: Connector }) {
         setAsking(true)
         write('readIntegration', { id: source.id })
           .catch((e: unknown) =>
-            toast(`Couldn't read ${c.name}`, { description: toApiError(e).message }),
+            toast(`Couldn't read ${c.label}`, { description: toApiError(e).message }),
           )
           .finally(() => setAsking(false))
       }}
@@ -1403,7 +1403,7 @@ function RefusedBanner({
         <KeyRoundIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-caution" />
         <span>
           <span className="font-medium">It needs a new key.</span>{' '}
-          {sentence(source.failure ?? `${c.name} refused the key`)}. {banner.retry} Published
+          {sentence(source.failure ?? `${c.label} refused the key`)}. {banner.retry} Published
           context is not affected.
         </span>
       </p>
