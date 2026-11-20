@@ -41,7 +41,10 @@ tests that need PostgreSQL 18, against `TEST_DATABASE_URL` (default
   the landing page among them, and fails on a link or heading that goes nowhere.
   `site/e2e/smoke.spec.ts` opens the landing page and the docs at 390 and 1440 px, light and dark,
   and fails on a console error, a request to another host, a page that scrolls sideways or a
-  serious axe finding ([the site](../site/README.md)). The app's `npm test` leaves the site out;
+  serious axe finding ([the site](../site/README.md)). `site/e2e/landing.spec.ts` opens the landing
+  page's first screen in each of its three states, by mouse and keyboard, and checks the finished
+  state with reduced motion, axe at WCAG 2.2 AA, the dotted leaders ending on their marks with
+  motion, the install words before the release, and screenshots. The app's `npm test` leaves the site out;
   CI runs it in its own job.
 - **Module boundaries (Vitest).** `tests/lint/boundaries.test.ts` lints a fixture tree that breaks
   each boundary and expects each break to be reported.
