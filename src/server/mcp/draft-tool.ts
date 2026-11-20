@@ -94,7 +94,7 @@ const instructions = `Show the person the questions and the link. They check eve
 const sentInstructions =
   "Tell the person the suggestion waits for the owner, who checks it and publishes it, and give them the link. Don't send the same suggestion twice."
 const publishedInstructions =
-  "Tell the person it was published at once under the owner's policy for you, and give them the link. An owner of the domain can undo it from its history. Don't send it again."
+  "Tell the person it was published at once with the owner's permission for you to publish without review, and give them the link. An owner of the domain can undo it from its history. Don't send it again."
 const keptInstructions = `Tell the person why it was kept as their draft, and give them the link: they can fix it and send it for review in ${productName}. Don't send it again as it is.`
 
 /** The open questions as the result lists them: what to ask, and the choices when closed. */
@@ -376,7 +376,7 @@ export function createDraftTool(options: {
           submitted: sent,
           ...(published
             ? {
-                message: `Published under ${published.setBy.name}'s policy for ${published.areaName}: agents get it now. An owner of ${published.areaName} can undo it from its history.`,
+                message: `Published with ${published.setBy.name}'s permission to publish without review in ${published.areaName}: agents get it now. An owner of ${published.areaName} can undo it from its history.`,
               }
             : sent
               ? {

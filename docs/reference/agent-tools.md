@@ -94,12 +94,13 @@ The note is checked for sensitive text, and the report never keeps who asked.
 
 Only a person's own agent may call it. An access key or a dev token names no person, so it is refused.
 
-| `status`               | What happened                                                                     |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `suggestion_sent`      | It waits in the owner's Inbox. `policy.waits_because` says why, if a policy is on |
-| `suggestion_published` | An owner's policy covered it, so it went live                                     |
-| `draft_saved`          | The review checks refused it. `blocking` says why, with a link to the draft       |
+| `status`               | What happened                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `suggestion_sent`      | It waits in the owner's Inbox. `policy.waits_because` says why, if a permission to publish is on |
+| `suggestion_published` | An owner's permission to publish without review covered it, so it went live                      |
+| `draft_saved`          | The review checks refused it. `blocking` says why, with a link to the draft                      |
 
+- At connect, the instructions name each domain where the agent may publish without review, as far as they have room. The reply is the source of truth if a permission was set or ended since.
 - `possible_duplicate` means live items look alike. Ask the person, then call again with `item_id` or `new_item: true`.
 - `needs_area` means the words do not point to one domain. Ask the person which, and pass `area`.
 - Text that looks like personal data or a secret is refused, and nothing is saved.
