@@ -197,6 +197,30 @@ describe('the build status', () => {
     cloud.build('main', { filesHash: 'files-main-1', lastHash: 'build-1' })
   })
 
+  it('gives no cursor while the build is not done', async () => {
+    cloud.build('main', { filesHash: 'files-main-2', lastHash: 'build-2', status: 'running' })
+    const first = await read()
+    expect(first.cursor).toBeUndefined()
+    cloud.build('main', { filesHash: 'files-main-1', lastHash: 'build-1' })
+  })
+
+  it('reads every time on a branch it cannot ask the build status about', async () => {
+    cloud.renameBranch('7', 'main branch')
+    const first = await read()
+    expect(first.cursor).toBeUndefined()
+    expect(cloud.requests.some((r) => r.path.includes('/build-status'))).toBe(false)
+    expect((await read({}, first.cursor)).unchanged).toBeUndefined()
+    cloud.renameBranch('7', 'main')
+  })
+
+  it('reads the metadata of a branch that has no build yet', async () => {
+    cloud.dropBuild('main')
+    const first = await read()
+    expect(first.definitions.length).toBe(8)
+    expect(first.cursor).toBeUndefined()
+    cloud.build('main', { filesHash: 'files-main-1', lastHash: 'build-1' })
+  })
+
   it('never trusts a cursor left under other settings', async () => {
     const first = await read()
     cloud.requests.length = 0

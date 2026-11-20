@@ -41,7 +41,9 @@ flags nothing until one of those changes too. The connect page says so before an
 2. Asks how the latest build of that environment's branch stands
    (`GET /api/v1/deployments/{id}/build-status`). When its `filesHash` and `lastHash` are the ones
    the last read saw, the read ends there, as unchanged, and the core keeps what that read found.
-   A build status with no hash reads every time.
+   Only a build whose status is `done` counts (Cube Cloud does not document its statuses). A build
+   that is not done, has no hash, has no status yet (404), or sits on a branch name this cannot
+   ask about reads every time.
 3. Trades the key for a token (`POST /api/v1/deployments/{id}/environments/{env}/tokens-for-meta-sync`)
    that reads metadata only and lasts 5 minutes, with the settings' security context. It asks for
    no `meta-private` scope, so private members stay out of reach.

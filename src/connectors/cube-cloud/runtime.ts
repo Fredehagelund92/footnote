@@ -89,6 +89,8 @@ interface Environment {
   id: string
   type: string
   branch: string | null
+  /** The environment has a branch whose name this cannot ask the build status about. */
+  unusableBranch: boolean
   /** The REST API address Cube Cloud gives for it, when it says one. */
   rest: string | null
 }
@@ -106,6 +108,7 @@ function environmentOf(raw: unknown): Environment | null {
     id,
     type: raw.type,
     branch: typeof raw.branch === 'string' && branchName.test(raw.branch) ? raw.branch : null,
+    unusableBranch: typeof raw.branch === 'string' && !branchName.test(raw.branch),
     rest: rest?.url ?? null,
   }
 }
@@ -248,12 +251,26 @@ class Deployment {
     return environment
   }
 
-  /** How the latest build of the environment's branch stands: its hashes, if Cube Cloud gives them. */
+  /**
+   * How the latest build of the environment's branch stands: its hashes, once the build is done.
+   * Cube Cloud does not document the status values, so only `done` counts as finished; another
+   * status, a branch this cannot ask about, or a branch with no build gives no mark, and a read
+   * then reads every time.
+   */
   async build(environment: Environment): Promise<Build> {
-    const answer = await this.#get(
-      '/build-status',
-      environment.branch ? { branchName: environment.branch } : {},
-    )
+    const none = { hash: null, mark: null }
+    if (environment.unusableBranch) return none
+    let answer: Record<string, unknown>
+    try {
+      answer = await this.#get(
+        '/build-status',
+        environment.branch ? { branchName: environment.branch } : {},
+      )
+    } catch (error) {
+      if (error instanceof SourceError && error.code === 'not_found') return none
+      throw error
+    }
+    if (answer.status !== 'done') return none
     const hashOf = (value: unknown) =>
       typeof value === 'string' && printable.test(value) ? value : null
     const files = hashOf(answer.filesHash)

@@ -77,9 +77,10 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
     { id: '8', type: 'staging', branch: 'next' },
   ]
   const metas = new Map<string, unknown>(environments.map((e) => [e.id, fixtureMeta()]))
-  const builds = new Map<string, { filesHash: string | null; lastHash: string | null }>(
-    environments.map((e) => [e.branch, { filesHash: `files-${e.branch}-1`, lastHash: `build-1` }]),
-  )
+  const builds = new Map<
+    string,
+    { filesHash: string | null; lastHash: string | null; status?: string }
+  >(environments.map((e) => [e.branch, { filesHash: `files-${e.branch}-1`, lastHash: `build-1` }]))
   const tokens = new Map<string, Token>()
   const requests: CubeCloudRequest[] = []
   const planned: Planned[] = []
@@ -255,8 +256,20 @@ export async function cubeCloudHost({ deployment = 42 }: { deployment?: number }
       metas.set(environment, meta)
     },
     /** A new build of a branch, with the hashes its status gives. */
-    build(branch: string, hashes: { filesHash: string | null; lastHash: string | null }) {
+    build(
+      branch: string,
+      hashes: { filesHash: string | null; lastHash: string | null; status?: string },
+    ) {
       builds.set(branch, hashes)
+    },
+    /** Forgets a branch's builds, so its build status answers 404. */
+    dropBuild(branch: string) {
+      builds.delete(branch)
+    },
+    /** Gives an environment another branch name. */
+    renameBranch(id: string, branch: string) {
+      const environment = environments.find((e) => e.id === id)
+      if (environment) environment.branch = branch
     },
     /** Refuses the next `times` requests to a path with a status. */
     refuse(
