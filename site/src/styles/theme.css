@@ -26,7 +26,7 @@
   --sl-color-text-invert: var(--sheet);
   --sl-color-bg: var(--sheet);
   --sl-color-bg-nav: var(--sheet);
-  /* The sidebar is the paper itself, so the ground's dots show on it (shared/ground.css). */
+  /* The sidebar is the paper itself. */
   --sl-color-bg-sidebar: transparent;
   --sl-color-bg-inline-code: var(--paper);
   --sl-color-bg-accent: var(--mark);
@@ -77,9 +77,10 @@ body {
   outline-offset: 2px;
 }
 
-/* The page is a sheet on the paper: the paper shows under the header and beside the sidebar. */
+/* The page is a sheet on the paper: the paper shows under the header and beside the sidebar. It
+   is the landing page's paper for a person, which in dark is lighter than the sheet. */
 body {
-  background: var(--paper);
+  background: var(--paper-side);
 }
 
 .main-frame {
@@ -547,6 +548,23 @@ h1#_top {
 
 .sl-banner a {
   color: var(--ink);
+}
+
+/* A code block is the landing page's terminal (astro.config.ts). A command stands alone there,
+   with no window around it, so a terminal without a title shows no title bar; its name stays for
+   a screen reader. */
+.expressive-code .frame.is-terminal:not(.has-title) .header {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A title is the bar of the landing page's files, with its rule under the whole bar. */
+.expressive-code .frame.has-title:not(.is-terminal) .header {
+  border-bottom: 1px solid var(--term-rule);
 }
 
 /* The landing page's footer, under the page's own column. */
