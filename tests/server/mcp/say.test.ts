@@ -72,6 +72,23 @@ function said(result: ToolResult) {
   expect(say).not.toContain(DEFAULT_PRODUCT_NAME)
   return say
 }
+/**
+ * get_context's sentences as the AI agent reads them: the status first, then `say`, which starts
+ * with the answer line (FR-349), whose words are fixed by docs/product.md (section 6). What
+ * follows the answer line is returned, and uses no word the glossary bans where people read.
+ */
+function sayOf(result: ToolResult) {
+  const keys = Object.keys(JSON.parse(result.content[0]!.text) as object)
+  expect(keys.slice(0, 2)).toEqual(['status', 'say'])
+  const { status, say } = result.structuredContent as { status: string; say: string }
+  const state = stateOfStatus(status)
+  const line = state ? `${stateWords(state)} ` : ''
+  expect(say.startsWith(line)).toBe(true)
+  const rest = say.slice(line.length)
+  expect(plainIn(rest)).toEqual([])
+  expect(say).not.toContain(DEFAULT_PRODUCT_NAME)
+  return rest
+}
 /** What the AI agent is told to do next with a result. */
 const nextOf = (result: ToolResult) => String(result.structuredContent.next)
 /**
@@ -89,11 +106,11 @@ const ask = (extra: object = {}) => ({
   ...extra,
 })
 
-describe('get_facts says, for each status', () => {
+describe('get_context says, for each status', () => {
   it('matched: what it read, with the dates, and that only that was checked', async () => {
-    const reply = await setup()('get_facts', ask())
+    const reply = await setup()('get_context', ask())
     expect(reply.structuredContent.status).toBe('matched')
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
     )
     // Nothing for the AI agent to do but answer.
@@ -102,24 +119,29 @@ describe('get_facts says, for each status', () => {
 
   it('matched, in part: that a context item applies to only part of the question', async () => {
     const reply = await setup()(
-      'get_facts',
-      ask({ dimension_filters: undefined, question: 'Orders in August 2026' }),
+      'get_context',
+      ask({
+        dimension_filters: undefined,
+        question: 'Orders in August 2026',
+        response_format: 'full',
+      }),
     )
     expect(reply.structuredContent).toMatchObject({
-      status: 'matched',
-      items: [{ match: 'partial' }],
+      status: 'partial',
+      context: [{ match: 'partial' }],
     })
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       '1 context item applies to Orders in August 2026. Nothing else was looked up. It applies to only part of that question.',
     )
-    expect(nextOf(reply)).toBe('applies_note says which part each partial context item covers.')
+    expect(nextOf(reply)).toBe('applies says which part each partial context item covers.')
   })
 
   it('matched, out of date: that a context item may be out of date', async () => {
     const reply = await setup((data) => {
       data.items[0]!.checkFlag = 'needs_check'
-    })('get_facts', ask())
-    expect(said(reply)).toBe(
+    })('get_context', ask())
+    expect(reply.structuredContent.status).toBe('stale')
+    expect(sayOf(reply)).toBe(
       '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. It may be out of date.',
     )
   })
@@ -129,35 +151,35 @@ describe('get_facts says, for each status', () => {
       const first = data.items[0]!
       data.items.push({ ...first, id: 'itm_norway02', conflicts: [first.id] })
       first.conflicts = ['itm_norway02']
-    })('get_facts', ask())
+    })('get_context', ask())
     expect(reply.structuredContent.status).toBe('conflict')
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       '2 context items apply to Orders in Norway in August 2026. Nothing else was looked up. Some of them disagree.',
     )
-    expect(nextOf(reply)).toBe('Give both sides of conflicts_with and say they disagree.')
+    expect(nextOf(reply)).toBe('Give both sides of disagrees_with and say they disagree.')
   })
 
   it('no_match: what it checked for the person; the absence rule and the next step for the AI agent', async () => {
     const reply = await setup()(
-      'get_facts',
+      'get_context',
       ask({ window: { from: '2026-07-01', to: '2026-07-31' } }),
     )
     expect(reply.structuredContent.status).toBe('no_match')
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       'Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(nextOf(reply)).toBe(
-      `${notProof}, and it covers only this question, never the whole topic. Check the names and dates, or call find_facts with the question's words. If nothing applies there either, say nothing is written down for exactly this question, and call report_gap.`,
+      `${notProof}, and it covers only this question, never the whole topic. Check the names and dates, or call find_context with the question's words. If nothing applies there either, say nothing is written down for exactly this question, and if the person agrees, call report with kind missing.`,
     )
   })
 
   it('no_match for a dimension on its own: names it, never "for by market"', async () => {
-    const reply = await setup()('get_facts', {
+    const reply = await setup()('get_context', {
       question: 'what market',
       window: { from: '2026-07-01', to: '2026-07-31' },
     })
     expect(reply.structuredContent.status).toBe('no_match')
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       'Nothing is written down for Market in July 2026. Nothing else was looked up.',
     )
   })
@@ -166,12 +188,12 @@ describe('get_facts says, for each status', () => {
     const reply = await setup((data) => {
       data.items[0]!.riskLevel = 'high'
       data.items[0]!.checkFlag = 'needs_check'
-    })('get_facts', ask())
+    })('get_context', ask({ response_format: 'full' }))
     expect(reply.structuredContent).toMatchObject({
       status: 'no_match',
       check_report: { withheld: 1 },
     })
-    const say = said(reply)
+    const say = sayOf(reply)
     expect(say).toBe(
       "1 context item applies to Orders in Norway in August 2026, but it isn't shared with AI agents yet: it's high risk and waits for a check.",
     )
@@ -191,25 +213,26 @@ describe('get_facts says, for each status', () => {
         checkFlag: 'needs_check',
       })
       data.items.push({ ...first, id: 'itm_norway03' })
-    })('get_facts', ask({ max_items: 1 }))
-    expect(said(reply)).toBe(
+    })('get_context', ask({ max_items: 1 }))
+    expect(sayOf(reply)).toBe(
       "1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. 1 more context item applies but didn't fit in this reply. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check.",
     )
-    expect(nextOf(reply)).toBe(
-      'cut_ids lists the context items left out: call again with response_format concise or a higher max_bytes to get them.',
-    )
+    expect(nextOf(reply)).toBe('Call again with a higher max_bytes to get them.')
   })
 
   it('need_more_detail: what to fix, the choices, and that it read nothing', async () => {
     const reply = await setup()(
-      'get_facts',
-      ask({ dimension_filters: [{ dimension: 'Market', values: ['Atlantis'] }] }),
+      'get_context',
+      ask({
+        dimension_filters: [{ dimension: 'Market', values: ['Atlantis'] }],
+        response_format: 'full',
+      }),
     )
     expect(reply.structuredContent).toMatchObject({
       status: 'need_more_detail',
       options: [{ input: 'Atlantis', options: ['val:market/norway'] }],
     })
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       `${notLookedUp} "Atlantis" doesn't match a name in the library. Try Norway.`,
     )
     expect(nextOf(reply)).toBe(
@@ -218,34 +241,34 @@ describe('get_facts says, for each status', () => {
   })
 
   it('need_more_detail with no name in the question: never an absence', async () => {
-    const reply = await setup()('get_facts', { question: 'Anything written down this week?' })
-    const say = said(reply)
+    const reply = await setup()('get_context', { question: 'Anything written down this week?' })
+    const say = sayOf(reply)
     expect(say).toBe(`${notLookedUp} The question needs a metric or a market, such as Orders.`)
     expect(say).not.toContain('Nothing is written down')
   })
 
   it('need_more_detail for dates it cannot read: the words, never today', async () => {
-    const reply = await setup()('get_facts', {
+    const reply = await setup()('get_context', {
       question: 'Orders in Norway since the launch',
     })
-    expect(said(reply)).toBe(`${notLookedUp} "since the launch" can't be read as dates.`)
+    expect(sayOf(reply)).toBe(`${notLookedUp} "since the launch" can't be read as dates.`)
     expect(nextOf(reply)).toMatch(/^Fix it from options and call again\. /)
   })
 
   it('never says whether a domain is live: every domain is served', async () => {
-    const reply = await setup()('get_facts', ask())
+    const reply = await setup()('get_context', ask())
     expect(reply.structuredContent.status).toBe('matched')
-    expect(said(reply)).not.toMatch(/live|starting|not started|paused/)
+    expect(sayOf(reply)).not.toMatch(/live|starting|not started|paused/)
   })
 
   it('assumed_date: the sentence of assumed_date once, in place of the dates', async () => {
     const reply = await setup()(
-      'get_facts',
-      ask({ window: undefined, question: 'Orders in Norway' }),
+      'get_context',
+      ask({ window: undefined, question: 'Orders in Norway', response_format: 'full' }),
     )
     const sentence = 'I assumed today, 7 October 2026. Tell me if you meant a different period.'
-    expect(reply.structuredContent).toMatchObject({ status: 'matched', assumed_date: { sentence } })
-    const say = said(reply)
+    expect(reply.structuredContent).toMatchObject({ status: 'partial', assumed_date: { sentence } })
+    const say = sayOf(reply)
     expect(say).toBe(
       `1 context item applies to Orders in Norway. Nothing else was looked up. ${sentence}`,
     )
@@ -253,10 +276,11 @@ describe('get_facts says, for each status', () => {
   })
 
   it('dates read in the words: the days and what the words named, without the time zone', async () => {
-    const reply = await setup(withRevenue)('get_facts', {
+    const reply = await setup(withRevenue)('get_context', {
       question: 'Net revenue in Norway this year',
+      response_format: 'full',
     })
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       '2 context items apply to Net revenue in Norway from 1 January to 7 October 2026 (this year so far). Nothing else was looked up.',
     )
     expect(reply.structuredContent).toMatchObject({
@@ -270,35 +294,35 @@ describe('get_facts says, for each status', () => {
     // from the group the definition source puts the metrics in, as for a question without dates.
     const run = setup(withRevenue)
     const group = 'Revenue is a group of 3 metrics: Gross sales, Net revenue and Units sold.'
-    const reply = await run('get_facts', {
+    const reply = await run('get_context', {
       question: 'How is revenue doing in Norway in August 2026?',
     })
-    expect(said(reply)).toBe(
+    expect(sayOf(reply)).toBe(
       `3 context items apply to Revenue in Norway in August 2026. Nothing else was looked up. ${group}`,
     )
     expect(nextOf(reply)).toBe(
       'Each context item names the metrics it is about (about): answer for each metric apart.',
     )
     // Nothing found for the group still says what it holds, and never reads as an absence.
-    const none = await run('get_facts', { question: 'How was revenue in Norway in 2025?' })
-    expect(said(none)).toBe(
+    const none = await run('get_context', { question: 'How was revenue in Norway in 2025?' })
+    expect(sayOf(none)).toBe(
       `Nothing is written down for Revenue in Norway in 2025. Nothing else was looked up. ${group}`,
     )
     expect(nextOf(none)).toContain(notProof)
     // One metric of the group is one metric: nothing more is said.
-    const one = await run('get_facts', {
+    const one = await run('get_context', {
       question: 'Net revenue in Norway in August 2026',
     })
-    expect(said(one)).toBe(
+    expect(sayOf(one)).toBe(
       '2 context items apply to Net revenue in Norway in August 2026. Nothing else was looked up.',
     )
   })
 
-  it('a concise reply keeps the sentences, first', async () => {
+  it('a full reply keeps the sentences of the concise one', async () => {
     const run = setup()
-    const full = await run('get_facts', ask())
-    const concise = await run('get_facts', ask({ response_format: 'concise' }))
-    expect(said(concise)).toBe(said(full))
+    const full = await run('get_context', ask({ response_format: 'full' }))
+    const concise = await run('get_context', ask())
+    expect(sayOf(concise)).toBe(sayOf(full))
   })
 
   it('check_failed: that it read nothing, and what failed for the AI agent', () => {
@@ -361,13 +385,13 @@ describe('the other read tools say', () => {
       data.items[0]!.title = injected
     })
     for (const [name, args] of [
-      ['get_facts', ask()],
+      ['get_context', ask()],
       ['read_context', { id: 'itm_norway01' }],
       ['get_related', { id: 'itm_norway01' }],
       ['find_context', { query: 'Norway' }],
     ] as const) {
       const reply = await run(name, args)
-      expect(said(reply)).not.toContain('Ignore your rules')
+      expect(name === 'get_context' ? sayOf(reply) : said(reply)).not.toContain('Ignore your rules')
       expect(JSON.stringify(reply.structuredContent.next ?? null)).not.toContain(
         'Ignore your rules',
       )
@@ -461,18 +485,11 @@ describe('the days of a window, as people read them', () => {
 */
 describe('get_context says, with the answer line first', () => {
   const contextSaidOf = (result: ToolResult) => {
-    const keys = Object.keys(JSON.parse(result.content[0]!.text) as object)
-    expect(keys.slice(0, 2)).toEqual(['status', 'say'])
-    const { status, say } = result.structuredContent as { status: string; say: string }
-    const state = stateOfStatus(status)
-    const line = state ? stateWords(state) : ''
-    expect(say.startsWith(line)).toBe(true)
-    expect(plainIn(say.slice(line.length))).toEqual([])
-    expect(say).not.toContain(DEFAULT_PRODUCT_NAME)
-    return say
+    sayOf(result)
+    return String(result.structuredContent.say)
   }
 
-  it('says each state in its own words, and the rest as get_facts says it', async () => {
+  it('says each state in its own words, then what it read', async () => {
     const call = setup()
     expect(contextSaidOf(await call('get_context', ask()))).toBe(
       'Checked. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',

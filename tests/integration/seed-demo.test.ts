@@ -12,7 +12,7 @@ const { client, url } = testDatabase()
 /*
   The demo's quality history on the bulk seed (db/seed/demo.ts). The seed checks its own story
   (every weekly run passes but the newest Sales one, which fails the regression on its
-  note), so a change to the library or to get_facts that breaks it fails here. Then the demo's
+  note), so a change to the library or to get_context that breaks it fails here. Then the demo's
   present (db/seed/story.ts): what the README shows a new install.
 */
 it(

@@ -10,7 +10,7 @@ import type { Queryable } from '../../db/database.ts'
 import { findContext } from '../../mcp/outcomes.ts'
 import { findInput } from '../../mcp/schemas.ts'
 import { loadServingBundle, type ServingBundle } from '../editions/index.ts'
-import { deliverContext } from './retrieval.ts'
+import { deliver } from './retrieval.ts'
 import { liveHead } from './runs.ts'
 
 /**
@@ -88,7 +88,7 @@ async function definitionChecks(
       (answer?.definition !== null && answer?.definition !== undefined) === d.described
   // get_context gives a definition question the same definition first, beside the items.
   if (c.scope) {
-    const reply = (await deliverContext(bundle, systemClock(c.as_of), {
+    const reply = (await deliver(bundle, systemClock(c.as_of), {
       question: natural.text,
       ...c.scope,
     })) as { definitions?: { key: string; definition: string | null; source?: { ref: string } }[] }
@@ -109,7 +109,7 @@ async function run(
   call: string,
   mode: GoldenCheck['mode'],
 ): Promise<GoldenCheck> {
-  const reply = (await deliverContext(bundle, systemClock(asOf), input)) as DeliveryReply
+  const reply = (await deliver(bundle, systemClock(asOf), input)) as DeliveryReply
   return {
     call,
     mode,

@@ -8,7 +8,7 @@ import { matchingCheck, matchingProbes } from '../../../domain/review.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { asDelivered, loadServingBundle, type ServingBundle } from '../editions/index.ts'
-import { deliver, deliveredIds } from '../evals/index.ts'
+import { checkStatus, deliver, deliveredIds, type Reply } from '../evals/index.ts'
 import {
   attachedQuestions,
   attachedTests,
@@ -57,7 +57,6 @@ const goldenQuestion = z.object({
   }),
 })
 
-type Reply = Awaited<ReturnType<typeof deliver>>
 const delivered = (reply: Reply) => new Set(deliveredIds(reply))
 
 /**
@@ -92,7 +91,7 @@ async function deliveryCheck(
   const ids = delivered(reply)
   const cut = reply.check_report?.cut_ids?.includes(id) ?? false
   const replacedShown = stored.version.replaces.filter((r) => ids.has(r))
-  const ownOk = reply.status !== 'check_failed' && (ids.has(id) || cut)
+  const ownOk = checkStatus(reply) !== 'check_failed' && (ids.has(id) || cut)
   const rows = await tx.query<{ id: string; wordings: unknown; scope: unknown; expected: unknown }>(
     `select id,wordings,scope,expected from golden_questions
       where area_id=$1 and status='active' order by id`,
@@ -125,9 +124,9 @@ async function deliveryCheck(
           must_deliver: q.expected.must_deliver ?? [],
           must_not_deliver: q.expected.must_not_deliver ?? [],
         },
-        { status: reply.status ?? null, delivered: deliveredIds(reply) },
+        { status: checkStatus(reply), delivered: deliveredIds(reply) },
       )
-      return checks.delivered && checks.not_delivered && reply.status !== 'check_failed'
+      return checks.delivered && checks.not_delivered && checkStatus(reply) !== 'check_failed'
     }
     const before = passes(await deliver(baseline, clock, ask))
     const after = passes(await deliver(serving, clock, ask))
@@ -145,7 +144,7 @@ async function deliveryCheck(
     outcome: passed ? 'passed' : 'failed',
     details: {
       probe: input,
-      status: reply.status ?? 'check_failed',
+      status: checkStatus(reply) ?? 'check_failed',
       delivered: ids.has(id),
       cut,
       replacedShown,

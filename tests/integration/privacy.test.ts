@@ -127,7 +127,7 @@ it('rejects precise delivery and request timestamps', async () => {
   ).rejects.toMatchObject({ code: '23514' })
   await expect(
     client.query(
-      "insert into mcp_requests (hour,client_label,tool,status) values (date_trunc('hour',now())+interval '1 second','test','get_facts','ok')",
+      "insert into mcp_requests (hour,client_label,tool,status) values (date_trunc('hour',now())+interval '1 second','test','get_context','ok')",
     ),
   ).rejects.toMatchObject({ code: '23514' })
 })
@@ -135,7 +135,7 @@ it('keeps only an app family from the fixed list on a request, never the name an
   const insert = (family: string, status = 'ok', result: string | null = null) =>
     client.query(
       'insert into mcp_requests (client_label,app_family,tool,status,result_status) values ($1,$2,$3,$4,$5)',
-      ['test', family, 'get_facts', status, result],
+      ['test', family, 'get_context', status, result],
     )
   await insert('claude_code', 'invalid_input')
   await insert('other', 'ok', 'need_more_detail')

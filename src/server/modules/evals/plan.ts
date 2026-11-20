@@ -11,7 +11,7 @@ import { answerPromptDigest, judgePromptDigest } from './answer.ts'
 
 /**
  * Planning a run without a model: what each wording would be delivered on each side (the
- * resolver through get_facts's own code) and the cell cache keys (FR-522). Nothing here calls a
+ * resolver through get_context's own code) and the cell cache keys (FR-522). Nothing here calls a
  * model.
  */
 
@@ -37,7 +37,7 @@ const sha = (value: unknown) => createHash('sha256').update(canonicalJson(value)
 export const questionClock = (clock: Clock, q: Pick<GoldenQuestion, 'as_of'>): Clock =>
   q.as_of ? onDay(clock, q.as_of) : clock
 
-/** What get_facts delivers for one wording on one side, without the per-call delivery id. */
+/** What get_context delivers for one wording on one side, without the per-call reply id. */
 async function deliveryDigest(
   bundle: ServingBundle,
   clock: Clock,
@@ -47,8 +47,9 @@ async function deliveryDigest(
   const reply = await previewDelivery(bundle, questionClock(clock, q), {
     question: text,
     ...q.scope,
+    response_format: 'full',
   })
-  const { delivery_id: _id, ...rest } = reply.structuredContent
+  const { reply_id: _id, ...rest } = reply.structuredContent
   return sha(rest)
 }
 

@@ -4,10 +4,17 @@ import { goldenExtras, goldenLibrary } from '../../db/seed/golden-fixtures.ts'
 import { loadGoldenSet } from '../../db/seed/golden-set.ts'
 import { formatHeldOut, heldOutUnavailable } from '../../db/seed/held-out.ts'
 import { heldOutL1 } from '../../db/seed/held-out-runs.ts'
+import { stateOfStatus, stateWords } from '../../src/domain/answer-state.ts'
 import { answer } from '../../src/domain/answer.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { loadLiveBundle, type ServingBundle } from '../../src/server/modules/editions/index.ts'
-import { deliver, goldenL1, type GoldenL1Result } from '../../src/server/modules/evals/index.ts'
+import {
+  checkStatus,
+  deliver,
+  goldenL1,
+  type GoldenL1Result,
+  type Reply,
+} from '../../src/server/modules/evals/index.ts'
 import { testDatabase } from './support.ts'
 
 const { client } = testDatabase()
@@ -15,7 +22,7 @@ const { client } = testDatabase()
 /*
   Stage 1 of the output test plan: the golden set's L1 pass, with no model (USD 0). The golden
   library is the bulk seed's 1,500 items plus the fixtures; every case's wordings and follow-ups
-  go through get_facts's own code at the case's as-of date, as served. A change to the library, the fixtures or get_facts that alters what any case is given
+  go through get_context's own code at the case's as-of date, as served. A change to the library, the fixtures or get_context that alters what any case is given
   fails here, until the case or the change is fixed (a known product gap is declared in the case
   and fails here once it closes). The held-out cases are sealed (FR-525): they run here only where
   they exist and the key holder gives the key, and say only how many passed and failed, by type.
@@ -61,7 +68,7 @@ it('gives the held-out cases what they expect too, reported as counts only', asy
 */
 type DomainReply = {
   status: string
-  items: { id: string }[]
+  context: { id: string }[]
   domains?: { id: string; name: string; summary?: string; description?: string }[]
   check_report: { statements: string[]; checked: string[] }
 }
@@ -75,7 +82,7 @@ it("serves the items of every domain, and names the asked metric's domain with w
   const area = areaOf()
   // Active customers is Customer value's (Cube's domain). The items of every domain about it are
   // given: the Sandbox's conflict pair and Paid media's, which was not live before.
-  expect(new Set(reply.items.map((i) => area.get(i.id)))).toEqual(
+  expect(new Set(reply.context.map((i) => area.get(i.id)))).toEqual(
     new Set(['area_sandbox', 'area_marketing', 'area_paid_media']),
   )
   expect(reply.domains).toEqual([
@@ -87,13 +94,12 @@ it("serves the items of every domain, and names the asked metric's domain with w
     },
   ])
   expect(reply.check_report.checked).not.toContain('area')
-  // The concise reply names the domain and leaves what it is to the full reply, so it stays
-  // within a few kB (FR-342).
+  // The concise reply leaves the domain to the full reply, so it stays within a few kB (FR-342).
   const concise = (await deliver(served, systemClock(c.as_of), {
     ...ask,
     response_format: 'concise',
   })) as DomainReply
-  expect(concise.domains).toEqual([{ id: 'area_customer_value', name: 'Customer value' }])
+  expect(concise).not.toHaveProperty('domains')
 })
 
 /*
@@ -111,7 +117,7 @@ it('gives the round 4 question the dates its words give, and says how it read th
   type Dated = {
     status: string
     say: string
-    items: { id: string }[]
+    context: { id: string }[]
     scope_used: { window: { start: string; end: string } }
     assumed_date?: Record<string, string>
     dates_read?: Record<string, string>
@@ -134,21 +140,22 @@ it('gives the round 4 question the dates its words give, and says how it read th
   expect(reply.say).toContain(
     'Orders in United Kingdom from 1 to 7 October 2026 (the 7 days to today)',
   )
-  const ids = reply.items.map((i) => i.id)
+  const ids = reply.context.map((i) => i.id)
   expect(ids).toContain(c.delivery.must_deliver[0])
   expect(ids).not.toContain(c.delivery.must_not_deliver[0])
   expect(ids.indexOf(c.delivery.must_deliver[0]!)).toBeLessThan(c.delivery.rank_max!)
   // The same question with the case's own dates gets the same items.
   const dated = (await deliver(served, clock, { question: natural.text, ...c.scope })) as Dated
-  expect(dated.items.map((i) => i.id).sort()).toEqual([...ids].sort())
+  expect(dated.context.map((i) => i.id).sort()).toEqual([...ids].sort())
   expect(dated).not.toHaveProperty('dates_read')
   // Without any dates in the words, the question is read at today, and the reply says so.
   const today = (await deliver(served, clock, {
     question: 'How much did customers put into their accounts in the United Kingdom?',
     ...names,
   })) as Dated & { check_report: { statements: string[] }; instructions: string }
+  // Read at today, the answer is Partial: nobody said which days were meant.
   expect(today).toMatchObject({
-    status: 'matched',
+    status: 'partial',
     scope_used: { window: { start: '2026-10-07', end: '2026-10-08' } },
     assumed_date: {
       date: '2026-10-07',
@@ -164,24 +171,22 @@ it('gives the round 4 question the dates its words give, and says how it read th
 /*
   The answer engine (src/domain/answer.ts) answers people the way get_context answers agents:
   Ask, Try it, the replay and the saved-question check read it. On every golden case, as asked
-  at its as-of date, it gives what get_context gives: the status, the items in their order with
-  their versions, matches and freshness, the items cut, the scope it read and the sentences. And it
+  at its as-of date, it gives what get_context's full reply gives: the status, the items in their order with their versions, matches and freshness, the items cut, the
+  scope it read and the sentences. And it
   answers fast: under 50 ms at the 95th percentile on the golden library (the demo library and the
   fixtures).
 */
-type Delivered = {
+type Delivered = Omit<Reply, 'context'> & {
   status?: string
   say?: string
   next?: string
   scope_used?: unknown
-  items?: { id: string; version: number; match: string; freshness: string }[]
-  check_report?: { cut_ids: string[] }
+  context?: { id: string; version: number; match: string; freshness: string }[]
 }
 it('gives what get_context gives on every golden case, and fast', async () => {
   const durations: number[] = []
   const compared: string[] = []
   for (const c of cases) {
-    const format = c.response_format ? { response_format: c.response_format } : {}
     const asks = [
       ...(c.scope ? c.wordings.map((w) => ({ question: w.text, ...c.scope })) : []),
       ...(c.turns ?? []).flatMap((turn) =>
@@ -189,10 +194,8 @@ it('gives what get_context gives on every golden case, and fast', async () => {
       ),
     ]
     for (const ask of asks) {
-      const reply = (await deliver(served, systemClock(c.as_of), {
-        ...ask,
-        ...format,
-      })) as Delivered
+      const reply = (await deliver(served, systemClock(c.as_of), ask)) as Delivered
+      const state = reply.status ? stateOfStatus(reply.status) : null
       const result = answer(served, ask, { today: c.as_of, now: () => performance.now() })
       durations.push(result.ms)
       compared.push(c.id)
@@ -211,13 +214,14 @@ it('gives what get_context gives on every golden case, and fast', async () => {
             .map((l) => l.id)
             .sort(),
           scope: result.scope,
-          say: result.say,
+          // get_context's say starts with the answer line; the engine keeps it in `state`.
+          say: state ? `${stateWords(state)} ${result.say}` : result.say,
           next: result.next,
         },
         `${c.id}: ${ask.question}`,
       ).toEqual({
-        status: reply.status,
-        items: (reply.items ?? []).map(({ id, version, match, freshness }) => ({
+        status: checkStatus(reply),
+        items: (reply.context ?? []).map(({ id, version, match, freshness }) => ({
           id,
           version,
           match,

@@ -65,10 +65,10 @@ const scopeFields = {
     ),
 }
 /**
- * FR-342: how much a reply of get_context or find_context says. `concise` keeps what an answer
- * needs (each item's title, summary, dates, claim level, freshness and what not to conclude) and
- * leaves out bodies, evidence, owners and links, which read_context gives for one item; `full`
- * carries every source detail of FR-326 and FR-331.
+ * FR-342: how much a reply of find_context says. `concise` keeps what an answer needs (each
+ * item's title, summary, dates, claim level, freshness and what not to conclude) and leaves out
+ * bodies, evidence, owners and links, which read_context gives for one item; `full` carries every
+ * source detail of FR-326 and FR-331.
  */
 const responseFormat = z
   .enum(['concise', 'full'])
@@ -76,13 +76,6 @@ const responseFormat = z
     "concise: a shorter reply, about half the size, each item without its body, evidence, owner and links (read_context gives them). full: every source detail and link. Ask for concise when you only need what applies; full when you will cite an item's evidence or follow its links.",
   )
 export type ResponseFormat = z.infer<typeof responseFormat>
-export const contextInput = z.strictObject({
-  ...scopeFields,
-  edition,
-  max_items: z.number().int().min(1).max(50).default(20),
-  max_bytes: z.number().int().min(1000).max(100000).default(100000),
-  response_format: responseFormat.default('full'),
-})
 /**
  * How much get_context's reply says (FR-342). `concise`, the default, is the agent contract's
  * short reply: the status, say, what was asked, each item that applies with its source
@@ -538,4 +531,3 @@ export const reportOutput = z
     to: z.string().optional().describe('Who will see it, as a role: the owner of a domain.'),
   })
   .loose()
-export type ContextInput = z.infer<typeof contextInput>

@@ -32,20 +32,20 @@ const ask = {
 }
 type Reply = {
   status?: string
-  items?: { id: string }[]
+  context?: { id: string }[]
   check_report?: { withheld?: number }
-  delivery_id?: string
+  reply_id?: string
 }
 const reply = async (serving: ServingBundle) => {
-  // Each reply has its own delivery id; everything else is what the agent is given.
-  const { delivery_id: _, ...given } = (await deliver(
+  // Each reply has its own id; everything else is what the agent is given.
+  const { reply_id: _, ...given } = (await deliver(
     serving,
     systemClock('2026-10-07'),
     ask,
   )) as Reply
   return given as Reply
 }
-const ids = (r: Reply) => (r.items ?? []).map((i) => i.id)
+const ids = (r: Reply) => (r.context ?? []).map((i) => i.id)
 
 describe('a check as delivered', () => {
   it('serves every domain, exactly as served when nothing is stopped', async () => {

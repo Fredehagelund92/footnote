@@ -104,7 +104,7 @@ saved questions follows each publish instead (FR-526).
   and the checks that failed, and a scorecard counts both layers and each failed check, so a drop
   can be traced to retrieval and citing or to what the judge read.
 - **Retrieval pass** (no model): `evals.retrieval` sends every test question's wordings through
-  `get_facts`'s own code on every sealed edition, and on the live edition again each day, and
+  `get_context`'s own code on every sealed edition, and on the live edition again each day, and
   stores per question whether it was served, delivered its expected items, left out the forbidden
   ones and gave the expected status (item ids and booleans; never a wording). The first pass is
   the live edition's; every edition sealed after it gets one.
@@ -121,7 +121,7 @@ saved questions follows each publish instead (FR-526).
   deliveries differ from the previous pass of the same edition and overlay (`date_expiry`). The
   run names its `trigger`; the budget and the spending caps hold as for any run.
 - **Cell cache** (FR-522): a cell whose inputs did not change (wording, expected results, what
-  `get_facts` delivers, tool descriptions, prompts, models and effort, try) reuses the earlier
+  `get_context` delivers, tool descriptions, prompts, models and effort, try) reuses the earlier
   result without a model call.
 - **Cost** (FR-409, FR-516): every run is estimated first, from typical calls that read and
   write the prompt cache as measured runs do; one above `evals.run_budget_micros` waits for
@@ -314,12 +314,11 @@ service runs it.
   answerer reads which of them failed or tunes on them. Each answerer's mocked suite holds how
   many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
   lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
-  The harness holds 28 held-back cases. The 40 in the hardening report is `HELD_BACK` in
-  `held-back.ts`, the router's split of its own demo cases. On 19 November 2026, on the steps
-  recorded after H14, Ask's loop passes 10 of the 28 and the router 19. 25 of the loop's 28 keep
-  every promise; the rest fail on what they must say, which the answer check does not change. Restoring the loop's count to 14 is a follow-up
-  after the Ask slices H11 to H16 of the hardening plan and a recording made after them, checked
-  at gate 1 (item 4 of ready-means).
+  The harness holds 29 held-back cases. The 40 in the hardening report is `HELD_BACK` in
+  `held-back.ts`, the router's split of its own demo cases. On the steps recorded on 19 November
+  2026, after the Ask slices H11 to H16 of the hardening plan, Ask's loop passes 14 of the 29 and
+  the router 19. 28 of the loop's 29 keep every promise; the rest fail on what they must say,
+  which the answer check does not change.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                       |

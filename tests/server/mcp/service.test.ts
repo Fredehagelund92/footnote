@@ -47,6 +47,8 @@ function setup() {
 const question = 'Orders Norway August 2026'
 /** How the fixture's item was reviewed, in the reply's words (FR-326). */
 const reviewedSentence = 'Published 4 Aug 2026 by the owner of Finance, in edition 2026-08-04.1.'
+/** Who checked it and when, as a short reply says it. */
+const checkedSentence = 'Checked 4 Aug 2026 by the owner of Finance.'
 
 it('cuts links before items, respects multibyte budgets and never mutates the cached edition', async () => {
   const s = setup()
@@ -68,11 +70,11 @@ it('cuts links before items, respects multibyte budgets and never mutates the ca
   const saved = JSON.stringify(s.data)
   // Room for the item without its links, its sentence (FR-344), how the dates were read, how it
   // was reviewed (FR-326) and its domain's summary line, but not for one more link.
-  const reply = await s.call('get_facts', { question, max_bytes: 5000 })
+  const reply = await s.call('get_context', { response_format: 'full', question, max_bytes: 6200 })
   expect(reply.isError).not.toBe(true)
-  expect(byteSize(reply)).toBeLessThanOrEqual(5000)
+  expect(byteSize(reply)).toBeLessThanOrEqual(6200)
   expect(reply.structuredContent).toMatchObject({
-    items: [{ id: 'itm_norway01', links: [] }],
+    context: [{ id: 'itm_norway01', links: [] }],
     check_report: { cut: true, cut_ids: [] },
   })
   // The domain's description went first; its summary line stays.
@@ -81,7 +83,9 @@ it('cuts links before items, respects multibyte budgets and never mutates the ca
   ])
   expect(JSON.stringify(s.data)).toBe(saved)
   // With room, the full reply gives the domain's description too.
-  expect((await s.call('get_facts', { question })).structuredContent.domains).toEqual([
+  expect(
+    (await s.call('get_context', { response_format: 'full', question })).structuredContent.domains,
+  ).toEqual([
     {
       id: 'finance',
       name: 'Finance',
@@ -89,7 +93,7 @@ it('cuts links before items, respects multibyte budgets and never mutates the ca
       description: 'Finance covers **orders** and returns, by market and payment provider.',
     },
   ])
-  const tiny = await s.call('get_facts', { question, max_bytes: 1000 })
+  const tiny = await s.call('get_context', { response_format: 'full', question, max_bytes: 1000 })
   expect(byteSize(tiny)).toBeLessThanOrEqual(1000)
   expect(tiny.structuredContent.status).toBe('check_failed')
 })
@@ -116,15 +120,20 @@ it('cuts the items past max_items before links, and keeps the link that names th
         label: null,
       })
   const links = (reply: Awaited<ReturnType<typeof s.call>>) =>
-    (reply.structuredContent.items as { links: { rel: string; target: { id: string } }[] }[]).map(
+    (reply.structuredContent.context as { links: { rel: string; target: { id: string } }[] }[]).map(
       (i) => i.links.map((l) => `${l.rel} ${l.target.id}`),
     )
-  const all = await s.call('get_facts', { question })
-  const two = await s.call('get_facts', { question, max_items: 2 })
+  const all = await s.call('get_context', { response_format: 'full', question })
+  const two = await s.call('get_context', { response_format: 'full', question, max_items: 2 })
   // The two delivered items fit with all their links: the six cut first cost them none.
   const fits = byteSize(two)
   expect(byteSize(all)).toBeGreaterThan(fits)
-  const tight = await s.call('get_facts', { question, max_items: 2, max_bytes: fits })
+  const tight = await s.call('get_context', {
+    response_format: 'full',
+    question,
+    max_items: 2,
+    max_bytes: fits,
+  })
   expect(links(tight)).toEqual(links(two))
   expect(links(two)[0]).toHaveLength(8)
   expect(tight.structuredContent.check_report).toMatchObject({
@@ -136,13 +145,19 @@ it('cuts the items past max_items before links, and keeps the link that names th
     ]),
   })
   // One byte shorter: the domain's description goes first, and every link stays.
-  const brief = await s.call('get_facts', { question, max_items: 2, max_bytes: fits - 1 })
+  const brief = await s.call('get_context', {
+    response_format: 'full',
+    question,
+    max_items: 2,
+    max_bytes: fits - 1,
+  })
   expect(links(brief)).toEqual(links(two))
   expect(brief.structuredContent.domains).toEqual([
     { id: 'finance', name: 'Finance', summary: 'Orders and returns, by market.' },
   ])
   // Shorter still: the link that names where Orders is defined is the one left.
-  const five = await s.call('get_facts', {
+  const five = await s.call('get_context', {
+    response_format: 'full',
     question,
     max_items: 2,
     max_bytes: byteSize(brief) - 1,
@@ -152,7 +167,12 @@ it('cuts the items past max_items before links, and keeps the link that names th
     [5, 'mentions metric:orders'],
   ])
   const shorter = byteSize(five) - 1
-  const origin = await s.call('get_facts', { question, max_items: 2, max_bytes: shorter })
+  const origin = await s.call('get_context', {
+    response_format: 'full',
+    question,
+    max_items: 2,
+    max_bytes: shorter,
+  })
   expect(links(origin)).toEqual([['mentions metric:orders'], ['mentions metric:orders']])
   expect(byteSize(origin)).toBeLessThanOrEqual(shorter)
 })
@@ -165,14 +185,21 @@ it('lists removed items in resolver order and labels partial matches', async () 
     ...item,
     scope: { metrics: item.scope.metrics, dimensions: [], dimensionValues: [] },
   }
-  const reply = await s.call('get_facts', { question: 'Orders August 2026', max_items: 1 })
+  const reply = await s.call('get_context', {
+    response_format: 'full',
+    question: 'Orders August 2026',
+    max_items: 1,
+  })
   expect(reply.structuredContent).toMatchObject({
-    items: [{ id: item.id, match: 'exact' }],
+    context: [{ id: item.id, match: 'exact' }],
     check_report: { cut_ids: ['itm_partial001'] },
   })
-  const full = await s.call('get_facts', { question: 'Orders August 2026' })
+  const full = await s.call('get_context', {
+    response_format: 'full',
+    question: 'Orders August 2026',
+  })
   const partial = (
-    full.structuredContent.items as { id: string; match: string; applies_note?: string }[]
+    full.structuredContent.context as { id: string; match: string; applies_note?: string }[]
   ).find((i) => i.id === 'itm_partial001')
   expect(partial?.match).toBe('partial')
   expect(partial?.applies_note).toContain('norway')
@@ -195,7 +222,7 @@ it('links never pull unrelated items into the delivery and hidden targets reveal
     to_id: hidden.id,
     label: 'Authored label',
   })
-  const reply = await s.call('get_facts', { question })
+  const reply = await s.call('get_context', { response_format: 'full', question })
   expect(JSON.stringify(reply)).not.toContain('PRIVATE')
   expect(JSON.stringify(reply)).not.toContain(hidden.id)
   expect(reply.structuredContent).toMatchObject({ check_report: { links_withheld: 1 } })
@@ -206,7 +233,9 @@ it('links never pull unrelated items into the delivery and hidden targets reveal
   expect(JSON.stringify(search)).not.toContain(hidden.id)
   hidden.audience = { kind: 'everyone' }
   hidden.scope = { metrics: ['metric:other'], dimensions: [], dimensionValues: [] }
-  expect((await s.call('get_facts', { question })).structuredContent.items).toHaveLength(1)
+  expect(
+    (await s.call('get_context', { response_format: 'full', question })).structuredContent.context,
+  ).toHaveLength(1)
 })
 
 it('hides stopped, inactive, overdue high-risk and out-of-window targets; preserves safe tombstones', () => {
@@ -323,11 +352,20 @@ it('pages backlinks and rejects a cursor after the overlay changes', async () =>
 
 it('restricts historical edition selection and rejects sensitive notes before storing them', async () => {
   const s = setup()
-  expect((await s.call('get_facts', { question, edition: s.data.edition })).isError).toBe(true)
+  expect(
+    (await s.call('get_context', { response_format: 'full', question, edition: s.data.edition }))
+      .isError,
+  ).toBe(true)
   expect(s.editions).toEqual([])
-  expect((await s.call('get_facts', { question, edition: s.data.edition }, true)).isError).not.toBe(
-    true,
-  )
+  expect(
+    (
+      await s.call(
+        'get_context',
+        { response_format: 'full', question, edition: s.data.edition },
+        true,
+      )
+    ).isError,
+  ).not.toBe(true)
   expect(s.editions).toEqual([s.data.edition])
   expect(
     (await s.call('report', { kind: 'missing', question, note: 'Contact person@example.test' }))
@@ -353,7 +391,7 @@ it('records failed queue writes and bounded overflow without failing delivery', 
     (count) => failures.push(count),
     1,
   )
-  await s.call('get_facts', { question })
+  await s.call('get_context', { response_format: 'full', question })
   queue.enqueue(s.records[0]!)
   queue.enqueue(s.records[0]!)
   await queue.flush()
@@ -535,13 +573,16 @@ describe('an item about any market (FR-126, FR-316)', () => {
     }
   }
   const ids = (reply: Awaited<ReturnType<ReturnType<typeof setup>['call']>>) =>
-    (reply.structuredContent.items as { id: string; match: string }[]).map((i) => [i.id, i.match])
+    (reply.structuredContent.context as { id: string; match: string }[]).map((i) => [i.id, i.match])
 
   it('answers a question about a market, or one that names the market without a value', async () => {
     const s = setup()
     anyMarket(s)
-    expect(ids(await s.call('get_facts', { question }))).toEqual([['itm_norway01', 'exact']])
-    const byMarket = await s.call('get_facts', {
+    expect(ids(await s.call('get_context', { response_format: 'full', question }))).toEqual([
+      ['itm_norway01', 'exact'],
+    ])
+    const byMarket = await s.call('get_context', {
+      response_format: 'full',
       question: '',
       metrics: ['Orders'],
       dimension_filters: [{ dimension: 'market', values: [] }],
@@ -554,9 +595,15 @@ describe('an item about any market (FR-126, FR-316)', () => {
   it('stays silent for a question that names no market, and counts the topic as such', async () => {
     const s = setup()
     anyMarket(s)
-    const reply = await s.call('get_facts', { question: 'Orders August 2026' })
-    expect(reply.structuredContent).toMatchObject({ status: 'no_match', items: [] })
-    await s.call('get_facts', { question: 'Orders by market August 2026' })
+    const reply = await s.call('get_context', {
+      response_format: 'full',
+      question: 'Orders August 2026',
+    })
+    expect(reply.structuredContent).toMatchObject({ status: 'no_match', context: [] })
+    await s.call('get_context', {
+      response_format: 'full',
+      question: 'Orders by market August 2026',
+    })
     await new Promise((resolve) => setTimeout(resolve, 0))
     const topics = s.records.flatMap((record) =>
       record.kind === 'delivery' && record.value.topic ? [record.value.topic] : [],
@@ -584,8 +631,8 @@ describe('what a model reads (FR-346)', () => {
       canSelectEdition: false,
     } as const
     const calls: [ServedToolName, object, string[]][] = [
-      ['get_facts', { question }, ['tool_schema_digest', 'overlay']],
-      ['get_facts', { question, response_format: 'concise' }, ['tool_schema_digest', 'overlay']],
+      ['get_context', { question }, ['tool_schema_digest', 'overlay']],
+      ['get_context', { question, response_format: 'full' }, ['tool_schema_digest', 'overlay']],
       ['find_context', { query: 'orders' }, ['tool_schema_digest', 'overlay']],
       ['read_context', { id: 'itm_norway01' }, machine],
       ['get_related', { id: 'metric:orders' }, machine],
@@ -598,8 +645,10 @@ describe('what a model reads (FR-346)', () => {
         expect(reply.structuredContent, `${name} ${field}`).not.toHaveProperty(field)
         expect(text, `${name} ${field}`).not.toHaveProperty(field)
       }
-      // The text carries the sentence first, and everything else the structured result has.
-      expect(Object.keys(text)[0]).toBe('say')
+      // The text carries the sentence first (get_context's status before it), and everything
+      // else the structured result has.
+      const first = name === 'get_context' ? ['status', 'say'] : ['say']
+      expect(Object.keys(text).slice(0, first.length)).toEqual(first)
       expect(text).toEqual(reply.structuredContent)
       expect(Object.keys(reply._meta ?? {}).sort(), name).toEqual([...inMeta].sort())
       expect(reply._meta).toMatchObject({ tool_schema_digest: toolSchemaDigest, overlay: '0' })
@@ -640,19 +689,18 @@ describe('the page of each delivered item in Footnote (FR-347)', () => {
       execute(name, input, principal, 100000, () => {})
   }
   const delivered = (reply: { structuredContent: Record<string, unknown> }) =>
-    [
-      ...((reply.structuredContent.items as Record<string, unknown>[] | undefined) ?? []),
-      ...[reply.structuredContent.context ?? []].flat(),
-    ] as { id: string; title: string; url: string }[]
+    [reply.structuredContent.context ?? []].flat() as { id: string; title: string; url: string }[]
 
   it('gives every delivered item a well-formed link and a line that says where to open it', async () => {
     const call = linked(web)
     for (const [name, input] of [
-      ['get_facts', { question }],
-      ['get_facts', { question, response_format: 'concise' }],
+      ['get_context', { question }],
+      ['get_context', { question, response_format: 'full' }],
       ['find_context', { query: 'Norway' }],
       ['read_context', { id: 'itm_norway01' }],
     ] as const) {
+      // A reply that carries the review in full says it in full; the short ones say who checked.
+      const full = 'response_format' in input || name === 'read_context'
       const reply = await call(name, input)
       const items = delivered(reply)
       expect(
@@ -674,13 +722,13 @@ describe('the page of each delivered item in Footnote (FR-347)', () => {
       }
       expect(reply.content).toHaveLength(2)
       expect(reply.content[1]!.text, name).toBe(
-        `Open in Footnote - Norway closure: ${web}/context/itm_norway01 - ${name === 'find_context' ? 'Checked 4 Aug 2026 by the owner of Finance.' : reviewedSentence}`,
+        `Open in Footnote - Norway closure: ${web}/context/itm_norway01 - ${full ? reviewedSentence : checkedSentence}`,
       )
       // The item the agent may not get is counted at most, never named or linked.
       expect(JSON.stringify(reply)).not.toContain('itm_boardonly01')
       expect(JSON.stringify(reply)).not.toContain('Board only')
     }
-    const withheld = await call('get_facts', { question })
+    const withheld = await call('get_context', { response_format: 'full', question })
     expect(withheld.structuredContent.check_report).toMatchObject({ withheld: 1 })
     const hidden = await call('read_context', { id: 'itm_boardonly01' })
     expect(hidden.structuredContent).toMatchObject({ status: 'no_match' })
@@ -690,7 +738,7 @@ describe('the page of each delivered item in Footnote (FR-347)', () => {
 
   it('links a path on the web app when no address is set, one line per item', async () => {
     const call = linked(null)
-    const reply = await call('get_facts', { question })
+    const reply = await call('get_context', { response_format: 'full', question })
     expect(delivered(reply)[0]!.url).toBe('/context/itm_norway01')
     expect(reply.content[1]!.text).toBe(
       `Open in Footnote - Norway closure: /context/itm_norway01 - ${reviewedSentence}`,
@@ -709,59 +757,53 @@ describe('a concise reply (FR-342)', () => {
   it('keeps what an answer needs and leaves out what read_context gives for one item', async () => {
     const s = setup()
     s.data.items[0]!.notToConclude = 'that customers moved to other markets'
-    const full = await s.call('get_facts', { question })
-    const concise = await s.call('get_facts', { question, response_format: 'concise' })
-    expect(full.structuredContent).toMatchObject({ items: [{ links: [{}, {}] }] })
+    const full = await s.call('get_context', { question, response_format: 'full' })
+    const concise = await s.call('get_context', { question })
+    expect(full.structuredContent).toMatchObject({ context: [{ links: [{}, {}] }] })
     expect(concise.structuredContent).toEqual({
-      say: full.structuredContent.say,
-      edition: '2026-10-07.1',
-      response_format: 'concise',
       status: 'matched',
-      delivery_id: expect.any(String) as string,
-      scope_used: full.structuredContent.scope_used,
-      dates_read: { words: 'August 2026', reads_as: '1-31 Aug 2026 (UTC)' },
-      // The domain by name, without what it is.
-      domains: [{ id: 'finance', name: 'Finance' }],
-      items: [
+      say: full.structuredContent.say,
+      asked: 'Orders in Norway in August 2026',
+      period_read: full.structuredContent.period_read,
+      defined: full.structuredContent.defined,
+      context: [
         {
           id: 'itm_norway01',
-          version: 1,
-          kind: 'event',
           title: 'Norway closure',
           summary: 'Online sales stopped on 4 August.',
-          validity: { start: '2026-08-04', end: null },
-          claim_level: 'fact_only',
-          risk: 'normal',
-          freshness: 'verified',
-          not_to_conclude: 'that customers moved to other markets',
-          // How it was reviewed stays in a concise reply: it is what the answer cites (FR-326).
-          reviewed: {
-            accepted_on: '2026-08-04',
-            accepted_by: 'the owner of Finance',
-            in_edition: '2026-08-04.1',
+          kind: 'event',
+          when: 'From 4 August 2026 on',
+          applies: 'Orders in Norway.',
+          // Who checked it stays in a concise reply: it is what the answer cites (FR-326).
+          checked: { role: 'the owner of Finance', date: '2026-08-04' },
+          source: {
+            url: 'https://example.test/law',
+            quote: 'Online sales are stopped from 4 August.',
           },
+          not_to_conclude: 'that customers moved to other markets',
           url: '/context/itm_norway01',
-          match: 'exact',
-          link_count: 2,
         },
       ],
-      options: [],
-      check_report: full.structuredContent.check_report,
-      instructions: expect.stringContaining('This reply is concise') as string,
+      reply_id: expect.any(String) as string,
+      edition: '2026-10-07.1',
     })
     expect(byteSize(concise)).toBeLessThan(byteSize(full))
     // A delivery all the same, recorded like the full one.
     expect(s.records.filter((r) => r.kind === 'delivery')).toHaveLength(2)
   })
 
-  it('is full unless asked for: the source details of FR-326 stay the default', async () => {
+  it('is concise unless asked for: the source details of FR-326 come in the full reply', async () => {
     const s = setup()
-    const reply = await s.call('get_facts', { question })
-    expect((reply.structuredContent.items as object[])[0]).toMatchObject({
+    const details = {
       body: 'Compare with an unaffected market.',
       evidence: [{ url: 'https://example.test/law' }],
       owner: { team: 'Regulation', role: 'the owner of Finance' },
-    })
+    }
+    const reply = await s.call('get_context', { question, response_format: 'full' })
+    expect((reply.structuredContent.context as object[])[0]).toMatchObject(details)
+    const short = await s.call('get_context', { question })
+    for (const field of Object.keys(details))
+      expect((short.structuredContent.context as object[])[0]).not.toHaveProperty(field)
   })
 
   it('says how every delivered item was reviewed, by role, never by name (FR-326)', async () => {
@@ -773,11 +815,16 @@ describe('a concise reply (FR-342)', () => {
     }
     const sentence = reviewedSentence
     for (const response_format of ['full', 'concise'] as const) {
-      const reply = await s.call('get_facts', { question, response_format })
-      expect((reply.structuredContent.items as object[])[0]).toMatchObject({ reviewed })
+      const reply = await s.call('get_context', { question, response_format })
+      // The full reply says it as the review recorded it, the concise one by who and when.
+      expect((reply.structuredContent.context as object[])[0]).toMatchObject(
+        response_format === 'full'
+          ? { reviewed }
+          : { checked: { role: reviewed.accepted_by, date: reviewed.accepted_on } },
+      )
       // The text beside the item's page says it in one sentence, for a client that reads text.
       expect(reply.content.at(-1)!.text).toBe(
-        `Open in Footnote - Norway closure: /context/itm_norway01 - ${sentence}`,
+        `Open in Footnote - Norway closure: /context/itm_norway01 - ${response_format === 'full' ? sentence : checkedSentence}`,
       )
     }
     for (const [tool, args] of [
@@ -786,19 +833,19 @@ describe('a concise reply (FR-342)', () => {
     ] as const) {
       const reply = await s.call(tool, args)
       expect(reply.content.at(-1)!.text).toContain(
-        tool === 'find_context' ? 'Checked 4 Aug 2026 by the owner of Finance.' : sentence,
+        tool === 'find_context' ? checkedSentence : sentence,
       )
     }
     // Nobody's name is in what an agent receives: the fixture's owner is Jon Abara.
-    const all = await s.call('get_facts', { question })
+    const all = await s.call('get_context', { response_format: 'full', question })
     expect(JSON.stringify(all)).not.toMatch(/Jon|Abara/)
   })
 
   it('leaves the review out for a version with no acceptance on record', async () => {
     const s = setup()
     for (const item of s.data.items) item.review = null
-    const reply = await s.call('get_facts', { question })
-    expect((reply.structuredContent.items as object[])[0]).not.toHaveProperty('reviewed')
+    const reply = await s.call('get_context', { response_format: 'full', question })
+    expect((reply.structuredContent.context as object[])[0]).not.toHaveProperty('reviewed')
     expect(reply.content.at(-1)!.text).toBe(
       'Open in Footnote - Norway closure: /context/itm_norway01',
     )
@@ -832,28 +879,28 @@ describe('a reply about more than one metric', () => {
     const s = setup()
     withRevenue(s.data)
     const revenue = 'How is revenue doing in Norway in August 2026?'
-    const full = await s.call('get_facts', { question: revenue })
-    expect(ids(full.structuredContent.items)).toEqual([
+    const full = await s.call('get_context', { response_format: 'full', question: revenue })
+    expect(ids(full.structuredContent.context)).toEqual([
       { id: 'itm_gmv0001', about: ['Gross sales'] },
       { id: 'itm_net0001', about: ['Net revenue'] },
       // An item about the whole group is about each of its metrics.
       { id: 'itm_revenue01', about: ['Gross sales', 'Net revenue', 'Units sold'] },
     ])
     expect(full.structuredContent.instructions).toContain(groupInstruction)
-    // A concise reply, as the assistant asks for, keeps them and the sentence.
-    const concise = await s.call('get_facts', { question: revenue, response_format: 'concise' })
-    expect(ids(concise.structuredContent.items)).toEqual(ids(full.structuredContent.items))
+    // The concise reply, the default, keeps them and the sentence.
+    const concise = await s.call('get_context', { question: revenue })
+    expect(ids(concise.structuredContent.context)).toEqual(ids(full.structuredContent.context))
     expect(concise.structuredContent.say).toBe(full.structuredContent.say)
-    expect(concise.structuredContent.instructions).toContain(groupInstruction)
   })
 
   it('names them when several metrics are asked for, and not for one metric', async () => {
     const s = setup()
     withRevenue(s.data)
-    const two = await s.call('get_facts', {
+    const two = await s.call('get_context', {
+      response_format: 'full',
       question: 'Orders and net revenue in Norway in August 2026',
     })
-    expect(ids(two.structuredContent.items)).toEqual([
+    expect(ids(two.structuredContent.context)).toEqual([
       { id: 'itm_net0001', about: ['Net revenue'] },
       { id: 'itm_norway01', about: ['Orders'] },
       { id: 'itm_revenue01', about: ['Net revenue'] },
@@ -862,13 +909,16 @@ describe('a reply about more than one metric', () => {
     expect(two.structuredContent.say).not.toContain('is a group of')
     expect(two.structuredContent.instructions).not.toContain(groupInstruction)
     // One metric, even one of the group, leaves the reply as it was: the same bytes as before.
-    const one = await s.call('get_facts', { question })
-    expect(ids(one.structuredContent.items)).toEqual([{ id: 'itm_norway01', about: undefined }])
-    expect(byteSize(one)).toBe(byteSize(await setup().call('get_facts', { question })))
-    const net = await s.call('get_facts', {
+    const one = await s.call('get_context', { response_format: 'full', question })
+    expect(ids(one.structuredContent.context)).toEqual([{ id: 'itm_norway01', about: undefined }])
+    expect(byteSize(one)).toBe(
+      byteSize(await setup().call('get_context', { response_format: 'full', question })),
+    )
+    const net = await s.call('get_context', {
+      response_format: 'full',
       question: 'Net revenue in Norway in August 2026',
     })
-    expect(ids(net.structuredContent.items).every((item) => item.about === undefined)).toBe(true)
+    expect(ids(net.structuredContent.context).every((item) => item.about === undefined)).toBe(true)
     expect(net.structuredContent.instructions).not.toContain(groupInstruction)
   })
 })
@@ -877,14 +927,16 @@ describe('the member names a data tool queried (CON-517)', () => {
   it('gives the context of the metric that points at the member, as for its name', async () => {
     const s = setup()
     const window = { from: '2026-08-01', to: '2026-08-31' }
-    const named = await s.call('get_facts', {
+    const named = await s.call('get_context', {
+      response_format: 'full',
       question: '',
       metrics: ['Orders'],
       dimension_filters: [{ dimension: 'Market', values: ['Norway'] }],
       window,
     })
     for (const metric of ['finance.orders', 'cube:finance.orders']) {
-      const reply = await s.call('get_facts', {
+      const reply = await s.call('get_context', {
+        response_format: 'full',
         question: '',
         metrics: [metric],
         dimension_filters: [{ dimension: 'Market', values: ['Norway'] }],
@@ -893,21 +945,22 @@ describe('the member names a data tool queried (CON-517)', () => {
       expect(reply.structuredContent).toMatchObject({
         status: 'matched',
         scope_used: named.structuredContent.scope_used,
-        items: [{ id: 'itm_norway01' }],
+        context: [{ id: 'itm_norway01' }],
       })
     }
   })
 
   it('says when no metric points at the member, and which one is closest', async () => {
     const s = setup()
-    const reply = await s.call('get_facts', {
+    const reply = await s.call('get_context', {
+      response_format: 'full',
       question: '',
       metrics: ['finance.order_count'],
       window: { from: '2026-08-01', to: '2026-08-31' },
     })
     expect(reply.structuredContent).toMatchObject({
       status: 'need_more_detail',
-      items: [],
+      context: [],
       options: [
         {
           field: 'metrics',
@@ -964,7 +1017,7 @@ describe('a question without dates', () => {
     status: string
     say: string
     next?: string
-    items: { id: string }[]
+    context: { id: string }[]
     scope_used: { window: { start: string; end: string | null } }
     assumed_date?: Record<string, string>
     dates_read?: Record<string, string>
@@ -973,7 +1026,7 @@ describe('a question without dates', () => {
     instructions: string
   }
   const ask = async (s: ReturnType<typeof setup>, input: object) =>
-    (await s.call('get_facts', input)).structuredContent as Dated
+    (await s.call('get_context', { response_format: 'full', ...input })).structuredContent as Dated
   const assumed = {
     date: '2026-10-07',
     time_zone: 'UTC',
@@ -995,9 +1048,10 @@ describe('a question without dates', () => {
       },
     ]) {
       const reply = await ask(s, input)
+      // Read at today, the answer is Partial: nobody said which days were meant.
       expect(reply).toMatchObject({
-        status: 'matched',
-        items: [{ id: 'itm_norway01' }],
+        status: 'partial',
+        context: [{ id: 'itm_norway01' }],
         scope_used: { window: { start: '2026-10-07', end: '2026-10-08' } },
         assumed_date: assumed,
         options: [],
@@ -1011,10 +1065,11 @@ describe('a question without dates', () => {
         `Say so in your answer: "I assumed today, 7 October 2026. Tell me if you meant a different period."`,
       )
     }
-    // The concise reply keeps the note, and the delivery is recorded for today.
-    expect(await ask(s, { question: 'Orders Norway', response_format: 'concise' })).toMatchObject({
-      assumed_date: assumed,
-    })
+    // The concise reply keeps the sentence and the day it read, and the delivery is recorded for
+    // today.
+    const concise = await ask(s, { question: 'Orders Norway', response_format: 'concise' })
+    expect(concise.say).toContain(assumed.sentence)
+    expect(concise).toMatchObject({ period_read: { from: '2026-10-07', provenance: 'assumed' } })
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(
       s.records.flatMap((r) => (r.kind === 'delivery' ? [r.value.scope?.window] : [])),
@@ -1035,7 +1090,7 @@ describe('a question without dates', () => {
       const reply = await ask(s, input)
       expect(reply).toMatchObject({
         status: 'matched',
-        items: [{ id: 'itm_norway01' }],
+        context: [{ id: 'itm_norway01' }],
         scope_used: { window: { start: '2026-10-01', end: '2026-10-08' } },
         dates_read: {
           words: 'this past week',
@@ -1045,7 +1100,7 @@ describe('a question without dates', () => {
       })
       expect(reply).not.toHaveProperty('assumed_date')
       expect(reply.say).toBe(
-        '1 context item applies to Orders in Norway from 1 to 7 October 2026 (the 7 days to today). Nothing else was looked up.',
+        'Checked. 1 context item applies to Orders in Norway from 1 to 7 October 2026 (the 7 days to today). Nothing else was looked up.',
       )
       expect(reply.check_report.statements).not.toContain(statement)
     }
@@ -1072,14 +1127,14 @@ describe('a question without dates', () => {
       { ...item, id: 'itm_ending0001', validity: { start: '2026-09-01', end: '2026-10-08' } },
     )
     const today = await ask(s, { question: 'Orders Norway' })
-    expect(today.items.map((i) => i.id).sort()).toEqual(['itm_ending0001', 'itm_norway01'])
+    expect(today.context.map((i) => i.id).sort()).toEqual(['itm_ending0001', 'itm_norway01'])
     expect(today.check_report.statements).toContain(statement)
     // Asked with dates, the same items are matched on those dates, and nothing is assumed.
     const dated = await ask(s, {
       question: 'Orders Norway this past week',
       window: { from: '2026-10-01', to: '2026-10-14' },
     })
-    expect(dated.items.map((i) => i.id).sort()).toEqual([
+    expect(dated.context.map((i) => i.id).sort()).toEqual([
       'itm_ended00001',
       'itm_ending0001',
       'itm_later00001',
@@ -1129,8 +1184,7 @@ describe('a question without dates', () => {
 
 /*
   get_context, the agent contract (docs/product.md, section 10): the short reply by default, its
-  status carrying the answer state (FR-349), and the overlap notice (FR-350). get_facts, its
-  deprecated id, keeps the reply it had.
+  status carrying the answer state (FR-349), and the overlap notice (FR-350).
 */
 describe('get_context', () => {
   /** A second item about Orders in Norway, which applies to the same question. */
@@ -1195,7 +1249,7 @@ describe('get_context', () => {
     ).not.toHaveProperty('defined')
   })
 
-  it('is Partial when the question gave no dates, and get_facts keeps Checked', async () => {
+  it('is Partial when the question gave no dates', async () => {
     const s = setup()
     const dateless = 'Anything about orders in Norway?'
     const out = (await s.call('get_context', { question: dateless })).structuredContent as {
@@ -1205,10 +1259,6 @@ describe('get_context', () => {
     expect(out.status).toBe('partial')
     expect(out.say.startsWith('Partial. Only part of this is written down.')).toBe(true)
     expect(out.say).toContain('I assumed today, 7 October 2026.')
-    const old = (await s.call('get_facts', { question: dateless })).structuredContent as {
-      status: string
-    }
-    expect(old.status).toBe('matched')
   })
 
   it('says Outdated for an item whose check date passed, and marks the item', async () => {
@@ -1222,13 +1272,6 @@ describe('get_context', () => {
     expect(out.status).toBe('stale')
     expect(out.say).toMatch(/^Outdated\. Some of this may be old\. 1 context item applies /)
     expect(out.context[0]!.may_be_out_of_date).toBe(true)
-    // get_facts keeps the resolver's status and its own words.
-    const legacy = (await s.call('get_facts', { question })).structuredContent as {
-      status: string
-      say: string
-    }
-    expect(legacy.status).toBe('matched')
-    expect(legacy.say).toMatch(/^1 context item applies /)
   })
 
   it('says Partial only when no item covers the whole question', async () => {
@@ -1315,7 +1358,7 @@ describe('get_context', () => {
       check_report: { matched: 1 },
     })
     expect(out.instructions).toMatch(/call read_context with the item id/)
-    // The entry's own fields first, then what get_facts gives beside them.
+    // The entry's own fields first, then the rest of the item.
     expect(Object.keys(out.context[0]!).slice(0, 4)).toEqual(['id', 'title', 'summary', 'kind'])
     expect(out.context[0]).toMatchObject({
       kind: 'event',

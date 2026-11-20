@@ -171,11 +171,8 @@ export function isToolName(value: unknown): value is ToolName {
   return typeof value === 'string' && Object.hasOwn(tools, value)
 }
 
-/**
- * What the tool service runs, by name: the six tools but suggest_context, which the draft tool
- * writes, and get_facts, no tool any more, the reply a draft's preview and the evals read.
- */
-export type ServedToolName = Exclude<ToolName, 'suggest_context'> | 'get_facts'
+/** What the tool service runs, by name: the six tools but suggest_context, which the draft tool writes. */
+export type ServedToolName = Exclude<ToolName, 'suggest_context'>
 
 /** A tool's output schema for the MCP server, when it declares one. */
 export function toolOutputSchema(name: ToolName) {

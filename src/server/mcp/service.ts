@@ -67,7 +67,6 @@ import {
   askedMetrics,
   contextSaid,
   contextVoice,
-  factVoice,
   failedSaid,
   findSaid,
   readSaid,
@@ -80,13 +79,11 @@ import {
   type Said,
 } from '../../domain/say.ts'
 import {
-  contextInput,
   findContextInput,
   getContextInput,
   readInput,
   relatedInput,
   reportInput,
-  type ContextInput,
   type GetContextInput,
 } from './schemas.ts'
 import { toolSchemaDigest, type ServedToolName } from './tools.ts'
@@ -187,16 +184,12 @@ export const resultFor = (output: Record<string, unknown>, isError = false): Too
 // Reserve space for the JSON-RPC/SSE envelope, the bounded request id and digest metadata.
 export const byteSize = (result: ToolResult) => Buffer.byteLength(JSON.stringify(result)) + 384
 const hour = (now: Date) => now.toISOString().slice(0, 13) + ':00:00.000Z'
-const linkInstructions =
-  agentInstructions + ' To follow a useful item link, call read_context with its id.'
-/** The same, for the agent contract's tools. */
+/** What a reply's links are for, and how to follow one. */
 const contextLinkInstructions =
   agentInstructions + ' To follow a useful link, call read_context with the item id.'
 /** FR-322: what a link is and how to follow one, in the reply that lists them. */
 export const linkStatement =
   'A link shows what a text refers to. It does not mean the item applies to your question.'
-/** Added to the instructions when a reply gives the definitions a question asks for. */
-export const definitionInstruction = `For what a metric means, quote definitions: the source's own words, and where they come from. Keep the facts apart as what is added to the definition, and never make up a definition.`
 const relatedInstructions =
   agentInstructions +
   ' To read a neighbour item in full, call read_context with its id. A term node gives what its word means, as a person wrote it in Definitions: read the words by it and say whose words they are, but never give it as a checked source. Follow a link only when it helps answer the question.'
@@ -249,7 +242,7 @@ export type PeriodRead = {
  * no days need more detail, never every date.
  */
 export function scopeOf(
-  input: Pick<ContextInput, 'question' | 'metrics' | 'dimension_filters' | 'window' | 'period'>,
+  input: Pick<GetContextInput, 'question' | 'metrics' | 'dimension_filters' | 'window' | 'period'>,
   bundle: ServingBundle,
   today: string,
   calendar: Calendar = UTC_CALENDAR,
@@ -407,35 +400,12 @@ export function contextEntry(
   }
 }
 /** The fields a full reply's item has beside the entry: what the entry already says, it leaves out. */
-const entryKeys = new Set([
-  'id',
-  'title',
-  'summary',
-  'kind',
-  'not_to_conclude',
-  'url',
-  'conflicts_with',
-])
-/** Added to the instructions when a reply gives the definitions a question asks for, in a voice. */
-const definitionsFor = (many: string) =>
-  `For what a metric means, quote definitions: the source's own words, and where they come from. Keep the ${many} apart as what is added to the definition, and never make up a definition.`
+const entryKeys = new Set(['id', 'title', 'summary', 'kind', 'not_to_conclude', 'url'])
+/** Added to the instructions when a reply gives the definitions a question asks for. */
+export const definitionInstruction = `For what a metric means, quote definitions: the source's own words, and where they come from. Keep the ${concepts.contextItem.name}s apart as what is added to the definition, and never make up a definition.`
 /** Said when a metric group was asked for: its metrics are separate figures. */
 export const groupInstruction =
   'A metric group was asked for, and say names its metrics: they are separate figures, so answer for each one and say so, or ask which one the person means; never give the group as one figure.'
-/** Said in a concise reply: where the rest of an item is (FR-342). */
-export const conciseInstruction =
-  "This reply is concise: an item's body, evidence, owner and links are left out. Read an item with read_context before you quote its evidence or follow its links."
-/** A delivered item in a concise reply: what an answer needs, and how many links it has. */
-function conciseItem({
-  body: _body,
-  edition: _edition,
-  evidence: _evidence,
-  owner: _owner,
-  links,
-  ...item
-}: ReturnType<typeof itemOutput> & { match: string }) {
-  return { ...item, link_count: links.length }
-}
 /** At most `max` links in their order, besides every link to keep, which a cut leaves to last. */
 export function trimLinks(links: readonly Link[], max: number, keep: (link: Link) => boolean) {
   let room = max - links.filter(keep).length
@@ -774,13 +744,11 @@ export function createToolService(
       if (name === 'find_context')
         return await outcome(input, principal, maxBytes, onEdition, today, calendar)
       const args =
-        name === 'get_facts'
-          ? contextInput.parse(input)
-          : name === 'get_context'
-            ? getContextInput.parse(input)
-            : name === 'read_context'
-              ? readInput.parse(input)
-              : relatedInput.parse(input)
+        name === 'get_context'
+          ? getContextInput.parse(input)
+          : name === 'read_context'
+            ? readInput.parse(input)
+            : relatedInput.parse(input)
       const edition = 'edition' in args ? args.edition : undefined
       if (edition && !principal.canSelectEdition)
         return failure('Selecting an edition requires edition scope.')
@@ -792,11 +760,9 @@ export function createToolService(
         tool_schema_digest: toolSchemaDigest,
       }
       const limit = Math.min(maxBytes, 'max_bytes' in args ? args.max_bytes : 100000)
-      if (name === 'get_facts' || name === 'get_context') {
-        const scoped = args as ContextInput | GetContextInput
-        // get_context speaks the agent contract (docs/product.md, section 10); get_facts is no
-        // tool any more, only the reply a draft's preview and the evals read.
-        const v1 = name === 'get_context'
+      if (name === 'get_context') {
+        // The agent contract's reply (docs/product.md, section 10).
+        const scoped = args as GetContextInput
         // A question without dates is read at today, and the reply says so.
         const { scope, period } = scopeOf(scoped, bundle, today, calendar)
         const assumed =
@@ -881,15 +847,13 @@ export function createToolService(
         const definitions = defined.map((term) => definitionOf(bundle, term, today))
         // M9: what each asked metric is, in the first sentence of its source's words, in every
         // get_context reply, so the agent never calls an amount a count. A cut never takes it.
-        const meant = v1
-          ? metrics
-              .flatMap((key) => {
-                const term = bundle.terms.find((t) => t.key === key)
-                const line = term && termShown(bundle, term) ? definitionLine(term) : null
-                return line ? [line] : []
-              })
-              .slice(0, 5)
-          : []
+        const meant = metrics
+          .flatMap((key) => {
+            const term = bundle.terms.find((t) => t.key === key)
+            const line = term && termShown(bundle, term) ? definitionLine(term) : null
+            return line ? [line] : []
+          })
+          .slice(0, 5)
         // D7: dates the strict reader refused come back with the reading a person would mean, as
         // a choice in options, when the caller gave neither window nor period words.
         const loose =
@@ -906,19 +870,17 @@ export function createToolService(
           : null
         // The words of the question a person defined (FR-138): what they mean here, never a
         // checked source, so they change neither the items nor the answer state.
-        const terms = v1 ? termsOf(bundle, scoped.question) : []
+        const terms = termsOf(bundle, scoped.question)
         const delivery = randomUUID()
         const concise = scoped.response_format === 'concise'
         const instructions = withCaveats(
           [
-            v1 ? contextLinkInstructions : linkInstructions,
-            ...(definitions.length
-              ? [v1 ? definitionsFor(`${concepts.contextItem.name}s`) : definitionInstruction]
-              : []),
+            contextLinkInstructions,
+            ...(definitions.length ? [definitionInstruction] : []),
             ...(groups.length ? [groupInstruction] : []),
             ...(assumed ? [assumed.instruction] : []),
           ].join(' '),
-          v1 ? [{ not_to_conclude: true }] : items,
+          [{ not_to_conclude: true }],
         )
         const dated = {
           ...(assumed ? { assumed_date: assumed.note } : {}),
@@ -927,28 +889,26 @@ export function createToolService(
         // The domains the question is about, with what their owners wrote about them (FR-813).
         const domains = askedDomains(bundle, resolution.scope, concise)
         // The reply's status, which carries the answer state (FR-349), as the items stand after
-        // any cut: get_facts keeps the resolver's.
+        // any cut.
         const statusNow = () =>
-          v1
-            ? replyStatus({
-                status: resolution.status,
-                items: items.map((item) => ({
-                  match: item.match,
-                  unverified: item.freshness === 'unverified',
-                })),
-                uncovered: resolution.scope
-                  ? uncoveredParts(
-                      bundle,
-                      resolution.scope,
-                      items.map((item) => ({
-                        item: index.item(item.id) as ServingItem,
-                        match: item.match,
-                      })),
-                    )
-                  : { metrics: [], values: [] },
-                assumed: !!assumed,
-              })
-            : resolution.status
+          replyStatus({
+            status: resolution.status,
+            items: items.map((item) => ({
+              match: item.match,
+              unverified: item.freshness === 'unverified',
+            })),
+            uncovered: resolution.scope
+              ? uncoveredParts(
+                  bundle,
+                  resolution.scope,
+                  items.map((item) => ({
+                    item: index.item(item.id) as ServingItem,
+                    match: item.match,
+                  })),
+                )
+              : { metrics: [], values: [] },
+            assumed: !!assumed,
+          })
         // FR-344: what the reply read and did not, as it stands after any cut.
         const said = () => {
           const out = withTermsNext(
@@ -969,7 +929,7 @@ export function createToolService(
                 groups,
                 about: metrics.length > 1,
               },
-              v1 ? contextVoice : factVoice,
+              contextVoice,
             ),
             terms,
           )
@@ -998,7 +958,7 @@ export function createToolService(
             return { ...entry, ...rest }
           })
         }
-        const renderV1 = () => {
+        const render = () => {
           const head = {
             status: statusNow(),
             ...saidFields(said()),
@@ -1033,39 +993,6 @@ export function createToolService(
                 instructions,
               })
         }
-        const out = {
-          ...common,
-          status: resolution.status,
-          delivery_id: delivery,
-          scope_used: resolution.scope,
-          ...dated,
-          ...(domains.length ? { domains } : {}),
-          ...(definitions.length ? { definitions } : {}),
-          items,
-          options,
-          check_report: check,
-          instructions,
-        }
-        // FR-342: the concise reply, without what read_context gives for one item.
-        const renderLegacy = () =>
-          concise
-            ? resultFor({
-                ...saidFields(said()),
-                ...common,
-                response_format: 'concise',
-                status: out.status,
-                delivery_id: delivery,
-                scope_used: out.scope_used,
-                ...dated,
-                ...(domains.length ? { domains } : {}),
-                ...(definitions.length ? { definitions } : {}),
-                items: items.map(conciseItem),
-                options: out.options,
-                check_report: check,
-                instructions: `${instructions} ${conciseInstruction}`,
-              })
-            : resultFor({ ...saidFields(said()), ...out })
-        const render = () => (v1 ? renderV1() : renderLegacy())
         const cutItem = () => {
           check.cut = true
           check.cut_ids.push(items.pop()!.id)
@@ -1088,15 +1015,6 @@ export function createToolService(
             item.links = []
           }
         while (items.length && byteSize(render()) > limit) cutItem()
-        const deliveredIds = new Set(items.map((i) => i.id))
-        // get_facts names a conflict on the item; get_context says disagrees_with in its entry.
-        if (!v1)
-          for (const item of items) {
-            const conflicts = bundle.items
-              .find((i) => i.id === item.id)!
-              .conflicts.filter((id) => deliveredIds.has(id))
-            if (conflicts.length) Object.assign(item, { conflicts_with: conflicts })
-          }
         const output = render()
         if (byteSize(output) > limit)
           return failure('The required report cannot fit this size limit. Increase max_bytes.')
