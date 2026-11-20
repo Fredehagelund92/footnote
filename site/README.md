@@ -32,7 +32,7 @@ A link to a page of the docs names it without a version, `/docs/get-started/`, s
 
 The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks. The page's fonts are the site's files with each font's whole range of weights (`landing/styles/fonts.css`), so its headline's 770 is drawn as designed.
 
-`e2e/landing.spec.ts` checks the first screen on the built site: its three states by mouse and keyboard, the finished state with reduced motion (no canvas, nothing moving), axe at WCAG AA in each state, the release words, and screenshot baselines. Each platform keeps its own baselines, and one with none skips them: `npm run test:smoke -- e2e/landing.spec.ts --update-snapshots` writes them.
+`e2e/landing.spec.ts` checks the first screen on the built site: its three states by mouse and keyboard, the finished state with reduced motion (no canvas, nothing moving), axe at WCAG 2.2 AA in each state, with motion the dotted leaders ending on their marks once the animations are done, the release words, and screenshot baselines. Each platform keeps its own baselines, and one with none skips them: `npm run test:smoke -- e2e/landing.spec.ts --update-snapshots` writes them.
 
 ### The release switch
 

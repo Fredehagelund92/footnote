@@ -72,6 +72,7 @@ test('with motion, the leaders end on their marks once the animations are done',
   await page.waitForFunction(() => {
     const root = document.querySelector('.hero')
     return !document.getAnimations().some((a) => {
+      if (a.playState === 'finished') return false
       const target = (a.effect as KeyframeEffect | null)?.target
       return !!target && !!root?.contains(target)
     })
@@ -84,7 +85,12 @@ test('with motion, the leaders end on their marks once the animations are done',
       (m) => m.offsetParent,
     )
     return [...root.querySelectorAll('.wires path')].map((path, i) => {
-      const [x, y] = path.getAttribute('d')!.slice(1).split(/[ VHQ]/)[0]!.split(',').map(Number)
+      const [x, y] = path
+        .getAttribute('d')!
+        .slice(1)
+        .split(/[ VHQ]/)[0]!
+        .split(',')
+        .map(Number)
       const r = marks[i]!.getBoundingClientRect()
       const person = !!marks[i]!.closest('.person')
       const ex = (person ? r.right + 5 : r.left - 5) - box.left
