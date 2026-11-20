@@ -1,42 +1,23 @@
 ---
-/* The ground's moving part (shared/ground.ts). On the landing page marks land on the paper around
-   the sheet; in the docs, less often, on the paper of the sidebar. A phone shows no paper beside
-   the page, so nothing lands there. */
-interface Props {
-  where: 'landing' | 'docs'
-}
+/* The ground's moving part (shared/ground.ts), on the 404 page: marks land on the paper around the
+   sheet. A phone shows no paper beside the page, so nothing lands there. */
 ---
-
-<footnote-ground data-where={Astro.props.where} hidden></footnote-ground>
 
 <script>
   import { ground } from './ground.ts'
 
-  const where = document.querySelector<HTMLElement>('footnote-ground')?.dataset.where
   const gap = 28
 
-  if (where === 'landing')
-    ground({
-      areas: () => {
-        const sheet = document.querySelector('.sheet')?.getBoundingClientRect()
-        if (!sheet) return []
-        return [
-          { left: 0, top: 0, right: sheet.left - gap, bottom: innerHeight },
-          { left: sheet.right + gap, top: 0, right: innerWidth, bottom: innerHeight },
-        ]
-      },
-      every: [2600, 4800],
-      strength: 0.55,
-    })
-
-  if (where === 'docs')
-    ground({
-      areas: () => {
-        if (!matchMedia('(min-width: 50em)').matches) return []
-        const pane = document.querySelector('.sidebar-pane')?.getBoundingClientRect()
-        return pane ? [{ left: pane.left, top: pane.top, right: pane.right - gap / 2, bottom: pane.bottom }] : []
-      },
-      every: [7000, 12000],
-      strength: 0.4,
-    })
+  ground({
+    areas: () => {
+      const sheet = document.querySelector('.sheet')?.getBoundingClientRect()
+      if (!sheet) return []
+      return [
+        { left: 0, top: 0, right: sheet.left - gap, bottom: innerHeight },
+        { left: sheet.right + gap, top: 0, right: innerWidth, bottom: innerHeight },
+      ]
+    },
+    every: [2600, 4800],
+    strength: 0.55,
+  })
 </script>

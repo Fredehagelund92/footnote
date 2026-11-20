@@ -67,7 +67,6 @@ export default defineConfig({
         './shared/fonts.css',
         './shared/tokens.css',
         './shared/chrome.css',
-        './shared/ground.css',
         './src/styles/theme.css',
       ],
       sidebar: sidebar(pages),
