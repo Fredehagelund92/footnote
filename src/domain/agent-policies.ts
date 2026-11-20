@@ -43,8 +43,8 @@ export const policySkipWords: Record<PolicySkip, string> = {
   risk: 'it is not low risk',
   clash: 'it clashes with live context',
   needs_care: 'something in it needs care',
-  daily_cap: 'the policy published its most for today',
-  not_owner: 'the person who set the policy is no longer an owner of the domain',
+  daily_cap: 'the permission published its most for today',
+  not_owner: 'the person who gave the permission is no longer an owner of the domain',
   tool_off: 'suggest_context is off',
   checks: 'a check did not pass',
 }

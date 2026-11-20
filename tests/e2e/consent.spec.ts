@@ -144,6 +144,18 @@ test('signed out, sign in on the page, allow, and the agent reads until an admin
   const can = page.getByRole('region', { name: 'It will be able to' })
   await expect(can.getByText('Read context', { exact: true })).toBeVisible()
   await expect(can.getByText('Suggest changes', { exact: true })).toBeVisible()
+  // What the person agrees to is true: an owner checks each suggestion unless they let this agent
+  // publish without review (FR-421), and no line on the page says the owner checks without it.
+  await expect(
+    can.getByText(
+      'Send suggestions in your name, after you say yes. An owner of the domain checks each one, unless they let this agent publish some new ones without review.',
+      { exact: true },
+    ),
+  ).toBeVisible()
+  const said = (await page.locator('body').innerText()).split(/\n|(?<=\.) /)
+  const checks = said.filter((line) => /checks each one|waits for an owner/i.test(line))
+  expect(checks.length).toBeGreaterThan(0)
+  for (const line of checks) expect(line).toContain('without review')
   await expect(page.getByText('Signed in as Ines Duarte')).toBeVisible()
   await page.getByRole('button', { name: 'Allow', exact: true }).click()
   await agent.back(true)

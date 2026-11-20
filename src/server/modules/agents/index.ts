@@ -4,6 +4,7 @@ export {
   autoPublishState,
   domainPolicies,
   endPolicy,
+  publishingPermissions,
   publishUnderPolicy,
   setPolicy,
   switchAutoPublish,

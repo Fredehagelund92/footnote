@@ -123,8 +123,9 @@ const decisionsOf = async (id: string) =>
       decided_by: string
       capacity: string
       auto_policy_id: string | null
+      reason: string | null
     }>(
-      `select id::text, decided_by::text, capacity::text, auto_policy_id::text from decisions
+      `select id::text, decided_by::text, capacity::text, auto_policy_id::text, reason from decisions
         where proposal_id=$1 order by decided_at`,
       [id],
     )
@@ -199,18 +200,23 @@ describe('publishing without review', () => {
       status: 'suggestion_published',
       policy: { published: true, set_by: 'owner', domain: 'Finance' },
     })
-    expect(reply.message).toMatch(/Published under owner's policy for Finance/)
+    // In the app's words, which the agent relays to the person: never "policy".
+    expect(reply.message).toBe(
+      "Published with owner's permission to publish without review in Finance: agents get it now. An owner of Finance can undo it from its history.",
+    )
     const p = await proposal(reply.draft_id)
     expect(p.state).toBe('accepted')
     expect(await live(p.item_id!)).toBe(true)
     expect(reply.url).toBe(`http://localhost:5173/context/${p.item_id}`)
 
-    // The decision names the owner who set the policy, with a link to it.
+    // The decision names the owner who set the policy, with a link to it, in the app's words.
     const [decision] = await decisionsOf(reply.draft_id)
     expect(decision).toMatchObject({
       decided_by: people.owner,
       capacity: 'owner',
       auto_policy_id: policy.id,
+      reason:
+        "Published with owner's permission for Test client to publish without review in Finance.",
     })
     // The history log names the owner as who decided, with the agent and the policy.
     const { rows: audit } = await admin.query<{ actor: string; details: Record<string, unknown> }>(
@@ -287,7 +293,7 @@ describe('publishing without review', () => {
     const second = await suggest(app.token)
     expect(second.policy).toMatchObject({
       published: false,
-      waits_because: 'the policy published its most for today',
+      waits_because: 'the permission published its most for today',
     })
   })
 
@@ -328,7 +334,7 @@ describe('publishing without review', () => {
       const reply = await suggest(app.token)
       expect(reply.policy).toMatchObject({
         published: false,
-        waits_because: 'the person who set the policy is no longer an owner of the domain',
+        waits_because: 'the person who gave the permission is no longer an owner of the domain',
       })
       expect(await decisionsOf(reply.draft_id)).toEqual([])
     } finally {
@@ -468,6 +474,114 @@ describe('publishing without review', () => {
       [app.agentId],
     )
     expect(audit).toEqual([{ actor: people.author }])
+  })
+})
+
+/*
+  S2 of the agent write path: an agent is told at connect where it may publish without review, so it
+  can tell the person before their yes. One line for each open permission that waits for nothing,
+  after the first 512 characters, with the same tools as any agent.
+*/
+describe('the instructions an agent gets at connect', () => {
+  const line = (perDay: number) =>
+    `In Finance, owner lets you publish new low-risk items without review, up to ${perDay} a day: say so before the person says yes.`
+  /** What an agent reads when it connects with this token: the instructions and its tools. */
+  async function connected(token: string) {
+    const wire = await mcpClient(token)
+    try {
+      const { tools } = await wire.listTools()
+      return { instructions: wire.getInstructions() ?? '', tools: tools.map((t) => t.name) }
+    } finally {
+      await wire.close()
+    }
+  }
+  const six = [
+    'get_context',
+    'find_context',
+    'read_context',
+    'report',
+    'suggest_context',
+    'get_related',
+  ]
+
+  it('names the domain, the owner and the limit of an open permission, and changes nothing else', async () => {
+    const plain = await connect('author')
+    const app = await connect('author')
+    await switchTo(boss, true)
+    expect((await setPolicy(owner, app.agentId, { perDay: 4 })).status).toBe(200)
+    const none = await connected(plain.token)
+    const held = await connected(app.token)
+    expect(held.instructions).toContain(`\n${line(4)}\n`)
+    expect(held.instructions.split(line(4))).toHaveLength(2)
+    expect(held.instructions.replace(`${line(4)}\n`, '')).toBe(none.instructions)
+    expect(held.instructions.slice(0, 512)).toBe(none.instructions.slice(0, 512))
+    expect(none.instructions).not.toContain('lets you publish new low-risk items without review')
+    expect(held.tools.sort()).toEqual([...six].sort())
+    expect(none.tools.sort()).toEqual([...six].sort())
+  })
+
+  it('names none that is ended or paused', async () => {
+    await switchTo(boss, true)
+    const none = 'lets you publish new low-risk items without review'
+    // Ended by the person the agent works for.
+    const ended = await connect('author')
+    const policy = (await (await setPolicy(owner, ended.agentId)).json()) as { id: string }
+    expect((await connected(ended.token)).instructions).toContain(line(10))
+    const author = await signedIn('author')
+    expect(
+      (await author.api(`/agent-policies/${policy.id}/end`, { reason: 'Checking it first' }))
+        .status,
+    ).toBe(200)
+    expect((await connected(ended.token)).instructions).not.toContain(none)
+
+    // Paused: the owner who set it is no longer an owner of Finance.
+    const moved = await connect('author')
+    expect((await setPolicy(owner, moved.agentId)).status).toBe(200)
+    await admin.query(
+      "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'owner')",
+      [people.stranger],
+    )
+    await admin.query(
+      `update area_assignments set valid_at = tstzrange(lower(valid_at), now())
+        where area_id='finance' and person_id=$1 and role='owner' and upper_inf(valid_at)`,
+      [people.owner],
+    )
+    try {
+      const notOwner = await connected(moved.token)
+      expect(notOwner.instructions).not.toContain(none)
+      expect(notOwner.tools.sort()).toEqual([...six].sort())
+    } finally {
+      await admin.query(
+        `update area_assignments set valid_at = tstzrange(lower(valid_at), now())
+          where area_id='finance' and person_id=$1 and role='owner' and upper_inf(valid_at)`,
+        [people.stranger],
+      )
+      await admin.query(
+        "insert into area_assignments (area_id,person_id,role) values ('finance',$1,'owner')",
+        [people.owner],
+      )
+    }
+
+    // Paused: suggest_context is off for the agent, which then lists five tools. Another person's
+    // app, since a new agent of the same person and app keeps an admin's switch.
+    const off = await connect('stranger')
+    expect((await setPolicy(owner, off.agentId)).status).toBe(200)
+    expect(
+      (
+        await boss.api(`/agents/${off.agentId}/tools`, {
+          tool: 'suggest_context',
+          on: false,
+          reason: 'Trying read-only for this agent',
+        })
+      ).status,
+    ).toBe(200)
+    const listed = (await (await boss.api('/areas/finance/agent-policies')).json()) as {
+      policies: { agentId: string; pause: string | null }[]
+    }
+    expect(listed.policies.find((p) => p.agentId === off.agentId)?.pause).toBe('tool_off')
+    const toolOff = await connected(off.token)
+    expect(toolOff.instructions).not.toContain(none)
+    expect(toolOff.tools.sort()).toEqual(six.filter((t) => t !== 'suggest_context').sort())
   })
 })
 

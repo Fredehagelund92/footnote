@@ -195,8 +195,9 @@ AI agent                Footnote MCP server         Footnote login server       
 - **Suggestions.** With the `propose` scope, which a sign-in grants by default and the consent
   page names, a person's app may call `suggest_context` (FR-121), on by default: after the person
   says yes, it saves the suggestion as the person and sends it for review, so it waits for the
-  owner of its domain, who checks it and publishes it. If the review checks refuse it, it stays the
-  person's draft. It is the only MCP call that names the person, as the proposer, on the proposal and its history; the
+  owner of its domain, who checks it and publishes it, unless that owner lets the agent
+  [publish without review](../help/publish-without-review.md) there (FR-421). If the review checks
+  refuse it, it stays the person's draft. It is the only MCP call that names the person, as the proposer, on the proposal and its history; the
   request log still keeps only `signed-in`. A dev token names no person, so it is refused. When the
   app can show forms, the tool asks its open questions there first, in a request state bound to the
   tool, the person and the app (`FOOTNOTE_MCP_STATE_KEY_FILE`, below).
