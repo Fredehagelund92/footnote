@@ -28,8 +28,11 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'chromium' },
+    { name: 'chromium', testIgnore: /j84-/ },
     { name: 'reduced-motion', testMatch: /j29-motion/, use: { reducedMotion: 'reduce' } },
+    // The timings (j84) are the speed of the page on its own: CI runs this project apart, one test
+    // at a time, since a runner's cores shared with four other specs slow every frame.
+    { name: 'scale', testMatch: /j84-/ },
   ],
   // A production build served as is: no module is compiled on first visit, so a journey never
   // waits on the dev server under parallel load. Types are checked by the check job, so the build
