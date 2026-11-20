@@ -122,6 +122,11 @@ export interface DefinitionSource {
   readonly name: string
   /** The interface its connector was written to: 3, or 2 for the demo. */
   readonly interfaceVersion: SourceInterfaceVersion
+  /**
+   * How its connector computes change marks (the manifest's `markVersion`). A read under another
+   * version than the last one stores the new marks without flagging items (CON-116).
+   */
+  readonly markVersion: number
   /** The server's configuration it reads, shown read only in Sources. */
   readonly serverSettings: readonly ServerSetting[]
   /**

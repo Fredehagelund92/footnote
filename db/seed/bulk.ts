@@ -14,6 +14,7 @@ import {
   demoWarnings,
   termAreas,
 } from './fixtures/cube-model.ts'
+import { manifest as cubeManifest } from '../../src/connectors/cube/manifest.ts'
 import { ABOUT_BUSINESS_STARTER } from '../../src/domain/about-business.ts'
 import { contentDigest } from '../../src/domain/canonical.ts'
 import type { ContextItem } from '../../src/domain/item.ts'
@@ -157,9 +158,10 @@ async function seedDefinitions(
   const snapshot = async (fetchedAt: string, version: string, seen: number, warnings: unknown) =>
     (
       await client.query<{ id: string }>(
-        `insert into connector_snapshots (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings)
-         values ('cube',$1,'ok',$2,1200,$3,$4) returning id`,
-        [version, fetchedAt, seen, JSON.stringify(warnings)],
+        `insert into connector_snapshots (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,mark_version)
+         values ('cube',$1,'ok',$2,1200,$3,$4,$5) returning id`,
+        // The marks are the connector's own, so its next read compares them as they are.
+        [version, fetchedAt, seen, JSON.stringify(warnings), cubeManifest.markVersion],
       )
     ).rows[0]!.id
   const first = await snapshot(

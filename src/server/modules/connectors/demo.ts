@@ -20,6 +20,7 @@ export function createDemoSource(): DefinitionSource {
     type: 'demo',
     name: 'Demo definitions',
     interfaceVersion: INTERFACE_VERSION,
+    markVersion: 1,
     serverSettings: [],
     async read() {
       const members = [

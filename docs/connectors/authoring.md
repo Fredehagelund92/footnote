@@ -148,7 +148,7 @@ The change mark is the SHA-256 of what the definition means, built with `meaning
 
 If the tool has two shapes for one meaning, normalise them before you hash: a migration in the tool must not flag every item.
 
-`meaningMark` leaves out empty values, so an absent key and an empty one hash the same. When you change how you compute marks, bump `markVersion`.
+`meaningMark` leaves out empty values, so an absent key and an empty one hash the same. When you change how you compute marks, bump `markVersion`: the first read after it stores the new marks without flagging any item, and tells the owners once.
 
 ### Nothing that is a calculation crosses
 

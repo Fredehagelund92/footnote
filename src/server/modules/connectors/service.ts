@@ -3,6 +3,7 @@ import type { Database } from '../../db/database.ts'
 import { publishSourceDomains } from '../editions/index.ts'
 import {
   noticeDomainChanges,
+  noticeRebaselined,
   noticeStaleLinks,
   reconcileSourceFlags,
   type DomainChange,
@@ -37,6 +38,11 @@ export interface SyncResult {
   staleLinkNotices: number
   /** Vocabulary terms told that their definition's domain changed in the source. */
   domainNotices: number
+  /**
+   * Definitions whose new mark this read stored without flagging, because their connector
+   * computes marks another way now (CON-116).
+   */
+  rebaselined: number
   /** The edition that took the domains the source gives now, when they changed (FR-215). */
   domainEdition: string | null
 }
@@ -156,8 +162,9 @@ export class ConnectorService {
         definitions_seen: number
         warnings: SourceWarning[]
         content_digest: Buffer | null
+        mark_version: number | null
       }>(
-        `select id, source_version, definitions_seen, warnings, content_digest
+        `select id, source_version, definitions_seen, warnings, content_digest, mark_version
            from connector_snapshots where connector_id=$1 and status <> 'failed'
           order by fetched_at desc limit 1`,
         [source.id],
@@ -191,6 +198,7 @@ export class ConnectorService {
           flags: { raised: 0, cleared: 0 },
           staleLinkNotices: 0,
           domainNotices: 0,
+          rebaselined: 0,
           domainEdition: null,
         }
       if (origin === 'server')
@@ -238,8 +246,8 @@ export class ConnectorService {
       const status = snapshot ? (snapshot.complete ? 'ok' : 'partial') : 'failed'
       const [saved] = await tx.query<{ id: string }>(
         `insert into connector_snapshots
-         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision)
-         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10) returning id`,
+         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision,mark_version)
+         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
         [
           source.id,
           kept ? kept.source_version : (snapshot?.sourceVersion ?? null),
@@ -255,6 +263,8 @@ export class ConnectorService {
               : null,
           status === 'ok' ? (snapshot?.cursor ?? null) : null,
           kind.revision,
+          // A kept read stands for the marks the last one stored.
+          kept ? kept.mark_version : source.markVersion,
         ],
       )
       const snapshotId = saved!.id
@@ -290,31 +300,56 @@ export class ConnectorService {
           flags: { raised: 0, cleared: 0 },
           staleLinkNotices: 0,
           domainNotices: 0,
+          rebaselined: 0,
           domainEdition: null,
         }
+      const rebaselined: string[] = []
       const domainChanges: DomainChange[] = []
       for (const definition of snapshot.definitions) {
         const [previous] = await tx.query<{
           connector_id: string
           change_mark: string
+          source_mark: string | null
           area_hint: string | null
           missing_since_snapshot: string | null
           handed_over: boolean
+          mark_version: number | null
         }>(
-          `select d.connector_id, d.change_mark, d.area_hint, d.missing_since_snapshot,
-                  c.removed_at is not null as handed_over
-             from definitions d join connectors c on c.id = d.connector_id where d.ref=$1`,
+          `select d.connector_id, d.change_mark, d.source_mark, d.area_hint, d.missing_since_snapshot,
+                  c.removed_at is not null as handed_over, s.mark_version
+             from definitions d join connectors c on c.id = d.connector_id
+             left join connector_snapshots s on s.id = d.last_seen_snapshot
+            where d.ref=$1`,
           [definition.ref],
         )
         if (previous && previous.connector_id !== source.id && !previous.handed_over)
           throw new Error('Definition belongs to another connector')
+        // What the source gave for it when it last read it, under that read's mark version.
+        const lastMark = previous ? (previous.source_mark ?? previous.change_mark) : null
+        // The connector computes marks another way than when it last read this one (CON-116): a
+        // mark that moved says nothing about the member, so it keeps the mark items recorded, and
+        // the source's new one is kept beside it for the next read to compare with.
+        const rebaseline =
+          previous?.connector_id === source.id &&
+          !previous.missing_since_snapshot &&
+          previous.mark_version !== null &&
+          previous.mark_version !== source.markVersion &&
+          lastMark !== definition.changeMark
+        const changeMark =
+          previous &&
+          !previous.missing_since_snapshot &&
+          (rebaseline || lastMark === definition.changeMark)
+            ? previous.change_mark
+            : definition.changeMark
+        if (rebaseline) rebaselined.push(definition.ref)
         const upserted = await tx.query(
           `insert into definitions
-           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name)
-           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13)
+           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark)
+           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14)
            on conflict (ref) do update set kind=excluded.kind,name=excluded.name,title=excluded.title,
              description_copy=excluded.description_copy,value_type=excluded.value_type,visible_groups=null,
-             area_hint=excluded.area_hint,change_mark=excluded.change_mark,last_seen_snapshot=excluded.last_seen_snapshot,
+             area_hint=excluded.area_hint,change_mark=excluded.change_mark,source_mark=excluded.source_mark,
+             last_seen_snapshot=excluded.last_seen_snapshot,
              model_file=excluded.model_file,synonyms=excluded.synonyms,base_name=excluded.base_name,
              missing_since_snapshot=null,renamed_to=null,connector_id=excluded.connector_id
              where definitions.connector_id=excluded.connector_id
@@ -329,22 +364,19 @@ export class ConnectorService {
             definition.descriptionCopy,
             definition.valueType,
             definition.areaHint,
-            definition.changeMark,
+            changeMark,
             snapshotId,
             definition.modelFile,
             definition.synonyms ?? [],
             definition.baseName ?? null,
+            changeMark === definition.changeMark ? null : definition.changeMark,
           ],
         )
         if (upserted.length !== 1) throw new Error('Definition belongs to another connector')
-        if (
-          !previous ||
-          previous.change_mark !== definition.changeMark ||
-          previous.missing_since_snapshot
-        ) {
+        if (!previous || previous.change_mark !== changeMark || previous.missing_since_snapshot) {
           await tx.query(
             'insert into definition_marks (definition_ref,snapshot_id,change_mark,visible_groups) values ($1,$2,$3,null)',
-            [definition.ref, snapshotId, definition.changeMark],
+            [definition.ref, snapshotId, changeMark],
           )
         }
         if (previous && previous.area_hint !== definition.areaHint)
@@ -369,6 +401,14 @@ export class ConnectorService {
             and d.renamed_to is distinct from (select r."to" from renames r where r."from"=d.ref)`,
         [source.id, JSON.stringify(snapshot.renames ?? [])],
       )
+      if (rebaselined.length) {
+        // The read records that it did, and the owners of what it kept are told once.
+        await tx.query('update connector_snapshots set rebaselined=$2 where id=$1', [
+          snapshotId,
+          rebaselined.length,
+        ])
+        await noticeRebaselined(tx, { sourceId: source.id, snapshotId, refs: rebaselined })
+      }
       const flags = await reconcileSourceFlags(tx, { snapshotId })
       const staleLinkNotices = await noticeStaleLinks(tx, snapshotId)
       const domainNotices = await noticeDomainChanges(tx, domainChanges)
@@ -382,6 +422,7 @@ export class ConnectorService {
         flags,
         staleLinkNotices,
         domainNotices,
+        rebaselined: rebaselined.length,
         domainEdition,
       }
     })

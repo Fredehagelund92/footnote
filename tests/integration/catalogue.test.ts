@@ -78,6 +78,8 @@ describe('the catalogue on PostgreSQL', () => {
       flags: { raised: 0, cleared: 0 },
       staleLinkNotices: 0,
       domainNotices: 0,
+      // The seed stores the connector's own marks: no read keeps one apart.
+      rebaselined: 0,
     })
     expect((await client.query('select 1 from definition_marks')).rowCount).toBe(marks)
     // The read names the file each member's view is in, as the seed stored it.

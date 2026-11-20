@@ -17,7 +17,7 @@ What a Cube project needs for Footnote to read it:
    repository at a branch, tag or commit, with a read-only token (CON-502). JavaScript, Python
    and Jinja templates are skipped with `unsupported_file`, and a symbolic link, which is never
    followed, with `unreadable_file`.
-2. It compiles with the pinned Cube compiler, **1.7.39** (`@cubejs-backend/schema-compiler`).
+2. It compiles with the pinned Cube compiler, **1.8.27** (`@cubejs-backend/schema-compiler`).
 3. At least one **public view** (or public cube). Footnote lists public members only.
 4. Recommended: `title` and `description` on each public member, and `meta.domain:
 <footnote_domain_id>` on each view, with a member's own `meta.domain` to override it. The value
@@ -91,7 +91,8 @@ CUBE_MODEL_DIR=/path/to/cube/model npm run connectors:sync
 
 The command reads `.env.local`, including `DATABASE_URL`. It prints the snapshot id, status,
 number of definitions, metric domain coverage (`cube`, `override`, `none`), the items it flagged
-and unflagged, and how many stale-link and domain notices it sent. A failed read is recorded and
+and unflagged, how many stale-link and domain notices it sent, and how many definitions kept the
+mark items recorded through a change of mark version. A failed read is recorded and
 exits with status 1. The service runs the same refresh in the `connectors.sync` job (each source
 on its own schedule, hourly for Cube unless an administrator sets another); an administrator starts one at any time with
 Read again on the source's page in Integrations (`POST /api/v1/sources/{id}/read`, or
@@ -150,7 +151,7 @@ change to the model, run `tests/server/connectors/demo-model.test.ts` and copy t
 
 ## Compilation and stored data
 
-The offline compiler is pinned to **1.7.39**.
+The offline compiler is pinned to **1.8.27**.
 It resolves view aliases and includes. Only public cubes/views and their public measures and
 dimensions are listed. Access-policy group lists and per-group visibility are parked:
 `visible_groups` is always null. No identity or data-query client is configured.
@@ -177,14 +178,18 @@ passed to Cube. A model folder of more than 1,000 files fails the read (`too_man
 Empty or unreadable model folders fail rather than deleting definitions, and a failed read names
 why first, then each file it left out.
 
-The pin also keeps change marks stable. A mark hashes the whole compiled member, so a compiler
-upgrade changes every mark even when the model did not change: 1.8.1 changes every mark of the
-fixture and of a real model tried with it, and the next read would flag every item that references
-Cube.
-Upgrading (1.8 drops the `extract-zip` dependency that `osv-scanner.toml` excuses) therefore needs
-a mark built from a stable projection of the compiled member first.
+A compiler upgrade keeps the marks. Mark version 1 hashed the whole compiled member, compiler
+bookkeeping included: 1.8 adds `included: true` to each view member, which changed every mark of
+the demo model though no model changed. Mark version 2 hashes only what a compiled member means,
+by Cube's names (`src/connectors/cube/meaning.ts`): its calculation, type, words, format and
+metadata. Fields the compiler keeps for itself (`ownedByCube`, `included`), other names and
+display hints stay out, so 1.7.39 and 1.8.27 give every member of the demo model the same
+mark, and a compiler that adds a field of its own changes none. `demo-model.test.ts` fails when
+an upgrade moves a mark of the demo model anyway. Then move `markVersion` in the manifest: the
+first read after it stores the new marks without flagging (CON-116, in
+[the connector contract](connector-contract.md#versions)).
 
-A process is required because Cube 1.7.39's native logger aborts on a second load in successive
+A process is required because Cube 1.8.27's native logger aborts on a second load in successive
 Node worker threads. Each compile has a fresh native runtime; a crash or timeout cannot abort
 the Footnote process. Raw compiler diagnostics are discarded because they can contain SQL.
 

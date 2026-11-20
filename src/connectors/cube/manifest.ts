@@ -106,5 +106,6 @@ export const manifest = defineManifest({
   // A fetch of at most a minute, then a compile of at most two (the worker's own limit).
   limits: { timeoutSeconds: 180, maxRecords: 100_000 },
   warnings: {},
-  markVersion: 1,
+  // 2: a mark hashes the meaning of the compiled member, not all the compiler keeps on it.
+  markVersion: 2,
 })

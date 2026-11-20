@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -15,6 +15,7 @@ import {
   ConnectorService,
   createCubeSource,
 } from '../../src/server/modules/connectors/index.ts'
+import type { DefinitionSource } from '../../src/server/modules/connectors/types.ts'
 import { createEditionSource } from '../../src/server/modules/editions/index.ts'
 import { readConnectors } from '../../src/server/modules/jobs/operations.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
@@ -57,6 +58,10 @@ let modelDir = ''
 let configDir = ''
 let renamesFile = ''
 let cube: ConnectorService
+/** The same source once its connector computes marks another way: the next mark version. */
+let recomputed: ConnectorService
+/** Its first read under that version, which could not read the member no item uses. */
+let recomputedInPart: ConnectorService
 /**
  * Writes the model folder as a change in the Cube repository would leave it. Every view used here
  * belongs to the finance domain, so the accepted items match their definitions' domains.
@@ -70,6 +75,30 @@ async function writeModel(transform: (text: string) => string = (text) => text) 
 const withCountDescription = (text: string) =>
   text.replace('type: count\n', 'type: count\n        description: Orders placed.\n')
 const withGrowthRenamed = (text: string) => text.replace('- name: growth', '- name: expansion')
+
+/**
+ * A source whose connector moved its mark version: every mark is new, nothing else is. With
+ * `leftOut`, the read is in part and lacks that member.
+ */
+function nextMarkVersion(source: DefinitionSource, leftOut?: string): DefinitionSource {
+  return {
+    ...source,
+    markVersion: source.markVersion + 1,
+    async read(context) {
+      const read = await source.read(context)
+      return {
+        ...read,
+        complete: read.complete && leftOut === undefined,
+        definitions: read.definitions
+          .filter((definition) => definition.ref !== leftOut)
+          .map((definition) => ({
+            ...definition,
+            changeMark: createHash('sha256').update(`next ${definition.changeMark}`).digest('hex'),
+          })),
+      }
+    },
+  }
+}
 
 type Link = {
   rel: string
@@ -184,9 +213,12 @@ beforeAll(async () => {
   renamesFile = join(configDir, 'renames.json')
   await writeModel()
   await writeFile(renamesFile, JSON.stringify({}))
-  cube = new ConnectorService(
+  const source = createCubeSource({ modelDir, renamesFile })
+  cube = new ConnectorService(database, new ConnectorRegistry([source]))
+  recomputed = new ConnectorService(database, new ConnectorRegistry([nextMarkVersion(source)]))
+  recomputedInPart = new ConnectorService(
     database,
-    new ConnectorRegistry([createCubeSource({ modelDir, renamesFile })]),
+    new ConnectorRegistry([nextMarkVersion(source, 'cube:sales.country')]),
   )
   await foundation(client)
   expect((await cube.sync('cube')).status).toBe('ok')
@@ -458,4 +490,109 @@ describe('mention marks', () => {
       'the serving role reads links only through serving_links',
     ).rejects.toThrow(/permission denied/)
   })
+})
+
+/*
+  CON-116: a read whose connector computes marks another way stores the new marks without
+  flagging. A reference whose recorded mark matched the definition's mark still matches, one that
+  did not still flags, the read records it, and the owners are told once.
+*/
+describe('a change of mark version', () => {
+  const model = (text: string) => withGrowthRenamed(withCountDescription(text))
+  const rebaselineNotices = async () => {
+    await relay()
+    return (
+      await client.query<{ area: string; subject: string; items: string[] }>(
+        `select area_id as area, subject_id as subject, payload->'items' as items from inbox_items
+          where person_id = $1 and kind = 'source.marks_rebaselined' order by event_seq`,
+        [people.owner],
+      )
+    ).rows
+  }
+  const newestRead = async () =>
+    (
+      await client.query<{ mark_version: number; rebaselined: number }>(
+        `select mark_version, rebaselined from connector_snapshots
+          where connector_id = 'cube' order by fetched_at desc limit 1`,
+      )
+    ).rows[0]
+
+  it('keeps every reference, flag and link as it was, records it and tells the owners once', async () => {
+    // A changed before the new version: its reference no longer matches, and must stay flagged.
+    await writeModel((text) => model(text).replace('Orders placed.', 'Orders paid for.'))
+    expect((await cube.sync('cube')).flags).toEqual({ raised: 1, cleared: 0 })
+    const flags = await activeFlags()
+    expect(flags.map((flag) => [flag.item_id, flag.flag])).toEqual(
+      [
+        [items.a, 'needs_check'],
+        [items.c, 'source_missing'],
+      ].sort((x, y) => (x[0]! < y[0]! ? -1 : 1)),
+    )
+    const before = await deliveries()
+    const stale = await staleLinks()
+    const events = await overlayEvents()
+    const notices = (await ownerNotices()).length
+    const marks = (await client.query('select 1 from definition_marks')).rowCount
+    expect(await newestRead()).toEqual({ mark_version: 2, rebaselined: 0 })
+
+    const result = await recomputedInPart.sync('cube')
+    expect(result).toMatchObject({
+      status: 'partial',
+      flags: { raised: 0, cleared: 0 },
+      staleLinkNotices: 0,
+      domainNotices: 0,
+      rebaselined: result.definitionsSeen,
+    })
+    expect(await activeFlags()).toEqual(flags)
+    expect(await overlayEvents()).toBe(events)
+    expect(await deliveries()).toEqual(before)
+    expect(await staleLinks()).toEqual(stale)
+    expect(await ownerNotices()).toHaveLength(notices)
+    // No definition changed: no topic is told its context may be out of date.
+    expect((await client.query('select 1 from definition_marks')).rowCount).toBe(marks)
+    expect(await newestRead()).toEqual({ mark_version: 3, rebaselined: result.definitionsSeen })
+    // One notice for the finance owners, naming the live items whose references were kept.
+    expect(await rebaselineNotices()).toEqual([
+      {
+        area: 'finance',
+        subject: 'cube',
+        items: [items.a, items.b, items.d].sort(),
+      },
+    ])
+  }, 30_000)
+
+  it('keeps the mark of a member the next read reaches, and tells nobody again', async () => {
+    const events = await overlayEvents()
+    // The first read under the new version did not reach the country; this one does.
+    const result = await recomputed.sync('cube')
+    expect(result).toMatchObject({ status: 'ok', flags: { raised: 0, cleared: 0 }, rebaselined: 1 })
+    expect(await newestRead()).toEqual({ mark_version: 3, rebaselined: 1 })
+    expect(await overlayEvents()).toBe(events)
+    // No item uses the country, so nobody is told, and a read after it keeps nothing apart.
+    expect(await rebaselineNotices()).toHaveLength(1)
+    expect(await recomputed.sync('cube')).toMatchObject({ rebaselined: 0 })
+    expect(await newestRead()).toEqual({ mark_version: 3, rebaselined: 0 })
+    expect(await rebaselineNotices()).toHaveLength(1)
+  }, 30_000)
+
+  it('flags the next change of meaning as before', async () => {
+    await writeModel((text) =>
+      model(text)
+        .replace('Orders placed.', 'Orders paid for.')
+        .replace('Total order revenue.', 'Revenue after refunds.'),
+    )
+    const result = await recomputed.sync('cube')
+    expect(result).toMatchObject({ status: 'ok', flags: { raised: 2, cleared: 0 }, rebaselined: 0 })
+    expect((await activeFlags()).filter((flag) => flag.flag === 'needs_check')).toEqual(
+      [items.a, items.b, items.d].sort().map((item) => ({
+        item_id: item,
+        flag: 'needs_check',
+        reason:
+          item === items.a
+            ? 'Definition changed: cube:sales.count'
+            : 'Definition changed: cube:sales.revenue',
+      })),
+    )
+    expect(await rebaselineNotices()).toHaveLength(1)
+  }, 30_000)
 })

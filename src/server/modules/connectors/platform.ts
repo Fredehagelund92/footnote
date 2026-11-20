@@ -591,6 +591,7 @@ function runtimeSource(running: Running, stored: StoredSource): DefinitionSource
     type: manifest.id,
     name: stored.name,
     interfaceVersion: 3,
+    markVersion: manifest.markVersion,
     serverSettings: [],
     async read(context?: ReadContext): Promise<SourceSnapshot> {
       const signal = AbortSignal.timeout(timeLimitMs(running))

@@ -12,6 +12,7 @@ import {
   synonymsOf,
 } from '../../domain/definition-helpers.ts'
 import { libcAnswers } from './libc.ts'
+import { compiledMeaning } from './meaning.ts'
 
 /*
   Cube's compiler, in the worker the core runs for the Cube connector (`ctx.worker`, T1): a child
@@ -156,7 +157,7 @@ async function compile(
     const alias: unknown = record(member).aliasMember
     return {
       raw: rawMembers.get(name) ?? null,
-      compiled: semanticValue(member),
+      compiled: semanticValue(compiledMeaning(record(member))),
       source: typeof alias === 'string' ? memberMeaning(alias, seen) : null,
       relation: semanticValue(cube?.sql ?? cube?.sqlTable),
     }
@@ -210,7 +211,8 @@ async function compile(
           modelFile: containerFiles.get(config.name) ?? null,
           // Type, calculation, description and visibility (CON-505). The domain stays out: a
           // changed domain informs the owner and never flags an item (plan 4.3, step 7). Empty
-          // parts are kept, as mark version 1 hashed them.
+          // parts are kept, as mark version 1 hashed them, and the compiled member is its
+          // meaning only (mark version 2, ./meaning.ts).
           changeMark: await meaningMark(
             {
               member: memberMeaning(member.name),
