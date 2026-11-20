@@ -773,13 +773,13 @@ function RunView({
   if (plain || !run.text.trim()) return node
   if (run.changed) return <Marked side={side}>{node}</Marked>
   if (run.link)
-    return (
+    node = (
       <LinkMark link={run.link} side={side}>
         {node}
       </LinkMark>
     )
   if (run.look)
-    return (
+    node = (
       <LookMark look={run.look} side={side}>
         {node}
       </LookMark>
@@ -948,11 +948,7 @@ function marksIn(rows: readonly PassageRow[]): MarkKind[] {
   for (const r of rows) {
     if (runs(r, 'before').some((x) => x.changed)) used.add('removed')
     if (runs(r, 'after').some((x) => x.changed)) used.add('added')
-    if (
-      r.after?.was ||
-      r.before?.was ||
-      runs(r, 'after').some((x) => !x.changed && !x.link && x.look)
-    )
+    if (r.after?.was || r.before?.was || runs(r, 'after').some((x) => !x.changed && x.look))
       used.add('look')
     if (r.after?.moved || r.before?.moved) used.add('moved')
     if (

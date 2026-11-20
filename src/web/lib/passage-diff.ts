@@ -357,13 +357,24 @@ export function passageDiff(before: string, after: string): PassageRow[] {
         words: wordsOf(left) || wordsOf(right),
         stop: !!right || wordsOf(left),
       })
-    // A moved half never shares a row with another passage: a deletion is its own change.
-    const plainGone = gone.filter((p) => !p.moved)
-    const plainCome = come.filter((p) => !p.moved)
-    for (let k = 0; k < Math.max(plainGone.length, plainCome.length); k++)
-      row(plainGone[k] ?? null, plainCome[k] ?? null)
-    for (const p of gone) if (p.moved) row(p, null)
-    for (const p of come) if (p.moved) row(null, p)
+    // A moved half stands on its own row where it is; a deletion is its own change.
+    let g = 0
+    let c = 0
+    while (g < gone.length || c < come.length) {
+      const left = gone[g]
+      const right = come[c]
+      if (left?.moved) {
+        row(left, null)
+        g++
+      } else if (right?.moved) {
+        row(null, right)
+        c++
+      } else {
+        row(left ?? null, right ?? null)
+        if (left) g++
+        if (right) c++
+      }
+    }
     i = Math.max(i, toA)
     j = Math.max(j, toB)
   }

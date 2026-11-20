@@ -303,6 +303,13 @@ describe('K3, a new look, a move and a link in the text', () => {
     expect(legendOf(el)).toContain('Moved')
   })
 
+  it('draws a new link and a new look on the same words, both tagged and listed', () => {
+    const el = text('Please ship it.', 'Please [**ship**](https://x.example) it.')
+    expect(el.textContent).toContain('Link')
+    expect(el.textContent).toContain('Bold')
+    expect(legendOf(el)).toEqual(['New look', 'New link'])
+  })
+
   it('tags a new link on the same words, and lists only the marks in use', () => {
     const el = text(
       'Units sold leaves out the 312 test accounts our teams use.',

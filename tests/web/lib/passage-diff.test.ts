@@ -280,4 +280,18 @@ describe('the changes that keep the words', () => {
       link: 'added',
     })
   })
+
+  it('keeps each side in reading order when a gap mixes moved and deleted passages', () => {
+    const rows = passageDiff(
+      'Start.\n\nGone one.\n\nMoved here.\n\nGone two.\n\nEnd.',
+      'Start.\n\nEnd.\n\nMoved here.',
+    )
+    expect(rows.map((r) => words(r.before)).filter(Boolean)).toEqual([
+      'Start.',
+      'Gone one.',
+      'Moved here.',
+      'Gone two.',
+      'End.',
+    ])
+  })
 })

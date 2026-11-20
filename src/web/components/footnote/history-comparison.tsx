@@ -17,8 +17,9 @@ import { compareWith, relativeDate, type Version } from '@/model/history'
 
 // A version of an item in History, compared with any other version agents got, the way the review
 // compares a suggestion: the same Fields table and text, the earlier version as before and the
-// later one as after, each column named for its version. It opens on the version just before. The
-// first version has nothing before it: it shows as a new item does, the earlier column empty.
+// later one as after, each column named for its version. It opens on the version just before; the
+// first version opens compared with the next one. An item with one version shows it as a new item
+// does, the earlier column empty.
 // Its own module, so the item page loads the comparison only once a version is opened.
 
 const nameOf = (v: Version) => `Version ${v.v}`

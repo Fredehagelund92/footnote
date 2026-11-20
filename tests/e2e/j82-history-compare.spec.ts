@@ -3,7 +3,7 @@ import { expect, go, onMockOnly, test } from './go.ts'
 // J82, History compares two versions as review compares a change (K5): a version opened from an
 // item's history shows the same Fields table and text, the earlier version as before, each column
 // named for its version, and Compared with picks any other version agents got. The first version
-// has nothing before it and shows as a new item does.
+// opens compared with the next one.
 
 test('a version opens compared with the one before it, and with any other', async ({ page }) => {
   await go(page, '/context/itm_norway_stop')
@@ -35,7 +35,7 @@ test('a version opens compared with the one before it, and with any other', asyn
     await fields.getByRole('switch', { name: 'Only what changed' }).click()
     await expect(fields.locator('thead th')).toHaveText(['Field', 'Version 5', 'Version 7'])
 
-    // The first version has nothing before it.
+    // The first version opens compared with the next one.
     await page.keyboard.press('Escape')
     await rows.last().click()
     await expect(sheet.getByRole('combobox', { name: 'Compared with' })).toHaveText(/^Version 2,/)
