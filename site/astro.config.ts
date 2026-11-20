@@ -22,6 +22,25 @@ const isNext = settings.version === 'next'
 const socialPreview =
   'https://raw.githubusercontent.com/Fredehagelund92/footnote/main/docs/images/footnote-social-preview.png'
 
+// The landing page's terminal as a code theme (shared/tokens.css): its ink, with comments and keys
+// in its dim grey, as get_context's reply reads on the landing page.
+const terminal = {
+  name: 'footnote-terminal',
+  type: 'dark',
+  colors: { 'editor.background': '#0d1118', 'editor.foreground': '#e6e9f0' },
+  tokenColors: [
+    {
+      scope: [
+        'comment',
+        'punctuation.definition.comment',
+        'support.type.property-name',
+        'punctuation.support.type.property-name',
+      ],
+      settings: { foreground: '#8b94a7' },
+    },
+  ],
+}
+
 export default defineConfig({
   site: !isNext && settings.site ? settings.site : undefined,
   base: `${base}/`,
@@ -48,32 +67,36 @@ export default defineConfig({
         './shared/fonts.css',
         './shared/tokens.css',
         './shared/chrome.css',
-        './shared/ground.css',
         './src/styles/theme.css',
       ],
       sidebar: sidebar(pages),
-      // The code block is dark in both themes, as on the landing page, so one theme is enough.
+      // The code block is the landing page's terminal, dark in both themes, so one theme is enough.
       expressiveCode: {
-        themes: ['catppuccin-mocha'],
+        themes: [terminal],
         defaultProps: { wrap: true },
         styleOverrides: {
-          borderRadius: '10px',
-          borderColor: 'transparent',
-          codeBackground: 'var(--code-bg)',
+          borderRadius: '11px',
+          borderColor: 'var(--term-rule)',
+          codeBackground: 'var(--term)',
           codeFontFamily: 'var(--mono)',
           codeFontSize: '0.8125rem',
+          codeFontWeight: '450',
           codeLineHeight: '1.65',
+          codePaddingBlock: '0.8125rem',
+          codePaddingInline: '0.9375rem',
           uiFontFamily: 'var(--sans)',
-          uiFontSize: '0.75rem',
+          uiFontSize: '0.84375rem',
           frames: {
             frameBoxShadowCssValue: 'none',
             editorActiveTabIndicatorHeight: '0',
-            editorTabBarBackground: 'var(--code-bg)',
-            editorActiveTabBackground: 'var(--code-bg)',
-            editorActiveTabForeground: 'var(--code-dim)',
-            terminalTitlebarForeground: 'var(--code-dim)',
-            terminalTitlebarBackground: 'var(--code-bg)',
-            terminalBackground: 'var(--code-bg)',
+            editorTabBarBackground: 'var(--term)',
+            editorTabBarBorderBottomColor: 'transparent',
+            editorActiveTabBackground: 'var(--term)',
+            editorActiveTabForeground: 'var(--term-dim)',
+            terminalTitlebarForeground: 'var(--term-dim)',
+            terminalTitlebarBackground: 'var(--term)',
+            terminalTitlebarBorderBottomColor: 'var(--term-rule)',
+            terminalBackground: 'var(--term)',
           },
         },
       },

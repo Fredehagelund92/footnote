@@ -10,30 +10,18 @@
 
 /* The page's own tokens, on top of the site's (shared/tokens.css). */
 :root {
-  --paper-side: var(--paper);
   --mark-ink: #ffffff;
   --mark-t: #93a6ff;
   --hl-solid: #ffdd40;
   --hl-ink: #151922;
-  --term: #0d1118;
-  --term-ink: #e6e9f0;
-  --term-dim: #8b94a7;
-  --term-rule: #232a38;
-  --term-text: #b9c0cf;
-  --dot: rgba(21, 25, 34, 0.11);
   --brand: 'Outfit', var(--sans);
   --pad: clamp(20px, 4.4vw, 64px);
   /* The width of the note on the seam. */
   --card: clamp(300px, 29.5vw, 500px);
 }
 :root[data-theme='dark'] {
-  --paper-side: #141a26;
   --mark-ink: #0a0d14;
-  --hl: rgba(255, 210, 60, 0.3);
   --hl-solid: #f7d23c;
-  --term: #05070b;
-  --term-rule: #1b2130;
-  --dot: rgba(232, 235, 242, 0.09);
 }
 
 *,
