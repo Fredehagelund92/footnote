@@ -892,7 +892,7 @@ function ConnectedRow({
       <ToolLogo c={c} />
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-          {c.name}
+          {c.label}
           <Badge variant="secondary" className="font-normal">
             {kindName[c.kind]}
           </Badge>
@@ -960,7 +960,7 @@ function AvailableCell({ c }: { c: Connector }) {
           {kindName[c.kind]}
         </Badge>
       </div>
-      <h4 className="mt-1 text-sm font-medium">{c.name}</h4>
+      <h4 className="mt-1 text-sm font-medium">{c.label}</h4>
       <p className="text-sm text-muted-foreground">{c.blurb}</p>
       <div className="mt-auto pt-2">
         <a
@@ -1026,7 +1026,7 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
   const state = query.get('state')
   const [text, setText] = React.useState('')
   const q = text.trim().toLowerCase()
-  const matches = (c: Connector) => `${c.name} ${c.blurb}`.toLowerCase().includes(q)
+  const matches = (c: Connector) => `${c.label} ${c.name} ${c.blurb}`.toLowerCase().includes(q)
   const sources = [...view.sources].sort(catalogOrder)
   const connected = new Set(sources.map((s) => s.connector))
   const rows = sources.filter((s) => matches(connectorById(s.connector)!))
@@ -1425,7 +1425,7 @@ function NotConnected({ id }: { id: string }) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 text-center md:px-6">
       <p className="font-medium">
-        {c ? `${c.name} isn't connected` : 'There is no such integration'}
+        {c ? `${c.label} isn't connected` : 'There is no such integration'}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
         {c ? 'Connect it to see what it reads.' : 'See what can be connected in Integrations.'}
@@ -1433,7 +1433,7 @@ function NotConnected({ id }: { id: string }) {
       <div className="mt-4 flex justify-center gap-2">
         {c && (
           <Button onClick={() => navigate(`/settings/integrations/${c.id}/connect`)}>
-            Connect {c.name}
+            Connect {c.label}
           </Button>
         )}
         <Button variant="outline" onClick={() => navigate('/settings/integrations')}>
@@ -1450,9 +1450,9 @@ export function ConnectorPage({ id }: { id: string }) {
   const c = connectorById(page?.source.connector ?? id)
   useReadDone(page, c?.name ?? '')
   return (
-    <Page title={crumbs({ label: page === null ? (c?.name ?? 'Not found') : (c?.name ?? '') })}>
+    <Page title={crumbs({ label: page === null ? (c?.label ?? 'Not found') : (c?.label ?? '') })}>
       <Loadable
-        what={c?.name ?? 'This integration'}
+        what={c?.label ?? 'This integration'}
         skeleton={<RowsSkeleton rows={6} />}
         query={load}
       >
@@ -1527,7 +1527,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
           <ToolLogo c={c} size="lg" />
           <div className="min-w-0 flex-1 basis-64">
             <h2 className="flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight">
-              {c.name}
+              {c.label}
               <Badge variant="secondary" className="font-normal">
                 {kindName[c.kind]}
               </Badge>
@@ -2131,12 +2131,12 @@ export function ConnectFlow({ id }: { id: string }) {
   const load = useQuery(connectFormQuery(id))
   const form = load.data
   const c = connectorById(form?.connector ?? id)
-  const label = form?.source ? 'Change settings' : c ? `Add ${c.name}` : 'Connect'
+  const label = form?.source ? 'Change settings' : c ? `Add ${c.label}` : 'Connect'
   return (
     <Page
       title={
         form?.source && c
-          ? crumbs({ label: c.name, href: `/settings/integrations/${form.source.id}` }, { label })
+          ? crumbs({ label: c.label, href: `/settings/integrations/${form.source.id}` }, { label })
           : crumbs({ label })
       }
     >
@@ -2337,7 +2337,8 @@ function ConnectSteps({
             className={cn(f.kind !== 'text' && 'font-mono text-xs')}
           />
         )}
-        {(f.advanced || f.kind === 'json' || c.places) && (
+        {/* What a field holds is plain for a repository, and needs saying for a tool's API. */}
+        {(f.advanced || f.kind === 'json' || c.places || c.api) && (
           <FieldDescription>{f.description}</FieldDescription>
         )}
       </Field>
@@ -2376,7 +2377,7 @@ function ConnectSteps({
                   ? 'Share folders with the service account'
                   : c.git || c.places
                     ? `Connect to your ${c.kind === 'definitions' ? `${c.name} files` : 'repository'}`
-                    : `Set up ${c.name}`}
+                    : `Set up ${c.label}`}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {keyed
@@ -2385,7 +2386,9 @@ function ConnectSteps({
                     ? `It reads one file, ${onceWords(form.every)}, and never writes to it.`
                     : c.git
                       ? `It reads them from Git, ${onceWords(form.every)}.`
-                      : `It reads what you write here, ${onceWords(form.every)}.`}
+                      : c.api
+                        ? `It reads ${c.label} through its API, ${onceWords(form.every)}, and never writes to it.`
+                        : `It reads what you write here, ${onceWords(form.every)}.`}
               </p>
             </div>
             <FieldGroup>
@@ -2590,7 +2593,7 @@ function PickStep({ c }: { c: Connector }) {
       <div className="flex items-center gap-3">
         <ToolLogo c={c} size="lg" />
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">{c.name}</h2>
+          <h2 className="text-xl font-semibold tracking-tight">{c.label}</h2>
           <p className="text-sm text-muted-foreground">
             {isDefinitions
               ? 'Definitions: which metrics and dimensions exist.'

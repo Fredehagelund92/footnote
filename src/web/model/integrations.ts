@@ -32,6 +32,11 @@ export type Connector = {
   id: string
   /** The tool it reads, as people say it. */
   name: string
+  /**
+   * How a heading names it: the tool, or the words the app has for it when another connector
+   * reads the same tool (Cube Cloud beside Cube model files).
+   */
+  label: string
   kind: ConnectorKind
   /** Its logo, where the app has one; otherwise it shows its picture. */
   logo?: string
@@ -49,6 +54,8 @@ export type Connector = {
   git?: true
   /** It reads one file from a place the form lets you choose, Git among them. */
   places?: true
+  /** It reads the tool over the tool's own API, with no file and no key file. */
+  api?: true
   /** It finds what may be chosen to read (folders, spaces), rather than reading it all. */
   discovers?: true
   /** What it may reach, said before anything is given: its manifest's own words. */
@@ -78,6 +85,7 @@ export type Connector = {
  */
 export const logos: Record<string, string> = {
   cube,
+  'cube-cloud': cube,
   'dbt-metricflow': dbt,
   'google-drive': googledrive,
   'git-markdown': markdown,

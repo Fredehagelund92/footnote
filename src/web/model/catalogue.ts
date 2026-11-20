@@ -1,6 +1,6 @@
 import type { ConnectorManifest } from '@domain/connector-manifest'
 import { builtInManifests } from '../../connectors/manifests'
-import { logos, type Connector, type ConnectorKind } from './integrations'
+import { integrationHref, logos, type Connector, type ConnectorKind } from './integrations'
 
 // The catalogue of connectors, drawn from the manifests built into the repository, so a connector
 // added there shows in Integrations with no change to the app. Only the pages that list or connect
@@ -14,9 +14,17 @@ import { logos, type Connector, type ConnectorKind } from './integrations'
  */
 const words: Record<
   string,
-  Pick<
-    Connector,
-    'lead' | 'group' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'
+  Partial<
+    Pick<
+      Connector,
+      | 'label'
+      | 'lead'
+      | 'group'
+      | 'domainField'
+      | 'endpointExample'
+      | 'noFileLinks'
+      | 'serverSetting'
+    >
   >
 > = {
   cube: {
@@ -26,6 +34,12 @@ const words: Record<
     domainField: 'meta.domain',
     endpointExample: 'https://cube.example.com/cubejs-api/v1/load',
     serverSetting: 'CUBE_MODEL_DIR',
+  },
+  'cube-cloud': {
+    // Beside Cube model files, which read the same tool: its headings say which.
+    label: 'Cube Cloud',
+    lead: 'Reads the metadata of a Cube Cloud deployment through its API. Read-only, and it never reads data or SQL. Cube Cloud gives no calculations, so it cannot see one change on its own.',
+    domainField: 'meta.domain',
   },
   'dbt-metricflow': {
     lead: 'Reads the semantic manifest your dbt pipeline writes, from where you keep it. Read-only, and it keeps no calculation and no value.',
@@ -51,9 +65,11 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
   const places = manifest.config.fields.some((field) =>
     field.options?.some((option) => option.serverOnly),
   )
+  const api = manifest.egress.hosts.length > 0 && !manifest.egress.git && !key && !places
   return {
     id: manifest.id,
     name: manifest.tool,
+    label: manifest.tool,
     kind: manifest.kind === 'definitions' ? 'definitions' : 'context',
     ...(logo ? { logo } : {}),
     ...(manifest.icon ? { icon: manifest.icon } : {}),
@@ -61,6 +77,7 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
     ...(manifest.capabilities.figures ? { figures: true as const } : {}),
     ...(key ? { keyFile: key.key } : {}),
     ...(places ? { places: true as const } : manifest.egress.git ? { git: true as const } : {}),
+    ...(api ? { api: true as const } : {}),
     ...(manifest.capabilities.discover ? { discovers: true as const } : {}),
     access: [...manifest.access],
     warnings: manifest.warnings,
@@ -83,6 +100,15 @@ export const connectorById = (id: string | undefined) => connectors.find((c) => 
 
 /** The connector of a tool, by the name people say it by ("Google Drive"); none for another. */
 export const connectorByTool = (tool: string | undefined) => connectors.find((c) => c.name === tool)
+
+/**
+ * A tool's page in Integrations, by the name people say it by: its connector's page when one
+ * connector reads it, and Integrations when several do (Cube model files and Cube Cloud) or none.
+ */
+export const toolHref = (tool: string | undefined) => {
+  const reading = connectors.filter((c) => c.name === tool)
+  return integrationHref(reading.length === 1 ? reading[0]!.id : undefined)
+}
 
 /**
  * Where setup sends someone to connect their definitions: the connect flow of the first

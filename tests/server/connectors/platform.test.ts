@@ -109,6 +109,7 @@ describe('the registry of connectors', () => {
       ['static-definitions', 3],
       ['git-markdown', 3],
       ['google-drive', 3],
+      ['cube-cloud', 3],
     ])
     // The demo type has no form, so it is not a connector to add; its words still come from it.
     expect(registry.connector('demo')).toBeUndefined()
@@ -375,6 +376,7 @@ describe('the sources admins add, over the registry', () => {
       ['static-definitions', 3],
       ['git-markdown', 3],
       ['google-drive', 3],
+      ['cube-cloud', 3],
     ])
   })
 })

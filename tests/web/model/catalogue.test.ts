@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { manifest } from '../../../src/connectors/dbt-metricflow/manifest'
 import { builtInManifests } from '../../../src/connectors/manifests'
 import { connectFormFor, testFor } from '../../../src/web/api/mock/integrations'
-import { connectorById, connectors, connectorByTool } from '../../../src/web/model/catalogue'
+import {
+  connectorById,
+  connectors,
+  connectorByTool,
+  toolHref,
+} from '../../../src/web/model/catalogue'
 import { logos } from '../../../src/web/model/integrations'
 
 /* The catalogue's cells, each drawn from a connector's manifest, and its dbt cell. */
@@ -37,6 +42,46 @@ describe('the dbt cell', () => {
   it('never promises a link to a file its definitions do not name', () => {
     expect(connectorById('dbt-metricflow')?.noFileLinks).toBe(true)
     expect(connectorById('cube')?.noFileLinks).toBeUndefined()
+  })
+})
+
+describe('the Cube Cloud cell', () => {
+  it('reads the same tool as Cube model files, and its headings say which', () => {
+    expect(connectorById('cube-cloud')).toMatchObject({
+      name: 'Cube',
+      label: 'Cube Cloud',
+      kind: 'definitions',
+      logo: logos.cube,
+      api: true,
+      domainField: 'meta.domain',
+    })
+    expect(connectorById('cube')).toMatchObject({ name: 'Cube', label: 'Cube' })
+    expect(connectorById('cube')?.api).toBeUndefined()
+  })
+
+  it('leads a link to the tool to Integrations, since two connectors read it', () => {
+    expect(toolHref('Cube')).toBe('/settings/integrations')
+    expect(toolHref('dbt')).toBe('/settings/integrations/dbt-metricflow')
+    expect(toolHref(undefined)).toBe('/settings/integrations')
+  })
+
+  it('tests on the mock as its runtime does, over the demo model’s views', () => {
+    const test = testFor('cube-cloud', {
+      config: {
+        address: 'https://larchwood.cubecloud.example',
+        deployment: '42',
+        apiAddress: 'https://larchwood.cubecloudapp.example/cubejs-api/v1',
+      },
+      secrets: { apiKey: 'invented' },
+    })
+    expect(test.ok).toBe(true)
+    expect(test.steps.map((step) => step.title)).toEqual([
+      'Reach Cube Cloud',
+      'Find the environment',
+      'Get a token that reads metadata',
+      'Read the metadata',
+    ])
+    expect(test.scopes.length).toBeGreaterThan(0)
   })
 })
 

@@ -267,6 +267,7 @@ Integrations connect Footnote to where metrics are defined and where documents l
 | Integration     | For                  | Notes                                                                                         |
 | --------------- | -------------------- | --------------------------------------------------------------------------------------------- |
 | Cube            | Definitions, figures | Metrics and dimensions are a read-only copy. A figure is read on request when figures are on. |
+| Cube Cloud      | Definitions          | Read-only, from a deployment's metadata. It sees no calculations.                             |
 | Google Drive    | Context              | Through a service account an admin shares folders with. Documents become suggestions.         |
 | Markdown in Git | Context              | Documents become suggestions.                                                                 |
 | dbt             | Definitions          | Metrics and dimensions are a read-only copy, read from its semantic manifest.                 |

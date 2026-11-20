@@ -14,8 +14,7 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { ToolLogo } from '@/components/footnote/tool-logo'
-import { connectorByTool, definitionsConnectHref } from '@/model/catalogue'
-import { integrationHref } from '@/model/integrations'
+import { connectorByTool, definitionsConnectHref, toolHref } from '@/model/catalogue'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { AnotherNameFor, TypeGlyph, TypeTile } from '@/components/footnote/definition'
 import { TagChip } from '@/components/footnote/tag-chip'
@@ -721,7 +720,7 @@ export function DefinitionsPage() {
                 change it in the tool. Terms are words your company uses. The owner of their domain
                 writes them here.{' '}
                 <a
-                  href={integrationHref(source?.id)}
+                  href={toolHref(tool)}
                   className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   {tool ?? 'Integrations'}
