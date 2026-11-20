@@ -26,22 +26,10 @@
       "may be out of date": 1,
       "nothing written down": 1
     },
-    "src/domain/answer-words.ts": {
-      "a fact": 2,
-      "edition": 1
-    },
-    "src/domain/ask-plan.ts": {
-      "administrator": 1,
-      "cube": 1
-    },
     "src/domain/drafting-guide.ts": {
       "caveat": 1
     },
     "src/domain/links.ts": {
-      "retired": 1
-    },
-    "src/domain/records.ts": {
-      "fact": 1,
       "retired": 1
     },
     "src/domain/resolver.ts": {
@@ -70,9 +58,6 @@
     "src/web/api/mock/integrations.ts": {
       "plural": 5
     },
-    "src/web/components/footnote/answer.tsx": {
-      "plural": 1
-    },
     "src/web/components/footnote/conflict-view.tsx": {
       "plural": 1
     },
@@ -96,9 +81,6 @@
     }
   },
   "copy/sentence-length": {
-    "src/web/api/mock/data/ask.ts": {
-      "over25": 1
-    },
     "src/web/api/mock/data/review.ts": {
       "over25": 5
     },

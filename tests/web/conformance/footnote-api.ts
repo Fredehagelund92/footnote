@@ -2285,7 +2285,7 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'ask', 'getLibrary'))(
-      'answers a question with its state, numbered sources from the library and what agents are told',
+      'answers a question with its state, and numbered sources from the library',
       async () => {
         const a = await signedIn()
         const answer = await a.ask({ question: 'Why did orders in Norway drop in August?' })
@@ -2297,242 +2297,11 @@ export function describeFootnoteApi(
         // Every [n] in the words points at a source.
         for (const [, n] of answer.text.matchAll(/\[(\d+)\]/g))
           expect(Number(n)).toBeLessThanOrEqual(answer.sources.length)
-        expect(answer.said).not.toBe('')
       },
     )
 
-    it.skipIf(lacks('signIn', 'ask', 'getLibrary', 'setLinks'))(
-      'says what an answer followed with get_related: one step, a retired link apart, nothing while switched off',
-      async () => {
-        const a = await signedIn()
-        const question = 'Why did orders in Norway drop in August?'
-        const answer = await a.ask({ question })
-        const { items } = await a.getLibrary()
-        const stop = items.find(
-          (f) => f.title === 'Online sales to Norway stopped on 4 August 2026',
-        )!
-        expect(answer.links?.on).toBe(true)
-        // The term the Norway item's text mentions: followed, with what it means.
-        const webshop = answer.links!.followed.find((f) => f.to.id === 'term:Webshop')
-        expect(webshop).toMatchObject({
-          from: { id: stop.id, title: stop.title },
-          rel: 'mentions',
-          to: { label: 'Webshop' },
-        })
-        expect(webshop!.read).toContain('larchwood.example')
-        // The payment provider's switch is retired: listed, never followed.
-        expect(answer.links!.notFollowed).toContainEqual({
-          from: { id: stop.id, title: stop.title },
-          rel: 'mentions',
-          to: {
-            id: 'context:itm_kh4llvi9',
-            label: 'Payment provider switched in Norway on 9 July 2025',
-          },
-        })
-        // One step, each once, and never an item the answer has already.
-        const ends = answer.links!.followed.map((f) => f.to.id)
-        expect(new Set(ends).size).toBe(ends.length)
-        for (const id of answer.sources) expect(ends).not.toContain(`context:${id}`)
-        await a.setLinks({ on: false })
-        try {
-          const off = await a.ask({ question })
-          expect(off.links).toEqual({ on: false, followed: [], notFollowed: [] })
-          // Following links never changes what the answer has.
-          expect(off.sources).toEqual(answer.sources)
-        } finally {
-          await a.setLinks({ on: true })
-        }
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      'says a question that names nothing was not looked up, never Not found, and why',
-      async () => {
-        const answer = await (await signedIn()).ask({ question: 'tell me a joke' })
-        // No answer state: Not found would say nobody wrote anything down.
-        expect(answer.state).toBeNull()
-        expect(answer.sources).toEqual([])
-        // Agents are told the engine's own words, the same in the mock and on the service.
-        expect(answer.said).toMatch(
-          /^Nothing was looked up yet\. The question needs a metric or a market, such as \w/,
-        )
-        // The person is told what the question lacks, and offered no name close to a joke.
-        expect(answer.text).toBe("The question doesn't name a metric or a market.")
-        expect(answer.closest).toEqual([])
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      'offers the names closest to the words of a question it did not look up, never reading them as asked',
-      async () => {
-        const answer = await (await signedIn()).ask({ question: 'what about chrun rate' })
-        expect(answer.state).toBeNull()
-        expect(answer.closest?.[0]).toBe('Churn rate')
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      'gives a metric’s definition from its source beside the answer, and keeps the state',
-      async () => {
-        const a = await signedIn()
-        const answer = await a.ask({ question: 'What does Churn rate mean?' })
-        expect(answer.state).not.toBeNull()
-        expect(answer.definitions?.map((d) => [d.name, d.tool])).toEqual([['Churn rate', 'Cube']])
-        expect(answer.definitions?.[0]?.words).toMatch(/\w/)
-        // A question about the data, not what it means, gets none.
-        const data = await a.ask({ question: 'Why did Churn rate rise in Norway?' })
-        expect(data.definitions).toBeUndefined()
-      },
-    )
-
-    /** A records answer (FR-718): one of the questions about the context's own records. */
-    const records = async (question: string) => {
-      const answer = await (await signedIn()).ask({ question })
-      // Never an answer state and never a source: agents never read it.
-      expect(answer.state, question).toBeNull()
-      expect(answer.sources).toEqual([])
-      const found = answer.records
-      if (!found || found.refused) throw new Error(`"${question}" got no records answer`)
-      expect(found.rows.length).toBeLessThanOrEqual(5)
-      // An analysis of several parts has its rows in sections.
-      if (!found.sections) expect(found.rows.length).toBe(Math.min(found.total, 5))
-      return found
-    }
-    /** The Context list as the person sees it, published and archived: what Records counts. */
-    const listed = async () =>
-      (await (await signedIn()).getLibrary()).items.filter((f) => f.status !== 'Draft')
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      'answers what was created in the last 24 hours from the records, with the period in UTC',
-      async () => {
-        const found = await records('give me context created in last 24 hours?')
-        expect(found.intent).toBe('created')
-        expect(found.sentence).toMatch(
-          /^(Nothing was created in the last 24 hours\.|[\d,]+ context items? (was|were) created in the last 24 hours\.)$/,
-        )
-        expect(found.period?.label).toMatch(
-          /^\d+ \w{3}( \d{4})? \d\d:\d\d to \d+ \w{3} \d\d:\d\d, UTC$/,
-        )
-        expect(Date.parse(found.period!.end) - Date.parse(found.period!.start)).toBe(86_400_000)
-        // Nothing created is an answer too: it says when the latest was.
-        if (!found.total) expect(found.detail).toMatch(/^The latest context item was created on /)
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask', 'getLibrary', 'getWorkspace'))(
-      'counts what is due for a check and what is archived exactly as Context lists them',
-      async () => {
-        const items = await listed()
-        const due = await records('what is due for a check?')
-        expect(due.total).toBe(items.filter((f) => f.status === 'Due for a check').length)
-        const archived = await records('what is archived?')
-        expect(archived.total).toBe(items.filter((f) => f.status === 'Archived').length)
-        // A domain by its name: the service names its domains by ids of its own.
-        const id = (await (await signedIn()).getWorkspace()).domains.find(
-          (d) => d.name === 'Sales',
-        )!.id
-        const sales = await records('how many context items does Sales have?')
-        expect(sales.total).toBe(items.filter((f) => f.domain === id).length)
-        expect(sales.sentence).toMatch(/^Sales has [\d,]+ context items?/)
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask', 'getWorkspace'))(
-      "names a domain's owners as Context names them, and a metric's by its domain",
-      async () => {
-        const { domains } = await (await signedIn()).getWorkspace()
-        const sales = domains.find((d) => d.name === 'Sales')!
-        const names = (owners: string[]) =>
-          owners.length > 1 ? `${owners.slice(0, -1).join(', ')} and ${owners.at(-1)}` : owners[0]
-        expect((await records('who owns Sales?')).sentence).toBe(
-          `${names(sales.owners)} ${sales.owners.length > 1 ? 'own' : 'owns'} Sales.`,
-        )
-        const orders = await records('who owns Orders?')
-        expect(orders.detail).toBe(
-          'Orders is a definition in Sales. A domain has owners, not a single metric.',
-        )
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask', 'definitionsPage'))(
-      'lists the metrics, dimensions and values Definitions shows, with exact counts',
-      async () => {
-        const shown = (await (await signedIn()).definitionsPage()).filter((d) => !d.sameAs)
-        const dimensions = shown.filter((d) => d.type === 'dimension').map((d) => d.name)
-        const metrics = shown.filter((d) => d.type === 'metric')
-        const dims = await records('list 10 dimensions')
-        expect(dims.intent).toBe('terms')
-        expect(dims.total).toBe(dimensions.length)
-        expect(dims.sentence).toBe(
-          `The workspace has ${dimensions.length} dimensions: ${[...dimensions]
-            .sort()
-            .join(', ')
-            .replace(/, ([^,]+)$/, ' and $1')}.`,
-        )
-        expect(dims.detail).toBe(`You asked for 10; there are ${dimensions.length}.`)
-        const count = await records('how many metrics are there?')
-        expect(count.total).toBe(metrics.length)
-        expect(count.sentence).toBe(`The workspace has ${metrics.length} metrics.`)
-        expect(count.more).toMatchObject({ to: 'definitions' })
-        // "Sales" is a domain and a synonym of Net revenue: beside "metrics" it is the domain.
-        const sales = await records('list 10 metrics in Sales')
-        expect(sales.domain?.name).toBe('Sales')
-        expect(sales.sentence).toMatch(/^Sales has \d+ metrics/)
-        const markets = await records('what markets are there')
-        expect(markets.intent).toBe('values')
-        expect(markets.sentence).toMatch(/^Market has \d+ values/)
-        expect(markets.rows[0]).toMatchObject({ type: 'term', kind: 'value', page: 'Market' })
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      'analyses the records alike: every count has its denominator, and it says what it cannot see',
-      async () => {
-        const missing = await records('what definitions are missing?')
-        expect(missing.intent).toBe('audit')
-        expect(missing.audit?.facets).toContain('no_context')
-        expect(missing.footer?.notSeen).toMatch(/^Not seen: /)
-        for (const section of missing.sections ?? []) {
-          expect(section.count).toMatch(/\d+ of \d+|\d+ (?:card|pair|conflict|topic)/)
-          expect(section.rows.length).toBeLessThanOrEqual(5)
-        }
-        expect(missing.sections?.length ?? 0).toBeLessThanOrEqual(4)
-        const metrics = await records('which metrics have no context written?')
-        expect(metrics.intent).toBe('audit')
-        expect(metrics.sentence).toMatch(/^\d+ of \d+ metrics /)
-        const owners = await records('which metrics have no owner?')
-        expect(owners.audit?.facets).toEqual(['no_domain'])
-        expect(owners.sentence).not.toMatch(/^Every domain/)
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      'shows what agents asked that found nothing only as counts of 5 or more',
-      async () => {
-        const found = await records('what did agents ask that found nothing?')
-        for (const row of found.rows) expect(row.cells[0]).toMatch(/^([5-9]|\d{2,})( of \d+)?$/)
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'ask'))(
-      "refuses a question about one person's work, and leaves a question about the business to the context",
-      async () => {
-        const a = await signedIn()
-        const person = await a.ask({ question: 'what did Tomas Eriksen write this week?' })
-        expect(person.state).toBeNull()
-        expect(person.records).toMatchObject({
-          refused: true,
-          sentence: "Ask does not answer questions about one person's work.",
-        })
-        const business = await a.ask({
-          question: 'What changed in returns in the United Kingdom this week?',
-        })
-        expect(business.records).toBeUndefined()
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'askedThisWeek', 'ask'))(
-      'lists what agents asked this week, most first and 5 times or more, each with the state Ask gives it',
+    it.skipIf(lacks('signIn', 'askedThisWeek'))(
+      'lists what agents asked this week, most first and 5 times or more, each with a state',
       async () => {
         const a = await signedIn()
         const week = await a.askedThisWeek()
@@ -2544,9 +2313,6 @@ export function describeFootnoteApi(
           expect(r.times, r.title).toBeGreaterThanOrEqual(5)
           expect(states, r.title).toContain(r.state)
         }
-        // Asking a row gets the state its row shows.
-        for (const r of week.rows.slice(0, 4))
-          expect((await a.ask({ question: r.question })).state, r.title).toBe(r.state)
       },
     )
 

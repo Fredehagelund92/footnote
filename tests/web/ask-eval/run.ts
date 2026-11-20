@@ -7,7 +7,7 @@ import type { Answerer, CaseRun, Chat, EvalCase, Reader, Reply } from './types.t
   A run of the harness: every case, k times, through one answerer, each message answered before the
   next is sent, each reply graded as it comes. The world it runs in is passed in: who the readers
   are, what each may read and see, whether a message was stored, what has been spent, and the judge,
-  so the same run reads today's main on the demo week, a future agent, or a fake in a unit test.
+  so the same run reads Ask's loop on the demo week, a future agent, or a fake in a unit test.
 */
 
 export type ReaderWorld = Pick<GradeContext, 'readable' | 'unreadable' | 'topics'>

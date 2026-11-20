@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import type { AnswerResult, Asked, LoopTurn } from '@contract/answer'
+import type { Asked, LoopTurn } from '@contract/answer'
 import type { Answer } from '@/model/ask'
 import { lookupFailedNote } from '@domain/words'
 import {
-  answerOf,
   askedWeekOf,
   createChatShelf,
   KEPT_ANSWERS,
   dayOf,
   examplesOf,
-  linksOf,
+  failedAnswer,
   loopAnswerOf,
-  lookupFields,
   namesOf,
   type Shelf,
 } from '@/api/http-ask'
@@ -31,309 +29,17 @@ const vocabulary = {
 }
 const names = namesOf(vocabulary)
 
-const item = (
-  id: string,
-  summary: string,
-  patch: Partial<AnswerResult['items'][number]> = {},
-): AnswerResult['items'][number] => ({
-  id,
-  version: 1,
-  areaId: 'area_sales',
-  kind: 'event',
-  title: summary,
-  summary,
-  validity: { start: '2026-08-04', end: null },
-  match: 'exact',
-  unverified: false,
-  unverifiedReason: null,
-  restrictions: [],
-  conflictsWith: [],
-  quote: null,
-  notToConclude: null,
-  ...patch,
-})
-
 const norway = {
   metrics: ['metric:orders'],
   filters: { 'dim:market': ['val:market/norway'] },
   window: { start: '2026-08-01', end: '2026-09-01' },
 }
 
-const result = (patch: Partial<AnswerResult> = {}): AnswerResult => ({
-  target: { kind: 'live' },
-  edition: '2026-10-20.1',
-  status: 'matched',
-  state: 'grounded',
-  scope: norway,
-  dates: null,
-  assumed: null,
-  issues: [],
-  items: [],
-  leftOut: [],
-  leftOutMore: 0,
-  forAnotherGroup: 0,
-  uncovered: { metrics: [], values: [] },
-  say: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
-  next: null,
-  steps: [],
-  ms: 1,
-  ...patch,
-})
-
-describe("Ask's answer from the engine", () => {
-  it('names what was asked, gives each source its first sentence and number, and carries its quote', () => {
-    const a = answerOf(
-      result({
-        items: [
-          item('itm_a', 'Online sales stopped on 4 August 2026. Parcels still arrived.', {
-            quote: 'Held at the border from 4 August 2026.',
-            notToConclude: 'Fewer orders do not mean fewer customers.',
-          }),
-        ],
-      }),
-      'Why did orders in Norway drop in August?',
-      names,
-    )
-    expect(a).toMatchObject({
-      metric: 'Orders',
-      markets: ['Norway'],
-      dates: '1 to 31 Aug 2026',
-      state: 'grounded',
-      sources: ['itm_a'],
-      said: '1 context item applies to Orders in Norway in August 2026. Nothing else was looked up.',
-      cited: {
-        itm_a: {
-          quote: 'Held at the border from 4 August 2026.',
-          dontConclude: 'Fewer orders do not mean fewer customers.',
-        },
-      },
-    })
-    // A question about why something moved is told the cause is not in the context.
-    expect(a.text).toBe(
-      "Online sales stopped on 4 August 2026. [1] The context doesn't say what caused it.",
-    )
-    expect(
-      answerOf(
-        result({ items: [item('itm_a', 'Online sales stopped.')] }),
-        'What should I know about Orders in Norway?',
-        names,
-      ).text,
-    ).toBe('Online sales stopped. [1]')
-  })
-
-  it("takes a real model's words when the service sent them, and keeps the engine's state, note and sources", () => {
-    const stale = result({
-      state: 'stale',
-      items: [
-        item('itm_a', 'Returns count refunds.', {
-          unverified: true,
-          unverifiedReason: 'past_review_date',
-        }),
-      ],
-    })
-    const written = 'Returns count only refunds that reached the bank [1].'
-    const a = answerOf(stale, 'Returns in Norway?', names, {}, written)
-    expect(a).toMatchObject({
-      text: written,
-      state: 'stale',
-      sources: ['itm_a'],
-      note: 'Based on 1 context item that may be out of date: its check date passed.',
-    })
-    // With nothing given, there are no model words to take.
-    expect(answerOf(result({ state: 'missing' }), 'Orders?', names, {}, written).text).not.toBe(
-      written,
-    )
-  })
-
-  it('says no dates when the engine assumed today, and keeps the asker’s chips', () => {
-    const scope = [{ id: 'market:Norway', label: 'Norway' }]
-    const a = answerOf(
-      result({ assumed: { date: '2026-10-23', time_zone: 'UTC', reason: 'no date given' } }),
-      'Orders in Norway?',
-      names,
-      { scope },
-    )
-    expect(a.dates).toBeUndefined()
-    expect(a.scope).toEqual(scope)
-  })
-
-  it('keeps both sides of a conflict, and says Partial for the markets with nothing', () => {
-    const conflict = answerOf(
-      result({
-        state: 'conflict',
-        items: [item('itm_a', 'Counts store credit.'), item('itm_b', 'Card and cash only.')],
-      }),
-      'Do Norway orders include gift cards?',
-      names,
-    )
-    expect(conflict.text).toBe(
-      'Counts store credit. [1] Card and cash only. [2] Both are kept until an owner chooses.',
-    )
-    const partial = answerOf(
-      result({
-        state: 'partial',
-        scope: { ...norway, filters: { 'dim:market': ['val:market/norway', 'val:market/spain'] } },
-        uncovered: { metrics: [], values: ['val:market/spain'] },
-        items: [item('itm_a', 'Online sales stopped.')],
-      }),
-      'Orders in Norway and Spain?',
-      names,
-    )
-    expect(partial.note).toBe("There's context for Norway and nothing for Spain.")
-  })
-
-  it('names the items that disagree, not every item a conflict gives', () => {
-    // The customs stop applies too, first, but disagrees with nothing: an owner chooses between
-    // the other two.
-    const a = answerOf(
-      result({
-        state: 'conflict',
-        items: [
-          item('itm_stop', 'Online sales stopped.'),
-          item('itm_card', 'Card and cash only.', { conflictsWith: ['itm_credit'] }),
-          item('itm_credit', 'Counts store credit.'),
-        ],
-      }),
-      'Orders in Norway?',
-      names,
-    )
-    expect(a.conflict).toEqual(['itm_card', 'itm_credit'])
-    // A link to an item the answer does not give names nobody here.
-    const alone = answerOf(
-      result({
-        state: 'conflict',
-        items: [item('itm_card', 'Card and cash only.', { conflictsWith: ['itm_elsewhere'] })],
-      }),
-      'Orders in Norway?',
-      names,
-    )
-    expect(alone.conflict).toEqual([])
-  })
-
-  it('says a question the engine could not read was not looked up, with its reason and no answer state', () => {
-    const unread = (say: string) =>
-      answerOf(
-        result({ state: 'missing', status: 'need_more_detail', scope: null, say }),
-        'give me context created in last 24 hours?',
-        names,
-      )
-    const a = unread(
-      'Nothing was looked up yet. The question needs a metric or a market, such as Active customers, Average order value or Churn rate.',
-    )
-    // Not found would tell the person that nobody wrote anything down, which nobody checked.
-    expect(a.state).toBeNull()
-    expect(a.sources).toEqual([])
-    expect(a.text).toBe(
-      'The question needs a metric or a market, such as Active customers, Average order value or Churn rate.',
-    )
-    expect(a.said).toMatch(/^Nothing was looked up yet\. /)
-    // Whatever the engine could not read, its reason is what the answer says.
-    expect(unread(`Nothing was looked up yet. There's no domain called "Salse".`).text).toBe(
-      `There's no domain called "Salse".`,
-    )
-  })
-
-  it('tells a question that names nothing what it lacks, with the names closest to its words', () => {
-    const named = (question: string) =>
-      answerOf(
-        result({
-          state: 'missing',
-          status: 'need_more_detail',
-          scope: null,
-          say: 'Nothing was looked up yet. The question needs a metric or a market, such as Orders.',
-          issues: [{ field: 'scope', input: question, options: ['metric:orders'] }],
-        }),
-        question,
-        names,
-      )
-    const typo = named('what about ordrs in Norwy')
-    expect(typo.state).toBeNull()
-    expect(typo.text).toBe("The question doesn't name a metric or a market.")
-    // Offered, never read as asked: the answer still looked nothing up.
-    expect(typo.closest).toEqual(['Norway', 'Orders'])
-    expect(typo.said).toMatch(/such as Orders\.$/)
-    expect(named('list 10 dimensions').closest).toEqual([])
-  })
-
-  it('gives the definition the source wrote beside the answer, and keeps its state', () => {
-    const a = answerOf(
-      result({
-        state: 'missing',
-        status: 'no_match',
-        definitions: [
-          {
-            key: 'metric:orders',
-            name: 'Orders',
-            words: 'Orders placed and paid for.',
-            shortened: false,
-            tool: 'Cube',
-            source: 'Cube local model',
-            ref: 'cube:orders.count',
-          },
-        ],
-      }),
-      'What are Orders?',
-      names,
-    )
-    expect(a.state).toBe('missing')
-    expect(a.definitions).toEqual([
-      { name: 'Orders', words: 'Orders placed and paid for.', tool: 'Cube' },
-    ])
-  })
-
-  it('says where context about a market is when the market alone found nothing', () => {
-    const a = answerOf(
-      result({
-        state: 'missing',
-        status: 'no_match',
-        scope: { ...norway, metrics: [] },
-        valueMetrics: ['metric:orders'],
-      }),
-      'What is written about Norway?',
-      names,
-    )
-    expect(a.state).toBe('missing')
-    expect(a.text).toBe(
-      'Nothing applies to Norway on its own. Context about Norway is written for a metric, such as Orders.',
-    )
-    // It names the metrics in its words, and offers no question to ask.
-    expect(a).not.toHaveProperty('instead')
-  })
-
-  it('says what nothing is written for, and gives Not checked no words', () => {
-    const missing = answerOf(result({ state: 'missing', status: 'no_match' }), 'Orders?', names)
-    expect(missing.state).toBe('missing')
-    expect(missing.text).toBe(
-      "Nobody has written down anything about Orders in Norway, 1 to 31 Aug 2026. That doesn't mean there's no explanation, only that none is written down yet.",
-    )
-    const failed = answerOf(result({ state: 'failed', status: 'check_failed' }), 'Orders?', names)
-    expect(failed.text).toBe('')
-    expect(failed.note).toBe(lookupFailedNote)
+describe("Ask's answer when the service gave none", () => {
+  it('gives Not checked no words, and says the check could not run', () => {
+    const failed = failedAnswer('Orders?')
+    expect(failed).toMatchObject({ state: 'failed', text: '', note: lookupFailedNote })
     expect(failed.note).toMatch(/^Ask could not look this up just now\. .*Ask again in a minute\.$/)
-  })
-
-  it('says why an item may be out of date, and what was left out', () => {
-    const a = answerOf(
-      result({
-        state: 'stale',
-        items: [
-          item('itm_a', 'Returns count refunds.', {
-            unverified: true,
-            unverifiedReason: 'past_review_date',
-          }),
-        ],
-        leftOut: [
-          { id: 'itm_x', reason: 'values', kind: 'note', title: 'Germany lags', replacedBy: null },
-        ],
-        forAnotherGroup: 2,
-      }),
-      'Returns in Norway?',
-      names,
-    )
-    expect(a.note).toBe('Based on 1 context item that may be out of date: its check date passed.')
-    expect(a.leftOut).toBe(
-      '1 context item for another market or value (Germany lags), 2 context items for another group.',
-    )
   })
 })
 
@@ -406,18 +112,13 @@ describe('Asked this week from the service', () => {
     expect(examplesOf(null)).toEqual([])
   })
 
-  it('offers the rows and then the starters as questions, each with the scope it asks', () => {
+  it('offers the rows and then the starters as questions', () => {
     const examples = examplesOf(asked)
     expect(examples.map((e) => [e.question, e.starter ?? false])).toEqual([
       ['What should I know about Orders in Norway?', false],
       ['What should I know about Orders in Spain?', false],
       ['What should I know about Orders in Norway?', true],
     ])
-    expect(lookupFields(examples[0]!.scope)).toEqual({
-      metrics: ['metric:orders'],
-      dimension_filters: [{ dimension: 'dim:market', values: ['val:market/norway'] }],
-      window: { from: '2026-10-01', to: '2026-10-31' },
-    })
   })
 })
 
@@ -521,62 +222,6 @@ describe("the person's chats in the browser", () => {
       day: 'Earlier',
       time: '19 Oct',
     })
-  })
-})
-
-describe('the links an answer followed', () => {
-  it('names each end as a mention does, with what the agent read there', () => {
-    const links = linksOf(
-      result({
-        links: {
-          on: true,
-          followed: [
-            {
-              from: 'itm_norway_stop',
-              rel: 'mentions',
-              to: {
-                type: 'term',
-                id: 'term:0190a0a0-0000-7000-8000-00000000000e',
-                label: 'Webshop',
-                areaId: 'area_sales',
-                read: 'Orders placed on **our site**.',
-                sameAs: null,
-              },
-            },
-          ],
-          notFollowed: [
-            {
-              from: 'itm_norway_stop',
-              rel: 'conflicts_with',
-              to: { type: 'item', id: 'itm_kh4llvi9', label: 'the old switch', status: 'retired' },
-            },
-          ],
-        },
-      }),
-    )
-    expect(links).toEqual({
-      on: true,
-      followed: [
-        {
-          from: { id: 'itm_norway_stop', title: '' },
-          rel: 'mentions',
-          to: { id: 'term:Webshop', label: 'Webshop' },
-          read: 'Orders placed on our site.',
-        },
-      ],
-      notFollowed: [
-        {
-          from: { id: 'itm_norway_stop', title: '' },
-          rel: 'disagrees',
-          to: { id: 'context:itm_kh4llvi9', label: 'the old switch' },
-        },
-      ],
-    })
-  })
-
-  it('says nothing of links for an answer that carries none', () => {
-    expect(linksOf(result())).toBeUndefined()
-    expect(answerOf(result(), 'Orders?', namesOf(vocabulary)).links).toBeUndefined()
   })
 })
 

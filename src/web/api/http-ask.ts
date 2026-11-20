@@ -1,46 +1,19 @@
 /**
- * Ask on the Footnote service: the answer engine's answer (`ask.lookup`) and Asked this week
+ * Ask on the Footnote service: a turn of Ask's loop (`ask.lookup`) and Asked this week
  * (`ask.asked`) as the app reads them (src/web/model/ask.ts), and the person's chats, which stay in
- * their browser (FR-717). The engine decides the state, the sources and what agents are told; the
- * words here are written without a model, the way the mock's matcher writes them: each source's
- * first sentence with its number, then one sentence that fits the state.
+ * their browser (FR-717). The service decides the state, the sources and what was read; this
+ * only shapes the turn for the page.
  */
-import type { Asked, AnswerResult, LoopTurn } from '@contract/answer'
+import type { Asked, LoopTurn } from '@contract/answer'
 import type { Vocabulary } from '@domain/item'
 import type { Term } from '@domain/vocabulary'
-import { plainText as wordsOfMarkdown } from '@domain/doc-diff'
-import { shiftDate } from '@domain/validity'
-import { windowWords } from '@domain/dates'
 import { lookupFailedNote } from '@domain/words'
-import { plainText } from '@/lib/mentions'
 import { ALL_VALUES } from '@/model/observability'
-import type { Answer, AnswerLinks, AskedRow, AskedWeek, Example, Thread } from '@/model/ask'
+import type { Answer, AskedRow, AskedWeek, Example, Thread } from '@/model/ask'
 import type { Undoable } from './client'
-import {
-  closestNames,
-  midSentence,
-  NAMES_NOTHING,
-  namesNothing,
-  scopeText,
-  unreadReason,
-} from '@/model/ask'
 
 /** A scope as the engine reads it: metric keys, each dimension's value keys, and its days. */
 export type ReadScope = Asked['rows'][number]['scope']
-
-/** What a look-up takes beside the words: the scope's own fields, both days included. */
-export function lookupFields(scope: ReadScope) {
-  return {
-    metrics: scope.metrics,
-    dimension_filters: Object.entries(scope.filters).map(([dimension, values]) => ({
-      dimension,
-      values,
-    })),
-    ...(scope.window.end
-      ? { window: { from: scope.window.start, to: shiftDate(scope.window.end, -1) } }
-      : {}),
-  }
-}
 
 /**
  * The names of the vocabulary's keys: `metric:orders` is Orders, `val:market/norway` is Norway;
@@ -95,248 +68,6 @@ export function namesOf(vocabulary: Vocabulary): Names & {
 
 /** "1 to 31 Aug 2026", "1 Jul to 30 Sep 2026": the days a question was read for. */
 const datesWords = (words: string) => words.replace(/^(\d+)-/, '$1 to ')
-const datesOf = (window: { start: string; end: string | null }) => datesWords(windowWords(window))
-
-/**
- * An item's first sentence, as the answer says it. An item that opens with a question says what
- * follows it.
- */
-const sentenceOf = (summary: string) => {
-  const [first = '', ...rest] = plainText(summary)
-    .split(/(?<=[.!?])\s/)
-    .map((sentence) => sentence.trim())
-  return first.endsWith('?') && rest[0] ? rest[0] : first
-}
-
-const items = (n: number) => (n === 1 ? '1 context item' : `${n} context items`)
-
-/** "Orders, Returns and Net revenue". */
-const list = (names: readonly string[], and = 'and') =>
-  names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} ${and} ${names.at(-1)}`
-
-/** Why items that are about the question were left out, in words. */
-const leftOutWords: Record<AnswerResult['leftOut'][number]['reason'], string> = {
-  source_visibility: 'about metrics you cannot see',
-  stopped: 'paused',
-  high_risk_unverified: 'waiting for a check',
-  cut: 'past the limit of one answer',
-  replaced: 'replaced by a newer item',
-  dates: 'for other dates',
-  values: 'for another market or value',
-  dimension: 'split by something the question did not name',
-}
-
-function leftOutOf(a: AnswerResult): string | undefined {
-  const groups = new Map<string, string[]>()
-  for (const l of a.leftOut) groups.set(l.reason, [...(groups.get(l.reason) ?? []), l.title])
-  const parts = [...groups].map(
-    ([reason, titles]) =>
-      `${items(titles.length)} ${leftOutWords[reason as keyof typeof leftOutWords]} (${titles.join('; ')})`,
-  )
-  if (a.leftOutMore) parts.push(`${items(a.leftOutMore)} more`)
-  if (a.forAnotherGroup) parts.push(`${items(a.forAnotherGroup)} for another group`)
-  return parts.length ? `${parts.join(', ')}.` : undefined
-}
-
-const relOf = { replaces: 'replaces', conflicts_with: 'disagrees', mentions: 'mentions' } as const
-
-/**
- * What get_related followed from the answer's items, as Ask shows it: an item by its id and a
- * term by its word, as a mention names them, each with what the agent read there.
- */
-export function linksOf(a: AnswerResult): AnswerLinks | undefined {
-  if (!a.links) return undefined
-  const titles = new Map(a.items.map((i) => [i.id, i.title]))
-  const from = (id: string) => ({ id, title: titles.get(id) ?? '' })
-  const to = (t: { type: 'item' | 'term'; id: string; label: string }) => ({
-    id: t.type === 'item' ? `context:${t.id}` : `term:${t.label}`,
-    label: t.label,
-  })
-  return {
-    on: a.links.on,
-    followed: a.links.followed.map((l) => ({
-      from: from(l.from),
-      rel: relOf[l.rel],
-      to: to(l.to),
-      // A term's meaning is Markdown: the agent reads its words.
-      read: wordsOfMarkdown(l.to.read ?? ''),
-    })),
-    notFollowed: a.links.notFollowed.map((l) => ({
-      from: from(l.from),
-      rel: relOf[l.rel],
-      to: to(l.to),
-    })),
-  }
-}
-
-/** Why an item may be out of date, in words. */
-const outOfDate: Record<NonNullable<AnswerResult['items'][number]['unverifiedReason']>, string> = {
-  past_review_date: 'its check date passed',
-  needs_check: 'its definition changed since it was checked',
-  source_missing: 'its source is missing',
-}
-
-/**
- * The engine's answer as Ask shows it, for the question as asked. The words follow the state:
- * Not checked has none, Not found says what nothing is written for, and every other state gives
- * its sources' first sentences, numbered, then what the context does not say.
- */
-export function answerOf(
-  a: AnswerResult,
-  question: string,
-  names: Names,
-  extra: Pick<Answer, 'parts' | 'scope'> = {},
-  /**
-   * The words a real model wrote from the answer's items, when the service sent them: they take
-   * the place of Ask's own; the state, its note, the sources and what agents are told stay the
-   * engine's.
-   */
-  written?: string,
-): Answer {
-  const answer = engineAnswerOf(a, question, names, extra)
-  return written && a.items.length ? { ...answer, text: written } : answer
-}
-
-function engineAnswerOf(
-  a: AnswerResult,
-  question: string,
-  names: Names,
-  extra: Pick<Answer, 'parts' | 'scope'>,
-): Answer {
-  const scope = a.scope
-  const metric = scope?.metrics[0] ? names.metric(scope.metrics[0]) : ''
-  const markets = Object.entries(scope?.filters ?? {})
-    .filter(([dimension]) => dimension === 'dim:market')
-    .flatMap(([, values]) => values.map(names.value))
-  const dates = scope && !a.assumed ? datesOf(scope.window) : undefined
-  const sources = a.items.map((i) => i.id)
-  const cited = Object.fromEntries(
-    a.items.map((i) => [i.id, { quote: i.quote ?? '', dontConclude: i.notToConclude ?? '' }]),
-  )
-  const links = linksOf(a)
-  const base = {
-    id: 'custom',
-    question,
-    metric,
-    markets,
-    dates,
-    state: a.state,
-    sources,
-    said: a.say,
-    leftOut: leftOutOf(a),
-    ...(a.items.length ? { cited } : {}),
-    ...(links ? { links } : {}),
-    ...(a.definitions?.length
-      ? {
-          definitions: a.definitions.map((d) => ({ name: d.name, words: d.words, tool: d.tool })),
-        }
-      : {}),
-    ...(a.footer ? { footer: a.footer } : {}),
-    // How it was read, as keys, for the next question to carry; and the planner's reading.
-    ...(scope ? { keys: scope } : {}),
-    ...(a.reading
-      ? {
-          reading: {
-            words: a.reading.words,
-            carried: a.reading.carried,
-            period: a.reading.period,
-            ...(a.reading.standalone ? { standalone: a.reading.standalone } : {}),
-            ...(a.reading.left ? { left: a.reading.left } : {}),
-            ...(a.reading.facts?.length ? { facts: a.reading.facts } : {}),
-            ...(a.reading.settled ? { settled: a.reading.settled } : {}),
-          },
-        }
-      : {}),
-    ...(a.limit ? { limit: a.limit } : {}),
-    ...extra,
-  }
-  const what = scopeText({ metric, markets, dates }) || 'this question'
-  // The engine read nothing: no answer state, only its reason (never Not found, which says that
-  // nothing is written down). A question that names nothing at all is offered the names closest
-  // to its words instead of the engine's first choices.
-  if (a.status === 'need_more_detail')
-    return namesNothing(a.issues, question)
-      ? {
-          ...base,
-          state: null,
-          text: NAMES_NOTHING,
-          closest: closestNames(question, names.terms ?? []),
-        }
-      : { ...base, state: null, text: unreadReason(a.say) }
-  if (a.state === 'failed')
-    return {
-      ...base,
-      note: lookupFailedNote,
-      text: '',
-    }
-  // A market on its own: what it has is written for a metric, so say so, naming them.
-  if (a.state === 'missing' && a.valueMetrics?.length) {
-    const where = list(
-      Object.values(scope?.filters ?? {})
-        .flat()
-        .map(names.value),
-    )
-    const metrics = a.valueMetrics.map(names.metric)
-    return {
-      ...base,
-      text: `Nothing applies to ${where} on its own. Context about ${where} is written for a metric, such as ${list(metrics, 'or')}.`,
-    }
-  }
-  if (a.state === 'missing')
-    return {
-      ...base,
-      text: `Nobody has written down anything about ${scope?.metrics.length || markets.length ? what : midSentence(a.reading?.words ?? what)}. That doesn't mean there's no explanation, only that none is written down yet.`,
-    }
-  // Numbered as the app shows the sources.
-  const shown = a.items
-  const said = shown.length
-    ? shown.map((i, n) => `${sentenceOf(i.summary)} [${n + 1}]`).join(' ')
-    : a.say
-  if (a.state === 'conflict') {
-    // The items that name each other as conflicting, not every item the answer gives.
-    const ids = new Set(a.items.map((i) => i.id))
-    const named = new Set(a.items.flatMap((i) => i.conflictsWith.filter((id) => ids.has(id))))
-    const conflict = a.items
-      .filter((i) => named.has(i.id) || i.conflictsWith.some((id) => ids.has(id)))
-      .map((i) => i.id)
-    return { ...base, text: `${said} Both are kept until an owner chooses.`, conflict }
-  }
-  if (a.state === 'partial') {
-    const uncovered = new Set(a.uncovered.values)
-    const marketKeys = scope?.filters['dim:market'] ?? []
-    const covered = marketKeys.filter((k) => !uncovered.has(k)).map(names.value)
-    const none = marketKeys.filter((k) => uncovered.has(k)).map(names.value)
-    return {
-      ...base,
-      text: said,
-      ...(covered.length && none.length
-        ? {
-            note: `There's context for ${covered.join(' and ')} and nothing for ${none.join(' and ')}.`,
-          }
-        : {}),
-    }
-  }
-  if (a.state === 'stale') {
-    const seen = shown.length ? shown : a.items
-    const stale = seen.find((i) => i.unverified)
-    const reason = stale?.unverifiedReason ? outOfDate[stale.unverifiedReason] : 'it may be old'
-    return {
-      ...base,
-      text: said,
-      note:
-        seen.length === 1
-          ? `Based on 1 context item that may be out of date: ${reason}.`
-          : `Based on ${seen.length} context items. One of them may be out of date: ${reason}.`,
-    }
-  }
-  // A question about why something moved is told the context does not give the cause.
-  const cause =
-    /\b(why|drop|dropped|fall|fell|rise|rose|jump|jumped|spike|increase|increased|decrease|decreased|decline|declined)\b/i
-  return {
-    ...base,
-    text: cause.test(question) ? `${said} The context doesn't say what caused it.` : said,
-  }
-}
 
 /** The answer when the check could not run: Not checked, never Not found. */
 export const failedAnswer = (question: string): Answer => ({
@@ -450,20 +181,18 @@ export function askedWeekOf(asked: Asked | null, names: Names): AskedWeek {
  * The questions Ask offers from the workspace itself (decided 27 October 2026): what agents asked
  * most this week, then the starters made from what it has written. Each asks with its scope.
  */
-export function examplesOf(asked: Asked | null): (Example & { scope: ReadScope })[] {
+export function examplesOf(asked: Asked | null): Example[] {
   if (!asked) return []
   return [
     ...asked.rows.map((r) => ({
       id: `asked:${r.title}`,
       label: r.title,
       question: questionAbout(r.title),
-      scope: r.scope,
     })),
     ...asked.starters.map((s) => ({
       id: `starter:${s.title}`,
       label: s.title,
       question: questionAbout(s.title),
-      scope: s.scope,
       starter: true,
     })),
   ]

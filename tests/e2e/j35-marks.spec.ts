@@ -1,28 +1,16 @@
-import type { Locator, Page } from '@playwright/test'
+import type { Locator } from '@playwright/test'
 import { card, expect, go, onMockOnly, test } from './go.ts'
 
 // J35, marked text: colour that means something, and only that (components/footnote/mark.tsx). The
-// Inbox marks what a suggestion needs on its row, once; a review's clash says what to do; Ask sets
-// the sentences from the items that disagree apart under a line, unmarked; Quality marks the words that changed; Related marks
-// an item that disagrees; Integrations marks a failed read and a refused key, never a healthy tool.
-// A mark is ink, weight and an underline, never a fill.
+// Inbox marks what a suggestion needs on its row, once; a review's clash says what to do; a
+// grounded answer in Ask marks nothing; Quality marks the words that changed; Related marks an item
+// that disagrees; Integrations marks a failed read and a refused key, never a healthy tool. A mark
+// is ink, weight and an underline, never a fill.
 
 /** No mark is carried by a fill. */
 async function noFills(marks: Locator) {
   for (const mark of await marks.all())
     await expect(mark).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-}
-
-/** Asks in a new chat, by typing, as both modes answer it; waits for the answer's state line. */
-async function ask(page: Page, question: string, state: string) {
-  await go(page, `/ask?n=${Date.now()}`)
-  const box = page.getByRole('textbox', { name: 'Ask a question' })
-  await box.click()
-  await box.pressSequentially(question)
-  await box.press('Enter')
-  // The box was clicked under the question, where the answer now lands: the pointer leaves, so no sentence is hovered.
-  await page.mouse.move(0, 0)
-  await expect(page.getByText(state, { exact: true }).first()).toBeVisible()
 }
 
 test('the Inbox marks what a suggestion needs, once on its row, and only on the rows that need it', async ({
@@ -57,31 +45,8 @@ test("a review's clash says what to do, marked once", async ({ page }) => {
   await expect(clash).toHaveCount(1)
 })
 
-test('Ask sets the sentences from the items that disagree apart behind an amber rule, as plain words', async ({
-  page,
-}) => {
-  await ask(page, 'Do Norway orders include gift-card money?', 'Conflict')
-  const log = page.getByRole('log')
-  const sentences = log.locator('[aria-pressed]')
-  // The rule, and the sentences behind it: fewer than all of them. No line in the thread says so;
-  // the badge's card does.
-  const apart = log.locator('[data-differ]').first()
-  await expect(log.getByText('These two disagree', { exact: true })).toHaveCount(0)
-  const differ = apart.locator('[aria-pressed]')
-  await expect(differ.first()).toBeVisible()
-  expect(await differ.count()).toBeLessThan(await sentences.count())
-  // No sentence carries a mark of its own: no underline, no weight, and nothing says "in bold".
-  await expect(log.locator('[data-mark]')).toHaveCount(0)
-  for (const sentence of [differ.first(), sentences.first()]) {
-    await expect(sentence).toHaveCSS('text-decoration-line', 'none')
-    await expect(sentence).toHaveCSS('font-weight', '400')
-  }
-  await expect(log.getByText(/in bold/)).toHaveCount(0)
-})
-
 test('a grounded answer marks nothing', async ({ page }) => {
-  // On the service the answer engine also gives the two items that disagree, so only the demo's
-  // hand-written answer is grounded.
+  // The mock's grounded example, opened by its address, which the service has not.
   await onMockOnly('a grounded answer of the demo', async () => {
     await go(page, '/ask?example=grounded')
     await expect(page.getByText('Checked', { exact: true }).first()).toBeVisible()

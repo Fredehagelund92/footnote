@@ -58,7 +58,7 @@ describe('figures in an answer', () => {
       {
         metric: 'Discount cost',
         markets: ['Norway'],
-        dates: '9 to 31 May 2026',
+        dates: '10 May to 23 Oct 2026',
         state: 'grounded',
       },
       only('cube'),
@@ -79,7 +79,7 @@ describe('figures in an answer', () => {
       {
         metric: 'Discount cost',
         markets: ['Norway'],
-        dates: '9 to 31 May 2026',
+        dates: '10 May to 23 Oct 2026',
         state: 'grounded',
       },
     ]) {

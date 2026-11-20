@@ -298,7 +298,6 @@ async function compose(
     trustedProxies: config.trustedProxies,
     nodeEnv: config.nodeEnv,
     metricsToken: config.metricsToken,
-    askLoop: config.askLoop,
     ...(checks ? { modelChecks: checks } : {}),
     profileLabel: config.profileLabel,
     // The end-to-end tests serve their web pages on this machine; elsewhere, the public web only.

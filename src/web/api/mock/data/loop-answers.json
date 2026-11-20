@@ -1,0 +1,3833 @@
+{
+  "Why did orders in Norway drop in August?": {
+    "kind": "answer",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
+    "state": "conflict",
+    "footer": {
+      "denominator": "3 of 21 published context items you can see apply.",
+      "notSeen": "6 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders and Norway, 1-31 Aug 2026: 3 items apply, 6 nearby items do not.",
+      "Searched “Why did orders in Norway drop in August?” (read as Orders and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "Norway"],
+      "about": ["metric:orders", "value:market/norway"],
+      "period": "1-31 Aug 2026",
+      "note": "year not given",
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Why did orders in Norway drop in August?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Why did orders in Norway drop in August?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate."
+          },
+          {
+            "t": "cite",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Online sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing."
+          },
+          {
+            "t": "cite",
+            "n": 3
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:gross_margin",
+        "name": "Gross margin",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-02",
+        "outOfDate": null,
+        "n": 1
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-09-05",
+        "outOfDate": null,
+        "n": 2
+      },
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-03",
+        "outOfDate": null,
+        "n": 3
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "How did orders do in Norway and Spain last quarter?": {
+    "kind": "answer",
+    "text": "What is written for Orders, Norway and Spain.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
+    "state": "conflict",
+    "footer": {
+      "denominator": "3 of 21 published context items you can see apply.",
+      "notSeen": "10 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders, Norway and Spain, 1 Jul to 30 Sep 2026: 3 items apply, 6 nearby items do not.",
+      "Searched “How did orders do in Norway and Spain last quarter?” (read as Orders, Norway and Spain), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "Norway", "Spain"],
+      "about": ["metric:orders", "value:market/norway", "value:market/spain"],
+      "period": "1 Jul to 30 Sep 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": ["value:market/spain"]
+    },
+    "nearby": [],
+    "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "How did orders do in Norway and Spain last quarter?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "How did orders do in Norway and Spain last quarter?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": ", "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/spain"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate."
+          },
+          {
+            "t": "cite",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Online sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing."
+          },
+          {
+            "t": "cite",
+            "n": 3
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:orders], [@value:market/norway] and [@value:market/spain].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:gross_margin",
+        "name": "Gross margin",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:new_customers",
+        "name": "New customers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-02",
+        "outOfDate": null,
+        "n": 1
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-09-05",
+        "outOfDate": null,
+        "n": 2
+      },
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-03",
+        "outOfDate": null,
+        "n": 3
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "How did orders in Spain change in October 2026?": {
+    "kind": "answer",
+    "text": "Nothing written covers Orders and Spain. Sales is owned by Jon Abara and Sofia Brandt.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "0 of 21 published context items you can see apply.",
+      "notSeen": "11 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders and Spain, 1-31 Oct 2026: 0 items apply, 9 nearby items do not.",
+      "Searched “How did orders in Spain change in October 2026?” (read as Orders and Spain), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "Spain"],
+      "about": ["metric:orders", "value:market/spain"],
+      "period": "1-31 Oct 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [
+      "itm_norway_stop",
+      "itm_france_switch_21",
+      "itm_france_switch_12",
+      "itm_spe2w9kh",
+      "itm_0tmqp7o1",
+      "itm_2a1wp53q",
+      "itm_gift_card_only",
+      "itm_gift_store_credit",
+      "itm_r6lyl1pc"
+    ],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "How did orders in Spain change in October 2026?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "How did orders in Spain change in October 2026?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/spain"
+          },
+          {
+            "t": "text",
+            "text": ". Sales is owned by Jon Abara and Sofia Brandt."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers [@metric:orders] and [@value:market/spain]. Sales is owned by Jon Abara and Sofia Brandt.",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:gross_margin",
+        "name": "Gross margin",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:first_time_buyers",
+        "name": "First-time buyers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_france_switch_21",
+        "title": "Payment provider switched in France on 21 May 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_france_switch_12",
+        "title": "Payment provider switched in France on 12 May 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_spe2w9kh",
+        "title": "Payment provider switched in France on 12 May 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_0tmqp7o1",
+        "title": "Orders lags by one day in the source tool",
+        "kind": "warning",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/germany"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_2a1wp53q",
+        "title": "What to rule out before explaining a jump in Orders",
+        "kind": "guide",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_r6lyl1pc",
+        "title": "Data for Orders before 19 January 2026 is not reliable",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/sweden"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      }
+    ],
+    "closest": {
+      "by": "dimension:market",
+      "counts": [
+        {
+          "id": "value:market/france",
+          "count": 4
+        },
+        {
+          "id": "value:market/norway",
+          "count": 3
+        },
+        {
+          "id": "value:market/germany",
+          "count": 1
+        },
+        {
+          "id": "value:market/sweden",
+          "count": 1
+        }
+      ],
+      "items": [
+        "itm_norway_stop",
+        "itm_france_switch_21",
+        "itm_france_switch_12",
+        "itm_spe2w9kh",
+        "itm_0tmqp7o1",
+        "itm_2a1wp53q",
+        "itm_gift_card_only",
+        "itm_gift_store_credit",
+        "itm_r6lyl1pc"
+      ]
+    },
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "Do Norway orders include gift-card money?": {
+    "kind": "answer",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
+    "state": "conflict",
+    "footer": {
+      "denominator": "3 of 21 published context items you can see apply.",
+      "notSeen": "7 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders and Norway, 23 Oct 2026: 3 items apply, 6 nearby items do not.",
+      "Searched “Do Norway orders include gift-card money?” (read as Orders and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "Norway"],
+      "about": ["metric:orders", "value:market/norway"],
+      "period": "23 Oct 2026",
+      "note": null,
+      "assumedToday": true,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Do Norway orders include gift-card money?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Do Norway orders include gift-card money?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate."
+          },
+          {
+            "t": "cite",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Online sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing."
+          },
+          {
+            "t": "cite",
+            "n": 3
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-02",
+        "outOfDate": null,
+        "n": 1
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-09-05",
+        "outOfDate": null,
+        "n": 2
+      },
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-03",
+        "outOfDate": null,
+        "n": 3
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "Why did Norway returns drop at the end of April?": {
+    "kind": "answer",
+    "text": "What is written for Returns and Norway.\n\nReturns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank.[1]",
+    "sources": ["itm_ra39ow6c"],
+    "state": "stale",
+    "footer": {
+      "denominator": "1 of 21 published context items you can see applies.",
+      "notSeen": null,
+      "stale": "“Returns changed definition on 28 April 2026” may be out of date: its check date has passed."
+    },
+    "read": [
+      "Looked up Returns and Norway, 21-30 Apr 2026: 1 item applies.",
+      "Searched “Why did Norway returns drop at the end of April?” (read as Returns and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Returns", "Norway"],
+      "about": ["metric:returns", "value:market/norway"],
+      "period": "21-30 Apr 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Returns",
+        "words": "The value of products customers sent back, in euros at the daily rate, on the day the payment provider confirmed the refund.",
+        "tool": "Cube",
+        "id": "metric:returns"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Why did Norway returns drop at the end of April?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Why did Norway returns drop at the end of April?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:returns"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Returns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:returns] and [@value:market/norway].\n\nReturns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank.[itm_ra39ow6c]",
+    "nouns": [
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:units_sold",
+        "name": "Units sold",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/italy",
+        "name": "Italy",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_ra39ow6c",
+        "title": "Returns changed definition on 28 April 2026",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:returns", "value:market/norway"],
+        "status": "due",
+        "checked": "2026-07-02",
+        "outOfDate": "its check date has passed",
+        "n": 1
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "How many test accounts does units sold leave out in Norway?": {
+    "kind": "answer",
+    "text": "What is written for Units sold and Norway.\n\nUnits sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop.[1]",
+    "sources": ["itm_s90n5xps"],
+    "state": "grounded",
+    "footer": {
+      "denominator": "1 of 21 published context items you can see applies.",
+      "notSeen": "4 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Units sold and Norway, 23 Oct 2026: 1 item applies.",
+      "Searched “How many test accounts does units sold leave out in Norway?” (read as Units sold and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Units sold", "Norway"],
+      "about": ["metric:units_sold", "value:market/norway"],
+      "period": "23 Oct 2026",
+      "note": null,
+      "assumedToday": true,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Units sold",
+        "words": "The number of units customers bought, including units paid with store credit.",
+        "tool": "Cube",
+        "id": "metric:units_sold"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "How many test accounts does units sold leave out in Norway?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "How many test accounts does units sold leave out in Norway?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:units_sold"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Units sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:units_sold] and [@value:market/norway].\n\nUnits sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop.[itm_s90n5xps]",
+    "nouns": [
+      {
+        "id": "metric:units_sold",
+        "name": "Units sold",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:new_customers",
+        "name": "New customers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_s90n5xps",
+        "title": "Units sold excludes test accounts",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:units_sold", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-07-02",
+        "outOfDate": null,
+        "n": 1
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "What changed in returns in the United Kingdom this week?": {
+    "kind": "answer",
+    "text": "Nothing written covers Returns and United Kingdom. Sales is owned by Jon Abara and Sofia Brandt.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "0 of 21 published context items you can see apply.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up Returns and United Kingdom, 19-23 Oct 2026: 0 items apply, 1 nearby item does not.",
+      "Searched “What changed in returns in the United Kingdom this week?” (read as Returns and United Kingdom), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Returns", "United Kingdom"],
+      "about": ["metric:returns", "value:market/united_kingdom"],
+      "period": "19-23 Oct 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": ["itm_ra39ow6c"],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Returns",
+        "words": "The value of products customers sent back, in euros at the daily rate, on the day the payment provider confirmed the refund.",
+        "tool": "Cube",
+        "id": "metric:returns"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "What changed in returns in the United Kingdom this week?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "What changed in returns in the United Kingdom this week?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers "
+          },
+          {
+            "t": "noun",
+            "id": "metric:returns"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/united_kingdom"
+          },
+          {
+            "t": "text",
+            "text": ". Sales is owned by Jon Abara and Sofia Brandt."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers [@metric:returns] and [@value:market/united_kingdom]. Sales is owned by Jon Abara and Sofia Brandt.",
+    "nouns": [
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/united_kingdom",
+        "name": "United Kingdom",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:gross_margin",
+        "name": "Gross margin",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:new_customers",
+        "name": "New customers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/italy",
+        "name": "Italy",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_ra39ow6c",
+        "title": "Returns changed definition on 28 April 2026",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:returns", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      }
+    ],
+    "closest": {
+      "by": "dimension:market",
+      "counts": [
+        {
+          "id": "value:market/norway",
+          "count": 1
+        }
+      ],
+      "items": ["itm_ra39ow6c"]
+    },
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "Why did purchases in Norway drop in August?": {
+    "kind": "answer",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
+    "state": "conflict",
+    "footer": {
+      "denominator": "3 of 21 published context items you can see apply.",
+      "notSeen": "4 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders and Norway, 1-31 Aug 2026: 3 items apply, 6 nearby items do not. “Purchases” was read as Orders, by a synonym written in Definitions.",
+      "Searched “Why did purchases in Norway drop in August?” (read as Orders and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "Norway"],
+      "about": ["metric:orders", "value:market/norway"],
+      "period": "1-31 Aug 2026",
+      "note": "year not given",
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Why did purchases in Norway drop in August?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Why did purchases in Norway drop in August?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate."
+          },
+          {
+            "t": "cite",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Online sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing."
+          },
+          {
+            "t": "cite",
+            "n": 3
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-02",
+        "outOfDate": null,
+        "n": 1
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-09-05",
+        "outOfDate": null,
+        "n": 2
+      },
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-03",
+        "outOfDate": null,
+        "n": 3
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "Did discount cost in Norway fall after 9 May?": {
+    "kind": "answer",
+    "text": "What is written for Discount cost and Norway.\n\nNew VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price.[1]",
+    "sources": ["itm_7ini5esz"],
+    "state": "grounded",
+    "footer": {
+      "denominator": "1 of 21 published context items you can see applies.",
+      "notSeen": "2 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Discount cost and Norway, 10 May to 23 Oct 2026: 1 item applies, 1 nearby item does not.",
+      "Searched “Did discount cost in Norway fall after 9 May?” (read as Discount cost and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Discount cost", "Norway"],
+      "about": ["metric:discount_cost", "value:market/norway"],
+      "period": "10 May to 23 Oct 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Discount cost",
+        "words": "The value of the discounts and gift vouchers customers used, in euros, on the day they used them.",
+        "tool": "Cube",
+        "id": "metric:discount_cost"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Did discount cost in Norway fall after 9 May?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Did discount cost in Norway fall after 9 May?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:discount_cost"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "New VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:discount_cost] and [@value:market/norway].\n\nNew VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price.[itm_7ini5esz]",
+    "nouns": [
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/italy",
+        "name": "Italy",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:5b208400-b428-480a-87a7-cbf92db9f16b",
+        "name": "Tomas Eriksen",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:units_sold",
+        "name": "Units sold",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_7ini5esz",
+        "title": "New VAT rate applied in Norway from 3 August 2025",
+        "kind": "event",
+        "domain": "domain:area_marketing",
+        "about": ["metric:discount_cost", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-09-01",
+        "outOfDate": null,
+        "n": 1
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_marketing",
+        "people": ["person:5b208400-b428-480a-87a7-cbf92db9f16b"]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "What was net promoter score in Norway in August?": {
+    "kind": "answer",
+    "text": "Nothing written covers Norway.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "0 of 21 published context items you can see apply.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up Norway, 1-31 Aug 2026: 0 items apply.",
+      "Searched “What was net promoter score in Norway in August?” (read as Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Norway"],
+      "about": ["value:market/norway"],
+      "period": "1-31 Aug 2026",
+      "note": "year not given",
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": [],
+    "definitions": [],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "What was net promoter score in Norway in August?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "What was net promoter score in Norway in August?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers [@value:market/norway].",
+    "nouns": [
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:units_sold",
+        "name": "Units sold",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:net_revenue",
+        "name": "Net revenue",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_paid_media",
+        "name": "Paid media",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [],
+    "closest": null,
+    "owners": [],
+    "overview": null,
+    "checks": []
+  },
+  "How did orders in Norway change in October 2026?": {
+    "kind": "answer",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
+    "state": "conflict",
+    "footer": {
+      "denominator": "3 of 21 published context items you can see apply.",
+      "notSeen": "8 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders and Norway, 1-31 Oct 2026: 3 items apply, 6 nearby items do not.",
+      "Searched “How did orders in Norway change in October 2026?” (read as Orders and Norway), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "Norway"],
+      "about": ["metric:orders", "value:market/norway"],
+      "period": "1-31 Oct 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "How did orders in Norway change in October 2026?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "How did orders in Norway change in October 2026?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/norway"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Norway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate."
+          },
+          {
+            "t": "cite",
+            "n": 2
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Online sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing."
+          },
+          {
+            "t": "cite",
+            "n": 3
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:units_sold",
+        "name": "Units sold",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-02",
+        "outOfDate": null,
+        "n": 1
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-09-05",
+        "outOfDate": null,
+        "n": 2
+      },
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": "2026-10-03",
+        "outOfDate": null,
+        "n": 3
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "Why did net revenue drop in Germany last month?": {
+    "kind": "answer",
+    "text": "Nothing written covers Net revenue and Germany. Sales is owned by Jon Abara and Sofia Brandt.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "0 of 21 published context items you can see apply.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up Net revenue and Germany, 1-30 Sep 2026: 0 items apply, 2 nearby items do not.",
+      "Searched “Why did net revenue drop in Germany last month?” (read as Net revenue and Germany), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Net revenue", "Germany"],
+      "about": ["metric:net_revenue", "value:market/germany"],
+      "period": "1-30 Sep 2026",
+      "note": null,
+      "assumedToday": false,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": ["itm_spain_vat_in", "itm_spain_vat_out"],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Net revenue",
+        "words": "Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+        "tool": "Cube",
+        "id": "metric:net_revenue",
+        "mark": "month"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Why did net revenue drop in Germany last month?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Why did net revenue drop in Germany last month?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers "
+          },
+          {
+            "t": "noun",
+            "id": "metric:net_revenue"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/germany"
+          },
+          {
+            "t": "text",
+            "text": ". Sales is owned by Jon Abara and Sofia Brandt."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers [@metric:net_revenue] and [@value:market/germany]. Sales is owned by Jon Abara and Sofia Brandt.",
+    "nouns": [
+      {
+        "id": "metric:net_revenue",
+        "name": "Net revenue",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_paid_media",
+        "name": "Paid media",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:new_customers",
+        "name": "New customers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_spain_vat_in",
+        "title": "Net revenue in Spain includes VAT",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:net_revenue", "value:market/spain"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_spain_vat_out",
+        "title": "Net revenue in Spain excludes VAT",
+        "kind": "rule",
+        "domain": "domain:area_paid_media",
+        "about": ["metric:net_revenue", "value:market/spain"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      }
+    ],
+    "closest": {
+      "by": "dimension:market",
+      "counts": [
+        {
+          "id": "value:market/spain",
+          "count": 2
+        }
+      ],
+      "items": ["itm_spain_vat_in", "itm_spain_vat_out"]
+    },
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "What is net revenue?": {
+    "kind": "answer",
+    "text": "Net revenue means: Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+    "sources": [],
+    "state": null,
+    "footer": {
+      "denominator": "2 of 21 published context items you can see apply.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up Net revenue, 23 Oct 2026: 2 items apply.",
+      "Searched “What is net revenue?” (read as Net revenue), any date: 2 found."
+    ],
+    "subject": {
+      "names": ["Net revenue"],
+      "about": ["metric:net_revenue"],
+      "period": "23 Oct 2026",
+      "note": null,
+      "assumedToday": true,
+      "carried": false,
+      "uncovered": ["metric:net_revenue"]
+    },
+    "nearby": [],
+    "conflict": [],
+    "definitions": [],
+    "defined": {
+      "names": ["Net revenue"],
+      "tool": "Cube"
+    },
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "What is net revenue?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "What is net revenue?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "noun",
+            "id": "metric:net_revenue"
+          },
+          {
+            "t": "text",
+            "text": " means: Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month."
+          }
+        ]
+      }
+    ],
+    "said": "[@metric:net_revenue] means: Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+    "nouns": [
+      {
+        "id": "metric:net_revenue",
+        "name": "Net revenue",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_paid_media",
+        "name": "Paid media",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:d8c06a17-6a1f-4a95-813c-0d920a7c5446",
+        "name": "Priya Nair",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      },
+      {
+        "domain": "domain:area_paid_media",
+        "people": ["person:d8c06a17-6a1f-4a95-813c-0d920a7c5446"]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "What is the weather in Oslo today?": {
+    "kind": "answer",
+    "text": "Nothing written covers this.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "Out of 21 published context items you can see.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up “What is the weather in Oslo today?”: it names no metric, value or date the workspace knows.",
+      "Searched “What is the weather in Oslo today?”, any date: 0 found."
+    ],
+    "subject": null,
+    "nearby": [],
+    "conflict": [],
+    "definitions": [],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "What is the weather in Oslo today?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "What is the weather in Oslo today?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers this."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers this.",
+    "nouns": [],
+    "items": [],
+    "closest": null,
+    "owners": [],
+    "overview": null,
+    "checks": []
+  },
+  "Do United Kingdom orders include store credit or not?": {
+    "kind": "answer",
+    "text": "Nothing written covers Orders and United Kingdom. Sales is owned by Jon Abara and Sofia Brandt.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "0 of 21 published context items you can see apply.",
+      "notSeen": "3 more items match and are not shown.",
+      "stale": null
+    },
+    "read": [
+      "Looked up Orders and United Kingdom, 23 Oct 2026: 0 items apply, 9 nearby items do not.",
+      "Searched “Do United Kingdom orders include store credit or not?” (read as Orders and United Kingdom), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Orders", "United Kingdom"],
+      "about": ["metric:orders", "value:market/united_kingdom"],
+      "period": "23 Oct 2026",
+      "note": null,
+      "assumedToday": true,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [
+      "itm_norway_stop",
+      "itm_france_switch_21",
+      "itm_france_switch_12",
+      "itm_spe2w9kh",
+      "itm_0tmqp7o1",
+      "itm_2a1wp53q",
+      "itm_gift_card_only",
+      "itm_gift_store_credit",
+      "itm_r6lyl1pc"
+    ],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Orders",
+        "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+        "tool": "Cube",
+        "id": "metric:orders"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Do United Kingdom orders include store credit or not?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Do United Kingdom orders include store credit or not?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers "
+          },
+          {
+            "t": "noun",
+            "id": "metric:orders"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/united_kingdom"
+          },
+          {
+            "t": "text",
+            "text": ". Sales is owned by Jon Abara and Sofia Brandt."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers [@metric:orders] and [@value:market/united_kingdom]. Sales is owned by Jon Abara and Sofia Brandt.",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/germany",
+        "name": "Germany",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/sweden",
+        "name": "Sweden",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "value:market/united_kingdom",
+        "name": "United Kingdom",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:gross_margin",
+        "name": "Gross margin",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_norway_stop",
+        "title": "Online sales to Norway stopped on 4 August 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_france_switch_21",
+        "title": "Payment provider switched in France on 21 May 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_france_switch_12",
+        "title": "Payment provider switched in France on 12 May 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_spe2w9kh",
+        "title": "Payment provider switched in France on 12 May 2026",
+        "kind": "event",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_0tmqp7o1",
+        "title": "Orders lags by one day in the source tool",
+        "kind": "warning",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/germany"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_2a1wp53q",
+        "title": "What to rule out before explaining a jump in Orders",
+        "kind": "guide",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/france"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_gift_card_only",
+        "title": "Norway orders are card and cash payments only",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_gift_store_credit",
+        "title": "Norway orders count store credit",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/norway"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_r6lyl1pc",
+        "title": "Data for Orders before 19 January 2026 is not reliable",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:orders", "value:market/sweden"],
+        "status": "live",
+        "checked": null,
+        "outOfDate": null,
+        "n": null
+      }
+    ],
+    "closest": {
+      "by": "dimension:market",
+      "counts": [
+        {
+          "id": "value:market/france",
+          "count": 4
+        },
+        {
+          "id": "value:market/norway",
+          "count": 3
+        },
+        {
+          "id": "value:market/germany",
+          "count": 1
+        },
+        {
+          "id": "value:market/sweden",
+          "count": 1
+        }
+      ],
+      "items": [
+        "itm_norway_stop",
+        "itm_france_switch_21",
+        "itm_france_switch_12",
+        "itm_spe2w9kh",
+        "itm_0tmqp7o1",
+        "itm_2a1wp53q",
+        "itm_gift_card_only",
+        "itm_gift_store_credit",
+        "itm_r6lyl1pc"
+      ]
+    },
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  },
+  "Define our customer happiness index.": {
+    "kind": "answer",
+    "text": "Nothing written covers this.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "Out of 21 published context items you can see.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up “Define our customer happiness index.”: it names no metric, value or date the workspace knows.",
+      "Searched “Define our customer happiness index.”, any date: 0 found."
+    ],
+    "subject": null,
+    "nearby": [],
+    "conflict": [],
+    "definitions": [],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Define our customer happiness index."
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Define our customer happiness index.",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers this."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers this.",
+    "nouns": [
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/france",
+        "name": "France",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "metric:new_customers",
+        "name": "New customers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [],
+    "closest": null,
+    "owners": [],
+    "overview": null,
+    "checks": []
+  },
+  "What is the churn rate in Japan?": {
+    "kind": "answer",
+    "text": "Nothing written covers this.",
+    "sources": [],
+    "state": "missing",
+    "footer": {
+      "denominator": "Out of 21 published context items you can see.",
+      "notSeen": null,
+      "stale": null
+    },
+    "read": [
+      "Looked up “What is the churn rate in Japan?”: nothing applies. There is no value of Market, Product, Channel, Platform or Campaign named 'Japan'.",
+      "Searched “What is the churn rate in Japan?” (read as Churn rate), 23 Oct 2026: 0 found."
+    ],
+    "subject": null,
+    "nearby": [],
+    "conflict": [],
+    "definitions": [],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "What is the churn rate in Japan?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "What is the churn rate in Japan?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "Nothing written covers this."
+          }
+        ]
+      }
+    ],
+    "said": "Nothing written covers this.",
+    "nouns": [
+      {
+        "id": "metric:churn_rate",
+        "name": "Churn rate",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [],
+    "closest": null,
+    "owners": [],
+    "overview": null,
+    "checks": []
+  },
+  "Before the weekly note goes out: has anything changed in how gross margin is counted for Spain since the price promotions came back?": {
+    "kind": "answer",
+    "text": "What is written for Gross margin and Spain.\n\nWhat to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more.[1]",
+    "sources": ["itm_kcy22j54"],
+    "state": "stale",
+    "footer": {
+      "denominator": "1 of 21 published context items you can see applies.",
+      "notSeen": "7 more items match and are not shown.",
+      "stale": "“What to rule out before explaining a jump in Gross margin” may be out of date: its definition changed since it was checked."
+    },
+    "read": [
+      "Looked up Gross margin and Spain, 23 Oct 2026: 1 item applies.",
+      "Searched “Before the weekly note goes out: has anything changed in how gross margin is counted for Spain since the price promotions came back?” (read as Gross margin and Spain), any date: 0 found."
+    ],
+    "subject": {
+      "names": ["Gross margin", "Spain"],
+      "about": ["metric:gross_margin", "value:market/spain"],
+      "period": "23 Oct 2026",
+      "note": null,
+      "assumedToday": true,
+      "carried": false,
+      "uncovered": []
+    },
+    "nearby": [],
+    "conflict": [],
+    "definitions": [
+      {
+        "name": "Gross margin",
+        "words": "Net revenue minus what the goods cost us, as a share of net revenue, for orders shipped.",
+        "tool": "Cube",
+        "id": "metric:gross_margin"
+      }
+    ],
+    "choices": [],
+    "reads": [
+      {
+        "tool": "get_context",
+        "input": {
+          "about": "Before the weekly note goes out: has anything changed in how gross margin is counted for Spain since the price promotions came back?"
+        }
+      },
+      {
+        "tool": "find_context",
+        "input": {
+          "words": "Before the weekly note goes out: has anything changed in how gross margin is counted for Spain since the price promotions came back?",
+          "limit": 10
+        }
+      }
+    ],
+    "stopped": null,
+    "body": [
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What is written for "
+          },
+          {
+            "t": "noun",
+            "id": "metric:gross_margin"
+          },
+          {
+            "t": "text",
+            "text": " and "
+          },
+          {
+            "t": "noun",
+            "id": "value:market/spain"
+          },
+          {
+            "t": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "t": "p",
+        "runs": [
+          {
+            "t": "text",
+            "text": "What to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more."
+          },
+          {
+            "t": "cite",
+            "n": 1
+          }
+        ]
+      }
+    ],
+    "said": "What is written for [@metric:gross_margin] and [@value:market/spain].\n\nWhat to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more.[itm_kcy22j54]",
+    "nouns": [
+      {
+        "id": "metric:gross_margin",
+        "name": "Gross margin",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/spain",
+        "name": "Spain",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "dimension:market",
+        "name": "Market",
+        "of": null,
+        "type": "string"
+      },
+      {
+        "id": "domain:area_sales",
+        "name": "Sales",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+        "name": "Jon Abara",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+        "name": "Sofia Brandt",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:new_customers",
+        "name": "New customers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:first_time_buyers",
+        "name": "First-time buyers",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:net_revenue",
+        "name": "Net revenue",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:return_on_ad_spend",
+        "name": "Return on ad spend",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/norway",
+        "name": "Norway",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:orders",
+        "name": "Orders",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "metric:discount_cost",
+        "name": "Discount cost",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "value:market/italy",
+        "name": "Italy",
+        "of": {
+          "id": "dimension:market",
+          "name": "Market"
+        },
+        "type": "string"
+      },
+      {
+        "id": "metric:returns",
+        "name": "Returns",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_customer_value",
+        "name": "Customer value",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_paid_media",
+        "name": "Paid media",
+        "of": null,
+        "type": null
+      },
+      {
+        "id": "domain:area_marketing",
+        "name": "Marketing",
+        "of": null,
+        "type": null
+      }
+    ],
+    "items": [
+      {
+        "id": "itm_kcy22j54",
+        "title": "What to rule out before explaining a jump in Gross margin",
+        "kind": "guide",
+        "domain": "domain:area_sales",
+        "about": ["metric:gross_margin", "value:market/spain"],
+        "status": "due",
+        "checked": "2026-09-30",
+        "outOfDate": "its definition changed since it was checked",
+        "n": 1
+      }
+    ],
+    "closest": null,
+    "owners": [
+      {
+        "domain": "domain:area_sales",
+        "people": [
+          "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+        ]
+      }
+    ],
+    "overview": null,
+    "checks": []
+  }
+}

@@ -9,9 +9,9 @@ import {
 import { askWorld } from './ask-world.ts'
 
 /*
-  The model check and Ask (P5, D4): Ask reads with its tools unless its model failed the check's
-  tool call; then it answers with its router, which needs only words. A model not checked yet is
-  checked while it answers with its tools.
+  The model check and Ask (P5, D4): Ask reads with its tools on any model, and a model not checked
+  yet is checked while it answers. One that failed the check's tool call still answers with the
+  loop; the check says so where its role is set.
 */
 
 const ML = 'Maria Lindqvist'
@@ -51,14 +51,9 @@ const modelChecks = createModelChecks({
 })
 const loopTurns: string[] = []
 const world = askWorld({
-  askLoop: true,
   models: live,
   modelChecks,
-  askTrace: {
-    // The router's planner reads nothing here: the rules answer.
-    planner: () => Promise.resolve(null),
-    onLoopTurn: () => void loopTurns.push(assistant.id),
-  },
+  askTrace: { onLoopTurn: () => void loopTurns.push(assistant.id) },
 })
 
 describe('Ask and the model check', () => {
@@ -74,15 +69,12 @@ describe('Ask and the model check', () => {
     expect(checked).toEqual([able.id])
   }, 60_000)
 
-  it('answers with its router while its model failed the tool call', async () => {
+  it('reads with its tools on a model that failed the tool call too', async () => {
     assistant = toolless
     await modelChecks.of(toolless, 'assistant')
     const api = await world.as(ML)
     const answer = await api.ask({ question: 'orders in Norway' })
-    // No loop turn: the rules found what is written about Norway's orders.
-    expect(loopTurns).toEqual([able.id, able.id])
-    expect(answer.stopped).toBeUndefined()
-    expect(answer.state).toBe('conflict')
-    expect(answer.sources).toContain('itm_norwaystop')
+    expect(loopTurns).toEqual([able.id, able.id, toolless.id])
+    expect(answer.read?.[0]).toMatch(/^Looked up /)
   }, 60_000)
 })

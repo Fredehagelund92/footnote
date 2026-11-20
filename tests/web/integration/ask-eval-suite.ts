@@ -1,6 +1,5 @@
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parsePlan } from '../../../src/domain/ask-plan.ts'
 import {
   scriptedLoopModel,
   type AskTrace,
@@ -16,17 +15,16 @@ import { recordingModel, replayingModel } from '../ask-eval/loop-steps.ts'
 import { asJson, evaluate, storedKey, type ReaderWorld, type RunWorld } from '../ask-eval/run.ts'
 import { printReport, type Report } from '../ask-eval/score.ts'
 import type { CaseRun } from '../ask-eval/types.ts'
-import { evidenceOfReads, loopAnswerer, mainAnswerer, replayed } from './ask-answerers.ts'
+import { evidenceOfReads, loopAnswerer, replayed } from './ask-answerers.ts'
 import { ADMIN, disclosure } from './ask-disclosure.ts'
 import { askWorld } from './ask-world.ts'
 
 /*
   Ask's evaluation harness on the demo week (docs/evaluations.md): every case through the real
-  service, as the person it names, graded by code on every promise, for one answerer: today's main
-  (the router, the planner and the words) or Ask's loop (one model on the read tools). In every
-  build it runs the answerer once a case on what the model said in the last real run, with no
-  model (the main's plans, the loop's steps), and holds its failures to the lists it is given, so
-  they only shrink. With ASK_EVAL_REAL=1 (`npm run eval:ask-harness -- --real`) it measures the
+  service, as the person it names, graded by code on every promise, for Ask's loop (one model on
+  the read tools). In every build it runs the loop once a case on the steps the model took in the
+  last real run, with no model, and holds its failures to the lists it is given, so they only
+  shrink. With ASK_EVAL_REAL=1 (`npm run eval:ask-harness -- --real`) it measures the
   judge against its labels, asks the real model three times a case, has the judge read every reply
   a model wrote, stops before ASK_EVAL_MAX_MICROS is spent, and writes the report to ASK_EVAL_OUT;
   ASK_EVAL_MODEL and ASK_EVAL_JUDGE name the answering model and the judge (`--model`, `--judge`),
@@ -36,7 +34,6 @@ import { askWorld } from './ask-world.ts'
 */
 
 export type Answering = {
-  answerer: 'main' | 'loop'
   /** What it breaks in every build, by promise, and the open cases that miss what they must say. */
   brokenToday: Partial<Record<keyof Report['byPromise'], string[]>>
   missingToday: readonly string[]
@@ -54,7 +51,7 @@ const modelFrom = (json: string | undefined): ModelRef =>
  * A real run's journal, one line as each try of a case is graded, with what the model said in it
  * and what was spent so far, so a run that dies keeps what it paid for. ASK_EVAL_RESUME names the
  * journal of a run to go on with: its tries, its recordings, its judge's labels and its spend
- * carry over. `plans` holds the main's plans, or the loop's steps.
+ * carry over. `plans` holds the loop's steps.
  */
 type JournalLine =
   | { type: 'start'; creditsMicros: number | null }
@@ -66,28 +63,16 @@ export function askEvalSuite(side: Answering) {
   const tries = Number(process.env.ASK_EVAL_TRIES ?? (real ? 3 : 1))
   const ceiling = Number(process.env.ASK_EVAL_MAX_MICROS ?? 0)
   const only = process.env.ASK_EVAL_CASES?.split(',').filter(Boolean)
-  const loop = side.answerer === 'loop'
   const MODEL = modelFrom(process.env.ASK_EVAL_MODEL)
   const JUDGE = modelFrom(process.env.ASK_EVAL_JUDGE)
 
-  const plansFile = new URL(
-    loop ? './ask-eval-loop-steps.json' : './ask-eval-plans.json',
-    import.meta.url,
-  )
-  const demoPlansFile = new URL(
-    '../../../src/server/modules/answer/recorded-demo-plans.json',
-    import.meta.url,
-  )
+  const plansFile = new URL('./ask-eval-loop-steps.json', import.meta.url)
   const verdictsFile = new URL('../ask-eval/judge-verdicts.json', import.meta.url)
   const plansIn = (file: URL): Record<string, string> =>
     existsSync(file)
       ? (JSON.parse(readFileSync(file, 'utf8')) as { plans: Record<string, string> }).plans
       : {}
-  const recorded = real
-    ? {}
-    : loop
-      ? plansIn(plansFile)
-      : { ...plansIn(demoPlansFile), ...plansIn(plansFile) }
+  const recorded = real ? {} : plansIn(plansFile)
   const written: Record<string, string> = {}
 
   const journal = process.env.ASK_EVAL_OUT ? `${process.env.ASK_EVAL_OUT}.jsonl` : undefined
@@ -118,34 +103,17 @@ export function askEvalSuite(side: Answering) {
   }
   // The steps a build takes that no real run recorded: the scripted reader's.
   const missed = { steps: 0 }
-  const askTrace: AskTrace = loop
-    ? {
-        loopModel: models
-          ? recordingModel(models.choose('assistant', MODEL), written)
-          : replayingModel(recorded, scriptedLoopModel(), missed),
-        onLoopTurn: (made, earlier) => void (lastReads = { made, earlier }),
-      }
-    : real
-      ? { onPlan: (prompt, text) => void (written[prompt] ??= text) }
-      : {
-          planner: (input, check) => {
-            const text = recorded[input.prompt]
-            if (text === undefined) return Promise.resolve(null)
-            const checked = check(parsePlan(text))
-            return Promise.resolve(checked.ok ? checked.plan : 'missed')
-          },
-        }
-  const world = askWorld({
-    ...(models ? { models, assistant: MODEL } : {}),
-    askTrace,
-    ...(loop ? { askLoop: true } : {}),
-  })
-  const answerer = loop
-    ? loopAnswerer(
-        () => evidenceOfReads([...lastReads.made, ...lastReads.earlier]),
-        () => void (lastReads = { made: [], earlier: [] }),
-      )
-    : mainAnswerer
+  const askTrace: AskTrace = {
+    loopModel: models
+      ? recordingModel(models.choose('assistant', MODEL), written)
+      : replayingModel(recorded, scriptedLoopModel(), missed),
+    onLoopTurn: (made, earlier) => void (lastReads = { made, earlier }),
+  }
+  const world = askWorld({ ...(models ? { models, assistant: MODEL } : {}), askTrace })
+  const answerer = loopAnswerer(
+    () => evidenceOfReads([...lastReads.made, ...lastReads.earlier]),
+    () => void (lastReads = { made: [], earlier: [] }),
+  )
   const { expectedRows } = disclosure((name) => world.as(name))
 
   const readers = new Map<string, Promise<ReaderWorld>>()
@@ -277,17 +245,13 @@ export function askEvalSuite(side: Answering) {
   })
 
   describe.runIf(!real && !replay)(
-    `the evaluation harness, on ${answerer.name} with the last real ${loop ? 'steps' : 'plans'}`,
+    `the evaluation harness, on ${answerer.name} with the last real steps`,
     () => {
       it('fails only where it is listed', async () => {
         const outcome = await evaluate(runWorld, answerer, cases, { tries, held })
         const text = [
           printReport(outcome.report),
-          ...(loop
-            ? [
-                `${missed.steps} steps were not recorded by a real run: the scripted reader took them.`,
-              ]
-            : []),
+          `${missed.steps} steps were not recorded by a real run: the scripted reader took them.`,
         ].join('\n\n')
         console.log(text)
         if (process.env.ASK_EVAL_OUT)
@@ -374,9 +338,7 @@ export function askEvalSuite(side: Answering) {
 
     it('reports by class and by promise', async () => {
       if (!ceiling) throw new Error('A real run needs ASK_EVAL_MAX_MICROS.')
-      // One chat at a time: the loop's reads of a reply are the last ones it heard, and today's
-      // main deadlocks the service's pool with as many live chats at once as it has connections
-      // (a look-up holds one for its whole request while its planner opens a second).
+      // One chat at a time: the loop's reads of a reply are the last ones it heard.
       const outcome = await evaluate(runWorld, answerer, cases, {
         tries,
         held,

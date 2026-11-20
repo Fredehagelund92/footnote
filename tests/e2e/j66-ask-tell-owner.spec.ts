@@ -3,7 +3,7 @@ import { expect, go, signInAs, test } from './go.ts'
 // J66, Tell the owner (decision 7 of the chat audit): a reader who may not write opens an answer
 // of Ask's loop that found nothing, Not found, and tells the owners; Ask itself writes nothing.
 // On the service the owners then find a card in their Inbox (tests/web/integration/
-// ask-tell-owner.test.ts), where the golden journeys' Ask is its router.
+// ask-tell-owner.test.ts).
 test('a reader tells the owner that nothing is written, once', async ({ page }) => {
   await signInAs(page, 'Ines Duarte')
   await go(page, '/ask?example=loop-missing')

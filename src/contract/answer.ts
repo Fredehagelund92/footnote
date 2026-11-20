@@ -10,24 +10,9 @@ import * as z from 'zod/mini'
 import { answerStates, leftOutReasons } from '../domain/answer.ts'
 import { chosenPeriodNames } from '../domain/dates.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
-import {
-  CHAT_HELD_KEYS,
-  CHAT_LINE,
-  CHAT_SOURCES,
-  CHAT_TURNS,
-  HELD_MEANINGS,
-  LOOP_READS,
-  LOOP_REPLY,
-} from '../domain/ask-chat.ts'
+import { CHAT_LINE, CHAT_SOURCES, CHAT_TURNS, LOOP_READS, LOOP_REPLY } from '../domain/ask-chat.ts'
 import { itemKinds } from '../domain/item.ts'
-import {
-  auditReadSchema,
-  cannotReasons,
-  limitSchema,
-  recordsAnswerSchema,
-  footerSchema,
-} from '../domain/records-answer.ts'
-import { tryItInputSchema } from './connect.ts'
+import { footerSchema } from '../domain/records-answer.ts'
 
 /** The resolver's status, as get_context gives it. */
 const statusSchema = z.enum(['matched', 'conflict', 'no_match', 'need_more_detail', 'check_failed'])
@@ -128,71 +113,6 @@ export const answerTargetSchema = z.union([
   z.object({ kind: z.literal('draft'), proposal: z.string(), item: z.string() }),
 ])
 
-const followedRelSchema = z.enum(['replaces', 'conflicts_with', 'mentions'])
-/**
- * What get_related follows from an answer's items, as an agent would (FR-332): one step from each
- * item, to another item or a term written in Definitions it did not get already, never a link
- * from a link, and never changing which items the answer has. `on` is the get_related switch
- * (FR-407): while it is off, nothing is followed. A retired or replaced item, or a term no longer
- * there, is listed and not followed, with the author's words only (FR-333).
- */
-export const followedLinksSchema = z.object({
-  on: z.boolean(),
-  followed: z.array(
-    z.object({
-      /** The answer's item the link is on. */
-      from: z.string(),
-      rel: followedRelSchema,
-      to: z.object({
-        type: z.enum(['item', 'term']),
-        /** An item's id, or a term's as `term:<id>`. */
-        id: z.string(),
-        label: z.string(),
-        areaId: z.nullable(z.string()),
-        /** What the agent read there: the item's summary, or what the term means; null for a synonym. */
-        read: z.nullable(z.string()),
-        /** What a synonym is another name for: a metric's or a dimension's key, or `term:<id>`. */
-        sameAs: z.nullable(z.string()),
-      }),
-    }),
-  ),
-  notFollowed: z.array(
-    z.object({
-      from: z.string(),
-      rel: followedRelSchema,
-      to: z.object({
-        type: z.enum(['item', 'term']),
-        id: z.string(),
-        label: z.string(),
-        status: z.string(),
-      }),
-    }),
-  ),
-})
-export type FollowedLinks = z.infer<typeof followedLinksSchema>
-
-/**
- * What a definition source says a metric means, and where that comes from, as get_context gives
- * an agent for a question about what it means (FR-338): the source's own words, never a
- * calculation (CON-207).
- */
-export const askDefinitionSchema = z.object({
-  /** The metric's key: `metric:churn_rate`. */
-  key: z.string(),
-  name: z.string(),
-  /** The source's description, at most 500 characters; null when it gives none. */
-  words: z.nullable(z.string()),
-  /** The words were shortened to fit. */
-  shortened: z.boolean(),
-  /** The tool the source reads, as people say it: "Cube". */
-  tool: z.string(),
-  /** The source's name in Sources. */
-  source: z.string(),
-  /** The definition's id in the source: `cube:customers.churn_rate`. */
-  ref: z.string(),
-})
-export type AskDefinition = z.infer<typeof askDefinitionSchema>
-
 export const answerSchema = z.object({
   target: answerTargetSchema,
   /** The edition's label, such as 2026-10-20.3. */
@@ -220,83 +140,10 @@ export const answerSchema = z.object({
   steps: z.array(answerStepSchema),
   /** The steps' time together, in milliseconds. */
   ms: z.number(),
-  /** What get_related follows from the items, in Ask's look-up only. */
-  links: z.optional(followedLinksSchema),
-  /**
-   * In Ask's look-up only, for a question about what a metric means ("What is churn rate?"): its
-   * definition, from the definition source. It changes neither the state nor the items.
-   */
-  definitions: z.optional(z.array(askDefinitionSchema)),
-  /**
-   * In Ask's look-up only, for a question that names values, such as a market, and no metric, and
-   * found nothing: the metrics that context about all those values is written for, by key, most
-   * items first, at most three. Context about a market is mostly about a metric in it.
-   */
-  valueMetrics: z.optional(z.array(z.string())),
-  /**
-   * In Ask's look-up only, when its planner read the question (FR-719): how it was read, in words,
-   * the names and dates carried from the last question, and where the dates came from. The model
-   * chose the reads; the state, the items and what agents are told are the reads' own.
-   */
-  reading: z.optional(
-    z.object({
-      words: z.string(),
-      carried: z.array(z.string()),
-      period: z.nullable(z.enum(['asked', 'carried', 'today', 'recent', 'any'])),
-      /** The question as it reads alone, as the model restated it, when the chat matters. */
-      standalone: z.optional(z.string()),
-      /** The part of the question these reads do not answer, as a short question (FR-720). */
-      left: z.optional(z.string()),
-      /** What the records say about what was read, in fixed sentences: its owners, its check dates. */
-      facts: z.optional(z.array(z.string())),
-      /**
-       * The person said which meaning of a word they meant and the fixed rules read it, with no
-       * model; `also` names the meanings left ("Sales can also mean Gross sales.").
-       */
-      settled: z.optional(z.object({ also: z.nullable(z.string()) })),
-    }),
-  ),
-  /**
-   * In Ask's look-up only, when the question reaches beyond what is written (FR-720): the fixed
-   * sentence it leads with. It changes neither the state nor the items.
-   */
-  limit: z.optional(limitSchema),
-  /** In Ask's look-up only: what a count is out of, what was not seen, and what may be out of date. */
-  footer: z.optional(footerSchema),
 })
 export type AnswerResult = z.infer<typeof answerSchema>
 
 /** A word Ask asks about, and its meanings in the order the question says them. */
-const heldWordSchema = z.strictObject({
-  word: z.string().check(z.minLength(1), z.maxLength(200)),
-  meanings: z
-    .array(
-      z.strictObject({
-        key: z.string().check(z.maxLength(200)),
-        name: z.string().check(z.maxLength(200)),
-      }),
-    )
-    .check(z.minLength(2), z.maxLength(HELD_MEANINGS)),
-})
-
-/**
- * What the turn that asks which meaning of a word keeps of its question: the word, its meanings,
- * the rest of the reading as keys, the days it named (null when it named none) and any other word
- * still to ask about. Footnote's own question comes from these, so the service checks them against
- * the edition. Never stored.
- */
-export const heldReadingSchema = z.strictObject({
-  ...heldWordSchema.shape,
-  metrics: z.array(z.string().check(z.maxLength(200))).check(z.maxLength(CHAT_HELD_KEYS)),
-  filters: z.record(
-    z.string().check(z.maxLength(200)),
-    z.array(z.string().check(z.maxLength(200))).check(z.maxLength(CHAT_HELD_KEYS)),
-  ),
-  window: z.nullable(windowSchema),
-  more: z.optional(z.array(heldWordSchema).check(z.maxLength(CHAT_HELD_KEYS))),
-  why: z.optional(z.boolean()),
-  defines: z.optional(z.boolean()),
-})
 
 /** One read of Ask's loop: the tool, by its name, and its input, as the model gave it. */
 export const loopReadSchema = z.strictObject({
@@ -481,30 +328,21 @@ export const loopTurnSchema = z.object({
 export type LoopTurn = z.infer<typeof loopTurnSchema>
 
 /**
- * One turn of the chat, sent from the browser with each question so Ask can carry what it asked
- * (FR-713, FR-719): its question, how it was read, in words and as keys, its answer state and one
- * sentence from a template, its sources by id, and the question Ask asked back, when it did. Never
- * the answer's words or a data value, and never stored on the service, like the question (FR-602,
- * FR-717).
+ * One turn of the chat, sent from the browser with each question so Ask's loop can carry it
+ * (FR-719.1): its question, its sources by id, how it was read and what it answered in one line
+ * each, the question Ask asked back, when it did, and what Ask said with the reads it made. Never
+ * stored on the service, like the question (FR-602, FR-717).
  */
 export const chatTurnSchema = z.strictObject({
   question: z.string().check(z.minLength(1), z.maxLength(2000)),
-  scope: z.optional(z.nullable(readScopeSchema)),
   sources: z.array(z.string().check(z.maxLength(64))).check(z.maxLength(CHAT_SOURCES)),
   asked: z.optional(z.string().check(z.maxLength(2000))),
-  held: z.optional(heldReadingSchema),
   understood: z.optional(z.nullable(z.string().check(z.maxLength(CHAT_LINE)))),
-  domain: z.optional(z.nullable(z.string().check(z.maxLength(64)))),
-  period: z.optional(z.nullable(z.string().check(z.maxLength(64)))),
-  dated: z.optional(z.boolean()),
-  state: z.optional(z.nullable(answerStateSchema)),
   headline: z.optional(z.nullable(z.string().check(z.maxLength(CHAT_LINE)))),
-  audit: z.optional(z.nullable(auditReadSchema)),
-  rows: z.optional(z.array(z.string().check(z.maxLength(120))).check(z.maxLength(CHAT_SOURCES))),
   /**
-   * Ask's loop (FR-719.1): what Ask said, as the person read it, and the reads it made, by tool
-   * and input. The service reads each again as the person before the model sees its result, so a
-   * result is never taken from the browser (FR-718.3).
+   * What Ask said, as the person read it, and the reads it made, by tool and input. The service
+   * reads each again as the person before the model sees its result, so a result is never taken
+   * from the browser (FR-718.3).
    */
   reply: z.optional(z.string().check(z.maxLength(LOOP_REPLY))),
   reads: z.optional(z.array(loopReadSchema).check(z.maxLength(LOOP_READS))),
@@ -524,39 +362,22 @@ export const chosenPeriodSchema = z.union([
 export type ChosenPeriodInput = z.infer<typeof chosenPeriodSchema>
 
 /**
- * A question for Ask: its words, and the names a person picked beside them (the @ chips), read as
- * get_context reads an agent's, and the chat's last turns, oldest first. The words are read in
- * memory and never stored or logged (FR-602); sent in a POST body for that reason.
+ * A question for Ask: its words, the chat's last turns, oldest first, and the period a person
+ * chose on the read line. The words are read in memory and never stored or logged (FR-602); sent
+ * in a POST body for that reason.
  */
 export const lookupInputSchema = z.strictObject({
   question: z.string().check(z.minLength(1), z.maxLength(2000)),
-  ...tryItInputSchema.shape,
   turns: z.optional(z.array(chatTurnSchema).check(z.maxLength(CHAT_TURNS))),
   period: z.optional(chosenPeriodSchema),
 })
 export type LookupInput = z.infer<typeof lookupInputSchema>
 /**
- * A look-up as it runs: each step when it is done, then the answer, then, when the service runs
- * with a real model and the answer gives items, the words the model writes from them, a sentence
- * at a time as each passes the check (each sentence that uses an item ending with its number, [1]
- * for the first), and `words-end` when they are done. A sentence that fails the check ends the
- * words there. The words never change the state, the items or what agents are told; with no
- * sentence, Ask writes its own words from the items.
- *
- * A question about the context's own records ("what was created in the last 24 hours", "who owns
- * Sales") is not looked up: its one event is the records answer (src/domain/records.ts), counted
- * from what the person may see, with no answer state. Agents never read it.
- *
- * When Ask's planner reads the question (FR-719), `plan` comes first, saying what is looked up so
- * the working line can say it; then the reads' steps and answer as above, or one `reply`: a short
- * question back, the sentence for a question off topic, or the sentence for a message that asks
- * nothing, with nothing looked up and no state.
- *
- * When the service runs Ask's loop instead (FR-718 to FR-720, `FOOTNOTE_ASK_LOOP`), a `progress` line
- * comes as each read starts, written by code from what it reads, then one `turn`. While the model
- * writes, `words` comes each time one more of its sentences is final and has passed the check: the
- * answer so far, drawn as the turn draws it (decision 5). Null takes back what was shown: the
- * words led into a read, not an answer. The `turn` that ends it is the whole answer.
+ * A turn of Ask's loop as it runs (FR-718 to FR-720): a `progress` line as each read starts,
+ * written by code from what it reads, then one `turn`. While the model writes, `words` comes each
+ * time one more of its sentences is final and has passed the check: the answer so far, drawn as
+ * the turn draws it (decision 5). Null takes back what was shown: the words led into a read, not
+ * an answer. The `turn` that ends it is the whole answer.
  */
 export const lookupEventSchema = z.union([
   z.object({
@@ -568,43 +389,7 @@ export const lookupEventSchema = z.union([
   }),
   z.object({ type: z.literal('turn'), turn: loopTurnSchema }),
   z.object({ type: z.literal('words'), turn: z.nullable(loopTurnSchema) }),
-  z.object({
-    type: z.literal('plan'),
-    plan: z.object({
-      kind: z.enum(['reads', 'records', 'clarify', 'off_topic', 'cannot']),
-      /** What the working line says while the reads run: "Looking for events and guides…". */
-      working: z.string(),
-    }),
-  }),
-  z.object({
-    type: z.literal('reply'),
-    reply: z.object({
-      kind: z.enum(['clarify', 'off_topic', 'nothing_asked', 'cannot']),
-      text: z.string(),
-      /** For `cannot` (FR-720): why, what a definition says, and what a draft would start from. */
-      reason: z.optional(z.enum(cannotReasons)),
-      definitions: z.optional(z.array(askDefinitionSchema)),
-      write: z.optional(
-        z.object({ metric: z.nullable(z.string()), market: z.nullable(z.string()) }),
-      ),
-      /** Ask asked which meaning of a word: what the next turn sends back with the answer. */
-      held: z.optional(heldReadingSchema),
-    }),
-  }),
-  z.object({ type: z.literal('step'), step: answerStepSchema }),
-  z.object({ type: z.literal('answer'), answer: answerSchema }),
-  z.object({ type: z.literal('sentence'), text: z.string() }),
-  z.object({ type: z.literal('words-end') }),
-  z.object({
-    type: z.literal('records'),
-    records: recordsAnswerSchema,
-    /** When Ask's planner chose it: what it carried, and the question as it reads alone. */
-    reading: z.optional(
-      z.object({ carried: z.array(z.string()), standalone: z.optional(z.string()) }),
-    ),
-  }),
 ])
-export type RecordsAnswer = z.infer<typeof recordsAnswerSchema>
 export type LookupEvent = z.infer<typeof lookupEventSchema>
 
 /**

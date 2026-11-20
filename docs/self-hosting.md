@@ -106,7 +106,7 @@ MODELS=live ANTHROPIC_BASE_URL=http://host.docker.internal:4000/v1 \
 
 The line sets only the roles no one has changed. After that, an admin's `models.*` settings decide ([Change a setting](administration.md#change-a-setting), [Choose a model provider](model-providers.md)). With one model, the test runs' judge is that same model. Name another with `FOOTNOTE_JUDGE_MODEL` and `FOOTNOTE_JUDGE_MODEL_PRICES`. Models other than Claude work, but their answers are less complete.
 
-**The model check.** Once it starts, the service makes three tiny calls on each role's model: a tool call, a call told to use no tool, and an answer in a set JSON shape. A model that cannot call tools still answers Ask, without its tools, and test runs refuse to start on it.
+**The model check.** Once it starts, the service makes three tiny calls on each role's model: a tool call, a call told to use no tool, and an answer in a set JSON shape. Ask needs a model that calls tools. The check names a model that cannot, and test runs refuse to start on it.
 
 The log, and Settings, Advanced under Models, say what each check found. `docker compose exec footnote npm run models:check` makes it again.
 

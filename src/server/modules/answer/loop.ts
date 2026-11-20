@@ -21,7 +21,7 @@ import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
 import { dateNote, type ChosenPeriod } from '../../../domain/dates.ts'
-import { cannotSaid, personInstead, refusalOffers } from '../../../domain/say.ts'
+import { personInstead, personSaid, refusalOffers } from '../../../domain/say.ts'
 import { shiftDate } from '../../../domain/validity.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
@@ -30,8 +30,10 @@ import {
   costMicros,
   createCallMeter,
   keyRefused,
+  parseModelSetting,
   spendLimitReached,
   type ModelChoice,
+  type ModelPort,
   type SpendLimits,
   type SpendStop,
 } from '../models/index.ts'
@@ -75,7 +77,7 @@ import { plainStep } from './loop-mock.ts'
   writes everything else from what the tools returned: which context items the words cite, the
   answer state, the footer and what was read. Before its words are shown they pass the answer
   check (loop-check.ts): what fails is written once more out of sight, and what still fails says
-  so in a fixed sentence. FOOTNOTE_ASK_LOOP=off answers with the router instead.
+  so in a fixed sentence.
 
   - The chat. The browser sends each earlier turn with what Ask said and what it read, by tool and
     input (FR-719.1). Each read is made again, as the person, now, before the model sees its
@@ -105,6 +107,14 @@ export const LOOP_MAX_TOKENS = 1_200
 export const EARLIER_TURNS = 2
 /** The most earlier reads a turn makes again: the latest ones. */
 const EARLIER_READS = 16
+
+/** The model Ask's loop asks: the assistant's, from the settings. */
+export async function readAssistantModel(tx: Queryable, models: ModelPort): Promise<ModelChoice> {
+  const [row] = await tx.query<{ value: unknown }>(
+    "select value from settings_current where key='models.assistant'",
+  )
+  return models.choose('assistant', parseModelSetting('assistant', row?.value))
+}
 
 /** The step and time limits, from the settings, each in its range. */
 export async function readLoopLimits(tx: Queryable) {
@@ -1049,7 +1059,7 @@ const questionTurn = (
  * sentence, what Ask can answer instead, and questions to press, as every refusal ends.
  */
 export const declinedTurn = (): LoopTurn => {
-  const said = [cannotSaid.person, personInstead]
+  const said = [personSaid, personInstead]
   return {
     kind: 'answer',
     text: said.join(' '),

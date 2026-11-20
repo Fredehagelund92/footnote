@@ -63,7 +63,7 @@ const live: ModelPort = {
   creditsUsed: () => Promise.resolve(null),
   checkKey: () => Promise.resolve({ outcome: 'accepted' }),
 }
-const world = askWorld({ askLoop: true, models: live })
+const world = askWorld({ models: live })
 
 describe('a long chat in Ask', () => {
   it('stays under the daily limit, and its tenth turn costs at most twice its second', async () => {

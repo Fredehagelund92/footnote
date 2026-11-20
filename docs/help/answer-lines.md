@@ -24,14 +24,12 @@ Every answer, in the app and in your own agent, starts with one of six lines. Ea
 
 <!-- /include -->
 
-A question that names no metric and no market is not looked up, so its answer has none of the six lines. Ask says "Nothing was looked up", says why, and names the kinds of question it answers: about a metric or a market, about the records, and about what Definitions lists. Not found is only for a question that was looked up and found nothing.
+A question Ask asks back has none of the six lines: nothing was read for it yet. Not found is only for a question that was looked up and found nothing.
 
-A question about the context itself, such as "what was created in the last 24 hours?", "what is due for a check in Sales?" or "who owns Orders?", gets an answer from the records instead. It starts with a Records chip, not one of the six lines: it counts what you can see in Context, and agents never read it.
-
-Ask also reads the records to say what is missing, out of date, in conflict or without an owner, such as "what definitions are missing?" or "what is waiting on me?". Every count there comes with the total it is out of, and the answer says what it cannot see.
+Ask also reads the records, such as "what is out of date?" or "what is waiting on me?". Its overview counts what you can see in Context, and has none of the six lines. Every count comes with the total it is out of, and the answer says what it cannot see.
 
 - A topic agents asked about only a few times is not shown.
-- A question beyond what is written, such as "should we restart the Norway campaign?", gets a fixed sentence saying so, followed by what is written.
+- A question beyond what is written, such as "should we restart the Norway campaign?", gets what is written, and Ask says which part it does not answer.
 - Ask does not give advice of its own.
 - Ask keeps no numbers, so for numbers use an agent with your data tool.
 

@@ -2,13 +2,13 @@ import {
   demoCases,
   gateCases,
   type DemoCase,
-  type PlanCase,
+  type GateCase,
 } from '../../../src/server/modules/answer/index.ts'
 import type { EvalCase, Pattern, TurnExpect } from './types.ts'
 
 /*
   The burned cases of gates 1 to 3 and their cold panels as development conversations: what each
-  must and must not say, without how today's router says it. A fixed sentence of today's design
+  must and must not say, without how the answerer of the time said it. A fixed sentence of today's design
   ("What to do is not written down. Here is what is.") becomes the fact it states (nothing written
   says what to do); a line only today's design prints (its footer, its read line) is left out;
   a records table's "Orders in Norway | 31" becomes the topic and its count on one line. Every
@@ -163,15 +163,15 @@ const SUGGESTED = ['Card payments in Spain failed from 14 to 16 October 2026']
  * for the few above, so they run there too; a case asked in a world of its own, with a plan of its
  * own or with sources the browser never sends is left out, since the demo week cannot ask it.
  */
-export const gateOneConversations = (cases: readonly PlanCase[] = gateCases): EvalCase[] => {
+export const gateOneConversations = (cases: readonly GateCase[] = gateCases): EvalCase[] => {
   const byId = new Map(cases.map((c) => [c.id, c]))
-  const before = (c: PlanCase): string[] => {
+  const before = (c: GateCase): string[] => {
     if (!c.after) return []
     const prior = byId.get(c.after)
     return prior ? [...before(prior), prior.question] : [c.after]
   }
   return cases
-    .filter((c) => !c.world && !c.with && !c.sources && !c.scoped)
+    .filter((c) => !c.world)
     .map((c) => ({
       id: c.id,
       class: c.class ?? 'S',

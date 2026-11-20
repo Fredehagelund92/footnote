@@ -26,7 +26,6 @@ let decide: ((prompt: ScriptedPrompt) => ScriptedStep) | null = null
 const reader = scriptedLoopModel()
 const scripted = scriptedLoopChoice('test', (prompt) => decide!(prompt))
 const world = askWorld({
-  askLoop: true,
   askTrace: {
     get loopModel() {
       return decide ? scripted : reader

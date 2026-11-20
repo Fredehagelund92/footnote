@@ -2,9 +2,7 @@ import { stateOfStatus, stateWords } from './answer-state.ts'
 import { periodWords } from './dates.ts'
 import { metricsOf } from './resolver.ts'
 import { SAID_MEANINGS } from './ask-chat.ts'
-import type { CannotReason } from './records-answer.ts'
 import type { ResolvedScope, ScopeIssue } from './scope.ts'
-import type { DateWindow } from './validity.ts'
 import { concepts as peopleConcepts } from './words.ts'
 import type { WordMeaning } from './vocabulary.ts'
 
@@ -74,13 +72,6 @@ const onlyThat = 'Nothing else was looked up.'
 export const notLookedUp = 'Nothing was looked up yet.'
 
 /**
- * What Ask says to a question its planner read as off topic (FR-719): what it answers, and that
- * this question is not that. Nothing is looked up, so it has no answer state.
- */
-export const offTopicSaid =
-  'Ask answers questions about the business, its numbers and what is written about them. This question is outside that, so nothing was looked up.'
-
-/**
  * The questions a refusal ends with, to press: ones Ask answers from the records on any workspace.
  * Every sentence that says Ask will not answer is followed by these.
  */
@@ -93,17 +84,8 @@ export const refusalOffers: readonly string[] = ['What changed this week?', 'Lis
 export const personInstead =
   'It can tell you who owns a domain or a metric, who last checked a context item and when, and what changed this week.'
 
-/** What Ask says when it cannot answer the question asked, and reads nothing (FR-720). */
-export const cannotSaid: Record<CannotReason, string> = {
-  numbers:
-    'Ask does not hold the figures, only what is written about them. For the figure, ask your AI agent, such as Claude. It gets the figure from your data tool and reads this context first.',
-  source: 'Definitions live in your source tool, so Ask cannot change one.',
-  write: 'Ask does not write context. You can start it here.',
-  person: "Ask does not answer questions about one person's work.",
-  not_yet:
-    'Ask cannot answer this kind of question yet. It can tell you what is written about a metric, what changed lately, and who owns a domain.',
-  unread: 'Ask could not read this question just now, so nothing was looked up.',
-}
+/** What Ask's loop says when it declines a question about one person's work (FR-719.6). */
+export const personSaid = "Ask does not answer questions about one person's work."
 
 type Names = { terms: readonly { key: string; name: string }[] }
 type Groups = Names & { groupsOfMetric: Readonly<Record<string, readonly string[]>> }
@@ -382,19 +364,6 @@ export const contestedQuestion = ({ word, meanings }: ContestedAsk, bundle?: Nam
     ? `${capitalWord(word)} is a value of ${of}. Which do you mean?`
     : `${capitalWord(word)} can mean ${meaningsWords(meanings, bundle)}. Which do you mean?`
 }
-
-/** The rest of a word's meanings, beside an answer that took one: "Sales can also mean Gross sales." */
-export const contestedAlso = (word: string, others: readonly WordMeaning[], bundle?: Names) => {
-  if (!others.length) return null
-  const of = valueOf(others, bundle)
-  return of
-    ? `${capitalWord(word)} is also a value of ${of}.`
-    : `${capitalWord(word)} can also mean ${meaningsWords(others, bundle)}.`
-}
-
-/** What a person who chose a term's meaning hears when nothing else was asked. */
-export const termChosenSaid = (word: string) =>
-  `${capitalWord(word)} is a term with its own meaning in Definitions, so nothing was looked up.`
 
 /** The agent's way on from a word with more than one meaning: the person chooses, never the agent. */
 function contestedNext({ meanings }: ContestedAsk) {
@@ -696,11 +665,3 @@ export function reportSaid(c: {
     say: `${what} Who asked is not kept.${c.assumed ? ` ${c.assumed}` : ''}`,
   }
 }
-
-/** What a planned answer leads with when what was read says nothing of the names asked. */
-export const generalSaid = (names: readonly string[]) =>
-  `Nothing is written about ${names.length < 2 ? (names[0] ?? 'this') : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`} in particular. Here is what is written in general.`
-
-/** What a read says when the model and the date reader read a question's dates apart (FR-719). */
-export const otherDaysSaid = (window: DateWindow) =>
-  `The dates could also mean ${periodWords(window, { upTo: true })}.`

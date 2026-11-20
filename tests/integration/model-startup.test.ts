@@ -175,7 +175,7 @@ describe('the model settings at start-up', () => {
         .filter((line) => line.includes('model check:'))
         .map((line) => JSON.parse(line) as Record<string, unknown>)
       expect(lines.map((l) => [l.setting, l.level, l.msg])).toEqual([
-        ['models.assistant', 40, 'model check: Can’t call tools, so Ask answers without them'],
+        ['models.assistant', 40, 'model check: Can’t call tools, which Ask needs to read'],
         [
           'models.eval_answer',
           40,

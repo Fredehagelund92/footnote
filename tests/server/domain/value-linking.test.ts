@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { heldOf } from '../../../src/domain/ask-held.ts'
-import { chatOf, routeQuestion } from '../../../src/domain/ask-route.ts'
-import type { ChatTurn } from '../../../src/domain/ask-chat.ts'
-import { contestedAlso, contestedQuestion } from '../../../src/domain/say.ts'
+import { contestedQuestion } from '../../../src/domain/say.ts'
 import { extractScope, readQuestion, type ScopeResult } from '../../../src/domain/scope.ts'
 import type { Term } from '../../../src/domain/vocabulary.ts'
 import { scopeOf } from '../../../src/server/mcp/service.ts'
 import type { ServingBundle } from '../../../src/server/modules/editions/index.ts'
-import { PLAN_NOW, PLAN_TODAY, planBundle } from '../../../src/server/modules/answer/plan-world.ts'
+import { WORLD_TODAY, worldBundle } from './case-world.ts'
 
 /*
   Golden questions for value linking, slice V1: how the scope reader reads value words, by fixed
@@ -305,11 +302,17 @@ describe('golden questions: lowercase names that end like everyday words', () =>
   })
 })
 
+/** The word a reading asks about, with its meanings, as an agent is told it. */
+const contestedIn = (read: ScopeResult) => {
+  const issue = read.status === 'need_more_detail' ? read.issues.find((i) => i.meanings) : undefined
+  return issue && { word: issue.word ?? issue.input, meanings: issue.meanings! }
+}
+
 describe('golden questions: asking which', () => {
   const said = (question: string) => {
-    const held = heldOf(ask(question))
-    if (!held) throw new Error(`no question back for "${question}"`)
-    return contestedQuestion(held, { terms })
+    const contested = contestedIn(ask(question))
+    if (!contested) throw new Error(`no question back for "${question}"`)
+    return contestedQuestion(contested, { terms })
   }
 
   it('names the dimensions of a value they share, not "the value Alder" twice', () => {
@@ -329,14 +332,14 @@ describe('golden questions: asking which', () => {
         term(`val:d${i}/oak`, 'dimension_value', 'Oak'),
       ]).flat(),
     ]
-    const held = heldOf(extractScope('how did oak do', many, today, { loose: true }))
-    expect(held?.meanings).toHaveLength(11)
-    expect(contestedQuestion(held!, { terms: many })).toBe(
+    const contested = contestedIn(extractScope('how did oak do', many, today, { loose: true }))
+    expect(contested?.meanings).toHaveLength(11)
+    expect(contestedQuestion(contested!, { terms: many })).toBe(
       'Oak is a value of Dimension 0, Dimension 1, Dimension 10, Dimension 2, Dimension 3, Dimension 4, Dimension 5, Dimension 6 and 3 more. Which do you mean?',
     )
   })
 
-  it('counts the meanings past eight for terms, and beside an answer', () => {
+  it('counts the meanings past eight for terms', () => {
     const meanings = Array.from({ length: 10 }, (_, i) => ({
       key: `term:t${i}`,
       name: `Meaning ${i}`,
@@ -345,60 +348,6 @@ describe('golden questions: asking which', () => {
     expect(said).toBe(
       'Oak can mean the term Meaning 0, the term Meaning 1, the term Meaning 2, the term Meaning 3, the term Meaning 4, the term Meaning 5, the term Meaning 6, the term Meaning 7 or 2 more. Which do you mean?',
     )
-    expect(contestedAlso('oak', meanings as never, { terms })).toContain(' or 2 more.')
-  })
-})
-
-describe('golden questions: answering which, in Ask', () => {
-  // Larchwood's names, with Alder a value of Product and of Campaign.
-  const bundle = {
-    ...planBundle,
-    terms: [
-      ...planBundle.terms,
-      term('val:product/alder', 'dimension_value', 'Alder'),
-      term('val:campaign/alder', 'dimension_value', 'Alder'),
-    ],
-    areas: planBundle.areas ?? [],
-  }
-  const route = (question: string, turns: ChatTurn[] = []) =>
-    routeQuestion({
-      bundle,
-      ask: { question },
-      turns: chatOf(bundle, turns, PLAN_TODAY),
-      records: null,
-      today: PLAN_TODAY,
-      now: PLAN_NOW,
-    })
-
-  it('asks by dimension, and reads the answer "the product one" as Alder the product', async () => {
-    const asked = await route('orders in alder last month')
-    // was: "Alder can mean the value Alder or the value Alder", and "product" settled nothing.
-    expect(asked).toMatchObject({
-      kind: 'reply',
-      reply: { text: 'Alder is a value of Campaign and Product. Which do you mean?' },
-    })
-    if (asked.kind !== 'reply') return
-    const turn: ChatTurn = {
-      question: 'orders in alder last month',
-      scope: null,
-      sources: [],
-      asked: asked.reply.text,
-      ...(asked.reply.held ? { held: asked.reply.held } : {}),
-    }
-    for (const answer of ['product', 'the product one'])
-      expect(await route(answer, [turn])).toMatchObject({
-        kind: 'reads',
-        planned: {
-          reads: [
-            {
-              scope: {
-                metrics: ['metric:orders'],
-                filters: { 'dim:product': ['val:product/alder'] },
-              },
-            },
-          ],
-        },
-      })
   })
 })
 
@@ -433,7 +382,7 @@ describe('golden questions: as an agent asks', () => {
     ['orders from usa', 'val:market/united_states'],
   ])('reads the lowercase short code in "%s" as main does', (question, value) => {
     // Larchwood's names: United Kingdom has the other name UK, United States USA.
-    const r = scopeOf({ question }, planBundle as unknown as ServingBundle, PLAN_TODAY).scope
+    const r = scopeOf({ question }, worldBundle as unknown as ServingBundle, WORLD_TODAY).scope
     expect(r).toMatchObject({ status: 'resolved', scope: { filters: { 'dim:market': [value] } } })
   })
 
@@ -454,7 +403,7 @@ describe('golden questions: as an agent asks', () => {
 
 describe('golden questions: Larchwood, PR 180 checks', () => {
   const read = (question: string) =>
-    extractScope(question, planBundle.terms, PLAN_TODAY, { loose: true })
+    extractScope(question, worldBundle.terms, WORLD_TODAY, { loose: true })
   const asked = (question: string) => {
     const r = read(question)
     return r.status === 'need_more_detail' ? r.issues.map((i) => i.message ?? i.input) : []
@@ -549,10 +498,10 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
 
   it('reads the name of the tool a definition comes from as no value', () => {
     // The plan world's terms name no source member; on the service they do (cube:orders.orders).
-    const named = planBundle.terms.map((t) =>
+    const named = worldBundle.terms.map((t) =>
       t.key === 'metric:orders' ? { ...t, definitionRefs: ['cube:orders.orders'] } : t,
     )
-    expect(extractScope('orders in cube', named, PLAN_TODAY, { loose: true }).status).toBe(
+    expect(extractScope('orders in cube', named, WORLD_TODAY, { loose: true }).status).toBe(
       'resolved',
     )
   })
@@ -570,7 +519,7 @@ describe('golden questions: Larchwood, PR 180 checks', () => {
     'net revenue in local currency',
     'orders in gbp',
   ])('reads "%s" as before when an agent asks: no issue', (question) => {
-    const r = extractScope(question, planBundle.terms, PLAN_TODAY)
+    const r = extractScope(question, worldBundle.terms, WORLD_TODAY)
     expect(r.status).toBe('resolved')
     if (r.status !== 'resolved') return
     expect(r.scope.filters).toEqual({})

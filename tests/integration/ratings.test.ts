@@ -67,8 +67,8 @@ async function askedMetrics(question: string) {
     .map((block) => block.split('\n').find((line) => line.startsWith('data:')))
     .filter((line): line is string => !!line)
     .map((line) => JSON.parse(line.slice(5).trim()) as LookupEvent)
-  const last = sent.at(-1) as Extract<LookupEvent, { type: 'answer' }>
-  return last.answer.scope?.metrics ?? []
+  const last = sent.at(-1) as Extract<LookupEvent, { type: 'turn' }>
+  return (last.turn.subject?.about ?? []).filter((id) => id.startsWith('metric:'))
 }
 
 const rate = (metrics: string[], verdict: 'helpful' | 'wrong' = 'helpful') =>

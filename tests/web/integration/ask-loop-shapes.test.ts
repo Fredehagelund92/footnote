@@ -199,7 +199,6 @@ const cases: Case[] = [
 
 let current: Case | undefined
 const world = askWorld({
-  askLoop: true,
   // Spain's VAT pair, which the mock marks across two domains, is marked here too.
   allConflicts: true,
   askTrace: {

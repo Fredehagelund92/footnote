@@ -1,24 +1,18 @@
 import type { LookupEvent, LoopTurn } from '@contract/answer'
 import type { Answer } from './ask'
 
-// One question and its answer in Ask's chat, as the look-up's events arrive (docs/product.md,
-// section 5): the question shows the moment it is sent, the look-up's real steps say what it is
-// doing, the state and the sources come with the engine's answer, and the words grow a checked
-// sentence at a time. Pure: the page feeds it the events (src/web/pages/ask.tsx).
+// One question and its answer in Ask's chat, as the loop's events arrive (docs/product.md,
+// section 5): the question shows the moment it is sent, each read says what it is doing as it
+// starts, and the words grow a checked sentence at a time until the turn is in. Pure: the page
+// feeds it the events (src/web/pages/ask.tsx).
 
 /** Where an answer has got to: looking up, reading what it found, writing its words, or done. */
 export type Stage = 'looking' | 'reading' | 'writing' | 'done'
 
 /** What a look-up tells the chat as it runs. */
 export type AskEvent =
-  /** Ask's planner chose what to look up (FR-719): what the working line says while it runs. */
+  /** What the working line says while Ask reads. */
   | { type: 'plan'; working: string }
-  /** The look-up found its context items: how many. */
-  | { type: 'found'; items: number }
-  /** The engine's answer, with its own words: the state and the sources are final from here. */
-  | { type: 'answer'; answer: Answer }
-  /** A sentence of a model's words that passed the check. */
-  | { type: 'sentence'; text: string }
   /** Ask's loop: each read so far, by code, and the nouns they named. */
   | { type: 'reads'; reads: LoopReads }
   /** Ask's loop: its answer so far, the sentences that passed the check; null takes them back. */
@@ -46,10 +40,8 @@ export type Turn = {
   error: string | null
   /** How many context items the look-up found, once it has. */
   found: number | null
-  /** What the planner chose to look up, in the working line's words, once it has. */
+  /** What Ask is reading, in the working line's words, once it says. */
   working: string | null
-  /** A model's words so far, a sentence at a time; with none, the answer's own words show. */
-  sentences: string[]
   /** What Ask's loop has read so far, while it reads. */
   reads?: LoopReads
   /** Ask's loop's answer so far, while it writes: drawn as the finished answer will be. */
@@ -80,7 +72,6 @@ export const askedTurn = (
   error: null,
   found: null,
   working: null,
-  sentences: [],
 })
 
 /** An answer that is already in, shown finished: a chat opened again, or a draft's. */
@@ -93,7 +84,6 @@ export const doneTurn = (answer: Answer): Turn => ({
   error: null,
   found: answer.sources.length,
   working: null,
-  sentences: [],
 })
 
 /**
@@ -140,18 +130,6 @@ export function turnReducer(turn: Turn, action: TurnAction): Turn {
   switch (action.type) {
     case 'plan':
       return { ...turn, working: action.working }
-    case 'found':
-      return { ...turn, stage: 'reading', found: action.items }
-    case 'answer':
-      return {
-        ...turn,
-        answer: { ...action.answer, ...keep },
-        answered: true,
-        stage: 'writing',
-        found: action.answer.sources.length,
-      }
-    case 'sentence':
-      return { ...turn, stage: 'writing', sentences: [...turn.sentences, action.text] }
     case 'reads':
       return { ...turn, reads: action.reads }
     case 'words':
@@ -168,13 +146,6 @@ export function turnReducer(turn: Turn, action: TurnAction): Turn {
       return { ...turn, error: action.message }
   }
 }
-
-/**
- * The words the turn shows: the finished answer's once it is done, else the sentences a model has
- * written so far (a stopped answer keeps only those).
- */
-export const shownText = (turn: Turn) =>
-  turn.stage === 'done' ? turn.answer.text : turn.sentences.join(' ')
 
 /**
  * How a turn ended, once it has: the one value that says whether it joins the history, is kept

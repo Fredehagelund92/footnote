@@ -1,4 +1,4 @@
-import { expect, go, inMockUntil, test } from './go.ts'
+import { expect, go, test } from './go.ts'
 
 // J22, help: one Help row opens a small menu; ? opens the keys from anywhere; the Help page has the
 // answer lines, words and how agents use it, and sends a "how do I" to the documentation, which is
@@ -70,16 +70,21 @@ test('the Help page searches its own words, and sends the rest to the documentat
 })
 
 test('the answer line explains itself', async ({ page }) => {
-  await inMockUntil('P10', "Ask's answers from the service", async () => {
-    await go(page, '/ask?example=missing')
-    await page.getByRole('log').getByRole('button', { name: 'Not found', exact: true }).click()
-    await expect(page.getByText('Nothing is written about this yet.')).toBeVisible()
-    await expect(page.getByText('What you do.')).toBeVisible()
-    await expect(page.getByRole('link', { name: /All answer lines/ })).toHaveAttribute(
-      'href',
-      '/help',
-    )
-  })
+  await go(page, `/ask?n=${Date.now()}`)
+  const box = page.getByRole('textbox', { name: 'Ask a question' })
+  await box.click()
+  await box.pressSequentially('How did orders in Spain change in October 2026?')
+  await box.press('Enter')
+  // Beside the badge, the state's fixed sentence; on the badge, its card says what it means and
+  // what to do, and leads to every answer line.
+  await page.getByRole('log').getByRole('button', { name: 'Not found', exact: true }).click()
+  const card = page.getByRole('dialog', { name: 'What Not found means' })
+  await expect(card.getByText('Not found: nothing is written about this yet.')).toBeVisible()
+  await expect(card.getByText(/^What you do\./)).toBeVisible()
+  await expect(card.getByRole('link', { name: /All answer lines/ })).toHaveAttribute(
+    'href',
+    '/help',
+  )
 })
 
 test('Report a problem is one box, sent as an issue with the page it came from', async ({

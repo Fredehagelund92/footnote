@@ -4,12 +4,9 @@ import type { Answer } from '@/model/ask'
 export type Verdict = 'helpful' | 'wrong'
 type Counted = { id: string; verdict: Verdict } | null
 
-/** The metrics an answer read (at most the ten a rating takes), for its domain: the engine's keys, or the loop's subject. */
+/** The metrics an answer read (at most the ten a rating takes), for its domain: the loop's subject. */
 const ratedMetrics = (answer: Answer) =>
-  (
-    answer.keys?.metrics ??
-    (answer.loop?.subject?.about ?? []).filter((id) => id.startsWith('metric:'))
-  ).slice(0, 10)
+  (answer.loop?.subject?.about ?? []).filter((id) => id.startsWith('metric:')).slice(0, 10)
 
 /** The clicks of one answer, applied in order, and what they wish: loaded with the first click. */
 export type RatingChain = { counted: Promise<Counted>; queued: number; wish: Verdict | null }
