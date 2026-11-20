@@ -63,8 +63,7 @@ describe("Ask's tool registry", () => {
   })
 
   it('leaves every MCP tool as agents have it (FR-718.5)', () => {
-    // A deliberate change to an MCP tool changes these; Ask's tools never do. The engine's own
-    // digest is held in tests/server/ask-plan-cases.test.ts.
+    // A deliberate change to an MCP tool changes these; Ask's tools never do.
     expect(toolNames).toEqual([
       'get_context',
       'find_context',
