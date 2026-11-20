@@ -30,11 +30,9 @@ test('C comments on the line or field in focus, and the rail counts the threads 
   // The composer closes, and the focus is back on the row, where C and the arrows go on.
   await expect(source.getByRole('row', { name: 'Source, changed' })).toBeFocused()
 
-  // N steps into the text; Down moves to its first line, the one removed, then to the added one.
+  // N steps into the text, to the passage that changed: C comments on its first line.
   await page.keyboard.press('n')
   await expect(source.getByRole('group', { name: 'Change 1 of 1 in the text' })).toBeFocused()
-  await page.keyboard.press('ArrowDown')
-  await page.keyboard.press('ArrowDown')
   await page.keyboard.press('c')
   await expect(source.getByRole('textbox', { name: 'Comment on line 1' })).toBeFocused()
   await page.keyboard.type('Since when are there 340?')

@@ -28,7 +28,7 @@ test('Esc with nothing open goes back to the Inbox; ? lists the keys', async ({ 
   await page.keyboard.press('?')
   const keys = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
   await expect(keys).toContainText('Next, or previous suggestion')
-  await expect(keys).toContainText('Close the note, keeping it')
+  await expect(keys).toContainText('in a review, close the note, keeping it')
   await page.keyboard.press('Escape')
   await expect(keys).toBeHidden()
   await page.keyboard.press('Escape')

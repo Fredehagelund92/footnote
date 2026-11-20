@@ -5,7 +5,7 @@
   that changed, and a word that moved to another line stays plain. Its own module, apart from
   doc-diff.ts, so the web app loads it with the review alone. Pure: no clock, no input or output.
 */
-import { wordTokens } from './doc-diff.ts'
+import { wordTokens } from './markdown-blocks.ts'
 import { LCS_CELLS, sequenceDiff } from './sequence-diff.ts'
 
 /** One line of the stored Markdown, unchanged, removed or added, with its changed words. */

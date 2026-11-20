@@ -167,18 +167,18 @@ Unused primitives in the mockup (about seven) are not imported.
 
 ### The Inbox and the review
 
-| Part           | File                                                                                  | Job                                                     |
-| -------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Inbox          | `pages/inbox.tsx`, `lib/inbox-rows.ts`, `data/inbox.ts`                               | List, groups, cards, quick view, setup checklist        |
-| Review         | `pages/review-page.tsx`, `pages/review.tsx`, `data/review.ts`                         | The full-screen review and the quick view               |
-| Inbox pane     | `components/footnote/inbox-pane.tsx`, `model/inbox-pane.ts`                           | A card's head, folds (the item's row) and decision      |
-| Review parts   | `components/footnote/review-parts.tsx`, `change-icons.ts`, `review-page-parts.tsx`    | Change blocks, marks, the Ready line                    |
-| Source review  | `components/footnote/source-review.tsx`, `lib/line-diff.ts`, `model/review-fields.ts` | Fields table and Text diff, each fed two sides          |
-| Source threads | `components/footnote/source-threads.tsx`, `model/source-places.ts`                    | Threads on a line or a field, and the rail's summary    |
-| Try it         | `pages/ask.tsx` (`TryIt`, in the dock), `pages/review-page.tsx` (`TryItPanel`)        | What agents say before and after, as Draft or Published |
-| Saved line     | `components/obs/saved-line.tsx`                                                       | "N of N still answer the same" in a review              |
-| Comment box    | `components/templates/comment-box/*`                                                  | Flat threads, five reactions, replies, the composer     |
-| Comments model | `lib/comments.ts`, `data/comments.ts`, `components/footnote/guide-link.tsx`           | Threads, read state, "Read the guide"                   |
+| Part           | File                                                                                                         | Job                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Inbox          | `pages/inbox.tsx`, `lib/inbox-rows.ts`, `data/inbox.ts`                                                      | List, groups, cards, quick view, setup checklist                                                   |
+| Review         | `pages/review-page.tsx`, `pages/review.tsx`, `data/review.ts`                                                | The full-screen review and the quick view                                                          |
+| Inbox pane     | `components/footnote/inbox-pane.tsx`, `model/inbox-pane.ts`                                                  | A card's head, folds (the item's row) and decision                                                 |
+| Review parts   | `components/footnote/review-parts.tsx`, `change-icons.ts`, `review-page-parts.tsx`                           | Change blocks, marks, the Ready line                                                               |
+| Source review  | `components/footnote/source-review.tsx`, `lib/passage-diff.ts`, `lib/line-diff.ts`, `model/review-fields.ts` | The comparison (bar, Fields table, text in two columns) and the lines behind S, each fed two sides |
+| Source threads | `components/footnote/source-threads.tsx`, `model/source-places.ts`                                           | Threads on a line or a field, and the rail's summary                                               |
+| Try it         | `pages/ask.tsx` (`TryIt`, in the dock), `pages/review-page.tsx` (`TryItPanel`)                               | What agents say before and after, as Draft or Published                                            |
+| Saved line     | `components/obs/saved-line.tsx`                                                                              | "N of N still answer the same" in a review                                                         |
+| Comment box    | `components/templates/comment-box/*`                                                                         | Flat threads, five reactions, replies, the composer                                                |
+| Comments model | `lib/comments.ts`, `data/comments.ts`, `components/footnote/guide-link.tsx`                                  | Threads, read state, "Read the guide"                                                              |
 
 ### Settings, integrations and agents
 

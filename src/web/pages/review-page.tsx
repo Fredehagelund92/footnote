@@ -10,6 +10,7 @@ import {
   EyeIcon,
   KeyboardIcon,
   ListIcon,
+  TableIcon,
   TriangleAlertIcon,
   Undo2Icon,
 } from '@/components/icons'
@@ -20,7 +21,7 @@ import { comparePair, sharedWords, type Compared } from '@/lib/differing-words'
 import { SIDE_BY_SIDE } from '@/lib/conflict'
 import { ownersOf } from '@/model/people'
 import type { Fact } from '@/model/items'
-import { PersonAvatar, StateLine } from '@/components/footnote/bits'
+import { AgentAvatar, PersonAvatar, StateLine } from '@/components/footnote/bits'
 import { KindLabel } from '@/components/footnote/review-parts'
 import { ClaimCheck, InstructionWarning } from '@/components/footnote/review-page-parts'
 import { ItemDocument } from '@/components/footnote/item-document'
@@ -65,7 +66,14 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { flushSync } from 'react-dom'
 import { TOUCH } from '@/lib/touch'
 import { changeWords, diffStats, lineDiff } from '@/lib/line-diff'
-import { FieldsDiff, TextDiff, type SourceNotes } from '@/components/footnote/source-review'
+import {
+  CompareBar,
+  FieldsDiff,
+  TextComparison,
+  TextDiff,
+  type SourceNotes,
+} from '@/components/footnote/source-review'
+import { compareCounts } from '@/lib/review-compare'
 import {
   goToThread,
   SourceThreadsSummary,
@@ -552,20 +560,53 @@ function useSourceKeys(within: React.RefObject<HTMLElement | null>, notes: Sourc
   }, [within])
 }
 
+/** Who suggested it and when, as the bar says it: "by Ines Duarte, from a chat, 22 Oct 2026". */
+function suggestedBy(r: Review) {
+  const by = r.drafted
+    ? `a draft from ${r.drafted.questions} questions agents asked`
+    : r.synced
+      ? `from ${r.synced.tool}, read ${midSentence(r.synced.read)}`
+      : r.agent
+        ? `by ${r.agent}, with ${r.from}'s OK, ${r.on}`
+        : `by ${r.from}, ${r.via === 'editor' ? 'in the editor' : `from ${r.via}`}, ${r.on}`
+  return r.mode === 'retire' ? `to archive it, ${by}` : by
+}
+
 /**
- * The review of the source: what agents will read, exactly. The fields as a table, then the
- * stored text as a line diff. Two sides in, so the parts know nothing of suggestions; the
- * comments on its lines and fields come in as `notes`.
+ * The review of the source, as "the comparison": what agents will read, exactly. The bar of what
+ * is compared, the fields as a table, then the text as a reader sees it, now beside suggested; S
+ * shows the stored text as lines instead, kept while you go through the queue. Two sides in, so
+ * the parts know nothing of suggestions; the comments on its lines and fields come in as `notes`.
  */
 function SourceReview({ r, me, owners }: { r: Review; me: string; owners: string[] }) {
   const ref = React.useRef<HTMLDivElement>(null)
   const notes = useSourceNotes({ subject: `review:${r.id}`, versions: r.versions, me, owners })
   useSourceKeys(ref, notes)
-  // Each changed field row and each changed place in the text is a stop.
+  const [linesChoice, setLines] = useSideChoice('review-lines')
+  const lines = !!linesChoice
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (pageKey(e) && e.key === 's') setLines(!lines)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lines, setLines])
   const { before, after } = r.fields
+  const counted = React.useMemo(() => compareCounts(r), [r])
+  // Each changed field row and each changed passage, or place in the lines, is a stop.
   const count =
-    (before && after ? fieldRows(before, after).filter((x) => x.changed).length : 0) +
-    diffStats(lineDiff(r.source.before, r.source.after)).changes
+    counted.fields +
+    (lines ? diffStats(lineDiff(r.source.before, r.source.after)).changes : counted.passages)
+  const toggle = (
+    <ViewToggle
+      pressed={lines}
+      onPressedChange={setLines}
+      icon={<TableIcon />}
+      text="Lines"
+      on="Show the lines"
+      off="Show the text as it reads"
+    />
+  )
   return (
     <section aria-label="The source" ref={ref} className="flex flex-col gap-6 py-2">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
@@ -573,13 +614,37 @@ function SourceReview({ r, me, owners }: { r: Review; me: string; owners: string
           What agents will read, exactly.
           <span className="pointer-coarse:hidden">
             {' '}
-            N and P step through the changes, the arrows through the lines, and C comments on one.
+            N and P step through the changes, the arrows through the {lines ? 'lines' : 'passages'},
+            C comments on one, and S shows the {lines ? 'text as it reads' : 'lines'}.
           </span>
         </p>
         <ChangeSteps within={ref} count={count} />
       </div>
-      <FieldsDiff before={r.fields.before} after={r.fields.after} notes={notes} />
-      <TextDiff before={r.source.before} after={r.source.after} notes={notes} />
+      <CompareBar
+        mode={r.mode}
+        now={r.mode === 'new' ? 'nothing is published yet' : 'published, what agents get'}
+        suggested={suggestedBy(r)}
+        by={
+          r.agent ? (
+            <AgentAvatar />
+          ) : r.drafted || r.synced ? undefined : (
+            <PersonAvatar name={r.from} />
+          )
+        }
+        changed={counted.changed}
+        same={counted.same}
+      />
+      <FieldsDiff before={before} after={after} person={me} notes={notes} />
+      {lines ? (
+        <TextDiff before={r.source.before} after={r.source.after} notes={notes} action={toggle} />
+      ) : (
+        <TextComparison
+          before={r.source.before}
+          after={r.source.after}
+          notes={notes}
+          action={toggle}
+        />
+      )}
     </section>
   )
 }
