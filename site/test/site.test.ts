@@ -8,8 +8,8 @@ describe("the landing page's links", () => {
     expect(links.home).toBe('/footnote/')
     expect(links.docs()).toBe('/footnote/docs/')
     expect(links.docs('try-the-demo')).toBe('/footnote/docs/try-the-demo/')
-    expect(links.docs('reference/agent-tools#ask')).toBe(
-      '/footnote/docs/reference/agent-tools/#ask',
+    expect(links.docs('reference/connect-by-hand#the-address')).toBe(
+      '/footnote/docs/reference/connect-by-hand/#the-address',
     )
   })
 

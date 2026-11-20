@@ -5,24 +5,29 @@ import sharp from 'sharp'
 
 /*
   Takes the pictures of the app again, from a running web build on the demo data: the landing
-  page's, into landing/captures, and the README's, into docs/images (site/README.md, "The
-  pictures"). In the repository's root: `npx vite build && npx vite preview --port 5517`; then here:
+  page's, into landing/captures, the README's, into docs/images, and the docs' pictures of screens,
+  into docs/images/docs (site/README.md, "The pictures"). In the repository's root:
+  `npx vite build && npx vite preview --port 5517`; then here:
 
     npm run capture                      # or BASE=http://localhost:5517 npm run capture
-    npm run capture -- landing           # only the landing page's, or `-- readme` only the README's
+    npm run capture -- landing           # only the landing page's; `-- readme` or `-- docs` the same
 
   The landing page's are taken in English, in light and dark, at 1280 x 800 for wide screens and
   at 390 x 780 for phones, both at twice the pixels, with motion reduced. The README's is one wide
-  picture in light, as GitHub shows a README on white.
+  picture in light, as GitHub shows a README on white. The docs' are wide, in light and dark, each
+  cropped to the part of the screen its page is about. The web build's demo is the invented
+  company's, and no picture may show the line that says the build is a design preview.
 */
 
 const base = process.env.BASE ?? 'http://localhost:5517'
 const out = join(import.meta.dirname, '../landing/captures')
 mkdirSync(out, { recursive: true })
 const readmePicture = join(import.meta.dirname, '../../docs/images/answer.png')
+const docsOut = join(import.meta.dirname, '../../docs/images/docs')
 const only = process.argv[2]
-if (only && only !== 'landing' && only !== 'readme')
-  throw new Error(`Take "landing", "readme" or, with nothing named, both: not "${only}".`)
+if (only && only !== 'landing' && only !== 'readme' && only !== 'docs')
+  throw new Error(`Take "landing", "readme", "docs" or, with nothing named, all: not "${only}".`)
+const takes = (set: string) => !only || only === set
 
 type Shot = {
   name: string
@@ -61,6 +66,176 @@ const shots: Shot[] = [
     },
   },
 ]
+
+type Box = { x: number; y: number; width: number; height: number }
+
+/** A part of the screen, with some room around it, kept inside the 1280 x 800 screen. */
+async function around(page: Page, selector: string, room = 24): Promise<Box> {
+  const box = (await page.locator(selector).first().boundingBox())!
+  const x = Math.max(0, Math.round(box.x - room))
+  const y = Math.max(0, Math.round(box.y - room))
+  return {
+    x,
+    y,
+    width: Math.min(1280, Math.round(box.x + box.width + room)) - x,
+    height: Math.min(800, Math.round(box.y + box.height + room)) - y,
+  }
+}
+
+/** The page under its header, without the app's sidebar. */
+async function underHeader(page: Page): Promise<Box> {
+  const box = (await page.locator('main').first().boundingBox())!
+  return { x: Math.round(box.x), y: 48, width: Math.round(1280 - box.x), height: 752 }
+}
+
+/** The pictures of the docs' pages (docs/help/README.md, "Pictures"), each named for its page. */
+const docsShots: Shot[] = [
+  {
+    name: 'setup',
+    path: '/inbox?demo=setup',
+    ready: (p) => p.getByText('Say what the business is about').waitFor(),
+    clip: (p) => around(p, '[data-slot="card"]'),
+  },
+  {
+    name: 'names',
+    path: '/inbox?demo=names',
+    ready: (p) => p.locator('#inbox-detail section').first().waitFor(),
+    clip: (p) => around(p, '#inbox-detail', 0),
+  },
+  {
+    name: 'ask-answer',
+    path: '/ask?example=grounded',
+    ready: (p) => p.getByText('Read as').waitFor(),
+    prepare: (p) => p.getByRole('button', { name: 'Hide history' }).click(),
+    // From under the header to just below the answer's buttons, without the box to ask in.
+    clip: async (p) => {
+      const box = await around(p, '[aria-label="Questions and answers"]')
+      return until(p, { ...box, y: 48, height: 752 }, '[aria-label="Ask again"]', 'end')
+    },
+  },
+  {
+    name: 'item',
+    path: '/context/itm_norway_stop',
+    ready: (p) => p.getByText('Parcels from webshops outside Norway', { exact: false }).waitFor(),
+    clip: underHeader,
+  },
+  {
+    name: 'editor',
+    path: '/context/new',
+    ready: (p) => p.locator('[aria-label="Properties"]').waitFor(),
+    clip: underHeader,
+  },
+  {
+    name: 'review',
+    path: '/inbox/sug-ines/review',
+    ready: (p) => p.locator('[aria-label="The source"]').waitFor(),
+    clip: underHeader,
+  },
+  {
+    name: 'inbox',
+    path: '/inbox?card=sug-ines',
+    ready: (p) => p.locator('#inbox-detail section').first().waitFor(),
+    clip: (p) => around(p, '#inbox', 0),
+  },
+  {
+    name: 'compare',
+    path: '/context/conflicts/itm_france_switch_12.itm_france_switch_21',
+    ready: (p) => p.getByRole('button', { name: 'Keep both' }).waitFor(),
+    // The two items side by side, down to what can be done with each.
+    clip: async (p) => until(p, await underHeader(p), 'button:has-text("Keep this one")', 'end', 8),
+  },
+  {
+    name: 'agents',
+    path: '/settings/agents',
+    ready: (p) => p.getByRole('button', { name: 'Copy prompt' }).waitFor(),
+    // The prompt and the line that waits for the agent, above the quick ways in.
+    clip: async (p) =>
+      until(p, await underHeader(p), 'text="Or start from your agent"', 'start', 12),
+  },
+  {
+    name: 'approve',
+    path: '/connect/approve?request=demo-agent-sign-in-waiting-for-your-answer0',
+    ready: (p) => p.getByRole('button', { name: 'Allow', exact: true }).waitFor(),
+    // The card with the logo above it.
+    clip: async (p) => {
+      const box = await around(p, '[data-slot="card"]', 32)
+      return { ...box, y: 24, height: box.y + box.height - 24 }
+    },
+  },
+  {
+    name: 'integrations',
+    path: '/settings/integrations',
+    ready: (p) => p.getByRole('heading', { level: 1 }).waitFor(),
+    // Connected and Available, above the last row's card.
+    clip: async (p) =>
+      until(
+        p,
+        await underHeader(p),
+        '[data-slot="page-scroll"] >> text=Request an integration',
+        'start',
+        64,
+      ),
+  },
+  {
+    name: 'observability',
+    path: '/observability',
+    ready: (p) => p.getByRole('heading', { name: 'Questions per day' }).waitFor(),
+    clip: underHeader,
+  },
+  {
+    name: 'inbox-due',
+    path: '/inbox?card=check-returns',
+    ready: (p) => p.getByRole('button', { name: /^Still true/ }).waitFor(),
+    clip: (p) => around(p, '#inbox-detail', 0),
+  },
+  {
+    name: 'inbox-nothing-written',
+    path: '/inbox?card=gap-spain',
+    ready: (p) => p.getByText('After you publish', { exact: true }).first().waitFor(),
+    clip: (p) => around(p, '#inbox-detail', 0),
+  },
+]
+
+/** A part of the screen cut off where something on it ends, or just above where it starts. */
+async function until(page: Page, box: Box, selector: string, at: 'end' | 'start', room = 24) {
+  const mark = (await page.locator(selector).filter({ visible: true }).first().boundingBox())!
+  const y = at === 'end' ? mark.y + mark.height + room : mark.y - room
+  return { ...box, height: Math.round(Math.min(800, y) - box.y) }
+}
+
+/** The docs' pictures: wide, in light and dark, at most 1440 pixels across. */
+async function takeDocsPictures() {
+  mkdirSync(docsOut, { recursive: true })
+  for (const colorScheme of ['light', 'dark'] as const) {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      deviceScaleFactor: 2,
+      locale: 'en-GB',
+      timezoneId: 'Europe/London',
+      colorScheme,
+      reducedMotion: 'reduce',
+    })
+    for (const shot of docsShots) {
+      const page = await context.newPage()
+      await page.goto(base + shot.path)
+      await shot.ready(page)
+      await shot.prepare?.(page)
+      await page.mouse.move(0, 799)
+      await page.waitForTimeout(1200)
+      if (await page.getByText('A design preview').filter({ visible: true }).count())
+        throw new Error(`${shot.path} shows that the build is a design preview`)
+      const png = await page.screenshot({ clip: await shot.clip(page) })
+      const name = `${shot.name}-${colorScheme}.webp`
+      await sharp(png)
+        .resize({ width: 1440, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toFile(join(docsOut, name))
+      console.log('took', name)
+      await page.close()
+    }
+    await context.close()
+  }
+}
 
 const sizes = [
   { suffix: '', viewport: { width: 1280, height: 800 }, phone: false, width: 1600 },
@@ -105,7 +280,7 @@ async function takeReadmePicture() {
 
 const browser = await chromium.launch()
 try {
-  for (const size of only === 'readme' ? [] : sizes)
+  for (const size of takes('landing') ? sizes : [])
     for (const colorScheme of ['light', 'dark'] as const) {
       const context = await browser.newContext({
         viewport: size.viewport,
@@ -132,7 +307,8 @@ try {
       }
       await context.close()
     }
-  if (only !== 'landing') await takeReadmePicture()
+  if (takes('readme')) await takeReadmePicture()
+  if (takes('docs')) await takeDocsPictures()
 } finally {
   await browser.close()
 }

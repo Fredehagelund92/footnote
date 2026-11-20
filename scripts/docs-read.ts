@@ -9,6 +9,8 @@ import {
   docGroups,
   docIncludes,
   docLinks,
+  docPictureFile,
+  docPictures,
   inlineText,
   type DocBlock,
   type DocChange,
@@ -131,9 +133,27 @@ function reader(slug: string) {
           out.push({ type: 'heading', depth: node.depth, id: nextId(text), text })
           break
         }
-        case 'paragraph':
-          out.push({ type: 'paragraph', children: inline(node.children) })
+        case 'paragraph': {
+          // A picture stands alone in its paragraph: the light one, named with what it shows.
+          const parts = node.children.filter((c) => c.type !== 'text' || c.value.trim())
+          const image = parts.length === 1 && parts[0]!.type === 'image' ? parts[0] : undefined
+          if (image) {
+            const file = docPictureFile.exec(image.url)
+            if (!file)
+              throw new Refusal(
+                `a picture is a file in ${docPictures}, named for the light theme: ../images/docs/name-light.webp, not "${image.url}"`,
+              )
+            if (!image.alt?.trim()) throw new Refusal(`the picture ${image.url} says what it shows`)
+            const [, name, kind] = file
+            out.push({
+              type: 'picture',
+              alt: image.alt.trim(),
+              light: `${docPictures}/${name}-light.${kind}`,
+              dark: `${docPictures}/${name}-dark.${kind}`,
+            })
+          } else out.push({ type: 'paragraph', children: inline(node.children) })
           break
+        }
         case 'list':
           out.push({
             type: 'list',
@@ -187,7 +207,6 @@ function reader(slug: string) {
           break
         }
         case 'thematicBreak':
-        case 'image':
         default:
           throw new Refusal(`${node.type} is not used in the docs`)
       }

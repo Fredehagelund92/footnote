@@ -96,6 +96,8 @@ const places = [
   '/docs',
   '/docs/connect-an-agent',
   '/docs/publish-without-review',
+  // A page with a picture of a screen, in light and in dark.
+  '/docs/ask-a-question',
   // Publishing without review switched on for the workspace (the review flag): the domain's row.
   '/settings/domains/sales?autopublish=on',
   '/inbox?open=palette',

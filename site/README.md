@@ -40,11 +40,11 @@ Until the first release the install section says what is true of a checkout: `do
 
 ### The pictures
 
-The pictures of the app are real captures of the demo, in `landing/captures`, light and dark, wide and on a phone. The repository's README has one more, `docs/images/answer.png`: an Ask answer with the panel that says where it comes from, in light. To take them all again, serve the web app on its demo data from the repository root (`npx vite build && npx vite preview --port 5517`), then run `npm run capture` here. It writes the WebP files the page reads and the README's PNG. `npm run capture -- landing` or `-- readme` takes only one set.
+The pictures of the app are real captures of the demo, in `landing/captures`, light and dark, wide and on a phone. The repository's README has one more, `docs/images/answer.png`: an Ask answer with the panel that says where it comes from, in light. The docs have their own, in `docs/images/docs`: each screen a page is about, cropped to that part, in light and dark ([the docs' pictures](../docs/help/README.md#pictures)). To take them all again, serve the web app on its demo data from the repository root (`npx vite build && npx vite preview --port 5517`), then run `npm run capture` here. It writes the WebP files the landing page and the docs read, and the README's PNG. `npm run capture -- landing`, `-- readme` or `-- docs` takes only one set. The demo is the invented company's, and the docs set stops on a screen that says the build is a design preview, so no picture shows it.
 
 ## The docs
 
-The site publishes only pages written for the people who read it. `publishedPages` in `lib/pages.ts` is the list: the 14 help pages and What's new, the MCP and API reference with its pages, the pages for running the service, and the connector pages. Every help page has to be on it. Each page's front matter says its group and order, and the sidebar follows them.
+The site publishes only pages written for the people who read it. `publishedPages` in `lib/pages.ts` is the list: the 18 help pages and What's new, the Reference pages, the pages for running the service, and the connector pages. Every help page has to be on it. Each page's front matter says its group and order, and the sidebar follows them.
 
 The rest of `docs/` stays in the repository, `docs/contributing` among it, which holds what the published pages leave out: requirement ids, design reasons and source paths. A page that is not on the list is out of the sidebar, the search, `llms.txt`, `llms-full.txt` and the sitemap, and a published page that links to it opens it on GitHub. A group with no published page is left out of the sidebar, the docs' home and `llms.txt`.
 
@@ -60,6 +60,12 @@ The rest of `docs/` stays in the repository, `docs/contributing` among it, which
 It reads what a reader sees, so the address of a link does not count, but the words of a link do.
 
 To publish a page, make it pass, then add it to `publishedPages`. Its group shows up on its own. A page that must name a source file does so through a link, whose address does not count. A command runs through an `npm run` script, not a path.
+
+### Pictures and tabs
+
+A picture is written as Markdown, named by its light file in `docs/images/docs`, and `lib/remark-footnote-docs.ts` draws it as a figure with its dark file beside it: the reader's theme shows one. A screen is drawn no wider than it was on screen, as it was taken at twice the pixels.
+
+A page outside `docs/help` can hold tabs, for real alternatives such as each agent's own steps: its `###` sections between `<!-- tabs -->` and `<!-- /tabs -->` become one tab each, named by its heading (`src/components/Tabs.astro`). The arrow keys, Home and End move between them. Without the script every section shows under its name, as it does on GitHub. The help pages hold no tabs, because the app's Docs area draws them too.
 
 ### Links
 

@@ -12,6 +12,7 @@ export const docsFolder = 'docs/help'
 /** The groups of the docs' tree, in order. */
 export const docGroups = [
   'Start',
+  'Ask',
   'Write and review',
   'Set up',
   'How it works',
@@ -70,6 +71,27 @@ export type DocBlock =
   | { type: 'note'; title: string; children: DocBlock[] }
   | { type: 'table'; head: DocInline[][]; rows: DocInline[][][] }
   | { type: 'include'; name: DocInclude; arg: string; markdown: string }
+  | DocPicture
+
+/**
+ * A picture of a screen or a diagram, in light and in dark (docs/images/docs). The page names the
+ * light one; the dark one beside it has the same name with -dark. Read, each is the file's path in
+ * the repository; the build gives each its address, and its size in pixels.
+ */
+export type DocPicture = {
+  type: 'picture'
+  alt: string
+  light: string
+  dark: string
+  width?: number
+  height?: number
+  /** At most how wide it is drawn, in CSS pixels: a screen, taken at twice the pixels, at half. */
+  drawnWidth?: number
+}
+
+/** Where the docs' pictures are, and how a page names one: `../images/docs/inbox-light.webp`. */
+export const docPictures = 'docs/images/docs'
+export const docPictureFile = /^\.\.\/images\/docs\/([a-z0-9]+(?:-[a-z0-9]+)*)-light\.(webp|svg)$/
 
 /** One part of a page for search: its heading and its words, up to the next heading. */
 export type DocSection = { id: string; heading: string; text: string }
@@ -133,6 +155,8 @@ export function blocksText(blocks: readonly DocBlock[]): string {
           return [block.head, ...block.rows].map((row) => row.map(inlineText).join(' ')).join('\n')
         case 'include':
           return markdownText(block.markdown)
+        case 'picture':
+          return block.alt
       }
     })
     .join('\n')

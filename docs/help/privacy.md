@@ -1,7 +1,7 @@
 ---
 title: Privacy
 line: What is kept about questions, what is never kept, and who can see a chat.
-group: How it works
+group: Ask
 order: 3
 minutes: 2
 reviewed: 2026-11-18

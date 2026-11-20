@@ -509,6 +509,82 @@ h1#_top {
   font-weight: 650;
 }
 
+/*
+  A picture of a screen or a diagram (lib/remark-footnote-docs.ts): the file of the reader's theme,
+  on the sheet with a hairline, so a white screen keeps its edges on white paper.
+*/
+.sl-markdown-content .footnote-picture {
+  margin-block: 1.5rem;
+  border: 1px solid var(--rule-2);
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--sheet);
+}
+
+.sl-markdown-content .footnote-picture img {
+  /* Not display: block, which would show both files: the theme hides one (Starlight's utilities). */
+  vertical-align: top;
+  width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+/*
+  Tabs (src/components/Tabs.astro): one section at a time under a row of names, the active one
+  underlined in the ink, as the landing page marks what is open. Without the script, each section
+  shows under its name.
+*/
+footnote-tabs {
+  display: block;
+  margin-top: 1.5rem;
+}
+
+.footnote-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.footnote-tablist [role='tab'] {
+  margin: 0 0 -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 0.5rem 0 0.4375rem;
+  color: var(--ink-3);
+  font: 500 0.9375rem/1.4 var(--sans);
+  cursor: pointer;
+}
+
+.footnote-tablist [role='tab']:hover {
+  color: var(--ink);
+}
+
+.footnote-tablist [role='tab'][aria-selected='true'] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.footnote-tablist [role='tab']:focus-visible,
+.footnote-tabpanel:focus-visible {
+  outline: 2px solid var(--mark);
+  outline-offset: 2px;
+}
+
+.sl-markdown-content .footnote-tabpanel {
+  margin-top: 1rem;
+}
+
+.footnote-tab-name {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.footnote-tabs-on .footnote-tab-name {
+  display: none;
+}
+
 /* Footnotes in a page: the landing page's blue marks, and their notes at the end of the page. */
 .sl-markdown-content sup a[data-footnote-ref] {
   color: var(--mark);

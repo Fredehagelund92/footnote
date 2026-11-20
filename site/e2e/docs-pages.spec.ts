@@ -45,7 +45,7 @@ for (const { words, first } of [
   })
 
 for (const [from, to] of Object.entries(movedPages))
-  test(`the old address of ${to} forwards to it`, async ({ page }) => {
+  test(`the old address ${from} forwards to ${to}`, async ({ page }) => {
     await page.goto(`/docs/${from}/`)
     await expect(page).toHaveURL(new RegExp(`/docs/${to}/$`))
     await expect(page.locator('h1')).toHaveText(pages.find((p) => p.slug === to)!.title)

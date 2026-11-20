@@ -2,7 +2,7 @@
 title: Decide a conflict
 line: 'Two items that say different things: compare them, then keep one, narrow one or keep both.'
 group: Write and review
-order: 3
+order: 5
 minutes: 3
 reviewed: 2026-11-02
 open:
@@ -23,6 +23,8 @@ The chip, or Compare and decide in the row's menu, opens the two side by side. W
 ## Compare
 
 Compare and decide shows the two side by side: what each says, where it comes from (its domain, owners, check date, source and the line copied from it), and what agents would say with only that one.
+
+![Compare and decide for two items about Orders in France: Payment provider switched in France on 12 May 2026, and on 21 May 2026. Each shows what it says, its domain, owners, when it was last checked and its source, what agents would get with only that one, and Keep this one and Edit this one.](../images/docs/compare-light.webp)
 
 - When the two are written apart, the words both share are grey, so the words where they part stand out.
 - When one is a near copy of the other, the words that differ are underlined.

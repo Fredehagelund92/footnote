@@ -4,7 +4,7 @@ line: One prompt for Claude, Cursor or another agent, and what approving does.
 group: Start
 order: 3
 minutes: 4
-reviewed: 2026-11-19
+reviewed: 2026-11-20
 open:
   label: Open Agents and access
   href: /settings/agents
@@ -16,7 +16,11 @@ Connect Claude, Cursor or another agent, so it reads your published context befo
 
 You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never drafts or comments: [How agents use it](how-agents-use-it.md).
 
+A job that runs on its own, with nobody there to approve a sign-in, does not use this prompt. It uses an access key, which an admin makes in Agents and access, under Tools and access keys.
+
 ## Paste the prompt
+
+![Connect an agent in Agents and access: the prompt to paste into your agent, with Copy prompt, and under it Not connected yet: after you paste it, this page says Connected.](../images/docs/agents-light.webp)
 
 1. Open **Settings**, then **Agents and access**.
 2. Press **Copy prompt** and paste it into your agent.
@@ -41,6 +45,8 @@ Before you answer a question about company data, call get_context first and use 
 <!-- /include -->
 
 ## Approve it once
+
+![The screen that asks whether to let Claude Code use your workspace as you. It lists Read context, Report what is missing or wrong and Suggest changes, says it sees only what you can see, names who is signed in, and has Allow and Don't allow.](../images/docs/approve-light.webp)
 
 Your browser opens a screen that names the agent and what it can do: read published context, and send a report or a suggestion after you say yes. Choose Allow. The page says Connected, with the agent's name and yours, and it joins Connected agents.
 
@@ -76,15 +82,3 @@ An agent publishes only where an owner lets it [publish without review](publish-
 Admins switch each tool on or off for each agent in Details. A switch acts at the agent's next request, and it never lets an agent do more than the person allowed when they connected it: a tool they didn't allow can't be switched on. An agent with every tool off gets nothing. Every change is in the history log, with who made it.
 
 A suggestion an agent sends names it in the Inbox and the review, as "Claude Code, with Kofi's OK".
-
-## A bot or a scheduled job
-
-A job that runs on its own, with nobody there to approve a sign-in, uses an access key. Admins make them.
-
-1. In Agents and access, open Tools and access keys.
-2. Press **Create an access key**, give it a name, such as what the job does, then Copy. The key is shown once: keep it where the job keeps its secrets.
-3. Give the job the MCP address, with the key as its bearer token.
-
-A key reads published context and sends feedback. It names no person, so it never sends a suggestion. It shows in Connected agents by its name, with who made it and when it was last used, until you delete it, which ends it at once. Rename it, or switch its tools off for a while, in its Details. A key can never have suggest_context.
-
-A key has no end date, so delete one a job no longer needs.

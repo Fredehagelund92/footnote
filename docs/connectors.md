@@ -8,6 +8,8 @@ reviewed: 2026-11-05
 
 A connector reads a tool you already use, so metric names and documents arrive by themselves. It only reads: nothing is ever written back to the tool.
 
+![Where Footnote sits. Cube or dbt define the metrics and dimensions, and Footnote reads their names. Documents in Google Drive or Git become suggestions for their owners. Footnote holds context items, each with an owner and a check date, and the names, but no data rows. Agents ask over MCP and read what applies; people write, check and ask in the web app.](images/docs/where-it-sits-light.svg)
+
 ## Two kinds
 
 | Kind        | What it reads                             | What it may change                                                              |

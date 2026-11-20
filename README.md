@@ -77,7 +77,7 @@ The [Footnote docs][docs] cover everything technical:
 - [Try the demo][try-the-demo]: the quick start, from a clone to a checked answer and Claude Code.
 - [Set up your workspace][set-up]: from an empty Footnote to a first checked answer.
 - [Connect an agent][connect-an-agent]: Claude Code and other agents, over MCP. The
-  [MCP and API reference][reference] has the tools.
+  [Agent tools][reference] has the tools.
 - [Connectors][connectors]: where Footnote reads your definitions and documents.
 - [Choose a model provider][model-providers]: the model behind Ask and the answer tests.
 - [Self-host Footnote][self-hosting]: backups and upgrades, and [where to run it][where-to-run].
@@ -100,7 +100,7 @@ Footnote is under the [Apache License 2.0](LICENSE). You keep the copyright in y
 [try-the-demo]: https://getfootnote.vercel.app/docs/try-the-demo/
 [set-up]: https://getfootnote.vercel.app/docs/set-up-your-workspace/
 [connect-an-agent]: https://getfootnote.vercel.app/docs/connect-an-agent/
-[reference]: https://getfootnote.vercel.app/docs/reference/
+[reference]: https://getfootnote.vercel.app/docs/tools/
 [connectors]: https://getfootnote.vercel.app/docs/connectors/
 [connector-authoring]: https://getfootnote.vercel.app/docs/connectors/authoring/
 [model-providers]: https://getfootnote.vercel.app/docs/model-providers/
