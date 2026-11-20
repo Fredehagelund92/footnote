@@ -28,13 +28,14 @@ Older design pages that still apply:
 
 ## Use Footnote
 
-| Page                                               | What it says                                                        |
-| -------------------------------------------------- | ------------------------------------------------------------------- |
-| [Get started](help/get-started.md)                 | The six steps to your first checked answer, in about ten minutes    |
-| [Write context](help/write-context.md)             | What a context item is and what to put in it                        |
-| [Connect an agent](help/connect-an-agent.md)       | One prompt for Claude, Cursor or another agent                      |
-| [Review a suggestion](help/review-a-suggestion.md) | The quick view, the review, and publishing or returning             |
-| [All help pages](help/README.md)                   | The documentation, which is also the app's Docs and the public docs |
+| Page                                                   | What it says                                                        |
+| ------------------------------------------------------ | ------------------------------------------------------------------- |
+| [Try the demo](try-the-demo.md)                        | The quick start: the demo on your computer, a question, an agent    |
+| [Set up your workspace](help/set-up-your-workspace.md) | The six steps from an empty workspace to a first checked answer     |
+| [Write context](help/write-context.md)                 | What a context item is and what to put in it                        |
+| [Connect an agent](help/connect-an-agent.md)           | One prompt for Claude, Cursor or another agent                      |
+| [Review a suggestion](help/review-a-suggestion.md)     | The quick view, the review, and publishing or returning             |
+| [All help pages](help/README.md)                       | The documentation, which is also the app's Docs and the public docs |
 
 ## Run Footnote
 

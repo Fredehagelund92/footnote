@@ -1,11 +1,42 @@
 ---
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
 import { shownGroups, sitePages } from '../../lib/pages.ts'
+import { readSettings } from '../../lib/settings.ts'
 
+/*
+  The docs' home: what the product is, in the README's words, the way in for a newcomer, a door for
+  each kind of reader, then every page by its group.
+*/
 const pages = sitePages()
-const path = (slug: string) => `${import.meta.env.BASE_URL}${slug}/`
+const { product } = readSettings(process.env)
+const path = (slug: string) => {
+  if (!pages.some((page) => page.slug === slug)) throw new Error(`The docs have no page "${slug}".`)
+  return `${import.meta.env.BASE_URL}${slug}/`
+}
 const changes = pages.filter((page) => !page.group)
-const line = 'How to write context, connect your agents, review suggestions and run the service.'
+const line = 'What it is, where to start, and every page: writing context, agents, and running it.'
+const doors = [
+  {
+    who: 'I own numbers',
+    slug: 'write-context',
+    what: 'Write down why a number moved, and check what others suggest.',
+  },
+  {
+    who: 'I ask questions',
+    slug: 'answer-lines',
+    what: 'What the line an answer starts with says, and what it asks of you.',
+  },
+  {
+    who: 'I connect an agent',
+    slug: 'connect-an-agent',
+    what: 'One prompt for Claude, Cursor or another agent, and the tools it calls.',
+  },
+  {
+    who: 'I run it',
+    slug: 'where-to-run',
+    what: 'Where to run it, how to install it, back it up and upgrade it.',
+  },
+]
 ---
 
 <StarlightPage
@@ -20,9 +51,24 @@ const line = 'How to write context, connect your agents, review suggestions and 
   }}
 >
   <p class="footnote-lead">
-    How to write context, connect your agents and review suggestions, how agents read what you
-    wrote, and how to run the service and connect your tools.
+    {product} is where the people who know why a number moved write it down, and the owner of that
+    part of the business checks it. When someone asks an AI agent about the number, the answer says
+    who checked it and when. When nothing is written down, the answer says so instead of guessing.
   </p>
+  <p class="footnote-start">
+    <a class="btn btn-ink btn-sm" href={path('try-the-demo')}>Try the demo</a>
+    <span>On your own computer, with Docker. The first start can take ten minutes.</span>
+  </p>
+  <nav class="footnote-doors" aria-label="Where to start">
+    {
+      doors.map((door) => (
+        <a href={path(door.slug)}>
+          <strong>{door.who}</strong>
+          <span>{door.what}</span>
+        </a>
+      ))
+    }
+  </nav>
   {
     shownGroups(pages).map((group) => (
       <section class="footnote-group">

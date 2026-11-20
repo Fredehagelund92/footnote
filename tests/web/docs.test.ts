@@ -21,11 +21,12 @@ import { parse } from 'yaml'
 import { includeMarkdown } from '@/lib/docs-includes'
 import { CHANGES, DOC_PAGES, llmsTxt, searchDocs } from '@/lib/docs'
 import { docTitle } from '@/lib/doc-links'
+import { setupSteps } from '@/lib/setup'
 import { docControls } from '../e2e/docs-controls.ts'
 
 /*
   The docs check (docs/help/README.md): mechanical, no model. Wrong docs are worse than none, so
-  every page must read, keep to the thirteen Help pages and What's new, name the app's controls in
+  every page must read, keep to the fourteen Help pages and What's new, name the app's controls in
   the app's own words (each bold one has a row in tests/e2e/docs-controls.ts, drawn by its spec), link only to pages, headings and screens that exist, and hold the app's own
   lists as they are now. `npm run docs:sync` writes the lists into the pages when they changed.
 */
@@ -106,13 +107,14 @@ async function filled(path: string, source: string) {
 }
 
 describe('the docs check', () => {
-  it("has the thirteen Help pages, in their order, and What's new", () => {
+  it("has the fourteen Help pages, in their order, and What's new", () => {
     expect(DOC_PAGES.map((p) => p.slug)).toEqual([
-      'get-started',
+      'set-up-your-workspace',
       'connect-an-agent',
+      'words',
       'write-context',
       'review-a-suggestion',
-      'settle-a-conflict',
+      'decide-a-conflict',
       'definitions-and-synonyms',
       'publish-without-review',
       'domains-and-owners',
@@ -188,7 +190,9 @@ describe('the docs check', () => {
       slug: 'privacy',
       source: `---\ntitle: Privacy\nline: A line.\ngroup: How it works\norder: 1\nminutes: 1\nreviewed: 2026-10-01\n---\n\n${body}`,
     })
-    const changelog = docs.changelog && files.find((f) => f.slug === CHANGELOG)!
+    // What's new without its links, which name pages this one-page set does not have.
+    const { source } = files.find((f) => f.slug === CHANGELOG)!
+    const changelog = { slug: CHANGELOG, source: source.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') }
     const reason = (body: string) => {
       const result = readDocs([page(body), changelog], (yaml) => parse(yaml))
       return result.ok ? '' : result.reason
@@ -202,6 +206,45 @@ describe('the docs check', () => {
     expect(reason('A lead.\n\n```\ncode\n```')).toMatch(/says what it is/)
     expect(reason('## No lead')).toMatch(/opens with one paragraph/)
     expect(reason('A lead.\n\n## Here\n\n[Up](#here)')).toBe('')
+  })
+
+  it('gives each page its reading time: its words divided by 200, rounded up', () => {
+    const minutes = DOC_PAGES.map((p) => {
+      const words = `${inlineText(p.lead)}\n${blocksText(p.blocks)}`.split(/\s+/).filter(Boolean)
+      return { slug: p.slug, minutes: Math.ceil(words.length / 200) }
+    })
+    expect(DOC_PAGES.map(({ slug, minutes }) => ({ slug, minutes }))).toEqual(minutes)
+  })
+
+  it('lists every page in docs/help/README.md by its own title and group', () => {
+    const table = readFileSync(join(docsFolder, 'README.md'), 'utf8')
+      .split('## The pages')[1]!
+      .split('\n## ')[0]!
+    const rows = [...table.matchAll(/^\| \[([^\]]+)\]\(([a-z-]+)\.md\) +\| ([^|]+?) +\|$/gm)].map(
+      ([, title, slug, group]) => ({ slug, title, group }),
+    )
+    expect(rows).toEqual([
+      ...DOC_PAGES.map(({ slug, title, group }) => ({ slug, title, group })),
+      { slug: CHANGELOG, title: CHANGES.title, group: '(its own page)' },
+    ])
+  })
+
+  it('names the setup checklist as the Inbox does, and links each of its steps to a page', () => {
+    const page = DOC_PAGES.find((p) => p.slug === 'set-up-your-workspace')!
+    expect(readFileSync('src/web/pages/inbox.tsx', 'utf8')).toMatch(
+      new RegExp(`>\\s*${page.title} so agents can use what you know\\s*<`),
+    )
+    const steps = page.blocks.find(
+      (b): b is Extract<DocBlock, { type: 'list' }> => b.type === 'list' && b.ordered,
+    )!
+    expect(steps.items).toHaveLength(setupSteps.length)
+    steps.items.forEach((item, i) => {
+      expect(blocksText(item)).toContain(setupSteps[i]!.title)
+      expect(
+        docLinks(item).some((to) => 'page' in to),
+        setupSteps[i]!.title,
+      ).toBe(true)
+    })
   })
 
   it('never says a day in the future, and lists changes newest first', () => {
@@ -263,6 +306,8 @@ describe('the docs search', () => {
       id: 'if-nothing-signs-in',
     })
     expect(searchDocs('get_related')[0]?.slug).toBe('tools')
+    expect(searchDocs('glossary')[0]?.slug).toBe('words')
+    expect(searchDocs('words')[0]?.slug).toBe('words')
     expect(searchDocs('')).toEqual([])
     expect(searchDocs('zzzzqq')).toEqual([])
   })

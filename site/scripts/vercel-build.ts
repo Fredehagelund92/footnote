@@ -8,7 +8,8 @@ import { collect } from './collect.ts'
 
 /*
   The build Vercel runs (vercel.json, site/README.md "Publishing on Vercel"). First this commit:
-  the landing page, and its docs as /docs/next/. Then the docs of each release, the newest patch
+  the landing page, and its docs as /docs/next/, which say they follow main only once a release
+  has docs of its own. Then the docs of each release, the newest patch
   of each minor, built again from its own tag with that tag's sources and lockfile, so a release's
   docs stay as they were at its tag while every folder takes this deployment's address. A tag from
   before the site (it has no site/) adds nothing. scripts/collect.ts puts the builds together, and
@@ -34,15 +35,9 @@ const scratch = mkdtempSync(join(tmpdir(), 'footnote-site-'))
 const assembled = join(scratch, 'site')
 console.log(`The site at ${siteUrl || 'the root of any host'}, its releases from ${repo}.`)
 
-run('npm', ['run', 'build'], site, {
-  SITE_URL: siteUrl,
-  DOCS_VERSION: 'next',
-  DOCS_REF: vercelRef(env),
-})
-collect(assembled, join(site, 'dist'), 'next')
-
 const releases = releasesOf(output('git', ['ls-remote', '--tags', repo], site))
-for (const { tag, folder } of releases) {
+// Each release's own sources, from its tag. A tag from before the site has no docs here.
+const withDocs = releases.flatMap(({ tag, folder }) => {
   const source = join(scratch, tag)
   mkdirSync(source)
   run('git', ['init', '--quiet'], source)
@@ -51,11 +46,24 @@ for (const { tag, folder } of releases) {
     output('git', ['cat-file', '-e', 'FETCH_HEAD:site/package.json'], source)
   } catch {
     console.log(`${tag} is from before the site, so it has no docs here.`)
-    continue
+    return []
   }
-  console.log(`The docs of ${tag}, as /docs/${folder}/.`)
   run('git', ['archive', '--output=release.tar', 'FETCH_HEAD'], source)
   run('tar', ['-xf', 'release.tar'], source)
+  return [{ tag, folder, source }]
+})
+
+// The commit's docs say they follow main only once a release's docs sit beside them.
+run('npm', ['run', 'build'], site, {
+  SITE_URL: siteUrl,
+  DOCS_VERSION: 'next',
+  DOCS_REF: vercelRef(env),
+  DOCS_RELEASES: withDocs.map(({ folder }) => folder).join(','),
+})
+collect(assembled, join(site, 'dist'), 'next')
+
+for (const { tag, folder, source } of withDocs) {
+  console.log(`The docs of ${tag}, as /docs/${folder}/.`)
   run('npm', ['ci'], join(source, 'site'))
   run('npm', ['run', 'build'], join(source, 'site'), {
     SITE_URL: siteUrl,

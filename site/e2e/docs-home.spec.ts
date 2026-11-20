@@ -24,7 +24,7 @@ function dots(page: Page) {
   }))
 }
 
-for (const path of ['/docs/', '/docs/get-started/'])
+for (const path of ['/docs/', '/docs/try-the-demo/'])
   test(`${path} has no dot ground`, async ({ page }) => {
     await open(page, path)
     // Long enough for a landing mark to have started, were there one.

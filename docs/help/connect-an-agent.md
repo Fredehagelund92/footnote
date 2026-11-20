@@ -2,8 +2,8 @@
 title: Connect an agent
 line: One prompt for Claude, Cursor or another agent, and what approving does.
 group: Start
-order: 2
-minutes: 3
+order: 3
+minutes: 4
 reviewed: 2026-11-19
 open:
   label: Open Agents and access
@@ -14,7 +14,7 @@ Connect Claude, Cursor or another agent, so it reads your published context befo
 
 ## Before you start
 
-You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never drafts or comments.
+You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never drafts or comments: [How agents use it](how-agents-use-it.md).
 
 ## Paste the prompt
 

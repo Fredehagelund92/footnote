@@ -22,6 +22,19 @@ export type DocGroup = (typeof docGroups)[number]
 /** The slug of the What's new page, which lists changes rather than explaining one thing. */
 export const CHANGELOG = 'changelog'
 
+/** The pages that moved, by the slug they had: a link to the old one opens the page where it is now. */
+const movedPages: Readonly<Record<string, string>> = {
+  'get-started': 'set-up-your-workspace',
+  'settle-a-conflict': 'decide-a-conflict',
+}
+
+/** Where a page that moved is now, or undefined for a slug that never moved. */
+export const movedTo = (slug: string | undefined): string | undefined =>
+  slug !== undefined && Object.hasOwn(movedPages, slug) ? movedPages[slug] : undefined
+
+/** Every slug a page had before it moved. */
+export const movedSlugs = Object.keys(movedPages)
+
 /**
  * The app's own lists a page can show where it names them, in the words the app uses (an include,
  * written `<!-- include answer-lines -->` and closed with `<!-- /include -->`). What stands between
@@ -207,25 +220,32 @@ export function llmsTxt(docs: DocIndex, base: string, listing = appListing): str
 }
 
 /**
- * Every page as Markdown in one file, for an agent that reads the docs whole (llms-full.txt): each
- * page's title, its line and its body, with its links where the docs site opens them.
+ * One page as Markdown, as an agent or a person who copies it reads it: its title, its line and
+ * its body, with its links where the docs site opens them.
  */
+export function pageMarkdown(
+  page: { slug: string; title: string; line: string },
+  files: readonly DocFile[],
+  base: string,
+): string {
+  const source = files.find((f) => f.slug === page.slug)!.source.replace(/\r\n?/g, '\n')
+  const body = source
+    .replace(/^---\n[\s\S]*?\n---\n/, '')
+    .replace(/^<!--\s*\/?include[^>]*-->\n?/gm, '')
+    .replace(
+      /\]\((?:\.\/)?([a-z0-9-]+)\.md(#[a-z0-9-]+)?\)/g,
+      (_all, slug: string, hash = '') => `](${base}/${slug}${hash})`,
+    )
+    .replace(/\]\(#([a-z0-9-]+)\)/g, `](${base}/${page.slug}#$1)`)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return `# ${page.title}\n\n> ${page.line}\n\n${body}\n`
+}
+
+/** Every page as Markdown in one file, for an agent that reads the docs whole (llms-full.txt). */
 export function llmsFullTxt(docs: DocIndex, files: readonly DocFile[], base: string): string {
-  const bodyOf = (slug: string) => {
-    const source = files.find((f) => f.slug === slug)!.source.replace(/\r\n?/g, '\n')
-    return source
-      .replace(/^---\n[\s\S]*?\n---\n/, '')
-      .replace(/^<!--\s*\/?include[^>]*-->\n?/gm, '')
-      .replace(
-        /\]\((?:\.\/)?([a-z0-9-]+)\.md(#[a-z0-9-]+)?\)/g,
-        (_all, slug: string, hash = '') => `](${base}/${slug}${hash})`,
-      )
-      .replace(/\]\(#([a-z0-9-]+)\)/g, `](${base}/${slug}#$1)`)
-      .replace(/\n{3,}/g, '\n\n')
-      .trim()
-  }
   return [
-    ...docs.pages.map((p) => `# ${p.title}\n\n> ${p.line}\n\n${bodyOf(p.slug)}\n`),
-    `# ${docs.changelog.title}\n\n> ${docs.changelog.line}\n\n${bodyOf(CHANGELOG)}\n`,
+    ...docs.pages.map((p) => pageMarkdown(p, files, base)),
+    pageMarkdown({ slug: CHANGELOG, ...docs.changelog }, files, base),
   ].join('\n')
 }

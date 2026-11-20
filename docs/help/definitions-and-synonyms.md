@@ -3,7 +3,7 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 4
-minutes: 3
+minutes: 2
 reviewed: 2026-11-06
 ---
 
@@ -13,7 +13,7 @@ Metrics and dimensions, the business's own terms, and other names for them.
 
 They come from where your metrics are defined, and are read-only here: their meaning and other names belong to that source. Write context about them instead.
 
-A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Get started](get-started.md#publish-the-names).
+A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Set up your workspace](set-up-your-workspace.md#publish-the-names).
 
 ## Terms and synonyms
 

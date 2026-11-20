@@ -363,7 +363,7 @@ One name for each thing, in every screen, help page, agent reply and demo text. 
 | **Due for a check**   | A context item whose check date has passed.                                                                                                        | review due                   |
 | **Saved question**    | A question an owner or admin keeps, and Footnote checks again after every change. Result: Same, Changed or Needs a look.                           | saved view, test question    |
 | **Try it**            | What agents would say for a question, on a draft or on live context, without asking an AI.                                                         |                              |
-| **Ask**               | The page where a person asks and sees the same answer label an agent gets.                                                                         | assistant                    |
+| **Ask**               | The page where a person asks and sees the same answer line an agent gets.                                                                          | assistant                    |
 | **Records**           | What the workspace keeps about its context: when items were created, changed, checked or archived, and who owns each domain. Ask counts from them. | library index                |
 | **Topic**             | The exact scope agents asked about: domain, metric, market and the month. Grouped for reading only.                                                | topic                        |
 | **Edition**           | A sealed snapshot of what agents get. Shown only in Settings, Advanced, and in the agent reply. Never in success copy.                             | edition                      |

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { releaseWords } from '../landing/release.ts'
+import { released, releaseWords } from '../landing/release.ts'
+import { repoRoot } from '../lib/pages.ts'
 
 /*
   The landing page's release switch (landing/release.ts): one constant in the page's frontmatter
@@ -33,5 +35,18 @@ describe('the release switch', () => {
 
   it('changes the same lines in both positions', () => {
     expect(Object.keys(releaseWords(true))).toEqual(Object.keys(releaseWords(false)))
+  })
+})
+
+describe('the release words elsewhere', () => {
+  const read = (file: string) => readFileSync(`${repoRoot}/${file}`, 'utf8').replace(/\s+/g, ' ')
+
+  it('tell the same story as the switch: until the first release, nothing is released', () => {
+    expect(released, 'flip these words with the switch').toBe(false)
+    expect(read('README.md')).toContain('Footnote has not had its first release yet.')
+    expect(read('docs/try-the-demo.md')).toContain('Footnote has not had its first release yet')
+    expect(read('docs/self-hosting.md')).toContain(
+      'The images are not published until the first release',
+    )
   })
 })

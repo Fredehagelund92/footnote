@@ -6,7 +6,7 @@ order: 3
 reviewed: 2026-11-05
 ---
 
-The rules every connector works under. The service enforces them, so a connector does not have to remember them, and they hold for every connector.
+The rules every connector works under. The service enforces them, so a connector does not have to remember them, and they hold for every connector. [Build a connector](authoring.md) says how to write one.
 
 ## What a connector may do
 
