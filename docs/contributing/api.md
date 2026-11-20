@@ -343,7 +343,8 @@ person for 24 hours: an identical request replays its response, different conten
 and a concurrent request using the same key returns 409. A rolled-back request can be retried.
 
 - `POST /proposals` creates an incomplete draft. Supply `{ draft }`, optionally `itemId` to
-  suggest a change to an accepted item, or `derivedFrom` to restart a rejected proposal.
+  suggest a change to an accepted item (with `version`, the version it was written from, else the
+  version agents get now), or `derivedFrom` to restart a rejected proposal.
 - `GET /proposals` supports `own`, `areaId`, `state`, `limit` and `offset`. It answers
   `{ rows, total, limit, offset }` for every kind of proposal the person may read (item, retire,
   recheck and vocabulary), newest first by actual timestamp. `total` counts the readable matches
@@ -352,8 +353,9 @@ and a concurrent request using the same key returns 409. A rolled-back request c
   stale write returns 409 with the current record.
 - `POST /proposals/{id}/submit` takes `{ revision }`. The proposer submits an immutable version,
   scope, evidence, references, mention rows, digests and format checks in one transaction with
-  the proposal state, audit and outbox records. Resubmit creates another version, written against
-  the version agents get now. Submission does not publish anything.
+  the proposal state, audit and outbox records. Resubmit creates another version, still written
+  against the version the writer read (409 with `data.stale.version` once someone has published
+  other words since). Submission does not publish anything.
 - `POST /proposals/{id}/withdraw` takes `{ revision, reason }`. The reason is plain text, without
   mentions. Only the proposer withdraws.
 

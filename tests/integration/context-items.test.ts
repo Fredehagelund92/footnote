@@ -259,6 +259,8 @@ describe('two owners editing one live item', () => {
 
   it('refuses a version of the item that does not exist, and saves nothing', async () => {
     const item = await live({ summary: base })
+    const count = () => client.query('select 1 from proposals where item_id = $1', [item])
+    const proposalsBefore = (await count()).rowCount
     const r = await call('POST', '/items/publish', 'owner', {
       itemId: item,
       version: 999,
@@ -267,16 +269,16 @@ describe('two owners editing one live item', () => {
     expect(r.statusCode).toBe(409)
     expect(await summary(item)).toBe(base)
     expect((await served(item))?.n).toBe(1)
-    const kept = await client.query('select 1 from proposals where item_id = $1', [item])
-    expect(kept.rowCount).toBe(0)
+    expect((await count()).rowCount).toBe(proposalsBefore)
   })
 
   it("refuses a draft opened before another owner's publish when its writer sends it", async () => {
+    const mineDraft = draft({ summary: `${base} It ended on 30 June.` })
     const item = await live({ summary: base })
     const mine = await ok<ProposalRecord>(
       call('POST', '/proposals', 'admin', {
         itemId: item,
-        draft: { summary: `${base} It ended on 30 June.` },
+        draft: mineDraft,
       }),
     )
     await ok(
@@ -287,7 +289,7 @@ describe('two owners editing one live item', () => {
       }),
     )
     const sent = await call('POST', '/items/publish', 'admin', {
-      draft: { summary: `${base} It ended on 30 June.` },
+      draft: mineDraft,
       draftId: mine.id,
     })
     expect(sent.statusCode).toBe(409)
