@@ -4,14 +4,12 @@ import {
   changeCount,
   docDiff,
   docMarkdown,
-  inlineSegments,
-  markdownBlocks,
   valuesIn,
-  wordTokens,
   type ChangeBlock,
   type DocSide,
   type Run,
 } from '../../../src/domain/doc-diff.ts'
+import { inlineSegments, markdownBlocks, wordTokens } from '../../../src/domain/markdown-blocks.ts'
 import { LCS_CELLS, sequenceDiff } from '../../../src/domain/sequence-diff.ts'
 import { sourceDiff } from '../../../src/domain/source-diff.ts'
 
@@ -286,6 +284,15 @@ describe('reading the Markdown the editor writes', () => {
       [{ type: 'bullet', depth: 0 }, 'One more'],
       [{ type: 'number', depth: 0 }, 'Two'],
       [{ type: 'rule' }, ''],
+    ])
+    // Each block knows the lines it takes, so a comment on a line finds its block.
+    expect(blocks.map((b) => [b.line, b.last])).toEqual([
+      [1, 1],
+      [3, 4],
+      [6, 6],
+      [8, 9],
+      [10, 10],
+      [12, 12],
     ])
   })
 

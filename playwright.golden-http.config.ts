@@ -36,9 +36,10 @@ export default defineConfig({
     /\/visual-ask-definition\.spec\.ts$/,
     // So are Overview's.
     /\/visual-overview\.spec\.ts$/,
-    // And Details' and the review Preview's.
+    // And Details', the review Preview's and the review comparison's.
     /\/visual-details\.spec\.ts$/,
     /\/visual-review-preview\.spec\.ts$/,
+    /\/visual-review-comparison\.spec\.ts$/,
     // The loop answers' baselines are the mock's examples, opened by their address.
     /\/visual-ask-loop\.spec\.ts$/,
     /\/docs-controls\.spec\.ts$/,

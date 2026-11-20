@@ -59,6 +59,8 @@ test('no control is under 44px', async ({ page }) => {
     const small = await page.locator('button, a[href], input').evaluateAll((els: Target[]) =>
       els
         .filter((e) => !e.textContent?.includes('Skip to the content'))
+        // A switch's own checkbox is hidden from everyone: the switch is the control.
+        .filter((e) => e.getAttribute('aria-hidden') !== 'true')
         .map((e) => ({ e, r: e.getBoundingClientRect() }))
         .filter(({ r }) => r.width > 0 && r.height > 0 && (r.width < 44 || r.height < 44))
         .map(

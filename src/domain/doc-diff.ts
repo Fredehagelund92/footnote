@@ -18,6 +18,16 @@
   lies between the common start and end, and past `LCS_CELLS` it gives the middle as one removed
   and one added run instead of a word diff. Pure: no clock, no input or output.
 */
+import { alignBlocks } from './block-pairs.ts'
+import {
+  markdownBlocks,
+  marks,
+  wordTokens,
+  type BlockShape,
+  type DocBlock,
+  type Mark,
+  type Token,
+} from './markdown-blocks.ts'
 import { sequenceDiff } from './sequence-diff.ts'
 import { shiftDate } from './validity.ts'
 
@@ -71,16 +81,6 @@ export type DocSide = {
 export type Run =
   | { t: 'same' | 'add' | 'del'; text: string }
   | { t: 'fmt'; text: string; added: Mark[]; removed: Mark[] }
-
-/** The marks inline text can carry. */
-export const marks = ['bold', 'italic', 'strike', 'code'] as const
-export type Mark = (typeof marks)[number]
-
-/** The shape of a block of text. */
-export type BlockShape =
-  | { type: 'paragraph' | 'quote' | 'rule' }
-  | { type: 'heading'; level: number }
-  | { type: 'bullet' | 'number'; depth: number }
 
 /** A text field the review diffs word by word. */
 export type TextField = 'title' | 'text' | 'notToConclude' | 'quote'
@@ -159,204 +159,6 @@ export type DocDiff = {
 
 /** A block pair with at least this many changed stretches, or most words changed, is a rewrite. */
 export const REWRITE_CHANGES = 4
-/** Two blocks share at least this much of their words to count as one block reworded. */
-const PAIR_SIMILARITY = 0.4
-
-/** Words, runs of spaces and single marks, so an address diffs by its parts. */
-export const wordTokens = (text: string): string[] =>
-  text.match(/[\p{L}\p{N}_]+|\s+|[^\p{L}\p{N}_\s]/gu) ?? []
-
-/* Reading the Markdown the editor writes */
-
-type Segment = {
-  text: string
-  marks: ReadonlySet<Mark>
-  href: string | null
-  mention: { target: string; label: string } | null
-}
-type Token = { text: string; marks: string; href: string | null; mention: string | null }
-type DocBlock = { shape: BlockShape; text: string; tokens: Token[]; segments: Segment[] }
-
-const markOrder = (set: ReadonlySet<Mark>) => marks.filter((m) => set.has(m)).join(',')
-
-const delimiters: { open: string; mark: Mark }[] = [
-  { open: '**', mark: 'bold' },
-  { open: '__', mark: 'bold' },
-  { open: '~~', mark: 'strike' },
-  { open: '*', mark: 'italic' },
-  { open: '_', mark: 'italic' },
-]
-
-/** Inline Markdown as runs of text with their marks, link and mention. */
-export function inlineSegments(source: string): Segment[] {
-  const out: Segment[] = []
-  const push = (text: string, active: Set<Mark>, href: string | null) => {
-    if (!text) return
-    const last = out.at(-1)
-    if (last && !last.mention && last.href === href && markOrder(last.marks) === markOrder(active))
-      last.text += text
-    else out.push({ text, marks: new Set(active), href, mention: null })
-  }
-  const walk = (s: string, active: Set<Mark>, href: string | null) => {
-    let literal = ''
-    const flush = () => {
-      push(literal, active, href)
-      literal = ''
-    }
-    for (let i = 0; i < s.length;) {
-      const c = s[i]!
-      if (c === '\\' && i + 1 < s.length && /[\\`*_~[\]()@#>+-]/.test(s[i + 1]!)) {
-        literal += s[i + 1]
-        i += 2
-        continue
-      }
-      if (c === '@' && s[i + 1] === '[') {
-        const close = s.indexOf('](', i + 2)
-        const end = close < 0 ? -1 : s.indexOf(')', close + 2)
-        if (close > i + 2 && end > close + 2 && !s.slice(i + 2, close).includes(']')) {
-          flush()
-          const label = s.slice(i + 2, close)
-          out.push({
-            text: label,
-            marks: new Set(active),
-            href,
-            mention: { target: s.slice(close + 2, end), label },
-          })
-          i = end + 1
-          continue
-        }
-      }
-      if (c === '`') {
-        const end = s.indexOf('`', i + 1)
-        if (end > i + 1) {
-          flush()
-          push(s.slice(i + 1, end), new Set([...active, 'code']), href)
-          i = end + 1
-          continue
-        }
-      }
-      if (c === '[' && href === null) {
-        const close = s.indexOf('](', i + 1)
-        const end = close < 0 ? -1 : s.indexOf(')', close + 2)
-        if (close > i && end > close + 2 && !s.slice(i + 1, close).includes('[')) {
-          flush()
-          walk(s.slice(i + 1, close), active, s.slice(close + 2, end).trim())
-          i = end + 1
-          continue
-        }
-      }
-      const delimiter = delimiters.find((d) => s.startsWith(d.open, i))
-      if (delimiter && !active.has(delimiter.mark)) {
-        const wordBefore = /[\p{L}\p{N}]/u.test(s[i - 1] ?? '')
-        const inner = i + delimiter.open.length
-        const end = s.indexOf(delimiter.open, inner + 1)
-        const opens =
-          end > inner &&
-          !/\s/.test(s[inner] ?? ' ') &&
-          !/\s/.test(s[end - 1] ?? ' ') &&
-          !(delimiter.open.startsWith('_') && wordBefore)
-        if (opens) {
-          flush()
-          walk(s.slice(inner, end), new Set([...active, delimiter.mark]), href)
-          i = end + delimiter.open.length
-          continue
-        }
-      }
-      literal += c
-      i++
-    }
-    flush()
-  }
-  walk(source, new Set(), null)
-  return out
-}
-
-const segmentTokens = (segments: readonly Segment[]): Token[] =>
-  segments.flatMap((segment): Token[] =>
-    segment.mention
-      ? [
-          {
-            text: segment.text,
-            marks: markOrder(segment.marks),
-            href: segment.href,
-            mention: segment.mention.target,
-          },
-        ]
-      : wordTokens(segment.text).map((text) => ({
-          text,
-          marks: markOrder(segment.marks),
-          href: segment.href,
-          mention: null,
-        })),
-  )
-
-const block = (shape: BlockShape, source: string): DocBlock => {
-  const segments = inlineSegments(source.replace(/\s*\n\s*/g, ' ').trim())
-  const tokens = segmentTokens(segments)
-  return { shape, segments, tokens, text: tokens.map((t) => t.text).join('') }
-}
-
-/** The blocks of a Markdown text: paragraphs, headings, quotes, list items and rules. */
-export function markdownBlocks(markdown: string): DocBlock[] {
-  const blocks: DocBlock[] = []
-  let paragraph: string[] = []
-  let quote: string[] = []
-  const endParagraph = () => {
-    if (paragraph.length) blocks.push(block({ type: 'paragraph' }, paragraph.join('\n')))
-    paragraph = []
-  }
-  const endQuote = () => {
-    if (quote.length) blocks.push(block({ type: 'quote' }, quote.join('\n')))
-    quote = []
-  }
-  let item: { shape: BlockShape; lines: string[] } | null = null
-  const endItem = () => {
-    if (item) blocks.push(block(item.shape, item.lines.join('\n')))
-    item = null
-  }
-  const endAll = () => {
-    endParagraph()
-    endQuote()
-    endItem()
-  }
-  for (const raw of markdown.replace(/\r\n?/g, '\n').split('\n')) {
-    const line = raw.replace(/\s+$/, '')
-    if (!line.trim()) {
-      endAll()
-      continue
-    }
-    const heading = /^ {0,3}(#{1,6})\s+(.*?)(?:\s+#+)?$/.exec(line)
-    const rule = /^ {0,3}([-*_])(?:\s*\1){2,}$/.test(line)
-    const listItem = /^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/.exec(line)
-    const quoted = /^ {0,3}>\s?(.*)$/.exec(line)
-    if (rule) {
-      endAll()
-      blocks.push({ shape: { type: 'rule' }, segments: [], tokens: [], text: '' })
-    } else if (heading) {
-      endAll()
-      blocks.push(block({ type: 'heading', level: heading[1]!.length }, heading[2]!))
-    } else if (listItem) {
-      endParagraph()
-      endQuote()
-      endItem()
-      const depth = Math.floor(listItem[1]!.replace(/\t/g, '  ').length / 2)
-      const type = /\d/.test(listItem[2]!) ? 'number' : 'bullet'
-      item = { shape: { type, depth }, lines: [listItem[3]!] }
-    } else if (quoted) {
-      endParagraph()
-      endItem()
-      quote.push(quoted[1]!)
-    } else if (item && /^\s+/.test(line)) {
-      ;(item as { lines: string[] }).lines.push(line.trim())
-    } else {
-      endQuote()
-      endItem()
-      paragraph.push(line)
-    }
-  }
-  endAll()
-  return blocks
-}
 
 /** The stored Markdown of a context item's text: the summary, then the body. */
 export const docMarkdown = (side: Pick<DocSide, 'summary' | 'body'>): string =>
@@ -526,17 +328,6 @@ const sameShape = (a: BlockShape, b: BlockShape) => JSON.stringify(a) === JSON.s
 const isListItem = (s: BlockShape): s is BlockShape & { type: 'bullet' | 'number' } =>
   s.type === 'bullet' || s.type === 'number'
 
-/** How much of their words two blocks share, from 0 to 1. */
-function similarity(a: DocBlock, b: DocBlock): number {
-  const words = (x: DocBlock) =>
-    x.tokens.filter((t) => t.text.trim()).map((t) => t.text.toLowerCase())
-  const wa = words(a)
-  const wb = words(b)
-  if (!wa.length || !wb.length) return 0
-  const common = sequenceDiff(wa, wb, (x, y) => x === y).filter((op) => op.op === 'same').length
-  return (2 * common) / (wa.length + wb.length)
-}
-
 /* The text field */
 
 /** The text (the summary, then the body) compared as a Markdown document, block by block. */
@@ -544,47 +335,14 @@ function textBlocks(before: string, after: string): ChangeBlock[] {
   const field = 'text'
   const a = markdownBlocks(before)
   const b = markdownBlocks(after)
-  const key = (x: DocBlock) => x.text.replace(/\s+/g, ' ').trim()
-  const ops = sequenceDiff(a, b, (x, y) => key(x) === key(y), 'add')
-  const matched: { a: number; b: number }[] = []
-  const lonelyA = new Set<number>()
-  const lonelyB = new Set<number>()
-  for (const op of ops) {
-    if (op.op === 'same') matched.push({ a: op.a, b: op.b })
-    else if (op.op === 'del') lonelyA.add(op.a)
-    else lonelyB.add(op.b)
-  }
-  // The same words in another place: a move, not a removal and an addition.
-  const moved: { a: number; b: number }[] = []
-  for (const j of [...lonelyB]) {
-    if (!key(b[j]!)) continue
-    const i = [...lonelyA].find((x) => key(a[x]!) === key(b[j]!))
-    if (i === undefined) continue
-    lonelyA.delete(i)
-    lonelyB.delete(j)
-    moved.push({ a: i, b: j })
-  }
-  // In each stretch between unchanged blocks, a removed block and an added one that share most of
-  // their words are one block reworded.
-  const pairs: { a: number; b: number }[] = []
-  const anchors = [{ a: -1, b: -1 }, ...matched, { a: a.length, b: b.length }]
-  for (let k = 0; k + 1 < anchors.length; k++) {
-    const from = anchors[k]!
-    const to = anchors[k + 1]!
-    const removed = [...lonelyA].filter((i) => i > from.a && i < to.a).sort((x, y) => x - y)
-    const added = [...lonelyB].filter((j) => j > from.b && j < to.b).sort((x, y) => x - y)
-    let next = 0
-    for (const i of removed) {
-      for (let p = next; p < added.length; p++) {
-        if (similarity(a[i]!, b[added[p]!]!) < PAIR_SIMILARITY) continue
-        pairs.push({ a: i, b: added[p]! })
-        lonelyA.delete(i)
-        lonelyB.delete(added[p]!)
-        next = p + 1
-        break
-      }
-    }
-  }
+  const {
+    ops,
+    same: matched,
+    moved,
+    reworded: pairs,
+    removed: lonelyA,
+    added: lonelyB,
+  } = alignBlocks(a, b)
   const events: { at: number; block: ChangeBlock }[] = []
   const listChanges = new Map<number, { was: 'bullet' | 'number'; now: 'bullet' | 'number' }>()
   const compareShape = (i: number, j: number) => {

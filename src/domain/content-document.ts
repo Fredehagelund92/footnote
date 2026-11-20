@@ -1,7 +1,7 @@
 import { deriveAgentDraft, type DerivationContext } from './agent-draft.ts'
 import { contentDigest } from './canonical.ts'
 import type { SourceDocument } from './connector-runtime.ts'
-import { markdownBlocks } from './doc-diff.ts'
+import { markdownBlocks } from './markdown-blocks.ts'
 import type { Draft } from './draft.ts'
 import { textFindings } from './draft.ts'
 import { limits, type FieldMark, type MarkedField } from './proposal-rules.ts'

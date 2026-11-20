@@ -154,7 +154,7 @@ export const SHORTCUTS: { group: string; rows: Keys[] }[] = [
       { keys: ['⌘', 'K'], label: 'Search, or go anywhere' },
       { keys: ['⌘', 'B'], label: 'Show or hide the sidebar' },
       { keys: ['?'], label: 'Show these shortcuts' },
-      { keys: ['Esc'], label: 'Close, or go back' },
+      { keys: ['Esc'], label: 'Close, or go back; in a review, close the note, keeping it' },
     ],
   },
   {
@@ -171,10 +171,10 @@ export const SHORTCUTS: { group: string; rows: Keys[] }[] = [
     rows: [
       { keys: ['J'], or: ['K'], label: 'Next, or previous suggestion' },
       { keys: ['N'], or: ['P'], label: 'Next, or previous change' },
-      { keys: ['↓'], or: ['↑'], label: 'Next, or previous line' },
-      { keys: ['C'], label: 'Comment on the line or field in focus' },
+      { keys: ['↓'], or: ['↑'], label: 'Next, or previous passage or line' },
+      { keys: ['C'], label: 'Comment on the passage, line or field in focus' },
+      { keys: ['S'], label: 'Show the text as lines, or as it reads' },
       { keys: ['⌘', '↵'], label: 'Publish, when it is ready' },
-      { keys: ['Esc'], label: 'Close the note, keeping it' },
     ],
   },
   {

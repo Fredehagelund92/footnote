@@ -51,7 +51,7 @@ test('? opens the keys from anywhere, and once in the review', async ({ page }) 
   await page.keyboard.press('?')
   await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toHaveCount(1)
   await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toContainText(
-    'Close the note, keeping it',
+    'in a review, close the note, keeping it',
   )
 })
 

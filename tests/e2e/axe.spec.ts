@@ -435,6 +435,8 @@ for (const { name, width, height } of widths) {
         await page.keyboard.type('Since when are there 340?')
         await page.keyboard.press('ControlOrMeta+Enter')
         await expect(source.getByText('Since when are there 340?')).toBeVisible()
+        // A removed line is a place in the lines (S); its thread shows in the comparison too.
+        await page.keyboard.press('s')
         await source.locator('[data-source-place="before:1"]').focus()
         await page.keyboard.press('c')
         await expect(
@@ -443,6 +445,11 @@ for (const { name, width, height } of widths) {
         await page.keyboard.type('Was 312 ever right?')
         await page.keyboard.press('ControlOrMeta+Enter')
         await expect(source.getByText('Was 312 ever right?')).toBeVisible()
+        await page.keyboard.press('s')
+        await expect(source.getByRole('button', { name: 'Show the lines' })).toHaveAttribute(
+          'aria-pressed',
+          'false',
+        )
         await source
           .getByRole('region', { name: /^Removed line 1: / })
           .getByRole('button', { name: 'Mark as done' })
