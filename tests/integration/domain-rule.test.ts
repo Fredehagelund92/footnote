@@ -286,19 +286,19 @@ describe('after a sync pins them', () => {
     ])
     const execute = createToolService(editions, createAnonymousStore(pool))
     const reply = await execute(
-      'get_facts',
-      { question: 'Active customers in September 2026', ...activePlayers },
+      'get_context',
+      { question: 'Active customers in September 2026', ...activePlayers, response_format: 'full' },
       { client: 'claude-code', scopes: ['read'], caller: 'agent', canSelectEdition: false },
       100000,
       () => {},
     )
     const result = reply.structuredContent as {
       status: string
-      items: unknown[]
+      context: unknown[]
       domains: { id: string; name: string; summary?: string }[]
     }
     expect(result.status).toBe('matched')
-    expect(result.items).toHaveLength(2)
+    expect(result.context).toHaveLength(2)
     expect(result.domains).toEqual([
       expect.objectContaining({
         id: 'area_customer_value',

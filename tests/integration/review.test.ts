@@ -46,7 +46,7 @@ const execute = createToolService(
 type Delivery = {
   status: string
   edition: string
-  items: { id: string; links: { rel: string; target: { id: string; label: string } }[] }[]
+  context: { id: string; links: { rel: string; target: { id: string; label: string } }[] }[]
 }
 const norway = {
   question: '',
@@ -56,15 +56,15 @@ const norway = {
 }
 async function ask(input: object = norway) {
   const result = await execute(
-    'get_facts',
-    input,
+    'get_context',
+    { response_format: 'full', ...input },
     { client: 'claude-code', scopes: ['read'], caller: 'agent', canSelectEdition: false },
     100000,
     () => {},
   )
   return result.structuredContent as Delivery
 }
-const delivered = async (input?: object) => (await ask(input)).items.map((i) => i.id)
+const delivered = async (input?: object) => (await ask(input)).context.map((i) => i.id)
 
 type Headers = { cookie: string; origin: string; 'x-footnote-csrf': string }
 const headers: Record<string, Headers> = {}
@@ -320,7 +320,7 @@ describe('review and release', () => {
     expect(result.edition).toMatchObject({ reason: 'proposal_accepted', live: true })
     expect(result.edition!.digest).toMatch(/^[0-9a-f]{64}$/)
     const answer = await ask()
-    expect(answer.items.map((i) => i.id)).toEqual([p.itemId])
+    expect(answer.context.map((i) => i.id)).toEqual([p.itemId])
     expect(answer.edition).toBe(result.edition!.label)
 
     const editions = (await call('GET', '/editions', 'owner')).json<Edition[]>()
@@ -716,7 +716,7 @@ describe('review and release', () => {
     const shown = await delivered()
     expect(shown).toContain(replacement.itemId)
     expect(shown).not.toContain(old)
-    const link = (await ask()).items
+    const link = (await ask()).context
       .find((i) => i.id === pointer)!
       .links.find((l) => l.rel === 'mentions')
     expect(link?.target).toMatchObject({
@@ -735,7 +735,7 @@ describe('review and release', () => {
         "insert into overlay_events(kind,scope,item_id,flag,reason) values('flag_on','item',$1,'needs_check','Definition changed')",
         [item],
       )
-      const flaggedItem = (await ask()).items.find((i) => i.id === item)
+      const flaggedItem = (await ask()).context.find((i) => i.id === item)
       expect(flaggedItem).toMatchObject({
         freshness: 'unverified',
         unverified_reason: 'needs_check',
@@ -751,7 +751,7 @@ describe('review and release', () => {
         { is_recheck: false, marks: ['1'] },
         { is_recheck: true, marks: ['2'] },
       ])
-      expect((await ask()).items.find((i) => i.id === item)).toMatchObject({
+      expect((await ask()).context.find((i) => i.id === item)).toMatchObject({
         freshness: 'verified',
         version: 2,
       })
@@ -1102,7 +1102,7 @@ describe('issues', () => {
     expect(
       await delivered({ ...norway, window: { from: '2026-09-01', to: '2026-09-30' } }),
     ).not.toContain(open.itemId)
-    expect((await ask(window)).items.find((i) => i.id === open.itemId)).not.toHaveProperty(
+    expect((await ask(window)).context.find((i) => i.id === open.itemId)).not.toHaveProperty(
       'unverified_reason',
     )
 

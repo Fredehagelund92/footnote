@@ -7,7 +7,14 @@
  */
 export { evalJobs } from './jobs.ts'
 export { goldenL1, type GoldenCheck, type GoldenL1Result } from './golden.ts'
-export { deliver, deliveredIds, runRetrievalPass, workRetrieval } from './retrieval.ts'
+export {
+  checkStatus,
+  deliver,
+  deliveredIds,
+  runRetrievalPass,
+  workRetrieval,
+  type Reply,
+} from './retrieval.ts'
 export { queueTriggeredRuns } from './triggers.ts'
 export {
   canResume,

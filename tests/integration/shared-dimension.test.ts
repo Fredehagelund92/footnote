@@ -143,17 +143,22 @@ const flagged = async () =>
   ).rows.map((row) => row.item_id)
 async function countryLink(item: string, metric: string) {
   const result = await execute(
-    'get_facts',
-    { question: '', metrics: [metric], window: { from: '2026-08-10', to: '2026-08-20' } },
+    'get_context',
+    {
+      question: '',
+      metrics: [metric],
+      window: { from: '2026-08-10', to: '2026-08-20' },
+      response_format: 'full',
+    },
     { client: 'claude-code', scopes: ['read'], caller: 'agent', canSelectEdition: false },
     200000,
     () => {},
   )
   const delivered = (
     result.structuredContent as {
-      items: { id: string; links: { rel: string; target: { id: string; status: string } }[] }[]
+      context: { id: string; links: { rel: string; target: { id: string; status: string } }[] }[]
     }
-  ).items.find((candidate) => candidate.id === item)
+  ).context.find((candidate) => candidate.id === item)
   return delivered?.links.find((link) => link.rel === 'mentions')?.target
 }
 

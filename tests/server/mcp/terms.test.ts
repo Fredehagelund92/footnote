@@ -11,7 +11,7 @@ import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
   Definitions (FR-138), on the tool service's own code: the words used, what they mean as a
   person wrote them, who wrote them as a role and when, and the page. The reply's state, items and
   sentences are those the same question gets without them; a synonym of a metric reads as that
-  metric. A draft's preview, which reads get_facts, names none.
+  metric.
 */
 
 const peak = '0190f3a2-0000-7000-8000-000000000001'
@@ -181,14 +181,9 @@ it('names the terms of a query and of an item, and none in a preview', async () 
   expect(content(bought).definitions).toEqual([
     expect.objectContaining({ key: 'metric:orders', other_names: ['Purchases'] }),
   ])
-  const preview = content(
-    await call('get_facts', { question: 'Why did purchases in Norway drop in peak season 2026?' }),
-  )
-  expect(preview).not.toHaveProperty('terms')
-  expect(JSON.stringify(preview)).not.toContain('never give a term')
-  expect(content(await call('get_facts', { question: 'Purchases in Norway 2026' })).items).toEqual([
-    expect.objectContaining({ id: 'itm_norway01' }),
-  ])
+  expect(
+    content(await call('get_context', { question: 'Purchases in Norway 2026' })).context,
+  ).toEqual([expect.objectContaining({ id: 'itm_norway01' })])
 })
 
 it('serves no term of a stopped domain, and none in conflict', async () => {

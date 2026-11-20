@@ -29,8 +29,8 @@ export type Said = { say: string; next?: string }
  * The words a reply speaks in: what one written thing is called, and the tools it points to. The
  * six tools of the agent contract point at each other and start with the answer line
  * (`contextVoice`), and call a written thing by the glossary's name (src/domain/words.ts), so they
- * follow when it changes. The reply a draft's preview and the evals read (`get_facts`, which is no
- * tool any more) keeps its field names and tools (`factVoice`), and speaks the same words.
+ * follow when it changes. What a person reads (`peopleVoice`) speaks the same words, with the
+ * answer line drawn apart.
  */
 export type Voice = {
   /** One written thing, and several. */
@@ -48,17 +48,6 @@ export type Voice = {
   /** The reply's first words: its answer line, or nothing. */
   stateFirst: boolean
 }
-export const factVoice: Voice = {
-  item: [peopleConcepts.contextItem.name, `${peopleConcepts.contextItem.name}s`],
-  get: 'get_facts',
-  find: 'find_facts',
-  read: 'read_item',
-  report: 'call report_gap',
-  cuts: 'cut_ids lists the context items left out: call again with response_format concise or a higher max_bytes to get them.',
-  appliesField: 'applies_note',
-  disagreesField: 'conflicts_with',
-  stateFirst: false,
-}
 export const contextVoice: Voice = {
   item: [peopleConcepts.contextItem.name, `${peopleConcepts.contextItem.name}s`],
   get: 'get_context',
@@ -70,7 +59,7 @@ export const contextVoice: Voice = {
   disagreesField: 'disagrees_with',
   stateFirst: true,
 }
-/** What a person reads in a review: the product's own word, with the answer line drawn apart. */
+/** What a person reads, in Ask or a review: the product's own word, with the answer line drawn apart. */
 export const peopleVoice: Voice = {
   ...contextVoice,
   item: [peopleConcepts.contextItem.name, `${peopleConcepts.contextItem.name}s`],
@@ -467,7 +456,7 @@ export const heldBackWords: Readonly<Record<string, readonly [string, string]>> 
  * Facts that match but aren't given to AI agents, counted by why: "2 more facts match but aren't
  * shared with AI agents: 1 is for another group and 1 waits for a check."
  */
-export function heldBackSay(reasons: readonly string[], more: boolean, voice = factVoice): string {
+export function heldBackSay(reasons: readonly string[], more: boolean, voice: Voice): string {
   const n = reasons.length
   const [one, many] = voice.item
   return `${count(n, more ? `more ${one} matches` : `${one} matches`, more ? `more ${many} match` : `${many} match`)} but ${n === 1 ? "isn't" : "aren't"} shared with AI agents: ${heldBackWhy(reasons)}.`
@@ -518,13 +507,13 @@ export type ContextSay = {
 }
 
 /**
- * get_context's two sentences (get_facts's in the fact voice), for each status: what it read (the
+ * get_context's two sentences (a person's in the people voice), for each status: what it read (the
  * metrics, markets and dates) and that it read only that; a match keeps what was cut, held back,
  * needs checking or applies only in part; an absence is never said without the rule and the next
  * step for the AI agent. In the context voice `say` starts with the answer line (FR-349), from the
  * reply's status.
  */
-export function contextSaid(bundle: Names, c: ContextSay, voice = factVoice): Said {
+export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
   // Checks that could not run read nothing: never a question to fix (FR-344).
   if (c.status === 'check_failed') {
     const failed = failedSaid('The checks could not run. Try again shortly.')
@@ -559,11 +548,7 @@ export function contextSaid(bundle: Names, c: ContextSay, voice = factVoice): Sa
     say.push(
       `${sentence(applies(c.cut))} to ${scope}, but ${c.cut === 1 ? "it doesn't" : "they don't"} fit in this reply.`,
     )
-    next.push(
-      voice === factVoice
-        ? 'Call again with response_format concise or a higher max_bytes: cut_ids lists the context items left out. Never say nothing is written down.'
-        : `${voice.cuts} Never say nothing is written down.`,
-    )
+    next.push(`${voice.cuts} Never say nothing is written down.`)
   } else {
     say.push(`${sentence(applies(c.delivered))} to ${scope}.`, onlyThat)
     if (c.partial === c.delivered)

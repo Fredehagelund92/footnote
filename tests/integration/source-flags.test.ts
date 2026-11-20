@@ -112,17 +112,18 @@ type Delivered = {
 }
 async function deliveries(): Promise<Delivered[]> {
   const result = await execute(
-    'get_facts',
+    'get_context',
     {
       question: '',
       metrics: ['metric:order_count', 'metric:revenue', 'metric:growth_revenue'],
       window: { from: '2026-08-10', to: '2026-08-20' },
+      response_format: 'full',
     },
     { client: 'claude-code', scopes: ['read'], caller: 'agent', canSelectEdition: false },
     200000,
     () => {},
   )
-  return (result.structuredContent as { items: Delivered[] }).items
+  return (result.structuredContent as { context: Delivered[] }).context
 }
 const delivery = async (id: string) => (await deliveries()).find((item) => item.id === id)
 const mention = (item: Delivered | undefined) => item?.links.find((l) => l.rel === 'mentions')

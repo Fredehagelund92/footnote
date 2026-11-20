@@ -6,7 +6,7 @@ import type { AnswerResult, Asked, LookupEvent, Replay } from '../../src/contrac
 import type { Feed } from '../../src/contract/inbox.ts'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
 import type { ReviewSheet } from '../../src/contract/review-path.ts'
-import { stateOfStatus } from '../../src/domain/answer-state.ts'
+import { stateOfStatus, stateWords } from '../../src/domain/answer-state.ts'
 import { answer, startersOf, topicScope } from '../../src/domain/answer.ts'
 import { followedFrom } from '../../src/domain/links.ts'
 import { ownCaveat } from '../../src/domain/proposal-rules.ts'
@@ -14,8 +14,7 @@ import { buildApp } from '../../src/server/app.ts'
 import { identifier, localRoles } from '../../src/server/db/roles.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { loadServingBundle, type ServingBundle } from '../../src/server/modules/editions/index.ts'
-import { deliver } from '../../src/server/modules/evals/index.ts'
-import { deliverContext } from '../../src/server/modules/evals/retrieval.ts'
+import { checkStatus, deliver, type Reply } from '../../src/server/modules/evals/index.ts'
 import {
   fixedWordsModel,
   scriptedWordsModel,
@@ -94,15 +93,17 @@ const events = (body: string) =>
     .filter((line): line is string => !!line)
     .map((line) => JSON.parse(line.slice(5).trim()) as LookupEvent)
 /** What get_context gives, as the engine's answer names it. */
-const asGiven = (reply: { status?: string; items?: { id: string }[]; say?: string }) => ({
-  status: reply.status,
-  items: (reply.items ?? []).map((item) => item.id),
+/** What get_context gave: the resolver's status, the items, and `say`, which starts with the answer line. */
+const asGiven = (reply: Reply) => ({
+  status: checkStatus(reply),
+  items: (reply.context ?? []).map((item) => item.id),
   say: reply.say,
 })
-const asAnswered = (a: Pick<AnswerResult, 'status' | 'items' | 'say'>) => ({
+/** What Ask answered, with its answer line before `say`, as get_context gives it. */
+const asAnswered = (a: Pick<AnswerResult, 'status' | 'state' | 'items' | 'say'>) => ({
   status: a.status,
   items: a.items.map((item) => item.id),
-  say: a.say,
+  say: `${stateWords(a.state)} ${a.say}`,
 })
 /** The answer without its times, which differ between two runs. */
 /** An answer's own decisions: without its timings, and without the links Ask's look-up adds. */
@@ -321,7 +322,7 @@ describe('Ask: a look-up', () => {
     }
     const sent = events((await call('POST', '/ask/lookup', 'maria', asked)).body)
     const result = (sent.at(-1) as Extract<LookupEvent, { type: 'answer' }>).answer
-    const given = await deliverContext(live, systemClock(today), asked)
+    const given = await deliver(live, systemClock(today), asked)
     expect(result.uncovered.metrics).toContain('metric:units_sold')
     expect(result.state).toBe('partial')
     expect(given.status).toBe('partial')

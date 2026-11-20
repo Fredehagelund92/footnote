@@ -15,36 +15,28 @@ import { headAt, liveHead, type Head } from './runs.ts'
 /**
  * The retrieval pass: the level 3 delivery check of FR-507, run on every edition over the
  * whole active test set as a score, with no model. Each question's wordings go through
- * get_facts's own code; a question passes when every wording is served, delivers the expected
+ * get_context's own code; a question passes when every wording is served, delivers the expected
  * items, leaves the forbidden ones out and gives the expected check-report status. It is checked
  * as delivered once nothing stops its area, like the review gate's level 3.
  * Only ids and booleans are stored, never a wording's text.
  */
 
-type Reply = {
-  status?: string
-  items?: { id: string; version?: number; freshness?: string }[]
-  check_report?: { cut_ids?: string[] }
+export type Reply = Record<string, unknown> & {
+  context?: { id: string; version?: number; freshness?: string }[]
+  check_report?: { status?: string; cut_ids?: string[] }
 }
 
-/** get_facts's reply for one input on one edition held in memory, recording nothing. */
-export async function deliver(bundle: ServingBundle, clock: Clock, input: object): Promise<Reply> {
-  return (await previewDelivery(bundle, clock, input)).structuredContent
-}
 /**
  * get_context's reply, as agents get it, for one input on one edition held in memory, recording
  * nothing: the full reply unless the input asks for the concise one.
  */
-export async function deliverContext(
-  bundle: ServingBundle,
-  clock: Clock,
-  input: object,
-): Promise<Record<string, unknown>> {
-  return (
-    await previewDelivery(bundle, clock, { response_format: 'full', ...input }, null, 'get_context')
-  ).structuredContent
+export async function deliver(bundle: ServingBundle, clock: Clock, input: object): Promise<Reply> {
+  return (await previewDelivery(bundle, clock, { response_format: 'full', ...input }))
+    .structuredContent
 }
-export const deliveredIds = (reply: Reply) => (reply.items ?? []).map((i) => i.id)
+export const deliveredIds = (reply: Reply) => (reply.context ?? []).map((i) => i.id)
+/** The resolver's status, which the check report keeps: the answer state aside. */
+export const checkStatus = (reply: Reply) => reply.check_report?.status ?? null
 
 export type RetrievalTrigger = 'edition' | 'daily'
 type WordingResult = {
@@ -82,14 +74,14 @@ async function checkQuestion(
       ...body.scope,
     })
     const delivered = deliveredIds(reply)
-    const status = reply.status ?? null
+    const status = checkStatus(reply)
     const checks = retrievalChecks(body.expected, { status, delivered })
     all.push(checks)
     // What the agent is given, by date: the items, their versions and whether they are past review.
     digests.push(
       sha({
         status,
-        items: (reply.items ?? []).map((i) => [i.id, i.version ?? null, i.freshness ?? null]),
+        items: (reply.context ?? []).map((i) => [i.id, i.version ?? null, i.freshness ?? null]),
         cut: reply.check_report?.cut_ids ?? [],
       }),
     )
