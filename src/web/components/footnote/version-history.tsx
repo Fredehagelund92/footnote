@@ -194,7 +194,7 @@ export function VersionHistory({
         </div>
       </CollapsibleContent>
       <Sheet open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <SheetContent side="right" className="w-history-panel gap-0 p-0">
+        <SheetContent side="right" className="w-history-panel gap-0 overflow-y-auto p-0">
           {viewing && (
             <>
               <SheetHeader className="border-b">
