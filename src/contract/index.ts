@@ -351,6 +351,7 @@ export type {
   CatalogueSource,
   CatalogueTerm,
   CatalogueValue,
+  CatalogueVariant,
 } from './catalogue.ts'
 export type {
   DeletedTerm,

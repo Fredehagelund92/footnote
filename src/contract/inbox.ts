@@ -204,7 +204,8 @@ export const decideCardResultSchema = z.object({
 export const sourceNameSchema = z.object({
   /** The vocabulary key it takes. */
   key: z.string(),
-  kind: z.enum(['metric', 'dimension']),
+  /** A metric, a dimension, or a family of metrics that goes live with its variants (FR-142). */
+  kind: z.enum(['metric', 'dimension', 'metric_group']),
   name: z.string(),
   aliases: z.array(z.string()),
   /** The members it links once accepted, and those a live term links already. */
@@ -219,6 +220,11 @@ export const sourceNameSchema = z.object({
   flags: z.array(z.object({ code: z.enum(nameFlagCodes), message: z.string() })),
   /** An owner left it out; otherwise it is a date or an id, which stay out by themselves. */
   leftByOwner: z.boolean(),
+  /**
+   * A family's variants, counted, and what tells them apart in words (["Currency", "Channel"]):
+   * they go live with it, and are never listed one by one. Null for any other name.
+   */
+  family: z.nullable(z.object({ variants: z.number(), by: z.array(z.string()) })),
 })
 export type SourceNameRead = z.infer<typeof sourceNameSchema>
 
@@ -232,7 +238,7 @@ export type NamesRead = z.infer<typeof namesSchema>
 /** The most names one decision takes: a whole model, as a read gives it. */
 export const NAMES_MAX = 20_000
 
-const nameKeySchema = z.string().check(z.regex(/^(?:metric|dim):[a-z0-9_]+$/))
+const nameKeySchema = z.string().check(z.regex(/^(?:metric|dim|group):[a-z0-9_]+$/))
 export const decideNamesSchema = z.strictObject({
   revision: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
   /** The names to make live: `name` only when the person changed it. */

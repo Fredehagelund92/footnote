@@ -55,6 +55,9 @@ export default defineConfig({
     // J84 asks the mock for 5,000 definitions with a metric per currency (?demo=variants); the
     // service reads such a model in tests/integration/metric-variants.test.ts.
     /\/j84-definitions-at-scale\.spec\.ts$/,
+    // J85 asks the mock for twenty families of 250 variants (?demo=families); the service reads
+    // and publishes families in tests/integration/metric-families.test.ts.
+    /\/j85-families\.spec\.ts$/,
     // J3 states asks for each answer state by a question the mock's recorded turns answer with it,
     // and opens the mock's Not looked up example; the service's demo week has no check that fails.
     /\/j3-ask-states\.spec\.ts$/,

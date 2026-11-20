@@ -39,7 +39,14 @@ const termRow = (hit: ScopeHit, label = hit.name): Row => ({
   type: 'term',
   term: termOfHit(hit),
   label,
-  ...(hit.alias ? { hint: `also ${hit.alias}` } : {}),
+  // A family is offered for its variants, which are never offered apart (FR-142).
+  ...(hit.variants !== null
+    ? {
+        hint: `Family · ${hit.variants.toLocaleString('en-GB')} ${hit.variants === 1 ? 'variant' : 'variants'}`,
+      }
+    : hit.alias
+      ? { hint: `also ${hit.alias}` }
+      : {}),
 })
 
 /** A row's element id inside the list. */

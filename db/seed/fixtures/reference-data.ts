@@ -156,6 +156,7 @@ export const campaigns = markets.flatMap(([, market]) =>
 )
 
 export const vocabulary: Vocabulary = {
+  families: [],
   metrics: [
     { id: 'orders', name: 'Orders', group: 'Payments' },
     { id: 'returns', name: 'Returns', group: 'Payments' },

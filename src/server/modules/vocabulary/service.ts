@@ -21,6 +21,8 @@ type Term = {
   parent_key: string | null
   name: string
   aliases: string[]
+  /** The definitions it names: a family names its variants' (FR-142). */
+  definition_refs: string[]
 }
 
 /** The part of a key after its prefix: `metric:orders` is `orders`, `val:market/x` is `x`. */
@@ -35,7 +37,7 @@ const RECENT_DRAFTS = 20
 export function createVocabularyService(database: Queryable): VocabularyService {
   const terms = () =>
     database.query<Term>(
-      `select key, kind::text as kind, parent_key, name, aliases
+      `select key, kind::text as kind, parent_key, name, aliases, definition_refs
          from serving_vocabulary((select seq from live_edition))`,
     )
   const searchTerms = async (): Promise<VocabularyTerm[]> =>
@@ -46,7 +48,7 @@ export function createVocabularyService(database: Queryable): VocabularyService 
       aliases: term.aliases,
       parentKey: term.parent_key,
       areaId: null,
-      definitionRefs: [],
+      definitionRefs: term.definition_refs,
     }))
   /**
    * The person's recent terms come from their own newest drafts (row security shows them only
@@ -100,7 +102,18 @@ export function createVocabularyService(database: Queryable): VocabularyService 
             .map((value) => ({ id: idOf(value.key), name: value.name, aliases: value.aliases }))
             .sort(byName),
         }))
-      return { metrics: metrics.sort(byName), dimensions: dimensions.sort(byName) }
+      const families = rows
+        .filter((term) => term.kind === 'metric_group' && term.definition_refs.length)
+        .map((family) => ({
+          key: family.key,
+          name: family.name,
+          variants: rows.filter((term) => term.parent_key === family.key).length,
+        }))
+      return {
+        metrics: metrics.sort(byName),
+        families: families.sort(byName),
+        dimensions: dimensions.sort(byName),
+      }
     },
     async search(input) {
       const vocabulary = await searchTerms()

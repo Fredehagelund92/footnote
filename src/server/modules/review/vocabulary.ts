@@ -1,8 +1,5 @@
-import {
-  termCandidates,
-  type CandidateMember,
-  type KnownTerm,
-} from '../../../domain/term-candidates.ts'
+import { sourceNames } from '../../../domain/source-names.ts'
+import type { CandidateMember, KnownTerm } from '../../../domain/term-candidates.ts'
 import type { Queryable } from '../../db/database.ts'
 import { connectorType } from '../connectors/index.ts'
 
@@ -20,7 +17,9 @@ export async function sourceVocabulary(tx: Queryable, everyone = false) {
   const rows = await tx.query<CandidateMember & { type: string | null; sourceName: string | null }>(
     `select d.ref,d.connector_id as source,d.kind::text as kind,d.name,d.title,
             d.description_copy as description,d.value_type as "valueType",d.area_hint as "areaHint",
-            d.synonyms,d.base_name as "baseName",c.type,c.name as "sourceName"
+            d.synonyms,d.base_name as "baseName",c.type,c.name as "sourceName",
+            case when d.variant_shape is not null
+                 then jsonb_build_object('shape',d.variant_shape,'by',d.variant_by) end as variant
        from definitions d left join connectors c on c.id=d.connector_id
       where d.missing_since_snapshot is null and (c.id is null or c.removed_at is null)
         and c.type is distinct from 'demo'
@@ -78,21 +77,20 @@ export async function waitingMembers(tx: Queryable): Promise<WaitingMember[]> {
     ),
   )
   // A candidate that links more members to a live dimension is a term already, never missing, and
-  // a name an owner left out is no longer waiting.
-  return termCandidates(
+  // a name an owner left out is no longer waiting. A family waits as one name (FR-142).
+  return sourceNames(
     members,
     known.filter((term) => !term.open),
-  ).flatMap((candidate) =>
-    candidate.suggested &&
-    candidate.areaId &&
-    !candidate.linked.length &&
-    !candidate.definitionRefs.every((ref) => left.has(ref))
+    new Map(),
+    left,
+  ).flatMap((name) =>
+    name.state !== 'left_out' && name.areaId && !name.linked.length
       ? [
           {
-            areaId: candidate.areaId,
-            kind: candidate.kind,
-            name: candidate.name,
-            tool: tool(candidate.source),
+            areaId: name.areaId,
+            kind: name.kind === 'dimension' ? ('dimension' as const) : ('metric' as const),
+            name: name.name,
+            tool: tool(name.source),
           },
         ]
       : [],

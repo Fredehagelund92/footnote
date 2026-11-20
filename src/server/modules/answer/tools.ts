@@ -225,7 +225,10 @@ async function viewOf(reads: ToolReads): Promise<View> {
     published: index.items.filter(
       (i) => i.status === 'accepted' && Object.values(kindFilters).some((k) => k === i.kind),
     ).length,
-    shown: new Set(catalogue.terms.map((t) => t.key)),
+    // A family's variants are shown in it (FR-142): they can be named, never listed.
+    shown: new Set(
+      catalogue.terms.flatMap((t) => [t.key, ...(t.family?.variants.map((v) => v.key) ?? [])]),
+    ),
     areas,
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
     areaName: (id) => area(id)?.name ?? 'no domain',
@@ -1327,7 +1330,12 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     areaId: string | null
   }
   const synced: Entry[] = catalogue.terms.map((t) => {
-    const words = t.definition?.descriptionCopy ? quoted(t.definition.descriptionCopy).text : null
+    // A family is one entry for its variants (FR-142): what it is, never the variants one by one.
+    const words = t.family
+      ? `A family of ${t.family.variants.length} near-identical metrics, one for each ${t.family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`
+      : t.definition?.descriptionCopy
+        ? quoted(t.definition.descriptionCopy).text
+        : null
     return {
       id: t.key,
       name: t.name,
@@ -1343,7 +1351,8 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       values: null,
       related: null,
       history: null,
-      names: [t.name, ...t.aliases, t.key, t.id],
+      // A variant's name finds its family.
+      names: [t.name, ...t.aliases, t.key, t.id, ...(t.family?.variants.map((v) => v.name) ?? [])],
       areaId: t.domain.areaId,
     }
   })

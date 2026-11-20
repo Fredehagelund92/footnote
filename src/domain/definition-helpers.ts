@@ -112,3 +112,73 @@ export function meaningMark(
 ): Promise<string> {
   return contentDigest(options.keepEmpty ? meaning : withoutEmpty(meaning))
 }
+
+/** The most values one variant is told apart by: currency and channel are two. */
+export const VARIANT_BY_MAX = 5
+/** The longest value a variant is told apart by, in characters. */
+export const VARIANT_VALUE_MAX = 200
+
+/** One value a variant of a family is told apart by: what its filter compares, and with what. */
+export type VariantValue = {
+  /** The column or dimension the filter compares, by its name in the tool: `currency_code`. */
+  name: string
+  /** The dimension of that name the connector reads, by ref; null when it reads none. */
+  ref: string | null
+  /** The literal the model compares it with: `EUR`. A value written in the model, never data. */
+  value: string
+}
+
+// A filter that compares one column or dimension with one quoted literal: `{CUBE}.currency_code =
+// 'EUR'`, `{CUBE.channel} IN ('web')`, `'EUR' = currency_code`, or dbt's
+// `{{ Dimension('order__currency_code') }} = 'EUR'`. The column is the last name in the reference.
+const reference = String.raw`\{\{\s*Dimension\(\s*'[^']+'\s*\)(?:\.\w+\([^)]*\))*\s*\}\}|\$?\{[\w.]+\}(?:\.\w+)?|\w+(?:\.\w+)*`
+const literal = String.raw`'((?:[^'\\]|'')*)'`
+const comparisons = new RegExp(
+  String.raw`(${reference})\s*(?:==?|\s+in\s*\(\s*${literal}\s*\))\s*(?:${literal})?|${literal}\s*==?\s*(${reference})`,
+  'gi',
+)
+
+/** The column a reference names: `currency_code` of `{CUBE}.currency_code` or `order__currency_code`. */
+function columnOf(text: string): string | null {
+  const dimension = /Dimension\(\s*'([^']+)'/.exec(text)
+  const name = dimension ? dimension[1]!.split('__').at(-1)! : /(\w+)\}?$/.exec(text)?.[1]
+  return name && /^[A-Za-z_]\w*$/.test(name) ? name : null
+}
+
+/**
+ * What a metric's filters say about it as a variant of a family (FR-142): the filters with the
+ * literal each compares a column with left out (`{CUBE}.currency_code = ?`), and those literals in
+ * the order the filters have them. A metric per currency and channel is the same filters with other
+ * literals. Null when the filters compare nothing with a literal, or hold a literal Footnote
+ * cannot tell the column of: then it is no variant, only a metric. Only names and literals cross,
+ * never the calculation (CON-207).
+ */
+export function filterVariant(
+  filters: readonly string[],
+): { shape: string[]; by: Omit<VariantValue, 'ref'>[] } | null {
+  const by: Omit<VariantValue, 'ref'>[] = []
+  const shape: string[] = []
+  for (const filter of filters) {
+    type Part = string | undefined
+    const left = filter.replace(
+      comparisons,
+      (match: string, ref: Part, inList: Part, value: Part, before: Part, after: Part) => {
+        const column = columnOf(ref ?? after ?? '')
+        const said = inList ?? value ?? before
+        if (column === null || said === undefined) return match
+        by.push({ name: column, value: said.replace(/''/g, "'") })
+        return match.replace(`'${said}'`, '?')
+      },
+    )
+    shape.push(left)
+  }
+  // A literal the comparisons did not take: something else is compared, so it is no variant.
+  if (!by.length || shape.some((filter) => /'/.test(filter.replace(/\{\{[^}]*\}\}/g, ''))))
+    return null
+  if (
+    by.length > VARIANT_BY_MAX ||
+    by.some(({ value }) => !value.trim() || [...value].length > VARIANT_VALUE_MAX)
+  )
+    return null
+  return { shape, by }
+}

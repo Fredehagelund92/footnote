@@ -1356,12 +1356,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const vocabulary = await read(() => client.vocabulary.get())
       const markets = vocabulary.dimensions.find((d) => d.id === 'market')?.values ?? []
       return {
-        metrics: vocabulary.metrics.map((m) => ({
-          name: m.name,
-          group: m.group,
-          facts: 0,
-          definition: '',
-        })),
+        // A family is one metric to write about: an item about it applies to every variant (FR-142).
+        metrics: [
+          ...vocabulary.families.map((f) => ({ name: f.name, group: '', facts: 0, definition: '' })),
+          ...vocabulary.metrics.map((m) => ({
+            name: m.name,
+            group: m.group,
+            facts: 0,
+            definition: '',
+          })),
+        ],
         dimensions: vocabulary.dimensions.map((d) => ({
           name: d.name,
           values: d.values.map((v) => v.name).join(', '),

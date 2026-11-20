@@ -1,4 +1,5 @@
 import type { RecordsItem } from '../../../domain/records.ts'
+import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import type { ScopedIndex } from '../library/index.ts'
@@ -90,7 +91,7 @@ export async function itemsOf(
       checkedAt: i.lastChecked ? moved(`${i.lastChecked.on}T00:00:00.000Z`) : null,
       archivedAt: i.status === 'retired' ? moved(t?.ended) : null,
       owners: i.owners,
-      metrics: i.scope.metrics.map((m) => `metric:${m}`),
+      metrics: i.scope.metrics.map(metricKeyOf),
       values: i.scope.dimensionValues.map((v) => `val:${v.dimension}/${v.value}`),
     }
   })

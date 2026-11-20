@@ -798,7 +798,7 @@ describe('the review', () => {
 
   it("reads the stored text's mentions as the app's tokens, or as their words without the vocabulary", () => {
     const id = '0190a0a0-0000-7000-8000-00000000000c'
-    const words = wordsOf({ metrics: [], dimensions: [] }, [{ id, name: 'Test account' }])
+    const words = wordsOf({ metrics: [], families: [], dimensions: [] }, [{ id, name: 'Test account' }])
     const after = `Leaves out the 28 @[accounts](term:${id}) as well.`
     const s = sheet({ source: { before: 'Leaves out.', after, rows: [] } })
     expect(reviewOf(s, 'p1', undefined, words).source.after).toBe(
@@ -824,7 +824,7 @@ describe('the review', () => {
 
   it('names a link to a term written in Definitions by its word, as Try it says it', () => {
     const id = '0190a0a0-0000-7000-8000-00000000000c'
-    const words = wordsOf({ metrics: [], dimensions: [] }, [{ id, name: 'Test account' }])
+    const words = wordsOf({ metrics: [], families: [], dimensions: [] }, [{ id, name: 'Test account' }])
     const mention = { target: `term:${id}`, label: 'accounts', change: 'added' as const }
     const [block] = reviewOf(
       sheet({}, { blocks: [{ kind: 'link', field: 'text', mention }] }),

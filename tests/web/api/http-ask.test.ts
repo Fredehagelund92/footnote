@@ -15,6 +15,7 @@ import {
 } from '@/api/http-ask'
 
 const vocabulary = {
+  families: [],
   metrics: [{ id: 'orders', name: 'Orders', group: 'Payments' }],
   dimensions: [
     {

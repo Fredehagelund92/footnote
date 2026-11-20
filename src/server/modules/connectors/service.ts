@@ -352,13 +352,14 @@ export class ConnectorService {
         if (rebaseline) rebaselined.push(definition.ref)
         const upserted = await tx.query(
           `insert into definitions
-           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark)
-           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14)
+           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark,variant_shape,variant_by)
+           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14,$15,$16)
            on conflict (ref) do update set kind=excluded.kind,name=excluded.name,title=excluded.title,
              description_copy=excluded.description_copy,value_type=excluded.value_type,visible_groups=null,
              area_hint=excluded.area_hint,change_mark=excluded.change_mark,source_mark=excluded.source_mark,
              last_seen_snapshot=excluded.last_seen_snapshot,
              model_file=excluded.model_file,synonyms=excluded.synonyms,base_name=excluded.base_name,
+             variant_shape=excluded.variant_shape,variant_by=excluded.variant_by,
              missing_since_snapshot=null,renamed_to=null,connector_id=excluded.connector_id
              where definitions.connector_id=excluded.connector_id
                 or definitions.connector_id in (select id from connectors where removed_at is not null)
@@ -378,6 +379,8 @@ export class ConnectorService {
             definition.synonyms ?? [],
             definition.baseName ?? null,
             changeMark === definition.changeMark ? null : definition.changeMark,
+            definition.variant?.shape ?? null,
+            definition.variant ? JSON.stringify(definition.variant.by) : null,
           ],
         )
         if (upserted.length !== 1) throw new Error('Definition belongs to another connector')

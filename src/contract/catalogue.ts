@@ -68,6 +68,20 @@ export const catalogueShelfSchema = z.object({
   lastUpdated: z.nullable(z.string()),
 })
 
+/** A variant of a family (FR-142): a metric the family's page lists, never Definitions. */
+export const catalogueVariantSchema = z.object({
+  /** `metric:revenue_eur_web`. */
+  key: z.string(),
+  name: z.string(),
+  aliases: z.array(z.string()),
+  /** What tells it apart, in the order of its family's `by`: `["EUR", "web"]`. */
+  values: z.array(z.string()),
+  /** What its source last read of it; null when the source never listed it. */
+  state: z.nullable(z.enum(definitionStates)),
+  /** Accepted items whose scope names the variant itself. */
+  items: z.number(),
+})
+
 export const catalogueTermSchema = z.object({
   /** The vocabulary key: `metric:orders`, `dim:market`. */
   key: z.string(),
@@ -78,6 +92,23 @@ export const catalogueTermSchema = z.object({
   aliases: z.array(z.string()),
   /** The metric group; null for a dimension and a metric outside a group. */
   group: z.nullable(z.object({ key: z.string(), name: z.string() })),
+  /**
+   * A family of metrics (FR-142): one entry, `group:revenue`, for its variants, which are listed
+   * here and nowhere else in the catalogue; `by` is what tells them apart, in words ("Currency",
+   * "Channel"). Its `definition` is the variant that speaks for it, without that variant's words.
+   * Null for any other term.
+   */
+  family: z.nullable(
+    z.object({
+      by: z.array(z.string()),
+      /**
+       * What the source says of how a variant is worked out from another, its own words with the
+       * variant's name ("Accrued share (USD): the EUR amount multiplied by the row's rate").
+       */
+      derivations: z.array(z.string()),
+      variants: z.array(catalogueVariantSchema),
+    }),
+  ),
   /** The vocabulary's area first, the source's hint second, no domain third. */
   domain: z.object({ areaId: z.nullable(z.string()), source: z.enum(termDomainSources) }),
   /**
@@ -109,7 +140,7 @@ export const catalogueSourceSchema = z.object({
 })
 
 export const catalogueSchema = z.object({
-  /** Metrics first, then dimensions, each by name. */
+  /** Metrics and families first, then dimensions, each by name; a family's variants are in it. */
   terms: z.array(catalogueTermSchema),
   sources: z.array(catalogueSourceSchema),
   /** Metrics with no domain, against all metrics (CON-516). */
@@ -132,6 +163,7 @@ export const catalogueValueSchema = z.object({
 
 export type Catalogue = z.infer<typeof catalogueSchema>
 export type CatalogueTerm = z.infer<typeof catalogueTermSchema>
+export type CatalogueVariant = z.infer<typeof catalogueVariantSchema>
 export type CatalogueDefinition = z.infer<typeof catalogueDefinitionSchema>
 export type CatalogueSource = z.infer<typeof catalogueSourceSchema>
 export type CatalogueValue = z.infer<typeof catalogueValueSchema>

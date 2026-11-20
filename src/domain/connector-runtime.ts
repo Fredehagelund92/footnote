@@ -34,6 +34,29 @@ export const runtimeDefinitionSchema = z.strictObject({
     z.array(z.string().check(z.minLength(1), z.maxLength(200))).check(z.maxLength(20)),
   ),
   baseName: z.optional(z.nullable(z.string().check(z.minLength(1), z.maxLength(500)))),
+  /**
+   * A metric that is one variant of a family (FR-142): the digest of its calculation with the
+   * literals its filters compare left out, and those literals with what each is compared with.
+   * Absent for a dimension, and for a metric whose filters compare nothing with a literal.
+   */
+  variant: z.optional(
+    z.nullable(
+      z.strictObject({
+        shape: sha256,
+        by: z
+          .array(
+            z.strictObject({
+              name: z.string().check(z.minLength(1), z.maxLength(500)),
+              ref: z.nullable(z.string().check(z.maxLength(500), z.regex(definitionRefPattern))),
+              value: z
+                .string()
+                .check(z.minLength(1), z.refine((value) => [...value].length <= 200)),
+            }),
+          )
+          .check(z.minLength(1), z.maxLength(5)),
+      }),
+    ),
+  ),
   changeMark: sha256,
 })
 export type RuntimeDefinition = z.infer<typeof runtimeDefinitionSchema>

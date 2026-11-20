@@ -12,7 +12,11 @@ import {
   shelfOf,
   speakingDefinition,
   termDomain,
+  type ShelfItem,
 } from '../../../domain/catalogue.ts'
+import type { VariantValue } from '../../../domain/definition-helpers.ts'
+import { axisWords, derivationsOf, familyAxes } from '../../../domain/metric-families.ts'
+import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { connectorType } from '../connectors/index.ts'
@@ -52,6 +56,8 @@ type DefinitionRow = Omit<CatalogueDefinition, 'state'> & {
   missing: boolean
   changedSinceFirstRead: boolean
   itemsWithOlderMark: number
+  /** What tells a variant of a family apart, as its source read it (FR-142); null otherwise. */
+  variantBy: VariantValue[] | null
 }
 
 const iso = (column: string) =>
@@ -118,7 +124,7 @@ export function createCatalogueService(
        described as (
          select d.ref, d.connector_id as "sourceId", d.name, d.title,
                 d.description_copy as "descriptionCopy", d.value_type as "valueType",
-                d.renamed_to as "renamedTo",
+                d.renamed_to as "renamedTo", d.variant_by as "variantBy",
                 ${visibleTo} as visible,
                 d.missing_since_snapshot is not null as missing,
                 ${iso('seen.fetched_at')} as "readAt",
@@ -197,10 +203,27 @@ export function createCatalogueService(
     const sourceOf = (sourceId: string) => data.sources.find((source) => source.id === sourceId)
     const toolOf = (sourceId: string) => sourceOf(sourceId)?.tool ?? sourceId
 
-    function term(row: VocabularyRow): CatalogueTerm | null {
+    // A family (FR-142) is a metric group that names its variants' definitions: one entry for them
+    // all. A group that names none is a group of the tool's, as before.
+    const families = new Set(
+      data.vocabulary
+        .filter((t) => t.kind === 'metric_group' && t.definitionRefs.length)
+        .map((t) => t.key),
+    )
+    const variantsOf = new Map<string, VocabularyRow[]>()
+    for (const row of data.vocabulary)
+      if (row.kind === 'metric' && row.parentKey && families.has(row.parentKey))
+        variantsOf.set(row.parentKey, [...(variantsOf.get(row.parentKey) ?? []), row])
+    const dimensionNames = new Map(
+      data.vocabulary
+        .filter((t) => t.kind === 'dimension')
+        .flatMap((t) => t.definitionRefs.map((ref) => [ref, t.name] as const)),
+    )
+
+    const listedOf = (row: VocabularyRow): CatalogueDefinition[] | null => {
       const stored = row.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])
       if (stored.some((definition) => !definition.visible)) return null
-      const listed: CatalogueDefinition[] = stored.map((definition) => ({
+      return stored.map((definition) => ({
         ref: definition.ref,
         name: definition.name,
         title: definition.title,
@@ -214,6 +237,76 @@ export function createCatalogueService(
         tool: toolOf(definition.sourceId),
         connector: sourceOf(definition.sourceId)?.connector ?? definition.sourceId,
       }))
+    }
+
+    /** A family's one entry: its variants, what tells them apart, and the items about any of them. */
+    function family(row: VocabularyRow): CatalogueTerm | null {
+      const members = (variantsOf.get(row.key) ?? []).sort(byName)
+      const listed = listedOf(row)
+      if (!listed || !members.length) return null
+      const said = members.map((member) => ({
+        member,
+        said: member.name,
+        variant: (() => {
+          const by = member.definitionRefs.flatMap((ref) => definitions.get(ref)?.variantBy ?? [])
+          return by.length ? { shape: '', by } : null
+        })(),
+      }))
+      const axes = familyAxes(said)
+      const keys = new Set([row.key, ...members.map((member) => member.key)])
+      const names = (item: ShelfItem) =>
+        item.scope.metrics.some((id: string) => keys.has(metricKeyOf(id)))
+      const shelf = shelfOf(items, names, today)
+      const speaking = speakingDefinition(listed)
+      const definition = speaking && { ...speaking, title: null, descriptionCopy: null }
+      return {
+        key: row.key,
+        kind: 'metric',
+        id: row.key.slice(row.key.indexOf(':') + 1),
+        name: row.name,
+        aliases: row.aliases,
+        group: null,
+        family: {
+          by: axes.by.map((axis) =>
+            axis.ref ? (dimensionNames.get(axis.ref) ?? axisWords(axis)) : axisWords(axis),
+          ),
+          derivations: derivationsOf(
+            said.map((entry) => ({
+              said: entry.said,
+              values: axes.valuesOf(entry),
+              description:
+                entry.member.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
+                  ?.descriptionCopy ?? null,
+            })),
+          ),
+          variants: said.map((entry) => {
+            const { member } = entry
+            const own = member.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
+            return {
+              key: member.key,
+              name: member.name,
+              aliases: member.aliases,
+              values: axes.valuesOf(entry),
+              state: own ? definitionState(own) : null,
+              items: shelfOf(items, scopeNames(member.key), today).items,
+            }
+          }),
+        },
+        domain: termDomain(row.areaId, row.sourceAreaId),
+        definition,
+        definitions: [],
+        status: catalogueStatus(definition, shelf),
+        shelf: {
+          ...shelf,
+          gaps: [...keys].reduce((n, key) => n + gapsNaming(key), 0),
+          mentionedBy: [...keys].reduce((n, key) => n + (mentionedBy.get(key) ?? 0), 0),
+        },
+      }
+    }
+
+    function term(row: VocabularyRow): CatalogueTerm | null {
+      const listed = listedOf(row)
+      if (!listed) return null
       const definition = speakingDefinition(listed)
       const shelf = shelfOf(items, scopeNames(row.key), today)
       const kind = row.kind === 'metric' ? 'metric' : 'dimension'
@@ -227,6 +320,7 @@ export function createCatalogueService(
           row.parentKey && groupNames.has(row.parentKey)
             ? { key: row.parentKey, name: groupNames.get(row.parentKey)! }
             : null,
+        family: null,
         // The live edition's map, the one serving and gap topics read.
         domain: termDomain(row.areaId, row.sourceAreaId),
         definition,
@@ -240,11 +334,17 @@ export function createCatalogueService(
       }
     }
 
+    // A family's variants are listed in it, never as terms of their own.
     const terms = (kind: VocabularyRow['kind']) =>
       data.vocabulary
-        .filter((row) => row.kind === kind)
+        .filter((row) =>
+          kind === 'metric'
+            ? (row.kind === 'metric' && !(row.parentKey && families.has(row.parentKey))) ||
+              families.has(row.key)
+            : row.kind === kind,
+        )
         .sort(byName)
-        .flatMap((row) => term(row) ?? [])
+        .flatMap((row) => (families.has(row.key) ? family(row) : term(row)) ?? [])
 
     return { today, terms }
   }

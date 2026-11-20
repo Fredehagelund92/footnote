@@ -88,17 +88,20 @@ function build({ facts, definitions, domains: list, people, markets }: World): M
       label: d.name,
       hint: d.covers || 'Domain',
     })),
-    ...definitions.map((d) => ({
-      id: mentionId(d.type, d.name),
-      kind: d.type,
-      label: d.name,
-      hint: d.sameAs
-        ? `Another name for ${d.sameAs}`
-        : d.domain
-          ? domains[d.domain]?.name
-          : undefined,
-      synonym: !!d.sameAs,
-    })),
+    // A family is no target a text can link to: a mention names a metric, a dimension or a term.
+    ...definitions
+      .filter((d) => !d.family)
+      .map((d) => ({
+        id: mentionId(d.type, d.name),
+        kind: d.type,
+        label: d.name,
+        hint: d.sameAs
+          ? `Another name for ${d.sameAs}`
+          : d.domain
+            ? domains[d.domain]?.name
+            : undefined,
+        synonym: !!d.sameAs,
+      })),
     ...facts.filter(servedToAgents).map((f) => ({
       id: mentionId('context', f.id),
       kind: 'context' as const,

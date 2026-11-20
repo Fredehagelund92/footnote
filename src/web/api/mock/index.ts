@@ -401,7 +401,19 @@ export function createMockApi() {
         aboutTemplate: ABOUT_BUSINESS,
         setup: { done: state.setup, serverSource: null },
       })),
-    getVocabulary: () => now(() => ({ metrics, dimensions, markets })),
+    getVocabulary: () =>
+      now(() => ({
+        // A family is one metric to write about (FR-142), with ?demo=families.
+        metrics: [
+          ...definitions
+            .list()
+            .filter((d) => d.family)
+            .map((d) => ({ name: d.name, group: '', facts: 0, definition: '' })),
+          ...metrics,
+        ],
+        dimensions,
+        markets,
+      })),
     getActivity: ({ name }) => now(() => workspace.activityOf(name, seedFacts)),
     setAbout: ({ text }) => now(() => dispatch({ type: 'about', text })),
     completeSetupStep: ({ step }) => now(() => dispatch({ type: 'setupStep', step })),
@@ -1256,6 +1268,10 @@ export function createMockApi() {
         lastDemo = demo
         if (demo === 'names') names.load()
         if (demo === 'variants') definitions.loadVariants()
+        if (demo === 'families') {
+          definitions.loadFamilies()
+          names.load(true)
+        }
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
         if ((demo === 'done' || demo === 'week') && state.user) {
@@ -1266,7 +1282,12 @@ export function createMockApi() {
       return {
         fault: result.fault,
         data:
-          result.data || state !== before || mentions || demo === 'names' || demo === 'variants',
+          result.data ||
+          state !== before ||
+          mentions ||
+          demo === 'names' ||
+          demo === 'variants' ||
+          demo === 'families',
       }
     },
     offline: scenario.offline,

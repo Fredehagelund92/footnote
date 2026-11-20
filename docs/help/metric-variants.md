@@ -3,7 +3,7 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 2
+minutes: 3
 reviewed: 2026-11-20
 ---
 
@@ -36,8 +36,13 @@ A sum over several currencies needs one reporting currency. Keep the amount in t
 
 ## If you keep a metric for each variant
 
-It still works, with limits:
+A read groups the variants of one calculation into a family, such as Revenue, with 250 variants by Currency and Channel. It finds a family from how each metric is worked out: the same calculation, with filters that differ only by the value they compare, such as EUR or web.
 
-- Agents find context by each variant's exact name, such as Revenue (EUR) web.
-- One context item can apply to every variant: choose them all where it applies.
-- Each variant is a row of its own in Definitions, and a name of its own to publish.
+Metrics whose names are one name in other currencies are a family too, however they are worked out. Accrued share (EUR) and an Accrued share (USD) worked out from it with each row's rate are one family, by Currency. When the source describes how one comes from the other, the family's page says so.
+
+- On the Names card a family is one name. Publish it, and its variants are published with it.
+- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked Family · 250 variants. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants.
+- A context item about the family applies to every variant, and agents get it for a question about revenue.
+- When any variant changes, the item is due for a check once, not once for each variant.
+
+A source that gives only the names of its metrics, not how they are worked out, makes no families. Each variant is then a metric of its own: a row in Definitions, a name to publish, and found by its exact name.

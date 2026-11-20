@@ -19,6 +19,7 @@ import type { Scope, Vocabulary as ServiceVocabulary } from '@domain/item'
 import { defaultNotToConclude } from '@domain/proposal-rules'
 import { parseMentions, serializeMentions, type MentionPart } from '@domain/mentions'
 import { anyDate, shiftDate } from '@domain/validity'
+import { metricKeyOf } from '@domain/vocabulary'
 import type { Link, LinkEnd, Rel } from '@/lib/links'
 import { mentionParts, mentionToken, parseMentionId } from '@/lib/mentions'
 import type { Version, VersionKind } from '@/model/history'
@@ -55,6 +56,7 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 export function wordsOf(vocabulary: ServiceVocabulary, terms: readonly WrittenWord[] = []): Words {
   const names = new Map<string, string>()
   for (const m of vocabulary.metrics) names.set(`metric:${m.id}`, m.name)
+  for (const f of vocabulary.families) names.set(f.key, f.name)
   for (const d of vocabulary.dimensions) {
     names.set(`dim:${d.id}`, d.name)
     for (const v of d.values) names.set(`val:${d.id}/${v.id}`, v.name)
@@ -66,6 +68,9 @@ export function wordsOf(vocabulary: ServiceVocabulary, terms: readonly WrittenWo
         const value = d?.values.find((v) => same(v.name, name))
         return d && value ? { kind: 'val', key: `val:${d.id}/${value.id}` } : undefined
       }
+      // A family by its name: an item about it applies to every variant (FR-142).
+      const family = vocabulary.families.find((f) => same(f.name, name))
+      if (family) return { kind: 'metric', key: family.key }
       const metric = vocabulary.metrics.find((m) => same(m.name, name))
       if (metric) return { kind: 'metric', key: `metric:${metric.id}` }
       const dimension = vocabulary.dimensions.find((d) => same(d.name, name))
@@ -186,7 +191,7 @@ export function scopeTermsOf(scope: Scope, words: Words): ScopeTerm[] {
  * `norway`); a draft and "Applies to" name them by key (`metric:orders`, `val:market/norway`).
  */
 export const keyedScope = (scope: Scope): Scope => ({
-  metrics: scope.metrics.map((id) => `metric:${id}`),
+  metrics: scope.metrics.map(metricKeyOf),
   dimensions: scope.dimensions.map((id) => `dim:${id}`),
   dimensionValues: scope.dimensionValues.map(({ dimension, value }) => ({
     dimension: `dim:${dimension}`,

@@ -80,6 +80,69 @@ const measures = [
   'Returns value',
 ]
 
+/**
+ * The same 5,000 metrics as the families a read finds in them (FR-142): twenty entries, each with
+ * its 250 variants by Currency and Channel, as Definitions lists a model whose source says how
+ * its metrics are made.
+ */
+export function familyDefinitions(tool: string): Definition[] {
+  return [...measureFamilies(tool), accruedShare(tool)]
+}
+
+function measureFamilies(tool: string): Definition[] {
+  // Two of the measures are the demo's own metrics by name: one word has one meaning (FR-138).
+  const own: Record<string, string> = { 'Net revenue': 'Net sales', 'Gross margin': 'Margin' }
+  return measures.map<Definition>((measure) => {
+    const label = own[measure] ?? measure
+    return {
+      name: label,
+      type: 'metric',
+      definition: '',
+      synced: true,
+      tool,
+      sourceNames: [],
+      domain: 'sales',
+      updated: '22 Oct 2026',
+      family: {
+        by: ['Currency', 'Channel'],
+        variants: currencies.flatMap((code) =>
+          channels.map((channel) => ({
+            name: `${label} (${code.toUpperCase()}) ${channel}`,
+            values: [code.toUpperCase(), channel],
+          })),
+        ),
+      },
+    }
+  })
+}
+
+/**
+ * A metric in EUR and one in USD worked out from it with each row's rate: two calculations, one
+ * family by its names, whose source says how the second comes from the first.
+ */
+function accruedShare(tool: string): Definition {
+  return {
+    name: 'Accrued share front loaded',
+    type: 'metric',
+    definition: '',
+    synced: true,
+    tool,
+    sourceNames: [],
+    domain: 'sales',
+    updated: '22 Oct 2026',
+    family: {
+      by: ['Currency'],
+      derivations: [
+        "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
+      ],
+      variants: ['EUR', 'USD'].map((code) => ({
+        name: `Accrued share front loaded (${code})`,
+        values: [code],
+      })),
+    },
+  }
+}
+
 /** The 5,000 metrics, each read-only from the definitions tool. */
 export function variantDefinitions(tool: string): Definition[] {
   return measures.flatMap((label) =>

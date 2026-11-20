@@ -39,6 +39,7 @@ describe("the web reads the service's day", () => {
         areas: [],
         proposals: [],
         metrics: [],
+        families: [],
         dimensions: [],
       })
     }

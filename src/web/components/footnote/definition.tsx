@@ -1,5 +1,6 @@
 import * as React from 'react'
 import {
+  ChevronDownIcon,
   EqualIcon,
   LockIcon,
   PencilIcon,
@@ -15,11 +16,21 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { Fact } from '@/model/items'
 import {
+  familyMeaning,
   parseTags,
   cubeRef,
   kindName,
+  type Family,
   sourceUrl,
   type Conflict,
   type Definition,
@@ -62,23 +73,149 @@ export function TypeTile({
   size = 'md',
   className,
 }: {
-  d: Pick<Definition, 'type' | 'sameAs'>
+  d: Pick<Definition, 'type' | 'sameAs' | 'family'>
   size?: 'md' | 'lg'
   className?: string
 }) {
   const Glyph = glyphs[kindOf(d)]
-  return (
+  const corner = size === 'md' ? 'rounded-sm' : 'rounded-md'
+  const tile = (
     <span
       role="img"
       aria-label={kindName(d)}
       title={kindName(d)}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center border bg-muted text-foreground',
-        size === 'md' ? 'size-6 rounded-sm [&>svg]:size-3.5' : 'size-7 rounded-md [&>svg]:size-4',
-        className,
+        'relative inline-flex shrink-0 items-center justify-center border bg-muted text-foreground',
+        size === 'md' ? 'size-6 [&>svg]:size-3.5' : 'size-7 [&>svg]:size-4',
+        corner,
+        !d.family && className,
       )}
     >
       <Glyph aria-hidden />
+    </span>
+  )
+  if (!d.family) return tile
+  // A family is its metric's tile with two more behind it, each a step up and to the right: a
+  // stack of variants.
+  const behind = cn('absolute border bg-background', size === 'md' ? 'size-6' : 'size-7', corner)
+  return (
+    // The stack takes no room of its own: the name beside it starts where a metric's would.
+    <span className={cn('relative -mt-1 -mr-1 inline-flex shrink-0 pt-1 pr-1', className)}>
+      <span aria-hidden className={cn(behind, 'top-0 right-0')} />
+      <span aria-hidden className={cn(behind, 'top-0.5 right-0.5')} />
+      {tile}
+    </span>
+  )
+}
+
+/**
+ * A family's variants, on its own page and nowhere else (FR-142): each with the values that tell
+ * it apart, which a menu per axis narrows ("Currency: EUR"). A family can have thousands, so the
+ * list grows in steps.
+ */
+export function FamilyVariants({ family }: { family: Family }) {
+  const id = React.useId()
+  const [chosen, setChosen] = React.useState<(string | null)[]>(() => family.by.map(() => null))
+  const valuesOf = React.useMemo(
+    () =>
+      family.by.map((_, i) =>
+        [...new Set(family.variants.map((v) => v.values[i] ?? ''))]
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, 'en')),
+      ),
+    [family],
+  )
+  const matching = family.variants.filter((v) =>
+    chosen.every((value, i) => value === null || v.values[i] === value),
+  )
+  const { shown, more, next, showMore } = useShowMore(matching, 20, 100)
+  const total = family.variants.length.toLocaleString('en-GB')
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-sm font-semibold">
+        Variants{' '}
+        <span className="font-normal text-muted-foreground tabular-nums">
+          {matching.length === family.variants.length
+            ? total
+            : `${matching.length.toLocaleString('en-GB')} of ${total}`}
+        </span>
+      </h3>
+      <div className="flex flex-wrap gap-2">
+        {family.by.map((axis, i) => (
+          <DropdownMenu key={axis}>
+            <DropdownMenuTrigger render={<Button variant="outline" />}>
+              {axis}: {chosen[i] ?? 'any'}
+              <ChevronDownIcon data-icon="inline-end" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="max-h-72 w-48 overflow-y-auto">
+              <DropdownMenuRadioGroup
+                value={chosen[i] ?? ''}
+                onValueChange={(value) =>
+                  setChosen((was) => was.map((x, j) => (j === i ? (value as string) || null : x)))
+                }
+              >
+                <DropdownMenuRadioItem value="" closeOnClick>
+                  Any
+                </DropdownMenuRadioItem>
+                {valuesOf[i]!.map((value) => (
+                  <DropdownMenuRadioItem key={value} value={value} closeOnClick>
+                    {value}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ))}
+      </div>
+      <table className="w-full table-fixed border-collapse text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs text-muted-foreground">
+            <th className="py-1.5 pr-2 font-normal">Variant</th>
+            {family.by.map((axis) => (
+              <th key={axis} className="w-24 py-1.5 pr-2 font-normal @md:w-32">
+                {axis}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((v) => (
+            <tr key={v.name} className="border-b">
+              <td className="truncate py-1.5 pr-2">{v.name}</td>
+              {family.by.map((axis, i) => (
+                <td key={axis} className="truncate py-1.5 pr-2 text-muted-foreground">
+                  {v.values[i]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ShowMoreButton more={more} next={next} onClick={showMore} label="variants" />
+    </section>
+  )
+}
+
+/** A family's mark beside its name: "Family · 250 variants", or "Family · 250" where room is short. */
+export function FamilyChip({
+  family,
+  short = false,
+  className,
+}: {
+  family: NonNullable<Definition['family']>
+  short?: boolean
+  className?: string
+}) {
+  const n = family.variants.length.toLocaleString('en-GB')
+  return (
+    <span
+      className={cn(
+        'inline-flex h-5 shrink-0 items-center rounded-full border bg-muted px-1.5 text-xs font-semibold whitespace-nowrap text-muted-foreground',
+        className,
+      )}
+    >
+      Family · {n}
+      {!short && ` ${family.variants.length === 1 ? 'variant' : 'variants'}`}
     </span>
   )
 }
@@ -525,7 +662,17 @@ export function DefinitionDetails({ d }: { d: Definition }) {
   return (
     <div className="flex flex-col gap-5">
       <ConflictNote d={d} />
-      {target ? (
+      {d.family ? (
+        <div className="flex max-w-reading flex-col gap-2">
+          <p className="text-base leading-7">{familyMeaning(d.family)}</p>
+          {/* How a variant is worked out from another, when the source says so: its own words. */}
+          {d.family.derivations?.map((line) => (
+            <p key={line} className="text-sm text-muted-foreground">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : target ? (
         <div className="flex flex-col items-start gap-2">
           <AnotherNameFor target={target} />
           <p className="max-w-reading text-base leading-7 text-muted-foreground">
@@ -612,6 +759,12 @@ export function DefinitionDetails({ d }: { d: Definition }) {
           </MoreProperties>
         )}
       </div>
+      {d.family && (
+        <>
+          <Separator />
+          <FamilyVariants family={d.family} />
+        </>
+      )}
       {!d.sameAs && (
         <>
           <Separator />

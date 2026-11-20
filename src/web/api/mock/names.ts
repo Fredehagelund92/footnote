@@ -41,6 +41,30 @@ const shop: CandidateMember[] = [
   member('orders.paid_at', 'Paid at', { kind: 'dimension', valueType: 'time' }),
 ]
 
+/** With ?demo=families: a metric per currency and channel, which the read finds as one family (FR-142). */
+const variants: CandidateMember[] = [
+  member('orders.currency_code', 'Currency', { kind: 'dimension', valueType: 'categorical' }),
+  member('orders.channel', 'Channel', { kind: 'dimension', valueType: 'categorical' }),
+  ...['EUR', 'USD', 'GBP', 'SEK'].flatMap((currency) =>
+    ['web', 'app'].map((channel) =>
+      member(
+        `orders.packaging_costs_${currency.toLowerCase()}_${channel}`,
+        `Packaging costs (${currency}) ${channel}`,
+        {
+          valueType: 'sum',
+          variant: {
+            shape: 'a'.repeat(64),
+            by: [
+              { name: 'currency_code', ref: 'dbt:orders.currency_code', value: currency },
+              { name: 'channel', ref: 'dbt:orders.channel', value: channel },
+            ],
+          },
+        },
+      ),
+    ),
+  ),
+]
+
 /** The words that mean something else in the mock's demo: the demo has its own Orders. */
 const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
@@ -48,13 +72,14 @@ const holders: WordHolders = new Map([
 
 export function createMockNames() {
   let waiting = false
+  let members = shop
   const taken = new Set<string>()
   const left = new Set<string>()
 
   const names = () =>
     waiting
       ? sourceNames(
-          shop.filter((m) => !taken.has(m.ref)),
+          members.filter((m) => !taken.has(m.ref)),
           [],
           holders,
           left,
@@ -62,17 +87,27 @@ export function createMockNames() {
       : []
   const read = async (): Promise<NamesRead> => {
     const shown = names().map(
-      ({ source: _source, views: _views, valueType: _type, suggested: _s, ...name }) => ({
+      ({
+        source: _source,
+        views: _views,
+        valueType: _type,
+        suggested: _s,
+        parentKey: _parent,
+        family,
+        ...name
+      }) => ({
         ...name,
         tool: 'dbt',
+        family: family ? { variants: family.variants.length, by: family.by } : null,
       }),
     )
     return { revision: await contentDigest(shown), names: shown }
   }
   return {
-    /** A read of a definitions tool ended. */
-    load: () => {
+    /** A read of a definitions tool ended; with `families`, it found a family of metrics too. */
+    load: (families = false) => {
       waiting = true
+      if (families) members = [...shop, ...variants]
     },
     read,
     card(me: string): InboxCard | null {

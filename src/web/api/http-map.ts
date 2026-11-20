@@ -123,6 +123,15 @@ export function definitionsOf(terms: readonly CatalogueTerm[]): Definition[] {
     sourceNames: [...new Set(term.aliases)],
     ...(term.domain.areaId ? { domain: term.domain.areaId } : {}),
     ...(term.group ? { group: term.group.name } : {}),
+    ...(term.family
+      ? {
+          family: {
+            by: term.family.by,
+            derivations: term.family.derivations,
+            variants: term.family.variants.map((v) => ({ name: v.name, values: v.values })),
+          },
+        }
+      : {}),
     ...(term.definition?.changedAt
       ? { changed: dateLabel(term.definition.changedAt.slice(0, 10)) }
       : {}),

@@ -46,6 +46,10 @@ whole model, and the core keeps the members of the listed views ([the views it r
 4. Sends each member as a definition, with the domain the model gives it (the domain names
    applied), and ends with the commit as its version and its cursor (for the server's folder, a
    digest of its files). Every read is a full listing.
+5. Gives a measure whose `filters` compare a column with a literal (`{CUBE}.currency_code =
+'EUR'`) its variant: the mark of the measure with those literals left out, and each literal with
+   the view's dimension of that column. Measures of one view with one such mark are one family
+   (FR-142), one name on the Names card for all of them.
 
 ## Figures in Ask
 

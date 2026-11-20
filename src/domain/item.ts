@@ -227,6 +227,14 @@ export type Person = z.infer<typeof personSchema>
 /** The governed lists the pickers are limited to (FR-107). */
 export const vocabularySchema = z.object({
   metrics: z.array(z.object({ id: z.string(), name: z.string(), group: z.string() })),
+  /**
+   * The families of metrics (FR-142), each one name for its variants, which `metrics` lists with
+   * the family's name as their group: an item may apply to a family by its key, `group:revenue`.
+   */
+  families: z._default(
+    z.array(z.object({ key: z.string(), name: z.string(), variants: z.number() })),
+    [],
+  ),
   dimensions: z.array(
     z.object({
       id: z.string(),

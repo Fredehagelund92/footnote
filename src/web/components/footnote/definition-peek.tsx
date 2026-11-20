@@ -23,7 +23,7 @@ import {
   PeekTitle,
 } from '@/components/footnote/peek'
 import { Button } from '@/components/ui/button'
-import { cubeRef, kindName, sourceUrl, useGlossary } from '@/lib/definitions'
+import { cubeRef, familyMeaning, kindName, sourceUrl, useGlossary } from '@/lib/definitions'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -106,13 +106,26 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekTitle lead={<TypeTile d={d} size="lg" />}>{d.name}</PeekTitle>
           <PeekMeaning>
             {target && <AnotherNameFor target={target} className="mb-2" />}
-            <p className={cn(!subject.definition && 'text-muted-foreground')}>
-              {subject.definition ? (
-                <MentionText text={subject.definition} />
-              ) : (
-                'No meaning written yet.'
-              )}
-            </p>
+            {d.family ? (
+              // Its variants are listed on its own page only (FR-142).
+              <p>
+                {familyMeaning(d.family)}{' '}
+                <a
+                  href={href(page)}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  See its variants
+                </a>
+              </p>
+            ) : (
+              <p className={cn(!subject.definition && 'text-muted-foreground')}>
+                {subject.definition ? (
+                  <MentionText text={subject.definition} />
+                ) : (
+                  'No meaning written yet.'
+                )}
+              </p>
+            )}
           </PeekMeaning>
           {conflictLine && word && (
             <PeekAttention

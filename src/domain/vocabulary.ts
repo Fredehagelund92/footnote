@@ -56,6 +56,12 @@ export const governedVocabularySchema = z.array(termSchema).check(
     'Missing vocabulary parent',
   ),
 )
+/**
+ * The key of a metric an item's scope names by id: a metric by the key without its prefix
+ * (`orders`), a family by its whole key (`group:revenue`, FR-142).
+ */
+export const metricKeyOf = (id: string) => (id.startsWith('group:') ? id : `metric:${id}`)
+
 export function normalizeName(name: string): string {
   return name
     .normalize('NFKD')
@@ -127,6 +133,8 @@ export function isMemberName(input: string): boolean {
 }
 /** The names of a term that a source member name can be: each definition ref and its member. */
 export function memberNames(term: Term): string[] {
+  // A family names its variants' members, which are the variants' names, not its own (FR-142).
+  if (term.kind === 'metric_group') return []
   return term.definitionRefs.flatMap((ref) => [normalizeName(ref), normalizeName(memberOf(ref))])
 }
 /**
