@@ -117,7 +117,7 @@ export function definitionsOf(terms: readonly CatalogueTerm[]): Definition[] {
     type: term.kind,
     definition: term.definition?.descriptionCopy ?? '',
     synced: true,
-    ...(term.definition ? { tool: term.definition.tool, connector: term.definition.sourceId } : {}),
+    ...(term.definition ? { tool: term.definition.tool, connector: term.definition.connector } : {}),
     sourceNames: [...new Set(term.aliases)],
     ...(term.domain.areaId ? { domain: term.domain.areaId } : {}),
     ...(term.group ? { group: term.group.name } : {}),

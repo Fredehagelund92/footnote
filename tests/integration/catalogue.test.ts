@@ -152,7 +152,15 @@ describe('the catalogue on PostgreSQL', () => {
        values ('cube','failed',now(),'Definition source could not be read')`,
     )
     expect((await catalogue()).sources).toEqual([
-      { id: 'cube', name: 'Cube local model', tool: 'Cube', readAt, sourceVersion, failing: true },
+      {
+        id: 'cube',
+        name: 'Cube local model',
+        tool: 'Cube',
+        connector: 'cube',
+        readAt,
+        sourceVersion,
+        failing: true,
+      },
     ])
   })
 
