@@ -96,6 +96,50 @@ function empty(state: ObsState, range: Range, last: number): ObsData {
 const scaleOf = (range: number, state: ObsState) =>
   (range === 7 ? 1 : range === 30 ? 4.3 : 12.9) * (state === 'busy' ? 3.4 : 1)
 
+/**
+ * Feedback's answers marked in Ask for a range, as the service counts them: each week from Monday
+ * the range touches, counted inside the range, the last under way until its Sunday is counted.
+ */
+function ratingsIn(fixture: Fixture, range: Range, ratings: Fixture['ratings'], k: number) {
+  const DAY = 86_400_000
+  const start = fixture.last - (range - 1) * DAY
+  const before = start - range * DAY
+  const add = (from: number, to: number) => {
+    const days = ratings.filter((r) => r.at >= from && r.at <= to)
+    const sum = (key: 'good' | 'wrong') => Math.round(days.reduce((n, r) => n + r[key], 0) * k)
+    return { good: sum('good'), wrong: sum('wrong') }
+  }
+  const mondayOf = (at: number) => at - ((new Date(at).getUTCDay() + 6) % 7) * DAY
+  const weeks: number[] = []
+  for (let m = mondayOf(start); m <= fixture.last; m += 7 * DAY) weeks.push(m)
+  const now = add(start, fixture.last)
+  const then = add(before, start - DAY)
+  const counted = weeks.map((m) => add(Math.max(m, start), Math.min(m + 6 * DAY, fixture.last)))
+  // As on the service: a total that may show keeps its place and more weeks are hidden instead.
+  const partsOf = (key: 'good' | 'wrong') =>
+    shownParts(
+      counted.map((n) => n[key]),
+      min,
+      { known: visibleCount(now[key], min) !== null },
+    )
+  const good = partsOf('good')
+  const wrong = partsOf('wrong')
+  return {
+    byWeek: weeks.map((m, i) => ({
+      label: dateLabel(Math.max(m, start)),
+      good: good.parts[i] ?? null,
+      wrong: wrong.parts[i] ?? null,
+      soFar: m + 6 * DAY > fixture.last,
+    })),
+    week: {
+      good: good.total,
+      wrong: wrong.total,
+      goodBefore: visibleCount(then.good, min),
+      wrongBefore: visibleCount(then.wrong, min),
+    },
+  }
+}
+
 /** An Observability page's data for a view, as the reader may see it. */
 export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
   const { state } = fixture
@@ -243,19 +287,13 @@ export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
       ? agentCounts.map((a, i) => ({ name: a.name, count: agentShown[i] ?? null }))
       : [],
     feedback: {
-      reports: fixture.reports.filter((r) => mine(r)),
-      goodByWeek: {
-        labels: fixture.goodByWeek.labels,
-        values: fixture.goodByWeek.values.map((v) => visibleCount(v, min)),
-      },
-      week: {
-        good: visibleCount(Math.round(fixture.feedbackWeek.good * k), min),
-        goodBefore:
-          range === 7
-            ? visibleCount(fixture.feedbackWeek.good - fixture.feedbackWeek.goodChange, min)
-            : null,
-        wrong: visibleCount(Math.round(fixture.feedbackWeek.wrong * k), min),
-      },
+      reports: fixture.reports.filter((r) => mine(r) && (!domain || r.domain === domain)),
+      ...ratingsIn(
+        fixture,
+        range,
+        fixture.ratings.filter((r) => mine(r) && (!domain || r.domain === domain)),
+        state === 'busy' ? 3.4 : 1,
+      ),
     },
     usage: reader.admin
       ? {
@@ -272,6 +310,7 @@ export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
           agents: fixture.agentCalls
             .map((a, i) => ({ name: a.name, calls: callsShown[i] ?? null, last: a.last }))
             .filter((_, i) => calls[i]! > 0),
+          reply: speed.reply,
           speed: {
             median: speed.median,
             p95: speed.p95,

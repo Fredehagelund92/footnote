@@ -28,6 +28,7 @@ import { CountUp } from '@/components/footnote/count-up'
 import { ObsSkeleton } from '@/components/obs/obs-skeleton'
 import { Legend, StackedBars, type SpanStep } from '@/components/obs/charts'
 import { Kpi, kpiChange, moreOrFewer, RangeSwitch } from '@/components/obs/controls'
+import { ObsEmpty } from '@/components/obs/obs-empty'
 import { TopicTable } from '@/components/obs/topic-table'
 import { FilterBar, type Field } from '@/components/obs/filter-bar'
 import { FacetRail, FacetSheet } from '@/components/obs/facet-rail'
@@ -1024,24 +1025,14 @@ function NothingConnected() {
   return (
     <Frame>
       <Head view={view} />
-      <div className="grid grid-cols-2 gap-px border-t bg-border @3xl/main:grid-cols-4">
-        {[
-          [<MessageSquareIcon key="i" />, 'Asked'],
-          [<CircleCheckIcon key="i" />, CHECKED],
-          [<CircleDashedIcon key="i" />, 'Not found'],
-          [<ListChecksIcon key="i" />, 'Saved questions'],
-        ].map(([icon, label]) => (
-          <Kpi
-            key={label as string}
-            icon={icon}
-            label={label as string}
-            value={<span className="text-muted-foreground">-</span>}
-            sub="Nothing yet"
-          />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 border-t @4xl/main:grid-cols-(--cols-split-6-5)">
-        <div aria-hidden className="px-4 py-6 opacity-50 md:px-5">
+      <ObsEmpty
+        cells={[
+          { icon: <MessageSquareIcon />, label: 'Asked' },
+          { icon: <CircleCheckIcon />, label: CHECKED },
+          { icon: <CircleDashedIcon />, label: 'Not found' },
+          { icon: <ListChecksIcon />, label: 'Saved questions' },
+        ]}
+        chart={
           <StackedBars
             bars={Array.from({ length: 7 }, (_, i) => {
               const at = obs.data.last - (6 - i) * 86_400_000
@@ -1054,19 +1045,12 @@ function NothingConnected() {
             caption="No questions yet"
             height={160}
           />
-        </div>
-        <div className="border-t px-4 py-6 md:px-8 @4xl/main:border-t-0 @4xl/main:border-l">
-          <div className="mb-1.5 flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md border text-muted-foreground">
-              <BotIcon className="size-5" aria-hidden />
-            </span>
-            <h2 className="text-base font-semibold">No agent has asked anything yet</h2>
-          </div>
-          <p className="mb-4 max-w-caption text-sm text-muted-foreground">
-            Nothing is connected, so there is nothing to show. Once an agent asks, this page fills
-            in with counts: what was asked about, and how it was answered.
-          </p>
-          <ol className="border">
+        }
+        icon={<BotIcon />}
+        title="No agent has asked anything yet"
+        sentence="Nothing is connected, so there is nothing to show. Once an agent asks, this page fills in with counts: what was asked about, and how it was answered."
+        next={
+          <ol className="w-full border">
             {steps.map((s) => (
               <li
                 key={s.title}
@@ -1086,8 +1070,8 @@ function NothingConnected() {
               </li>
             ))}
           </ol>
-        </div>
-      </div>
+        }
+      />
     </Frame>
   )
 }

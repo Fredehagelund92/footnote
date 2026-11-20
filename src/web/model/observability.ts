@@ -162,17 +162,22 @@ export type Report = {
 }
 
 export const REPORT_WORDS: Record<ReportState, string> = {
-  inbox: 'In your Inbox',
+  inbox: 'In the Inbox',
   looked: 'Looked at',
   fine: 'Not a problem',
 }
 
 export type Bar = { label: string; at: number; counts: Counts }
 
+/** A week of answers marked in Ask: from its first day in the range, and whether it is under way. */
+export type RatedWeek = { label: string; good: Count; wrong: Count; soFar: boolean }
+
 export type FeedbackData = {
   reports: Report[]
-  goodByWeek: { labels: string[]; values: Count[] }
-  week: { good: Count; goodBefore: Count; wrong: Count }
+  /** Each week of the range, oldest first. */
+  byWeek: RatedWeek[]
+  /** Answers marked in the range, and in the range before it. */
+  week: { good: Count; wrong: Count; goodBefore: Count; wrongBefore: Count }
 }
 
 export type UsageData = {
@@ -189,6 +194,8 @@ export type UsageData = {
   /** Calls whose question could not be read. */
   couldNotRead: Count
   agents: { name: string; calls: Count; last: string }[]
+  /** How long a reply took over the range: one median and one 95 of 100, over every reply. */
+  reply: { median: Count; p95: Count }
   speed: { median: Count[]; p95: Count[]; labels: string[]; per: 'day' | 'week' }
   spend: {
     total: number

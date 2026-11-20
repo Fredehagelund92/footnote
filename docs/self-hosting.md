@@ -59,7 +59,7 @@ Then run `/mcp` in Claude Code, choose **footnote**, and choose **Authenticate**
 docker compose -f compose.yaml -f compose.images.yaml up
 ```
 
-This pulls the images of the latest release instead of building them, which takes about two minutes. They can be behind the code you cloned, and they exist from the first release on. Until then, `docker compose up` builds them.
+This pulls the images of the latest release instead of building them, which takes about two minutes. They can be behind the code you cloned. The images are not published until the first release, so until then the command is refused: run `docker compose up`, which builds them from your checkout.
 
 ## Use your own data
 

@@ -74,3 +74,42 @@ test('a question in Ask is one look-up: the chat does not read it again or look 
   await page.waitForTimeout(1000)
   expect(lookups, lookups.join('\n')).toHaveLength(1)
 })
+
+test('Good answer counts one rating with the metrics only, and a second click takes that one back', async ({
+  page,
+}) => {
+  await callsWhileLoading(page, '/ask?n=rating')
+  const sent: { path: string; body: unknown; answer: unknown }[] = []
+  page.on('response', async (response) => {
+    const path = new URL(response.url()).pathname
+    if (path.startsWith('/api/v1/ask/ratings'))
+      sent.push({
+        path,
+        body: response.request().postDataJSON(),
+        answer: await response.json(),
+      })
+  })
+  const box = page.getByRole('textbox', { name: 'Ask a question' })
+  await box.click()
+  await box.pressSequentially('What should I know about Orders in Germany?')
+  await box.press('Enter')
+  const good = page.getByRole('button', { name: 'Good answer' })
+  await good.click()
+  await expect(good).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => sent.length).toBe(1)
+  const [rated] = sent
+  // The verdict and what the answer read, nothing of the question or the answer.
+  expect(rated).toMatchObject({
+    path: '/api/v1/ask/ratings',
+    body: { verdict: 'helpful', metrics: ['metric:orders'] },
+    answer: { id: expect.any(String) },
+  })
+  await good.click()
+  await expect(good).toHaveAttribute('aria-pressed', 'false')
+  await expect.poll(() => sent.length).toBe(2)
+  expect(sent[1]).toEqual({
+    path: '/api/v1/ask/ratings/take-back',
+    body: { id: (rated!.answer as { id: string }).id },
+    answer: { taken: true },
+  })
+})

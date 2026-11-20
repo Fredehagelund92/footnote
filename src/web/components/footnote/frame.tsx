@@ -49,7 +49,8 @@ function SectionHeader({
   const H = level === 2 ? 'h2' : 'h3'
   return (
     <>
-      <div className="min-w-0">
+      {/* The words give way to the action first: they wrap before the action drops under them. */}
+      <div className="min-w-0 grow basis-80">
         <H className="text-base leading-snug font-medium">{title}</H>
         {description && (
           <p className="mt-0.5 max-w-3xl text-sm text-pretty text-muted-foreground">

@@ -63,4 +63,23 @@ export const alertMuteInputSchema = z.strictObject({
 
 export const alertRaisedInputSchema = z.strictObject({
   limit: z.optional(z.number().check(z.int(), z.minimum(1), z.maximum(100))),
+  /** Only this rule's raises. */
+  rule: z.optional(z.enum(alertRuleIds)),
+  /** The page after this raise, by its id: the next older ones. */
+  after: z.optional(z.string().check(z.uuid())),
+  /** Only the raises about this domain, in the counts too. */
+  areaId: z.optional(areaId),
 })
+
+/**
+ * What the rules raised, as the person may read it: how many in all and how many by each rule that
+ * raised any, and one page of raises, newest first, of one rule or of all, with whether older ones
+ * follow. The counts never depend on the page, so the list can say "20 of 198".
+ */
+export const alertRaisedSchema = z.object({
+  total: z.number(),
+  rules: z.array(z.object({ rule: z.enum(alertRuleIds), count: z.number() })),
+  raises: z.array(alertRaiseSchema),
+  more: z.boolean(),
+})
+export type AlertRaised = z.infer<typeof alertRaisedSchema>

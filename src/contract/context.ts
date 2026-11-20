@@ -200,6 +200,12 @@ export const publishItemInputSchema = z.strictObject({
   /** The item it changes; left out for a new item. */
   itemId: z.optional(itemIdSchema),
   /**
+   * The version of the item the writer started from, as its page read it; sent with `itemId`. A
+   * change refuses once someone has published other words since then (a check alone is not that),
+   * so an older view never removes a newer change.
+   */
+  version: z.optional(z.number().check(z.int(), z.minimum(1))),
+  /**
    * The person's own draft it finishes, or their suggestion an owner returned: it takes these
    * words and is sent as itself, instead of a new suggestion beside it. Its item, when it changes
    * one, is its own.

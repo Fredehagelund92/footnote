@@ -1186,14 +1186,14 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
     /**
      * Feedback (FR-620): what agents reported about answers (anonymous, with their kind) and the
      * reports people made from Try it and the assistant (anonymous), in a range, each with where it
-     * stands; and the answers people marked good in the assistant, by week (FR-712). The reports run
-     * from the range's first day up to now, so one waiting in an Inbox is listed as soon as it is
-     * sent.
+     * stands; and the answers people marked good and wrong in Ask, by week of the range (FR-712).
+     * The reports run from the range's first day up to now, so one waiting in an Inbox is listed as
+     * soon as it is sent.
      */
     async feedback(input: { range: number; areaId?: string }): Promise<ObsFeedback> {
       const { areas, admin } = await reader(tx, input.areaId)
       const least = await minimum(tx)
-      const { start, before, end } = daysOf(clock.today(), input.range)
+      const { last, start, before, end } = daysOf(clock.today(), input.range)
       const reports = await tx.query<{
         id: string
         kind: 'helpful' | 'wrong' | 'missing' | 'unclear'
@@ -1268,24 +1268,47 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
           order by n.created_hour desc, n.id limit 200`,
         [start, areas, admin],
       )
-      const ratings = await tx.query<{ week: string; helpful: number }>(
-        `select w.week::date::text as week, coalesce(count(r.verdict) filter (where r.verdict = 'helpful'), 0)::int as helpful
-           from generate_series(date_trunc('week', $1::date) - interval '13 weeks', date_trunc('week', $1::date), interval '1 week') w(week)
+      // Each week from Monday that the range touches, counted inside the range only, so the bars
+      // add up to the cells; the last week is under way until its Sunday has been counted.
+      const ratings = await tx.query<{ week: string; good: number; wrong: number }>(
+        `select w.week::date::text as week,
+                (count(r.verdict) filter (where r.verdict = 'helpful'))::int as good,
+                (count(r.verdict) filter (where r.verdict = 'wrong'))::int as wrong
+           from generate_series(date_trunc('week', $1::timestamp), date_trunc('week', $2::timestamp), interval '1 week') w(week)
            left join assistant_ratings r
              on date_trunc('week', r.created_hour at time zone 'UTC') = w.week
-            and (case when $2::text[] is null then $3 else r.area_id = any($2) end)
+            and r.created_hour >= $1::date and r.created_hour < $3::date
+            and (case when $4::text[] is null then $5 else r.area_id = any($4) end)
           group by w.week order by w.week`,
-        [shiftDate(end, -1), areas, admin],
+        [start, last, end, areas, admin],
       )
-      const [week] = await tx.query<{ good: number; before: number; wrong: number }>(
+      const [week] = await tx.query<{
+        good: number
+        wrong: number
+        goodBefore: number
+        wrongBefore: number
+      }>(
         `select (count(*) filter (where r.verdict = 'helpful' and r.created_hour >= $2::date))::int as good,
-                (count(*) filter (where r.verdict = 'helpful' and r.created_hour < $2::date))::int as before,
-                (count(*) filter (where r.verdict = 'wrong' and r.created_hour >= $2::date))::int as wrong
+                (count(*) filter (where r.verdict = 'wrong' and r.created_hour >= $2::date))::int as wrong,
+                (count(*) filter (where r.verdict = 'helpful' and r.created_hour < $2::date))::int as "goodBefore",
+                (count(*) filter (where r.verdict = 'wrong' and r.created_hour < $2::date))::int as "wrongBefore"
            from assistant_ratings r
           where r.created_hour >= $1::date and r.created_hour < $3::date
             and (case when $4::text[] is null then $5 else r.area_id = any($4) end)`,
         [before, start, end, areas, admin],
       )
+      // The weeks add up to the range's cells, so no hidden week may be worked out from them: a
+      // total that may show keeps its place and more weeks are hidden instead (FR-614).
+      const weeksOf = (key: 'good' | 'wrong') => {
+        const total = week?.[key] ?? 0
+        return shownParts(
+          ratings.map((r) => r[key]),
+          least,
+          { known: visibleCount(total, least) !== null },
+        )
+      }
+      const good = weeksOf('good')
+      const wrong = weeksOf('wrong')
       const asked = await tx.query<{ ever: boolean }>(
         `select exists (select 1 from feedback) or exists (select 1 from assistant_ratings)
                 or exists (select 1 from gap_notes) or exists (select 1 from reports) as ever`,
@@ -1361,11 +1384,17 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
         state: asked[0]?.ever ? 'normal' : 'empty',
         minimumCount: least,
         reports: list,
-        goodByWeek: ratings.map((r) => ({ week: r.week, count: visibleCount(r.helpful, least) })),
+        byWeek: ratings.map((r, i) => ({
+          from: r.week < start ? start : r.week,
+          good: good.parts[i] ?? null,
+          wrong: wrong.parts[i] ?? null,
+          soFar: shiftDate(r.week, 6) > last,
+        })),
         week: {
-          good: visibleCount(week?.good ?? 0, least),
-          goodBefore: visibleCount(week?.before ?? 0, least),
-          wrong: visibleCount(week?.wrong ?? 0, least),
+          good: good.total,
+          wrong: wrong.total,
+          goodBefore: visibleCount(week?.goodBefore ?? 0, least),
+          wrongBefore: visibleCount(week?.wrongBefore ?? 0, least),
         },
       }
     },
@@ -1423,6 +1452,16 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
           group by b.start order by b.start`,
         [start, last, step, Math.ceil(input.range / step)],
       )
+      // The range's own percentiles, over every timed call in it: a middle of the days' p95s would
+      // read well under the range's when the days are uneven.
+      const [reply] = await tx.query<ObsUsage['reply']>(
+        `select percentile_disc(0.5) within group (order by r.duration_ms) as median,
+                percentile_disc(0.95) within group (order by r.duration_ms) as p95
+           from mcp_requests r
+          where r.tool <> 'protocol' and r.duration_ms is not null
+            and r.hour >= $1::date and r.hour < $2::date`,
+        [start, end],
+      )
       const month = `${today.slice(0, 7)}-01`
       const features = await tx.query<{ feature: string; micros: number }>(
         `select feature, sum(cost_micros)::float8 as micros from llm_spend_monthly
@@ -1453,6 +1492,7 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
           // When a kind's calls are hidden, so is when it last called.
           lastAt: shown.parts[i] === null ? null : f.last,
         })),
+        reply: reply ?? { median: null, p95: null },
         speed,
         spend: {
           month,

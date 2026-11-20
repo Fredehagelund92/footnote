@@ -284,6 +284,7 @@ export function factOfPage(page: ServiceItemPage, names: Names, words: Words): F
   )
   return {
     id: item.id,
+    version: item.version,
     title: item.title,
     summary: text(item.summary, item.summaryMarkup, words),
     ...(body ? { body } : {}),

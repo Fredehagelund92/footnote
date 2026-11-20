@@ -5,10 +5,11 @@
  * each raised lately, already narrowed to what the person may read.
  */
 import { weekdayDayMonth } from '@/lib/dates'
-import type { AlertRaise, AlertRules } from '@contract/alerts'
-import { alertCardDays, isAlertCardRule, raisedLine, type RaiseSubject } from '@domain/alerts'
+import type { AlertRaise, AlertRaised, AlertRules } from '@contract/alerts'
+import { alertCardDays, isAlertCardRule, raisedLine } from '@domain/alerts'
+import { hrefOf } from './http-inbox'
 import { cardKey } from '@domain/inbox'
-import { ruleWords, type Alerts, type Raised, type Rule } from '@/model/alerts'
+import { ruleWords, type Alerts, type Raised, type RaisedPage, type Rule } from '@/model/alerts'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -26,15 +27,6 @@ export function raisedWhen(iso: string, now: Date): string {
   if (days === 1) return `Yesterday, ${time}`
   const date = weekdayDayMonth(at)
   return at.getFullYear() === now.getFullYear() ? date : `${date} ${at.getFullYear()}`
-}
-
-/** Where a raise sends people in the app: its card in the Inbox, or the page it is about. */
-export function hrefOf(subject: RaiseSubject): string {
-  if ('card' in subject) return `/inbox?card=${subject.card}`
-  if ('topic' in subject) return `/observability?dock=topic.${subject.topic}`
-  if ('connector' in subject) return `/settings/integrations/${subject.connector}`
-  // Overview is Observability's own address.
-  return subject.page === 'overview' ? '/observability' : `/observability/${subject.page}`
 }
 
 /**
@@ -59,8 +51,18 @@ export function raisedOf(r: AlertRaise, now: Date): Raised {
   }
 }
 
+/** A page of raises as the list reads it: the next page starts after its last raise. */
+export function raisedPageOf(page: AlertRaised, now: Date): RaisedPage {
+  return {
+    total: page.total,
+    byRule: page.rules,
+    raised: page.raises.map((r) => raisedOf(r, now)),
+    next: page.more ? (page.raises.at(-1)?.id ?? null) : null,
+  }
+}
+
 /** The rules and what they raised lately, with what people changed, as the page reads them. */
-export function alertsOf(rules: AlertRules, raised: readonly AlertRaise[], now: Date): Alerts {
+export function alertsOf(rules: AlertRules, raised: AlertRaised, now: Date): Alerts {
   return {
     rules: rules.rules.map((record): Rule => ({
       ...ruleWords(record.rule, record.threshold),
@@ -68,7 +70,7 @@ export function alertsOf(rules: AlertRules, raised: readonly AlertRaise[], now: 
       last: record.last ? raisedWhen(record.last.raisedAt, now) : 'Never',
       ...(record.last ? { lastHref: raiseHref(record.last, now) } : {}),
     })),
-    raised: raised.map((r) => raisedOf(r, now)),
+    raised: raisedPageOf(raised, now),
     settings: {
       off: rules.rules.filter((r) => !r.enabled).map((r) => r.rule),
       muted: Object.fromEntries(

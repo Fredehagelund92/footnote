@@ -79,3 +79,30 @@ export type Report = z.infer<typeof reportSchema>
 /** The person's own reports of the last 90 days, newest first, each with its outcome. */
 export const myReportsSchema = z.object({ reports: z.array(reportSchema) })
 export type MyReports = z.infer<typeof myReportsSchema>
+
+/**
+ * A person's rating of one answer in Ask (FR-712): good (`helpful`) or wrong (`wrong`), as an
+ * agent says it with give_feedback, and the metrics the answer read, from which the service takes
+ * its domain. Nothing else: no question, no answer, no note. Only the verdict, the domain and the
+ * hour are stored, never who rated.
+ */
+export const ratingVerdicts = ['helpful', 'wrong'] as const
+export const rateAnswerSchema = z.strictObject({
+  verdict: z.enum(ratingVerdicts),
+  metrics: z.optional(
+    z.array(z.string().check(z.regex(/^metric:[a-z0-9_]+$/))).check(z.maxLength(10)),
+  ),
+})
+export type RateAnswer = z.infer<typeof rateAnswerSchema>
+
+/**
+ * The rating as counted: its random id, which only the page that rated holds, in memory, so a
+ * second click can take that one rating back. Nothing else can find it.
+ */
+export const ratingSchema = z.object({ id: z.string() })
+export type Rating = z.infer<typeof ratingSchema>
+
+/** Takes one rating back, by the id its page holds: false when it is already gone. */
+export const takeBackRatingSchema = z.strictObject({ id: z.string().check(z.uuid()) })
+export type TakeBackRating = z.infer<typeof takeBackRatingSchema>
+export const takenBackSchema = z.object({ taken: z.boolean() })

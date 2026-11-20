@@ -23,7 +23,8 @@ describe('the dbt cell', () => {
       logo: logos['dbt-metricflow'],
       access: manifest.access,
       places: true,
-      domainField: 'meta.domain',
+      group: { one: 'semantic model', many: 'semantic models' },
+      domainField: 'config.meta.domain',
     })
     expect(connectorByTool('dbt')?.id).toBe('dbt-metricflow')
   })

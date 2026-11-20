@@ -118,7 +118,12 @@ import { createContextService } from '../modules/context/index.ts'
 import { createTermsService } from '../modules/terms/index.ts'
 import { createInboxFeedService } from '../modules/inbox/index.ts'
 import { createCommentsService } from '../modules/comments/index.ts'
-import { createReportsService } from '../modules/reports/index.ts'
+import {
+  createReportsService,
+  rateAnswer,
+  ratingsPerMinute,
+  takeBackRating,
+} from '../modules/reports/index.ts'
 import {
   can,
   checkMutation,
@@ -1410,6 +1415,27 @@ export function createRouter({
       mine: authorized.reports.mine.handler(({ context }) => context.reports.mine()),
     },
     ask: {
+      // FR-712: a rating names no one, so it has no retry record either (it would keep the person
+      // beside the rating's id); the limit's key lives in memory only, for its minute (FR-408).
+      rate: authorized.ask.rate.handler(async ({ context, input }) => {
+        const retry = limitGapReports([
+          {
+            key: `rating:${context.session!.person.id}`,
+            limit: await ratingsPerMinute(context.tx),
+          },
+        ])
+        if (retry) {
+          context.reply.header('retry-after', String(retry))
+          throw new ORPCError('TOO_MANY_REQUESTS', {
+            message: `You've sent a lot of ratings. Try again in ${retry} seconds.`,
+            data: { retryAfterSeconds: retry },
+          })
+        }
+        return rateAnswer(context.tx, input)
+      }),
+      takeBack: authorized.ask.takeBack.handler(({ context, input }) =>
+        takeBackRating(context.tx, input),
+      ),
       lookup: authorized.ask.lookup.handler(async ({ context, input, signal }) => {
         // The setup checklist's Ask step (FR-816): only that Ask was used, never what or by whom.
         await context.cards.askedOnce()

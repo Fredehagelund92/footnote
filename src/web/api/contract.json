@@ -2456,6 +2456,38 @@
           "summary": "Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614)"
         }
       }
+    },
+    "rate": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/ask/ratings",
+          "tags": [
+            "assistant"
+          ],
+          "summary": "Mark an answer of Ask good or wrong (FR-712): counts the verdict by domain and hour, never who rated"
+        }
+      }
+    },
+    "takeBack": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/ask/ratings/take-back",
+          "tags": [
+            "assistant"
+          ],
+          "summary": "Take a rating of Ask back (FR-712) by its id"
+        }
+      }
     }
   },
   "obs": {
@@ -2831,7 +2863,7 @@
           "tags": [
             "quality"
           ],
-          "summary": "What the alert rules raised lately, newest first, each with whom its Inbox card reached: every raise for an administrator, those about their own domains for an owner; counts and scopes only (FR-614)"
+          "summary": "What the alert rules raised, newest first, a page at a time, with the counts in all and by rule: every raise for an administrator, those about their own domains for an owner (FR-614)"
         }
       }
     }

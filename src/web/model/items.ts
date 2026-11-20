@@ -49,6 +49,8 @@ export type ScopeTerm = {
 
 export type Fact = {
   id: string
+  /** The published version it was read at: a change to it starts from that version. */
+  version?: number
   title: string
   summary: string
   body?: string

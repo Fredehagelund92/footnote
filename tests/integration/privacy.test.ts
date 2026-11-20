@@ -310,7 +310,7 @@ it('lets the serving role write anonymous records but never read them back', asy
   }
 })
 
-it('lets the API role add a rating, never change or remove one, and no other role touch them', async () => {
+it('lets the API role add a rating and take one back, never change one, and no other role touch them', async () => {
   const as = async (role: string, sql: string) => {
     await client.query(`set role ${identifier(role)}`)
     try {
@@ -319,16 +319,24 @@ it('lets the API role add a rating, never change or remove one, and no other rol
       await client.query(`set role ${identifier(localRoles.owner)}`)
     }
   }
-  await as(localRoles.api, "insert into assistant_ratings (verdict) values ('helpful')")
-  for (const sql of [
-    "update assistant_ratings set verdict = 'wrong'",
-    'delete from assistant_ratings',
-  ])
-    await expect(as(localRoles.api, sql), sql).rejects.toMatchObject({ code: '42501' })
+  const [rating] = (
+    await as(
+      localRoles.api,
+      "insert into assistant_ratings (verdict) values ('helpful') returning id",
+    )
+  ).rows as { id: string }[]
+  await expect(
+    as(localRoles.api, "update assistant_ratings set verdict = 'wrong'"),
+  ).rejects.toMatchObject({ code: '42501' })
+  // Taking a rating back removes that one row, by the id only the page that rated holds.
+  expect(
+    (await as(localRoles.api, `delete from assistant_ratings where id = '${rating!.id}'`)).rowCount,
+  ).toBe(1)
   for (const role of [localRoles.serve, localRoles.readonly])
     for (const sql of [
       'select * from assistant_ratings',
       "insert into assistant_ratings (verdict) values ('helpful')",
+      'delete from assistant_ratings',
     ])
       await expect(as(role, sql), `${role}: ${sql}`).rejects.toMatchObject({ code: '42501' })
 })
