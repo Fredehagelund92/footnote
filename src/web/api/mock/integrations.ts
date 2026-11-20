@@ -23,7 +23,13 @@ import {
 } from '@/model/integrations'
 import { ApiError } from '../errors'
 import { connectFormOf, connectionOf, formTakes, minutesOf } from '../http-integrations'
-import { demoPageOf, demoSemanticModels, demoTools, integrationState } from './data/integrations'
+import {
+  cubeCloudCheck,
+  demoPageOf,
+  demoSemanticModels,
+  demoTools,
+  integrationState,
+} from './data/integrations'
 import type { Address } from './scenario'
 
 /** How long a read the mock runs takes: Read again shows Reading for this long. */
@@ -176,6 +182,7 @@ const pureChecks: Record<
   (manifest: ConnectorManifest, values: ConnectValues) => ConnectTest
 > = {
   'static-definitions': checkStaticList,
+  'cube-cloud': (_manifest, values) => cubeCloudCheck(values.config.deployment ?? ''),
   // Its file is in a repository the mock cannot reach: what the invented shop's file holds.
   'dbt-metricflow': () => ({
     ok: true,

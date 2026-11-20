@@ -14,9 +14,17 @@ import { logos, type Connector, type ConnectorKind } from './integrations'
  */
 const words: Record<
   string,
-  Pick<
-    Connector,
-    'lead' | 'group' | 'domainField' | 'endpointExample' | 'noFileLinks' | 'serverSetting'
+  Partial<
+    Pick<
+      Connector,
+      | 'label'
+      | 'lead'
+      | 'group'
+      | 'domainField'
+      | 'endpointExample'
+      | 'noFileLinks'
+      | 'serverSetting'
+    >
   >
 > = {
   cube: {
@@ -26,6 +34,12 @@ const words: Record<
     domainField: 'meta.domain',
     endpointExample: 'https://cube.example.com/cubejs-api/v1/load',
     serverSetting: 'CUBE_MODEL_DIR',
+  },
+  'cube-cloud': {
+    // Beside Cube model files, which read the same tool: its headings say which.
+    label: 'Cube Cloud',
+    lead: 'Reads the metadata of a Cube Cloud deployment through its API. Read-only, and it never reads data or SQL. Cube Cloud gives no calculations, so a change to one is seen only through what Cube Cloud shows of the member. That is its type, how it adds up, its title, description, format or meta.',
+    domainField: 'meta.domain',
   },
   'dbt-metricflow': {
     lead: 'Reads the semantic manifest your dbt pipeline writes, from where you keep it. Read-only, and it keeps no calculation and no value.',
@@ -51,9 +65,11 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
   const places = manifest.config.fields.some((field) =>
     field.options?.some((option) => option.serverOnly),
   )
+  const api = manifest.egress.hosts.length > 0 && !manifest.egress.git && !key && !places
   return {
     id: manifest.id,
     name: manifest.tool,
+    label: manifest.tool,
     kind: manifest.kind === 'definitions' ? 'definitions' : 'context',
     ...(logo ? { logo } : {}),
     ...(manifest.icon ? { icon: manifest.icon } : {}),
@@ -61,6 +77,7 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
     ...(manifest.capabilities.figures ? { figures: true as const } : {}),
     ...(key ? { keyFile: key.key } : {}),
     ...(places ? { places: true as const } : manifest.egress.git ? { git: true as const } : {}),
+    ...(api ? { api: true as const } : {}),
     ...(manifest.capabilities.discover ? { discovers: true as const } : {}),
     access: [...manifest.access],
     warnings: manifest.warnings,

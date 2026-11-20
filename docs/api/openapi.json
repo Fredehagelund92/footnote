@@ -43733,6 +43733,9 @@
                                   },
                                   "tool": {
                                     "type": "string"
+                                  },
+                                  "connector": {
+                                    "type": "string"
                                   }
                                 },
                                 "required": [
@@ -43746,7 +43749,8 @@
                                   "changedAt",
                                   "readAt",
                                   "sourceId",
-                                  "tool"
+                                  "tool",
+                                  "connector"
                                 ]
                               },
                               {
@@ -43838,6 +43842,9 @@
                                 },
                                 "tool": {
                                   "type": "string"
+                                },
+                                "connector": {
+                                  "type": "string"
                                 }
                               },
                               "required": [
@@ -43851,7 +43858,8 @@
                                 "changedAt",
                                 "readAt",
                                 "sourceId",
-                                "tool"
+                                "tool",
+                                "connector"
                               ]
                             }
                           },
@@ -43962,6 +43970,9 @@
                           "tool": {
                             "type": "string"
                           },
+                          "connector": {
+                            "type": "string"
+                          },
                           "readAt": {
                             "anyOf": [
                               {
@@ -43990,6 +44001,7 @@
                           "id",
                           "name",
                           "tool",
+                          "connector",
                           "readAt",
                           "sourceVersion",
                           "failing"

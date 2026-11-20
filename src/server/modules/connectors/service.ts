@@ -313,10 +313,11 @@ export class ConnectorService {
           area_hint: string | null
           missing_since_snapshot: string | null
           handed_over: boolean
+          type: string
           mark_version: number | null
         }>(
           `select d.connector_id, d.change_mark, d.source_mark, d.area_hint, d.missing_since_snapshot,
-                  c.removed_at is not null as handed_over, s.mark_version
+                  c.removed_at is not null as handed_over, c.type, s.mark_version
              from definitions d join connectors c on c.id = d.connector_id
              left join connector_snapshots s on s.id = d.last_seen_snapshot
             where d.ref=$1`,
@@ -326,14 +327,23 @@ export class ConnectorService {
           throw new Error('Definition belongs to another connector')
         // What the source gave for it when it last read it, under that read's mark version.
         const lastMark = previous ? (previous.source_mark ?? previous.change_mark) : null
-        // The connector computes marks another way than when it last read this one (CON-116): a
-        // mark that moved says nothing about the member, so it keeps the mark items recorded, and
-        // the source's new one is kept beside it for the next read to compare with.
-        const rebaseline =
+        // The connector computes marks another way than when it last read this one (CON-116), or
+        // it was handed over from a connector of another kind for the same tool (CON-117), such as
+        // Cube model files to Cube Cloud: a mark that moved says nothing about the member, so it
+        // keeps the mark items recorded, and the source's new one is kept beside it for the next
+        // read to compare with.
+        const recomputed =
           previous?.connector_id === source.id &&
-          !previous.missing_since_snapshot &&
           previous.mark_version !== null &&
-          previous.mark_version !== source.markVersion &&
+          previous.mark_version !== source.markVersion
+        const handedAcross = previous?.handed_over === true && previous.type !== source.type
+        const handedRecomputed =
+          previous?.handed_over === true &&
+          previous.mark_version !== null &&
+          previous.mark_version !== source.markVersion
+        const rebaseline =
+          (recomputed || handedAcross || handedRecomputed) &&
+          !previous.missing_since_snapshot &&
           lastMark !== definition.changeMark
         const changeMark =
           previous && (rebaseline || lastMark === definition.changeMark)

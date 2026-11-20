@@ -94,7 +94,7 @@ export function createCatalogueService(
     const [row] = await database.query<{
       vocabulary: VocabularyRow[]
       definitions: DefinitionRow[]
-      sources: (Omit<CatalogueSource, 'tool'> & { type: string; removed: boolean })[]
+      sources: (Omit<CatalogueSource, 'tool' | 'connector'> & { type: string; removed: boolean })[]
       mentions: { key: string; items: number }[]
       gaps: string[][]
       items: IndexedItem[]
@@ -168,6 +168,7 @@ export function createCatalogueService(
         ...source,
         removed,
         tool: connectorType(type, source.name).tool,
+        connector: type,
       }),
     )
     const gaps = row!.gaps.map((keys) => ({ keys }))
@@ -193,8 +194,8 @@ export function createCatalogueService(
       ).length
     const items = data.items
 
-    const toolOf = (sourceId: string) =>
-      data.sources.find((source) => source.id === sourceId)?.tool ?? sourceId
+    const sourceOf = (sourceId: string) => data.sources.find((source) => source.id === sourceId)
+    const toolOf = (sourceId: string) => sourceOf(sourceId)?.tool ?? sourceId
 
     function term(row: VocabularyRow): CatalogueTerm | null {
       const stored = row.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])
@@ -211,6 +212,7 @@ export function createCatalogueService(
         readAt: definition.readAt,
         sourceId: definition.sourceId,
         tool: toolOf(definition.sourceId),
+        connector: sourceOf(definition.sourceId)?.connector ?? definition.sourceId,
       }))
       const definition = speakingDefinition(listed)
       const shelf = shelfOf(items, scopeNames(row.key), today)

@@ -25,6 +25,8 @@ export type Definition = {
   synced: boolean
   /** The tool a synced definition comes from, as people say it: "Cube". */
   tool?: string
+  /** The connector a synced definition is read by: its id in Integrations. */
+  connector?: string
   /** Other names that came with the synced item from its tool; read-only. */
   sourceNames: string[]
   domain?: DomainId
@@ -61,6 +63,12 @@ export const cubeRef = (d: Definition) => `cube:${groupSlug(d)}.${slug(d.name)}`
 export function toolOf(defs: readonly Pick<Definition, 'synced' | 'tool'>[]): string | undefined {
   const tools = new Set(defs.flatMap((d) => (d.synced && d.tool ? [d.tool] : [])))
   return tools.size === 1 ? [...tools][0] : undefined
+}
+
+/** The connector the synced definitions are read by, when it is one; undefined when none or several. */
+export function connectorOf(defs: readonly Pick<Definition, 'synced' | 'connector'>[]) {
+  const ids = new Set(defs.flatMap((d) => (d.synced && d.connector ? [d.connector] : [])))
+  return ids.size === 1 ? [...ids][0] : undefined
 }
 
 // Words are compared as the service compares them: case, spaces and accents aside.

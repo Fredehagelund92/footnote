@@ -38,6 +38,8 @@ export const catalogueDefinitionSchema = z.object({
   sourceId: z.string(),
   /** The tool that connector reads, as people say it ("Cube"), for the words on screen. */
   tool: z.string(),
+  /** The kind of connector that reads it: its manifest id, such as `cube-cloud`. */
+  connector: z.string(),
 })
 
 const kindCounts = z.object({
@@ -96,6 +98,8 @@ export const catalogueSourceSchema = z.object({
   name: z.string(),
   /** The tool the source reads, as people say it ("Cube"), for the words on screen. */
   tool: z.string(),
+  /** The kind of connector it is: its manifest id, such as `cube-cloud`. */
+  connector: z.string(),
   /** The newest read that succeeded (ISO 8601), or null before the first. */
   readAt: z.nullable(z.string()),
   /** The model version that read saw, for example a Git tag. */

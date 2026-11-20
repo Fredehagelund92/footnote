@@ -14,7 +14,7 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { ToolLogo } from '@/components/footnote/tool-logo'
-import { connectorByTool, definitionsConnectHref } from '@/model/catalogue'
+import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { AnotherNameFor, TypeGlyph, TypeTile } from '@/components/footnote/definition'
@@ -60,6 +60,7 @@ import {
   sourceUrl,
   typeLabel,
   toolOf,
+  connectorOf,
   type Definition,
   type DefinitionType,
   useDefinitions,
@@ -201,7 +202,8 @@ export function DefinitionsPage() {
   const way = flipped(SORTS, sorting) ? -1 : 1
   // The tool the metrics and dimensions come from, when one; neutral words when none or several.
   const tool = toolOf(all)
-  const source = connectorByTool(tool)
+  const reader = connectorById(connectorOf(all))
+  const source = reader ?? connectorByTool(tool)
   const GROUPS = groupsOf(tool)
   const about = (d: Definition) => glossary.contextAbout(d, facts).length
   // A row's conflict includes the words folded into it, so folding never hides one.
@@ -721,15 +723,15 @@ export function DefinitionsPage() {
                 change it in the tool. Terms are words your company uses. The owner of their domain
                 writes them here.{' '}
                 <a
-                  href={integrationHref(source?.id)}
+                  href={integrationHref(reader?.id)}
                   className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   {tool ?? 'Integrations'}
                   {tool && ' in Integrations'}
                 </a>
                 .
-                {source?.figures &&
-                  ` A figure that looks wrong goes to ${figures.contact(source.id)}, the data contact.`}
+                {reader?.figures &&
+                  ` A figure that looks wrong goes to ${figures.contact(reader.id)}, the data contact.`}
               </span>
             </p>
             {/* Coverage first: how much of what agents can be asked has nothing written down. */}

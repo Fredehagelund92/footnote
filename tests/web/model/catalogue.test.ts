@@ -40,6 +40,40 @@ describe('the dbt cell', () => {
   })
 })
 
+describe('the Cube Cloud cell', () => {
+  it('reads the same tool as Cube model files, and its headings say which', () => {
+    expect(connectorById('cube-cloud')).toMatchObject({
+      name: 'Cube',
+      label: 'Cube Cloud',
+      kind: 'definitions',
+      logo: logos.cube,
+      api: true,
+      domainField: 'meta.domain',
+    })
+    expect(connectorById('cube')).toMatchObject({ name: 'Cube', label: 'Cube' })
+    expect(connectorById('cube')?.api).toBeUndefined()
+  })
+
+  it('tests on the mock as its runtime does, over the demo model’s views', () => {
+    const test = testFor('cube-cloud', {
+      config: {
+        address: 'https://larchwood.cubecloud.example',
+        deployment: '42',
+        apiAddress: 'https://larchwood.cubecloudapp.example/cubejs-api/v1',
+      },
+      secrets: { apiKey: 'invented' },
+    })
+    expect(test.ok).toBe(true)
+    expect(test.steps.map((step) => step.title)).toEqual([
+      'Reach Cube Cloud',
+      'Find the environment',
+      'Get a token that reads metadata',
+      'Read the metadata',
+    ])
+    expect(test.scopes.length).toBeGreaterThan(0)
+  })
+})
+
 describe('dbt on the mock', () => {
   it('starts its form from the manifest’s defaults', () => {
     const form = connectFormFor('dbt-metricflow', [])!

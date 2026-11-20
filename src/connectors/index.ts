@@ -1,6 +1,8 @@
 import { defineConnector, type ConnectorModule } from '../domain/connector-runtime.ts'
 import { manifest as cube } from './cube/manifest.ts'
 import { runtime as cubeRuntime } from './cube/runtime.ts'
+import { manifest as cubeCloud } from './cube-cloud/manifest.ts'
+import { runtime as cubeCloudRuntime } from './cube-cloud/runtime.ts'
 import { manifest as dbtMetricflow } from './dbt-metricflow/manifest.ts'
 import { runtime as dbtMetricflowRuntime } from './dbt-metricflow/runtime.ts'
 import { manifest as gitMarkdown } from './git-markdown/manifest.ts'
@@ -22,4 +24,5 @@ export const builtInConnectors: readonly ConnectorModule[] = [
   defineConnector(staticDefinitions, staticDefinitionsRuntime),
   defineConnector(gitMarkdown, gitMarkdownRuntime),
   defineConnector(googleDrive, googleDriveRuntime),
+  defineConnector(cubeCloud, cubeCloudRuntime),
 ]

@@ -74,6 +74,8 @@ Give the narrowest credential that works: a read-only token for one repository, 
 
 A Google Drive service account key is kept like a token. A read signs a request with it, and gets a view-only token that lives in memory for that read alone. The account sees only the folders shared with it.
 
+A Cube Cloud API key is kept like a token too, and is sent only to the Cube Cloud address. A read trades it for a token that reads metadata for 5 minutes, which goes only to the deployment's REST API and lives in memory for that read alone.
+
 ## What comes back
 
 Everything a connector returns is untrusted data:

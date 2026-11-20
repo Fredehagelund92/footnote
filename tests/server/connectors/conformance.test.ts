@@ -17,6 +17,14 @@ import {
   withMissingInput,
 } from './dbt-metricflow-fixture.ts'
 import { builtInFolder, describeConnector, type FixtureSource } from './kit.ts'
+import {
+  cubeCloudHost,
+  fixtureMeta,
+  reorderedMeta,
+  withAveragedRevenue,
+  withUnreadableView,
+  type CubeCloudHost,
+} from './cube-cloud-server.ts'
 import { driveHost, type DriveHost } from './drive-server.ts'
 import { gitHost, type GitHost } from './git-server.ts'
 import { objectHost, type ObjectHost } from './object-server.ts'
@@ -41,6 +49,9 @@ const driveIds: Record<string, string> = {}
 let driveKey = ''
 /** A folder on this machine that holds each file a connector reads as `ctx.folder`. */
 let serverFolder = ''
+/** Cube Cloud for the kit: one deployment per form of the invented model. */
+const cubeClouds: Record<'good' | 'reformatted' | 'changed' | 'partial', CubeCloudHost> =
+  {} as never
 
 beforeAll(async () => {
   cubeApi = createServer((req, res) => {
@@ -168,6 +179,16 @@ beforeAll(async () => {
   drive.file('Budget', marketing, 'application/vnd.google-apps.spreadsheet')
   const elsewhere = drive.folder('Not shared', null, { shared: false })
   drive.document('Private', elsewhere, '# Private\n\nNot shared with the account.\n')
+  const metas = {
+    good: fixtureMeta(),
+    reformatted: reorderedMeta(fixtureMeta()),
+    changed: withAveragedRevenue(fixtureMeta()),
+    partial: withUnreadableView(fixtureMeta()),
+  }
+  for (const [name, meta] of Object.entries(metas)) {
+    const cloud = (cubeClouds[name as keyof typeof cubeClouds] = await cubeCloudHost())
+    cloud.setMeta('7', meta)
+  }
 }, 60_000)
 afterAll(async () => {
   cubeApi.closeAllConnections()
@@ -175,6 +196,7 @@ afterAll(async () => {
   await host.close()
   await store.close()
   await drive.close()
+  for (const cloud of Object.values(cubeClouds)) await cloud.close()
   await rm(serverFolder, { recursive: true, force: true })
 })
 
@@ -577,6 +599,96 @@ describeConnector(module('google-drive'), {
     drive.trash(driveIds.spend!)
     return Promise.resolve({ edited: driveIds.norway!, removed: driveIds.spend! })
   },
+})
+
+/** A Cube Cloud deployment of the kit, with its key, or another. */
+const cubeCloud = (
+  name: keyof typeof cubeClouds,
+  { apiKey = cubeClouds[name].apiKey, apiAddress = cubeClouds[name].apiAddress } = {},
+): FixtureSource => ({
+  config: {
+    address: cubeClouds[name].address,
+    deployment: cubeClouds[name].deployment,
+    apiAddress,
+    domainNames: { commerce: 'finance' },
+  },
+  secrets: { apiKey },
+})
+const cloudAddress = 'https://your-team.cubecloud.example.test'
+const restAddress = 'https://your-deployment.cubecloudapp.example.test/cubejs-api/v1'
+
+describeConnector(module('cube-cloud'), {
+  folder: builtInFolder('cube-cloud'),
+  good: () => cubeCloud('good'),
+  refused: () => cubeCloud('good', { apiKey: 'not-the-api-key' }),
+  unreachable: () => ({
+    ...cubeCloud('good'),
+    config: { ...cubeCloud('good').config, address: 'http://127.0.0.1:9' },
+  }),
+  invalid: [
+    { config: { deployment: '42', apiAddress: restAddress }, field: 'address' },
+    {
+      config: { address: 'ftp://cloud.example.test', deployment: '42', apiAddress: restAddress },
+      field: 'address',
+    },
+    {
+      config: { address: cloudAddress, deployment: '0', apiAddress: restAddress },
+      field: 'deployment',
+    },
+    {
+      config: { address: cloudAddress, deployment: 'forty-two', apiAddress: restAddress },
+      field: 'deployment',
+    },
+    {
+      config: { address: cloudAddress, deployment: '42', apiAddress: `${restAddress}?token=abc` },
+      field: 'apiAddress',
+    },
+    {
+      config: {
+        address: cloudAddress,
+        deployment: '42',
+        apiAddress: restAddress,
+        securityContext: '[{ "role": "catalog" }]',
+      },
+      field: 'securityContext',
+    },
+    {
+      config: {
+        address: cloudAddress,
+        deployment: '42',
+        apiAddress: restAddress,
+        securityContext: '{',
+      },
+      field: 'securityContext',
+    },
+    {
+      config: {
+        address: cloudAddress,
+        deployment: '42',
+        apiAddress: restAddress,
+        domainNames: { marketing: 'Not a domain' },
+      },
+      field: 'domainNames',
+    },
+  ],
+  partial: () => cubeCloud('partial'),
+  // SQL an extended answer could hold, and a custom granularity's: none of it may cross.
+  calculation: ['example_orders', "date_trunc('year'", 'interval'],
+  expected: new URL('../../fixtures/cube-cloud/definitions.json', import.meta.url),
+  reformat: () => cubeCloud('reformatted'),
+  // Cube Cloud gives no calculation: revenue added up another way shows as its aggregation.
+  meaningChange: () => ({
+    source: cubeCloud('changed'),
+    moved: [
+      'cube:growth.revenue',
+      'cube:marketing.orders_income',
+      'cube:operations.revenue',
+      'cube:sales.revenue',
+    ],
+  }),
+  wrongFormat: () =>
+    cubeCloud('good', { apiAddress: `${cubeClouds.good.restAddress}/elsewhere/v1` }),
+  planted: () => cubeClouds.good.apiKey,
 })
 
 /** The template's metrics file (tests/fixtures/template/metrics.json), as far as the kit edits it. */

@@ -595,10 +595,11 @@ capabilities a manifest declares:
   takes the new mark as a change, and a change of meaning in the same read is not told apart from
   the new computation.
 
-- **Ref prefix.** It belongs to the tool, not the connector: `cube-files` and a Cube Cloud
-  connector both write `cube:`, so items keep their references when a model moves. Ownership of
-  a ref still belongs to one source and moves only by an administrator's hand-over, followed by
-  a new baseline of marks (CON-117).
+- **Ref prefix.** It belongs to the tool, not the connector: `cube` and `cube-cloud` both write
+  `cube:`, so items keep their references when a model moves. Ownership of a ref still belongs to
+  one source and moves only by an administrator's hand-over, followed by a new baseline of marks
+  (CON-117): a ref handed over from a connector of another kind keeps the mark items recorded, as
+  a new mark version does.
 
 ### What is built
 
@@ -611,7 +612,7 @@ comes in the next slices ([what the next slices build](#what-the-next-slices-bui
 | Settings form        | `src/domain/connector-config.ts`                                | Built: every field kind, checked the same way in the form and in the service                                                                                                                                                                                                                                        |
 | Runtime and messages | `src/domain/connector-runtime.ts`                               | Built: the types, the message schemas, `SourceError`, `defineRuntime`, `defineConnector`                                                                                                                                                                                                                            |
 | Registry             | `src/server/modules/connectors/registry.ts`, `platform.ts`      | Built: manifest and runtime pairs, checked at start; the server's own sources beside them                                                                                                                                                                                                                           |
-| Built-in connectors  | `src/connectors/`                                               | Built: the list, Cube (`cube`, stable), the static list of definitions (`static-definitions`, experimental), Markdown in Git (`git-markdown`, beta) and Google Drive (`google-drive`, beta)                                                                                                                         |
+| Built-in connectors  | `src/connectors/`                                               | Built: the list, Cube (`cube`, stable), Cube Cloud (`cube-cloud`, experimental), dbt MetricFlow (`dbt-metricflow`, experimental), the static list of definitions (`static-definitions`, experimental), Markdown in Git (`git-markdown`, beta) and Google Drive (`google-drive`, beta)                               |
 | Template, helpers    | `src/connectors/_template/`, `src/domain/definition-helpers.ts` | Built: a definitions connector to copy, run through the kit; the helpers Cube, the static list and the template share                                                                                                                                                                                               |
 | Workers (T1)         | `src/server/modules/connectors/worker.ts`                       | Built: `ctx.worker`, a connector's own worker in a child process under Node's permission model; Cube's compiler is the first                                                                                                                                                                                        |
 | Definitions pipeline | `ConnectorService.syncSource`                                   | Built for interface 3 runtimes: a read's messages are checked and gathered into one snapshot, and interface 2's rules apply                                                                                                                                                                                         |

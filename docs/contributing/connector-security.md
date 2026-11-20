@@ -168,6 +168,13 @@ is bound to the setting that says it is in use, and a move away from it forgets 
   host, for an access token that can only view (`drive.readonly`) and lives in memory for that
   read only. The account sees only the folders shared with it: no domain-wide delegation, no
   impersonation, and who may read a document is not copied (CON-610).
+- A Cube Cloud API key (built) is a secret like a token, limited in Cube Cloud to the one
+  deployment, and bound to both addresses (the Cube Cloud address and the REST API address). A
+  read sends it only to the Cube Cloud address, for the deployment's environments and build
+  status and to trade it for a token (`tokens-for-meta-sync`, the declared sign-in host) that
+  reads metadata only and lasts 5 minutes. That token goes only to the REST API's `/v1/meta` and
+  lives in memory for that read only. No `meta-private` scope is asked for, so private members
+  stay out of reach.
 - Later, for sign-in with OAuth: a refresh token is a secret, an access token lives only in
   memory, the manifest lists the scopes and Integrations shows them before connecting, and only read
   scopes are allowed.

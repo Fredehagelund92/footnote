@@ -19,13 +19,14 @@ Neither kind publishes anything. Only an owner does that.
 
 ## The connectors
 
-| Connector                                                     | Reads                                  | How often                                                         |
-| ------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------- |
-| [Cube](connectors/cube.md)                                    | Definitions, from Cube model files     | Every hour, 15 minutes at the shortest, out of date after 6 hours |
-| [dbt MetricFlow](../src/connectors/dbt-metricflow/README.md)  | Definitions, from dbt's built file     | Every hour, 15 minutes at the shortest, out of date after 6 hours |
-| [Static list](../src/connectors/static-definitions/README.md) | Definitions, from a list you paste     | Every hour, out of date after 6 hours                             |
-| [Markdown in Git](../src/connectors/git-markdown/README.md)   | Documents, from a Git repository       | Every day, 15 minutes at the shortest, out of date after 2 days   |
-| [Google Drive](../src/connectors/google-drive/README.md)      | Documents, from Google Docs in folders | Every day, 15 minutes at the shortest, out of date after 2 days   |
+| Connector                                                     | Reads                                                | How often                                                         |
+| ------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------- |
+| [Cube](connectors/cube.md)                                    | Definitions, from Cube model files                   | Every hour, 15 minutes at the shortest, out of date after 6 hours |
+| [Cube Cloud](../src/connectors/cube-cloud/README.md)          | Definitions, from a Cube Cloud deployment's metadata | Every hour, 15 minutes at the shortest, out of date after 6 hours |
+| [dbt MetricFlow](../src/connectors/dbt-metricflow/README.md)  | Definitions, from dbt's built file                   | Every hour, 15 minutes at the shortest, out of date after 6 hours |
+| [Static list](../src/connectors/static-definitions/README.md) | Definitions, from a list you paste                   | Every hour, out of date after 6 hours                             |
+| [Markdown in Git](../src/connectors/git-markdown/README.md)   | Documents, from a Git repository                     | Every day, 15 minutes at the shortest, out of date after 2 days   |
+| [Google Drive](../src/connectors/google-drive/README.md)      | Documents, from Google Docs in folders               | Every day, 15 minutes at the shortest, out of date after 2 days   |
 
 An admin can set each source's own schedule, within those limits.
 
@@ -56,6 +57,16 @@ Whoever runs the service can also name a Cube model folder or another connector'
 Publishing a version written against the current definitions clears the flag.
 
 A read that could not read everything keeps what it missed: only a complete read marks a definition as gone.
+
+What counts as a change depends on what the tool gives. Cube model files and dbt give each calculation, so a changed calculation flags. Cube Cloud gives metadata only: a member's type, how it adds up, its title, description and format. A changed calculation there flags nothing until one of those, or its meta, changes too.
+
+A model that moves from Cube model files to Cube Cloud keeps its definitions, since both read them as the same ids. Disconnect the files source an admin added, and the next Cube Cloud read takes them over. It flags no item for the move and tells the owners once.
+
+A files source set up on the server (`CUBE_MODEL_DIR`) cannot be disconnected, so its refs stay with it.
+
+A member the files source had already marked missing takes the new mark as a change when it comes back, so the items on it are flagged.
+
+A member Cube Cloud does not show, for example one the security context hides, stays with the disconnected source and is never marked missing.
 
 ## What a read does to documents
 

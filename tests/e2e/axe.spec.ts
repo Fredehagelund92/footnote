@@ -89,6 +89,7 @@ const places = [
   '/settings/integrations/cube',
   '/settings/integrations/cube/connect',
   '/settings/integrations/dbt-metricflow/connect?step=2',
+  '/settings/integrations/cube-cloud/connect?step=2',
   '/settings/advanced',
   '/help',
   '/nowhere',

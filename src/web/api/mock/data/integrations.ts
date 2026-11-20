@@ -4,6 +4,7 @@ import {
   type Activity,
   type ConnectChoice,
   type ConnectScope,
+  type ConnectTest,
   type DefinitionsView,
   type DriveDocument,
   type DriveFolder,
@@ -461,4 +462,41 @@ export const demoTools: Record<string, DemoTool> = {
 export function demoPageOf(state: IntegrationState, tool: DemoTool): SourcePage {
   const page = { ...tool.page, source: tool.source }
   return tool.states?.[state]?.(page) ?? page
+}
+
+/**
+ * A test of a Cube Cloud deployment of the demo's model, as its connector's check says it: the
+ * deployment and its production environment, a token that reads metadata only, and the demo's
+ * views.
+ */
+export function cubeCloudCheck(deployment: string): ConnectTest {
+  const scopes = demoTools[DEMO_DEFINITIONS]?.scopes ?? []
+  const metrics = scopes.reduce((n, s) => n + (s.metrics ?? 0), 0)
+  const dimensions = scopes.reduce((n, s) => n + (s.dimensions ?? 0), 0)
+  return {
+    ok: true,
+    steps: [
+      {
+        title: 'Reach Cube Cloud',
+        status: 'ok',
+        detail: `Found deployment ${deployment}.`,
+      },
+      {
+        title: 'Find the environment',
+        status: 'ok',
+        detail: 'Read the production environment, branch main.',
+      },
+      {
+        title: 'Get a token that reads metadata',
+        status: 'ok',
+        detail: 'It reads metadata only, for 5 minutes.',
+      },
+      {
+        title: 'Read the metadata',
+        status: 'ok',
+        detail: `${metrics} ${metrics === 1 ? 'metric' : 'metrics'} and ${dimensions} ${dimensions === 1 ? 'dimension' : 'dimensions'} in ${scopes.length} ${scopes.length === 1 ? 'view' : 'views'}.`,
+      },
+    ],
+    scopes,
+  }
 }

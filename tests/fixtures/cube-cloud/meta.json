@@ -1,0 +1,212 @@
+{
+  "cubes": [
+    {
+      "name": "orders",
+      "type": "cube",
+      "title": "Orders",
+      "isVisible": false,
+      "public": false,
+      "connectedComponent": 1,
+      "measures": [
+        {
+          "name": "orders.revenue",
+          "title": "Orders Revenue",
+          "shortTitle": "Revenue",
+          "description": "Total order revenue.",
+          "type": "number",
+          "aggType": "sum",
+          "sql": "SELECT amount, country FROM example_orders",
+          "isVisible": false,
+          "public": false
+        }
+      ],
+      "dimensions": [],
+      "segments": []
+    },
+    {
+      "name": "sales",
+      "type": "view",
+      "title": "Sales",
+      "isVisible": true,
+      "public": true,
+      "connectedComponent": 1,
+      "meta": { "domain": "finance" },
+      "measures": [
+        {
+          "name": "sales.revenue",
+          "title": "Sales Revenue",
+          "shortTitle": "Revenue",
+          "description": "Total order revenue.",
+          "type": "number",
+          "aggType": "sum",
+          "cumulative": false,
+          "cumulativeTotal": false,
+          "drillMembers": [],
+          "drillMembersGrouped": { "measures": [], "dimensions": [] },
+          "aliasMember": "orders.revenue",
+          "sql": "sum(example_orders.amount)",
+          "isVisible": true,
+          "public": true
+        },
+        {
+          "name": "sales.count",
+          "title": "Sales Count",
+          "shortTitle": "Count",
+          "type": "number",
+          "aggType": "count",
+          "cumulative": false,
+          "cumulativeTotal": false,
+          "drillMembers": [],
+          "drillMembersGrouped": { "measures": [], "dimensions": [] },
+          "aliasMember": "orders.count",
+          "meta": { "domain": "commerce" },
+          "isVisible": true,
+          "public": true
+        },
+        {
+          "name": "sales.margin",
+          "title": "Sales Margin",
+          "shortTitle": "Margin",
+          "description": "Revenue less the cost of what was sold, for finance only.",
+          "type": "number",
+          "aggType": "number",
+          "aliasMember": "orders.margin",
+          "isVisible": false,
+          "public": false
+        }
+      ],
+      "dimensions": [
+        {
+          "name": "sales.country",
+          "title": "Sales Country",
+          "shortTitle": "Country",
+          "type": "string",
+          "aliasMember": "orders.country",
+          "suggestFilterValues": true,
+          "isVisible": true,
+          "public": true
+        },
+        {
+          "name": "sales.ordered_at",
+          "title": "Sales Ordered at",
+          "shortTitle": "Ordered at",
+          "description": "When the order was placed.",
+          "type": "time",
+          "aliasMember": "orders.ordered_at",
+          "granularities": [
+            {
+              "name": "fiscal_year",
+              "title": "Fiscal year",
+              "interval": "1 year",
+              "sql": "date_trunc('year', ordered_at + interval '3 months')"
+            }
+          ],
+          "suggestFilterValues": true,
+          "isVisible": true,
+          "public": true
+        }
+      ],
+      "segments": [],
+      "hierarchies": [],
+      "folders": [],
+      "nestedFolders": []
+    },
+    {
+      "name": "marketing",
+      "type": "view",
+      "title": "Marketing",
+      "isVisible": true,
+      "public": true,
+      "connectedComponent": 1,
+      "measures": [
+        {
+          "name": "marketing.orders_income",
+          "title": "Marketing Orders Income",
+          "shortTitle": "Orders Income",
+          "description": "Total order revenue.",
+          "type": "number",
+          "aggType": "sum",
+          "cumulative": false,
+          "cumulativeTotal": false,
+          "drillMembers": [],
+          "drillMembersGrouped": { "measures": [], "dimensions": [] },
+          "aliasMember": "orders.revenue",
+          "isVisible": true,
+          "public": true
+        }
+      ],
+      "dimensions": [
+        {
+          "name": "marketing.orders_country",
+          "title": "Marketing Orders Country",
+          "shortTitle": "Orders Country",
+          "type": "string",
+          "aliasMember": "orders.country",
+          "suggestFilterValues": true,
+          "isVisible": true,
+          "public": true
+        }
+      ],
+      "segments": []
+    },
+    {
+      "name": "operations",
+      "type": "view",
+      "title": "Operations",
+      "isVisible": true,
+      "public": true,
+      "connectedComponent": 1,
+      "measures": [
+        {
+          "name": "operations.revenue",
+          "title": "Operations Revenue",
+          "shortTitle": "Revenue",
+          "description": "Total order revenue.",
+          "type": "number",
+          "aggType": "sum",
+          "cumulative": false,
+          "cumulativeTotal": false,
+          "drillMembers": [],
+          "drillMembersGrouped": { "measures": [], "dimensions": [] },
+          "aliasMember": "orders.revenue",
+          "isVisible": true,
+          "public": true
+        }
+      ],
+      "dimensions": [],
+      "segments": []
+    },
+    {
+      "name": "growth",
+      "type": "view",
+      "title": "Growth",
+      "isVisible": true,
+      "public": true,
+      "connectedComponent": 1,
+      "meta": { "domain": "marketing" },
+      "measures": [
+        {
+          "name": "growth.revenue",
+          "title": "Growth Revenue",
+          "shortTitle": "Revenue",
+          "description": "Total order revenue.",
+          "type": "number",
+          "aggType": "sum",
+          "cumulative": false,
+          "cumulativeTotal": false,
+          "drillMembers": [],
+          "drillMembersGrouped": { "measures": [], "dimensions": [] },
+          "aliasMember": "orders.revenue",
+          "meta": { "synonyms": ["Turnover", " turnover ", "Sales income"] },
+          "format": "currency",
+          "currency": "EUR",
+          "isVisible": true,
+          "public": true
+        }
+      ],
+      "dimensions": [],
+      "segments": []
+    }
+  ],
+  "compilerId": "3f6c1d52-8a0e-4b7a-9d21-6f0e4c1b2a90"
+}
