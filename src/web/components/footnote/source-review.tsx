@@ -33,7 +33,7 @@ import { placeKey, placeLabel, type SourcePlace } from '@/model/source-places'
 // suggestion with the live item today and, later, a live item with a suggestion beside it:
 //
 // - CompareBar, on top: what is compared, now and suggested with who and when, and how many of
-//   the parts (each field, and the text) change and stay the same.
+//   the fields change and stay the same.
 // - FieldsDiff, the Fields table: every field but the text with its value now and suggested, a
 //   changed row tinted, a row that stays the same quiet. Its switch leaves only what changed.
 // - TextComparison, the text as a reader sees it, now beside suggested, passage beside passage,
@@ -398,6 +398,11 @@ export function FieldsDiff({
                         />
                       )}
                       {row.label}
+                      {hides && !row.changed && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          Kept: it has a comment
+                        </span>
+                      )}
                       {/* The tint and the marks say it on the screen; a screen reader hears it. */}
                       {row.changed && <span className="sr-only">, changed</span>}
                       {notes && (
@@ -920,7 +925,7 @@ export function TextComparison({
 
 /**
  * The bar on top of the comparison: what is compared, now and suggested, each with who and when,
- * and how many of the parts (each field, and the text) change and stay the same. A new item and
+ * and how many of the fields change and stay the same. A new item and
  * an archive have one side, and the bar says which of the two it is.
  */
 export function CompareBar({

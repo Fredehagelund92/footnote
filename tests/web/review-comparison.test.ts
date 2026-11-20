@@ -98,7 +98,7 @@ describe('K1, the table of fields', () => {
     },
   )
 
-  it('counts in the bar what the table shows: each changed row, and the text', () => {
+  it('counts in the bar what the table shows: each changed field row', () => {
     const after = { ...now, ...changing.title, ...changing.scope, ...changing.validity }
     const source = { before: 'Orders fell to almost nothing.', after: 'Orders fell to 20 a day.' }
     const counts = compareCounts({ fields: { before: now, after }, source })
@@ -106,13 +106,13 @@ describe('K1, the table of fields', () => {
     const changedRows = bodyRows(el).filter((r) =>
       r.getAttribute('aria-label')?.endsWith(', changed'),
     )
-    expect(counts).toMatchObject({ changed: changedRows.length + 1, same: 9 - changedRows.length })
+    expect(counts).toMatchObject({ changed: changedRows.length, same: 9 - changedRows.length })
     expect(changedRows).toHaveLength(3)
     const unchanged = compareCounts({
       fields: { before: now, after },
       source: { before: 'Same.', after: 'Same.' },
     })
-    expect(unchanged).toMatchObject({ changed: 3, same: 7 })
+    expect(unchanged).toMatchObject({ changed: 3, same: 6 })
   })
 
   it('opens with only what changed, hides exactly the rows that stay the same and names them', () => {
@@ -135,6 +135,24 @@ describe('K1, the table of fields', () => {
     expect(kind.className).not.toContain('bg-caution')
     expect(kind.querySelector('del, ins')).toBeNull()
     expect(el.textContent).not.toContain('are hidden')
+  })
+
+  it('keeps a same row that holds a comment, says why, and hides and names the others', () => {
+    const after = { ...now, ...changing.title }
+    const notes = {
+      under: () => null,
+      holds: (at: { field?: string }) => at.field === 'kind',
+      comment: () => {},
+    }
+    const el = render(React.createElement(FieldsDiff, { before: now, after, person: 'Kept', notes }))
+    const names = bodyRows(el).map((r) => r.querySelector('th')!.textContent)
+    expect(names).toEqual(['Title, changed', 'KindKept: it has a comment'])
+    const others = fieldRows(now, after).filter((r) => !r.changed && r.key !== 'kind')
+    expect(others).toHaveLength(7)
+    expect(el.textContent).toContain(
+      `7 fields that stay the same are hidden: ${others.map((r) => r.label).join(', ')}.`,
+    )
+    expect(el.textContent).not.toMatch(/hidden:.*Kind/)
   })
 
   it('remembers the switch for each person', () => {

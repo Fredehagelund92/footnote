@@ -49,6 +49,5 @@ export function compareCounts(r: Pick<Review, 'fields' | 'source'>) {
   const rows = fieldRows(r.fields.before, r.fields.after)
   const fields = rows.filter((x) => x.changed).length
   const passages = passagesChanged(r.source.before, r.source.after)
-  const changed = fields + (passages ? 1 : 0)
-  return { changed, same: rows.length + 1 - changed, fields, passages }
+  return { changed: fields, same: rows.length - fields, fields, passages }
 }

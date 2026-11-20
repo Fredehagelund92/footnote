@@ -25,7 +25,7 @@ test('the comparison: the bar, the changed fields, then the text with only the c
   await expect(bar).toContainText('Now')
   // Who and when, as the review says it (the day is the demo's own).
   await expect(bar.getByText(/^by Ines Duarte, from a chat, \d+ Oct 2026$/)).toBeVisible()
-  await expect(bar).toContainText('2 changed')
+  await expect(bar).toContainText('1 changed')
   await expect(bar).toContainText('8 the same')
 
   // The Fields table opens with only what changed, and names the eight it hides.
