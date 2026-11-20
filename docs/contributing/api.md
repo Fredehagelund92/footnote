@@ -318,6 +318,9 @@ A refresh compares each definition with what accepted items recorded:
   told (`vocabulary.domain_changed`), and serving keeps the accepted domain until a vocabulary
   proposal changes it.
 - A source that cannot be read changes no flag and no link status. The operations view shows it.
+- A read whose connector computes marks another way now (a new mark version) flags nothing: each
+  definition keeps the mark items recorded, and the owners of each domain with an item that
+  uses one are told once (`source.marks_rebaselined`).
 
 `GET /api/v1/catalogue` lists every metric and dimension of the live vocabulary (FR-136): its
 definition as the source last read it (the description copy, never a calculation), its domain

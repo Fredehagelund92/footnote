@@ -1457,7 +1457,7 @@ begin
     return;
   end if;
   if e.topic in ('item.flagged', 'item.links_stale', 'vocabulary.domain_changed', 'gap.verified',
-                 'source.suggested', 'source.document_gone') then
+                 'source.suggested', 'source.document_gone', 'source.marks_rebaselined') then
     owners := case when e.area_id is null then array(
         select g.person_id from global_role_grants g where g.role = 'administrator' and g.valid_at @> now())
       else array(
@@ -3867,8 +3867,11 @@ CREATE TABLE public.connector_snapshots (
     skipped integer DEFAULT 0 NOT NULL,
     full_read boolean DEFAULT true NOT NULL,
     settings_revision integer,
+    mark_version integer,
+    rebaselined integer DEFAULT 0 NOT NULL,
     CONSTRAINT connector_snapshots_connector_version_check CHECK ((char_length(connector_version) <= 100)),
-    CONSTRAINT connector_snapshots_counts_check CHECK ((LEAST(documents_seen, suggested, replaced, withdrawn, waiting, skipped) >= 0)),
+    CONSTRAINT connector_snapshots_counts_check CHECK ((LEAST(documents_seen, suggested, replaced, withdrawn, waiting, skipped, rebaselined) >= 0)),
+    CONSTRAINT connector_snapshots_mark_version_check CHECK ((mark_version >= 1)),
     CONSTRAINT connector_snapshots_cursor_check CHECK ((char_length(cursor) <= 500))
 );
 
@@ -3944,6 +3947,7 @@ CREATE TABLE public.definitions (
     model_file text,
     synonyms text[] DEFAULT '{}'::text[] NOT NULL,
     base_name text,
+    source_mark text,
     CONSTRAINT definitions_base_name_check CHECK (((base_name IS NULL) OR (btrim(base_name) <> ''::text))),
     CONSTRAINT definitions_description_copy_check CHECK ((char_length(description_copy) <= 500)),
     CONSTRAINT definitions_model_file_check CHECK (((char_length(model_file) >= 1) AND (char_length(model_file) <= 500))),

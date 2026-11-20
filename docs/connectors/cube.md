@@ -11,7 +11,7 @@ Read metrics and dimensions from Cube model files, in a Git repository or a fold
 ## What your model needs
 
 1. A folder of **YAML** model files. JavaScript, Python and Jinja templates are skipped, and a symbolic link is never followed.
-2. It compiles with Cube **1.7.39**, the version the connector is pinned to.
+2. It compiles with Cube **1.8.27**, the version the connector is pinned to.
 3. At least one **public view** or public cube. Only public members are listed.
 
 Recommended in the model:

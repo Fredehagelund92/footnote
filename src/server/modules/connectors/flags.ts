@@ -131,6 +131,48 @@ export async function noticeStaleLinks(tx: Queryable, snapshotId: string): Promi
   return items.length
 }
 
+/**
+ * A read that stored new marks without flagging, because its connector computes them another way
+ * now (CON-116): the owners of each domain with a live item that references or mentions one of
+ * those definitions are told once, for the whole read, with the items it kept as they were.
+ */
+export async function noticeRebaselined(
+  tx: Queryable,
+  read: { sourceId: string; snapshotId: string; refs: readonly string[] },
+): Promise<number> {
+  const areas = await tx.query<{ areaId: string; items: string[] }>(
+    `with live as (
+       select s.item_id, s.version_id, v.area_id from item_version_service s
+         join item_versions v on v.id = s.version_id
+        where s.editions @> (select seq from live_edition))
+     select l.area_id as "areaId", array_agg(distinct l.item_id order by l.item_id) as items
+       from live l
+      where exists (select 1 from item_version_refs r
+                     where r.version_id = l.version_id and r.definition_ref = any($1::text[]))
+         or exists (select 1 from item_version_mentions m
+                     where m.version_id = l.version_id and m.definition_ref = any($1::text[]))
+      group by l.area_id
+      order by l.area_id`,
+    [read.refs],
+  )
+  for (const area of areas)
+    await tx.query(
+      `insert into outbox_events(topic,area_id,aggregate_type,aggregate_id,payload)
+       values('source.marks_rebaselined',$1,'source',$2,$3)`,
+      [
+        area.areaId,
+        read.sourceId,
+        JSON.stringify({
+          state: 'rebaselined',
+          source: read.sourceId,
+          read: read.snapshotId,
+          items: area.items,
+        }),
+      ],
+    )
+  return areas.length
+}
+
 export type DomainChange = { ref: string; from: string | null; to: string | null }
 
 /**

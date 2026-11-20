@@ -94,7 +94,7 @@ export function runWorker(
       reject(failed('timed_out'))
       return
     }
-    // A process of its own: Cube 1.7.39's native logger aborts on a second worker_threads load in
+    // A process of its own: Cube 1.8.27's native logger aborts on a second worker_threads load in
     // one process, and a process contains native crashes and lets Node deny network and writes.
     const child = fork(module, [], {
       execArgv: [

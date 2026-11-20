@@ -503,9 +503,9 @@ package is there.
 
 - The default build uses the mock binding; `VITE_API_MODE=http` switches to the service, as the
   Docker image builds it.
-- Dependency scanning (OSV-Scanner) passes with three reviewed exceptions: two in `extract-zip`,
-  which the Cube compiler loads but never calls, and one in `deepmerge`, which only the shadcn CLI
-  loads, for its own configuration files. They are listed with
-  their reasons and an expiry date in `osv-scanner.toml`. None has a fixed version. `npm audit` shows the same findings;
-  `.npmrc` turns off the audit on install, so look at it on purpose.
+- Dependency scanning (OSV-Scanner) passes with two reviewed exceptions: one in `deepmerge`, which
+  only the shadcn CLI loads, for its own configuration files, and one in `picomatch`, which only
+  build and lint tooling reaches, with globs from this repository. They are listed with their
+  reasons and an expiry date in `osv-scanner.toml`. Neither has a fixed version. `npm audit` finds
+  no vulnerability; `.npmrc` turns off the audit on install, so look at it on purpose.
 - axe passes on every place, but it does not replace a keyboard and screen reader review.

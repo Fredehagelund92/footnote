@@ -51,7 +51,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
-    changeMark: 'e0137dff78632de12d4b24464b84b7af879777a79eb1f31a1991ccceb49f7179',
+    changeMark: '8c3c38d0031ca794c9d24a66da521a4ece524b558d1b1de1ff1388681e8f21ba',
   },
   {
     ref: 'cube:basket.gross_margin',
@@ -64,7 +64,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
-    changeMark: '98b800ae25ab9155b91db94e2ca789ff3adc2f386e6250f8d05e429e5de9f5d1',
+    changeMark: '28e3e5dc75256ae71e33eec77aec57dacaa292a25ee3737247b866af2838c611',
   },
   {
     ref: 'cube:basket.online_share',
@@ -77,7 +77,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
-    changeMark: '969441b6fd2e08d1e919e8c94325f4835b2c835275bd5f025d157fce25d9edd7',
+    changeMark: 'ca38ffc795d41870134b799aab65b20823c0dc9ed9106a55b12ad4625b0da7d1',
   },
   {
     ref: 'cube:basket.units_per_order',
@@ -90,7 +90,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
-    changeMark: 'de851b6f0215efee654cc72922359425bc1032aed25912226dd00e6026170fed',
+    changeMark: 'a8eca6cc0386a4bb793cf3bba5331c67b45f075f87a4af8be4f5e0d4bafbdd58',
   },
   {
     ref: 'cube:customers.active_customers',
@@ -103,7 +103,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
-    changeMark: '355fd23b14b0d988c2b1c4f761bdc893aaa5f4d108eaf014cf08b2cfc8ed2c95',
+    changeMark: '84163fa596bcd35ed4a87c10101ef035dbe2a03d0f85fe1d8688cd90e8fa1c24',
   },
   {
     ref: 'cube:customers.churn_rate',
@@ -116,7 +116,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
-    changeMark: '4c6b2f60ad64ef8ac439e07585b2b664ee66b89d8522fd6184e4a9b096227c38',
+    changeMark: '9359cd4a8b2c4b56dc96514a6ad4f6606a19145bdd58c8c3b3f82d03e52fa764',
   },
   {
     ref: 'cube:customers.customer_lifetime_value',
@@ -129,7 +129,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
-    changeMark: '23dea68cf015324a80d463f5936ccdf8f66c48e0de1c1be355e49fd7abc09867',
+    changeMark: '5f8ba26eca616756edb1b85ea95c8078b8d8531c2bdf81f00ae11a54d5d279ce',
   },
   {
     ref: 'cube:customers.first_time_buyers',
@@ -142,7 +142,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
-    changeMark: '643cec8865e29789c427d88ae05dea8fccd2050c88e53061f38542f59f56dd57',
+    changeMark: 'f14bc1d0732a5b590f1c93909bea903ae683e8d93715b4cae149791044d14e86',
   },
   {
     ref: 'cube:customers.new_customers',
@@ -155,7 +155,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
-    changeMark: 'bfde89584eaf081ca8d086605f59ab751b67e2543dda6bb3bf27f3f37de7f136',
+    changeMark: 'bdc965dd2459c5ff6c0ac3d3481f0a5a9f8fe023073269aab4855d14d802ff33',
   },
   {
     ref: 'cube:customers.repeat_purchase_rate',
@@ -168,7 +168,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
-    changeMark: 'ddbe8c5148f2bd85610fb1b716d8d955961fb3a26b2f829edf65a4f6bd6b3f55',
+    changeMark: '52cfadf74e721b28fa75fa1a3e86e64082859e4d1993e87b7abfa7559627714a',
   },
   {
     ref: 'cube:marketing.conversion_rate',
@@ -180,7 +180,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: '7d89c9247eded8e8f48a83614835d011f31ebe628969ddddf4b54f21e6ab174f',
+    changeMark: '653af40459aae88806dfe505d15b01cc133da21656a66d503de85ec07d9cd1ba',
   },
   {
     ref: 'cube:marketing.cost_per_acquisition',
@@ -192,7 +192,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: '8c070901fac9ab7e7347d492d38591c3a9218839e601c7e8938399f19b552269',
+    changeMark: 'aac27333a5f70a303c055404b985ad567a81d49d38f2ce57b89c9b2e50be6b5d',
   },
   {
     ref: 'cube:marketing.discount_cost',
@@ -205,7 +205,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: 'c11f524dda89a303ce6656f7048f03a1725cea2edc33fbca59008d34315e9a3b',
+    changeMark: '39f2b8bb2eff779afc98b709e3f59aa992fced0b15724f7016d0f5302c307348',
   },
   {
     ref: 'cube:marketing.market',
@@ -217,7 +217,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: '02eb58387b87fbfe197619f880699737a3be6ca22101d294cf1dd8c92538be9d',
+    changeMark: 'cc5b4ee95d2e8033c85725c7ac238441ceee4b8f6f074601b865b3108cd1db1c',
   },
   {
     ref: 'cube:marketing.marketing_day',
@@ -229,7 +229,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: '8dc5590dcb384715d795987e1b8ba62fea7ec3d0f881058d5d2b8714c809e1a2',
+    changeMark: '3a1bccc450fb34ee0994bbd7e56b429e3df4e11176f65f91a2b0834350e4b086',
   },
   {
     ref: 'cube:marketing.marketing_spend',
@@ -242,7 +242,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: '6b210ca9edeb188ccd9d21ce1fb968bc90e5d81679f68a4fc494ead77c320276',
+    changeMark: 'a2b59fa0eed684b03ab389f91b79315b562225d0c65b85764bc0425365c2d26e',
   },
   {
     ref: 'cube:marketing.return_on_ad_spend',
@@ -255,7 +255,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_paid_media',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: 'fd2d2d46703ced1e9557b9fdcbce0ff6598e68ce11a9826449db0a660bc15e8d',
+    changeMark: 'a901f5564e9f0204dd1718828995afd9cb8dbecdfa33a1523e6c7ead624841f1',
   },
   {
     ref: 'cube:operations.on_time_shipping_rate',
@@ -267,7 +267,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'operations.yml',
-    changeMark: '88f7ed2eeb5c0e1d481ef81bc8014c506d362becd94ac03c3634ee8bff458778',
+    changeMark: '8fc5623dac3f79e577e9da7090995c0d6276a699de902a896eda77fbb35260ca',
   },
   {
     ref: 'cube:operations.support_contacts',
@@ -280,7 +280,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'operations.yml',
-    changeMark: 'd10810f85a9cf3925f9ec0d616516c3ba61fb4dff54c4a94df410752e70c7f58',
+    changeMark: 'e6a541eb9162f535589eba9e152bbf986040c326662473c08728369fb53435ff',
   },
   {
     ref: 'cube:orders.market',
@@ -292,7 +292,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'orders.yml',
-    changeMark: '8a4c0260fd1b96e02ee292889861d8743607154c25f83cc08ac702636388bdaa',
+    changeMark: '8ded2a631f7ca16fbbae30356780af4131fd2889891180813cbafe228641aeff',
   },
   {
     ref: 'cube:orders.order_day',
@@ -304,7 +304,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'orders.yml',
-    changeMark: '16dde0fbd3d44abb518133d4195120fd95912bce15f51040aa95b7dd8486d7ca',
+    changeMark: '353b18918b1828b727eed680d69d1d1cafd3ec7edf77783dfa86119c9bb5ecf7',
   },
   {
     ref: 'cube:orders.orders',
@@ -317,7 +317,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'orders.yml',
-    changeMark: 'b1be26888156a4775ecf26b8297257d7143719c80406442f23d73f3d66fcaa2a',
+    changeMark: '3300dcae264963259beec8a93e00ac7595ca6357e8651f256fa4c4bdd5aa8129',
   },
   {
     ref: 'cube:orders.returns',
@@ -330,7 +330,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'orders.yml',
-    changeMark: 'ae095db1952a1bcc4524560ef0961d72f475cd6e9275c7f7199be58b3f072ca5',
+    changeMark: 'b82bc59631db1af4563678d9dd0a224213eed0abbf0575892f2456b66a54108f',
   },
   {
     ref: 'cube:revenue.gross_sales',
@@ -343,7 +343,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'revenue.yml',
-    changeMark: 'f0cad536918d53f99aa6cac38c76022de0ae17b6ff2b217c9b04407b5e1f4a40',
+    changeMark: '76acca58c3eb0e0df2fc82fd7bdda67c89d15094998a6d167f7c93440edc81af',
   },
   {
     ref: 'cube:revenue.net_revenue',
@@ -356,7 +356,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'revenue.yml',
-    changeMark: '45892d93b8400840600cf25e8f5200176de1a84caeb07df1c71a9e48cbde9824',
+    changeMark: 'b170f6ef89915ff2e21576d51ae2403a75abc74dc5b95edd193cecb8ae1cb060',
   },
   {
     ref: 'cube:revenue.units_sold',
@@ -369,7 +369,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'revenue.yml',
-    changeMark: 'af29d3ea0abca7629b180687a716f382e2aa16063faf97e1261b4480499ebd2d',
+    changeMark: '1cccdf1061778a9aa416eacae17a5642536f3df5f45dfa5ddf8588e04277fa4c',
   },
   {
     ref: 'cube:segments.campaign',
@@ -382,7 +382,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'segments.yml',
-    changeMark: '2affacedb9eb939af32d56ca314466a0c1750bfdf13efdd92b8d24f1a7d20c80',
+    changeMark: 'd2cdc9f07b6be346d9b98a92fbfff9edb9ecf96864f6ae50c4d70b7807ec628a',
   },
   {
     ref: 'cube:segments.channel',
@@ -394,7 +394,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'segments.yml',
-    changeMark: '9674b6b4f95be3b23971dcd00329d1578499296f74fc592a43e99e33951af204',
+    changeMark: 'e64a969626620ab75b142b5b55e1f6eef6706adaf1c35f348e4122e1658af599',
   },
   {
     ref: 'cube:segments.market',
@@ -406,7 +406,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'segments.yml',
-    changeMark: 'a8d7beb0dabcdb719556ec3bd69607a14feed3bd76f6f4a35b15febdd37a3acb',
+    changeMark: '2db9a5f506c1663d4b9714da80b72efb90ad2f82305a2364ade295cc7765e3d9',
   },
   {
     ref: 'cube:segments.platform',
@@ -418,7 +418,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'segments.yml',
-    changeMark: 'eae95c652d2807c90536243ad8f247849276a1b8198589be41f280c1536673a3',
+    changeMark: 'b4698fc3a2d195964689c6b1cc908141d97e34b4807fb0036ad4477257256e1e',
   },
   {
     ref: 'cube:segments.product',
@@ -431,7 +431,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'segments.yml',
-    changeMark: '6ea64cf3e7f18e5e6cc6cc2daa2f78095b4207f3a4976941478e7b2c131d9172',
+    changeMark: '045bba04d8030a8d9d99379aa8f10aa788d52f740352fe21d99b32eea139a377',
   },
 ]
 

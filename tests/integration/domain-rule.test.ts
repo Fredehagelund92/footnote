@@ -88,6 +88,7 @@ const source: DefinitionSource = {
   type: 'demo',
   name: 'Demo model',
   interfaceVersion: INTERFACE_VERSION,
+  markVersion: 1,
   serverSettings: [],
   read: () => Promise.resolve(read),
 }

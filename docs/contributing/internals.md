@@ -38,7 +38,7 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 - The ref prefix belongs to the tool (CON-117), and `mergeDimensions` decides how terms are proposed (CON-201). The kit is CON-108.
 - Paths the guide reaches through links: the definition schema is `runtimeDefinitionSchema` in `src/domain/connector-runtime.ts`, the core's codes are `sourceWarningCodes` in `src/contract/operations.ts`, the helpers are in `src/domain/definition-helpers.ts`, and the kit's fakes are `tests/server/connectors/git-server.ts`, `drive-server.ts` and `object-server.ts`.
 - To run only the connector tests by path: `npx vitest run --project server tests/server/connectors`.
-- Cube and the static list pass `{ keepEmpty: true }` to `meaningMark`: their marks were first computed that way, and stay as they were.
+- The static list passes `{ keepEmpty: true }` to `meaningMark`: its marks were first computed that way, and stay as they were. Cube's marks (version 2) leave empty values out.
 - A shared input nested at each use grows without limit, which is why a mark takes an input's digest: a file an admin commits must not stall a read.
 - The guide stays reader-ready, so it names files through links only. Keep it that way: an agent reads the link addresses, and `llms-full.txt` turns them into whole addresses.
 

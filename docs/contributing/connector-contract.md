@@ -316,8 +316,10 @@ that member's mark, and a change to the same dimension in another view flags not
 (CON-209, CON-210).
 
 Each refresh sends outbox events: `item.flagged` for a new flag, `item.links_stale` for an item
-whose mentions went stale in that read, and `vocabulary.domain_changed` for a term whose
-definition's domain changed. The relay puts them in the inbox of the domain's owners.
+whose mentions went stale in that read, `vocabulary.domain_changed` for a term whose
+definition's domain changed, and `source.marks_rebaselined` once per domain for a read that
+stored new marks without flagging ([mark version](#versions)). The relay puts them in the inbox
+of the domain's owners.
 
 Snapshot warnings contain only codes and targets. A public view or cube without `meta.domain`
 is reported as `missing_domain` (CON-516). `domain_override` warnings retain domain
@@ -580,7 +582,19 @@ capabilities a manifest declares:
 - **Connector version**, a semver stored on each read. A major version ships `migrateConfig`.
 - **Mark version.** When a connector changes how it computes marks (a compiler upgrade, for
   example), the first read after it stores the new marks without flagging items, records that it
-  did, and tells the owners once (CON-116).
+  did, and tells the owners once (CON-116). Each definitions read stores the mark version it ran
+  under (`connector_snapshots.mark_version`).
+
+  A definition its source last read under another mark version keeps the mark items recorded
+  (`definitions.change_mark`): a reference whose mark matched still matches, and one that did not
+  still flags. The source's new mark is kept beside it (`definitions.source_mark`) for the next
+  read to compare with, the read counts them (`rebaselined`), and the owners of each domain with a
+  live item that uses one get one `source.marks_rebaselined`. No version is rewritten.
+
+  A read in part leaves the rest to the read that reaches them. A definition that was missing
+  takes the new mark as a change, and a change of meaning in the same read is not told apart from
+  the new computation.
+
 - **Ref prefix.** It belongs to the tool, not the connector: `cube-files` and a Cube Cloud
   connector both write `cube:`, so items keep their references when a model moves. Ownership of
   a ref still belongs to one source and moves only by an administrator's hand-over, followed by
@@ -704,8 +718,9 @@ whose compiler runs in its worker (T1), its model fetched through `ctx.git` or r
 
 - The server's own sources from a configuration file the operator writes, with `CUBE_MODEL_DIR`,
   `FOOTNOTE_DOMAIN_OVERRIDES` and `CUBE_RENAMES_FILE` producing the same entry.
-- The connector's version and mark version stored on every read (a migration), shown on the
-  source's page, and the first read after a mark version change stored without flags (CON-116).
+- The connector's version stored on every definitions read, and both versions shown on the
+  source's page. The mark version on every read and the first read after a change of it, stored
+  without flags (CON-116), are built.
 - A request rate in the manifest for `ctx.fetch`; `ctx.log` into the server's log, codes and
   targets only.
 - The rest of the conformance kit (cursors and deletions, egress and limits) and a README per
