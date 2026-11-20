@@ -1,0 +1,126 @@
+/* The 404 page (landing/pages/404.astro): a short sheet in the landing page's earlier design, on the
+   paper's dot field (shared/ground.css). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+a {
+  color: inherit;
+  text-decoration-color: color-mix(in srgb, var(--mark) 45%, transparent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration-color: var(--mark);
+}
+:focus-visible {
+  outline: 2px solid var(--mark);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+code,
+kbd,
+pre {
+  font-family: var(--mono);
+}
+p {
+  margin: 0;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (min-width: 720px) {
+  .wrap {
+    padding: 0 28px;
+  }
+}
+.sheet {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 64px;
+}
+.doc {
+  max-width: calc(var(--main) + var(--gap) + var(--notes));
+}
+.doc > * {
+  max-width: var(--main);
+}
+.doc > .wide {
+  max-width: none;
+}
+.hero {
+  padding: 48px 20px 80px;
+}
+@media (min-width: 720px) {
+  .hero {
+    padding: 64px 56px 104px;
+  }
+}
+.h1 {
+  margin-top: 48px;
+  font: 750 clamp(29px, 3.2vw, 40px)/1.12 var(--sans);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  max-width: 26ch;
+}
+.hero-p {
+  margin-top: 16px;
+  font-size: 18.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.hero-p + .hero-p {
+  margin-top: 12px;
+}
+.hero-cta {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}

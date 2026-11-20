@@ -23,7 +23,6 @@
     "@astrojs/markdown-remark": "7.3.9",
     "@astrojs/starlight": "0.43.1",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
-    "@fontsource-variable/nunito-sans": "5.3.0",
     "@fontsource-variable/schibsted-grotesk": "5.3.0",
     "@fontsource-variable/source-serif-4": "5.3.1",
     "@fontsource/outfit": "5.3.0",

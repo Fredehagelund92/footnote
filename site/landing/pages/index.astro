@@ -1,24 +1,28 @@
 ---
-import '../../shared/fonts.css'
-import '../styles/app-font.css'
+import '../styles/fonts.css'
 import '../../shared/tokens.css'
 import '../../shared/chrome.css'
-import '../../shared/ground.css'
 import '../styles/landing.css'
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
-import Ground from '../../shared/Ground.astro'
 import SiteFooter from '../../shared/SiteFooter.astro'
 import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
+import { releaseWords } from '../release.ts'
 
 /*
-  The landing page, as approved (site/README.md, "The landing page"). Its claims carry footnotes
-  that cite the test or file holding them, at this build's reference. The product pictures are
-  real captures of the demo, taken by scripts/capture.ts.
+  The landing page, "Two readers", as approved (site/README.md, "The landing page"): paper for
+  people, a terminal for agents, and the note on the seam between them. The three replies of the
+  first screen are get_context's on the demo, word for word, and the pictures are real captures of
+  the demo, taken by scripts/capture.ts.
 */
 
-const { docs, repo } = siteLinks(readSettings(process.env))
+// The release switch: false until the first release's images can be pulled. It is the one line to
+// change at the release (landing/release.ts says what changes, and what to check first).
+const released = false
+
+const words = releaseWords(released)
+const { docs } = siteLinks(readSettings(process.env))
 const captures = import.meta.glob<{ src: string }>('../captures/*.webp', {
   eager: true,
   import: 'default',
@@ -36,47 +40,22 @@ const shot = (name: string) => {
       title="Footnote"
       description="Footnote: write down why a number moved, have the owner check it, and every AI agent reads it before it answers. Open source, self-hosted, pre-1.0."
     />
+    <script is:inline>
+      // The opening plays only with motion allowed, and the page never stays hidden: if the
+      // script that plays it has not started in five seconds, the finished state shows.
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.classList.add('anim')
+        setTimeout(function () {
+          var hero = document.querySelector('.hero')
+          if (hero && !hero.classList.contains('play')) hero.classList.add('done')
+        }, 5000)
+      }
+    </script>
   </head>
   <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
-    <symbol id="i-partial" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/></symbol>
-    <symbol id="i-missing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 2.18a9.93 9.93 0 0 1 3.8 0"/><path d="M17.6 3.71a9.95 9.95 0 0 1 2.69 2.7"/><path d="M21.82 10.1a9.93 9.93 0 0 1 0 3.8"/><path d="M20.29 17.6a9.95 9.95 0 0 1-2.7 2.69"/><path d="M13.9 21.82a9.94 9.94 0 0 1-3.8 0"/><path d="M6.4 20.29a9.95 9.95 0 0 1-2.69-2.7"/><path d="M2.18 13.9a9.93 9.93 0 0 1 0-3.8"/><path d="M3.71 6.4a9.95 9.95 0 0 1 2.7-2.69"/></symbol>
-    <symbol id="i-conflict" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
-    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
-    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
-    <symbol id="i-done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
-    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
-    <symbol id="i-git" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
-    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
-    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
-    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
-    <symbol id="i-review" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></symbol>
     <symbol id="i-lines" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></symbol>
-    <symbol id="i-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></symbol>
-    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/></symbol>
-    <symbol id="i-count" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-3M12 16V8M17 16v-6"/></symbol>
-    <symbol id="i-dot" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></symbol>
-    <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 12h12"/></symbol>
-    <symbol id="i-sigma" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 7V5a1 1 0 0 0-1-1H6.5a.5.5 0 0 0-.4.8l4.5 6a2 2 0 0 1 0 2.4l-4.5 6a.5.5 0 0 0 .4.8H17a1 1 0 0 0 1-1v-2"/></symbol>
-    <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
-    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
-    <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
-    <symbol id="i-thumb-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></symbol>
-    <symbol id="i-thumb-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></symbol>
-    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
-    <symbol id="i-at" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></symbol>
-    <symbol id="i-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></symbol>
-    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
-    <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2.1 2.1 0 1 1 3 3L12 15l-4 1 1-4Z"/></symbol>
-    <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
-    <symbol id="i-panel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
-    <symbol id="i-msg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
-    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
-    <symbol id="fn-logo" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"><path d="M24 24 L24 10"/><path d="M24 24 L37.3 19.7"/><path d="M24 24 L15.8 35.3"/><path d="M24 24 L10.7 19.7"/></g><circle cx="32.8" cy="36.1" r="4.5" fill="currentColor"/></symbol>
     <symbol id="l-cube" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.24291 1.53643C7.71126 1.26574 8.29068 1.26564 8.75898 1.53643L13.6873 4.38629C13.8808 4.49819 14 4.70361 14 4.92556V6.99762C13.9999 7.1083 13.9405 7.21077 13.8441 7.26679L12.7857 7.92345L13.6901 8.41779C13.882 8.53011 14 8.73444 14 8.9552V11.0745C14 11.2965 13.8808 11.5019 13.6873 11.6138L8.75756 14.4637C8.28924 14.7344 7.71028 14.7344 7.24196 14.4637L2.31226 11.6138C2.11881 11.5019 2 11.2964 2 11.0745V4.92556C2.00005 4.7036 2.11918 4.49817 2.31273 4.38629L7.24291 1.53643ZM8.37984 2.15874C8.14571 2.02338 7.8562 2.02342 7.62204 2.15874L2.82468 4.93163C2.76643 4.9653 2.73056 5.02718 2.73048 5.09397V10.8707L7.49865 8.14396C7.80879 7.96662 8.19122 7.96658 8.50135 8.14396L13.2695 10.8711V9.12361C13.2695 9.0569 13.2334 8.99501 13.1753 8.96127L8.3789 6.18372C8.14484 6.04818 7.85489 6.04806 7.62063 6.18325L4.36948 8.05999C4.24928 8.12918 4.09837 8.04327 4.0982 7.90557V6.27795C4.09825 6.17942 4.1508 6.08826 4.23619 6.0377L7.49299 4.11012C7.8059 3.92499 8.19565 3.92265 8.51077 4.10405L13.2695 6.84382V5.09397C13.2695 5.02725 13.2334 4.96534 13.1753 4.93163L8.37984 2.15874Z" /></symbol>
     <symbol id="l-dbt" viewBox="0 0 24 24" fill="#FF694B"><path d="M17.9004 9.3763a8.1488 8.1488 0 0 0-3.0421-3.1206l1.7708.8385a10.2874 10.2874 0 0 1 3.74 3.0007l3.234-5.9295a2.8546 2.8546 0 0 0-.0611-2.9604C22.7566.0371 21.2112-.3409 19.9754.3327l-5.8749 3.2101a4.3612 4.3612 0 0 1-4.1761 0L4.1769.408a2.8545 2.8545 0 0 0-2.9592.0632c-1.1673.7853-1.5452 2.33-.8723 3.5655L3.55 9.9106a4.3612 4.3612 0 0 1 0 4.1772l-3.1272 5.743a2.86 2.86 0 0 0 .085 2.9974c.794 1.1438 2.3225 1.5054 3.5448.8385l6.0581-3.3049a10.2877 10.2877 0 0 1-3.0051-3.7454l-.8374-1.7708a8.148 8.148 0 0 0 3.1206 3.0421l10.5832 5.779c1.2213.666 2.7481.3055 3.5426-.8363a2.8699 2.8699 0 0 0 .0796-3.0018L17.9004 9.3763zm3.3801-7.7351c.6022 0 1.0904.4882 1.0904 1.0904s-.4882 1.0904-1.0904 1.0904-1.0904-.4882-1.0904-1.0904.4882-1.0904 1.0904-1.0904zM2.7442 3.822c-.6022 0-1.0904-.4882-1.0904-1.0904s.4882-1.0904 1.0904-1.0904 1.0904.4882 1.0904 1.0904S3.3464 3.822 2.7442 3.822zm0 18.5363c-.6022 0-1.0904-.4882-1.0904-1.0904 0-.6022.4882-1.0904 1.0904-1.0904s1.0904.4882 1.0904 1.0904c0 .6022-.4882 1.0904-1.0904 1.0904zm10.3585-11.4489c-1.2008-.0035-2.177.9672-2.1805 2.1679a2.1738 2.1738 0 0 0 .7052 1.6091c-1.4872-.2091-2.5234-1.5843-2.3142-3.0716.2091-1.4872 1.5843-2.5234 3.0716-2.3142a2.7194 2.7194 0 0 1 2.3142 2.3142 2.1623 2.1623 0 0 0-1.5963-.7054zm8.1778 11.4489c-.6022 0-1.0904-.4882-1.0904-1.0904 0-.6022.4882-1.0904 1.0904-1.0904s1.0904.4882 1.0904 1.0904c0 .6022-.4882 1.0904-1.0904 1.0904z"/></symbol>
     <symbol id="l-markdown" viewBox="0 0 24 24" fill="currentColor"><path d="M22.27 19.385H1.73A1.73 1.73 0 010 17.655V6.345a1.73 1.73 0 011.73-1.73h20.54A1.73 1.73 0 0124 6.345v11.308a1.73 1.73 0 01-1.73 1.731zM5.769 15.923v-4.5l2.308 2.885 2.307-2.885v4.5h2.308V8.078h-2.308l-2.307 2.885-2.308-2.885H3.46v7.847zM21.232 12h-2.309V8.077h-2.307V12h-2.308l3.461 4.039z"/></symbol>
@@ -91,496 +70,297 @@ const shot = (name: string) => {
     <symbol id="l-anthropic" viewBox="0 0 24 24" fill="currentColor"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></symbol>
     <symbol id="l-vercel" viewBox="0 0 24 24" fill="currentColor"><path d="m12 1.608 12 20.784H0Z"/></symbol>
     <symbol id="l-mcp" viewBox="0 0 24 24" fill="currentColor"><path d="M13.85 0a4.16 4.16 0 0 0-2.95 1.217L1.456 10.66a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l9.442-9.442a2.49 2.49 0 0 1 3.541 0 2.49 2.49 0 0 1 0 3.541L8.59 12.97l-.1.1a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l.1-.098 7.03-7.034a2.49 2.49 0 0 1 3.542 0l.049.05a2.49 2.49 0 0 1 0 3.54l-8.54 8.54a1.96 1.96 0 0 0 0 2.755l1.753 1.753a.835.835 0 0 0 1.18 0 .835.835 0 0 0 0-1.18l-1.753-1.753a.266.266 0 0 1 0-.394l8.54-8.54a4.185 4.185 0 0 0 0-5.9l-.05-.05a4.16 4.16 0 0 0-2.95-1.218c-.2 0-.401.02-.6.048a4.17 4.17 0 0 0-1.17-3.552A4.16 4.16 0 0 0 13.85 0m0 3.333a.84.84 0 0 0-.59.245L6.275 10.56a4.186 4.186 0 0 0 0 5.902 4.186 4.186 0 0 0 5.902 0L19.16 9.48a.835.835 0 0 0 0-1.18.835.835 0 0 0-1.18 0l-6.985 6.984a2.49 2.49 0 0 1-3.54 0 2.49 2.49 0 0 1 0-3.54l6.983-6.985a.835.835 0 0 0 0-1.18.84.84 0 0 0-.59-.245"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+    <symbol id="fn-logo" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"><path d="M24 24 L24 10"/><path d="M24 24 L37.3 19.7"/><path d="M24 24 L15.8 35.3"/><path d="M24 24 L10.7 19.7"/></g><circle cx="32.8" cy="36.1" r="4.5" fill="currentColor"/></symbol>
   </defs>
 </svg>
 
 <Header home="#top" install="#run" />
 
-<main id="top" class="wrap">
+<main id="top">
+  <!-- The first screen: one note, two readers. -->
+  <section class="hero" data-state="checked" aria-labelledby="h-hero">
+    <h1 id="h-hero"><span>Tell your AI agents why the number moved</span> <span>before they guess.</span></h1>
+
+    <div class="pane person">
+      <p class="who"><span class="face" aria-hidden="true">S</span>A person asks, in the browser</p>
+      <div data-s="checked" id="p-checked">
+        <p class="ask">How did orders in Norway change in October 2026?</p>
+        <p class="state-line"><b>Checked</b> This is written down and checked.</p>
+        <p class="ans"><span class="hlx">A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.</span><a class="fm" href="#note" data-to="n1" aria-label="Footnote 1">1</a></p>
+      </div>
+      <div data-s="conflict" id="p-conflict">
+        <p class="ask">How were orders counted in the United Kingdom in October 2026?</p>
+        <p class="state-line"><b>Conflict</b> Two items say different things.</p>
+        <p class="ans"><span class="each">One says they count store credit.<a class="fm" href="#note" data-to="c1" aria-label="Footnote 1">1</a></span><span class="each">One says they are card and cash payments only.<a class="fm" href="#note" data-to="c2" aria-label="Footnote 2">2</a></span></p>
+      </div>
+      <div data-s="missing" id="p-missing">
+        <p class="ask">Why did returns in Sweden jump in March 2023?</p>
+        <p class="state-line"><b>Not found</b> Nothing is written about this yet.</p>
+        <p class="ans">Nothing is written down for Returns in Sweden in March 2023.<small>That's not the same as there being no reason.</small></p>
+      </div>
+    </div>
+
+    <div class="seam" id="note">
+      <article class="card" data-s="checked" id="n-checked" data-anchor="n1">
+        <p class="head"><span class="fm" aria-hidden="true">1</span><span>Checked by the owner of Sales</span></p>
+        <h2>Online sales to Norway stopped on 4 August 2026</h2>
+        <blockquote>"Parcels from webshops outside Norway are held at the border from 4 August 2026 until further notice."</blockquote>
+        <p class="by">Sales, owned by Jon Abara and Sofia Brandt.<br /><b>Don't conclude:</b> fewer orders in Norway after 4 August do not mean fewer customers.</p>
+      </article>
+      <div class="pair" data-s="conflict" id="n-conflict">
+        <article class="card" data-anchor="c1">
+          <p class="head"><span class="fm" aria-hidden="true">1</span><span>Sales. Written by Jon Abara</span></p>
+          <h2>United Kingdom orders count store credit</h2>
+        </article>
+        <span class="neq" role="img" aria-label="disagrees with">&ne;</span>
+        <article class="card" data-anchor="c2">
+          <p class="head"><span class="fm" aria-hidden="true">2</span><span>Sales. Written by Sofia Brandt</span></p>
+          <h2>United Kingdom orders are card and cash payments only</h2>
+        </article>
+      </div>
+      <article class="card none" data-s="missing" id="n-missing" data-anchor="m1">
+        <h2>No footnote</h2>
+        <p>Nobody has written this down yet.</p>
+      </article>
+    </div>
+
+    <div class="pane agent">
+      <p class="who"><span class="chip" aria-hidden="true">&gt;_</span>An agent asks, over MCP</p>
+      <div class="tty" data-s="checked" id="a-checked">
+        <p class="q">How did orders in Norway change in October 2026?</p>
+        <p class="guess"><s>This may reflect weaker marketing performance.</s></p>
+        <p class="tool">called <b>get_context</b></p>
+        <p class="kv"><span class="k">"status":</span> "matched"</p>
+        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Checked.</span> 5 context items apply to Orders in Norway in October 2026. Nothing else was looked up. 1 of them applies to only part of that question."</span></p>
+        <p class="kv"><a class="fm" href="#note" data-to="n1" aria-label="Footnote 1">1</a><span class="k">"title":</span> "Online sales to Norway stopped on 4 August 2026"</p>
+        <p class="kv"><span class="k">"not_to_conclude":</span> "Fewer orders in Norway after 4 August do not mean fewer customers."</p>
+      </div>
+      <div class="tty" data-s="conflict" id="a-conflict">
+        <p class="q">How were orders counted in the United Kingdom in October 2026?</p>
+        <p class="tool">called <b>get_context</b></p>
+        <p class="kv"><span class="k">"status":</span> "conflict"</p>
+        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Conflict.</span> Two items say different things. 10 context items apply to Orders in United Kingdom in October 2026. Nothing else was looked up. 2 of them apply to only part of that question. Some of them disagree. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check."</span></p>
+        <p class="kv"><a class="fm" href="#note" data-to="c1" aria-label="Footnote 1">1</a><span class="k">"title":</span> "United Kingdom orders count store credit"</p>
+        <p class="kv"><a class="fm" href="#note" data-to="c2" aria-label="Footnote 2">2</a><span class="k">"title":</span> "United Kingdom orders are card and cash payments only"</p>
+      </div>
+      <div class="tty" data-s="missing" id="a-missing">
+        <p class="q">Why did returns in Sweden jump in March 2023?</p>
+        <p class="tool">called <b>get_context</b></p>
+        <p class="kv"><span class="k">"status":</span> "no_match"</p>
+        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Not found.</span> Nothing is written about this yet. Nothing is written down for Returns in Sweden in March 2023. Nothing else was looked up."</span></p>
+        <p class="kv"><span class="k">"context":</span> []</p>
+      </div>
+    </div>
+
+    <svg class="wires" aria-hidden="true"></svg>
+    <p class="sr-only" id="state-live" aria-live="polite"></p>
+
+    <div class="tabs" role="tablist" aria-label="What is written decides the answer">
+      <span class="cap" aria-hidden="true">Try what's written:</span>
+      <button type="button" role="tab" aria-selected="true" data-go="checked" aria-controls="p-checked n-checked a-checked">Checked</button>
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="conflict" aria-controls="p-conflict n-conflict a-conflict">Conflict</button>
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="missing" aria-controls="p-missing n-missing a-missing">Not found</button>
+    </div>
+
+    <div class="hero-foot">
+      <div class="cta"><a class="btn btn-ink" href="#run">Install</a><a class="btn btn-line" href={docs('get-started')}>Read the docs</a></div>
+      <p class="meta">{words.heroMeta}</p>
+    </div>
+  </section>
+
+  <!-- The timeline on the seam: what happens before either of them reads it. -->
+  <section class="split" aria-labelledby="h-split">
+    <h2 id="h-split"><span>Before either of them</span> <span>reads a word of it.</span></h2>
+    <div class="steps">
+      <div class="step">
+        <span class="dot">Draft</span>
+        <p class="l">Anyone can write a context item. It's short: what happened, where and from when, and how you know.</p>
+        <p class="r">An agent can suggest one too, and it waits for the owner like anything else. A draft never reaches an agent.</p>
+      </div>
+      <div class="step live">
+        <span class="dot">Checked</span>
+        <p class="l">It lands in the Inbox of whoever owns that area. They see whether the claims match the source, and what agents would say before and after. Then they publish it, or send it back with a note.</p>
+        <p class="r">From now on <code>get_context</code> returns it with every answer it applies to, with its source.</p>
+      </div>
+      <div class="step">
+        <span class="dot">Due for a check</span>
+        <p class="l">When the check date passes, or a definition it relies on changes in Cube or dbt, the owner looks again: still true, or edit.</p>
+        <p class="r">Until then the answer starts with <code>Outdated</code>, so the agent can say it may be old.</p>
+      </div>
+      <div class="step">
+        <span class="dot">Not found, again</span>
+        <p class="l">If questions about one topic keep finding nothing, the owner gets a card about it. It's how people find out what to write next.</p>
+        <p class="r">We count the topic, not the words.</p>
+      </div>
+    </div>
+    <p class="docs">In the docs: <a href={docs('write-context')}>Write context</a> <a href={docs('review-a-suggestion')}>Review a suggestion</a></p>
+  </section>
+
   <div class="sheet">
-
-    <!-- Hero: a guess, corrected -->
-    <section class="hero" aria-labelledby="h-hero">
-      <div class="doc">
-        <p class="hero-q"><svg aria-hidden="true"><use href="#l-claude"/></svg><span>Someone asks their agent <q>How did orders in Norway change in October 2026?</q></span></p>
-        <p class="guess" aria-label="Without Footnote, the agent guesses: Orders in Norway dropped sharply after 4 August. This may reflect weaker marketing performance."><span>Orders in Norway dropped sharply after 4 August. This may reflect weaker marketing performance.</span></p>
-        <p class="answer"><span class="hl">A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.</span><a class="fm" href="#sn-hero" id="fm-hero" aria-label="Footnote 1">1</a><span class="sn" id="sn-hero"><b>1</b>Online sales to Norway stopped on 4 August 2026<span class="q">"Parcels from webshops outside Norway are held at the border from 4 August 2026 until further notice."</span><span class="by">Sales, owned by Jon Abara and Sofia Brandt. Checked 3 Oct 2026.</span><span class="dc"><b>Don't conclude:</b> fewer orders there do not mean fewer customers.</span></span></p>
-
-        <h1 class="h1" id="h-hero">Tell your AI agents why the number moved before they guess.</h1>
-        <p class="hero-p">Your warehouse knows orders in Norway dropped in August. It doesn't know a customs rule started holding parcels at the border. Someone on your team does.</p>
-        <p class="hero-p">Footnote is where they write that down. Once the owner has checked it, agents read it over MCP before they answer. When nothing is written, Footnote says so, and the agent can say so too instead of making something up.</p>
-        <div class="hero-cta">
-          <a class="btn btn-ink" href="#run">Install</a>
-          <a class="btn btn-line" href={docs('get-started')}>Read the docs</a>
-        </div>
-        <p class="hero-meta">Open source under Apache-2.0. The first release is v0.1.0, and it runs on one computer with Docker.</p>
-      </div>
-    </section>
-
-    <!-- How it fits -->
-    <section class="sec" id="fits" aria-labelledby="h-fits">
-      <div class="doc">
-        <h2 class="h2" id="h-fits">It sits next to your semantic layer, not inside it.</h2>
+    <section class="band" id="fits" aria-labelledby="h-sits">
+      <div class="inner">
+        <h2 id="h-sits">It sits next to your semantic layer, not inside it.</h2>
         <p class="lede">Cube or dbt MetricFlow still defines Orders and still returns the figure. Footnote only reads the names, so that a note can say which metric and which market it's about. After the owner publishes the note, it goes out with every answer that uses it, as a footnote.</p>
-        <figure class="arch wide" style="margin:0">
-<div class="dg" id="dg" role="img" aria-label="How Footnote fits: Cube or dbt MetricFlow defines the metric and Footnote reads its names. Someone who knows writes a note, the owner checks it and it is published. Claude Code over MCP and people in Ask read it, and the answer carries the note as a footnote.">
-          <svg class="dg-wires" aria-hidden="true"></svg>
-          <div class="dg-col" aria-hidden="true">
-            <div class="dg-h">Where it comes from</div>
-            <div class="dg-card" data-node="defs">
-              <div class="dg-top"><span class="dg-tile"><svg><use href="#l-cube"/></svg></span><span class="dg-tile"><svg><use href="#l-dbt"/></svg></span></div>
-              <b>Cube or dbt MetricFlow</b>
-              <span>Defines Orders and returns the figure. Footnote reads the names only.</span>
-            </div>
-            <div class="dg-card" data-node="note">
-              <div class="dg-top"><span class="dg-tile"><svg><use href="#i-pencil"/></svg></span><span class="dg-who">Someone in Sales</span></div>
-              <b>Online sales to Norway stopped on 4 August</b>
-              <span>A customs rule holds parcels at the border.</span>
-            </div>
-          </div>
-          <div class="dg-col" aria-hidden="true">
-            <div class="dg-h">Footnote</div>
-            <div class="dg-card dg-core" data-node="core">
-              <span class="brand"><svg><use href="#fn-logo"/></svg>footnote</span>
-              <div class="dg-steps">
-                <span class="dg-step s1">Draft</span><i></i>
-                <span class="dg-step s2"><svg><use href="#i-done"/></svg>Checked</span><i></i>
-                <span class="dg-step s3">Published</span>
-              </div>
-              <ul class="dg-items">
-                <li class="new"><svg><use href="#i-check"/></svg><span>Customs rule, Norway</span><em>3 Oct</em></li>
-                <li><svg><use href="#i-check"/></svg><span>VAT in net revenue, Spain</span><em>12 Oct</em></li>
-                <li><svg><use href="#i-check"/></svg><span>Late payment files, Germany</span><em>12 Sep</em></li>
-              </ul>
-            </div>
-          </div>
-          <div class="dg-col" aria-hidden="true">
-            <div class="dg-h">Who reads it</div>
-            <div class="dg-card dg-readers" data-node="readers">
-              <div class="dg-row"><span class="dg-tile"><svg><use href="#l-claude"/></svg></span><span><b>Claude Code</b><span>over MCP</span></span></div>
-              <div class="dg-row"><span class="dg-tile"><svg><use href="#i-msg"/></svg></span><span><b>Ask</b><span>in the browser</span></span></div>
-            </div>
-            <div class="dg-card dg-answer" data-node="ans">
-              <p><span class="hl">Orders in Norway fell to almost nothing from 4 August.</span><sup class="dg-fn">1</sup></p>
-              <div class="dg-note"><sup>1</sup><span>Customs rule, Norway<em>Sales, checked 3 Oct 2026</em></span></div>
-            </div>
-          </div>
+        <div class="sum">
+          <div class="part fig"><div class="pic" aria-hidden="true"><svg viewBox="0 0 300 60" preserveAspectRatio="none"><path d="M0,14 L24,9 L48,17 L72,11 L96,6 L120,15 L144,10 L150,52 L180,54 L210,53 L240,55 L270,54 L300,54"/></svg></div><b>The figure</b><p>Cube or dbt MetricFlow defines Orders and returns it. Footnote reads the names only.</p></div>
+          <span class="op" aria-hidden="true">+</span>
+          <div class="part fn"><div class="pic" aria-hidden="true"><span class="fm">1</span></div><b>The footnote</b><p>Online sales to Norway stopped on 4 August. Someone in Sales wrote it, and the owner checked it.</p></div>
+          <span class="op" aria-hidden="true">=</span>
+          <div class="part out"><div class="pic"><span>Orders in Norway fell to almost nothing from 4 August.<span class="fm" role="img" aria-label="Footnote 1">1</span></span></div><b>The answer</b><p>Claude Code over MCP, or Ask in the browser.</p></div>
         </div>
-        </figure>
-        <p class="doclink"><span>In the docs:</span><a href={docs('how-agents-use-it')}>How agents use it</a></p>
+        <p class="plain">No model picks the context. Plain rules match the question's metric, market and dates against what's written. Footnote doesn't store numbers either. Your semantic layer returns the figure, and the item points at it.</p>
+        <div class="real">
+          <figure><div class="frame"><picture class="on-light"><source media="(max-width: 640px)" srcset={shot('item-light-phone')} width="780" height="1560" /><img src={shot('item-light')} alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." width="1600" height="1266" loading="lazy" /></picture><picture class="on-dark"><source media="(max-width: 640px)" srcset={shot('item-dark-phone')} width="780" height="1560" /><img src={shot('item-dark')} alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." width="1600" height="1266" loading="lazy" /></picture></div><h3>A context item is short</h3><p>What happened, where and from when, the sentence copied from its source, who owns it and when they last checked. That's all an agent reads.</p></figure>
+          <figure><div class="frame"><picture class="on-light"><source media="(max-width: 640px)" srcset={shot('observability-light-phone')} width="780" height="1560" /><img src={shot('observability-light')} alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." width="1600" height="1250" loading="lazy" /></picture><picture class="on-dark"><source media="(max-width: 640px)" srcset={shot('observability-dark-phone')} width="780" height="1560" /><img src={shot('observability-dark')} alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." width="1600" height="1250" loading="lazy" /></picture></div><h3>Gaps come back as counts</h3><p>Observability shows what agents asked about, by topic and answer line, and which questions found nothing. It keeps counts, not the words.</p></figure>
+        </div>
+        <p class="docs">In the docs: <a href={docs('how-agents-use-it')}>How agents use it</a></p>
       </div>
     </section>
 
-    <!-- How it works -->
-    <section class="sec" id="how" aria-labelledby="h-how">
-      <div class="doc">
-        <h2 class="h2" id="h-how">From one person's note to every agent's answer.</h2>
-        <ol class="steps wide">
-          <li class="step"><h3>Write</h3><p>Anyone can write a context item. It's short: what happened, where and from when, and how you know. An agent can suggest one too, and it waits for the owner like anything else.</p></li>
-          <li class="step"><h3>Review</h3><p>It lands in the Inbox of whoever owns that area. They see whether the claims match the source, and what agents would say before and after. Then they publish it, or send it back with a note.</p></li>
-          <li class="step"><h3>Agents read</h3><p>An agent asks over MCP and gets back the items that apply, each with its source. The reply opens with one line saying what was found, like Checked or Not found.</p></li>
-          <li class="step"><h3>Gaps come back</h3><p>If questions about one topic keep finding nothing, the owner gets a card about it. We count the topic, not the words. It's how people find out what to write next.</p></li>
-        </ol>
-        <div class="wide">
-<div class="how-pics">
-          <div class="how-pic">
-            <div class="how-txt"><h3>A context item is short</h3><p>What happened, where and from when, the sentence copied from its source, who owns it and when they last checked. That's all an agent reads.</p></div>
-            <figure class="shot"><div class="frame"><picture class="light"><source data-shot="item-light-phone" media="(max-width: 640px)" srcset={shot('item-light-phone')} width="780" height="1560"><img data-shot="item-light" alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." src={shot('item-light')} width="951" height="752" loading="lazy"></picture><picture class="dark"><source data-shot="item-dark-phone" media="(max-width: 640px)" srcset={shot('item-dark-phone')} width="780" height="1560"><img data-shot="item-dark" alt="" src={shot('item-dark')} width="951" height="752" loading="lazy"></picture></div></figure>
-          </div>
-          <div class="how-pic flip">
-            <div class="how-txt"><h3>Gaps come back as counts</h3><p>Observability shows what agents asked about, by topic and answer line, and which questions found nothing. It keeps counts, not the words.</p></div>
-            <figure class="shot"><div class="frame"><picture class="light"><source data-shot="observability-light-phone" media="(max-width: 640px)" srcset={shot('observability-light-phone')} width="780" height="1560"><img data-shot="observability-light" alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." src={shot('observability-light')} width="1024" height="800" loading="lazy"></picture><picture class="dark"><source data-shot="observability-dark-phone" media="(max-width: 640px)" srcset={shot('observability-dark-phone')} width="780" height="1560"><img data-shot="observability-dark" alt="" src={shot('observability-dark')} width="1024" height="800" loading="lazy"></picture></div></figure>
-          </div>
-        </div>
-        </div>
-        <p class="rule-note"><b>No model picks the context.</b> Plain rules match the question's metric, market and dates against what's written. Footnote doesn't store numbers either. Your semantic layer returns the figure, and the item points at it.</p>
-        <p class="doclink"><span>In the docs:</span><a href={docs('write-context')}>Write context</a><a href={docs('review-a-suggestion')}>Review a suggestion</a></p>
+    <section class="band" id="lines" aria-labelledby="h-lines">
+      <div class="inner">
+        <h2 id="h-lines">Every answer starts by saying what it found.</h2>
+        <p class="lede">Ask is the page for people. Agents get the same first line over MCP. There are six of these lines, and code picks which one, not the model, so Checked means the same thing every time.</p>
+        <ul class="lines">
+          <li><i class="g checked" aria-hidden="true"></i><b>Checked</b><span>Something applies, and its owner published it with a source and a check date.</span><em>Nothing to do.</em></li>
+          <li><i class="g partial" aria-hidden="true"></i><b>Partial</b><span>Part of the question is covered, or the dates were assumed. The answer says which.</span><em>Write the rest, or tell the owner.</em></li>
+          <li><i class="g missing" aria-hidden="true"></i><b>Not found</b><span>Nobody has written this down. That's not the same as there being no reason.</span><em>Write it, or tell the owner.</em></li>
+          <li><i class="g conflict" aria-hidden="true"></i><b>Conflict</b><span>Two items apply and they disagree. Agents get both and say so.</span><em>An owner keeps one, narrows one, or keeps both.</em></li>
+          <li><i class="g old" aria-hidden="true"></i><b>Outdated</b><span>The check date has passed, or a definition the item relies on changed.</span><em>The owner looks again: Still true, or Edit.</em></li>
+          <li><i class="g failed" aria-hidden="true"></i><b>Not looked up</b><span>Ask couldn't look just now. It doesn't mean nothing is written.</span><em>Try again in a minute.</em></li>
+        </ul>
+        <p class="docs">In the docs: <a href={docs('answer-lines')}>The six answer lines</a></p>
       </div>
     </section>
 
-    <!-- Answers -->
-    <section class="sec" id="ask" aria-labelledby="h-ask">
-      <div class="doc">
-        <h2 class="h2" id="h-ask">Every answer starts by saying what it found.</h2>
-        <p class="lede">Ask is the page for people. Agents get the same first line over MCP. There are six of these lines, and code picks which one, not the model, so Checked means the same thing every time.<a class="fm" href="#sn-lines" aria-label="Note 2">2</a><span class="sn" id="sn-lines"><b>2</b>All 53 questions of the golden set run in CI with no model, and each must get the items it expects. <a href={repo('tests/integration/golden-set.test.ts')}><code>golden-set.test.ts</code></a></span></p>
-        <div class="wide">
-<div class="a-frame app">
-          <div class="a-bar"><span class="a-btn icon" aria-hidden="true"><svg><use href="#i-panel"/></svg></span><span class="sep"></span><span class="crumb"><svg><use href="#i-msg"/></svg>Ask</span><span class="end"><span class="a-btn" aria-hidden="true"><svg><use href="#i-history"/></svg>History</span></span></div>
-          <div class="ask2">
-            <div class="a-hist">
-              <span class="new"><svg><use href="#i-pen"/></svg>New chat</span>
-              <div class="day">Today</div>
-              <div class="chats" role="tablist" aria-label="Demo chats" aria-orientation="vertical">
-                <button class="a-chat" role="tab" id="t-germany" aria-controls="a-germany" aria-selected="true"><span>Why is the last day of Germany's orders always low?</span><time>09:40</time></button><button class="a-chat" role="tab" id="t-spain" aria-controls="a-spain" aria-selected="false" tabindex="-1"><span>Does net revenue in Spain include VAT?</span><time>09:12</time></button><button class="a-chat" role="tab" id="t-poland" aria-controls="a-poland" aria-selected="false" tabindex="-1"><span>Give me all about orders in Poland</span><time>08:40</time></button><button class="a-chat" role="tab" id="t-advice" aria-controls="a-advice" aria-selected="false" tabindex="-1"><span>Should we restart the Norway campaign?</span><time>08:05</time></button><button class="a-chat" role="tab" id="t-numbers" aria-controls="a-numbers" aria-selected="false" tabindex="-1"><span>How many orders did Norway have in October 2026?</span><time>07:58</time></button>
-              </div>
-              <p class="note">Only you see these chats. Agents' questions are kept as counts.</p>
-            </div>
-            <div class="a-main">
-              <div class="a-chatpane"><div class="a-col">
-                <div class="a-panel" id="a-germany" role="tabpanel" aria-labelledby="t-germany"><div class="a-q"><div class="a-bubble">Why is the last day of Germany's orders always low?</div><div class="a-readas"><span>Read as</span><span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> <span class="dot">·</span> <span class="ac market"><svg><use href="#i-tag"/></svg>Germany</span> <span class="dot">·</span> <span class="a-period">1-23 Oct 2026<svg><use href="#i-chev"/></svg></span> <b>Change</b></div></div>
-<div class="a-answer">
-<div class="a-line"><span class="a-state ok"><svg><use href="#i-check"/></svg>Checked</span></div>
-<div class="a-text"><p>The payment files for <span class="ac market"><svg><use href="#i-tag"/></svg>Germany</span> reach the source tool the morning after, so the last day of <span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> is always short.<span class="a-cite">1</span></p></div>
-<div class="a-used"><b>Used 1 item<svg><use href="#i-chev"/></svg></b><span>· Live, checked 12 Sept 2026</span></div>
-<div class="a-link"><svg><use href="#i-ext"/></svg><span>See the figure in Cube: Orders in Germany, 1 to 23 Oct 2026</span></div>
-<div class="a-foot"><span>1 of 21 published context items you may read applies.</span><b>What Ask read<svg><use href="#i-chev"/></svg></b></div>
-<div class="a-acts" aria-hidden="true"><span class="a-btn icon"><svg><use href="#i-copy"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-up"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-down"/></svg></span><span class="a-btn icon"><svg><use href="#i-refresh"/></svg></span><span class="a-btn icon"><svg><use href="#i-more"/></svg></span></div>
-</div></div><div class="a-panel" id="a-spain" role="tabpanel" aria-labelledby="t-spain" hidden><div class="a-q"><div class="a-bubble">Does net revenue in Spain include VAT?</div><div class="a-readas"><span>Read as</span><span class="ac metric"><svg><use href="#i-sigma"/></svg>Net revenue</span> <span class="dot">·</span> <span class="ac market"><svg><use href="#i-tag"/></svg>Spain</span> <span class="dot">·</span> <span class="a-period">Today · assumed<svg><use href="#i-chev"/></svg></span> <b>Change</b></div></div>
-<div class="a-answer">
-<div class="a-line"><span class="a-state conflict"><svg><use href="#i-conflict"/></svg>Conflict</span><span class="a-sent">Two items say different things.</span></div>
-<div class="a-text"><p>Two items disagree. One in <span class="ac domain" style="--h:345"><i></i>Sales</span> says it includes VAT <span class="a-cite">1</span>; one in <span class="ac domain" style="--h:160"><i></i>Paid media</span> says it excludes VAT.<span class="a-cite">2</span></p></div>
-<div class="a-pairlbl"><svg><use href="#i-conflict"/></svg>These two disagree</div>
-<div class="a-pair">
-<div class="a-card"><div class="row"><span>1</span><span class="ac domain" style="--h:345"><i></i>Sales</span></div><span class="t">Net revenue in Spain includes VAT</span><span class="m">Live · checked 12 Oct 2026</span></div>
-<div class="a-card"><div class="row"><span>2</span><span class="ac domain" style="--h:160"><i></i>Paid media</span></div><span class="t">Net revenue in Spain excludes VAT</span><span class="m">Live · checked 3 Oct 2026</span></div>
-</div>
-<div class="a-text" style="font-size:14px;line-height:20px">Which one holds is for the owners of <span class="ac domain" style="--h:345"><i></i>Sales</span> and <span class="ac domain" style="--h:160"><i></i>Paid media</span> to decide.</div>
-<span class="a-btn" style="width:fit-content;color:var(--a-muted-fg)"><svg><use href="#i-swap"/></svg>Compare the two</span>
-<div class="a-foot"><span>2 of 21 published context items you may read apply.</span><b>What Ask read<svg><use href="#i-chev"/></svg></b></div>
-<div class="a-acts" aria-hidden="true"><span class="a-btn icon"><svg><use href="#i-copy"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-up"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-down"/></svg></span><span class="a-btn icon"><svg><use href="#i-refresh"/></svg></span><span class="a-btn icon"><svg><use href="#i-more"/></svg></span></div>
-</div></div><div class="a-panel" id="a-poland" role="tabpanel" aria-labelledby="t-poland" hidden><div class="a-q"><div class="a-bubble">Give me all about orders in Poland</div><div class="a-readas"><span>Read as</span><span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> <span class="dot">·</span> <span class="ac market"><svg><use href="#i-tag"/></svg>Poland</span> <span class="dot">·</span> <span class="a-period">Today · assumed<svg><use href="#i-chev"/></svg></span> <b>Change</b></div></div>
-<div class="a-answer">
-<div class="a-line"><span class="a-state missing"><svg><use href="#i-missing"/></svg>Not found</span><span class="a-sent">Nothing is written about this yet.</span></div>
-<div class="a-text"><p>Nothing written covers <span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> in <span class="ac market"><svg><use href="#i-tag"/></svg>Poland</span>.</p></div>
-<div class="a-used" style="gap:6px">Written nearest about <span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span>, by <span class="ac dashed">Market</span></div>
-<div class="a-near"><div class="it"><svg><use href="#i-zap"/></svg><div><div class="t">Online sales to Norway stopped on 4 August 2026</div><div class="tags"><span class="ac market"><svg><use href="#i-tag"/></svg>Norway</span> <span class="ac domain" style="--h:345"><i></i>Sales</span> <span class="live"><i></i>Live · checked 3 Oct 2026</span></div></div></div><div class="it"><svg><use href="#i-zap"/></svg><div><div class="t">Payment provider switched in France on 21 May 2026</div><div class="tags"><span class="ac market"><svg><use href="#i-tag"/></svg>France</span> <span class="ac domain" style="--h:345"><i></i>Sales</span> <span class="live"><i></i>Live · checked 3 Oct 2026</span></div></div></div></div>
-<div class="a-text" style="font-size:14px;line-height:20px"><span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> is in <span class="ac domain" style="--h:345"><i></i>Sales</span>, owned by Jon Abara and Sofia Brandt.</div>
-<span class="a-btn" style="width:fit-content"><svg><use href="#i-pencil"/></svg>Write context for <span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> in <span class="ac market"><svg><use href="#i-tag"/></svg>Poland</span></span>
-<div class="a-foot"><span>0 of 21 published context items you may read apply; a wider read found 7.</span><b>What Ask read<svg><use href="#i-chev"/></svg></b></div>
-<div class="a-acts" aria-hidden="true"><span class="a-btn icon"><svg><use href="#i-copy"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-up"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-down"/></svg></span><span class="a-btn icon"><svg><use href="#i-refresh"/></svg></span><span class="a-btn icon"><svg><use href="#i-more"/></svg></span></div>
-</div></div><div class="a-panel" id="a-advice" role="tabpanel" aria-labelledby="t-advice" hidden><div class="a-q"><div class="a-bubble">Should we restart the Norway campaign?</div><div class="a-readas"><span>Read as</span><span class="ac market"><svg><use href="#i-tag"/></svg>Norway</span> <span class="dot">·</span> <span class="a-period">Today · assumed<svg><use href="#i-chev"/></svg></span> <b>Change</b></div></div>
-<div class="a-answer">
-<div class="a-line"><span class="a-state ok"><svg><use href="#i-check"/></svg>Checked</span></div>
-<div class="a-text"><p>What to do is not written down. Here is what is.</p><p>A new customs rule stopped all online sales to <span class="ac market"><svg><use href="#i-tag"/></svg>Norway</span> from 4 August 2026, so orders there fell to almost nothing.<span class="a-cite">1</span></p></div>
-<div class="a-used"><b>Used 1 item<svg><use href="#i-chev"/></svg></b><span>· Live, checked 3 Oct 2026</span></div>
-<div class="a-foot"><span>1 of 21 published context items you may read applies.</span><b>What Ask read<svg><use href="#i-chev"/></svg></b></div>
-<div class="a-acts" aria-hidden="true"><span class="a-btn icon"><svg><use href="#i-copy"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-up"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-down"/></svg></span><span class="a-btn icon"><svg><use href="#i-refresh"/></svg></span><span class="a-btn icon"><svg><use href="#i-more"/></svg></span></div>
-</div></div><div class="a-panel" id="a-numbers" role="tabpanel" aria-labelledby="t-numbers" hidden><div class="a-q"><div class="a-bubble">How many orders did Norway have in October 2026?</div><div class="a-readas"><span>Read as</span><span class="ac metric"><svg><use href="#i-sigma"/></svg>Orders</span> <span class="dot">·</span> <span class="ac market"><svg><use href="#i-tag"/></svg>Norway</span> <span class="dot">·</span> <span class="a-period">Oct 2026<svg><use href="#i-chev"/></svg></span> <b>Change</b></div></div>
-<div class="a-answer">
-<div class="a-line"><span class="a-state ok"><svg><use href="#i-check"/></svg>Checked</span></div>
-<div class="a-text"><p>Footnote keeps no numbers, so Ask cannot work this out. Here is what is written.</p><p>A new customs rule stopped all online sales to <span class="ac market"><svg><use href="#i-tag"/></svg>Norway</span> from 4 August 2026, so orders there fell to almost nothing.<span class="a-cite">1</span></p></div>
-<div class="a-used"><b>Used 1 item<svg><use href="#i-chev"/></svg></b><span>· Live, checked 3 Oct 2026</span></div>
-<div class="a-foot"><span>1 of 21 published context items you may read applies.</span><b>What Ask read<svg><use href="#i-chev"/></svg></b></div>
-<div class="a-acts" aria-hidden="true"><span class="a-btn icon"><svg><use href="#i-copy"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-up"/></svg></span><span class="a-btn icon"><svg><use href="#i-thumb-down"/></svg></span><span class="a-btn icon"><svg><use href="#i-refresh"/></svg></span><span class="a-btn icon"><svg><use href="#i-more"/></svg></span></div>
-</div></div>
-              </div></div>
-              <div class="a-composer-wrap" aria-hidden="true"><div class="a-composer"><div class="ph">Ask what is written about a number, such as orders in Norway</div><div class="a-tools"><svg><use href="#i-at"/></svg><span class="send"><svg><use href="#i-up"/></svg></span></div></div></div>
-            </div>
-          </div>
-        </div>
-        </div>
-<div class="lines" aria-label="The six answer lines">
-          <div class="line"><span class="app a-wrap"><span class="a-state ok"><svg><use href="#i-check"/></svg>Checked</span></span><p>Something applies, and its owner published it with a source and a check date.</p><p class="do">Nothing to do.</p></div>
-          <div class="line"><span class="app a-wrap"><span class="a-state muted"><svg><use href="#i-partial"/></svg>Partial</span></span><p>Part of the question is covered, or the dates were assumed. The answer says which.</p><p class="do">Write the rest, or tell the owner.</p></div>
-          <div class="line"><span class="app a-wrap"><span class="a-state missing"><svg><use href="#i-missing"/></svg>Not found</span></span><p>Nobody has written this down. That's not the same as there being no reason.</p><p class="do">Write it, or tell the owner.</p></div>
-          <div class="line"><span class="app a-wrap"><span class="a-state conflict"><svg><use href="#i-conflict"/></svg>Conflict</span></span><p>Two items apply and they disagree. Agents get both and say so.</p><p class="do">An owner keeps one, narrows one, or keeps both.</p></div>
-          <div class="line"><span class="app a-wrap"><span class="a-state stale"><svg><use href="#i-clock"/></svg>Outdated</span></span><p>The check date has passed, or a definition the item relies on changed.</p><p class="do">The owner looks again: Still true, or Edit.</p></div>
-          <div class="line"><span class="app a-wrap"><span class="a-state muted"><svg><use href="#i-alert"/></svg>Not looked up</span></span><p>Ask couldn't look just now. It doesn't mean nothing is written.</p><p class="do">Try again in a minute.</p></div>
-        </div>
-        <p class="doclink"><span>In the docs:</span><a href={docs('answer-lines')}>The six answer lines</a></p>
-      </div>
-    </section>
-
-    <!-- Owners -->
-    <section class="sec" id="trust" aria-labelledby="h-trust">
-      <div class="doc">
-        <h2 class="h2" id="h-trust">Agents only see what an owner has published.</h2>
-        <p class="lede">Every item belongs to one area, like Sales or Paid media, and the owners of that area decide what goes out. Drafts, suggestions and comments stay inside. Each promise below has a note saying where it's checked.</p>
+    <section class="band" id="trust" aria-labelledby="h-owners">
+      <div class="inner">
+        <h2 id="h-owners">Agents only see what an owner has published.</h2>
+        <p class="lede">Every item belongs to one area, like Sales or Paid media, and the owners of that area decide what goes out. Drafts, suggestions and comments stay inside.</p>
         <div class="claims">
-          <div class="claim"><h3>Drafts stay drafts</h3><p>The database role that answers agents can't read the versions table at all. That's a permission, not a setting someone can flip by accident.<a class="fm" href="#sn-drafts" aria-label="Note 3">3</a><span class="sn" id="sn-drafts"><b>3</b>The test asks as that role and expects <i>permission denied</i>. <a href={repo('tests/integration/mcp.test.ts')}><code>mcp.test.ts</code></a></span></p></div>
-          <div class="claim"><h3>A review before it goes live</h3><p>The review holds the claims up against the source. It also replays the questions agents asked against the draft, so the owner sees what will change before it does.</p></div>
-          <div class="claim"><h3>Nothing filled in</h3><p>When nothing is written, the answer says Not found and stops. It doesn't reach for a likely story.<a class="fm" href="#sn-nf" aria-label="Note 4">4</a><span class="sn" id="sn-nf"><b>4</b>Golden questions with nothing written down must come back Not found. <a href={repo('db/seed/golden-set.yml')}><code>golden-set.yml</code></a></span></p></div>
-          <div class="claim"><h3>What not to conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.<a class="fm" href="#sn-dc" aria-label="Note 5">5</a><span class="sn" id="sn-dc"><b>5</b>Sent with the item as <code>not_to_conclude</code>, with the rule "never conclude what it rules out". <a href={repo('src/domain/resolver.ts')}><code>resolver.ts</code></a></span></p></div>
-          <div class="claim"><h3>When a definition changes</h3><p>If a definition an item relies on changes or disappears in Cube or dbt, the item is flagged for its owner, and answers say Outdated until they've looked.</p></div>
-          <div class="claim"><h3>Topics, not words</h3><p>When an agent asks something, we keep what it was about and how often. We don't keep the words. Your own chats in Ask stay in your browser.<a class="fm" href="#sn-priv" aria-label="Note 6">6</a><span class="sn" id="sn-priv"><b>6</b>What is kept, for how long, and who can see a chat. <a href={docs('privacy')}>Privacy</a></span></p></div>
+          <div><h3>Drafts stay drafts</h3><p>The database role that answers agents can't read the versions table at all. That's a permission, not a setting someone can flip by accident.</p></div>
+          <div><h3>A review before it goes live</h3><p>The review holds the claims up against the source. It also replays the questions agents asked against the draft, so the owner sees what will change before it does.</p></div>
+          <div><h3>Nothing filled in</h3><p>When nothing is written, the answer says Not found and stops. It doesn't reach for a likely story.</p></div>
+          <div><h3>What not to conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.</p></div>
+          <div><h3>When a definition changes</h3><p>If a definition an item relies on changes or disappears in Cube or dbt, the item is flagged for its owner, and answers say Outdated until they've looked.</p></div>
+          <div><h3>Topics, not words</h3><p>When an agent asks something, we keep what it was about and how often. We don't keep the words. Your own chats in Ask stay in your browser.</p></div>
         </div>
-        <p class="caveat">One thing to know: in this version, everyone who is signed in, and every agent, can read everything that's published. Per-person limits aren't built yet.</p>
-        <p class="prose">The checked sentence at the top of this page comes from the demo, not from us. CI starts the demo, asks Ask that same question in a browser and expects Checked with the customs rule.<a class="fm" href="#sn-demo" aria-label="Note 7">7</a><span class="sn" id="sn-demo"><b>7</b><a href={repo('tests/e2e-seed/demo.spec.ts')}><code>demo.spec.ts</code></a></span></p>
-        <p class="doclink"><span>In the docs:</span><a href={docs('domains-and-owners')}>Domains and owners</a></p>
+        <p class="know"><b>One thing to know:</b> in this version, everyone who is signed in, and every agent, can read everything that's published. Per-person limits aren't built yet.</p>
+        <p class="docs">In the docs: <a href={docs('domains-and-owners')}>Domains and owners</a> <a href={docs('privacy')}>Privacy</a></p>
       </div>
     </section>
+  </div>
 
-    <!-- Agents -->
-    <section class="sec" id="agents" aria-labelledby="h-agents">
-      <div class="doc">
-        <h2 class="h2" id="h-agents">Six MCP tools, and no model on our side.</h2>
+  <section class="agents" id="agents" aria-labelledby="h-agents">
+    <div class="inner">
+      <div>
+        <h2 id="h-agents">Six MCP tools, and no model on our side.</h2>
         <p class="lede">Your agent connects over MCP and signs in as you. Footnote doesn't run a model for agents, so the same question gets the same items until an owner publishes a change.</p>
-        <div class="agents-grid wide">
-          <div>
-        <div class="tools" aria-label="The six MCP tools">
-          <div class="tool"><code>get_context</code><span>The items that apply to a question about a metric, a market or some dates, with the answer line first.</span></div>
-          <div class="tool"><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV.</span></div>
-          <div class="tool"><code>read_context</code><span>One item in full, with its source and its owner.</span></div>
-          <div class="tool"><code>get_related</code><span>Follow the links from an item, a metric or a domain. A link is not proof of a cause.</span></div>
-          <div class="tool"><code>report<span class="tag">asks first</span></code><span>Tell the owner an item looks wrong or unclear, after the person says yes.</span></div>
-          <div class="tool"><code>suggest_context<span class="tag">asks first</span></code><span>Send the owner a suggestion. Nothing goes live until they've checked it.</span></div>
-        </div>
-        <p class="prose">Connecting takes one command, then one approval in the browser. An admin can switch any tool off for any agent. We tell agents that item text is data, not instructions, and in our test runs they ignored the instructions we planted in items.</p>
-        <p class="prose">We've only tried this with Claude Code. The app has an install link or written steps for Cursor, VS Code, Claude, ChatGPT and Codex, but nobody has tried those yet.</p>
-          </div>
-          <figure class="agents-pic" style="margin:0">
-            <div class="cc">
-              <div class="cc-title"><span class="dot3" aria-hidden="true"><i></i><i></i><i></i></span>claude</div>
-              <div class="cc-prompt"><span class="p">❯</span><span>How did orders in Norway change in October 2026?</span></div>
-              <div class="cc-body">
-                <div class="cc-called">Called footnote</div>
-                <div class="cc-bullet">I can't give you the October 2026 order numbers. Here is what applies to orders in Norway in October 2026.</div>
-                <ul>
-                  <li><b>Online sales stopped on 4 August 2026.</b> A new customs rule holds parcels from webshops outside Norway at the border "until further notice". The Sales owner checked this.</li>
-                  <li><b>Don't read fewer orders as fewer customers.</b> The written caveat is that the drop after 4 August does not mean fewer customers.</li>
-                  <li><b>Compare in euros.</b> Orders are booked in each market's own currency and converted to euros at the daily rate.</li>
-                </ul>
-                <div>Nothing is written down about a specific event in October 2026. That only covers what I asked, and it doesn't prove nothing happened.</div>
-              </div>
-              <div class="cc-foot">✳ Worked for 10s</div>
-            </div>
-          </figure>
-        </div>
-<div class="amd wide">
-          <div class="amd-txt">
-            <h3>One line in your AGENTS.md</h3>
-            <p class="prose">When you connect an agent, the prompt the app gives you adds one line to the project's instructions file: CLAUDE.md if you have one, otherwise AGENTS.md. That's all you write.</p>
-            <p class="prose">How to explain the why isn't left to that file. Footnote sends the rules with every reply, so each agent gets the same ones, and they change with the server rather than in every repository.</p>
-          </div>
-          <div class="amd-files">
-            <div class="code-card">
-              <div class="code-h"><span>AGENTS.md</span><span>the line you add</span></div>
-              <div class="cmdw"><button class="copy" type="button" aria-label="Copy the line" data-copy="Before you answer a question about company data, call get_context first and use what it returns."><svg><use href="#i-copy"/></svg></button>
-<pre><span class="c"># Footnote</span>
+        <ul class="tools">
+          <li><code>get_context</code><span>The items that apply to a question about a metric, a market or some dates, with the answer line first.</span></li>
+          <li><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV.</span></li>
+          <li><code>read_context</code><span>One item in full, with its source and its owner.</span></li>
+          <li><code>get_related</code><span>Follow the links from an item, a metric or a domain. A link is not proof of a cause.</span></li>
+          <li><code>report<i>asks first</i></code><span>Tell the owner an item looks wrong or unclear, after the person says yes.</span></li>
+          <li><code>suggest_context<i>asks first</i></code><span>Send the owner a suggestion. Nothing goes live until they've checked it.</span></li>
+        </ul>
+        <p class="after">Connecting takes one command, then one approval in the browser. An admin can switch any tool off for any agent. We tell agents that item text is data, not instructions, and in our test runs they ignored the instructions we planted in items.</p>
+        <p class="docs">In the docs: <a href={docs('connect-an-agent')}>Connect an agent</a> <a href={docs('reference/agent-tools')}>The agent tools in detail</a></p>
+      </div>
+      <div>
+        <h3>One line in your AGENTS.md</h3>
+        <p>When you connect an agent, the prompt the app gives you adds one line to the project's instructions file: CLAUDE.md if you have one, otherwise AGENTS.md. That's all you write.</p>
+        <div class="file"><p class="bar"><b>AGENTS.md</b><span>the line you add</span></p><pre><span># Footnote</span>
 Before you answer a question about company data, call get_context first and use what it returns.</pre></div>
-              <div class="code-h"><span>get_context reply</span><span>sent every time</span></div>
-<ul class="code-list" aria-label="The instructions in every get_context reply">
-                <li>State the documented fact with its source and dates.</li>
-                <li>Say "might be related" only when the dates overlap and the metric is in scope, and say the context does not prove a cause.</li>
-                <li>Never say "caused by" unless the item states the effect.</li>
-                <li>When an item has not_to_conclude, never conclude what it rules out.</li>
-                <li>Suggest a check that would test the effect.</li>
-              </ul>
-            </div>
-          </div>
+        <div class="file"><p class="bar"><b>get_context reply</b><span>sent every time</span></p><ol>
+          <li>State the documented fact with its source and dates.</li>
+          <li>Say "might be related" only when the dates overlap and the metric is in scope, and say the context does not prove a cause.</li>
+          <li>Never say "caused by" unless the item states the effect.</li>
+          <li>When an item has not_to_conclude, never conclude what it rules out.</li>
+          <li>Suggest a check that would test the effect.</li>
+        </ol></div>
+        <p class="after">How to explain the why isn't left to that file. Footnote sends the rules with every reply, so each agent gets the same ones, and they change with the server rather than in every repository.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="reads" id="connectors" aria-labelledby="h-reads">
+    <h2 id="h-reads"><span>What it reads,</span> <span>and what reads it.</span></h2>
+    <p class="how"><span>Some of this works today. Some of it is built and still waiting for someone to try it on a real account. Each row says which.</span></p>
+    <div class="io">
+      <div class="side in-side">
+        <div><h3>Definitions</h3><p>Metric and dimension names from your semantic layer. Read only, and it works today.</p>
+          <ul class="kit">
+            <li><svg aria-hidden="true"><use href="#l-cube"/></svg><span>Cube<small><i class="s works" aria-hidden="true"></i>works today</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-dbt"/></svg><span>dbt MetricFlow<small><i class="s works" aria-hidden="true"></i>works today</small></span></li>
+            <li><svg aria-hidden="true"><use href="#i-lines"/></svg><span>A list you write yourself<small><i class="s works" aria-hidden="true"></i>works today</small></span></li>
+          </ul></div>
+        <div><h3>Documents</h3><p>Notes that arrive as suggestions for an owner. Built, not tried on a real account yet.</p>
+          <ul class="kit">
+            <li><svg aria-hidden="true"><use href="#l-markdown"/></svg><span>Markdown in Git<small><i class="s built" aria-hidden="true"></i>{words.markdownStatus}</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-drive"/></svg><span>Google Drive<small><i class="s built" aria-hidden="true"></i>built, not tried on a real account</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-notion"/></svg><span>Notion<small><i class="s later" aria-hidden="true"></i>designed, not built</small></span></li>
+          </ul></div>
+      </div>
+      <span class="hub" aria-hidden="true"><svg><use href="#fn-logo"/></svg></span>
+      <div class="side out-side">
+        <div><h3>Agents</h3><p>Anything that speaks MCP, signed in as the person. We've tried Claude Code.</p>
+          <ul class="kit">
+            <li><svg aria-hidden="true"><use href="#l-claude"/></svg><span>Claude Code<small><i class="s works" aria-hidden="true"></i>tried</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-cursor"/></svg><span>Cursor<small><i class="s built" aria-hidden="true"></i>install link, not tried</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-vscode"/></svg><span>VS Code<small><i class="s built" aria-hidden="true"></i>install link, not tried</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-openai"/></svg><span>ChatGPT and Codex<small><i class="s built" aria-hidden="true"></i>written steps, not tried</small></span></li>
+            <li><svg aria-hidden="true"><use href="#l-mcp"/></svg><span>Any other MCP client<small><i class="s built" aria-hidden="true"></i>over HTTP, not tried</small></span></li>
+          </ul></div>
+        <div><h3>People</h3><p>Ask, in the browser, for anyone who is signed in.</p></div>
+      </div>
+    </div>
+    <div class="key">
+      <p><span><i class="s works" aria-hidden="true"></i>works today</span><span><i class="s built" aria-hidden="true"></i>built or linked, not tried</span><span><i class="s later" aria-hidden="true"></i>designed, not built</span></p>
+      <p>In the docs: <a href={docs('connectors')}>Connectors</a> <a href={docs('connectors/authoring')}>Build a connector</a></p>
+    </div>
+  </section>
+
+  <div class="sheet">
+    <section class="band run" id="run" aria-labelledby="h-run">
+      <div class="inner">
+        <h2 id="h-run">Try it on your own computer.</h2>
+        <p class="lede">{words.installLede}</p>
+        <ol class="go">
+          <li><h3>Start it</h3><p>{words.startLine}</p><p class="cmd">{words.startCommands.map((command, i) => <Fragment>{i > 0 && <br />}<span>$ </span>{command}</Fragment>)}</p></li>
+          <li><h3>Open it</h3><p>Sign in as one of the demo people if it asks, open Ask, and try the Norway question.</p><p class="cmd"><span>$ </span>open http://localhost:8080</p></li>
+          <li><h3>Connect Claude Code</h3><p>Add the server, run /mcp, pick it and choose Authenticate. Your browser opens. Pick a demo person and press Allow.</p><p class="cmd"><span>$ </span>claude mcp add --transport http footnote http://localhost:3000/mcp</p></li>
+        </ol>
+        <div class="facts">
+          <div><h3>Runs on</h3><p>One computer with Docker. Everything it keeps is in PostgreSQL.</p><ul class="kit"><li><svg aria-hidden="true"><use href="#l-docker"/></svg>Docker</li><li><svg aria-hidden="true"><use href="#l-postgres"/></svg>PostgreSQL</li></ul></div>
+          <div><h3>A model, if you want one</h3><p>For Ask's sentences and the answer tests. It's off unless you start Footnote with <code>MODELS=live</code> and a model key, and agents never need it. A real model costs money and receives the context Ask reads.</p>
+            <ul class="kit rows">
+              <li><svg aria-hidden="true"><use href="#l-anthropic"/></svg><span>Anthropic<small>the default: Footnote is built and tested on Claude</small></span></li>
+              <li><svg aria-hidden="true"><use href="#l-openai"/></svg><span>OpenAI</span></li>
+              <li><svg aria-hidden="true"><use href="#l-vercel"/></svg><span>Vercel AI Gateway</span></li>
+              <li><svg aria-hidden="true"><use href="#i-server"/></svg><span>Any server that speaks either API<small>such as OpenRouter, LiteLLM, or Ollama on your own computer</small></span></li>
+            </ul>
+            <p class="fine">Other models than Claude work, and their answers are less complete. <a href={docs('model-providers')}>Choose a model provider</a></p></div>
+          <div><h3>Your tool</h3><p>A connector is one folder in the repository. The guide is written so a coding agent can follow it.</p></div>
         </div>
-        <p class="doclink"><span>In the docs:</span><a href={docs('connect-an-agent')}>Connect an agent</a><a href={docs('reference/agent-tools')}>The agent tools in detail</a></p>
+        <ul class="notes">
+          <li>On the demo nothing leaves your computer, and no AI service is called. Ask uses a scripted reader that lists what's written.</li>
+          <li>Footnote reads your definitions from a Cube model folder or from the semantic_manifest.json that dbt parse writes, and never writes back.</li>
+          <li>{words.versionNote}</li>
+        </ul>
+        <div class="end"><a class="btn btn-ink" href={docs('self-hosting')}>Install</a><a class="btn btn-line" href={docs('get-started')}>Read the docs</a><span class="meta">{words.endMeta}</span></div>
       </div>
     </section>
-
-    <!-- Connectors -->
-    <section class="sec" id="connectors" aria-labelledby="h-connectors">
-      <div class="doc">
-        <h2 class="h2" id="h-connectors">What it reads, and what reads it.</h2>
-        <p class="lede">Some of this works today. Some of it is built and still waiting for someone to try it on a real account. Each row says which, and so does each icon if you point at it.</p>
-        <div class="wide">
-<div class="conn">
-          <div class="crow">
-            <div class="ch"><h3>Definitions</h3><p>Metric and dimension names from your semantic layer. Read only, and it works today.</p></div>
-            <ul class="cicons" aria-label="Definitions">
-              <li><span class="ci" role="img" tabindex="0" aria-label="Cube, works today" data-tip="Cube · works today"><svg><use href="#l-cube"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="dbt MetricFlow, works today" data-tip="dbt MetricFlow · works today"><svg><use href="#l-dbt"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="A list you write yourself, works today" data-tip="A list you write · works today"><svg><use href="#i-lines"/></svg></span></li>
-            </ul>
-          </div>
-          <div class="crow">
-            <div class="ch"><h3>Documents</h3><p>Notes that arrive as suggestions for an owner. Built, not tried on a real account yet.</p></div>
-            <ul class="cicons" aria-label="Documents">
-              <li><span class="ci" role="img" tabindex="0" aria-label="Markdown in Git, not in the 0.1.0 image yet" data-tip="Markdown in Git · not in the 0.1.0 image yet"><svg><use href="#l-markdown"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="Google Drive, built, not tried on a real account" data-tip="Google Drive · built, not tried"><svg><use href="#l-drive"/></svg></span></li>
-              <li><span class="ci soon" role="img" tabindex="0" aria-label="Notion, designed, not built" data-tip="Notion · designed, not built"><svg><use href="#l-notion"/></svg></span></li>
-            </ul>
-          </div>
-          <div class="crow">
-            <div class="ch"><h3>Agents</h3><p>Anything that speaks MCP, signed in as the person. We've tried Claude Code.</p></div>
-            <ul class="cicons" aria-label="Agents">
-              <li><span class="ci" role="img" tabindex="0" aria-label="Claude Code, tried" data-tip="Claude Code · tried"><svg><use href="#l-claude"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="Cursor, install link, not tried" data-tip="Cursor · install link, not tried"><svg><use href="#l-cursor"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="VS Code, install link, not tried" data-tip="VS Code · install link, not tried"><svg><use href="#l-vscode"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="ChatGPT and Codex, written steps, not tried" data-tip="ChatGPT and Codex · steps, not tried"><svg><use href="#l-openai"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="Any other MCP client, over HTTP" data-tip="Any MCP client · over HTTP"><svg><use href="#l-mcp"/></svg></span></li>
-            </ul>
-          </div>
-          <div class="crow">
-            <div class="ch"><h3>Runs on</h3><p>One computer with Docker. Everything it keeps is in PostgreSQL.</p></div>
-            <ul class="cicons" aria-label="Runs on">
-              <li><span class="ci" role="img" tabindex="0" aria-label="Docker" data-tip="Docker"><svg><use href="#l-docker"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="PostgreSQL" data-tip="PostgreSQL"><svg><use href="#l-postgres"/></svg></span></li>
-            </ul>
-          </div>
-          <div class="crow">
-            <div class="ch"><h3>A model, if you want one</h3><p>Only for Ask's sentences, and off until an admin turns it on. Agents never need it.</p></div>
-            <ul class="cicons" aria-label="A model for Ask">
-              <li><span class="ci" role="img" tabindex="0" aria-label="Anthropic" data-tip="Anthropic"><svg><use href="#l-anthropic"/></svg></span></li>
-              <li><span class="ci" role="img" tabindex="0" aria-label="Vercel AI Gateway" data-tip="Vercel AI Gateway"><svg><use href="#l-vercel"/></svg></span></li>
-            </ul>
-          </div>
-          <div class="crow">
-            <div class="ch"><h3>Your tool</h3><p>A connector is one folder in the repository. The guide is written so a coding agent can follow it.</p></div>
-            <ul class="cicons" aria-label="Your tool">
-              <li><a class="ci add" href={docs('connectors/authoring')} aria-label="Build a connector" data-tip="Build a connector"><span aria-hidden="true">+</span></a></li>
-            </ul>
-          </div>
-        </div>
-        </div>
-        <p class="doclink"><span>In the docs:</span><a href={docs('connectors')}>Connectors</a><a href={docs('connectors/authoring')}>Build a connector</a></p>
-      </div>
-    </section>
-
-    <!-- Run it -->
-    <section class="sec" id="run" aria-labelledby="h-install">
-      <div class="doc">
-        <h2 class="h2" id="h-install">Try it on your own computer.</h2>
-        <!-- release: switch to the images -->
-        <p class="lede">You need Docker. The first start builds Footnote from your checkout and loads the demo company: its people and their notes, a few suggestions waiting for review, and some weeks of questions from agents. The first build takes a few minutes.</p>
-<div class="install wide" id="install">
-          <div class="inst">
-            <span class="n">1</span>
-            <!-- release: switch to the images -->
-            <div><h3>Start it</h3><p>Clone the repository and start it with Docker Compose.</p></div>
-<div class="cmdw"><button class="copy" type="button" aria-label="Copy the commands" data-copy="git clone https://github.com/Fredehagelund92/footnote.git &amp;&amp; cd footnote&#10;docker compose up"><svg><use href="#i-copy"/></svg></button><pre class="cmd"><span class="p">$ </span>git clone https://github.com/Fredehagelund92/footnote.git &amp;&amp; cd footnote
-<span class="p">$ </span>docker compose up</pre></div>
-          </div>
-          <div class="inst">
-            <span class="n">2</span>
-            <div><h3>Open it</h3><p>Sign in as one of the demo people if it asks, open Ask, and try the Norway question.</p></div>
-<div class="cmdw"><button class="copy" type="button" aria-label="Copy the address" data-copy="http://localhost:8080"><svg><use href="#i-copy"/></svg></button><pre class="cmd"><span class="p">open </span>http://localhost:8080</pre></div>
-          </div>
-          <div class="inst">
-            <span class="n">3</span>
-            <div><h3>Connect Claude Code</h3><p>Add the server, run <code style="font-size:13px">/mcp</code>, pick it and choose Authenticate. Your browser opens. Pick a demo person and press Allow.</p></div>
-<div class="cmdw"><button class="copy" type="button" aria-label="Copy the command" data-copy="claude mcp add --transport http footnote http://localhost:3000/mcp"><svg><use href="#i-copy"/></svg></button><pre class="cmd"><span class="p">$ </span>claude mcp add --transport http footnote http://localhost:3000/mcp</pre></div>
-          </div>
-        </div>
-        <p class="prose">On the demo nothing leaves your computer, and no AI service is called. Ask uses a scripted reader that lists what's written.</p>
-        <p class="prose">An admin can give Ask a model for its sentences, Anthropic directly or through Vercel's AI Gateway. Ask then sends the question, the chat so far, the items it read and their owners' names, but no e-mail addresses, and each person has a daily spending limit.</p>
-        <p class="prose">Footnote reads your definitions from a Cube model folder or from the <code>semantic_manifest.json</code> that <code>dbt parse</code> writes, and never writes back.</p>
-        <p class="pre-note">It's before 1.0. It's for trying the idea on one computer with the demo, not yet for your company's data, and things will change between releases. We don't have a measured number yet for how much better agents answer with Footnote.</p>
-        <p class="doclink"><span>In the docs:</span><a href={docs('self-hosting')}>Self-host on one computer</a><a href={docs('get-started')}>Get started</a></p>
-      </div>
-    </section>
-
     <SiteFooter home="#top" docs={docs()} />
   </div>
 </main>
 
+<script>
+  import { hero } from '../hero.ts'
 
-<script is:inline>
-(function () {
-  // A tab list: arrow keys, Home and End move between tabs; the panel shows with a short fade.
-  function tablist(tabs, onShow) {
-    function select(tab, focus) {
-      tabs.forEach(function (t) {
-        var on = t === tab;
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-        t.tabIndex = on ? 0 : -1;
-        var panel = document.getElementById(t.getAttribute('aria-controls'));
-        panel.hidden = !on;
-        if (on && onShow) onShow(panel);
-      });
-      if (focus) tab.focus();
-    }
-    tabs.forEach(function (t, i) {
-      t.addEventListener('click', function () { select(t, false); });
-      t.addEventListener('keydown', function (e) {
-        var k = e.key, n = null;
-        if (k === 'ArrowDown' || k === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
-        if (k === 'ArrowUp' || k === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
-        if (k === 'Home') n = tabs[0];
-        if (k === 'End') n = tabs[tabs.length - 1];
-        if (n) { e.preventDefault(); select(n, true); }
-      });
-    });
-  }
-  var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
-  tablist(all('.a-chat'), function (panel) {
-    var ans = panel.querySelector('.a-answer');
-    ans.classList.remove('in'); void ans.offsetWidth; ans.classList.add('in');
-  });
-
-
-  // How it fits: draw the wires between the cards, again whenever the layout changes. Side by
-  // side they run from one card's edge to the next; stacked on a phone they run down the middle.
-  var dg = document.getElementById('dg');
-  if (dg) {
-    var NS = 'http://www.w3.org/2000/svg', wires = dg.querySelector('.dg-wires');
-    var W = [
-      { from: 'note', to: 'core', k: 'a' },
-      { from: 'defs', to: 'core', k: 'b', cls: 'dots', around: true },
-      { from: 'core', to: 'readers', k: 'c' },
-      { from: 'readers', to: 'ans', k: 'd' }
-    ];
-    var node = function (n) { return dg.querySelector('[data-node="' + n + '"]'); };
-    var el = function (tag, cls) { var e = document.createElementNS(NS, tag); e.setAttribute('class', cls); wires.appendChild(e); return e; };
-    // The paths are made once and only reshaped later, so the light keeps its place in the cycle.
-    W.forEach(function (w) {
-      w.base = el('path', 'dg-base ' + (w.cls || ''));
-      w.beam = el('path', 'dg-beam ' + w.k); w.beam.setAttribute('pathLength', '1');
-      w.end = el('path', 'dg-end');
-    });
-    // Wires run in straight lines with rounded bends, and end in a small arrowhead.
-    var R = 10, n = function (v) { return Math.round(v * 10) / 10; };
-    var across = function (x1, y1, x2, y2) {
-      var m = (x1 + x2) / 2, dy = y2 - y1, s = dy < 0 ? -1 : 1, r = Math.min(R, Math.abs(dy) / 2, Math.abs(m - x1));
-      if (Math.abs(dy) < 1) return 'M' + n(x1) + ' ' + n(y1) + 'H' + n(x2);
-      return 'M' + n(x1) + ' ' + n(y1) + 'H' + n(m - r) + 'Q' + n(m) + ' ' + n(y1) + ' ' + n(m) + ' ' + n(y1 + s * r) +
-        'V' + n(y2 - s * r) + 'Q' + n(m) + ' ' + n(y2) + ' ' + n(m + r) + ' ' + n(y2) + 'H' + n(x2);
-    };
-    var down = function (x1, y1, x2, y2) {
-      var m = (y1 + y2) / 2, dx = x2 - x1, s = dx < 0 ? -1 : 1, r = Math.min(R, Math.abs(dx) / 2, (y2 - y1) / 2);
-      if (Math.abs(dx) < 1) return 'M' + n(x1) + ' ' + n(y1) + 'V' + n(y2);
-      return 'M' + n(x1) + ' ' + n(y1) + 'V' + n(m - r) + 'Q' + n(x1) + ' ' + n(m) + ' ' + n(x1 + s * r) + ' ' + n(m) +
-        'H' + n(x2 - s * r) + 'Q' + n(x2) + ' ' + n(m) + ' ' + n(x2) + ' ' + n(m + r) + 'V' + n(y2);
-    };
-    var round = function (x1, y1, x2, y2, b) {
-      return 'M' + n(x1) + ' ' + n(y1) + 'H' + n(b - R) + 'Q' + n(b) + ' ' + n(y1) + ' ' + n(b) + ' ' + n(y1 + R) +
-        'V' + n(y2 - R) + 'Q' + n(b) + ' ' + n(y2) + ' ' + n(b - R) + ' ' + n(y2) + 'H' + n(x2);
-    };
-    var head = function (x, y, dir) {
-      var k = { right: [-6, -4, -6, 4], left: [6, -4, 6, 4], down: [-4, -6, 4, -6] }[dir];
-      return 'M' + n(x + k[0]) + ' ' + n(y + k[1]) + 'L' + n(x) + ' ' + n(y) + 'L' + n(x + k[2]) + ' ' + n(y + k[3]);
-    };
-    var draw = function () {
-      var o = dg.getBoundingClientRect();
-      W.forEach(function (w) {
-        var a = node(w.from).getBoundingClientRect(), b = node(w.to).getBoundingClientRect(), d, h;
-        var ax = a.left - o.left, ay = a.top - o.top, bx = b.left - o.left, by = b.top - o.top;
-        if (bx >= ax + a.width - 1) {
-          var y2 = by + b.height / 2;
-          d = across(ax + a.width, ay + a.height / 2, bx - 2, y2); h = head(bx - 2, y2, 'right');
-        } else if (w.around) {
-          var r2 = bx + b.width, yy2 = by + 24;
-          d = round(ax + a.width, ay + a.height / 2, r2 + 2, yy2, Math.max(ax + a.width, r2) + 18); h = head(r2 + 2, yy2, 'left');
-        } else {
-          var cx2 = bx + b.width / 2;
-          d = down(ax + a.width / 2, ay + a.height, cx2, by - 2); h = head(cx2, by - 2, 'down');
-        }
-        w.base.setAttribute('d', d); w.beam.setAttribute('d', d); w.end.setAttribute('d', h);
-      });
-    };
-    draw();
-    if ('ResizeObserver' in window) new ResizeObserver(draw).observe(dg);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
-    if ('IntersectionObserver' in window) {
-      dg.classList.add('off');
-      new IntersectionObserver(function (es) { es.forEach(function (e) { dg.classList.toggle('off', !e.isIntersecting); }); }).observe(dg);
-    }
-  }
-
-  // Copy buttons.
-  document.querySelectorAll('.copy').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var text = b.getAttribute('data-copy');
-      var done = function () {
-        b.classList.add('done'); b.innerHTML = '<svg><use href="#i-done"/></svg>';
-        setTimeout(function () { b.classList.remove('done'); b.innerHTML = '<svg><use href="#i-copy"/></svg>'; }, 1400);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
-    });
-  });
-
-  // The hero plays once, when its fonts are in, so the strike lands on the final line breaks.
-  var hero = document.querySelector('.hero');
-  var play = function () { hero.classList.add('play'); };
-  if (document.fonts && document.fonts.ready) Promise.race([document.fonts.ready, new Promise(function (r) { setTimeout(r, 1200); })]).then(play);
-  else play();
-})();
+  const root = document.querySelector<HTMLElement>('.hero')
+  if (root) hero(root)
 </script>
-    <Ground where="landing" />
   </body>
 </html>
