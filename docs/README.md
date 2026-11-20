@@ -72,7 +72,7 @@ Published on the public site too.
 | [Cube Cloud](connectors/cube-cloud.md)                                 | Reading definitions from a Cube Cloud deployment          |
 | [dbt MetricFlow](connectors/dbt-metricflow.md)                         | Reading definitions from dbt's semantic manifest          |
 | [Static list](connectors/static-list.md)                               | Definitions an admin writes in the form                   |
-| [Documents: Markdown in Git and Google Drive](connectors/documents.md) | Documents that become suggestions for owners              |
+| [Markdown in Git and Google Drive](connectors/documents.md) | Documents that become suggestions for owners              |
 | [Connector security](connectors/security.md)                           | What a connector may reach, and how that is enforced      |
 | [Build a connector](connectors/authoring.md)                           | The guide for people and coding agents                    |
 

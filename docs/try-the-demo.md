@@ -65,6 +65,14 @@ Set these in the shell, before `docker compose up`:
 
 When 8080 or 3000 is taken by another program, move them, as in `FOOTNOTE_WEB_PORT=8081 FOOTNOTE_PORT=3001 docker compose up`. Docker Desktop refuses a taken port with an error. Colima may say nothing, and the other program then answers on that port. An agent then connects to the new service port, such as `http://localhost:3001/mcp`.
 
+## From the published images
+
+```sh
+docker compose -f compose.yaml -f compose.images.yaml up
+```
+
+This pulls the images of the release your checkout names instead of building them, which takes about two minutes. They can be behind the code you cloned. The images are not published until the first release, so until then the command is refused: run `docker compose up`, which builds them from your checkout.
+
 ## What runs
 
 | Part       | What it is                                                                                         | Address                  |
@@ -74,14 +82,6 @@ When 8080 or 3000 is taken by another program, move them, as in `FOOTNOTE_WEB_PO
 | `web`      | The web app, served by nginx, which forwards `/api/v1` to the service                              | http://localhost:8080    |
 
 A third volume, `footnote_no-model`, stays empty. It stands where your own model's folder goes when you name none.
-
-### From the published images
-
-```sh
-docker compose -f compose.yaml -f compose.images.yaml up
-```
-
-This pulls the images of the release your checkout names instead of building them, which takes about two minutes. They can be behind the code you cloned. The images are not published until the first release, so until then the command is refused: run `docker compose up`, which builds them from your checkout.
 
 ## If the start goes wrong
 

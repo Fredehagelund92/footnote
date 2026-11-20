@@ -123,7 +123,7 @@ The sign-in screen lists the scopes the agent asks for, all three unless it asks
 | Scope      | What it allows                                        |
 | ---------- | ----------------------------------------------------- |
 | `read`     | Read context: the published context items you can see |
-| `feedback` | Report what is missing or wrong                       |
+| `feedback` | Report what is missing or wrong, after you say yes    |
 | `propose`  | Suggest changes, in your name, after you say yes      |
 
 An agent always reads what is published now, never drafts or comments. The request log keeps which family of app called and never who it acted for.

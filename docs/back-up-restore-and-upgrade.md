@@ -110,4 +110,4 @@ Then [restore](#restore) `footnote.dump` and `footnote-keys.tar` from before the
 
 ## Elsewhere
 
-In production the database and the keys' volume are wherever your host keeps them, so back up both there in the same way: see [Run in production](run-in-production.md). Running the service from source is in [the developers' guide](development.md#run-the-service-from-source). There the same parts live in the files and the database your local settings name: see [the developers' guide](development.md#run-the-service-from-source).
+In production the database and the keys' volume are wherever your host keeps them, so back up both there in the same way: see [Run in production](run-in-production.md). Running the service from source, the same parts live in the files and the database your local settings name: see [the developers' guide](development.md#run-the-service-from-source).

@@ -614,7 +614,7 @@ that name no app are `unknown`. Observability's reads filter by it (`GET /observ
 A `pg_dump` backup restores: `pg_restore` loads data with an empty `search_path`, so a function
 that a constraint, default or index calls names its own search path (or qualifies its calls).
 
-`npm run db:restore-drill` (README, "Security, scanning and the restore drill") dumps a database
+`npm run db:restore-drill` (docs/back-up-restore-and-upgrade.md, "The restore drill") dumps a database
 in one read-only snapshot, restores it into `<name>_drill_<random>` owned by the source's owner,
 compares every table and sequence, recomputes every edition digest, every served version's
 content digest and the history log's chain, then drops the copy. It only ever drops the copy it
