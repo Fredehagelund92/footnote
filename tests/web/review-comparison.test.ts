@@ -7,6 +7,7 @@ import { FieldsDiff, TextComparison } from '@/components/footnote/source-review'
 import { compareCounts } from '@/lib/review-compare'
 import { fieldKeys, fieldLabel, fieldRows, type FieldKey } from '@/model/review-fields'
 import type { FieldSide } from '@/model/review'
+import type { SourcePlace } from '@/model/source-places'
 
 // K1 and K2 of the comparison, as the done-when lines of the slices say them: the table of
 // fields with its tinted rows, its marks under Now and Suggested, its counts and its switch, and
@@ -141,7 +142,7 @@ describe('K1, the table of fields', () => {
     const after = { ...now, ...changing.title }
     const notes = {
       under: () => null,
-      holds: (at: { field?: string }) => at.field === 'kind',
+      holds: (at: SourcePlace) => 'field' in at && at.field === 'kind',
       comment: () => {},
     }
     const el = render(
