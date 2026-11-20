@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { raisedWhen } from '@/api/http-alerts'
 import { dayMonthYear, monthOfName, parseDay, weekdayDayMonthYearLong } from '@/lib/dates'
 import { parseWhen, timeShort } from '@/lib/timeframe'
-import { dateLabel, labelDay, whenLabel } from '@/model/validity'
+import { readDates } from '@domain/dates'
+import { dateLabel, labelDay, questionDates, whenLabel, type Validity } from '@/model/validity'
 import { monthName, monthsLabel } from '@/model/observability'
 
 // Footnote is English only, so a date is British English whatever the browser's language: a
@@ -45,5 +46,61 @@ describe('dates in British English', () => {
   it('keeps the When editor’s text and its short form in step', () => {
     const when = whenLabel({ from: '2026-05-12', until: '2026-09-03' })
     expect(timeShort(parseWhen(when))).toBe('12 May – 3 Sept 2026')
+  })
+})
+
+// The setup's first question is about the item just written: one about a day that has passed
+// names that day, or Ask reads it as today and the item does not apply.
+describe('the dates a question about a window needs', () => {
+  const today = '2026-11-20'
+  const asked = (v: Validity) => questionDates(v, today)
+
+  it('says nothing when the window holds today', () => {
+    expect(asked({})).toBe('')
+    expect(asked({ from: '2026-08-04', ongoing: true })).toBe('')
+    expect(asked({ until: '2026-12-01' })).toBe('')
+    expect(asked({ from: '2026-11-01', until: '2026-11-30' })).toBe('')
+    expect(asked({ from: today, until: today })).toBe('')
+  })
+
+  it('names a window that misses today, and Ask reads it as that window', () => {
+    const cases: [Validity, string, { start: string; end: string }][] = [
+      [
+        { from: '2026-11-09', until: '2026-11-09' },
+        'on 9 Nov 2026',
+        { start: '2026-11-09', end: '2026-11-10' },
+      ],
+      [
+        { from: '2026-05-12', until: '2026-05-19' },
+        'from 12 to 19 May 2026',
+        { start: '2026-05-12', end: '2026-05-20' },
+      ],
+      [
+        { from: '2026-09-03', until: '2026-10-04' },
+        'from 3 Sept to 4 Oct 2026',
+        { start: '2026-09-03', end: '2026-10-05' },
+      ],
+      [
+        { from: '2025-12-28', until: '2026-01-03' },
+        'from 28 Dec 2025 to 3 Jan 2026',
+        { start: '2025-12-28', end: '2026-01-04' },
+      ],
+      [
+        { from: '2026-12-01', until: '2026-12-01' },
+        'on 1 Dec 2026',
+        { start: '2026-12-01', end: '2026-12-02' },
+      ],
+      [{ until: '2026-01-19' }, 'on 19 Jan 2026', { start: '2026-01-19', end: '2026-01-20' }],
+      [
+        { from: '2027-02-01', ongoing: true },
+        'on 1 Feb 2027',
+        { start: '2027-02-01', end: '2027-02-02' },
+      ],
+    ]
+    for (const [valid, words, window] of cases) {
+      expect(asked(valid)).toBe(words)
+      const read = readDates(`what should i know about net revenue ${words.toLowerCase()}?`, today)
+      expect(read).toMatchObject({ status: 'read', window })
+    }
   })
 })

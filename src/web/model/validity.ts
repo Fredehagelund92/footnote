@@ -46,5 +46,16 @@ export function whenLabel(v: Validity): string {
   return v.ongoing ? 'Still going on' : 'Always'
 }
 
+/**
+ * The dates a question needs to be about this window, as Ask reads them: "on 4 Aug 2026", "from 12
+ * to 19 May 2026". Empty when the window holds today, which a question without dates is about. An
+ * open window that misses today is asked about on its one end.
+ */
+export function questionDates(v: Validity, today: string): string {
+  if ((!v.from || v.from <= today) && (!v.until || today <= v.until)) return ''
+  if (v.from && v.until) return `${v.from === v.until ? 'on' : 'from'} ${whenLabel(v)}`
+  return `on ${dateLabel((v.from ?? v.until)!)}`
+}
+
 /** Whether a check date has passed: an item past it reads "Due for a check". */
 export const checkDue = (reviewDate: string, today: string) => reviewDate < today
