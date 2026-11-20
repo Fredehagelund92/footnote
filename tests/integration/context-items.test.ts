@@ -257,6 +257,20 @@ describe('two owners editing one live item', () => {
     expect(await summary(item)).toBe(`${base} Stores were not covered.`)
   })
 
+  it('refuses a version of the item that does not exist, and saves nothing', async () => {
+    const item = await live({ summary: base })
+    const r = await call('POST', '/items/publish', 'owner', {
+      itemId: item,
+      version: 999,
+      draft: { summary: `${base} Stores were not covered.` },
+    })
+    expect(r.statusCode).toBe(409)
+    expect(await summary(item)).toBe(base)
+    expect((await served(item))?.n).toBe(1)
+    const kept = await client.query('select 1 from proposals where item_id = $1', [item])
+    expect(kept.rowCount).toBe(0)
+  })
+
   it("refuses a draft opened before another owner's publish when its writer sends it", async () => {
     const item = await live({ summary: base })
     const mine = await ok<ProposalRecord>(
