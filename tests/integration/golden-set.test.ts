@@ -181,6 +181,7 @@ type Delivered = Omit<Reply, 'context'> & {
   say?: string
   next?: string
   scope_used?: unknown
+  check_report?: { status?: string; cut_ids?: string[] }
   context?: { id: string; version: number; match: string; freshness: string }[]
 }
 it('gives what get_context gives on every golden case, and fast', async () => {
