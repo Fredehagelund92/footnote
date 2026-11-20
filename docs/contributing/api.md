@@ -619,8 +619,8 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   for an item it does not clash with is left out. `draftId` names the person's own draft it
   finishes, or their suggestion an owner returned: it takes the words and is sent as itself,
   changing the item it was started from, if any; only its writer sends it (403 otherwise). A publish the checks refuse keeps
-  nothing. A change to an item (`itemId`) names the `version` it was written from (400
-  otherwise): once someone has published other words since, it is refused with 409 and
+  nothing. A change to an item (`itemId`) may name the `version` it was written from (else the
+  version agents get now): the change stays written from it, and once someone has published other words since, it is refused when it is sent with 409 and
   `data.stale.version`, the version agents get now, so an older view never takes away a newer
   change. A check since then changes no words and does not count.
 - `POST /drafts/from-text` takes `{ text }`: a draft read from pasted text, or from the page a

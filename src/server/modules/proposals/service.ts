@@ -462,9 +462,20 @@ function proposalsService(
       const channel = channelOf(input)
       const action = itemId ? 'change' : 'create'
       const reason = changeReason(input.reason, action)
+      // The words of a change are written from the version the writer read: the one named, or else
+      // the one agents get now. It stays that version until the change is decided.
+      const [written] = itemId
+        ? await tx.query<{ id: string }>(
+            input.version === undefined
+              ? `select s.version_id::text as id from item_version_service s join item_versions v on v.id=s.version_id
+                  where s.item_id=$1 and s.editions @> (select seq from live_edition) and cl_audience_allows(v.audience_groups)`
+              : 'select id::text as id from item_versions where item_id=$1 and version_no=$2',
+            input.version === undefined ? [itemId] : [itemId, input.version],
+          )
+        : []
       const [p] = await tx.query<ProposalRecord>(
-        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name)
-        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15))
+        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id)
+        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16)
         returning ${fields}`,
         [
           action,
@@ -482,6 +493,7 @@ function proposalsService(
           author?.read ?? null,
           author?.document ?? null,
           options.agentId ?? null,
+          written?.id ?? null,
         ],
       )
       await event(p!, 'created', {})
@@ -559,9 +571,31 @@ function proposalsService(
             message:
               'Agents get this context item again since it was restored, so this suggestion is out of date.',
           })
-        // A change sent again hangs on the version agents get now, not on its last one: a check
-        // or another publish since then would otherwise leave it unpublishable for good.
-        previous = base?.id ?? previous ?? rescue?.versionId ?? null
+        // A change hangs on the version its writer read, however often it is sent, so another
+        // publish since then shows as stale instead of being taken away. A check since then changes
+        // no words: it hangs on the version agents get now.
+        const [read] = await tx.query<{ id: string | null }>(
+          'select base_version_id::text as id from proposals where id=$1',
+          [p.id],
+        )
+        let written = read?.id ?? null
+        if (written && base && written !== base.id) {
+          const [moved] = await tx.query<{ versionNo: number; same: boolean; by: string | null }>(
+            `select v.version_no as "versionNo", v.core_digest = b.core_digest as same,
+                (select pe.display_name from decisions d join people pe on pe.id = d.decided_by
+                  where d.item_version_id = v.id and d.outcome = 'accept'
+                  order by d.decided_at desc limit 1) as by
+               from item_versions v, item_versions b where v.id = $1 and b.id = $2`,
+            [base.id, written],
+          )
+          if (!moved?.same)
+            throw new ORPCError('CONFLICT', {
+              message: `${moved?.by ?? 'Someone'} published a change to this context item after you opened it, so nothing was saved. Reload it to see their words; yours stay here.`,
+              data: { stale: { version: moved?.versionNo ?? 0 } },
+            })
+          written = base.id
+        }
+        previous = written ?? base?.id ?? previous ?? rescue?.versionId ?? null
       }
       const version = await insertVersion(tx, item, v, previous)
       const [area] = await tx.query<{ review_days: number }>(

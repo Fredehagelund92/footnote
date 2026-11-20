@@ -236,12 +236,6 @@ export const publishItemInputSchema = z
         .check(z.maxLength(20)),
     ),
   })
-  .check(
-    z.refine(
-      (input) => !input.itemId || input.version !== undefined,
-      'A change says which version of the item it starts from',
-    ),
-  )
 export const publishItemResultSchema = z.union([
   z.object({
     published: z.literal(true),

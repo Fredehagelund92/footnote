@@ -772,7 +772,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const version = started ? before?.version : fact.version
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
-      ...(own ? { draftId: own.id } : itemId ? { itemId, version } : {}),
+      ...(own
+        ? { draftId: own.id }
+        : itemId
+          ? { itemId, ...(version !== undefined ? { version } : {}) }
+          : {}),
       ...(answered.length ? { relations: answered } : {}),
       ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
     }

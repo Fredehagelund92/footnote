@@ -245,14 +245,63 @@ describe('two owners editing one live item', () => {
     expect(saved).toMatchObject({ published: true })
   })
 
-  it('asks a change which version it starts from', async () => {
+  it('starts a change from the version agents get now when none is named', async () => {
     const item = await live({ summary: base })
-    const r = await call('POST', '/items/publish', 'owner', {
-      itemId: item,
-      draft: { summary: `${base} Stores were not covered.` },
+    const r = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'owner', {
+        itemId: item,
+        draft: { summary: `${base} Stores were not covered.` },
+      }),
+    )
+    expect(r).toMatchObject({ published: true })
+    expect(await summary(item)).toBe(`${base} Stores were not covered.`)
+  })
+
+  it("refuses a draft opened before another owner's publish when its writer sends it", async () => {
+    const item = await live({ summary: base })
+    const mine = await ok<ProposalRecord>(
+      call('POST', '/proposals', 'admin', {
+        itemId: item,
+        draft: { summary: `${base} It ended on 30 June.` },
+      }),
+    )
+    await ok(
+      call('POST', '/items/publish', 'owner', {
+        itemId: item,
+        version: 1,
+        draft: { summary: `${base} Stores were not covered.` },
+      }),
+    )
+    const sent = await call('POST', '/items/publish', 'admin', {
+      draft: { summary: `${base} It ended on 30 June.` },
+      draftId: mine.id,
     })
-    expect(r.statusCode).toBe(400)
-    expect(await summary(item)).toBe(base)
+    expect(sent.statusCode).toBe(409)
+    expect(sent.json<{ data: unknown }>()).toMatchObject({ data: { stale: { version: 2 } } })
+    expect(await summary(item)).toBe(`${base} Stores were not covered.`)
+  })
+
+  it('refuses a plain submit of a draft opened before the publish, and keeps the draft', async () => {
+    const item = await live({ summary: base })
+    const mine = await ok<ProposalRecord>(
+      call('POST', '/proposals', 'author', {
+        itemId: item,
+        draft: { summary: `${base} It ended on 30 June.` },
+      }),
+    )
+    await ok(
+      call('POST', '/items/publish', 'owner', {
+        itemId: item,
+        version: 1,
+        draft: { summary: `${base} Stores were not covered.` },
+      }),
+    )
+    const sent = await call('POST', `/proposals/${mine.id}/submit`, 'author', {
+      revision: mine.revision,
+    })
+    expect(sent.statusCode).toBe(409)
+    const after = await ok<ProposalRecord>(call('GET', `/proposals/${mine.id}`, 'author'))
+    expect(after.state).toBe('draft')
   })
 })
 

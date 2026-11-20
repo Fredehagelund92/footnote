@@ -34,6 +34,8 @@ export const createProposalSchema = z.strictObject({
   draft: draftSchema,
   reason: z.optional(changeReasonSchema),
   itemId: z.optional(z.string().check(z.regex(/^itm_[a-z0-9]{8,16}$/))),
+  /** The version of that item the words were written from; left out, the version agents get now. */
+  version: z.optional(z.number().check(z.int(), z.minimum(1))),
   derivedFrom: z.optional(z.string().check(z.uuid())),
   channel: z.optional(z.enum(personChannels)),
 })

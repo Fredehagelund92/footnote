@@ -782,12 +782,12 @@ export function createContextService(
     relations?: { itemId: string; relation: ClashRelation }[] | undefined
   }): Promise<PublishItemResult> {
     if (input.gapId) await createGapsService(tx).linkable(input.gapId)
-    if (input.itemId && input.version !== undefined) await notNewer(input.itemId, input.version)
     const created = input.draftId
       ? await finish(input.draftId, input.draft, input.reason)
       : await proposals.create({
           draft: input.draft,
           ...(input.itemId ? { itemId: input.itemId } : {}),
+          ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
           ...(input.reason ? { reason: input.reason } : {}),
         })
     // Written for a Not found card: its publish covers the gap (review's publishAccepted).
@@ -836,29 +836,6 @@ export function createContextService(
       edition: published.edition?.label ?? null,
       undo: published.undo,
     }
-  }
-
-  /**
-   * Refuses a change written from an older version of a live item than agents get now: sent as it
-   * is, it would take away the words someone published since. A check since then changes no words,
-   * so it does not count. An item agents don't get now is the publish's own to refuse.
-   */
-  async function notNewer(itemId: string, version: number) {
-    const [live] = await tx.query<{ versionNo: number; same: boolean; by: string | null }>(
-      `select v.version_no as "versionNo", v.core_digest = b.core_digest as same,
-          (select p.display_name from decisions d join people p on p.id = d.decided_by
-            where d.item_version_id = v.id and d.outcome = 'accept'
-            order by d.decided_at desc limit 1) as by
-         from item_version_service s join item_versions v on v.id = s.version_id
-         left join item_versions b on b.item_id = v.item_id and b.version_no = $2
-        where s.item_id = $1 and s.editions @> (select seq from live_edition)`,
-      [itemId, version],
-    )
-    if (!live || live.versionNo === version || live.same) return
-    throw new ORPCError('CONFLICT', {
-      message: `${live.by ?? 'Someone'} published a change to this context item after you opened it, so nothing was saved. Reload it to see their words; yours stay here.`,
-      data: { stale: { version: live.versionNo } },
-    })
   }
 
   /**
