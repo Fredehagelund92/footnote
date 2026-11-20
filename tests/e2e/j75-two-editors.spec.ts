@@ -3,7 +3,7 @@ import { expect, go, mode, test } from './go.ts'
 
 // J75, two owners edit one live item (Footnote vs Sanity, R1): Jon and Sofia open its editor, Jon
 // saves first, and Sofia's Save from the page she opened before is refused in plain words, with
-// Jon's published sentence beside hers. She reloads, keeping her words, adds his, and saves both.
+// Jon's published sentence beside hers in the comparison (K5). She reloads, keeping her words, adds his, and saves both.
 // Nothing Jon published is taken away. Two people in two browsers need the service: the mock keeps
 // one person's state in one browser.
 test.skip(mode !== 'http', 'two people edit one item on the service, which the mock cannot share')
@@ -86,7 +86,14 @@ test("a Save from an older view never takes away another owner's published sente
     await expect(notice.getByRole('alert')).toHaveText(
       "Couldn't save. Jon Abara published a change to this context item after you opened it, so nothing was saved. Reload it to see their words; yours stay here.",
     )
-    await expect(notice).toContainText('Stores were not covered.')
+    await expect(notice).toContainText('Stores were not covered')
+    // See both: the two edits that met, compared as a review compares a change. His sentence is
+    // what hers would take away, hers what she adds.
+    const seeBoth = notice.getByRole('region', { name: 'Text' })
+    await expect(
+      seeBoth.locator('del').filter({ hasText: 'Stores were not covered' }),
+    ).toBeVisible()
+    await expect(seeBoth.locator('ins').filter({ hasText: 'It ended on 30 June' })).toBeVisible()
     await expect(text(sofia)).toContainText('It ended on 30 June.')
     expect(await published(page, id)).not.toContain('It ended on 30 June.')
 

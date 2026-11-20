@@ -10,7 +10,7 @@ import { mentionNotesOf, type Subject } from '@/model/comments'
 import { servedToAgents } from '@/model/items'
 import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
-import { historyOf, historyOfDefinition } from './data/history'
+import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
 import { connectorById } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
@@ -613,6 +613,11 @@ export function createMockApi() {
       now(() => {
         const fact = factsOf(state).find((f) => f.id === id)
         return fact ? historyOf(fact, state.log) : []
+      }),
+    compareVersions: ({ id, from, to }) =>
+      now(() => {
+        const fact = factsOf(state).find((f) => f.id === id)
+        return fact ? versionPairOf(fact, historyOf(fact, state.log), from, to) : null
       }),
     getRelated: ({ id }) =>
       now(() => ({

@@ -23,7 +23,7 @@ import type { Answer, AskedWeek, AskInput, Example, SentReport, Thread } from '@
 import type { AskLive } from '@/model/ask-turn'
 import type { CommentAnchor, Comments, MentionNote, Subject } from '@/model/comments'
 import type { DomainId, Fact, Kind, LogEntry, Metric, Sent } from '@/model/items'
-import type { Version } from '@/model/history'
+import type { Version, VersionPair } from '@/model/history'
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import type { Conflict, ConflictDecision, ConflictRow, SettleConflict } from '@/model/conflicts'
 import type { InboxCard, Outcome, Waiting } from '@/model/inbox'
@@ -435,6 +435,11 @@ export interface FootnoteApi {
   itemPage: (input: { id: string }) => Promise<ItemPage | null>
   /** An item's versions, newest first. */
   getItemHistory: (input: { id: string }) => Promise<Version[]>
+  /**
+   * Two versions of an item, by the numbers its history gives them (`from` as before, `to` as
+   * after), as History compares them; null when either made no version of its own.
+   */
+  compareVersions: (input: { id: string; from: number; to: number }) => Promise<VersionPair | null>
   /** What an agent can follow from here: `id` names an item or a definition as a mention does. */
   getRelated: (input: { id: string }) => Promise<Related>
   /**
@@ -896,6 +901,7 @@ export const footnoteApiMethods = [
   'contextPage',
   'itemPage',
   'getItemHistory',
+  'compareVersions',
   'getRelated',
   'restoreAsDraft',
   'markViewed',
@@ -1040,6 +1046,7 @@ export const readMethods = [
   'conflicts',
   'conflict',
   'getItemHistory',
+  'compareVersions',
   'getRelated',
   'draftFromText',
   'getComments',

@@ -29,6 +29,8 @@ import {
   relatedSchema,
   restoreAsDraftInputSchema,
   restoredDraftSchema,
+  compareVersionsInputSchema,
+  versionPairSchema,
 } from './context.ts'
 import { libraryIndexSchema } from './schemas.ts'
 
@@ -986,6 +988,17 @@ export const contract = {
       .errors(notFound)
       .input(itemId)
       .output(relatedSchema),
+    compare: read
+      .route({
+        method: 'GET',
+        path: '/items/{id}/compare',
+        tags: ['library'],
+        summary:
+          'Two versions of an item side by side, as History compares them: every field and the stored text of each',
+      })
+      .errors(notFound)
+      .input(compareVersionsInputSchema)
+      .output(versionPairSchema),
     restoreAsDraft: proposal
       .route({
         method: 'POST',

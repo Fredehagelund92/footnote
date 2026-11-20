@@ -10,6 +10,7 @@ import { clashRelations } from '../domain/readiness.ts'
 import { draftSchema } from '../domain/draft.ts'
 import { itemKinds, itemSchema } from '../domain/item.ts'
 import { itemChecks, itemTrusts } from '../domain/status.ts'
+import { reviewFieldsSchema } from './review-path.ts'
 import { undoOfferSchema } from './undo.ts'
 
 const isoDate = z.string().check(z.regex(/^\d{4}-\d{2}-\d{2}$/))
@@ -161,6 +162,22 @@ export const restoreAsDraftInputSchema = z.strictObject({
 })
 export const restoredDraftSchema = z.object({ proposalId: z.string() })
 
+/** Two versions of an item to compare, by their numbers: `from` the earlier one shown as before. */
+export const compareVersionsInputSchema = z.strictObject({
+  id: itemIdSchema,
+  from: z.number().check(z.int(), z.minimum(1)),
+  to: z.number().check(z.int(), z.minimum(1)),
+})
+
+/**
+ * Two versions of an item as History compares them, the way the review compares a suggestion:
+ * every field of each, typed, and the stored text of each, mentions as the app's tokens.
+ */
+export const versionPairSchema = z.object({
+  fields: z.object({ before: reviewFieldsSchema, after: reviewFieldsSchema }),
+  source: z.object({ before: z.string(), after: z.string() }),
+})
+
 /** Context related to an item or a definition, as get_related follows it one step, for people. */
 export const relatedNodeSchema = z.object({
   /** A `term` is a term written in Definitions, by `term:<id>`. */
@@ -267,6 +284,7 @@ export type ItemChange = z.infer<typeof itemChangeSchema>
 export type DeletedDraft = z.infer<typeof deletedDraftSchema>
 export type ItemVersionEntry = z.infer<typeof itemVersionEntrySchema>
 export type ItemPage = z.infer<typeof itemPageSchema>
+export type VersionPair = z.infer<typeof versionPairSchema>
 export type RelatedContext = z.infer<typeof relatedSchema>
 export type PublishItemResult = z.infer<typeof publishItemResultSchema>
 export type DraftFromText = z.infer<typeof draftFromTextSchema>

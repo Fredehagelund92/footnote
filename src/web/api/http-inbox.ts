@@ -723,7 +723,8 @@ const firstParagraph = (markdown: string) =>
     .join('')
 
 /** The stored text as the app reads it: each mention as the app's token, or its words without the vocabulary. */
-const textOf = (markup: string, words?: Words) =>
+/** Stored text with the service's mention markup, as the app's mention tokens. */
+export const textOf = (markup: string, words?: Words) =>
   words
     ? textFromService(markup, words)
     : parseMentions(markup)
@@ -731,7 +732,7 @@ const textOf = (markup: string, words?: Words) =>
         .join('')
 
 /** One side of the sheet's fields in the words the Fields table shows. */
-function fieldSideOf(f: ReviewSheet['fields']['before']): FieldSide | null {
+export function fieldSideOf(f: ReviewSheet['fields']['before']): FieldSide | null {
   if (!f) return null
   return {
     title: f.title,

@@ -1,6 +1,7 @@
 import { DEMO_TODAY, today } from '@/lib/today'
 import { dayMonth, dayMonthYear, monthYearLong } from '@/lib/dates'
 import type { LogEntry } from '@/model/items'
+import type { FieldSide } from '@/model/review'
 // A context item's or a definition's versions as the app reads them (src/web/api): a number,
 // who, when and what changed. Pure types and the words a version list says them with.
 
@@ -38,6 +39,26 @@ export type Version = {
    * it. `undo` takes the publish back, while the signed-in person may; null when they may not.
    */
   policy?: { undo: string | null; undone: boolean }
+  /**
+   * A version agents got, with words and fields of its own, which History compares with any other
+   * such version. A return, an archive or a change of owners has none.
+   */
+  comparable?: true
+}
+
+/**
+ * Two versions of an item as History compares them, the way the review compares a suggestion:
+ * every field of each and the stored text of each, mentions as the app's tokens.
+ */
+export type VersionPair = {
+  fields: { before: FieldSide; after: FieldSide }
+  source: { before: string; after: string }
+}
+
+/** The version History compares one with first: the comparable one just before it, else after. */
+export function compareWith(versions: readonly Version[], v: Version): Version | undefined {
+  const others = versions.filter((x) => x.comparable && x.v !== v.v)
+  return others.find((x) => x.v < v.v) ?? others.at(-1)
 }
 
 /** Whether a version changed the words, so it can be restored (a check or a return changed nothing). */

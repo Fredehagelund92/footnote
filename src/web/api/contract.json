@@ -813,6 +813,22 @@
         }
       }
     },
+    "compare": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/items/{id}/compare",
+          "tags": [
+            "library"
+          ],
+          "summary": "Two versions of an item side by side, as History compares them: every field and the stored text of each"
+        }
+      }
+    },
     "restoreAsDraft": {
       "~orpc": {
         "errorMap": {},

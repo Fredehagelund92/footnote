@@ -4,7 +4,8 @@ import type { Locator, Page } from '@playwright/test'
 // J40: the Inbox pane opens on the consequence. A suggestion says what agents answer today and
 // what they will answer after the decision, in Footnote's own answer states, with the evidence folded
 // below; its one button is named for the decision, with Enter beside it and the words that say
-// what follows. A card with no answers to compare (a check date, an alert, a report) keeps the
+// what follows. Unfolded, the evidence is the review's comparison, every change at once (K5). A
+// card with no answers to compare (a check date, an alert, a report) keeps the
 // folded layout: its point, its folds and its decision.
 
 const pane = (page: Page) =>
@@ -38,7 +39,19 @@ test('a suggestion opens on what agents say today and after you publish', async 
   await expect(changes).toHaveAttribute('aria-expanded', 'false')
   await changes.click()
   await expect(changes).toHaveAttribute('aria-expanded', 'true')
-  await expect(p.getByText('What agents should know').first()).toBeVisible()
+  // The same comparison as the review, every change at once: no stepping one of four.
+  const fields = p.getByRole('region', { name: 'Fields' })
+  const text = p.getByRole('region', { name: 'Text' })
+  await expect(fields).toBeVisible()
+  await expect(text).toBeVisible()
+  await expect(p.getByText(/^\d+ of \d+$/)).toHaveCount(0)
+  await onMockOnly('the four changes of the demo suggestion, all in sight', async () => {
+    await expect(fields.getByRole('row', { name: 'Source, changed' })).toBeVisible()
+    await expect(text.locator('del').filter({ hasText: '312' })).toBeVisible()
+    await expect(text.locator('ins').filter({ hasText: '340' })).toBeVisible()
+    await expect(text.locator('ins').filter({ hasText: 'From 1 October 2026' })).toBeVisible()
+    await expect(text.getByText('accounts', { exact: true }).last()).toBeVisible()
+  })
   // The decision says what follows, and never with a zero count. On the service the change gives
   // agents the same words, and the pane says so.
   await expect(

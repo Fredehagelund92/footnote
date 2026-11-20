@@ -63,6 +63,7 @@ import { termsOfNames } from '@/lib/scope'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { plainText } from '@/lib/mentions'
 import { PersonAvatar } from '@/components/footnote/bits'
+import { TextComparison } from '@/components/footnote/source-review'
 import { DocFooter, Paper } from '@/components/footnote/doc'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Page, SiteHeader } from '@/components/site-header'
@@ -1107,10 +1108,12 @@ function Editor({
                     ? 'Agents get this now. Your words are kept below: add what you want of theirs, then save.'
                     : 'Agents get this now:'}
                 </p>
-                <div className="border-l-2 border-foreground/20 pl-3">
-                  <ContextText
-                    text={[newer.summary, newer.body].filter(Boolean).join('\n\n')}
-                    dense
+                {/* See both: the two edits that met, as the review compares a change. */}
+                <div className="@container bg-background">
+                  <TextComparison
+                    before={[newer.summary, newer.body].filter(Boolean).join('\n\n')}
+                    after={form.body}
+                    labels={{ before: 'Agents get now', after: 'Your words' }}
                   />
                 </div>
                 {base !== newer.version && (
