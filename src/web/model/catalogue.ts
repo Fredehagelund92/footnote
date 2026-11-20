@@ -1,6 +1,6 @@
 import type { ConnectorManifest } from '@domain/connector-manifest'
 import { builtInManifests } from '../../connectors/manifests'
-import { integrationHref, logos, type Connector, type ConnectorKind } from './integrations'
+import { logos, type Connector, type ConnectorKind } from './integrations'
 
 // The catalogue of connectors, drawn from the manifests built into the repository, so a connector
 // added there shows in Integrations with no change to the app. Only the pages that list or connect
@@ -100,15 +100,6 @@ export const connectorById = (id: string | undefined) => connectors.find((c) => 
 
 /** The connector of a tool, by the name people say it by ("Google Drive"); none for another. */
 export const connectorByTool = (tool: string | undefined) => connectors.find((c) => c.name === tool)
-
-/**
- * A tool's page in Integrations, by the name people say it by: its connector's page when one
- * connector reads it, and Integrations when several do (Cube model files and Cube Cloud) or none.
- */
-export const toolHref = (tool: string | undefined) => {
-  const reading = connectors.filter((c) => c.name === tool)
-  return integrationHref(reading.length === 1 ? reading[0]!.id : undefined)
-}
 
 /**
  * Where setup sends someone to connect their definitions: the connect flow of the first

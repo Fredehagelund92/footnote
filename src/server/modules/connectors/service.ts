@@ -337,8 +337,12 @@ export class ConnectorService {
           previous.mark_version !== null &&
           previous.mark_version !== source.markVersion
         const handedAcross = previous?.handed_over === true && previous.type !== source.type
+        const handedRecomputed =
+          previous?.handed_over === true &&
+          previous.mark_version !== null &&
+          previous.mark_version !== source.markVersion
         const rebaseline =
-          (recomputed || handedAcross) &&
+          (recomputed || handedAcross || handedRecomputed) &&
           !previous.missing_since_snapshot &&
           lastMark !== definition.changeMark
         const changeMark =

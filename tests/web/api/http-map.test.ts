@@ -176,6 +176,7 @@ describe('reading the catalogue', () => {
         definition: 'Revenue after returns and discounts.',
         synced: true,
         tool: 'Cube',
+        connector: 'cube',
         sourceNames: ['Turnover'],
         domain: 'area_sales',
         group: 'Revenue',

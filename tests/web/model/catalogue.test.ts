@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { manifest } from '../../../src/connectors/dbt-metricflow/manifest'
 import { builtInManifests } from '../../../src/connectors/manifests'
 import { connectFormFor, testFor } from '../../../src/web/api/mock/integrations'
-import {
-  connectorById,
-  connectors,
-  connectorByTool,
-  toolHref,
-} from '../../../src/web/model/catalogue'
+import { connectorById, connectors, connectorByTool } from '../../../src/web/model/catalogue'
 import { logos } from '../../../src/web/model/integrations'
 
 /* The catalogue's cells, each drawn from a connector's manifest, and its dbt cell. */
@@ -57,12 +52,6 @@ describe('the Cube Cloud cell', () => {
     })
     expect(connectorById('cube')).toMatchObject({ name: 'Cube', label: 'Cube' })
     expect(connectorById('cube')?.api).toBeUndefined()
-  })
-
-  it('leads a link to the tool to Integrations, since two connectors read it', () => {
-    expect(toolHref('Cube')).toBe('/settings/integrations')
-    expect(toolHref('dbt')).toBe('/settings/integrations/dbt-metricflow')
-    expect(toolHref(undefined)).toBe('/settings/integrations')
   })
 
   it('tests on the mock as its runtime does, over the demo model’s views', () => {

@@ -629,4 +629,25 @@ describe('a change of mark version', () => {
     expect(await markOf()).toBe(kept)
     expect(await activeFlags()).toEqual(flagged)
   }, 30_000)
+
+  it('keeps the recorded marks when another source of the same kind takes the refs over', async () => {
+    const later = nextMarkVersion(nextMarkVersion(createCubeSource({ modelDir, renamesFile })))
+    await new ConnectorService(database, new ConnectorRegistry([later])).sync('cube')
+    const flagged = await activeFlags()
+    await client.query(
+      `update connectors set removed_at = now(), removed_by = $1, enabled = false, secret_ref = null,
+              origin = 'workspace' where id = 'cube'`,
+      [people.owner],
+    )
+    const successor: DefinitionSource = {
+      ...nextMarkVersion(later),
+      id: 'cube-successor',
+    }
+    const result = await new ConnectorService(database, new ConnectorRegistry([successor])).sync(
+      'cube-successor',
+    )
+    expect(result).toMatchObject({ status: 'ok', flags: { raised: 0, cleared: 0 } })
+    expect(result.rebaselined).toBeGreaterThan(0)
+    expect(await activeFlags()).toEqual(flagged)
+  }, 30_000)
 })

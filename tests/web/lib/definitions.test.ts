@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefinitions } from '@/api/mock/definitions'
-import { glossary, parseTags } from '@/lib/definitions'
+import { connectorOf, glossary, parseTags } from '@/lib/definitions'
 
 // Synonyms are typed as tags: a comma, Enter or a paste makes them, each word once, the person's
 // casing kept; a word that already means something else says who has it.
@@ -160,5 +160,20 @@ describe('synonym tags', () => {
         .synonymsOf('Gross sales')
         .map((s) => s.name),
     ).not.toContain('Sales Value')
+  })
+})
+
+describe('the connector the synced definitions come from', () => {
+  const synced = (connector?: string) => ({ synced: true, ...(connector ? { connector } : {}) })
+
+  it('is the one connector that reads them all, so a page can link to it', () => {
+    expect(connectorOf([synced('cube'), synced('cube')])).toBe('cube')
+    expect(connectorOf(createDefinitions().list())).toBeDefined()
+  })
+
+  it('is none when none or several read them, even when they read the same tool', () => {
+    expect(connectorOf([])).toBeUndefined()
+    expect(connectorOf([synced('cube'), synced('cube-cloud')])).toBeUndefined()
+    expect(connectorOf([{ synced: false, connector: 'cube' }])).toBeUndefined()
   })
 })
