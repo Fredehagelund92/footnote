@@ -41,6 +41,6 @@ Each time your definitions are read, a name is made for every metric and dimensi
 
 ## Your first answer
 
-Ask about what you wrote. The setup's "Ask a question about it" step writes the question for you, and it includes the item's dates when they do not cover today, such as "What should I know about Loaves sold on 9 Nov 2026?". The answer starts with an answer line, such as Checked, and cites your context item. If it says Not found, nothing applies to that question yet: that is the honest answer, not an error.
+Ask about what you wrote. The setup's "Ask a question about it" step writes the question for you, and it includes the item's dates when they do not cover today, so a question about a day that has passed still finds your item. The answer starts with an answer line, such as Checked, and cites your context item. If it says Not found, nothing applies to that question yet: that is the honest answer, not an error.
 
 > **Why names come first.** A context item must say what it applies to, and it can only name what is in Definitions. That is why the names come before you write.
