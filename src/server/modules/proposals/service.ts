@@ -469,10 +469,14 @@ function proposalsService(
             input.version === undefined
               ? `select s.version_id::text as id from item_version_service s join item_versions v on v.id=s.version_id
                   where s.item_id=$1 and s.editions @> (select seq from live_edition) and cl_audience_allows(v.audience_groups)`
-              : 'select id::text as id from item_versions where item_id=$1 and version_no=$2',
+              : 'select id::text as id from item_versions where item_id=$1 and version_no=$2 and cl_audience_allows(audience_groups)',
             input.version === undefined ? [itemId] : [itemId, input.version],
           )
         : []
+      if (itemId && input.version !== undefined && !written)
+        throw new ORPCError('CONFLICT', {
+          message: 'That version of this context item does not exist, so nothing was saved.',
+        })
       const [p] = await tx.query<ProposalRecord>(
         `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id)
         values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16)
