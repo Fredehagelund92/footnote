@@ -250,13 +250,14 @@ export function SiteHeader({
     <>
       <header
         ref={ref}
+        data-site-header
         className={cn(
-          'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 px-4 shadow-hairline-bottom md:px-6',
+          'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 px-4 shadow-hairline-bottom sm:gap-3 md:px-6',
           'bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50',
           className,
         )}
       >
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 grow items-center gap-3">
           {!lean && <NavToggle />}
           <Separator
             orientation="vertical"
@@ -312,8 +313,21 @@ export function SiteHeader({
             </Button>
           )}
           {children}
-          {/* Which install this is, when it is named: last but the theme, so it never moves. */}
-          {!lean && <ProfileLabel label={profileLabel} className="max-sm:max-w-28" />}
+        </div>
+        {/* Which install this is, when it is named: last but the theme, so it never moves. It has no
+            width of its own and takes what the title leaves, up to its words: on a phone with a
+            page action the label is cut, never the title. With room for less than a few letters it
+            wraps onto a second line, which is cut off: an empty first line holds the height. */}
+        {!lean && profileLabel && (
+          <span className="flex h-5 w-0 max-w-fit min-w-0 grow-1000 flex-wrap justify-end overflow-hidden">
+            <span aria-hidden className="h-5 w-0" />
+            <ProfileLabel
+              label={profileLabel}
+              className="min-w-0 shrink grow basis-12 max-sm:max-w-28"
+            />
+          </span>
+        )}
+        <div data-header-actions className="flex shrink-0 items-center gap-2 empty:hidden sm:gap-3">
           {!bare && !lean && <ThemeMenu />}
           {/* The demo's switch between its people, in the corner: nothing anywhere else. */}
           {!bare && !lean && <ViewAs />}

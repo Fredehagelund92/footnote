@@ -64618,12 +64618,136 @@
                     },
                     "leftOut": {
                       "type": "number"
+                    },
+                    "waiting": {
+                      "type": "object",
+                      "properties": {
+                        "revision": {
+                          "type": "string"
+                        },
+                        "names": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": [
+                                  "metric",
+                                  "dimension"
+                                ],
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "aliases": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "definitionRefs": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "linked": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "areaId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "description": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "tool": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "enum": [
+                                  "ready",
+                                  "flagged",
+                                  "left_out"
+                                ],
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "code": {
+                                      "enum": [
+                                        "taken",
+                                        "same_name",
+                                        "titles_differ",
+                                        "bad_name"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "message": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "code",
+                                    "message"
+                                  ]
+                                }
+                              },
+                              "leftByOwner": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "kind",
+                              "name",
+                              "aliases",
+                              "definitionRefs",
+                              "linked",
+                              "areaId",
+                              "description",
+                              "tool",
+                              "state",
+                              "flags",
+                              "leftByOwner"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "revision",
+                        "names"
+                      ]
                     }
                   },
                   "required": [
                     "edition",
                     "accepted",
-                    "leftOut"
+                    "leftOut",
+                    "waiting"
                   ]
                 }
               }
@@ -89023,7 +89147,8 @@
                                             "time",
                                             "spending",
                                             "model",
-                                            "key"
+                                            "key",
+                                            "credit"
                                           ],
                                           "type": "string"
                                         },
@@ -90143,7 +90268,8 @@
                                                 "time",
                                                 "spending",
                                                 "model",
-                                                "key"
+                                                "key",
+                                                "credit"
                                               ],
                                               "type": "string"
                                             },

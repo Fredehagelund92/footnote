@@ -8,6 +8,7 @@ import { readFile } from 'node:fs/promises'
 /** What these tests touch of dbt's file: the file has more, which stays as it is. */
 export interface Manifest {
   semantic_models: {
+    name: string
     config: { meta: Record<string, unknown> }
     dimensions: { name: string; type: string }[]
     measures: { name: string; expr?: string }[]

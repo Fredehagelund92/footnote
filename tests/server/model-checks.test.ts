@@ -56,14 +56,19 @@ const toolCall = (args: string) =>
  * A server that behaves as `kind` says: `able` does all three; `toolless` turns away any request
  * with tools (HTTP 400), as Ollama does for a model without tool support; `chatty` calls the tool
  * even when told not to and writes no JSON; `down` fails every request; `refusing` turns every
- * request away, as a gateway does whose vendor pin no host of the model meets.
+ * request away, as a gateway does whose vendor pin no host of the model meets; `broke` answers
+ * every request with HTTP 402, as a gateway does for an account out of credit.
  */
-function server(kind: 'able' | 'toolless' | 'chatty' | 'down' | 'refusing') {
+function server(kind: 'able' | 'toolless' | 'chatty' | 'down' | 'refusing' | 'broke') {
   const bodies: Body[] = []
   vi.stubGlobal('fetch', (_url: string, init: RequestInit) => {
     const body = JSON.parse(init.body as string) as Body
     bodies.push(body)
     if (kind === 'down') return Promise.resolve(new Response('busy', { status: 503 }))
+    if (kind === 'broke')
+      return Promise.resolve(
+        Response.json({ error: { message: 'Insufficient funds.' } }, { status: 402 }),
+      )
     if (kind === 'refusing')
       return Promise.resolve(
         Response.json(
@@ -166,6 +171,18 @@ describe('the model check', () => {
     expect(testRunRefusal(check)).toBeNull()
     expect(roleFails('eval_answer', check)).toBe(false)
     expect(checkWords('assistant', check)).toBe('Couldn’t tell, so Ask reads with its tools')
+  })
+
+  it('says a key whose account is out of credit is out of credit, not that it could not tell', async () => {
+    server('broke')
+    const check = await checkModel(local())
+    expect(check).toMatchObject({ tools: 'unknown', noTools: 'unknown', json: 'unknown' })
+    const note = 'the provider says the account is out of credit (HTTP 402)'
+    expect(check.notes).toEqual([`tools: ${note}`, `noTools: ${note}`, `json: ${note}`])
+    for (const role of ['assistant', 'eval_answer', 'judge'] as const)
+      expect(checkWords(role, check)).toBe(
+        'Out of credit: the provider turns every call away until its account has credit',
+      )
   })
 })
 

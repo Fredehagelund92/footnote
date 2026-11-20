@@ -136,6 +136,12 @@ export const docControls: DocControl[] = [
     at: '/inbox?demo=names',
     drawn: 'text',
   },
+  {
+    phrase: 'Publish these as suggested',
+    page: 'set-up-your-workspace',
+    at: '/inbox?demo=names',
+    drawn: 'button',
+  },
   { phrase: 'Left out', page: 'set-up-your-workspace', at: '/inbox?demo=names', drawn: 'text' },
   {
     phrase: 'Add your first domain',

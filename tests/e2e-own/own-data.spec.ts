@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Request } from '@playwright/test'
 import {
   legacyManifest,
   withMetric,
@@ -17,11 +17,24 @@ import { objectHost, type ObjectHost } from '../server/connectors/object-server.
 
 const mcp = `http://localhost:${process.env.PW_OWN_API_PORT ?? 3121}/mcp`
 
-/** The invented shop's project, with a second metric people call Revenue: a name to look at. */
+/**
+ * The invented shop's project, with a second metric people call Revenue, and a customer's region,
+ * status and tier in a second semantic model, of its stores, and the region in its orders too:
+ * names to look at. One title in several semantic models is one dimension a project uses
+ * everywhere, and each copy waits in "Look at these first".
+ */
 function ownManifest(): Manifest {
   const file = structuredClone(legacyManifest)
   const revenue = file.metrics.find((metric) => metric.name === 'revenue')!
   file.metrics.push({ ...structuredClone(revenue), name: 'shop_revenue', label: 'Revenue' })
+  const model = (name: string) => file.semantic_models.find((entry) => entry.name === name)!
+  file.semantic_models.push({
+    ...structuredClone(model('customers')),
+    name: 'stores',
+    measures: [],
+  })
+  const region = model('customers').dimensions.find((dimension) => dimension.name === 'region')!
+  model('orders').dimensions.push(structuredClone(region))
   return file
 }
 
@@ -133,6 +146,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
 
   // The checklist, in the order it can be done: a domain, then the names, then writing.
   await expect(page.getByText('0 of 6 done')).toBeVisible()
+  await expect(page.getByText(/^Until there is context, agents hear/)).toBeVisible()
   expect(await demoWords(page), 'the Inbox').toEqual([])
   await shot('10-setup')
   const steps = page.getByRole('main').getByRole('listitem')
@@ -151,7 +165,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.goto('/settings/integrations/dbt-metricflow/connect?setup=1&step=2')
   await page.getByLabel('File address').fill(store.link('/link/semantic_manifest.json'))
   await button(page, 'Test connection').click()
-  await expect(page.getByText('A read would hold 13 metrics and 7 dimensions.')).toBeVisible({
+  await expect(page.getByText('A read would hold 13 metrics and 12 dimensions.')).toBeVisible({
     timeout: 30_000,
   })
   await button(page, 'Continue').click()
@@ -168,24 +182,71 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   const review = page.getByRole('dialog')
   await expect(review.getByText('Net revenue', { exact: true })).toBeVisible()
   await shot('12-names-review')
-  // Two definitions are called Revenue: neither is picked, and Publish all leaves both for a look.
+  // Two definitions are called Revenue, and three semantic models have a Region: none is picked,
+  // and Publish all leaves them all for a look.
   const flagged = review.getByRole('region', { name: 'Look at these first' })
-  await expect(flagged.getByRole('listitem')).toHaveCount(2)
+  await expect(flagged.getByRole('listitem')).toHaveCount(9)
   await expect(flagged.getByRole('listitem').first()).toContainText(
     'Another definition is called “Revenue”',
   )
+  await expect(flagged).toContainText('2 others are called “Region”')
   // Focus starts on Publish all, so the Enter it shows publishes every ready name.
   await expect(review.getByRole('button', { name: /^Publish all/ })).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page.getByText('2 of 6 done')).toBeVisible()
   await expect(review.getByRole('button', { name: /^Publish all/ })).toBeHidden()
   await shot('12-names-flagged')
-  // The owner gives one a word of its own, and the other has nothing against it any more.
+  // The owner gives one Revenue a word of its own, and the other has nothing against it any more.
+  // One name's Publish reads again only what a name changes: the service allows a person 600
+  // calls a minute, and an owner clicks through many names.
+  const calls: string[] = []
+  const onRequest = (request: Request) => {
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/v1/')) calls.push(`${request.method()} ${url.pathname}`)
+  }
   const second = flagged.getByRole('listitem').nth(1)
   await second.getByRole('textbox').fill('Shop revenue')
+  // Over the request limit, the service's words say so once, and the name is not marked wrong.
+  await page.route(
+    '**/api/v1/inbox/names/decide',
+    (route) =>
+      route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        headers: { 'retry-after': '20' },
+        body: JSON.stringify({
+          defined: false,
+          code: 'TOO_MANY_REQUESTS',
+          status: 429,
+          message: 'That was a lot at once. Try again in 20 seconds.',
+          data: { retryAfterSeconds: 20 },
+        }),
+      }),
+    { times: 1 },
+  )
   await second.getByRole('button', { name: 'Publish', exact: true }).click()
-  await expect(flagged).toBeHidden()
+  await expect(page.getByText('That was a lot at once. Try again in 20 seconds.')).toBeVisible()
+  await expect(second.getByRole('textbox')).not.toHaveAttribute('aria-invalid')
+  await expect(second.getByRole('alert')).toHaveCount(0)
+  page.on('request', onRequest)
+  await second.getByRole('button', { name: 'Publish', exact: true }).click()
+  await expect(page.getByText('Shop revenue is published')).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  page.off('request', onRequest)
+  // The decision, and the Inbox's own read for the card's count: 4 calls, where every cache read
+  // again was 28, so a click every 3 s for a minute reached the limit.
+  expect(
+    calls.filter((call) => call.startsWith('POST ')),
+    calls.join('\n'),
+  ).toHaveLength(1)
+  expect(calls.length, calls.join('\n')).toBeLessThanOrEqual(4)
+  await expect(flagged.getByRole('listitem')).toHaveCount(7)
   await review.getByRole('button', { name: /^Publish all/ }).click()
+  // The region, status and tier each semantic model has go out with the names shown, at one press.
+  await expect(flagged.getByRole('listitem')).toHaveCount(7)
+  await shot('12-names-as-suggested')
+  await button(page, 'Publish these as suggested').click()
+  await expect(page.getByText('7 names are published as suggested')).toBeVisible()
   await expect(review).toBeHidden()
   await expect(page.getByRole('button', { name: /^Publish \d+ names?$/ })).toBeHidden()
 
@@ -268,7 +329,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await shot('15-ask')
 
   // Setup is at 5 of 6, one step left. Ten more items rely on Net revenue, and then its
-  // calculation changes in dbt: the Inbox shows the eleven Due for a check under the checklist,
+  // calculation changes in dbt: the Inbox shows the eleven Due for a check above the checklist,
   // without waiting for the last step.
   const read = async <T>(path: string) => (await page.request.get(`/api/v1${path}`)).json() as T
   const metric = (await read<{ metrics: { id: string; name: string }[] }>('/vocabulary')).metrics
@@ -305,14 +366,21 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.goto('/inbox')
   await expect(page.getByText('5 of 6 done')).toBeVisible()
   const due = page.getByRole('region', { name: 'Needs you' })
+  // Each try waits for the Inbox to draw before it looks: on a loaded machine a reload takes
+  // longer than the look, and every try then reloaded before the row could show.
   await expect(async () => {
     await page.reload()
+    await expect(page.getByText('5 of 6 done')).toBeVisible({ timeout: 20_000 })
     await expect(due.getByRole('link', { name: /^Due for a check 11 in all domains/ })).toBeVisible(
-      {
-        timeout: 2_000,
-      },
+      { timeout: 3_000 },
     )
-  }).toPass({ timeout: 60_000 })
+  }).toPass({ timeout: 90_000 })
+  // Above the checklist, which is two screens long on a phone; and with context written, the
+  // checklist no longer says agents hear that nothing is written down.
+  const checklist = page.getByText('Set up your workspace so agents can use what you know')
+  const [dueAt, checklistAt] = await Promise.all([due.boundingBox(), checklist.boundingBox()])
+  expect(dueAt!.y).toBeLessThan(checklistAt!.y)
+  await expect(page.getByText(/^Until there is context/)).toHaveCount(0)
   await shot('16-setup-due')
   await due.getByRole('link').click()
   await expect(page).toHaveURL(/\/context\?due=1$/)

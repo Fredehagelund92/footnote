@@ -74,6 +74,7 @@ export {
   createCallMeter,
   defaultCallLimits,
   keyRefused,
+  outOfCredit,
   ModelCallError,
   readCallLimits,
   retryAfterMs,
