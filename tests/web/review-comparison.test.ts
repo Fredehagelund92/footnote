@@ -296,7 +296,7 @@ describe('K3, a new look, a move and a link in the text', () => {
       'Intro.\n\nSecond point.\n\n- First point.',
     )
     const moved = [...el.querySelectorAll('[data-mark="moved"]')]
-    const came = moved.find((m) => m.textContent!.includes('Moved'))!
+    const came = moved.find((m) => m.textContent.includes('Moved'))!
     expect(came.textContent).toContain('No longer a list')
     expect(came.textContent).toContain('[No longer a list]')
     expect(legendOf(el)).toContain('New look')
