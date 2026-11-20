@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { askedCell, askedTotals, listedTopics, visibleTotal } from '../../../src/domain/gaps.ts'
+import { askedTotals, listedTopics, visibleTotal } from '../../../src/domain/gaps.ts'
 import {
   readerDomains,
   readerSubjects,
   zeroCounts,
   type ViewScope,
 } from '../../../src/domain/observability.ts'
-import { answerRecords, type RecordsAsk } from '../../../src/domain/records.ts'
-import { recordsText } from '../../../src/server/modules/answer/plan-cases.ts'
-import { askPlanCase, PLAN_NOW, planBundle } from '../../../src/server/modules/answer/index.ts'
-import { planRecords } from '../../../src/server/modules/answer/plan-world.ts'
+import { worldBundle } from './case-world.ts'
 
 // One rule for a count a person may see (FR-614, FR-620), wherever Ask states one: every display
 // rule the app has, each held on Ask's own answers. A count under the minimum is hidden, a floor
@@ -96,103 +93,17 @@ describe('the one source of what agents asked', () => {
     expect(subjects.find((s) => s.key === 'a')).toMatchObject({ months: ['2026-10'] })
   })
 
-  it('says a floor and "Fewer than" as a page does', () => {
-    expect(askedCell({ count: null, atLeast: 0 }, 5)).toBe('Fewer than 5')
-    expect(askedCell({ count: null, atLeast: 13 }, 5)).toBe('13+')
-    expect(askedCell({ count: 1200, atLeast: 1200 }, 5)).toBe('1,200')
-  })
-
   it('leaves the total of a week as it was: only over shown parts', () => {
     expect(visibleTotal(14, 12, 5)).toBeNull()
     expect(visibleTotal(17, 12, 5)).toBe(17)
   })
 })
 
-describe('what agents asked, as Ask states it, fed raw', () => {
-  // As the rows reach Ask: a row with no shown count of the minimum is not listed.
-  const world = {
-    ...planRecords,
-    asked: {
-      minimum: 5,
-      rows: [
-        {
-          title: 'Small',
-          count: null,
-          atLeast: 0,
-          nothing: null,
-          state: 'missing' as const,
-          gap: null,
-          metrics: ['metric:returns'],
-        },
-        {
-          title: 'Left over',
-          count: null,
-          atLeast: 9,
-          nothing: 9,
-          state: 'missing' as const,
-          gap: null,
-          metrics: ['metric:orders'],
-        },
-      ],
-    },
-  }
-  const ask = (facets: NonNullable<RecordsAsk['audit']>['facets']): RecordsAsk => ({
-    intent: 'audit',
-    domain: null,
-    kind: null,
-    metric: null,
-    period: null,
-    noOwner: false,
-    audit: { facets, of: null, kind: null, value: null },
-  })
-  const said = (a: RecordsAsk) => recordsText(answerRecords(a, world, PLAN_NOW)).join('\n')
-
-  it.each([
-    ['what was asked most', ['asked_most'] as const],
-    ['what found nothing', ['asked_nothing'] as const],
-    ['both at once', ['asked_most', 'asked_nothing'] as const],
-    ['what is asked and not covered', ['asked_most', 'no_context'] as const],
-  ])('%s', (_name, facets) => {
-    const text = said(ask([...facets]))
-    expect(text).not.toMatch(/\bSmall\b/)
-    expect(text).not.toMatch(/\b12\b/)
-    expect(text).not.toMatch(/9 of 12/)
-  })
-
-  it('does not count a topic it hides in a denominator', () => {
-    expect(said(ask(['asked_nothing']))).toContain('1 of 1 topic')
-  })
-
-  it('never reads a hidden count of what found nothing as none', () => {
-    const hidden = {
-      ...world,
-      asked: {
-        minimum: 5,
-        rows: [{ ...world.asked.rows[1]!, title: 'Hidden', nothing: null }],
-      },
-    }
-    const text = recordsText(answerRecords(ask(['asked_nothing']), hidden, PLAN_NOW)).join('\n')
-    expect(text).not.toMatch(/found something for every topic/)
-    expect(text).toMatch(/the count is hidden for 1 of 1 topic/)
-  })
-})
-
 describe('an item for another group, to a person', () => {
-  it('is neither named nor counted, in any line of the answer', async () => {
-    const { routed } = await askPlanCase({ question: 'why did orders drop in Norway?' }, null, [])
-    if (routed.kind !== 'rules') throw new Error('read by the rules')
-    expect(routed.answer.forAnotherGroup).toBe(0)
-    expect(routed.answer.say).not.toMatch(/another group|isn't shared/)
-    expect(JSON.stringify(routed.answer.steps)).not.toMatch(/another group/)
-    expect(routed.answer.steps.find((s) => s.step === 'left_out')).toMatchObject({
-      forAnotherGroup: 0,
-    })
-  })
-
   it('is still told to an agent: get_context does not change', async () => {
     const { answer } = await import('../../../src/domain/answer.ts')
     const said = answer(
-      planBundle,
+      worldBundle,
       { question: 'why did orders drop in Norway?' },
       {
         today: '2026-10-23',
@@ -274,42 +185,5 @@ describe('the total asked and the topics left out, beside the domain totals', ()
       owners,
     })
     expect(s).toMatchObject({ seen: false, count: null, atLeast: 0 })
-  })
-})
-
-describe('what agents found nothing for, in a domain', () => {
-  it('reads only the rows of the domain the question names', () => {
-    const row = (title: string, area: string) => ({
-      title,
-      area,
-      count: 12,
-      atLeast: 12,
-      nothing: 9,
-      state: 'missing' as const,
-      gap: null,
-    })
-    const found = answerRecords(
-      {
-        intent: 'asked_nothing',
-        domain: 'marketing',
-        kind: null,
-        metric: null,
-        period: null,
-        noOwner: false,
-      },
-      {
-        items: [],
-        areas: [
-          { id: 'sales', name: 'Sales', ownerIds: [] },
-          { id: 'marketing', name: 'Marketing', ownerIds: [] },
-        ],
-        people: {},
-        terms: [],
-        asked: { minimum: 5, rows: [row('Orders', 'sales')] },
-        conflicts: null,
-      },
-      '2026-10-22T00:00:00Z',
-    )
-    expect(found.rows).toEqual([])
   })
 })

@@ -58,12 +58,11 @@ export async function stopService() {
 
 /**
  * A fresh copy of a workspace, and the service on it: the demo week, or with `empty` a new
- * install. A service still running stops first. With `askLoop`, Ask answers with its loop and the
- * scripted reader, as `FOOTNOTE_ASK_LOOP=on` with `MODELS=mock` does.
+ * install. A service still running stops first. Ask answers with its loop and the scripted reader,
+ * as with `MODELS=mock`.
  */
 export async function freshService(
   workspace: 'week' | 'empty' = 'week',
-  { askLoop = false }: { askLoop?: boolean } = {},
 ): Promise<{ close: () => Promise<void> }> {
   await stopService()
   const { admin: adminUrl, template: week, apiPort, webOrigin, cubeToken } = harness()
@@ -108,7 +107,6 @@ export async function freshService(
     logger: createLogger({ level: 'silent' }),
     clock: systemClock(TODAY),
     devPeople: devPeople(),
-    askLoop,
     origins: [webOrigin],
     // Figures in Ask read the stand-in Cube the global setup started, with the token it invented.
     workspaceSources: createWorkspaceSources({

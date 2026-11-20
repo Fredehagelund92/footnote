@@ -765,8 +765,8 @@ The web app shows what an agent would get in Ask and in the review's Try it pane
 ## The answer engine
 
 One deterministic function (`src/domain/answer.ts`) answers people the way `get_context` answers
-an agent, with no model: Ask, Try it, the review's before and after, the replay of a topic,
-Asked this week, the reach of a draft and the free check of saved questions read it. It
+an agent, with no model: Ask's tools, Try it, the review's before and after, the replay of a
+topic, Asked this week, the reach of a draft and the free check of saved questions read it. It
 takes what is asked (a question's words with the names sent beside them, a typed scope, or a
 topic's scope) and one edition bundle: the live edition, the edition before it, or the live
 edition with a draft in it. It reads the scope as `get_context` does, resolves it with the agent's
@@ -788,98 +788,17 @@ Ask's Show me where it says that walks a sentence back to. Its state is one of t
 could not run; `missing` when nothing was given or the question could not be read; `conflict`
 when given items disagree; `partial` when an asked metric or value has no item that covers it in
 full (`uncovered` names them) or the dates were assumed; `stale` when a given item may be out of
-date; else `grounded`. Ask shows an answer whose status is `need_more_detail` with no state at all:
-"Nothing was looked up" and the reason its `say` gives, never Not found. When the question named
-nothing at all, Ask says so in its own words and offers the metrics and markets whose names are
-closest to the question's words (`suggestTerms`), never reading them as asked; agents get `say`
-and `next` as before.
+date; else `grounded`.
 
-- `POST /ask/lookup` (Ask): a question (1 to 2,000 characters) and the names a person picked
-  beside it (`metrics`, `dimension_filters`, `window`, as Try it), on the live edition. It answers
-  with server-sent events: each step as it is done, then the answer. The answer's `links` say what
-  `get_related` follows from its items, as an agent would (`on` is its switch): one step from
-  each, to another item or a term it did not get already, with what the agent read there (an
-  item's summary, a term's meaning), and the retired or replaced ones listed apart, never
-  followed. It never changes which items the answer has. For a question about what a metric means
-  (`asksDefinition`), `definitions` gives what the definition source says about each metric asked
-  (its words, at most 500 characters, the tool, the source and the ref), as `get_context` gives an
-  agent; a term an agent may not see, or one whose definition is limited to groups, has none. For a
-  question that names values and no metric and finds nothing, `valueMetrics` names the metrics the
-  context about those values is written for, most items first, at most three. Neither changes the
-  state or the items, and agents never get them. With real models
-  (`MODELS=live`), the words of `models.assistant` follow an answer that gives items, written from
-  those items only, each sentence ending with the numbers of the items it uses. They stream: each
-  sentence is a `sentence` event, sent once it is complete and passes the check (citing only the
-  items given, with no list, heading, link or number it was not given), and `words-end` closes
-  them. A sentence that cites items may say only what those items, the definitions given and the
-  question say; one that cites none is not weighed by its words and is never left out for them
-  (its numbers are checked as every sentence's are), but waits until a sentence that cites an item,
-  or says what a definition says, has passed. A sentence that cites items and says more is left out
-  and the words go on (the log says `sentences left out`, with the check's reason and how many).
-  `[1, 2]` is read as `[1][2]`. A sentence that fails the first check ends the words there, and
-  nothing after it is sent, and the words run to at most 1,200 characters. When no sentence passes, the spending limits leave no room, or the provider
-  fails, no `sentence` event comes and Ask writes its own words from the items. Words cut off by
-  the output limit or by 12 seconds keep the sentences already sent and leave out the unfinished
-  one. The model decides nothing: the state, the items and what agents are told are the engine's.
-  Closing the request (Stop in Ask) ends the model's call. The call counts under `assistant` in the
-  spend ledger, for the person who asked, a stopped call at what it sent and received. The question
-  goes to the model's provider for that call; it is read in memory and never stored or logged
-  (FR-602), and with `MODELS=mock` nothing at all is recorded. The cases of Ask's words
-  (`src/server/modules/answer/words-cases.ts`) run on a scripted words model in every build and
-  with `npm run eval:ask-words` (mock), or `-- --real --max-cost-usd <dollars>` with the model of
-  `models.assistant`, which sends the cases' made-up questions and items to its provider.
-- Ask's planner (FR-719, `src/domain/ask-plan.ts`, `src/domain/ask-route.ts`,
-  `src/domain/ask-chat.ts`): the input may carry `turns`, the chat's last six turns as the browser
-  keeps them, oldest first: each its `question`, `scope` as keys, up to 10 `sources` by item id,
-  `asked` (the question Ask asked back), `understood` (its Understood as line), `state`, `headline`
-  (one sentence from a template), `domain`, `period`, `dated`, `audit` (the analysis it was read
-  as) and `rows` (the keys of the terms an analysis listed). They hold no answer text and no
-  data value and are never stored; the service keeps the newest that fit 4,000 characters. For a
-  question the rules cannot read (`need_more_detail`), a value alone that finds nothing, a question
-  about what changed that names nothing Footnote keeps, or a follow-up of the chat, the model of
-  `models.assistant` (with `MODELS=live`; the scripted planner with `MODELS=mock`) chooses Ask's
-  reads in one call of at most 3 seconds, under the spending limits and metered as the assistant's.
-  A checked plan sends a `plan` event first, with what the working line says, then the reads' steps
-  and `answer`, whose `reading` says how the model read the question, what it carried, and, when
-  the chat matters, the question as it reads alone (`standalone`); a planned `records` event has a
-  `reading` with `carried` and `standalone`. Or one `reply` event, `clarify` (one short question
-  back), `off_topic`, `nothing_asked` or `cannot` (FR-720, with its `reason`, `numbers`, `source`,
-  `write`, `person`, `not_yet` or `unread`, the `definitions` a `source` reply shows and what a
-  `write` reply starts from), with nothing looked up. An `answer`'s `limit` is the fixed sentence
-  it leads with when the question reaches beyond what is written, or, with its `reason` `partly` or
-  `general`, when only part could be read or a name has nothing of its own, its `reading.left`
-  names a part of the question its reads do not answer, and its `reading.facts` says, in fixed
-  sentences, what the records keep about what was read: its owners, its check dates, and dates Ask
-  could not place. A message with no subject of its
-  own and no question that fits ("hmm", or "try again" with nothing to repeat) gets `nothing_asked`
-  with no model call. A message that only asks again never reaches the service as such: the browser
-  sends the last question instead (`src/domain/ask-again.ts`). A plan that fails the check, a limit,
-  an error or a slow call leaves the rules' answer, and the log says why (`ask plan not used`, a
-  reason only); a question the rules cannot read then gets `cannot` with `unread`. The planner cases (`src/server/modules/answer/plan-cases.ts`) run on the scripted planner in every build and with
-  `npm run eval:ask-plan` (mock), or `-- --real --max-cost-usd <dollars>`, which also asks for the
-  words of each planned answer and reports the planner's time and the cost of a planned question.
-- A question about the context's own records (FR-718, `src/domain/records.ts`), asked as words with
-  no `metrics`, `dimension_filters` or `window`, is not looked up: `POST /ask/lookup` answers with
-  one `records` event. It has the intent (`created`, `changed`, `due`, `archived`, `owner`,
-  `count`, `asked_nothing`, `terms` for the metrics and dimensions Definitions lists, `values`
-  for a dimension's values, `conflicts` for the pairs of context items an owner said disagree,
-  `audit` for an analysis of the records, `queue` for the person's own Inbox, or `glossary` for a
-  word people wrote in Definitions),
-  what it was understood as, the period (ISO instants, and its words in UTC), what was read, the
-  sentence, at most five `rows` (a context item, a domain, a topic, a term with the Definitions
-  page it opens, a conflict with the pair's `key` its page opens, two items found together, a
-  member of the source, a line of a review or the Inbox, or a kind's counts) with
-  `columns`, up to four `sections` of them for an analysis (`src/domain/audit.ts`), with what came
-  up empty (`clear`), the rule behind a ranking (`ranked`), what the read cannot see (`notSeen`), the
-  `limit` it leads with, the `audit` it was read as and the domain a ranking puts first alone (`top`), the exact `total`, and where the full list lives (`more`, with `page` for one
-  Definitions page, and `status: conflicts` for Context's Conflicts filter). A
-  question about one person's work gets `refused: true` with its sentence and what to ask
-  instead. Everything is counted in the request's own transaction from the items `GET /library`
-  lists for the person, their editions' times, the domains and their owners, the live vocabulary
-  without a term whose definition the person's groups may not see (CON-509), for
-  `asked_nothing`, Asked this week, and for `conflicts`, the pairs `GET /conflicts` lists for the
-  person. `records_asked_weekly` counts which intent was asked each week
-  (or `refused`), and nothing else.
+- `POST /ask/lookup` (Ask): a question (1 to 2,000 characters), the chat's last six turns as the
+  browser keeps them (`turns`, oldest first, the newest that fit 4,000 characters: each its
+  `question`, up to 10 `sources` by item id, `understood`, `headline`, `asked` for a question Ask
+  asked back, and `reply` and `reads`, what Ask said and the reads it made), and the `period` a
+  person chose on the read line. Ask's loop answers it with server-sent events: a `progress` line
+  as each read starts, `words` as each sentence passes the check, then one `turn`, the whole
+  answer ([Ask's loop](../evaluations.md#asks-loop)). The question and the chat are read in memory
+  and never stored or logged (FR-602). A message that only asks again never reaches the service as
+  such: the browser sends the last question instead (`src/domain/ask-again.ts`).
 - `GET /ask/asked` (Asked this week): the topics agents asked about in the week of today (Monday
   to Sunday, UTC), one row per metric, market and dimension with its shown months joined, most asked
   first, each with the state the engine gives its newest shown month now (the month of today for a

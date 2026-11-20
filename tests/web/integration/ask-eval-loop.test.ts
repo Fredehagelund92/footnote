@@ -25,7 +25,6 @@ import { askEvalSuite } from './ask-eval-suite.ts'
 */
 
 askEvalSuite({
-  answerer: 'loop',
   brokenToday: {
     hidden: ['V07', 'G18'],
     advice: ['V04', 'G20'],

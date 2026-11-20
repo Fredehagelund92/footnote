@@ -32,8 +32,6 @@ export default defineConfig({
     /\/buttons-fields\.spec\.ts$/,
     // The pane's screenshot baselines are of the mock's demo data.
     /\/visual-inbox-pane\.spec\.ts$/,
-    // The definition answers' baselines are of the mock's demo data too.
-    /\/visual-ask-definition\.spec\.ts$/,
     // So are Overview's.
     /\/visual-overview\.spec\.ts$/,
     // And Details', the review Preview's and the review comparison's.
@@ -54,11 +52,11 @@ export default defineConfig({
     // J48 asks the mock for a model of hundreds of views (?views=); the service's Cube is the
     // server's own there, whose views are its file's (tests/integration/cube-view-list.test.ts).
     /\/j48-view-allowlist\.spec\.ts$/,
-    // J3 states asks the mock for each of the six answer states by its example question; the
-    // service's demo week has no check that fails to run.
+    // J3 states asks for each answer state by a question the mock's recorded turns answer with it,
+    // and opens the mock's Not looked up example; the service's demo week has no check that fails.
     /\/j3-ask-states\.spec\.ts$/,
-    // J66 opens an answer of Ask's loop by the mock's example address; the golden service answers
-    // with its router, and Tell the owner on the service is tests/web/integration/ask-tell-owner.
+    // J66 opens an answer of Ask's loop by the mock's example address, which the service has not;
+    // Tell the owner on the service is tests/web/integration/ask-tell-owner.
     /\/j66-ask-tell-owner\.spec\.ts$/,
     // J67 opens a loop answer by the mock's example address; the service's read line is covered by
     // tests/web/integration/ask-loop-shapes.test.ts.

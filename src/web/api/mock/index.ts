@@ -2,21 +2,18 @@ import { footnoteApiMethods, readMethods } from '../client'
 import { clockTime } from '@/lib/dates'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
-import { asksNothing, nothingAskedSaid } from '@domain/ask-again'
-import { asksUndefinedWords, limitOf, readsBeyond } from '@domain/ask-plan'
-import { limitAlone, limitSaid } from '@domain/records'
 import { ApiError } from '../errors'
 import { missing } from '@contract/refusals'
 import { reviewActions, type ReviewAction } from '@domain/review-actions'
 import type { SavedView } from '@/lib/obs-views'
 import { mentionNotesOf, type Subject } from '@/model/comments'
-import { servedToAgents, type DomainId } from '@/model/items'
+import { servedToAgents } from '@/model/items'
 import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition } from './data/history'
 import { connectorById } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
-import { answerLinks, linksOf } from '@/lib/links'
+import { linksOf } from '@/lib/links'
 import { cards, waiting, week } from './data/inbox'
 import { norwayDraft } from './data/drafts'
 import { obsData } from './data/observability'
@@ -34,15 +31,7 @@ import {
   signInPeople,
   WORKSPACE_NAME,
 } from './data/world'
-import {
-  answerFor,
-  answerForScope,
-  askQuestion,
-  exampleAnswer,
-  examples,
-  readDefinitionsFrom,
-  readQuestion,
-} from './data/ask'
+import { examples, readDefinitionsFrom, readQuestion } from './data/ask'
 import {
   advancedOf,
   contextFile,
@@ -52,8 +41,7 @@ import {
   type Automatic,
   type Pins,
 } from './advanced'
-import { loopExample, playAnswer } from './ask-live'
-import { cannotAnswer, followsOn, heldFor, plannedFor } from './planner'
+import { loopExample, playAnswer, recordedAnswer } from './ask-live'
 import { createChats } from './chats'
 import { askedThisWeek } from './data/asked-week'
 import { createMockNames } from './names'
@@ -69,8 +57,8 @@ import {
   type Kept,
 } from './integrations'
 import { figureFor, figureTryFor } from './data/figures'
-import { recordsAnswer, replyAnswer, reportedOn, type AskInput } from '@/model/ask'
-import { queueOf, readsPlainlyFor, recognisedFor, recordsFor, recordsOf } from './records'
+import { reportedOn, type Answer, type AskInput } from '@/model/ask'
+import { failedAnswer } from '@/api/http-ask'
 import { createDefinitions } from './definitions'
 import { dimensionsOf, valuesOf } from './obs-filters'
 import { publishEffects, touchedBy } from './publish'
@@ -314,100 +302,19 @@ export function createMockApi() {
       .sort((a, b) => b.asked - a.asked || a.topic.localeCompare(b.topic))
   }
 
-  /** Ask's answer, from the context as it is now. */
-  const answer = ({ question = '', parts, scope, example, reread, turns }: AskInput) => {
-    const pool = factsOf(state)
-    if (example) return exampleAnswer(example)
-    if (scope?.length) return answerForScope(question, scope, parts, pool)
-    if (reread) {
-      const read = readQuestion(question)
-      return {
-        ...answerFor(question, read.metric, read.markets, reread.dates, { pool }),
-        alias: read.alias,
-      }
+  /** Ask's answer: as the loop answers the question, or an example, on the demo week. */
+  const answer = ({ question = '', parts, scope, example, period }: AskInput): Answer => {
+    const found = example ? examples.find((e) => e.id === example) : undefined
+    if (example && !found) throw new ApiError('not-found', 'This question is not offered any more.')
+    const asked = found?.question ?? question
+    const extra = {
+      ...(parts?.some((p) => typeof p !== 'string') ? { parts } : {}),
+      ...(scope?.length ? { scope } : {}),
+      ...(period ? { period } : {}),
     }
-    // A word with more than one meaning is asked about by the fixed rules, as on the service.
-    const world = {
-      pool,
-      definitions: definitions.list(),
-      domains: workspace.domains(),
-      people: workspace.people().map((p) => p.name),
-    }
-    const recognised = recognisedFor(question, world)
-    const held = heldFor(question, turns, world, recognised)
-    if (held) return held
-    // A message that asks nothing is told so, with no model, as on the service.
-    const named = readQuestion(question)
-    if (!named.metric && !named.markets.length && asksNothing(question, turns ?? []))
-      return replyAnswer(question, {
-        kind: 'nothing_asked',
-        text: nothingAskedSaid(question, turns ?? []),
-      })
-    if (asksUndefinedWords(question))
-      return cannotAnswer(question, { reason: 'not_yet', metrics: [], filters: {} }, world)
-    // Ask's planner reads what the rules cannot, and a follow-up first, as on the service (FR-719).
-    const source = {
-      ...world,
-      asked: () => askedThisWeek(pool).rows,
-      conflicts: () => conflictRows('all'),
-      manages: (domain: DomainId | undefined) => {
-        const p = workspace.person(me())
-        return !!p && (p.admin || (!!domain && p.owns.includes(domain)))
-      },
-      // The person's own Inbox: their cards, by group, as the Inbox counts them.
-      queue: () => queueOf(state.fresh ? [] : cards.filter((c) => c.for === me())),
-    }
-    const planned = (business = false) => {
-      const a = plannedFor(question, turns, world, (ask) => recordsOf(ask, source), business)
-      return a && { ...a, parts: parts?.some((p) => typeof p !== 'string') ? parts : undefined }
-    }
-    const read = readQuestion(question)
-    const ruled = askQuestion(question, pool)
-    const refused = recognised?.type === 'refused'
-    const answered = recognised
-      ? refused || !recognised.loose
-      : !!read.metric && ruled.state !== null
-    if (followsOn(question, turns, world, { metrics: read.metric ? 1 : 0, answered, refused })) {
-      const a = planned()
-      if (a) return a
-    }
-    // A question about the context's own records is answered from them, as on the service; one
-    // about what changed that names nothing Footnote keeps is the business's first, and a word of
-    // judgement is the planner's first, with an honest exit when no plan reads it.
-    if (recognised?.type === 'records' && recognised.loose) {
-      const a = planned(!recognised.judgement)
-      if (a) return a
-      if (recognised.judgement && (recognised.ask.intent !== 'audit' || recognised.unfit))
-        return cannotAnswer(question, { reason: 'not_yet', metrics: [], filters: {} }, world)
-    }
-    // A question that reaches beyond what is written is the planner's first, as on the service.
-    if (!recognised && readsBeyond(question)) {
-      const a = planned()
-      if (a) return a
-    }
-    const records = recordsFor(question, source)
-    if (records) return recordsAnswer(question, records)
-    // Read nothing, or a market alone: the planner reads it. The mock's reader finds every
-    // metric's items for a market alone, where the service's finds none, so it asks first.
-    const unread = ruled.state === null || (!ruled.metric && ruled.markets.length > 0)
-    const scoped = !!ruled.metric || ruled.markets.length > 0
-    const reason =
-      limitOf(question) ??
-      (scoped && !readsPlainlyFor(question, world.definitions) ? ('partly' as const) : null)
-    return (
-      (unread && planned()) || {
-        ...ruled,
-        ...(reason
-          ? {
-              limit: {
-                reason,
-                sentence: (ruled.state !== null ? limitSaid : limitAlone)[reason],
-              },
-            }
-          : {}),
-        parts: parts?.some((p) => typeof p !== 'string') ? parts : undefined,
-      }
-    )
+    // The check could not run: what the page shows when the service does not answer.
+    if (example === 'failed') return { ...failedAnswer(asked), id: example, ...extra }
+    return { ...recordedAnswer(asked), ...(example ? { id: example } : {}), ...extra }
   }
 
   /** The reports the person sent from Ask this visit, newest first. */
@@ -953,27 +860,8 @@ export function createMockApi() {
         return Promise.reject(new ApiError('unanswered', "You're offline."))
       // Ask's loop answers, as the service wrote them on the demo week: shown by address only.
       if (input.example?.startsWith('loop-')) return loopExample(input.example)
-      // ?loop=1: a typed question is answered as Ask's loop answers it.
-      if (scenario.address().query.loop === '1' && input.question) {
-        const question = input.question
-        const looped = loopExample('loop-checked').then((a) => ({ ...a, id: 'custom', question }))
-        return live?.onEvent ? looped.then((a) => playAnswer(a, live)) : looped
-      }
-      const answered = now(() => {
-        const a = answer(input)
-        // What an agent follows from the answer's items, with the switch as it is now.
-        const links = answerLinks(
-          a.sources,
-          {
-            facts: factsOf(state),
-            definitions: definitions.list(),
-            domains: Object.fromEntries(workspace.domains().map((d) => [d.id, d])),
-          },
-          settings.read(scenario.address()).links,
-        )
-        return { ...a, links }
-      })
-      // In a live chat it arrives as it would from the service, a sentence at a time.
+      const answered = now(() => answer(input))
+      // In a live chat it arrives as it would from the service: the working line, then the turn.
       return live?.onEvent ? answered.then((a) => playAnswer(a, live)) : answered
     },
     askedThisWeek: () => read('askedThisWeek', '', () => askedThisWeek(factsOf(state))),

@@ -39,7 +39,6 @@ describe('loadConfig', () => {
       trustedProxies: [],
       fixedToday: undefined,
       models: 'mock',
-      askLoop: true,
       modelEnv: {},
       startModels: { model: undefined, judge: undefined },
       cubeModelDir: undefined,
@@ -399,14 +398,6 @@ describe('loadConfig', () => {
       ).toThrow(/FOOTNOTE_MODEL_PRICES: Expected <input>,<output> in US dollars per million tokens/)
     expect(() => start({ FOOTNOTE_JUDGE_MODEL_PRICES: '1,5' })).toThrow(
       'FOOTNOTE_JUDGE_MODEL_PRICES: Expected FOOTNOTE_JUDGE_MODEL too: these are its prices',
-    )
-  })
-
-  it('answers Ask with its loop unless FOOTNOTE_ASK_LOOP=off, and takes only on or off', () => {
-    expect(loadConfig({ DATABASE_URL: databaseUrl }).askLoop).toBe(true)
-    expect(loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_ASK_LOOP: 'off' }).askLoop).toBe(false)
-    expect(() => loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_ASK_LOOP: 'yes' })).toThrow(
-      /FOOTNOTE_ASK_LOOP/,
     )
   })
 

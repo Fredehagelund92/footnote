@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  answerFor,
-  answerForScope,
-  exampleAnswer,
-  examples,
-  readQuestion,
-} from '@/api/mock/data/ask'
+import { recordedAnswer } from '@/api/mock/ask-live'
+import { answerFor, examples, readQuestion } from '@/api/mock/data/ask'
 import { correctionInAgent, inAgent } from '@/lib/in-agent'
 import { DRAFT_LABEL, stateLabel } from '@/model/ask'
 import { connectors } from '@/model/catalogue'
@@ -54,16 +49,6 @@ describe('reading a typed question', () => {
     expect(stateLabel.grounded).toBe('Checked')
   })
 
-  it('gives the same answer to the same question, scoped with @ or not', () => {
-    const plain = exampleAnswer('grounded')
-    const scoped = answerForScope('Why did Orders drop in Norway in August?', [
-      { id: 'metric:Orders', label: 'Orders' },
-      { id: 'market:Norway', label: 'Norway' },
-    ])
-    expect(scoped.state).toBe(plain.state)
-    expect(scoped.sources).toEqual(plain.sources)
-  })
-
   it('counts a disagreement only when the question is about it', () => {
     const off = typed('What happened to orders in Norway?').answer
     expect(off.state).not.toBe('conflict')
@@ -76,7 +61,7 @@ describe('reading a typed question', () => {
 
   it('never says a report was filed, nor how agents are instructed', () => {
     for (const e of examples) {
-      const a = exampleAnswer(e.id)
+      const a = recordedAnswer(e.question)
       expect(a.report).toBeUndefined()
       expect(`${a.text} ${a.note ?? ''}`).not.toMatch(/agents (get|are told)|Jon Abara's/)
     }
@@ -87,7 +72,7 @@ describe('what answers say', () => {
   it('names no tool in any answer, nor in the agent examples', () => {
     const strings = [
       ...examples.flatMap((e) => {
-        const a = exampleAnswer(e.id)
+        const a = recordedAnswer(e.question)
         return [a.state ? stateLabel[a.state] : '', a.text, a.note ?? '', a.said]
       }),
       ...inAgent.flatMap((t) => [t.agent, t.line]),

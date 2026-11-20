@@ -11,11 +11,58 @@ import {
 import type { Definition } from '@/lib/definitions'
 import type { ObsData, Topic } from '@/model/observability'
 import type { ObsDimensionList, ObsFilterView, ObsValueList, ObsValuesInput } from '../client'
-import { termsOf } from './records'
+import type { Term } from '@domain/vocabulary'
+import { markets, metrics } from './data/world'
 
 // Overview's filter in the demo: the dimensions and their values counted for a view exactly as
 // the service counts them (src/domain/obs-filters.ts), from the page's own topics after their
 // disclosure pass (obs-page.ts), so a count here is only ever shown counts added up (FR-614).
+
+const slug = (name: string) => name.toLowerCase().replace(/\W+/g, '_')
+
+/**
+ * A dimension's values as the demo world lists them: the markets, or the names its definition
+ * gives ("Footwear, Clothing, Camping, Climbing"). One it only counts ("2,400 campaigns") lists none.
+ */
+const definitionValues = (d: Definition) =>
+  d.name === 'Market'
+    ? markets
+    : /,\s/.test(d.values ?? '')
+      ? d.values!.split(/,\s+/).map((v) => v.trim())
+      : []
+
+/** The vocabulary as the engine names it: the metrics and dimensions with their domains, and their values. */
+export function termsOf(definitions: readonly Definition[]): Term[] {
+  const term = (
+    key: string,
+    kind: Term['kind'],
+    name: string,
+    areaId: string | null,
+    aliases: string[] = [],
+  ): Term => ({ key, kind, name, aliases, parentKey: null, areaId, definitionRefs: [] })
+  const synonyms = (name: string) => definitions.filter((d) => d.sameAs === name).map((d) => d.name)
+  return [
+    ...definitions
+      .filter((d) => d.type === 'metric' && !d.sameAs)
+      .map((d) =>
+        term(`metric:${slug(d.name)}`, 'metric', d.name, d.domain ?? null, [
+          ...synonyms(d.name),
+          ...(metrics.find((m) => m.name === d.name)?.otherNames ?? []),
+        ]),
+      ),
+    ...definitions
+      .filter((d) => d.type === 'dimension' && !d.sameAs)
+      .map((d) => term(`dim:${slug(d.name)}`, 'dimension', d.name, d.domain ?? null)),
+    ...definitions
+      .filter((d) => d.type === 'dimension' && !d.sameAs)
+      .flatMap((d) =>
+        definitionValues(d).map((v) => ({
+          ...term(`val:${slug(d.name)}/${slug(v)}`, 'dimension_value', v, null),
+          parentKey: `dim:${slug(d.name)}`,
+        })),
+      ),
+  ]
+}
 
 /** What In the Inbox reads of a topic's gap, as the service keeps it. */
 const gapOf = (t: Topic): FilterTopic['gap'] =>

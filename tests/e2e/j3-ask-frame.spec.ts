@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test'
 import { expect, go, test } from './go.ts'
 
-// J3, the frame around a chat: answers with sources scroll the thread only, never the page around
-// it, so the composer stays at the foot of the screen.
+// J3, the frame around a chat of Ask's loop: answers with sources scroll the thread only, never
+// the page around it, so the composer stays at the foot of the screen; and each turn is the
+// question, how it was read, and the answer under them, set apart from the next.
 
 async function ask(page: Page, question: string) {
   const box = page.getByRole('textbox', { name: 'Ask a question' })
@@ -15,16 +16,14 @@ test('Three answers with sources leave the page frame where it was', async ({ pa
   await go(page, `/ask?n=${Date.now()}`)
   const log = page.getByRole('log')
   const questions = [
-    'Why did orders in Norway drop in August?',
+    'How many test accounts does units sold leave out in Norway?',
     'Do Norway orders include gift-card money?',
-    'What should I know about Orders in Germany?',
+    'Why did Norway returns drop at the end of April?',
   ]
   for (const [i, question] of questions.entries()) {
     await ask(page, question)
-    // Each answer is finished, with its sources and what was looked up, before the next question.
-    await expect(log.getByRole('button', { name: /^Looked up \d+ context items?/ })).toHaveCount(
-      i + 1,
-    )
+    // Each answer is finished, with its sources and What Ask read, before the next question.
+    await expect(log.getByRole('button', { name: 'What Ask read' })).toHaveCount(i + 1)
     await expect(log.getByRole('button', { name: 'Good answer' })).toHaveCount(i + 1)
   }
   // The page holds nothing below the screen, so nothing can scroll it, and nothing has.
@@ -33,13 +32,13 @@ test('Three answers with sources leave the page frame where it was', async ({ pa
   expect(await main.evaluate((el) => el.scrollTop)).toBe(0)
 })
 
-test('A turn is the question in its bubble and the answer under it, with no avatars, set apart from the next', async ({
+test('A turn is the question in its bubble, how it was read, and the answer under them, with no avatars, set apart from the next', async ({
   page,
 }) => {
   await go(page, `/ask?n=${Date.now()}`)
   const log = page.getByRole('log')
   for (const [i, question] of [
-    'Why did orders in Norway drop in August?',
+    'How many test accounts does units sold leave out in Norway?',
     'Do Norway orders include gift-card money?',
   ].entries()) {
     await ask(page, question)
@@ -54,12 +53,15 @@ test('A turn is the question in its bubble and the answer under it, with no avat
     return {
       thread: rect('[data-turn="0"]'),
       bubble: rect('[data-turn="0"] .bg-muted.rounded-surface'),
+      read: rect('[data-turn="0"] .group\\/q > p'),
       answer: rect('[data-turn="0"] .group\\/msg'),
       next: rect('[data-turn="1"]'),
     }
   })
   expect(m.answer.x).toBe(m.thread.x)
-  // 38 px from the question to its own answer, 48 px from the answer's actions to the next question.
-  expect(Math.round(m.answer.y - m.bubble.bottom)).toBe(38)
+  // How it was read 8 px under the bubble, 38 px from that line to its own answer, and 48 px from
+  // the answer's actions to the next question.
+  expect(Math.round(m.read.y - m.bubble.bottom)).toBe(8)
+  expect(Math.round(m.answer.y - m.read.bottom)).toBe(38)
   expect(Math.round(m.next.y - m.thread.bottom)).toBe(48)
 })

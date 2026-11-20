@@ -1,6 +1,7 @@
 import { expect, go, test } from './go.ts'
 
-// J3: someone asks, gets an answer that says how sure it is, and reports a part that is wrong.
+// J3: someone asks, gets an answer that says how sure it is, and reports a part that is wrong; an
+// owner decides between two items that disagree; and nothing written gets Not found.
 test('someone asks, then reports a wrong part', async ({ page }) => {
   await go(page, '/ask?n=j3')
   const box = page.getByRole('textbox', { name: 'Ask a question' })
@@ -27,13 +28,16 @@ test('an owner chooses which one stays among the items that disagree', async ({ 
   await box.pressSequentially('Do Norway orders include gift-card money?')
   await box.press('Enter')
   await expect(page.getByText('Conflict', { exact: true }).first()).toBeVisible()
-  // The answer gives the customs stop too, but it disagrees with nothing: the pair shown, and the
+  // The answer cites the customs stop too, but it disagrees with nothing: the pair shown, and the
   // comparison it opens, are the two that do (FR-220).
-  const pair = page.getByRole('group', { name: 'The two items' })
+  const pair = page
+    .getByRole('log')
+    .locator('div', { has: page.getByText('These two disagree', { exact: true }) })
+    .last()
   await expect(pair).toContainText('Norway orders count store credit')
   await expect(pair).toContainText('Norway orders are card and cash payments only')
   await expect(pair).not.toContainText('Online sales to Norway stopped')
-  await page.getByRole('button', { name: 'Compare and decide' }).click()
+  await pair.getByRole('button', { name: 'Compare the two' }).click()
   const dock = page.getByRole('region', { name: 'Conflict', exact: true })
   await expect(
     dock.getByRole('heading', { name: 'Two items say different things about Orders in Norway.' }),
@@ -43,43 +47,7 @@ test('an owner chooses which one stays among the items that disagree', async ({ 
   await expect(page.getByRole('dialog', { name: /^Keep “/ })).toBeVisible()
 })
 
-test('a question that names nothing says nothing was looked up, never Not found', async ({
-  page,
-}) => {
-  await go(page, '/ask?n=j3b')
-  const box = page.getByRole('textbox', { name: 'Ask a question' })
-  await box.click()
-  await box.pressSequentially('tell me a joke')
-  await box.press('Enter')
-  const log = page.getByRole('log')
-  await expect(log.getByRole('button', { name: 'Nothing was looked up' })).toBeVisible()
-  // What the question lacks, and no state: Not found would say nobody wrote anything down.
-  await expect(log.getByText("The question doesn't name a metric or a market.")).toBeVisible()
-  await expect(log.getByText('Not found', { exact: true })).toHaveCount(0)
-  await expect(log.getByText('Nothing is written about this yet.')).toHaveCount(0)
-  // The three kinds of question Ask answers, in words, and where every definition is; no question
-  // to ask is suggested.
-  await expect(log.getByText(/^Ask answers three kinds of question: about a metric/)).toBeVisible()
-  await expect(
-    log.getByText(/^Definitions lists \d+ definitions: \d+ metrics and \d+ dimensions\.$/),
-  ).toBeVisible()
-  await expect(log.getByRole('link', { name: 'Definitions', exact: true })).toBeVisible()
-  await expect(log.getByRole('button', { name: /^(?!Something wrong\?$).*\?$/ })).toHaveCount(0)
-})
-
-test('a typo in a name is told the closest name, never read as it', async ({ page }) => {
-  await go(page, '/ask?n=j3t')
-  const box = page.getByRole('textbox', { name: 'Ask a question' })
-  await box.click()
-  await box.pressSequentially('what about chrun rate')
-  await box.press('Enter')
-  const log = page.getByRole('log')
-  await expect(log.getByRole('button', { name: 'Nothing was looked up' })).toBeVisible()
-  await expect(log.getByText(/^The names closest to your words: .*Churn rate.*\.$/)).toBeVisible()
-  await expect(log.getByRole('button', { name: /^(?!Something wrong\?$).*\?$/ })).toHaveCount(0)
-})
-
-test('a question that was looked up and found nothing still gets Not found', async ({ page }) => {
+test('a question nothing written covers gets Not found', async ({ page }) => {
   await go(page, '/ask?n=j3n')
   const box = page.getByRole('textbox', { name: 'Ask a question' })
   await box.click()

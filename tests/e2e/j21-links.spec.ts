@@ -2,8 +2,9 @@ import type { Page } from '@playwright/test'
 import { card, expect, go, mode, test, unfold } from './go.ts'
 
 // J21, following links (get_related): Related shows what an agent can follow in two groups, one
-// clean line per link: the owners' relations labelled and an archived item marked; Ask says what it
-// followed, one step; the switch in Settings turns it off.
+// clean line per link: the owners' relations labelled and an archived item marked; the switch in
+// Settings turns it off, and Related says so; a review shows a new link, and Try it says whether
+// the answer follows it.
 
 /**
  * Opens Details in the quick view once it shows the item: go moves inside the app and goes on at
@@ -15,28 +16,6 @@ async function details(page: Page, title: string) {
 }
 
 const campaign = 'Norway launch campaign started on 24 March 2026'
-
-const grounded = 'Why did orders in Norway drop in August?'
-
-/** Asks why orders in Norway dropped: the mock's example, typed on the service as J28 does. */
-async function askGrounded(page: Page) {
-  if (mode === 'mock') return go(page, '/ask?example=grounded')
-  await go(page, `/ask?n=${Date.now()}`)
-  const box = page.getByRole('textbox', { name: 'Ask a question' })
-  await box.click()
-  await box.pressSequentially(grounded)
-  await box.press('Enter')
-}
-
-/*
-  What each mode looks up. The mock's answer is written by hand: two items, and from them one link
-  to follow, the term Webshop. On the service the answer engine decides: Orders in Norway also gets
-  the two items about gift cards, and the regulator's pause on price promotions, which is about
-  Return on ad spend, is not one of them, so the agent follows the link to it as well as to
-  Webshop. In both, the payment provider's switch in Norway is retired: listed, not followed.
-*/
-const looked = mode === 'http' ? 'Looked up 3 context items' : 'Looked up 2 context items'
-const followed = mode === 'http' ? 'followed 2 links' : 'followed 1 link'
 
 test("Related in the quick view: a definition, and the owners' relations", async ({ page }) => {
   await go(page, '/context?dock=context.itm_eprlkrz2')
@@ -104,26 +83,12 @@ test('on the service, a draft has no empty History and the Inbox counts no zero'
   await expect(page.getByText(/\b0 questions/)).toHaveCount(0)
 })
 
-test('Ask says what it followed, one step, and what it left alone', async ({ page }) => {
-  await askGrounded(page)
-  const line = page.getByRole('button', { name: new RegExp(`^${looked}, ${followed}`) })
-  await line.click()
-  await expect(page.getByText('Webshop', { exact: true })).toBeVisible()
-  await expect(page.getByText('Links it followed, one step')).toBeVisible()
-  await expect(page.getByText('no longer available, not followed')).toBeVisible()
-  await expect(page.getByText('It follows one step, never a link from a link')).toBeVisible()
-})
-
-test('switched off in Settings, Ask follows nothing and Related says so', async ({ page }) => {
+test('switched off in Settings, Related says agents follow nothing', async ({ page }) => {
   await go(page, '/settings/agents')
   await unfold(page, 'Tools and access keys')
   const toggle = page.getByRole('switch', { name: /Let agents follow links/ })
   await toggle.click()
   await expect(toggle).not.toBeChecked()
-  await askGrounded(page)
-  await expect(
-    page.getByRole('button', { name: new RegExp(`^${looked}, didn't follow links`) }),
-  ).toBeVisible()
   await go(page, '/context?dock=context.itm_eprlkrz2')
   await details(page, campaign)
   await expect(

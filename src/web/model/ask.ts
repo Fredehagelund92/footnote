@@ -1,13 +1,5 @@
-import {
-  CHAT_LINE,
-  CHAT_SOURCES,
-  LOOP_REPLY,
-  type ChatTurn,
-  type HeldReading,
-} from '@domain/ask-chat'
-import { notLookedUp, refusalOffers } from '@domain/say'
-import type { AnswerFooter, AnswerLimit, RecordsAnswer } from '@domain/records-answer'
-import { nameSimilarity, normalizeName, suggestTerms, type Term } from '@domain/vocabulary'
+import { CHAT_LINE, CHAT_SOURCES, LOOP_REPLY, type ChatTurn } from '@domain/ask-chat'
+import type { AnswerFooter } from '@domain/records-answer'
 import type { ChosenPeriodInput, LoopTurn } from '@contract/answer'
 import type { MentionRef } from '@/lib/mentions'
 import { ANSWER_LINES } from '@/lib/help-content'
@@ -44,66 +36,11 @@ export const countedState = (a: Pick<Answer, 'state'>): AnswerState => a.state ?
 export const DRAFT_LABEL = 'Based on this draft'
 
 /**
- * Why nothing was looked up, from what the engine tells the person: its sentence without "Nothing
- * was looked up yet.", which the answer says on its own line.
- */
-export const unreadReason = (say: string) =>
-  say.startsWith(notLookedUp) ? say.slice(notLookedUp.length).trim() : say
-
-/**
  * Why a question that names no metric and no market was not looked up, as Ask says it. Agents are
  * told the engine's own words, with its first choices (`said`); a person gets what Ask can answer
  * and the names closest to their words instead.
  */
 export const NAMES_NOTHING = "The question doesn't name a metric or a market."
-
-/** Whether the engine read nothing because the question named no name at all. */
-export const namesNothing = (
-  issues: readonly { field: string; input: string; meanings?: unknown }[],
-  question: string,
-) =>
-  issues.length === 1 &&
-  issues[0]!.field === 'scope' &&
-  !issues[0]!.meanings &&
-  issues[0]!.input.trim() === question.trim()
-
-/**
- * The metrics and markets whose names are closest to a question's words, at most two, closest
- * first: a typo ("chrun rate") or a near name. Each run of one to three words is compared the way
- * the engine compares a name it does not know (`suggestTerms`), and only a close one is kept. A
- * name is offered as a question to ask, never read as the one asked.
- */
-export function closestNames(question: string, terms: readonly Term[]): string[] {
-  const words = normalizeName(question)
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean)
-  const best = new Map<string, number>()
-  for (let size = 1; size <= 3; size++)
-    for (let at = 0; at + size <= words.length; at++) {
-      const run = words.slice(at, at + size).join(' ')
-      if (run.length < 4) continue
-      for (const key of suggestTerms(run, terms).slice(0, 2)) {
-        const term = terms.find((t) => t.key === key)!
-        const score = Math.max(...[term.name, ...term.aliases].map((n) => nameSimilarity(run, n)))
-        if (score >= CLOSE && score > (best.get(term.name) ?? 0)) best.set(term.name, score)
-      }
-    }
-  return [...best]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'en'))
-    .slice(0, 2)
-    .map(([name]) => name)
-}
-/** How alike a run of words and a name must read to be offered (see `nameSimilarity`). */
-const CLOSE = 0.5
-
-/**
- * A planner's reading in the middle of a sentence: "Read by the model as events, in the last 3
- * months". Its first word keeps its capital when it is a name ("Orders in Sweden").
- */
-export const midSentence = (words: string) =>
-  /^(?:Events|Guides|Warnings|Rules|Everything|What|A)\b/.test(words)
-    ? `${words.charAt(0).toLowerCase()}${words.slice(1)}`
-    : words
 
 /** What a question was read as, in words: "Orders in Norway, 1 to 31 Aug 2026". Empty when nothing matched. */
 export function scopeText(a: Pick<Answer, 'metric' | 'markets' | 'dates'>) {
@@ -132,18 +69,7 @@ export type Answer = {
   /** Plain sentences; [n] points at sources[n - 1]. */
   text: string
   sources: string[]
-  /**
-   * What the answer carries of each source, by item id, when the library does not: the line its
-   * owner copied from where it comes from, and what not to conclude from it.
-   */
-  cited?: Record<string, { quote: string; dontConclude: string }>
   said: string
-  leftOut?: string
-  times?: number
-  /** A Footnote synonym in the question, and what it was read as: "turnover" is Net revenue. */
-  alias?: { asked: string; is: string; type: 'metric' | 'dimension' }
-  /** Open the Something wrong? form, filled in, for the "needs correction" example. */
-  correction?: { note: string; correct: string; link: string }
   /** You reported a part of this answer: when, and what the owner did, shown only in this chat. */
   report?: { on: string; outcome?: string }
   /** A Conflict's items that disagree with each other, by id: the ones an owner chooses between. */
@@ -157,56 +83,12 @@ export type Answer = {
    * comes from, as agents get it (FR-703). It changes neither the state nor the sources.
    */
   definitions?: AskedDefinition[]
-  /**
-   * A question that looked nothing up because it named no metric and no market: the metrics and
-   * markets closest to its words (`closestNames`), named so a typo is never read as asked.
-   */
-  closest?: string[]
   /** What the asker scoped it to with '@'. */
   scope?: MentionRef[]
   /** The period the person chose for it on the read line (R12): asking again keeps it. */
   period?: ChosenPeriodInput
-  /** What the agent followed from the answer's items with get_related, one step. */
-  links?: AnswerLinks
-  /**
-   * A question about the context's own records, answered from them (FR-718): no answer state, no
-   * sources, and agents never read it. Or a question about one person's work, refused.
-   */
-  records?: RecordsAnswer
-  /** How it was read, as keys: what the next question in the chat carries (FR-713, FR-719). */
-  keys?: AskScopeKeys
-  /**
-   * How Ask's planner read the question (FR-719), when it did: the reads in words, and the names
-   * and dates carried from the last question. The state and the sources stay the reads' own.
-   */
-  reading?: {
-    words: string
-    carried: string[]
-    /** The question as it reads alone, as the model restated it, when the chat matters. */
-    standalone?: string
-    /** Where the dates came from, as the service read them. */
-    period?: 'asked' | 'carried' | 'today' | 'recent' | 'any' | null
-    /** The part of the question these reads do not answer, as a short question (FR-720). */
-    left?: string
-    /** What the records say about what was read, in fixed sentences: its owners, its check dates. */
-    facts?: string[]
-    /** The person said which meaning of a word they meant: read by the rules, with no model. */
-    settled?: { also: string | null }
-    /** On the mock binding, what the working line said while the reads ran (the service sends it). */
-    working?: string
-  }
-  /**
-   * No answer from the context: a short question Ask asked back (`clarify`), a question off
-   * topic, a message that asks nothing, or what Ask cannot do (`cannot`, FR-720). Nothing was
-   * looked up, so there is no state; `text` says it.
-   */
-  reply?: 'clarify' | 'off_topic' | 'nothing_asked' | 'cannot'
-  /** A question back about a word's meanings: what the next question sends back with its answer. */
-  held?: HeldReading
-  /** What a draft would start from, for a question that asks Ask to write context. */
-  write?: { metric: string | null; market: string | null }
-  /** The fixed sentence it leads with when the question reaches beyond what is written (FR-720). */
-  limit?: AnswerLimit
+  /** A short question Ask asked back: nothing was read, so there is no state; `text` says it. */
+  reply?: 'clarify'
   /** What it owes the reader: what a count is out of, what it could not see, what may be stale. */
   footer?: AnswerFooter
   /**
@@ -227,139 +109,45 @@ export type Answer = {
   stopped?: 'steps' | 'time' | 'spending' | 'model' | 'key'
 }
 
-/** A scope as the engine reads it: metric keys, each dimension's value keys, and its days. */
-export type AskScopeKeys = {
-  metrics: string[]
-  filters: Record<string, string[]>
-  window: { start: string; end: string | null }
-}
-
 /** The question an answer read: the one it repeated, when it was asked again in words. */
 export const askedOf = (a: Pick<Answer, 'question' | 'again'>) => a.again?.question ?? a.question
 
 const clipped = (line: string) =>
   line.length > CHAT_LINE ? `${line.slice(0, CHAT_LINE - 1).trimEnd()}…` : line
 
-/** How a turn was read, in words: its Understood as line. */
+/** How a turn was read, in words. */
 function understoodOf(a: Answer) {
-  if (a.records && !a.records.refused) {
-    const { understood, period } = a.records
-    return clipped(period ? `${understood} (${period.words})` : understood)
-  }
-  const read = a.reading?.standalone ?? a.reading?.words ?? scopeText(a)
+  const read = scopeText(a)
   return read ? clipped(read) : null
 }
 
 const items = (n: number) => (n === 1 ? '1 context item' : `${n} context items`)
 
 /**
- * What a turn answered, in one sentence the planner may read: how much was found, from a
- * template. Never an item's words, a name or a data value.
+ * What a turn answered, in one sentence: how much was found, from a template. Never an item's
+ * words, a name or a data value.
  */
 function headlineOf(a: Answer) {
-  if (a.records)
-    return a.records.refused
-      ? null
-      : a.records.total === 0
-        ? 'Nothing found.'
-        : `${a.records.total} found.`
   if (a.state === null || a.state === 'failed') return null
   const about = scopeText(a)
   return clipped(`${items(a.sources.length)}${about ? ` about ${about}` : ''}.`)
 }
 
-/** Whether a turn was read for dates it named or carried, not for today or for any date. */
-const datedOf = (a: Answer) =>
-  a.reading ? a.reading.period === 'asked' || a.reading.period === 'carried' : !!a.dates
-
-/** The terms an analysis listed, by key, in order: what "the first one" points at. */
-const rowKeysOf = (records: Extract<RecordsAnswer, { refused: false }>) =>
-  [...records.rows, ...(records.sections ?? []).flatMap((s) => s.rows)].flatMap((row) =>
-    row.type === 'term' ? [row.key] : [],
-  )
-
-/** What a turn sends on to the next question: none for one that asked nothing. */
+/** What a turn sends on to the next question: none for one with no question. */
 export const chatTurnOf = (a: Answer): ChatTurn | undefined =>
-  askedOf(a).trim() && a.reply !== 'nothing_asked'
+  askedOf(a).trim()
     ? {
         question: askedOf(a),
-        scope: a.keys ?? null,
         sources: a.sources.slice(0, CHAT_SOURCES),
         understood: understoodOf(a),
-        state: a.state,
         headline: headlineOf(a),
-        ...(datedOf(a) ? { dated: true } : {}),
-        ...(a.records && !a.records.refused
-          ? {
-              domain: a.records.domain?.id ?? a.records.top?.id ?? null,
-              period: a.records.period?.assumed === false ? a.records.period.words : null,
-              ...(a.records.audit
-                ? { audit: a.records.audit, rows: rowKeysOf(a.records).slice(0, CHAT_SOURCES) }
-                : {}),
-            }
-          : {}),
         ...(a.reply === 'clarify' ? { asked: a.text } : {}),
-        ...(a.held ? { held: a.held, ...(a.held.window ? { dated: true } : {}) } : {}),
         // Ask's loop reads its earlier reply as it wrote it: its nouns as their typed mentions.
         ...(a.reads
           ? { reply: (a.loop?.said || a.text).slice(0, LOOP_REPLY), reads: a.reads }
           : {}),
       }
     : undefined
-
-/** A records answer in Ask: nothing was looked up in the context, so it has no answer state. */
-export const recordsAnswer = (
-  question: string,
-  records: RecordsAnswer,
-  reading?: { carried: string[]; standalone?: string },
-): Answer => ({
-  id: 'custom',
-  question,
-  metric: '',
-  markets: [],
-  state: null,
-  text: records.sentence,
-  sources: [],
-  said: '',
-  records,
-  // Its own Understood as line says how it was read: the reading adds what the model carried.
-  ...(reading && !records.refused ? { reading: { words: '', ...reading } } : {}),
-})
-
-/**
- * A question answered with no look-up (FR-719): a short question back, in prose, the sentence for
- * a question off topic, or the sentence for a message that asks nothing. No state and no sources:
- * nothing was looked up.
- */
-export const replyAnswer = (
-  question: string,
-  reply: {
-    kind: NonNullable<Answer['reply']>
-    text: string
-    held?: HeldReading | undefined
-    definitions?: readonly { name: string; words: string | null; tool: string }[]
-    write?: Answer['write']
-  },
-): Answer => ({
-  id: 'custom',
-  question,
-  metric: '',
-  markets: [],
-  state: null,
-  text: reply.text,
-  sources: [],
-  said: '',
-  reply: reply.kind,
-  ...(reply.definitions?.length
-    ? {
-        definitions: reply.definitions.map((d) => ({ name: d.name, words: d.words, tool: d.tool })),
-      }
-    : {}),
-  ...(reply.write ? { write: reply.write } : {}),
-  ...(reply.held ? { held: reply.held } : {}),
-  // Every refusal ends with questions to press; a question back already has its readings.
-  ...(reply.kind === 'clarify' ? {} : { choices: [...refusalOffers] }),
-})
 
 /** A metric's definition, as the definition source gives it. */
 export type AskedDefinition = {
@@ -370,26 +158,6 @@ export type AskedDefinition = {
   tool: string
 }
 
-/** A link on one of the answer's items: the item it is on, and where it points. */
-export type AnswerLink = {
-  from: { id: string; title: string }
-  rel: 'replaces' | 'disagrees' | 'mentions'
-  to: MentionRef
-}
-
-/**
- * What get_related followed from an answer's items: one step from each, to a context item or a
- * term the answer did not have, and what the agent read there; a link to one that is no longer
- * there is listed and not followed. `on` is the switch in Agents and access: off, nothing is
- * followed.
- */
-export type AnswerLinks = {
-  on: boolean
-  followed: (AnswerLink & { read: string })[]
-  notFollowed: AnswerLink[]
-}
-
-/** A question as words and mentions: "Why did @Orders drop in @Norway?" */
 export type QuestionPart = string | MentionRef
 
 export type Example = {
@@ -431,8 +199,6 @@ export type AskInput = {
   /** What the asker scoped it to with '@'. */
   scope?: MentionRef[]
   example?: string
-  /** Read the question afresh (a check that failed): the dates it was read with before. */
-  reread?: { dates?: string }
   /** The chat's last turns, oldest first, for a follow-up. */
   turns?: ChatTurn[]
   /** The period the person chose on the read line, over the dates in the words (R12). */

@@ -30,7 +30,7 @@ Each way is one line at the start, as [Self-host Footnote](self-hosting.md#ask-o
 
 Once it starts, the service makes three tiny calls on each role's model: a tool call, a call told to use no tool, and an answer in a set JSON shape. It costs a fraction of a cent, and sends no company data.
 
-- A model that cannot call tools still answers Ask, without its tools, and the test runs refuse to start on it, saying why.
+- Ask needs a model that calls tools. A model that cannot is named in Settings, Advanced, under Models, and the test runs refuse to start on it, saying why.
 - A judge that cannot keep to a JSON shape is asked for plain JSON text instead.
 - A check that cannot tell, because the provider failed or refused the key, changes nothing and runs again a few minutes later.
 

@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { demoCases, gateCases } from '../../src/server/modules/answer/index.ts'
-import { heldIds } from '../../src/server/modules/answer/index.ts'
 import { demoConversations, gateOneConversations, neutral } from './ask-eval/burned.ts'
 import { evalCases } from './ask-eval/cases.ts'
 import {
@@ -16,7 +15,7 @@ import {
   ungroundedNumbers,
   voiceIn,
 } from './ask-eval/graders.ts'
-import { heldOf } from './ask-eval/held.ts'
+import { HELD_BURNED, heldOf } from './ask-eval/held.ts'
 import {
   agreement,
   FIXED_FACTS,
@@ -34,7 +33,7 @@ import type { Answerer, CaseRun, EvalCase, Reply } from './ask-eval/types.ts'
   Ask's evaluation harness without a database or a model: what each grader fails and lets stand,
   that the burned cases keep what they held, the held-back split, pass^k, that a report never
   names a held-back case, the judge's recorded agreement with its labels, and a run through an
-  answerer that is not today's main. The demo week's run is tests/web/integration/ask-eval.test.ts.
+  answerer that is not Ask's loop. The demo week's run is tests/web/integration/ask-eval-loop.test.ts.
 */
 
 const reply = (text: string, more: Partial<Reply> = {}): Reply => ({
@@ -269,10 +268,10 @@ describe('the burned cases as development data', () => {
 
 describe('the held-back split', () => {
   const held = heldOf(evalCases)
-  const old = heldIds()
 
   it("keeps the split the burned cases had, and never holds the maintainer's chats", () => {
-    for (const c of demoCases) expect(held.has(c.id), c.id).toBe(old.has(c.id))
+    for (const c of demoCases) expect(held.has(c.id), c.id).toBe(HELD_BURNED.has(c.id))
+    expect([...HELD_BURNED].every((id) => demoCases.some((c) => c.id === id))).toBe(true)
     for (const c of evalCases.filter((c) => c.source === 'captain'))
       expect(held.has(c.id)).toBe(false)
   })
@@ -402,7 +401,7 @@ describe('the judge', () => {
 })
 
 describe('a run', () => {
-  /** An answerer that is not today's main: it says the same for every message, citing one item. */
+  /** An answerer that is not Ask's loop: it says the same for every message, citing one item. */
   const echo: Answerer = {
     name: 'echo',
     open: () => ({

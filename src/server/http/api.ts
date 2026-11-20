@@ -6,7 +6,7 @@ import { OpenAPIGenerator } from '@orpc/openapi'
 import { OpenAPIHandler } from '@orpc/openapi/fastify'
 import { implement, ValidationError } from '@orpc/server'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
-import type { FastifyBaseLogger, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { API_PREFIX, contract } from '../../contract/index.ts'
 import { missing, notAllowed, refusalOfCode, refusals } from '../../contract/refusals.ts'
 import { forRequest, type Database, type Queryable } from '../db/database.ts'
@@ -53,7 +53,6 @@ import { ITEM_FILE_MAX_LENGTH } from '../../domain/item-file.ts'
 import { TERM_BATCH_BODY_MAX } from '../../contract/review.ts'
 import { itemJsonSchema } from '../../domain/item-version.ts'
 import {
-  answersWithTools,
   checkModelSetting,
   checkWords,
   keyRefused,
@@ -85,25 +84,17 @@ import {
   revokeAccessKey,
 } from '../modules/access-keys/index.ts'
 import {
-  askedFor,
   askedThisWeek,
-  askLoop as askWithLoop,
+  askLoop,
   createAskTools,
   createBundleCache,
   liveServingBundle,
-  lookupQuestion,
   readLoopLimits,
-  readWordsModel,
+  readAssistantModel,
   scriptedLoopModel,
-  planQuestion,
-  planWords,
   replayTopic,
-  scriptedPlan,
-  wordsInputOf,
-  writeWords,
   toolReadsIn,
   type BundleCache,
-  type LookupDeps,
   type AskTrace,
 } from '../modules/answer/index.ts'
 import {
@@ -111,7 +102,6 @@ import {
   createReviewPath,
   createReviewService,
   type ReviewService,
-  unlinkedMembers,
 } from '../modules/review/index.ts'
 import { createConflictsService } from '../modules/conflicts/index.ts'
 import { createContextService } from '../modules/context/index.ts'
@@ -146,7 +136,7 @@ import {
   type SignIn,
 } from '../modules/auth/index.ts'
 import { createAlertsService } from '../modules/alerts/index.ts'
-import { createCatalogueService, hiddenDefinitions } from '../modules/catalogue/index.ts'
+import { createCatalogueService } from '../modules/catalogue/index.ts'
 import {
   createWorkspaceSources,
   noSecretStore,
@@ -179,9 +169,7 @@ export interface ApiServices {
   models: ModelPort
   /** What a run of Ask's cases hears or replaces. Never set by the service. */
   askTrace?: AskTrace
-  /** Ask reads with one model and its read tools (FR-718 to FR-720) in place of its router. */
-  askLoop?: boolean
-  /** The model check, with real models: Ask answers with its router while its model fails the tool call. */
+  /** The model check, with real models: made again by an Ask turn, or after a role's setting changes. */
   modelChecks?: ModelChecks
   /** The MCP server's public address (`MCP_RESOURCE_URL`); null when this app serves no MCP. */
   mcpAddress?: string | null
@@ -316,7 +304,6 @@ export function createRouter({
   }),
   readPage,
   askTrace,
-  askLoop = false,
   modelChecks,
   profileLabel = null,
 }: ApiServices) {
@@ -446,16 +433,21 @@ export function createRouter({
         tx: Queryable
         session: { person: { id: string } } | null
       },
-    input: Parameters<typeof askWithLoop>[1],
+    input: Parameters<typeof askLoop>[1],
     signal: AbortSignal | undefined,
   ) => {
     const person = context.session!.person.id
     // Nothing shared with agents yet: refused, as the look-up refuses it.
     await liveServingBundle(context.tx, answerBundles)
     const live = models.mode === 'live'
+    // The assistant's model is checked meanwhile when it is not checked yet, or its check could not
+    // tell and is due again (models/capability.ts).
+    if (live && modelChecks)
+      void modelChecks.of(await readAssistantModel(context.tx, models), 'assistant')
     const { steps, seconds } = await readLoopLimits(context.tx)
     const model =
-      askTrace?.loopModel ?? (live ? await readWordsModel(context.tx, models) : scriptedLoopModel())
+      askTrace?.loopModel ??
+      (live ? await readAssistantModel(context.tx, models) : scriptedLoopModel())
     const limits = live ? await readSpendLimits(context.tx, 'assistant') : null
     const scope = await readerScope(context.tx)
     const areas = await context.areas.list()
@@ -463,7 +455,7 @@ export function createRouter({
     const calendar = await readCalendar(context.tx)
     const log = context.request.log
     const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
-    return askWithLoop(
+    return askLoop(
       {
         database: forRequest(database, context.request.id),
         person,
@@ -495,19 +487,6 @@ export function createRouter({
       },
       input,
     )
-  }
-  /**
-   * Whether Ask's model may read with its tools: yes unless its model check failed the tool call.
-   * A model not checked yet, or whose check could not tell and is due again, is checked meanwhile.
-   */
-  const readsWithTools = async (tx: Queryable, log: FastifyBaseLogger) => {
-    if (!modelChecks || models.mode !== 'live') return true
-    const choice = await readWordsModel(tx, models)
-    const check = modelChecks.known(choice.id)
-    void modelChecks.of(choice, 'assistant')
-    if (answersWithTools(check)) return true
-    log.info({ model: choice.id }, 'ask answers with its router: its model failed the tool call')
-    return false
   }
   /** Checks each role's model again after a change of its setting, without waiting for it. */
   const checkAfterChange = (context: { tx: Queryable; hooks: TransactionHooks }, key: string) => {
@@ -1439,77 +1418,7 @@ export function createRouter({
       lookup: authorized.ask.lookup.handler(async ({ context, input, signal }) => {
         // The setup checklist's Ask step (FR-816): only that Ask was used, never what or by whom.
         await context.cards.askedOnce()
-        if (askLoop && (await readsWithTools(context.tx, context.request.log)))
-          return loopTurn(context, input, signal)
-        // With a real model, the assistant's model writes the words after the answer; like the
-        // assistant's turn, that call outlives the request's transaction and opens its own.
-        const plan = await planWords(context.tx, models, context.session!.person.id)
-        const log = context.request.log
-        // The planner (FR-719): the same model, under the same limits; the scripted one on the mock.
-        const planner: LookupDeps['planner'] = askTrace?.planner
-          ? askTrace.planner
-          : plan
-            ? (asked, check) =>
-                planQuestion(
-                  {
-                    database: forRequest(database, context.request.id),
-                    call: plan,
-                    ...(signal ? { signal } : {}),
-                    // Names the failure only, never the question, the last turn or the plan.
-                    onError: (error) =>
-                      log.warn(
-                        { error: error instanceof Error ? error.name : 'unknown' },
-                        'ask plan not used',
-                      ),
-                    onMiss: (miss) => log.warn(miss, 'ask plan not used'),
-                    ...(askTrace?.onPlan ? { onPlan: askTrace.onPlan } : {}),
-                  },
-                  asked,
-                  check,
-                )
-            : models.mode === 'mock'
-              ? scriptedPlan
-              : undefined
-        return lookupQuestion(context.tx, clock, answerBundles, input, {
-          ...(planner ? { planner } : {}),
-          words: plan
-            ? (answer) =>
-                writeWords(
-                  {
-                    database: forRequest(database, context.request.id),
-                    plan,
-                    // Stop, or leaving, ends the model's call too.
-                    ...(signal ? { signal } : {}),
-                    // Names the failure only, never the question or the words.
-                    onError: (error) =>
-                      log.warn(
-                        { error: error instanceof Error ? error.name : 'unknown' },
-                        'ask words not written',
-                      ),
-                    onMiss: (miss) => log.warn(miss, 'ask words not written'),
-                    ...(askTrace?.onDropped ? { onDropped: askTrace.onDropped } : {}),
-                  },
-                  wordsInputOf(input.question, answer),
-                )
-            : () => null,
-          // A question about the context's own records, from what the person may see (FR-718).
-          records: {
-            index: () => context.library.getIndex(),
-            areas: () => context.areas.list(),
-            people: () => listMembers(context.tx),
-            asked: () => askedFor(context.tx, clock, answerBundles),
-            reader: () => readerScope(context.tx),
-            hidden: () => hiddenDefinitions(context.tx),
-            conflicts: () => context.conflicts.list({ whose: 'all' }),
-            catalogue: () => context.catalogue.list(),
-            members: () => unlinkedMembers(context.tx),
-            queue: async () => (await context.cards.feed('needs')).groups,
-            glossary: async () =>
-              (await context.terms.list()).terms.flatMap((t) =>
-                t.meaning ? [{ name: t.name, meaning: t.meaning }] : [],
-              ),
-          },
-        })
+        return loopTurn(context, input, signal)
       }),
       asked: authorized.ask.asked.handler(({ context }) =>
         askedThisWeek(context.tx, clock, answerBundles),

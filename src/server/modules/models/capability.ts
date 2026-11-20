@@ -21,8 +21,8 @@ import type { ModelChoice, ModelRole } from './types.ts'
  * calls that tell whether a model does what its roles need, since a server that speaks OpenAI's or
  * Anthropic's API need not support tools or JSON schemas behind it.
  * - `tools`: one forced call of a tool whose input is a strict object of two fields. Ask's loop and
- *   test runs answer by calling tools; a model that fails sends Ask to its router, which needs only
- *   words, and test runs refuse to start.
+ *   test runs answer by calling tools; a model that fails is named where its role is set, and
+ *   test runs refuse to start.
  * - `noTools`: one call with the tool named and `toolChoice: 'none'`, which Ask's last step and its
  *   rewrite send. A model that calls the tool anyway ends its turn at the step limit, so a failure
  *   is shown and logged only.
@@ -317,7 +317,7 @@ export function roleFails(role: CheckedRole, check: ModelCheck): boolean {
 export function checkWords(role: CheckedRole, check: ModelCheck): string {
   const { tools, noTools, json } = check
   if (role === 'assistant') {
-    if (tools === 'fail') return 'Can’t call tools, so Ask answers without them'
+    if (tools === 'fail') return 'Can’t call tools, which Ask needs to read'
     if (tools === 'unknown') return 'Couldn’t tell, so Ask reads with its tools'
     return noTools === 'fail'
       ? 'Calls tools, but also when told not to; Ask still ends each answer at its step limit'
@@ -330,9 +330,6 @@ export function checkWords(role: CheckedRole, check: ModelCheck): string {
   if (json === 'fail') return 'Can’t keep to a JSON schema, so it is asked for JSON text'
   return json === 'unknown' ? 'Couldn’t tell' : 'Keeps to a JSON schema, as judging needs'
 }
-
-/** Ask reads with its tools unless its model failed the tool call; the router needs only words. */
-export const answersWithTools = (check: ModelCheck | undefined): boolean => check?.tools !== 'fail'
 
 /** Why a test run cannot start on its answering model, or null. */
 export function testRunRefusal(check: ModelCheck): string | null {

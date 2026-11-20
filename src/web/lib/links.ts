@@ -1,8 +1,7 @@
 import { servedToAgents, type DomainId, type Fact } from '@/model/items'
 import type { Domains } from '@/model/people'
 import type { Definition } from '@/lib/definitions'
-import { mentionId, mentionsIn, parseMentionId, plainText, type MentionKind } from '@/lib/mentions'
-import type { AnswerLinks } from '@/model/ask'
+import { mentionId, mentionsIn, parseMentionId, type MentionKind } from '@/lib/mentions'
 
 // What an agent can follow from a context item, a definition or a domain: get_related, read-only.
 // A link is an @ mention written in a text (both ways: links to, and linked from), or one of two
@@ -23,8 +22,6 @@ export type LinkEnd = {
 }
 export type Link = { rel: Rel; to: LinkEnd }
 
-export const DEPTH = 1
-export const MAX_NODES = 50
 /** The fixed order, so the same question gets the same links: the owner's relations first. */
 const ORDER: Rel[] = ['replaces', 'replaced_by', 'disagrees', 'mentions', 'mentioned_by']
 
@@ -112,57 +109,4 @@ export function linksOf(id: string, w: World): Link[] {
   return out
     .sort((a, b) => ORDER.indexOf(a.rel) - ORDER.indexOf(b.rel))
     .filter((l) => (seen.has(l.to.id) ? false : (seen.add(l.to.id), true)))
-}
-
-export type Followed = { from: Fact; link: Link }
-
-/**
- * What an agent follows after a look-up: one step from each item it got, to context items and
- * terms it didn't already get (a metric's meaning came with the look-up). A retired target is
- * listed and not followed. At most 50.
- */
-export function follow(
-  got: Fact[],
-  w: World,
-  enabled: boolean,
-): { followed: Followed[]; notFollowed: Followed[] } {
-  if (!enabled) return { followed: [], notFollowed: [] }
-  const already = new Set(got.map((f) => mentionId('context', f.id)))
-  const followed: Followed[] = []
-  const notFollowed: Followed[] = []
-  for (const f of got)
-    for (const link of linksOf(mentionId('context', f.id), w)) {
-      if (link.rel === 'mentioned_by' || link.rel === 'replaced_by' || already.has(link.to.id))
-        continue
-      if (link.to.kind !== 'context' && link.to.kind !== 'term') continue
-      if (link.to.retired) notFollowed.push({ from: f, link })
-      else if (followed.length < MAX_NODES) {
-        followed.push({ from: f, link })
-        already.add(link.to.id)
-      }
-    }
-  return { followed, notFollowed }
-}
-
-/** Where a followed link led: the item's summary or the term's meaning, as the agent read it. */
-function readAt(link: Link, w: World): string {
-  const { kind, key } = parseMentionId(link.to.id)
-  if (kind === 'context') return plainText(w.facts.find((x) => x.id === key)?.summary ?? '')
-  return plainText(w.definitions.find((d) => d.name === key)?.definition ?? '')
-}
-
-/** What get_related follows from the items an answer has, as the answer carries it. */
-export function answerLinks(sources: readonly string[], w: World, enabled: boolean): AnswerLinks {
-  const got = sources.flatMap((id) => w.facts.find((f) => f.id === id) ?? [])
-  const { followed, notFollowed } = follow(got, w, enabled)
-  const one = ({ from, link }: Followed) => ({
-    from: { id: from.id, title: from.title },
-    rel: link.rel as 'replaces' | 'disagrees' | 'mentions',
-    to: { id: link.to.id, label: link.to.label },
-  })
-  return {
-    on: enabled,
-    followed: followed.map((f) => ({ ...one(f), read: readAt(f.link, w) })),
-    notFollowed: notFollowed.map(one),
-  }
 }

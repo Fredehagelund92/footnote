@@ -40,22 +40,22 @@ const fixtures: Record<string, Figure> = {
     words:
       'Orders, added up for Spain from 1 Oct 2026 to yesterday, and the same days of September to compare.',
   },
-  'Returns|Norway|20 Apr to 10 May 2026': {
-    label: 'Returns in Norway, 20 Apr to 10 May 2026',
+  'Returns|Norway|21 to 30 Apr 2026': {
+    label: 'Returns in Norway, 21 to 30 Apr 2026',
     value: eur(returnsNorway),
-    change: `${moved(returnsNorway, returnsBefore)} from the three weeks before (${eur(returnsBefore)})`,
+    change: `${moved(returnsNorway, returnsBefore)} from the same days before (${eur(returnsBefore)})`,
     words:
-      'Returns, added up for Norway from 20 Apr to 10 May 2026, and the three weeks before to compare.',
+      'Returns, added up for Norway from 21 to 30 Apr 2026, and the same number of days before to compare.',
   },
-  'Discount cost|Norway|9 to 31 May 2026': {
-    label: 'Discount cost in Norway, 9 to 31 May 2026',
+  'Discount cost|Norway|10 May to 23 Oct 2026': {
+    label: 'Discount cost in Norway, 10 May to 23 Oct 2026',
     value: eur(discountAfter),
-    change: `${moved(discountAfter, discountBefore)} from the 23 days before (${eur(discountBefore)})`,
+    change: `${moved(discountAfter, discountBefore)} from the same days before (${eur(discountBefore)})`,
     words:
-      'Discount cost, added up for Norway from 9 to 31 May 2026, and the 23 days before to compare.',
+      'Discount cost, added up for Norway from 10 May to 23 Oct 2026, and the same number of days before to compare.',
     against: {
       contextId: 'itm_za26xpzv',
-      figureSays: `Discount cost in Norway from 9 to 31 May 2026 was ${eur(discountAfter)}, about the same as before 9 May.`,
+      figureSays: `Discount cost in Norway from 10 May to 23 Oct 2026 was ${eur(discountAfter)}, about the same as before 10 May.`,
     },
   },
 }

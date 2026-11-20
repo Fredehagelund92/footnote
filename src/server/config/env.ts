@@ -168,10 +168,6 @@ const envSchema = z
     // `mock` scripts every role; `live` uses each role's provider and model from the settings
     // (`models.<role>`), with the provider's key from this environment.
     MODELS: z.enum(['mock', 'live']).default('mock'),
-    // Ask answers with one model that reads with Footnote's own read tools, as the person asking
-    // (FR-718 to FR-720), in place of its fixed rules and planner. On by default; off answers with
-    // the router.
-    FOOTNOTE_ASK_LOOP: z.enum(['on', 'off']).default('on'),
     // The one-line start: every role's model, and the judge's, at start-up, for each role whose
     // setting is still the one it was installed with. A model its provider does not list needs
     // its prices. An admin's change of the setting always wins.
@@ -392,8 +388,6 @@ export interface Config {
   trustedProxies: string[]
   fixedToday: string | undefined
   models: 'mock' | 'live'
-  /** FOOTNOTE_ASK_LOOP: Ask reads with one model and its read tools (FR-718 to FR-720). */
-  askLoop: boolean
   /** The registry's key, bearer token and base URL variables that are set, by name. Never logged. */
   modelEnv: Record<string, string>
   /** FOOTNOTE_MODEL and FOOTNOTE_JUDGE_MODEL, with their prices: the one-line start. */
@@ -478,7 +472,6 @@ export function loadConfig(environment: Record<string, string | undefined>): Con
     trustedProxies: env.FOOTNOTE_TRUSTED_PROXIES ?? [],
     fixedToday: env.FOOTNOTE_FIXED_TODAY,
     models: env.MODELS,
-    askLoop: env.FOOTNOTE_ASK_LOOP === 'on',
     modelEnv: Object.fromEntries(
       providerEnvNames().flatMap((name) =>
         present[name] === undefined ? [] : [[name, present[name]]],

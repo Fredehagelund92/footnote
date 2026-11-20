@@ -346,19 +346,6 @@ for (const { name, width, height } of widths) {
         expect(await violations(page)).toEqual([])
       })
 
-      test('an answer that looked nothing up, with what Ask can answer', async ({ page }) => {
-        await page.goto(withTheme('/ask?n=axe-unread', theme))
-        const box = page.getByRole('textbox', { name: 'Ask a question' })
-        await box.click()
-        await box.pressSequentially('tell me a joke')
-        await box.press('Enter')
-        await expect(page.getByText(/^Ask answers three kinds of question/)).toBeVisible()
-        await expect(
-          page.getByRole('log').getByRole('link', { name: 'Definitions', exact: true }),
-        ).toBeVisible()
-        expect(await violations(page)).toEqual([])
-      })
-
       test("a Conflict answer with its badge's card open, and its More menu", async ({ page }) => {
         await page.goto(withTheme('/ask?n=axe-conflict', theme))
         const box = page.getByRole('textbox', { name: 'Ask a question' })
@@ -376,54 +363,27 @@ for (const { name, width, height } of widths) {
         expect(await violations(page)).toEqual([])
       })
 
-      test('an answer with the definition of the metric it asks about', async ({ page }) => {
+      test('an answer that is the definition of the metric it asks about', async ({ page }) => {
         await page.goto(withTheme('/ask?n=axe-definition', theme))
         const box = page.getByRole('textbox', { name: 'Ask a question' })
         await box.click()
-        await box.pressSequentially('What does Churn rate mean?')
+        await box.pressSequentially('What is net revenue?')
         await box.press('Enter')
-        await expect(page.getByRole('figure')).toContainText('From Cube, Churn rate')
+        const mark = page.getByRole('log').getByRole('button', { name: 'Definition', exact: true })
+        await expect(mark).toBeVisible()
         expect(await violations(page)).toEqual([])
         // The Definition mark's card, open.
-        await page.getByRole('log').getByRole('button', { name: 'Definition', exact: true }).hover()
+        await mark.focus()
         await expect(page.getByRole('dialog', { name: 'What Definition means' })).toBeVisible()
         expect(await violations(page)).toEqual([])
       })
 
-      test('an answer that leads with the definition, then the context', async ({ page }) => {
-        await page.goto(withTheme('/ask?n=axe-definition-context', theme))
-        const box = page.getByRole('textbox', { name: 'Ask a question' })
-        await box.click()
-        await box.pressSequentially('What is Orders?')
-        await box.press('Enter')
-        await expect(page.getByRole('figure')).toContainText('From Cube, Orders')
-        await expect(page.getByRole('log').getByRole('button', { name: 'Checked' })).toBeVisible()
+      // An overview from the records (FR-718): the person's Inbox, by group.
+      test('an overview of what needs the person', async ({ page }) => {
+        await page.goto(withTheme('/ask?example=loop-overview', theme))
+        await expect(page.getByRole('log').locator('[data-answer-words]').first()).toBeVisible()
         expect(await violations(page)).toEqual([])
       })
-
-      // Records answers (FR-718): a list with links, a table of counts, a refused question, and
-      // what Definitions lists.
-      for (const question of [
-        'what is due for a check in Sales?',
-        'how many context items does Sales have?',
-        'what did Tomas Eriksen write this week?',
-        'list 10 dimensions',
-        'what markets are there',
-        'what definitions are missing?',
-        'what is waiting on me?',
-        'how complete is the Sales domain?',
-      ])
-        test(`a records answer: ${question}`, async ({ page }) => {
-          await page.goto(withTheme(`/ask?n=axe-records-${question.length}`, theme))
-          const box = page.getByRole('textbox', { name: 'Ask a question' })
-          await box.click()
-          await box.pressSequentially(question)
-          await box.press('Enter')
-          await expect(
-            page.getByText(/^This answer is only for you\.|^Ask does not answer questions/),
-          ).toBeVisible()
-          expect(await violations(page)).toEqual([])
-        })
 
       test('a review with an open and a resolved thread on its source, and a comment being written', async ({
         page,

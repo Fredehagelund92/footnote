@@ -1,18 +1,6 @@
 import { ORPCError } from '@orpc/client'
-import type {
-  AnswerResult,
-  AskDefinition,
-  Asked,
-  FollowedLinks,
-  LookupEvent,
-  LookupInput,
-  Reach,
-  Replay,
-} from '../../../contract/answer.ts'
+import type { AnswerResult, Asked, Reach, Replay } from '../../../contract/answer.ts'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
-import type { DroppedSentence } from '../../../domain/answer-words.ts'
-import { chatOf, routeQuestion, type Planner, type RoutedReply } from '../../../domain/ask-route.ts'
-import { overlaps } from '../../../domain/validity.ts'
 import {
   answer,
   reach,
@@ -22,25 +10,15 @@ import {
   type Answer,
   type TopicCount,
 } from '../../../domain/answer.ts'
-import { canRead, followedFrom, termShown } from '../../../domain/links.ts'
-import { asksDefinitionInAsk } from '../../../domain/scope.ts'
 import { compareIds } from '../../../domain/resolver.ts'
 import { askedTotals } from '../../../domain/gaps.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import type { ModelChoice } from '../models/index.ts'
 import type { LoopDeps } from './loop.ts'
-import { enabledTools, loadServingBundle, type ServingBundle } from '../editions/index.ts'
-import { quoted } from '../../mcp/outcomes.ts'
+import { loadServingBundle, type ServingBundle } from '../editions/index.ts'
 import { createObservabilityService } from '../observability/index.ts'
 import { draftBundle } from '../proposals/index.ts'
-import {
-  answerRecordsOf,
-  momentOf,
-  recogniseRecordsOf,
-  type RecordsReads,
-  type UnlistedTopic,
-} from './records.ts'
 import { missing } from '../../../contract/refusals.ts'
 
 /**
@@ -114,291 +92,14 @@ const result = (a: Answer, target: Target): AnswerResult => {
 }
 
 /**
- * What a run of Ask's cases hears or replaces: its plans, what the model wrote for them, and the
- * sentences the check left out. Never set by the service: these are words, which it keeps nowhere.
+ * What a run of Ask's cases hears or replaces: the model the loop asks and what each turn read.
+ * Never set by the service: these are words, which it keeps nowhere.
  */
 export type AskTrace = {
-  planner?: Planner
-  onPlan?: (prompt: string, text: string) => void
-  onDropped?: (dropped: readonly DroppedSentence[]) => void
   /** Ask's loop: the model it asks in place of the assistant's, such as a recorded one. */
   loopModel?: ModelChoice
   /** Each loop turn's reads, and the chat's earlier reads made again, with what they returned. */
   onLoopTurn?: LoopDeps['onTurn']
-}
-
-/** What Ask's look-up may call beside the engine, each when the service has it. */
-export type LookupDeps = {
-  /**
-   * The words a real model writes from the answer, each sentence once it has passed the check, or
-   * null when the model writes none for it.
-   */
-  words?: (answer: AnswerResult) => AsyncIterable<string> | null
-  /** The reads a records answer is made from, as the person's request makes them (FR-718). */
-  records?: RecordsReads
-  /** The planner (FR-719): the checked plan for a question, or null to answer it with no model. */
-  planner?: Planner
-}
-
-/**
- * Ask's look-up (FR-701): the question on the live edition as get_context answers an agent, with
- * no model, each step as it is done and then the answer; then, given `words`, what a real model
- * writes from the answer's items, a checked sentence at a time as it is written, and `words-end`
- * once it is done. The question is read in memory and never stored or logged (FR-602); the bundle
- * is read before the first step, so the steps need no database. Given `records`, a question about
- * the context's own records is answered from them instead, in one event (FR-718), and nothing is
- * looked up.
- *
- * Given a `planner` (FR-719), a question the rules cannot read, a market asked about alone that
- * finds nothing, a question about what changed in the business, and a follow-up of the chat's
- * last turns (`input.turns`, from the browser, never stored) are read by the planner first
- * (src/domain/ask-route.ts): a `plan` event says what is looked up, and the checked plan's reads
- * run as Ask's own, with the state from what they read; or the answer is one short question back,
- * or the sentence for a question off topic. With no plan, the answer is the rules' own. A message
- * that asks nothing gets one sentence, with no model call.
- */
-export async function lookupQuestion(
-  tx: Queryable,
-  clock: Clock,
-  cache: BundleCache,
-  input: LookupInput,
-  deps: LookupDeps = {},
-): Promise<AsyncGenerator<LookupEvent>> {
-  const [bundle, tools] = await Promise.all([liveBundle(tx, cache), enabledTools(tx)])
-  const today = clock.today()
-  const reads = deps.records && {
-    ...deps.records,
-    areas: once(deps.records.areas),
-    people: once(deps.records.people),
-  }
-  const { turns: given, ...ask } = input
-  const routed = await routeQuestion({
-    bundle,
-    ask,
-    turns: chatOf(bundle, given, today),
-    records: reads ? await recogniseRecordsOf(clock, bundle, input, reads) : null,
-    today,
-    // The service's own moment: a pinned day keeps every period on that day, as the records do.
-    now: momentOf(clock).now,
-    planner: deps.planner,
-    clock: clockMs,
-    ...(reads ? { stewards: () => stewardsOf(reads), asker: once(() => askerOf(reads)) } : {}),
-  })
-  // A records question is counted and answered inside the request, before the stream starts.
-  const found =
-    routed.kind === 'records' && reads
-      ? await answerRecordsOf(tx, clock, bundle, routed.found, reads)
-      : null
-
-  /** The answer as Ask sends it: with its links, and a metric's definition when it is asked. */
-  const answered = (a: Answer, extra: Partial<AnswerResult> = {}, define: string[] = []) => {
-    const done = { ...result(a, { kind: 'live' }), ...extra }
-    const definitions = definitionsOf(
-      bundle,
-      define.length
-        ? define
-        : asksDefinitionInAsk(input.question)
-          ? (done.scope?.metrics ?? [])
-          : [],
-    )
-    const valueMetrics = valueMetricsOf(bundle, done, today)
-    return {
-      ...done,
-      links: linksOf(bundle, done, tools, today),
-      ...(definitions.length ? { definitions } : {}),
-      ...(valueMetrics.length ? { valueMetrics } : {}),
-    }
-  }
-  function* events(): Generator<LookupEvent> {
-    if (routed.kind === 'reply') {
-      yield { type: 'reply', reply: replyOf(bundle, routed.reply) }
-      return
-    }
-    if (found && routed.kind === 'records') {
-      if (routed.planned) yield { type: 'plan', plan: { kind: 'records', working: COUNTING } }
-      const { carried = [], standalone } = routed
-      const reading = routed.planned
-        ? { reading: { carried, ...(standalone ? { standalone } : {}) } }
-        : {}
-      yield { type: 'records', records: found, ...reading }
-      return
-    }
-    if (routed.kind === 'reads') {
-      const { answer: planned, reading, defines } = routed.planned
-      yield { type: 'plan', plan: { kind: 'reads', working: routed.working } }
-      for (const step of planned.steps) yield { type: 'step', step }
-      const limit = routed.limit ? { limit: routed.limit } : {}
-      const footer = routed.footer ? { footer: routed.footer } : {}
-      yield { type: 'answer', answer: answered(planned, { reading, ...footer, ...limit }, defines) }
-      return
-    }
-    // The rules' answer, also for a records question when no records are read here.
-    const rules =
-      routed.kind === 'rules' ? routed.answer : answer(bundle, ask, { today, person: true })
-    const limit = routed.kind === 'rules' && routed.limit ? { limit: routed.limit } : {}
-    const footer = routed.kind === 'rules' && routed.footer ? { footer: routed.footer } : {}
-    for (const step of rules.steps) yield { type: 'step', step }
-    yield { type: 'answer', answer: answered(rules, { ...limit, ...footer }) }
-  }
-  return (async function* () {
-    for (const event of events()) {
-      yield event
-      // Let the stream send this step before the next one runs.
-      await new Promise<void>((done) => setImmediate(done))
-      const sentences = event.type === 'answer' ? deps.words?.(event.answer) : null
-      if (!sentences) continue
-      for await (const text of sentences) yield { type: 'sentence', text }
-      yield { type: 'words-end' }
-    }
-  })()
-}
-
-/** What the records keep about items: owners as Context names them, and each item's last check. */
-async function stewardsOf(reads: Pick<RecordsReads, 'areas' | 'people' | 'index'>) {
-  // One after the other: a transaction runs one statement at a time.
-  const areas = await reads.areas()
-  const people = await reads.people()
-  const index = await reads.index()
-  const names = new Map(people.map((p) => [p.id, p.name]))
-  return {
-    owners: Object.fromEntries(
-      areas.map((a) => [a.id, a.ownerIds.map((id) => names.get(id) ?? 'Someone who left')]),
-    ),
-    checked: Object.fromEntries(index.items.map((i) => [i.id, i.lastChecked?.on ?? null])),
-  }
-}
-
-/** Who is asking, as the planner reads it: what is theirs, never who they are. */
-async function askerOf(reads: Pick<RecordsReads, 'areas' | 'reader'>) {
-  const areas = await reads.areas()
-  const { admin, areas: owned } = await reads.reader()
-  return { admin, owns: areas.filter((a) => owned.includes(a.id)) }
-}
-
-/** A reply as Ask sends it: for a question Ask cannot answer, what it can show beside the sentence. */
-function replyOf(bundle: ServingBundle, reply: RoutedReply) {
-  if (reply.kind !== 'cannot') return reply
-  const definitions = reply.reason === 'source' ? definitionsOf(bundle, reply.metrics) : []
-  const name = (key: string | undefined) =>
-    key ? (bundle.terms.find((t) => t.key === key)?.name ?? null) : null
-  return {
-    kind: reply.kind,
-    text: reply.text,
-    reason: reply.reason,
-    ...(definitions.length ? { definitions } : {}),
-    ...(reply.reason === 'write'
-      ? {
-          write: {
-            metric: name(reply.metrics[0]),
-            market: name(reply.filters['dim:market']?.[0]),
-          },
-        }
-      : {}),
-  }
-}
-
-/** What the working line says while the records are counted for a planned records question. */
-const COUNTING = 'Counting from the workspace’s records…'
-
-/** A read made once, however often it is asked for. */
-const once = <T>(read: () => Promise<T>) => {
-  let made: Promise<T> | null = null
-  return () => (made ??= read())
-}
-
-/**
- * For a question about what a metric means ("What is churn rate?", "What does net revenue
- * mean?"), or a definition the planner chose: what the definition source says about each metric,
- * and where that comes from, as get_context gives an agent beside the items (FR-338). A term an
- * agent may not see, or one whose definition the source limits to groups (CON-509), has none.
- */
-function definitionsOf(bundle: ServingBundle, metrics: readonly string[]): AskDefinition[] {
-  return metrics.slice(0, 5).flatMap((key) => {
-    const term = bundle.terms.find((t) => t.key === key)
-    const described = term && termShown(bundle, term) ? term.described : null
-    if (!term || !described) return []
-    const words = described.description ? quoted(described.description) : null
-    return [
-      {
-        key,
-        name: term.name,
-        words: words?.text ?? null,
-        shortened: words?.shortened ?? false,
-        tool: described.tool,
-        source: described.source,
-        ref: described.ref,
-      },
-    ]
-  })
-}
-
-/**
- * For a question that names values (a market) and no metric, and found nothing: the metrics that
- * the context agents get about all those values is written for, most items first, at most three,
- * counting only items for the question's own dates, so the question the hint leads to finds them.
- * Such a question only gets items that name no metric, so Ask can say where the rest is.
- */
-function valueMetricsOf(bundle: ServingBundle, answer: AnswerResult, today: string): string[] {
-  const values = Object.values(answer.scope?.filters ?? {}).flat()
-  if (answer.status !== 'no_match' || answer.scope?.metrics.length || !values.length) return []
-  const window = answer.scope!.window
-  const counts = new Map<string, number>()
-  for (const item of bundle.items) {
-    const named = new Set(item.scope.dimensionValues.map((row) => row.value))
-    if (item.status !== 'accepted' || !values.every((value) => named.has(value))) continue
-    if (!overlaps(item.validity, window) || !canRead(bundle, item, today)) continue
-    for (const metric of item.scope.metrics) counts.set(metric, (counts.get(metric) ?? 0) + 1)
-  }
-  return [...counts]
-    .sort((a, b) => b[1] - a[1] || compareIds(a[0], b[0]))
-    .slice(0, 3)
-    .map(([metric]) => metric)
-}
-
-/**
- * What an agent follows from the answer's items with get_related, while the switch has it on
- * (FR-407): one step from each, as get_related reads a link with no dates, so a link reads the
- * same whatever the question's dates.
- */
-function linksOf(
-  bundle: ServingBundle,
-  answer: AnswerResult,
-  tools: readonly string[],
-  today: string,
-): FollowedLinks {
-  if (!tools.includes('get_related') || !answer.items.length)
-    return { on: tools.includes('get_related'), followed: [], notFollowed: [] }
-  const { followed, notFollowed } = followedFrom(
-    bundle,
-    answer.items.map((i) => i.id),
-    today,
-  )
-  return {
-    on: true,
-    followed: followed.map(({ from, rel, to }) => ({
-      from,
-      rel,
-      to:
-        to.type === 'item'
-          ? {
-              type: 'item' as const,
-              id: to.id,
-              label: to.label,
-              areaId: to.area,
-              read: to.summary,
-              sameAs: null,
-            }
-          : {
-              type: 'term' as const,
-              id: to.id,
-              label: to.label,
-              areaId: to.area ?? null,
-              read: to.meaning,
-              sameAs: to.same_as ?? null,
-            },
-    })),
-    notFollowed,
-  }
 }
 
 /** The minimum count under which no count is shown (FR-614, `privacy.min_count`). */
@@ -507,23 +208,16 @@ export async function askedCounts(tx: Queryable, clock: Clock) {
   return { subjects, listed, unshown, domains, minimum, start, asked, askedAtLeast, hidden }
 }
 
-/** Asked this week, with the topics that show too little to be listed and the minimum. */
+/** Asked this week, with the minimum count it shows. */
 export async function askedFor(
   tx: Queryable,
   clock: Clock,
   cache: BundleCache,
-): Promise<{
-  asked: Asked
-  minimum: number
-  unlisted: UnlistedTopic[]
-  domains: Record<string, number>
-}> {
+): Promise<{ asked: Asked; minimum: number }> {
   const bundle = await liveBundle(tx, cache)
   const today = clock.today()
   const {
     listed,
-    unshown,
-    domains,
     minimum,
     start,
     asked: askedTotal,
@@ -569,23 +263,7 @@ export async function askedFor(
       scope,
     })),
   }
-  const unlisted = unshown
-    .filter((s) => s.seen)
-    .map((subject): UnlistedTopic => {
-      const scope = topicScope({ ...subject, month: `${today.slice(0, 7)}-01` })
-      return {
-        title: topicWords(bundle, scope),
-        count: subject.count,
-        atLeast: subject.atLeast,
-        nothing: subject.nothing,
-        state: 'missing',
-        gap: null,
-        area: subject.domain,
-        metrics: subject.metrics,
-        values: subject.values,
-      }
-    })
-  return { asked, minimum, unlisted, domains }
+  return { asked, minimum }
 }
 
 /**

@@ -333,7 +333,7 @@ describe('Settings, Advanced', () => {
           role: 'assistant',
           model: 'openai/gpt-oss:20b',
           check,
-          words: 'Can’t call tools, so Ask answers without them',
+          words: 'Can’t call tools, which Ask needs to read',
         },
         { role: 'eval_answer', model: 'openai/gpt-oss:20b', check: null, words: null },
         {
@@ -346,7 +346,7 @@ describe('Settings, Advanced', () => {
     )
     const rows = Object.fromEntries(groups.flatMap((g) => g.rows).map((r) => [r.key, r]))
     expect(rows['models.assistant']?.note).toBe(
-      'Model check: Can’t call tools, so Ask answers without them',
+      'Model check: Can’t call tools, which Ask needs to read',
     )
     // A model not checked yet has no note.
     expect(rows['models.eval_answer']).not.toHaveProperty('note')

@@ -13,9 +13,8 @@ import { devPeople, seedDemoWeek, TODAY } from '../http/demo-week.ts'
 /*
   The demo week on the real service, for Ask's persona cases and its differential tests: real
   sign-in, row security and the browser's own binding (createHttpApi), one session for each person
-  a test asks as. `models` is the mock's scripted planner unless a run passes real ones, and
-  `askTrace` hears or replaces what the planner, the words and the loop do. `askLoop` runs Ask's
-  loop in place of its router (FOOTNOTE_ASK_LOOP). `withTools` runs Ask's tools as a
+  a test asks as. `models` is the mock's scripted models unless a run passes real ones, and
+  `askTrace` hears or replaces what Ask's loop asks and reads. `withTools` runs Ask's tools as a
   person, in a transaction of their own with the services a request of theirs has. `modelChecks`
   is the model check the service keeps with real models.
 */
@@ -25,7 +24,6 @@ export function askWorld(
     models?: ModelPort
     askTrace?: AskTrace
     assistant?: object
-    askLoop?: boolean
     /** The model check the service keeps, with real models. */
     modelChecks?: ModelChecks
     /** Every pair the mock marks as disagreeing, not only Norway's (seedDemoWeek). */
@@ -43,7 +41,6 @@ export function askWorld(
     devPeople: devPeople(),
     ...(options.models ? { models: options.models } : {}),
     ...(options.askTrace ? { askTrace: options.askTrace } : {}),
-    ...(options.askLoop ? { askLoop: true } : {}),
     ...(options.modelChecks ? { modelChecks: options.modelChecks } : {}),
   })
   let address = ''

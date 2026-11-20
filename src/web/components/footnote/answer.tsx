@@ -20,12 +20,10 @@ import { cn } from '@/lib/utils'
 import { marksExceptions } from '@/lib/marks'
 import { AnswerFooter } from '@/components/footnote/answer-footer'
 import type { RatingChain, Verdict } from '@/components/footnote/answer-rating'
-import { TypeGlyph } from '@/components/footnote/definition'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { asksWhatItIs } from '@domain/scope'
 import { SharePopover } from '@/components/footnote/share-answer'
-import { recordsParts } from '@/components/footnote/records-parts'
 import { loopParts } from '@/components/footnote/loop-parts'
 import { today } from '@/lib/today'
 import { dateLabel } from '@/model/validity'
@@ -39,7 +37,6 @@ import {
   useStillLooking,
   type ShownStage,
 } from '@/lib/ask-motion'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/footnote/fold'
@@ -59,10 +56,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   askedOf,
-  midSentence,
   scopeText,
   type Answer,
-  type AnswerLinks,
   type AskedDefinition,
   type QuestionPart,
 } from '@/model/ask'
@@ -74,18 +69,12 @@ import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
 import { href, useRoute } from '@/lib/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
-import {
-  conflictQuery,
-  definitionsPageQuery,
-  figureQuery,
-  myReportsQuery,
-  useWrite,
-} from '@/api/queries'
+import { conflictQuery, figureQuery, myReportsQuery, useWrite } from '@/api/queries'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { listOf } from '@/model/people'
 import { SaveQuestion } from '@/components/obs/save-question'
 import { agentReply } from '@/lib/agent-reply'
-import { mentionId, parseMentionId, plainText, type MentionRef } from '@/lib/mentions'
+import { parseMentionId, plainText } from '@/lib/mentions'
 import { figureAskOf, type FigureView } from '@/model/figures'
 import { useFigures } from '@/lib/figures'
 import {
@@ -96,7 +85,6 @@ import {
   NoFigure,
 } from '@/components/footnote/answer-figure'
 import { useRelated } from '@/hooks/use-related'
-import { relLabel } from '@/lib/links'
 
 // One turn of Ask, drawn the way the chat apps people know draw a thread: the question as a quiet
 // muted bubble on the right, the answer as plain 16/26 text at a reading measure under its state
@@ -157,18 +145,6 @@ const LoopReadLine = React.lazy(() =>
   import('@/components/footnote/loop-answer').then((m) => ({ default: m.LoopReadLine })),
 )
 
-/** True when the question was read as something its words don't say: a synonym, a metric or market it doesn't name, or dates it doesn't give. */
-function readDifferently(answer: Answer) {
-  const q = answer.question.toLowerCase()
-  const month = answer.dates?.match(/[A-Z][a-z]{2}/)?.[0]?.toLowerCase()
-  return (
-    !!answer.alias ||
-    !q.includes(answer.metric.toLowerCase()) ||
-    answer.markets.some((m) => !q.includes(m.toLowerCase())) ||
-    (!!answer.dates && !(month && q.includes(month)))
-  )
-}
-
 export function Question({
   answer,
   onRescope,
@@ -182,16 +158,7 @@ export function Question({
   onEdit?: (parts: QuestionPart[]) => void
 }) {
   const [copied, copy] = useCopied()
-  // Scoped with '@', the answer's header says how; read by the planner, how it read it and what
-  // it carried; otherwise one quiet line, only when the reading differs from the words. Ask's
-  // loop says what it read as, with its chips, every time.
-  const reading = !answer.scope?.length ? answer.reading : undefined
-  const showReadAs =
-    !answer.loop &&
-    !reading &&
-    !answer.scope?.length &&
-    !!scopeText(answer) &&
-    readDifferently(answer)
+  // Ask's loop says what it read as, with its chips, every time.
   return (
     <div className="group/q flex flex-col items-end gap-2">
       <div className="max-w-22/25 min-w-0 rounded-surface bg-muted px-4 py-2.5 text-base leading-chat wrap-anywhere whitespace-pre-line @lg:max-w-4/5 [&_.mention-chip]:bg-background">
@@ -240,64 +207,8 @@ export function Question({
           Asked again: {answer.again.question}
         </p>
       )}
-      {reading?.standalone && (
-        <p className="max-w-22/25 text-right text-xs text-muted-foreground @lg:max-w-4/5">
-          Understood as {reading.standalone}
-        </p>
-      )}
-      {reading && (
-        <p className="flex max-w-22/25 flex-wrap items-center justify-end gap-x-2 text-right text-xs text-muted-foreground @lg:max-w-4/5">
-          {reading.settled ? (
-            <span>
-              Understood as {midSentence(reading.words)}.
-              {reading.settled.also && ` ${reading.settled.also}`}
-            </span>
-          ) : (
-            <span>
-              Read by Ask{reading.words && ` as ${midSentence(reading.words)}`}
-              {reading.carried.length > 0 &&
-                `, with ${listOf(reading.carried)} carried from your last question`}
-            </span>
-          )}
-          {onRescope && scopeText(answer) && (
-            <button
-              type="button"
-              className="rounded-sm font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-              onClick={() =>
-                onRescope([`${askedOf(answer)} `, ...readScope(answer).flatMap((m) => [m, ' '])])
-              }
-            >
-              Change it
-            </button>
-          )}
-        </p>
-      )}
-      {showReadAs && (
-        <p className="flex flex-wrap items-center justify-end gap-x-2 text-xs text-muted-foreground">
-          <span>Understood as {scopeText(answer)}</span>
-          {onRescope && (
-            <button
-              type="button"
-              className="rounded-sm font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-              onClick={() =>
-                onRescope([`${askedOf(answer)} `, ...readScope(answer).flatMap((m) => [m, ' '])])
-              }
-            >
-              Change it
-            </button>
-          )}
-        </p>
-      )}
     </div>
   )
-}
-
-/** A reading as mentions, to put back in the box: the metric and each market. */
-function readScope(answer: Answer): MentionRef[] {
-  return [
-    ...(answer.metric ? [{ id: mentionId('metric', answer.metric), label: answer.metric }] : []),
-    ...answer.markets.map((m) => ({ id: mentionId('market', m), label: m })),
-  ]
 }
 
 /** How a scoped question was read: its mentions, and what came from the words, said once in the answer's header. */
@@ -332,9 +243,6 @@ function ScopeLine({ answer }: { answer: Answer }) {
 
 /* ---------- what Footnote looked up ---------- */
 
-/** An answer that says nothing of links follows none. */
-const NO_LINKS: AnswerLinks = { on: true, followed: [], notFollowed: [] }
-
 /**
  * What the look-up is doing, then what it did. While it works, one line where the state line will
  * be; once the answer is in, a quiet line at the end of the sources row (`children`, the chips) that
@@ -356,22 +264,12 @@ function LookupCard({
 }) {
   const { stopped } = turn
   const answered = shown === 'answered'
-  const scope = answer.reading?.words || scopeText(answer) || 'Nothing matched'
+  const scope = scopeText(answer) || 'Nothing matched'
   const raw = agentReply(answer, facts)
   // Looking up and reading come from the look-up's own steps, until its answer is in.
   const running = !stopped && !answered
   const still = useStillLooking(running && shown === 'looking', turn.working)
   const found = turn.found ?? 0
-  // What the agent followed with get_related, as the answer says: one step each, never a retired target.
-  const { followed, notFollowed, on: enabled } = answer.links ?? NO_LINKS
-  const n = followed.length
-  const linkWords = !facts.length
-    ? ''
-    : !enabled
-      ? ", didn't follow links"
-      : n
-        ? `, followed ${n} ${n === 1 ? 'link' : 'links'}`
-        : ''
   // One quiet line that says what the look-up is doing; opened, the card in the chat's soft surface.
   // A look-up that answers within moments shows none: the answer comes instead.
   if (shown === 'quiet' && !stopped) return null
@@ -397,7 +295,7 @@ function LookupCard({
         : answer.state === 'failed'
           ? 'Not looked up'
           : facts.length
-            ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}${linkWords}`
+            ? `Looked up ${facts.length} context ${facts.length === 1 ? 'item' : 'items'}`
             : 'Looked up: no context items'
   if (!answered)
     return (
@@ -432,47 +330,6 @@ function LookupCard({
                 conclude” line.
               </p>
             )}
-            {answer.leftOut && (
-              <p>
-                <span className="text-foreground">Left out:</span> {answer.leftOut}
-              </p>
-            )}
-            {/* The links it followed with get_related: one step, where each led, and what it left alone. */}
-            {facts.length > 0 && !enabled && (
-              <p>
-                It didn't follow any links: following links is switched off in Agents and access.
-              </p>
-            )}
-            {(n > 0 || notFollowed.length > 0) && (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-medium text-foreground">Links it followed, one step</p>
-                <ul className="flex flex-col gap-2">
-                  {followed.map((f) => (
-                    <li key={`${f.from.id}>${f.to.id}`} className="flex flex-col gap-1">
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
-                        <span className="line-clamp-1 max-w-56">{f.from.title}</span>
-                        <span>{relLabel[f.rel]}</span>
-                        <MentionChip mention={f.to} />
-                      </span>
-                      <span className="line-clamp-2 border-l-2 pl-2 text-xs">{f.read}</span>
-                    </li>
-                  ))}
-                  {notFollowed.map((f) => (
-                    <li
-                      key={`${f.from.id}>${f.to.id}`}
-                      className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs"
-                    >
-                      <MentionChip mention={f.to} />
-                      <span>no longer available, not followed</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-xs">
-                  It follows one step, never a link from a link, and it never changes which context
-                  the answer used.
-                </p>
-              </div>
-            )}
             <Collapsible>
               <FoldTrigger
                 variant="inline"
@@ -486,32 +343,6 @@ function LookupCard({
                 <pre className="mt-1 overflow-x-auto rounded-md bg-muted/50 p-2.5 font-mono text-xs leading-relaxed text-foreground">
                   {JSON.stringify(raw, null, 2)}
                 </pre>
-                {n > 0 && (
-                  <>
-                    <p className="mt-2 text-xs">
-                      Tool <span className="font-mono text-foreground">get_related</span>
-                    </p>
-                    <pre className="mt-1 overflow-x-auto rounded-md bg-muted/50 p-2.5 font-mono text-xs leading-relaxed text-foreground">
-                      {JSON.stringify(
-                        {
-                          depth: 1,
-                          nodes: followed.map((f) => ({
-                            id: f.to.id,
-                            label: f.to.label,
-                            rel: f.rel,
-                            from: `context:${f.from.id}`,
-                          })),
-                          not_followed: notFollowed.map((f) => ({
-                            id: f.to.id,
-                            status: 'retired',
-                          })),
-                        },
-                        null,
-                        2,
-                      )}
-                    </pre>
-                  </>
-                )}
               </CollapsibleContent>
             </Collapsible>
           </div>
@@ -832,26 +663,6 @@ function AnswerWords({
   )
 }
 
-/** When a question used a Footnote synonym: "You asked about turnover - this is Net revenue", opening the definition. */
-function AliasChip({ alias }: { alias: NonNullable<Answer['alias']> }) {
-  return (
-    <button
-      type="button"
-      onClick={() => openDock('def', alias.is)}
-      className="flex w-fit max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-md border bg-background px-3 py-2 text-left text-sm transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      <TypeGlyph d={{ type: 'term', sameAs: alias.is }} />
-      <span className="text-muted-foreground">You asked about</span>
-      <span>{alias.asked.toLowerCase()}</span>
-      <span className="text-muted-foreground">- this is</span>
-      <span className="inline-flex items-center gap-1 font-medium">
-        <TypeGlyph d={{ type: alias.type }} className="text-foreground" />
-        {alias.is}
-      </span>
-    </button>
-  )
-}
-
 /**
  * One source under the words: the one chip, numbered as its markers, with its kind's icon and its
  * title. Hovered or focused, its card; pressed, the item opens in the right panel. An answer from a
@@ -1050,30 +861,15 @@ export function SomethingWrong({
         </FieldSet>
         <Field>
           <FieldLabel htmlFor={`what-${answer.id}`}>What's wrong?</FieldLabel>
-          <Textarea
-            id={`what-${answer.id}`}
-            name="what"
-            defaultValue={answer.correction?.note}
-            required
-          />
+          <Textarea id={`what-${answer.id}`} name="what" required />
         </Field>
         <Field>
           <FieldLabel htmlFor={`correct-${answer.id}`}>Correct version (optional)</FieldLabel>
-          <Textarea
-            id={`correct-${answer.id}`}
-            name="correction"
-            defaultValue={answer.correction?.correct}
-          />
+          <Textarea id={`correct-${answer.id}`} name="correction" />
         </Field>
         <Field>
           <FieldLabel htmlFor={`link-${answer.id}`}>Link (optional)</FieldLabel>
-          <Input
-            id={`link-${answer.id}`}
-            name="link"
-            type="url"
-            defaultValue={answer.correction?.link}
-            placeholder="https://"
-          />
+          <Input id={`link-${answer.id}`} name="link" type="url" placeholder="https://" />
         </Field>
       </FieldGroup>
       <div className="flex justify-end gap-2">
@@ -1087,47 +883,6 @@ export function SomethingWrong({
         </Button>
       </div>
     </form>
-  )
-}
-
-/**
- * A question that looked nothing up: the three kinds of question Ask answers, in words, the names
- * closest to the question's words, and where every definition is listed. It suggests no question
- * to ask, and nothing here says whether anything is written down.
- */
-function AskableKinds({ answer }: { answer: Answer }) {
-  const close = answer.closest ?? []
-  const definitions = useQuery(definitionsPageQuery()).data?.filter(
-    (d) => !d.sameAs && (d.type === 'metric' || d.type === 'dimension'),
-  )
-  const metrics = definitions?.filter((d) => d.type === 'metric').length ?? 0
-  const many = (n: number, one: string) =>
-    `${n.toLocaleString('en-GB')} ${one}${n === 1 ? '' : 's'}`
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">
-        Ask answers three kinds of question: about a metric and the values it&apos;s split by, about
-        the workspace&apos;s records, and about what Definitions lists. Type @ to scope one to a
-        metric or a market.
-      </p>
-      {close.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          The names closest to your words: <span className="text-foreground">{listOf(close)}</span>.
-        </p>
-      )}
-      {definitions && definitions.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          <a
-            href="/definitions"
-            className="rounded-sm font-medium text-foreground underline underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            Definitions
-          </a>{' '}
-          lists {many(definitions.length, 'definition')}: {many(metrics, 'metric')} and{' '}
-          {many(definitions.length - metrics, 'dimension')}.
-        </p>
-      )}
-    </div>
   )
 }
 
@@ -1170,7 +925,7 @@ export function NextStep({ answer, facts }: { answer: Answer; facts: Fact[] }) {
   const owns = me.owns.includes('sales') || me.admin
   const scope = scopeText({ metric: answer.metric, markets: answer.markets.slice(-1) })
   if (answer.state === 'missing' || answer.state === 'partial') {
-    if (!owns && !answer.times) return null
+    if (!owns) return null
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {owns && (
@@ -1190,11 +945,6 @@ export function NextStep({ answer, facts }: { answer: Answer; facts: Fact[] }) {
             <PencilIcon data-icon="inline-start" />
             {scope ? `Write context for ${scope}` : 'Write context'}
           </Button>
-        )}
-        {answer.times && (
-          <span className="text-xs text-muted-foreground">
-            Agents asked this {answer.times} times this week.
-          </span>
         )}
       </div>
     )
@@ -1365,17 +1115,11 @@ function DefinitionLead({
   )
 }
 
-/** A records answer's own body, loaded with the first one: most chats never need it. */
-const RecordsAnswerBody = React.lazy(() =>
-  import('@/components/footnote/records-answer').then((m) => ({ default: m.RecordsAnswerBody })),
-)
-
 /**
- * An answer in the chat: from the context, with its state and sources; or, for a question about
- * the context's own records, the records answer (FR-718), which has no state and no sources.
+ * An answer in the chat: a turn of Ask's loop, drawn by its own body; or an answer it could not
+ * give, a draft's preview, or nothing shared yet, with its state and sources.
  */
 export function AnswerBody(props: AnswerBodyProps) {
-  const { records } = props.turn.answer
   if (props.turn.error) return <Unanswered error={props.turn.error} onRetry={props.onRetry} />
   // Ask's loop: from its first read's step to its answer, drawn by its own body.
   if (drawnByLoop(props.turn))
@@ -1386,18 +1130,7 @@ export function AnswerBody(props: AnswerBodyProps) {
         <LoopAnswerBody parts={loopAnswerParts()} {...props} />
       </React.Suspense>
     )
-  if (!records) return <ContextAnswerBody {...props} />
-  return (
-    <React.Suspense
-      fallback={<ReadingLine running>Counting from the workspace&apos;s records…</ReadingLine>}
-    >
-      <div className="flex min-w-0 flex-col gap-3">
-        <RecordsAnswerBody parts={recordsParts} records={records} />
-        {/* A refusal ends with the questions Ask can answer instead. */}
-        {records.refused && <QuestionChoices choices={records.offers} onAsk={props.onAsk} />}
-      </div>
-    </React.Suspense>
-  )
+  return <ContextAnswerBody {...props} />
 }
 
 /** Questions to press, each sent as the next question; on an earlier turn they only show. */
@@ -1473,14 +1206,11 @@ function ContextAnswerBody({
         ? [draft]
         : answer.sources.flatMap((id) => {
             const f = all.find((x) => x.id === id)
-            // The answer carries the line its owner copied, and what not to conclude, when the
-            // library does not.
-            const cited = answer.cited?.[id]
-            return f ? [cited ? { ...f, ...cited } : f] : []
+            return f ? [f] : []
           }),
-    [draft, answer.sources, answer.cited, all],
+    [draft, answer.sources, all],
   )
-  const [wrong, setWrong] = React.useState(!!answer.correction)
+  const [wrong, setWrong] = React.useState(false)
   const [sentNow, setSentNow] = React.useState(answer.report)
   // A report the person sent about this answer, here or before: what the owners did comes back.
   const mine = useQuery({ ...myReportsQuery(), enabled: !draft }).data?.find(
@@ -1488,16 +1218,12 @@ function ContextAnswerBody({
   )
   const report = mine ? { on: mine.on, outcome: mine.outcome } : sentNow
 
-  // Where the answer has got to, from the look-up's events: its labels held long enough to read,
-  // then the engine's answer, then a model's checked sentences revealed as `ASK_CADENCE` says.
+  // Where the answer has got to: its labels held long enough to read, then the answer, whole.
   const shownStage = useShownStage(turn)
   const answered = shownStage === 'answered'
-  const reduced = useReducedMotion()
-  const streamed = turn.sentences.length > 0
   const sentences = React.useMemo(
-    () =>
-      sentencesOf(streamed ? turn.sentences.join(' ') : turn.stage === 'done' ? answer.text : ''),
-    [streamed, turn.sentences, turn.stage, answer.text],
+    () => sentencesOf(turn.stage === 'done' ? answer.text : ''),
+    [turn.stage, answer.text],
   )
   // Where each sentence ends, in the characters the reveal counts (the sentences joined by spaces).
   const ends = sentences.reduce<number[]>(
@@ -1505,10 +1231,8 @@ function ContextAnswerBody({
     [],
   )
   const total = answered ? (ends.at(-1) ?? 0) : 0
-  // The engine's own words, and an answer already in, show whole; a model's are revealed.
-  const instant = reduced || ASK_CADENCE !== 'words' || !streamed
   const [limit, setLimit] = React.useState(total)
-  const revealed = useReveal(limit, { flowing: isLive(turn), instant })
+  const revealed = useReveal(limit, { flowing: isLive(turn), instant: true })
   // Stopped, it finishes the sentence on screen, which was checked, and shows no more.
   const started = ends.findIndex((_, i) => (i ? ends[i - 1]! + 1 : 0) >= revealed)
   const upTo = stopped ? (started < 0 ? total : started ? ends[started - 1]! : 0) : total
@@ -1547,7 +1271,6 @@ function ContextAnswerBody({
   // stands for Not found, and one quiet line says nothing else is written.
   const lead =
     !draft &&
-    answer.reply !== 'cannot' &&
     !!answer.definitions?.some((d) => d.words) &&
     asksWhatItIs(askedOf(answer), { values: answer.markets.length > 0, dates: !!answer.dates })
       ? answer.definitions
@@ -1562,9 +1285,7 @@ function ContextAnswerBody({
         ),
         definitionOnly ? `Nothing else is written about ${defined} yet.` : answer.text,
       ].join('\n\n')
-    : answer.limit
-      ? `${answer.limit.sentence}\n\n${answer.text}`
-      : answer.text
+    : answer.text
   // The two items that disagree, as the answer numbers them: named in the state's card.
   const disagree =
     answer.state === 'conflict'
@@ -1615,14 +1336,8 @@ function ContextAnswerBody({
             {note && <p className="text-sm text-muted-foreground">{note}</p>}
           </div>
         )}
-      {/* What the question reaches for is not written: said first, then what is. */}
-      {answered && answer.limit && (
-        <p data-answer-limit className="max-w-reading text-base leading-chat font-medium">
-          {answer.limit.sentence}
-        </p>
-      )}
       {/* What the metric means, from its source, beside an answer about its data. */}
-      {answered && !lead && answer.definitions && answer.reply !== 'cannot' && (
+      {answered && !lead && answer.definitions && (
         <div className="animate-in duration-(--dur-3) fade-in-0">
           <AnswerDefinitions definitions={answer.definitions} />
         </div>
@@ -1642,10 +1357,7 @@ function ContextAnswerBody({
           data-answer-words
           aria-hidden={revealing || undefined}
           aria-live="off"
-          className={cn(
-            'max-w-reading text-base leading-chat',
-            !streamed && turn.asked > 0 && sentenceIn,
-          )}
+          className={cn('max-w-reading text-base leading-chat', turn.asked > 0 && sentenceIn)}
         >
           <AnswerWords
             sentences={sentences}
@@ -1666,26 +1378,9 @@ function ContextAnswerBody({
           ))}
         </p>
       )}
-      {/* What Ask cannot do says it first: what it shows instead sits under that sentence. */}
-      {answered && answer.reply === 'cannot' && answer.definitions && (
-        <AnswerDefinitions definitions={answer.definitions} />
-      )}
       {/* A question back's readings, under it: the last one's send the choice as the reply. */}
       {answered && !!answer.choices?.length && (
         <QuestionChoices choices={answer.choices} onAsk={onAsk} />
-      )}
-      {answered && answer.write && (
-        <p className="text-sm">
-          <a
-            href={href('/context/new', {
-              metric: answer.write.metric ?? undefined,
-              market: answer.write.market ?? undefined,
-            })}
-            className="rounded-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            Write context
-          </a>
-        </p>
       )}
       {/* The sources are the engine's, in with its answer; a model's words never change them. Then
             what was looked up, which opens What agents get. */}
@@ -1719,16 +1414,6 @@ function ContextAnswerBody({
               Ask again
             </Button>
           )}
-          {answer.reading?.facts?.map((fact) => (
-            <p key={fact} className="text-sm">
-              {fact}
-            </p>
-          ))}
-          {answer.reading?.left && (
-            <p className="text-sm text-muted-foreground">
-              Not answered here: {answer.reading.left}
-            </p>
-          )}
           {answer.footer && (
             <div className="flex flex-col gap-1 text-xs text-muted-foreground">
               <AnswerFooter footer={answer.footer} />
@@ -1740,13 +1425,8 @@ function ContextAnswerBody({
           )}
           {view?.kind === 'none' && <NoFigure view={view} />}
           {view?.kind === 'link' && <FigureLink view={view} />}
-          {answer.alias && <AliasChip alias={answer.alias} />}
           {answer.related?.length ? <Related ids={answer.related} /> : null}
-          {answer.state === null
-            ? // A question back, or one off topic, says what it needs on its own.
-              // Ask's loop says what it read instead.
-              !answer.reply && !answer.read && <AskableKinds answer={answer} />
-            : !draft && <NextStep answer={answer} facts={facts} />}
+          {answer.state !== null && !draft && <NextStep answer={answer} facts={facts} />}
           {!draft && report && <ReportLine report={report} />}
           {!draft && wrong && !report && facts.length > 0 && (
             <SomethingWrong

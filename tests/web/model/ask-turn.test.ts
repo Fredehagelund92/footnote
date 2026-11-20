@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MOCK_LOOK_MS, MOCK_READ_MS, MOCK_SENTENCE_MS, playAnswer } from '@/api/mock/ask-live'
-import { askedOf, chatTurnOf, recordsAnswer, type Answer } from '@/model/ask'
+import { MOCK_READ_MS, playAnswer } from '@/api/mock/ask-live'
+import { askedOf, chatTurnOf, type Answer } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
 import {
   askedTurn,
@@ -9,7 +9,6 @@ import {
   effectsOf,
   isLive,
   outcomeOf,
-  shownText,
   turnReducer,
   unansweredIn,
   type AskEvent,
@@ -17,8 +16,8 @@ import {
   type TurnAction,
 } from '@/model/ask-turn'
 
-// One question and its answer in Ask, as the look-up's events arrive: the question at once, the
-// real steps, the state and sources with the engine's answer, then the words a sentence at a time.
+// One question and its answer in Ask, as the loop's events arrive: the question at once, the
+// working line while Ask reads, then the turn.
 
 const engine: Answer = {
   id: 'custom',
@@ -33,72 +32,37 @@ const engine: Answer = {
 
 const run = (turn: Turn, ...actions: TurnAction[]) => actions.reduce(turnReducer, turn)
 const asked = () => askedTurn('t0', engine.question, { parts: [engine.question] })
+const reads = { steps: [], nouns: [] }
 
 describe('a turn as its answer arrives', () => {
   it('shows the question at once, looking up, with no answer yet', () => {
     const turn = asked()
-    expect(turn).toMatchObject({ stage: 'looking', answered: false, found: null, sentences: [] })
+    expect(turn).toMatchObject({ stage: 'looking', answered: false, found: null })
     expect(turn.answer).toMatchObject({ id: 't0', question: engine.question, state: null })
     expect(isLive(turn)).toBe(true)
-    expect(shownText(turn)).toBe('')
   })
 
-  it('reads what the look-up found, then takes the state and sources from the engine', () => {
-    const found = run(asked(), { type: 'found', items: 2 })
-    expect(found).toMatchObject({ stage: 'reading', found: 2, answered: false })
-    const answered = run(found, { type: 'answer', answer: engine })
-    expect(answered).toMatchObject({ stage: 'writing', answered: true, found: 2 })
-    // The engine's answer, under the question's own id and as it was typed.
-    expect(answered.answer).toMatchObject({
-      id: 't0',
-      state: 'grounded',
-      sources: ['fct-1', 'fct-2'],
-      parts: [engine.question],
-    })
-    // Its words are not shown while a model may still write its own.
-    expect(shownText(answered)).toBe('')
-  })
-
-  it('grows the words a sentence at a time, then shows the finished answer', () => {
-    const writing = run(
+  it('says what Ask reads, then takes the finished answer under the question’s own id', () => {
+    const working = run(
       asked(),
-      { type: 'answer', answer: engine },
-      { type: 'sentence', text: 'Online sales stopped [1].' },
+      { type: 'plan', working: 'Looking up Orders…' },
+      { type: 'reads', reads },
     )
-    expect(shownText(writing)).toBe('Online sales stopped [1].')
-    const more = run(writing, { type: 'sentence', text: 'Credit counts [2].' })
-    expect(shownText(more)).toBe('Online sales stopped [1]. Credit counts [2].')
-    const done = run(more, {
-      type: 'done',
-      answer: { ...engine, text: 'Online sales stopped [1]. Credit counts [2].' },
-    })
-    expect(done).toMatchObject({ stage: 'done', answered: true })
+    expect(working).toMatchObject({ working: 'Looking up Orders…', reads, answered: false })
+    const done = run(working, { type: 'done', answer: engine })
+    expect(done).toMatchObject({ stage: 'done', answered: true, found: 2 })
+    expect(done.answer).toMatchObject({ id: 't0', state: 'grounded', parts: [engine.question] })
     expect(isLive(done)).toBe(false)
-    expect(shownText(done)).toBe('Online sales stopped [1]. Credit counts [2].')
   })
 
-  it("shows the engine's own words when no sentence came", () => {
-    const done = run(asked(), { type: 'answer', answer: engine }, { type: 'done', answer: engine })
-    expect(shownText(done)).toBe(engine.text)
-  })
-
-  it('keeps what it showed when stopped, and takes nothing after', () => {
+  it('stopped before the answer, names no state and no source, and takes nothing after', () => {
     const stopped = run(
       asked(),
-      { type: 'answer', answer: engine },
-      { type: 'sentence', text: 'Online sales stopped [1].' },
+      { type: 'reads', reads },
       { type: 'stop' },
-      { type: 'sentence', text: 'Credit counts [2].' },
       { type: 'done', answer: engine },
     )
-    expect(stopped).toMatchObject({ stopped: true, stage: 'writing', answered: true })
-    expect(isLive(stopped)).toBe(false)
-    expect(shownText(stopped)).toBe('Online sales stopped [1].')
-  })
-
-  it('stopped before the answer, names no state and no source', () => {
-    const stopped = run(asked(), { type: 'found', items: 2 }, { type: 'stop' })
-    expect(stopped).toMatchObject({ stopped: true, stage: 'reading', answered: false })
+    expect(stopped).toMatchObject({ stopped: true, answered: false })
     expect(stopped.answer.state).toBeNull()
     expect(stopped.answer.sources).toEqual([])
   })
@@ -106,18 +70,11 @@ describe('a turn as its answer arrives', () => {
   it('opens an answer that is already in as finished', () => {
     const turn = doneTurn(engine)
     expect(turn).toMatchObject({ stage: 'done', answered: true, found: 2, error: null })
-    expect(shownText(turn)).toBe(engine.text)
-    expect(run(turn, { type: 'sentence', text: 'More [1].' })).toBe(turn)
+    expect(run(turn, { type: 'reads', reads })).toBe(turn)
   })
 
   it('once done, takes only Stop, for words still on their way to the screen', () => {
-    const done = run(
-      asked(),
-      { type: 'answer', answer: engine },
-      { type: 'sentence', text: 'Online sales stopped [1].' },
-      { type: 'done', answer: engine },
-    )
-    expect(isLive(done)).toBe(false)
+    const done = run(asked(), { type: 'done', answer: engine })
     expect(run(done, { type: 'error', message: 'Too late.' })).toBe(done)
     const stopped = run(done, { type: 'stop' })
     expect(stopped).toMatchObject({ stopped: true, stage: 'done' })
@@ -125,15 +82,11 @@ describe('a turn as its answer arrives', () => {
   })
 
   it('keeps a question that got nothing back, saying why, and takes nothing after', () => {
-    const failed = run(
-      asked(),
-      { type: 'found', items: 2 },
-      { type: 'error', message: 'No reply.' },
-    )
-    expect(failed).toMatchObject({ error: 'No reply.', stage: 'reading', answered: false })
+    const failed = run(asked(), { type: 'reads', reads }, { type: 'error', message: 'No reply.' })
+    expect(failed).toMatchObject({ error: 'No reply.', answered: false })
     expect(failed.answer.question).toBe(engine.question)
     expect(isLive(failed)).toBe(false)
-    expect(run(failed, { type: 'answer', answer: engine }, { type: 'stop' })).toBe(failed)
+    expect(run(failed, { type: 'done', answer: engine }, { type: 'stop' })).toBe(failed)
   })
 })
 
@@ -141,47 +94,22 @@ describe("the mock's answers in a live chat", () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  it('come as the service sends them: found, the answer, then each sentence in time', async () => {
-    const events: [number, AskEvent['type'], string?][] = []
+  it('come as the service sends them: the working line, then the turn in time', async () => {
+    const events: [number, AskEvent['type']][] = []
     const start = Date.now()
-    const played = playAnswer(engine, {
-      onEvent: (e) =>
-        events.push([Date.now() - start, e.type, e.type === 'sentence' ? e.text : undefined]),
-    })
+    const played = playAnswer(engine, { onEvent: (e) => events.push([Date.now() - start, e.type]) })
     await vi.runAllTimersAsync()
     expect(await played).toEqual(engine)
-    const answered = MOCK_LOOK_MS + MOCK_READ_MS
-    expect(events).toEqual([
-      [MOCK_LOOK_MS, 'found', undefined],
-      [answered, 'answer', undefined],
-      [answered + MOCK_SENTENCE_MS, 'sentence', 'Online sales to Norway stopped on 4 August [1].'],
-      [answered + 2 * MOCK_SENTENCE_MS, 'sentence', 'Store credit counts [2].'],
-    ])
-  })
-
-  it('send no sentence for an answer a model writes no words for', async () => {
-    const events: string[] = []
-    const missing = { ...engine, state: 'missing' as const, sources: [] }
-    const played = playAnswer(missing, { onEvent: (e) => events.push(e.type) })
-    await vi.runAllTimersAsync()
-    expect(await played).toEqual(missing)
-    expect(events).toEqual(['found', 'answer'])
+    expect(Date.now() - start).toBe(MOCK_READ_MS)
+    expect(events).toEqual([[0, 'plan']])
   })
 
   it('stop when the person stops them', async () => {
     const stop = new AbortController()
-    const events: string[] = []
-    const played = playAnswer(engine, {
-      signal: stop.signal,
-      onEvent: (e) => {
-        events.push(e.type)
-        if (e.type === 'sentence') stop.abort()
-      },
-    })
+    const played = playAnswer(engine, { signal: stop.signal, onEvent: () => stop.abort() })
     const failed = expect(played).rejects.toMatchObject({ name: 'AbortError' })
     await vi.runAllTimersAsync()
     await failed
-    expect(events).toEqual(['found', 'answer', 'sentence'])
   })
 })
 
@@ -218,13 +146,11 @@ describe('a turn asked again in words', () => {
 
 describe('what a turn sends on to the next question', () => {
   it('holds how it was read and what it found, never the answer’s words', () => {
-    const turn = chatTurnOf({ ...engine, keys: undefined })!
+    const turn = chatTurnOf(engine)!
     expect(turn).toEqual({
       question: engine.question,
-      scope: null,
       sources: ['fct-1', 'fct-2'],
       understood: 'Orders in Norway',
-      state: 'grounded',
       headline: '2 context items about Orders in Norway.',
     })
     expect(JSON.stringify(turn)).not.toMatch(/stopped on 4 August|Store credit/)
@@ -239,90 +165,21 @@ describe('what a turn sends on to the next question', () => {
     expect(turn.headline!.length).toBeLessThanOrEqual(200)
   })
 
-  it('carries a records question’s domain and its named period', () => {
-    const records = {
-      refused: false,
-      intent: 'due',
-      understood: 'Due for a check, in Paid media',
-      period: null,
-      domain: { id: 'paid', name: 'Paid media' },
-      read: 'Read 2 context items in Paid media',
-      sentence: 'Nothing in Paid media is due for a check.',
-      detail: null,
-      detailItem: null,
-      columns: [],
-      rows: [],
-      total: 0,
-      shown: null,
-      more: null,
-      note: null,
-    } as const
-    expect(
-      chatTurnOf({
-        ...recordsAnswer('what is due in Paid media?', { ...records, columns: [], rows: [] }),
-      }),
-    ).toMatchObject({
-      understood: 'Due for a check, in Paid media',
-      headline: 'Nothing found.',
-      domain: 'paid',
-      period: null,
-      state: null,
-    })
-  })
-
-  it('names no one in a records headline, and sends none for a refusal', () => {
-    const found = recordsAnswer('who owns Sales?', {
-      refused: false,
-      intent: 'due',
-      understood: 'Owners',
-      period: null,
-      domain: null,
-      read: 'Read 3 items',
-      sentence: 'Anna Berg owns Sales.',
-      detail: null,
-      detailItem: null,
-      columns: [],
-      rows: [],
-      total: 3,
-      shown: null,
-      more: null,
-      note: null,
-    } as never)
-    expect(chatTurnOf(found)!.headline).toBe('3 found.')
-    const refused = recordsAnswer('what has Anna done?', {
-      refused: true,
-      reason: 'person',
-      sentence: 'Anna Berg',
-      detail: '',
-      offers: [],
-    })
-    expect(chatTurnOf(refused)!.headline).toBeNull()
-  })
-
-  it('reads dates from the reading alone when it has one', () => {
-    const turn = chatTurnOf({
-      ...engine,
-      dates: '1 to 31 Aug 2026',
-      reading: { words: 'x', carried: [], period: 'today' },
-    } as never)!
-    expect(turn.dated).toBeUndefined()
-  })
-
-  it('sends nothing for a message that asked nothing', () => {
-    expect(
-      chatTurnOf({ ...engine, reply: 'nothing_asked', state: null, sources: [] }),
-    ).toBeUndefined()
+  it('sends a loop turn’s words and reads back, and a question back as asked', () => {
+    const reads = [{ tool: 'get_context', input: { about: 'orders in Norway' } }]
+    expect(chatTurnOf({ ...engine, reads })).toMatchObject({ reply: engine.text, reads })
+    const back = chatTurnOf({ ...engine, state: null, reply: 'clarify', text: 'Which one?' })
+    expect(back).toMatchObject({ asked: 'Which one?', headline: null })
   })
 })
 
 describe('how a turn ended (one outcome per turn)', () => {
-  const reads = { steps: [], nouns: [] }
   const notChecked = () =>
     run(asked(), { type: 'reads', reads }, { type: 'done', answer: failedAnswer(engine.question) })
 
   it('has no outcome while it is on its way', () => {
     expect(outcomeOf(asked())).toBeNull()
-    expect(outcomeOf(run(asked(), { type: 'answer', answer: engine }))).toBeNull()
+    expect(outcomeOf(run(asked(), { type: 'reads', reads }))).toBeNull()
   })
 
   it('reads every way a turn ends as one outcome', () => {
@@ -331,7 +188,7 @@ describe('how a turn ended (one outcome per turn)', () => {
     const limit = { ...engine, stopped: 'steps' as const, loop: {} as Answer['loop'] }
     expect(outcomeOf(run(asked(), { type: 'done', answer: limit }))).toEqual({ kind: 'limit' })
     expect(outcomeOf(run(asked(), { type: 'stop' }))).toEqual({ kind: 'stopped', answered: false })
-    expect(outcomeOf(run(asked(), { type: 'answer', answer: engine }, { type: 'stop' }))).toEqual({
+    expect(outcomeOf(run(asked(), { type: 'done', answer: engine }, { type: 'stop' }))).toEqual({
       kind: 'stopped',
       answered: true,
     })
