@@ -28,7 +28,7 @@ The two parts are two Astro builds of this one package: `astro.landing.config.ts
 
 `landing/pages/index.astro` is the landing page as it was approved, "Two readers": paper for people, a terminal for agents, and the note on the seam between them. The first screen asks one question of both, and its three buttons, Checked, Conflict and Not found, show what each reads when something is written, when two items disagree, and when nothing is. The agent's side is `get_context`'s reply on the demo, word for word, and the person's side says the same. A timeline on the seam follows a context item from draft to checked to due for a check, and the rest of the page rests on a white sheet, with everything for agents on one dark band. `landing/styles/landing.css` holds its look, and `landing/hero.ts` its first screen: the opening, which plays once, the three buttons and the dotted leaders from each mark to its note.
 
-A link to a page of the docs names it without a version, `/docs/get-started/`, so it opens the newest release's page (`lib/site.ts`). A docs page that does not exist stops the build.
+A link to a page of the docs names it without a version, `/docs/try-the-demo/`, so it opens the newest release's page (`lib/site.ts`). A docs page that does not exist stops the build.
 
 The faint grey is one shade darker than in the approved file, so that small text keeps 4.5:1 on the paper, as [the accessibility bar](../docs/design/accessibility.md) asks. The site's fonts carry each font's whole range of weights (`shared/fonts.css`), so the headline's 770 is drawn as designed.
 
