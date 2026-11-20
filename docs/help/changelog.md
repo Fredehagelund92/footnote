@@ -4,6 +4,7 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-20
 ---
 
+<<<<<<< HEAD
 ## Families of metrics
 
 2026-11-20
@@ -11,6 +12,13 @@ reviewed: 2026-11-20
 A model with a metric for each currency and channel now shows each set of variants as one family, such as Revenue with 250 variants. The Names card publishes a family with one press, Definitions lists it once with a family mark, and a search for a variant finds its family.
 
 Context about a family applies to every variant, and is due for a check once when any of them changes. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
+=======
+## Light and dark in the docs
+
+2026-11-20
+
+The Docs area has the theme control at the end of its header, as the rest of the app does, and keeps the same choice. Each page names the version it describes, with a link to read the latest on the web.
+>>>>>>> c80ac8f6 (feat(web): give the Docs area the theme control and hold it to the public docs)
 
 ## A metric for each currency
 

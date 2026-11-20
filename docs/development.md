@@ -264,7 +264,7 @@ tests/
   e2e/            Playwright: the golden job specs and axe, on the mock build and in http mode (http/)
   e2e-seed/       Playwright: the web app on the demo install, as docker compose up gives it
   image/          the built images: production mode (production-boot.sh, company-sign-in.sh) and the README's Try it (quick-start.sh)
-docs/help/            the documentation, Markdown, shown at /docs and as the static docs site (npm run docs:build)
+docs/help/            the documentation, Markdown, shown at /docs, as the static docs site (npm run docs:build) and on the public site, checked to say the same (docs/help/README.md)
 db/              migrations, grants, prepare.ts (npm run db:migrate) and seed/ (npm run seed, the demo Cube model)
 compose.yaml      docker compose up: PostgreSQL 18, the service and the web app, from Dockerfile and docker/
 site/             the public site: the landing page, and the docs from the pages in docs/ that are ready for readers: its own package (site/README.md)

@@ -1,5 +1,6 @@
 import MiniSearch from 'minisearch'
-import docs from 'virtual:help-docs'
+import docs, { version } from 'virtual:help-docs'
+import { DOCS_URL } from '@domain/brand'
 import { docGroups, llmsTxt as indexOf, type DocChangelog, type DocPage } from '@domain/docs'
 import { DOCS_HOME } from '@/lib/doc-links'
 
@@ -15,6 +16,18 @@ export const DOC_PAGES: DocPage[] = docs.pages
 export const CHANGES: DocChangelog = docs.changelog
 
 export const docPage = (slug: string | undefined) => DOC_PAGES.find((p) => p.slug === slug)
+
+/**
+ * The release these pages describe, as the public docs name their versions: `0.1` for every
+ * 0.1.x, the folder that release's pages have on the site (site/README.md).
+ */
+export const DOCS_VERSION = version.split('.').slice(0, 2).join('.')
+
+/**
+ * The same page in the public docs, which always show the newest release's pages: the docs' home
+ * without a slug. The site gives every page of the app's docs the same slug.
+ */
+export const webDocHref = (slug: string | undefined) => `${DOCS_URL}/${slug ? `${slug}/` : ''}`
 
 /** The plain-text index an agent can read at /docs/llms.txt: every page with its one line. */
 export const llmsTxt = () => indexOf(docs, DOCS_HOME)

@@ -41,11 +41,14 @@ import {
   docHref,
   docPage,
   DOCS_HOME,
+  DOCS_VERSION,
   llmsTxt,
   searchDocs,
+  webDocHref,
   type DocPage,
 } from '@/lib/docs'
 import { NotFound } from '@/components/footnote/not-found'
+import { ThemeMenu } from '@/components/theme-menu'
 import { wordOf } from '@/lib/docs-includes'
 import {
   movedTo,
@@ -136,7 +139,41 @@ function ItemBody({ blocks }: { blocks: readonly DocBlock[] }) {
 }
 /* ---------- parts ---------- */
 
-function DocsHeader({ slug, onSearch }: { slug?: string; onSearch: () => void }) {
+/**
+ * The line at the top of every page: the release these pages describe, and the same page in the
+ * public docs, which always have the newest release's.
+ */
+function OnTheWeb({ slug, className }: { slug?: string; className?: string }) {
+  return (
+    <p
+      className={cn(
+        'flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted-foreground',
+        className,
+      )}
+    >
+      <span className="tabular-nums">Version {DOCS_VERSION}</span>
+      <a
+        href={webDocHref(slug)}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+      >
+        Read the latest on the web
+        <ArrowUpRightIcon className="size-3.5" aria-hidden />
+      </a>
+    </p>
+  )
+}
+
+function DocsHeader({
+  slug,
+  onSearch,
+  inBrowser,
+}: {
+  slug?: string
+  onSearch: () => void
+  inBrowser: boolean
+}) {
   const tabs = [
     {
       label: 'Guides',
@@ -186,7 +223,7 @@ function DocsHeader({ slug, onSearch }: { slug?: string; onSearch: () => void })
           <button
             type="button"
             onClick={onSearch}
-            className="flex h-8 w-9 items-center justify-center gap-2 rounded-md border border-input bg-background text-sm text-muted-foreground outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-60 sm:justify-start sm:px-2.5"
+            className="flex size-7 items-center justify-center gap-2 rounded-md border border-input bg-background text-sm text-muted-foreground outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-60 sm:justify-start sm:px-2.5"
           >
             <SearchIcon className="size-4 shrink-0" aria-hidden />
             <span className="flex-1 text-left max-sm:hidden">Search the docs</span>
@@ -200,6 +237,10 @@ function DocsHeader({ slug, onSearch }: { slug?: string; onSearch: () => void })
             Open the app
             <ArrowUpRightIcon />
           </a>
+          {/* The app's theme control, last as in the app's header. A page of the docs site drawn
+              ahead of time knows no reader's choice, so it keeps the button's room until the page
+              runs in the browser. */}
+          {inBrowser ? <ThemeMenu /> : <span className="size-7 shrink-0" aria-hidden />}
         </div>
       </div>
     </header>
@@ -392,9 +433,14 @@ function Picture({ picture }: { picture: DocPicture }) {
   )
 }
 
-function ArticleBody({ blocks }: { blocks: readonly DocBlock[] }) {
+/**
+ * A page's blocks. `data-docs` marks a page's own body, and `data-include` each of the app's own
+ * lists, as the public docs mark them, so the docs check can compare the two (site/README.md, "The
+ * app's Docs area").
+ */
+function ArticleBody({ blocks, page }: { blocks: readonly DocBlock[]; page?: boolean }) {
   return (
-    <div className="flex flex-col gap-4 text-base leading-7">
+    <div className="flex flex-col gap-4 text-base leading-7" data-docs={page ? 'body' : undefined}>
       {blocks.map((b, i) => {
         switch (b.type) {
           case 'heading':
@@ -437,7 +483,10 @@ function ArticleBody({ blocks }: { blocks: readonly DocBlock[] }) {
             return <Code key={i} label={b.title} text={b.text} />
           case 'note':
             return (
-              <aside key={i} className="rounded-frame border bg-band px-4 py-3 text-sm leading-6">
+              <aside
+                key={i}
+                className="rounded-frame border bg-band px-4 py-3 text-sm leading-6 [&_code]:text-xs"
+              >
                 <strong className="font-medium">{b.title}. </strong>
                 <span className="text-foreground">
                   <ItemBody blocks={b.children} />
@@ -446,8 +495,10 @@ function ArticleBody({ blocks }: { blocks: readonly DocBlock[] }) {
             )
           case 'table':
             return (
-              <div key={i} className="overflow-x-auto rounded-frame border">
-                <table className="w-full text-left text-sm leading-6">
+              // A phone scrolls a wide table, rather than a word to a line, so the keyboard has to
+              // be able to reach it, as on the public docs.
+              <div key={i} className="overflow-x-auto rounded-frame border" tabIndex={0}>
+                <table className="w-full min-w-120 text-left text-sm leading-6">
                   <thead className="border-b bg-band text-xs text-muted-foreground">
                     <tr>
                       {b.head.map((c, j) => (
@@ -472,7 +523,11 @@ function ArticleBody({ blocks }: { blocks: readonly DocBlock[] }) {
               </div>
             )
           case 'include':
-            return <Include key={i} block={b} />
+            return (
+              <div key={i} className="contents" data-include={b.name}>
+                <Include block={b} />
+              </div>
+            )
           case 'picture':
             return <Picture key={i} picture={b} />
         }
@@ -516,15 +571,18 @@ function Article({ page }: { page: DocPage }) {
     <div className="grid min-w-0 lg:grid-cols-(--cols-docs-page)">
       <article className="min-w-0 px-4 py-8 md:px-10 md:py-10 lg:px-14">
         <div className="mx-auto max-w-176">
-          <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
-            <a href={`${base}`} className="hover:text-foreground">
-              Docs
-            </a>
-            <span className="mx-1.5" aria-hidden>
-              /
-            </span>
-            <span>{page.group}</span>
-          </nav>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
+              <a href={`${base}`} className="hover:text-foreground">
+                Docs
+              </a>
+              <span className="mx-1.5" aria-hidden>
+                /
+              </span>
+              <span>{page.group}</span>
+            </nav>
+            <OnTheWeb slug={page.slug} />
+          </div>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <h1 className="text-3xl font-bold tracking-hero text-balance">{page.title}</h1>
             {page.open && (
@@ -538,7 +596,7 @@ function Article({ page }: { page: DocPage }) {
               </a>
             )}
           </div>
-          <p className="mt-3 mb-8 text-xl text-pretty text-muted-foreground">
+          <p className="mt-3 mb-8 text-xl text-pretty text-muted-foreground" data-docs="lead">
             <Inline nodes={page.lead} />
           </p>
           {/* On a phone the right-hand list folds into one row under the title. */}
@@ -559,7 +617,7 @@ function Article({ page }: { page: DocPage }) {
               </ul>
             </details>
           )}
-          <ArticleBody blocks={page.blocks} />
+          <ArticleBody blocks={page.blocks} page />
           <div className="mt-12 grid gap-px overflow-hidden rounded-frame border bg-border sm:grid-cols-2">
             {prev ? (
               <a
@@ -618,6 +676,7 @@ function Landing({ onSearch }: { onSearch: () => void }) {
     <div className="min-w-0">
       <div className="px-4 py-10 md:px-10 md:py-14 lg:px-14">
         <div className="max-w-2xl">
+          <OnTheWeb className="mb-4" />
           <h1 className="text-3xl font-bold tracking-tight text-balance">Documentation</h1>
           <p className="mt-3 text-xl text-pretty text-muted-foreground">
             How to write context, connect your agents and review suggestions, and how agents read
@@ -728,11 +787,12 @@ function Changelog() {
   return (
     <article className="min-w-0 px-4 py-8 md:px-10 md:py-10 lg:px-14">
       <div className="mx-auto max-w-176">
+        <OnTheWeb slug={CHANGELOG_SLUG} className="mb-4" />
         <h1 className="text-3xl font-bold tracking-hero">{CHANGES.title}</h1>
         <p className="mt-3 mb-8 text-xl text-muted-foreground">{CHANGES.line}</p>
-        <ol className="border-l">
+        <ol className="border-l" data-docs="body">
           {CHANGES.changes.map((c) => (
-            <li key={c.id} id={c.id} className="relative scroll-mt-20 pb-8 pl-6 last:pb-0">
+            <li key={c.id} className="relative pb-8 pl-6 last:pb-0">
               <span
                 className="absolute top-2 -left-0.75 size-1.5 rounded-full bg-foreground"
                 aria-hidden
@@ -740,7 +800,10 @@ function Changelog() {
               <time dateTime={c.date} className="block text-xs text-muted-foreground tabular-nums">
                 {day(c.date)}
               </time>
-              <h2 className="text-base font-semibold">{c.title}</h2>
+              {/* A link to a change opens at its heading, with its day just above. */}
+              <h2 id={c.id} className="scroll-mt-24 text-base font-semibold">
+                {c.title}
+              </h2>
               <div className="mt-1 text-base leading-7 text-foreground">
                 <ItemBody blocks={c.children} />
               </div>
@@ -877,7 +940,7 @@ export function DocsSite({ slug: opened, query, go }: DocsPlace) {
     )
   return (
     <div className="min-h-svh bg-background text-foreground">
-      <DocsHeader slug={slug} onSearch={() => setSearching(true)} />
+      <DocsHeader slug={slug} onSearch={() => setSearching(true)} inBrowser={inBrowser} />
       <div
         className={cn('mx-auto grid max-w-352 border-x', slug && 'lg:grid-cols-(--cols-lead-62)')}
         style={{ minHeight: 'calc(100svh - 3rem)' }}

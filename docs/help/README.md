@@ -1,6 +1,6 @@
 # The documentation
 
-These Markdown files are the documentation of the web app (`src/web`). The same files make the app's Docs area, at `/docs`, and the static docs site that `npm run docs:build` writes to `dist/docs`, with its search and its index for agents, `llms.txt`. A page changes in the same pull request as the screen, word or tool it describes.
+These Markdown files are the documentation of the web app (`src/web`). The same files make the app's Docs area, at `/docs`, the static docs site that `npm run docs:build` writes to `dist/docs`, with its search and its index for agents, `llms.txt`, and the help pages of the public docs ([the site](../../site/README.md#the-docs)). A page changes in the same pull request as the screen, word or tool it describes.
 
 ## The pages
 
@@ -119,6 +119,15 @@ The words follow [Copy](../design/copy.md), the same rules as the screens:
 - a bold phrase has no row in `tests/e2e/docs-controls.ts` (the page, the screen and how it is drawn); `docs-controls.spec.ts` then opens each screen and fails when the control is not there
 - a page uses a word the glossary retires, names the product, has an em dash or says "soon"
 - `llms.txt` misses a page, or the search does not find a page by its words
+
+## The app's Docs area and the public docs
+
+Both read these files and their pictures when they are built, never a copy, so neither can fall behind the commit it was built from. The Docs area has the app's theme control and keeps the same choice as the rest of the app; each picture shows its file for that theme. Each of its pages opens with the release it describes and **Read the latest on the web**, the same page in the public docs, which have the newest release.
+
+Two checks keep them the same, both in the CI job **The site** ([the site](../../site/README.md#the-apps-docs-area)):
+
+- `npm --prefix site run check:app-docs`, after `npm run docs:build` and `npm run site:build`, fails when the two differ in their pages, a page's title, headings, words, pictures or links, when a picture's file is missing from either, or when a link of the app's goes nowhere.
+- `npm run site:build` names each page whose `reviewed` day is more than 90 days old, as a warning, and fails for such a page when it names a setting no code reads or links to a screen the app no longer has ([Due for a check](../../site/README.md#due-for-a-check)).
 
 ## Build and preview the docs site
 

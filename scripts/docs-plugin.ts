@@ -16,8 +16,9 @@ import { readDocs } from './docs-read.ts'
 /*
   The documentation's pages (docs/help) for the app, the static docs site and their tests, read
   once at build time into the page model (src/domain/docs.ts), so neither carries a Markdown
-  reader. `import docs from 'virtual:help-docs'` gives the pages and What's new; a page that
-  cannot be read fails the build with its reason. `import titles from 'virtual:help-docs-titles'`
+  reader. `import docs from 'virtual:help-docs'` gives the pages and What's new, and its `version`
+  the release they describe, package.json's; a page that cannot be read fails the build with its
+  reason. `import titles from 'virtual:help-docs-titles'`
   gives only each page's title by its slug, for a link to a page from the app's first load, which
   does not carry the pages themselves. A page's pictures are the build's own files, so each one
   gets its hashed address, and its size, so the page does not move as it loads.
@@ -47,7 +48,7 @@ export function picturesOf(blocks: readonly DocBlock[]): DocPicture[] {
  * The pages as a module: each picture's file is imported, so the build gives it its address, and
  * the picture carries its size.
  */
-function docsModule(docs: Docs): string {
+function docsModule(docs: Docs, version: string): string {
   const files = new Map<string, string>()
   const name = (path: string) => {
     if (!files.has(path)) files.set(path, `picture${files.size}`)
@@ -68,7 +69,11 @@ function docsModule(docs: Docs): string {
     ([path, id]) => `import ${id} from ${JSON.stringify(join(root, path))}`,
   )
   const body = JSON.stringify(docs).replace(/"\\u0000(picture\d+)\\u0000"/g, '$1')
-  return [...imports, `export default ${body}`].join('\n')
+  return [
+    ...imports,
+    `export const version = ${JSON.stringify(version)}`,
+    `export default ${body}`,
+  ].join('\n')
 }
 
 /** Every page's file, by its slug. README.md is about the pages, not one of them. */
@@ -80,6 +85,12 @@ export function docFiles(): DocFile[] {
       slug: name.replace(/\.md$/, ''),
       source: readFileSync(join(folder, name), 'utf8'),
     }))
+}
+
+/** The release the pages describe: package.json's version, the one place it is written. */
+export function packageVersion(): string {
+  return (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version: string })
+    .version
 }
 
 export function loadDocs(files = docFiles()): Docs {
@@ -97,7 +108,7 @@ export function helpDocs(): Plugin {
       if (module !== resolved && module !== titlesResolved) return
       for (const file of readdirSync(folder)) this.addWatchFile(join(folder, file))
       const docs = loadDocs()
-      if (module === resolved) return docsModule(docs)
+      if (module === resolved) return docsModule(docs, packageVersion())
       const titles = Object.fromEntries(docs.pages.map((p) => [p.slug, p.title]))
       return `export default ${JSON.stringify(titles)}`
     },

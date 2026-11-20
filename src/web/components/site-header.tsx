@@ -4,11 +4,8 @@ import {
   ArrowLeftIcon,
   EllipsisIcon,
   MessageSquareIcon,
-  MonitorIcon,
-  MoonIcon,
   PanelLeftIcon,
   SearchIcon,
-  SunIcon,
 } from '@/components/icons'
 import {
   DropdownMenu,
@@ -16,15 +13,13 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useTheme, type Theme } from '@/lib/theme-context'
+import { ThemeChoices, ThemeMenu } from '@/components/theme-menu'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -62,70 +57,6 @@ function NavToggle() {
         {label} <Kbd>⌘B</Kbd>
       </TooltipContent>
     </Tooltip>
-  )
-}
-
-const themeIcon = { light: SunIcon, dark: MoonIcon, system: MonitorIcon }
-
-/** The three themes as a radio group, for a menu that already exists (an editor's More menu). */
-export function ThemeChoices() {
-  const { theme, setTheme } = useTheme()
-  return (
-    <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>
-      {(['light', 'dark', 'system'] as Theme[]).map((t) => {
-        const I = themeIcon[t]
-        return (
-          <DropdownMenuRadioItem key={t} value={t}>
-            <I />
-            {t[0]!.toUpperCase() + t.slice(1)}
-          </DropdownMenuRadioItem>
-        )
-      })}
-    </DropdownMenuRadioGroup>
-  )
-}
-
-/**
- * The theme, as a small bordered icon button at the right end of every header: its glyph shows the
- * current choice; a tiny menu offers all three with a check, so nothing is hidden behind a cycle.
- */
-function ThemeMenu() {
-  const { theme, setTheme } = useTheme()
-  const Icon = themeIcon[theme]
-  return (
-    <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label={`Theme: ${theme[0]!.toUpperCase()}${theme.slice(1)}`}
-                />
-              }
-            />
-          }
-        >
-          <Icon />
-        </TooltipTrigger>
-        <TooltipContent>Light / Dark / System</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="end" className="w-36">
-        <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>
-          {(['light', 'dark', 'system'] as Theme[]).map((t) => {
-            const I = themeIcon[t]
-            return (
-              <DropdownMenuRadioItem key={t} value={t}>
-                <I />
-                {t[0]!.toUpperCase() + t.slice(1)}
-              </DropdownMenuRadioItem>
-            )
-          })}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 

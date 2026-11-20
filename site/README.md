@@ -2,7 +2,7 @@
 
 Footnote's public site, built with [Astro](https://astro.build): the landing page at the root, and the docs under `/docs/`, built with [Starlight](https://starlight.astro.build) from the Markdown in `docs/`, where the pages stay. It is a static site that needs no service: search and fonts are local files, and no page loads anything from another host.
 
-It is its own npm package with its own lockfile, so its packages stay out of the app's tree and out of the images, and a bad upgrade can only break the site. The app's full test suite leaves it alone: the CI job **The site** checks it (`.github/workflows/ci.yml`), and release-please leaves a change that touches only `site/` out of the changelog. The app's own Docs area, at `/docs` in the app, and `npm run docs:build` do not use it.
+It is its own npm package with its own lockfile, so its packages stay out of the app's tree and out of the images, and a bad upgrade can only break the site. The app's full test suite leaves it alone: the CI job **The site** checks it (`.github/workflows/ci.yml`), and release-please leaves a change that touches only `site/` out of the changelog. The app's own Docs area, at `/docs` in the app, and `npm run docs:build` do not use it, but they say the same ([The app's Docs area](#the-apps-docs-area)).
 
 ## Run it
 
@@ -85,6 +85,28 @@ A page that moved keeps its old address: `movedPages` in `lib/pages.ts` forwards
 Each version of the docs has its own `llms.txt` and `llms-full.txt` (`lib/llms.ts`), written by the functions that write the app's (`src/domain/docs.ts`), over every page of the docs. `/docs/llms.txt` is the newest release's.
 
 Beside each page's title, **Copy as Markdown** copies the page as `llms-full.txt` gives it, for a reader who hands it to an agent. The Markdown is in the page, so copying asks no host for anything. Under each page, Edit page opens its Markdown on GitHub, on `main`, whichever version is read.
+
+### The app's Docs area
+
+The app carries the help pages and What's new in its own Docs area, drawn by its own components (`src/web/pages/docs.tsx`), so a team reads them without leaving the app or the network. It is built from the same Markdown in `docs/help` and the same pictures in `docs/images/docs` when the app is built, never from a copy, so each build of the app shows the pages of its own commit. Each of its pages opens with the release it describes, `Version 0.1`, as the version switcher here names its folders, and **Read the latest on the web**, the same page at `DOCS_URL` (`src/domain/brand.ts`), which opens the newest release.
+
+`scripts/check-app-docs.ts` holds the two to the same words. It reads the app's docs as `npm run docs:build` writes them to `dist/docs`, with the app's components, and this site as `npm run build` writes it at the root of a host, and fails when:
+
+- a page is in one and not the other: the app's are those its `llms.txt` lists, the site's those from `docs/help`;
+- a page's title, its headings and their ids, its words, its pictures (their words and files) or its links to other pages differ;
+- a picture's file is missing from either build, or a link of the app's goes to a page or a heading it does not have. `scripts/check-site.ts` checks the site's own links.
+
+The app's own lists ([includes](../docs/help/README.md#includes-the-apps-own-lists)) are left out of the words, since the app draws each from its source and the site draws its Markdown, which the docs check holds to that source. Both mark them with `data-include`, and the app marks a page's lead and body with `data-docs`. CI runs the check in **The site**, after both builds. To run it yourself, from the repository root:
+
+```sh
+npm run docs:build && npm run site:build && npm --prefix site run check:app-docs
+```
+
+### Due for a check
+
+Every published page says in its front matter the day someone last checked it against the app, `reviewed`. `lib/reviewed.ts` names each page checked more than 90 days ago as a warning, on the run's summary in CI, when the site is built. Such a page fails the build only when it names what the app no longer has, as far as a cheap read can tell: a setting, `FOOTNOTE_` and a name, that no code reads any more, or a link to a screen the app's router does not have. Tools are not read, as the pages also name Ask's own steps, which look like tools. A help page that links to a screen that is gone fails the docs check at any age.
+
+To clear a warning, read the page against the app, mend what moved, and set `reviewed` to that day.
 
 ## The design
 
