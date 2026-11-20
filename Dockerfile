@@ -9,6 +9,7 @@
 FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
+COPY scripts/check-node-version.mjs scripts/
 RUN npm ci
 
 # The web app in http mode: it reads the service through /api/v1 on its own address.
@@ -24,6 +25,7 @@ RUN VITE_API_MODE=http npx vite build \
 FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS service-deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
+COPY scripts/check-node-version.mjs scripts/
 RUN npm ci --omit=dev
 
 FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS service

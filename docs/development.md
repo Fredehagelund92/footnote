@@ -187,7 +187,15 @@ person signs in, makes an access key, and an agent calls the MCP server with it.
 runs it, then starts the demo with `docker compose up` and runs
 `bash tests/image/compose-secrets.sh`, which saves a connector's secret and finds it again in a new
 container. Then `bash tests/image/git-markdown.sh` connects Markdown in Git to a public repository
-with the image's own `git`.
+with the image's own `git`. The same job runs `bash tests/image/company-sign-in.sh`: the image in
+production mode, behind a TLS proxy, signs the people of an invented realm in through Keycloak in a
+browser, by invite, by group, and not at all for an unverified address or someone not invited.
+`bash tests/image/quick-start.sh` types the README's Try it as written, on a computer with
+Docker and nothing else on its ports: the clone, `docker compose up` in the foreground, the demo in
+a browser, Ctrl+C, `docker compose down --volumes` and the ports moved. It prints how long the first
+start took, and `node scripts/time-demo.ts` times the first page, the Context list and a scripted
+answer. CI runs it on Ubuntu in its own job, after `npm ci` on Node 22 has refused and named the
+Node to install.
 
 ## Folder map
 
@@ -225,7 +233,7 @@ tests/
   web/            Vitest, the web app (src/web); its FootnoteApi suite (conformance/), its http run (integration/)
   e2e/            Playwright: the golden job specs and axe, on the mock build and in http mode (http/)
   e2e-seed/       Playwright: the web app on the demo install, as docker compose up gives it
-  image/          the built service image in production mode, behind the web image (production-boot.sh)
+  image/          the built images: production mode (production-boot.sh, company-sign-in.sh) and the README's Try it (quick-start.sh)
 docs/help/            the documentation, Markdown, shown at /docs and as the static docs site (npm run docs:build)
 db/              migrations, grants, prepare.ts (npm run db:migrate) and seed/ (npm run seed, the demo Cube model)
 compose.yaml      docker compose up: PostgreSQL 18, the service and the web app, from Dockerfile and docker/
