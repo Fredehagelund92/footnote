@@ -61,20 +61,20 @@ The public site publishes these, and their words follow the [reader check](../si
 
 Published on the public site too.
 
-| Page                                                                   | What it says                                              |
-| ---------------------------------------------------------------------- | --------------------------------------------------------- |
-| [Connect an agent by hand](reference/connect-by-hand.md)               | The MCP address, signing in, keys for bots and the limits |
-| [Agent tools](help/tools.md)                                           | The six tools, what each takes and gives back             |
-| [HTTP API overview](reference/http-api.md)                             | How to call the API, and what it covers                   |
-| [OpenAPI description](api/openapi.json)                                | Every operation, generated from the contract              |
-| [Connectors](connectors.md)                                            | What a connector is, and what a read may change           |
-| [The Cube connector](connectors/cube.md)                               | Reading definitions from a Cube model                     |
-| [Cube Cloud](connectors/cube-cloud.md)                                 | Reading definitions from a Cube Cloud deployment          |
-| [dbt MetricFlow](connectors/dbt-metricflow.md)                         | Reading definitions from dbt's semantic manifest          |
-| [Static list](connectors/static-list.md)                               | Definitions an admin writes in the form                   |
+| Page                                                        | What it says                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------- |
+| [Connect an agent by hand](reference/connect-by-hand.md)    | The MCP address, signing in, keys for bots and the limits |
+| [Agent tools](help/tools.md)                                | The six tools, what each takes and gives back             |
+| [HTTP API overview](reference/http-api.md)                  | How to call the API, and what it covers                   |
+| [OpenAPI description](api/openapi.json)                     | Every operation, generated from the contract              |
+| [Connectors](connectors.md)                                 | What a connector is, and what a read may change           |
+| [The Cube connector](connectors/cube.md)                    | Reading definitions from a Cube model                     |
+| [Cube Cloud](connectors/cube-cloud.md)                      | Reading definitions from a Cube Cloud deployment          |
+| [dbt MetricFlow](connectors/dbt-metricflow.md)              | Reading definitions from dbt's semantic manifest          |
+| [Static list](connectors/static-list.md)                    | Definitions an admin writes in the form                   |
 | [Markdown in Git and Google Drive](connectors/documents.md) | Documents that become suggestions for owners              |
-| [Connector security](connectors/security.md)                           | What a connector may reach, and how that is enforced      |
-| [Build a connector](connectors/authoring.md)                           | The guide for people and coding agents                    |
+| [Connector security](connectors/security.md)                | What a connector may reach, and how that is enforced      |
+| [Build a connector](connectors/authoring.md)                | The guide for people and coding agents                    |
 
 ## Build Footnote
 
