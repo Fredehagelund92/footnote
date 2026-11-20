@@ -82,6 +82,13 @@ export function hero(root: HTMLElement) {
     root.classList.add('done', 'swap')
     pick(tab)
     if (focus) tab.focus()
+    const live = root.querySelector('#state-live')
+    const shown = root.querySelector(`.person [data-s="${root.dataset.state}"]`)
+    if (live && shown)
+      live.textContent = [
+        shown.querySelector('.ask')?.textContent,
+        shown.querySelector('.state-line')?.textContent,
+      ].join(' ')
     ground?.changed(root.dataset.state === 'missing')
   }
 

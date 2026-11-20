@@ -240,8 +240,10 @@ export function field(hero: HTMLElement): Field | undefined {
     const css = getComputedStyle(document.documentElement)
     W = Math.round(box.width)
     H = Math.round(box.height)
-    canvas.width = W * k
-    canvas.height = H * k
+    if (canvas.width !== W * k || canvas.height !== H * k) {
+      canvas.width = W * k
+      canvas.height = H * k
+    }
     ctx.setTransform(k, 0, 0, k, 0, 0)
     const dark = document.documentElement.dataset.theme === 'dark'
     col = {
@@ -304,7 +306,8 @@ export function field(hero: HTMLElement): Field | undefined {
           hole: holes.some((h) => x > h[0] && x < h[2] && y > h[1] && y < h[3]),
         })
       }
-    kick()
+    if (frame) cancelAnimationFrame(frame)
+    draw(performance.now())
   }
 
   /** From the pointer to the note: along its row, then along the column beside the note. */

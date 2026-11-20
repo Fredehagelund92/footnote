@@ -84,31 +84,31 @@ const shot = (name: string) => {
 
     <div class="pane person">
       <p class="who"><span class="face" aria-hidden="true">S</span>A person asks, in the browser</p>
-      <div data-s="checked">
+      <div data-s="checked" id="p-checked">
         <p class="ask">How did orders in Norway change in October 2026?</p>
-        <p class="state-line"><b>Checked</b>This is written down and checked.</p>
+        <p class="state-line"><b>Checked</b> This is written down and checked.</p>
         <p class="ans"><span class="hlx">A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.</span><a class="fm" href="#note" data-to="n1" aria-label="Footnote 1">1</a></p>
       </div>
-      <div data-s="conflict">
+      <div data-s="conflict" id="p-conflict">
         <p class="ask">How were orders counted in the United Kingdom in October 2026?</p>
-        <p class="state-line"><b>Conflict</b>Two items say different things.</p>
+        <p class="state-line"><b>Conflict</b> Two items say different things.</p>
         <p class="ans"><span class="each">One says they count store credit.<a class="fm" href="#note" data-to="c1" aria-label="Footnote 1">1</a></span><span class="each">One says they are card and cash payments only.<a class="fm" href="#note" data-to="c2" aria-label="Footnote 2">2</a></span></p>
       </div>
-      <div data-s="missing">
+      <div data-s="missing" id="p-missing">
         <p class="ask">Why did returns in Sweden jump in March 2023?</p>
-        <p class="state-line"><b>Not found</b>Nothing is written about this yet.</p>
+        <p class="state-line"><b>Not found</b> Nothing is written about this yet.</p>
         <p class="ans">Nothing is written down for Returns in Sweden in March 2023.<small>That's not the same as there being no reason.</small></p>
       </div>
     </div>
 
     <div class="seam" id="note">
-      <article class="card" data-s="checked" data-anchor="n1">
+      <article class="card" data-s="checked" id="n-checked" data-anchor="n1">
         <p class="head"><span class="fm" aria-hidden="true">1</span><span>Checked by the owner of Sales</span></p>
         <h2>Online sales to Norway stopped on 4 August 2026</h2>
         <blockquote>"Parcels from webshops outside Norway are held at the border from 4 August 2026 until further notice."</blockquote>
         <p class="by">Sales, owned by Jon Abara and Sofia Brandt.<br /><b>Don't conclude:</b> fewer orders in Norway after 4 August do not mean fewer customers.</p>
       </article>
-      <div class="pair" data-s="conflict">
+      <div class="pair" data-s="conflict" id="n-conflict">
         <article class="card" data-anchor="c1">
           <p class="head"><span class="fm" aria-hidden="true">1</span><span>Sales. Written by Jon Abara</span></p>
           <h2>United Kingdom orders count store credit</h2>
@@ -119,7 +119,7 @@ const shot = (name: string) => {
           <h2>United Kingdom orders are card and cash payments only</h2>
         </article>
       </div>
-      <article class="card none" data-s="missing" data-anchor="m1">
+      <article class="card none" data-s="missing" id="n-missing" data-anchor="m1">
         <h2>No footnote</h2>
         <p>Nobody has written this down yet.</p>
       </article>
@@ -127,7 +127,7 @@ const shot = (name: string) => {
 
     <div class="pane agent">
       <p class="who"><span class="chip" aria-hidden="true">&gt;_</span>An agent asks, over MCP</p>
-      <div class="tty" data-s="checked">
+      <div class="tty" data-s="checked" id="a-checked">
         <p class="q">How did orders in Norway change in October 2026?</p>
         <p class="guess"><s>This may reflect weaker marketing performance.</s></p>
         <p class="tool">called <b>get_context</b></p>
@@ -136,7 +136,7 @@ const shot = (name: string) => {
         <p class="kv"><a class="fm" href="#note" data-to="n1" aria-label="Footnote 1">1</a><span class="k">"title":</span> "Online sales to Norway stopped on 4 August 2026"</p>
         <p class="kv"><span class="k">"not_to_conclude":</span> "Fewer orders in Norway after 4 August do not mean fewer customers."</p>
       </div>
-      <div class="tty" data-s="conflict">
+      <div class="tty" data-s="conflict" id="a-conflict">
         <p class="q">How were orders counted in the United Kingdom in October 2026?</p>
         <p class="tool">called <b>get_context</b></p>
         <p class="kv"><span class="k">"status":</span> "conflict"</p>
@@ -144,7 +144,7 @@ const shot = (name: string) => {
         <p class="kv"><a class="fm" href="#note" data-to="c1" aria-label="Footnote 1">1</a><span class="k">"title":</span> "United Kingdom orders count store credit"</p>
         <p class="kv"><a class="fm" href="#note" data-to="c2" aria-label="Footnote 2">2</a><span class="k">"title":</span> "United Kingdom orders are card and cash payments only"</p>
       </div>
-      <div class="tty" data-s="missing">
+      <div class="tty" data-s="missing" id="a-missing">
         <p class="q">Why did returns in Sweden jump in March 2023?</p>
         <p class="tool">called <b>get_context</b></p>
         <p class="kv"><span class="k">"status":</span> "no_match"</p>
@@ -154,12 +154,13 @@ const shot = (name: string) => {
     </div>
 
     <svg class="wires" aria-hidden="true"></svg>
+    <p class="sr-only" id="state-live" aria-live="polite"></p>
 
     <div class="tabs" role="tablist" aria-label="What is written decides the answer">
       <span class="cap" aria-hidden="true">Try what's written:</span>
-      <button type="button" role="tab" aria-selected="true" data-go="checked">Checked</button>
-      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="conflict">Conflict</button>
-      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="missing">Not found</button>
+      <button type="button" role="tab" aria-selected="true" data-go="checked" aria-controls="p-checked n-checked a-checked">Checked</button>
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="conflict" aria-controls="p-conflict n-conflict a-conflict">Conflict</button>
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="missing" aria-controls="p-missing n-missing a-missing">Not found</button>
     </div>
 
     <div class="hero-foot">
@@ -193,7 +194,7 @@ const shot = (name: string) => {
         <p class="r">We count the topic, not the words.</p>
       </div>
     </div>
-    <p class="docs">In the docs:<a href={docs('write-context')}>Write context</a><a href={docs('review-a-suggestion')}>Review a suggestion</a></p>
+    <p class="docs">In the docs: <a href={docs('write-context')}>Write context</a> <a href={docs('review-a-suggestion')}>Review a suggestion</a></p>
   </section>
 
   <div class="sheet">
@@ -213,7 +214,7 @@ const shot = (name: string) => {
           <figure><div class="frame"><picture class="on-light"><source media="(max-width: 640px)" srcset={shot('item-light-phone')} width="780" height="1560" /><img src={shot('item-light')} alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." width="1600" height="1266" loading="lazy" /></picture><picture class="on-dark"><source media="(max-width: 640px)" srcset={shot('item-dark-phone')} width="780" height="1560" /><img src={shot('item-dark')} alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." width="1600" height="1266" loading="lazy" /></picture></div><h3>A context item is short</h3><p>What happened, where and from when, the sentence copied from its source, who owns it and when they last checked. That's all an agent reads.</p></figure>
           <figure><div class="frame"><picture class="on-light"><source media="(max-width: 640px)" srcset={shot('observability-light-phone')} width="780" height="1560" /><img src={shot('observability-light')} alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." width="1600" height="1250" loading="lazy" /></picture><picture class="on-dark"><source media="(max-width: 640px)" srcset={shot('observability-dark-phone')} width="780" height="1560" /><img src={shot('observability-dark')} alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." width="1600" height="1250" loading="lazy" /></picture></div><h3>Gaps come back as counts</h3><p>Observability shows what agents asked about, by topic and answer line, and which questions found nothing. It keeps counts, not the words.</p></figure>
         </div>
-        <p class="docs">In the docs:<a href={docs('how-agents-use-it')}>How agents use it</a></p>
+        <p class="docs">In the docs: <a href={docs('how-agents-use-it')}>How agents use it</a></p>
       </div>
     </section>
 
@@ -229,7 +230,7 @@ const shot = (name: string) => {
           <li><i class="g old" aria-hidden="true"></i><b>Outdated</b><span>The check date has passed, or a definition the item relies on changed.</span><em>The owner looks again: Still true, or Edit.</em></li>
           <li><i class="g failed" aria-hidden="true"></i><b>Not looked up</b><span>Ask couldn't look just now. It doesn't mean nothing is written.</span><em>Try again in a minute.</em></li>
         </ul>
-        <p class="docs">In the docs:<a href={docs('answer-lines')}>The six answer lines</a></p>
+        <p class="docs">In the docs: <a href={docs('answer-lines')}>The six answer lines</a></p>
       </div>
     </section>
 
@@ -246,7 +247,7 @@ const shot = (name: string) => {
           <div><h3>Topics, not words</h3><p>When an agent asks something, we keep what it was about and how often. We don't keep the words. Your own chats in Ask stay in your browser.</p></div>
         </div>
         <p class="know"><b>One thing to know:</b> in this version, everyone who is signed in, and every agent, can read everything that's published. Per-person limits aren't built yet.</p>
-        <p class="docs">In the docs:<a href={docs('domains-and-owners')}>Domains and owners</a><a href={docs('privacy')}>Privacy</a></p>
+        <p class="docs">In the docs: <a href={docs('domains-and-owners')}>Domains and owners</a> <a href={docs('privacy')}>Privacy</a></p>
       </div>
     </section>
   </div>
@@ -265,7 +266,7 @@ const shot = (name: string) => {
           <li><code>suggest_context<i>asks first</i></code><span>Send the owner a suggestion. Nothing goes live until they've checked it.</span></li>
         </ul>
         <p class="after">Connecting takes one command, then one approval in the browser. An admin can switch any tool off for any agent. We tell agents that item text is data, not instructions, and in our test runs they ignored the instructions we planted in items.</p>
-        <p class="docs">In the docs:<a href={docs('connect-an-agent')}>Connect an agent</a><a href={docs('reference/agent-tools')}>The agent tools in detail</a></p>
+        <p class="docs">In the docs: <a href={docs('connect-an-agent')}>Connect an agent</a> <a href={docs('reference/agent-tools')}>The agent tools in detail</a></p>
       </div>
       <div>
         <h3>One line in your AGENTS.md</h3>
@@ -317,7 +318,7 @@ Before you answer a question about company data, call get_context first and use 
     </div>
     <div class="key">
       <p><span><i class="s works" aria-hidden="true"></i>works today</span><span><i class="s built" aria-hidden="true"></i>built or linked, not tried</span><span><i class="s later" aria-hidden="true"></i>designed, not built</span></p>
-      <p>In the docs:<a href={docs('connectors')}>Connectors</a><a href={docs('connectors/authoring')}>Build a connector</a></p>
+      <p>In the docs: <a href={docs('connectors')}>Connectors</a> <a href={docs('connectors/authoring')}>Build a connector</a></p>
     </div>
   </section>
 
