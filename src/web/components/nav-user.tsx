@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { ThemeChoices } from '@/components/site-header'
+import { ThemeChoices } from '@/components/theme-menu'
 import { open } from '@/lib/events'
 import { useApiWrite } from '@/api/queries'
 import { rememberSignedOut } from '@/lib/demo-profiles'

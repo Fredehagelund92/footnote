@@ -38,6 +38,8 @@ export default defineConfig({
     /\/visual-details\.spec\.ts$/,
     /\/visual-review-preview\.spec\.ts$/,
     /\/visual-review-comparison\.spec\.ts$/,
+    // And the Docs area's, of the mock build's pages.
+    /\/visual-docs\.spec\.ts$/,
     // The loop answers' baselines are the mock's examples, opened by their address.
     /\/visual-ask-loop\.spec\.ts$/,
     /\/docs-controls\.spec\.ts$/,

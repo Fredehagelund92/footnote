@@ -18,8 +18,9 @@ import { repoRoot } from './pages.ts'
   What the pages write that Markdown alone does not draw as the docs do: links as lib/links.ts
   resolves them, a note (a quote whose first words are its title in bold) as a note, tables a
   keyboard can scroll and whose cells know their column, a picture in the reader's theme, tabs,
-  and no include markers. What stands between the markers is the list as Markdown, so the page
-  reads as it is.
+  and an include's markers as one element that holds what stands between them: the list as
+  Markdown, so the page reads as it is, marked as the app's Docs area marks it, so the check of the
+  two (scripts/check-app-docs.ts) can tell the app's own lists apart.
 */
 
 const tabsOpen = /^<!--\s*tabs\s*-->$/
@@ -130,7 +131,23 @@ function drawPicture(node: Paragraph, image: Image, from: string) {
   }
 }
 
-const includeMarker = /^<!--\s*\/?include\b.*-->$/
+const includeOpen = /^<!--\s*include\s+([a-z-]+)(?::.*?)?\s*-->$/
+const includeClose = /^<!--\s*\/include\s*-->$/
+
+/** Each include's region, between its two markers, as one element named for the list it holds. */
+function drawIncludes(tree: Root) {
+  for (let at = 0; at < tree.children.length; at++) {
+    const open = tree.children[at]!
+    const name = open.type === 'html' ? includeOpen.exec(open.value.trim())?.[1] : undefined
+    if (!name) continue
+    const end = tree.children.findIndex(
+      (node, i) => i > at && node.type === 'html' && includeClose.test(node.value.trim()),
+    )
+    if (end === -1) throw new Error(`<!-- include ${name} --> is not closed`)
+    const inside = tree.children.slice(at + 1, end)
+    tree.children.splice(at, end - at + 1, element('div', { dataInclude: name }, inside))
+  }
+}
 
 const isNote = (node: BlockContent | RootContent | undefined) => {
   const lead = node?.type === 'paragraph' ? (node as Paragraph).children[0] : undefined
@@ -158,16 +175,8 @@ export function remarkFootnoteDocs(context: LinkContext) {
   return (tree: Root, file: VFile) => {
     const from = relative(repoRoot, file.path)
     drawTabs(tree)
+    drawIncludes(tree)
     visit(tree, (node, index, parent) => {
-      if (
-        node.type === 'html' &&
-        includeMarker.test(node.value.trim()) &&
-        parent &&
-        index != null
-      ) {
-        parent.children.splice(index, 1)
-        return [SKIP, index]
-      }
       if (node.type === 'link' && parent && index != null) {
         const url = resolveLink(node.url, from, context)
         if (url !== undefined) node.url = url

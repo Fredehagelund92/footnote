@@ -203,7 +203,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            site/package-lock.json
+            package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
@@ -218,6 +220,13 @@ jobs:
       # At the root of a host, as the smoke test and a team without internet access serve it.
       - name: Built at the root of a host
         run: npm run build
+      # The app's Docs area is built from the same pages by the app's own components, so this
+      # builds it as npm run docs:build does and compares the two, page by page (site/README.md).
+      - name: The app's packages and its docs, built
+        working-directory: .
+        run: npm ci && npm run docs:build
+      - name: The app's Docs area says what the site says (scripts/check-app-docs.ts)
+        run: npm run check:app-docs
       - uses: ./.github/actions/playwright
         with:
           directory: site
