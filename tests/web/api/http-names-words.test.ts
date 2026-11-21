@@ -17,14 +17,16 @@ describe('the words after names are published', () => {
       '/api/v1/terms': { terms: [] },
       '/api/v1/inbox/names/decide': { edition: 'today.1', accepted: 1, leftOut: 0 },
     }
-    const fetch: typeof globalThis.fetch = async (input, init) => {
+    const fetch: typeof globalThis.fetch = (input, init) => {
       const request = new Request(input, init)
       const path = new URL(request.url).pathname
       if (request.method === 'GET') reads.push(path)
-      return new Response(JSON.stringify(answers[path] ?? {}), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      })
+      return Promise.resolve(
+        new Response(JSON.stringify(answers[path] ?? {}), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )
     }
     const api = createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch })
     const wordsRead = () => reads.filter((path) => path === '/api/v1/vocabulary').length

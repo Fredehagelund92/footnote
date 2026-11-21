@@ -1070,7 +1070,7 @@ function unreadOf(
   /** The wider read it made, when it was asked to and could. */
   tried?: { searched: readonly Searched[]; widened: z.infer<typeof widenedSchema> },
 ) {
-  const shownTerms = view.bundle.terms.filter((t) => isShown(view, t.key))
+  const shownTerms = speakable(view)
   const unknown = issues.flatMap((i) =>
     'input' in i && typeof i.input === 'string' ? [i.input] : [],
   )
@@ -1412,8 +1412,11 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
         .sort((a, b) => a.name.localeCompare(b.name))
       valueKeys.push(...values.slice(0, VALUES_SHOWN).map((v) => v.key))
       const group = term?.group ?? null
-      const kin = group
-        ? catalogue.terms.filter((t) => t.group?.key === group.key && t.key !== d.id)
+      const kin =
+        group && !term?.family
+          ? catalogue.terms.filter(
+              (t) => t.group?.key === group.key && t.key !== d.id && !t.family,
+            )
         : []
       relatedKeys.push(...kin.map((t) => t.key))
       return {
@@ -1713,7 +1716,7 @@ const askedOutput = z.object({
 
 async function agentQuestions(view: View, reads: ToolReads, input: z.output<typeof askedInput>) {
   const { asked, minimum } = await reads.asked()
-  const terms = view.bundle.terms.filter((t) => isShown(view, t.key))
+  const terms = speakable(view)
   const keysOf = (n: string) =>
     terms.filter((t) => namesOf(t).includes(normalizeName(n))).map((t) => t.key)
   const unknown = (input.about ?? []).filter((n) => !keysOf(n).length)
@@ -1728,7 +1731,11 @@ async function agentQuestions(view: View, reads: ToolReads, input: z.output<type
     )
   const about = (input.about ?? []).map(keysOf)
   const rows = asked.rows.filter((r) => {
-    const named = new Set([...r.scope.metrics, ...Object.values(r.scope.filters).flat()])
+    const named = new Set(
+      [...r.scope.metrics, ...Object.values(r.scope.filters).flat()].map(
+        (k) => view.familyOf.get(k) ?? k,
+      ),
+    )
     return (
       about.every((keys) => keys.some((k) => named.has(k))) &&
       (!input.found_nothing || r.nothing === null || r.nothing > 0)

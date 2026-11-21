@@ -307,23 +307,26 @@ describe('a family of metrics in Ask (FR-142)', () => {
   }
   const reads = {
     ...noReads,
-    bundle: async () => ({
-      items: [],
-      terms: [
-        term('group:revenue', 'Revenue', 'metric_group'),
-        ...variants.map((key) => term(key, `${key} variant`, 'metric')),
-      ],
-    }),
-    index: async () => ({ items: [] }),
-    areas: async () => [{ id: 'area_sales', name: 'Sales', ownerIds: [] }],
-    people: async () => [],
-    catalogue: async () => ({ terms: [family] }),
-    glossary: async () => ({ terms: [] }),
-    records: async () => [
-      item({ id: 'itm_f', title: 'On the family', metrics: ['group:revenue'] }),
-      item({ id: 'itm_v', title: 'On one variant', metrics: ['metric:revenue_eur_web'] }),
-      item({ id: 'itm_o', title: 'On orders', metrics: ['metric:orders'] }),
-    ],
+    bundle: () =>
+      Promise.resolve({
+        items: [],
+        terms: [
+          term('group:revenue', 'Revenue', 'metric_group'),
+          ...variants.map((key) => term(key, `${key} variant`, 'metric')),
+        ],
+      }),
+    index: () => Promise.resolve({ items: [] }),
+    areas: () => Promise.resolve([{ id: 'area_sales', name: 'Sales', ownerIds: [] }]),
+    people: () => Promise.resolve([]),
+    catalogue: () => Promise.resolve({ terms: [family] }),
+    glossary: () => Promise.resolve({ terms: [] }),
+    asked: () => Promise.resolve({ asked: { week: '2026-10-19', rows: [] }, minimum: 5 }),
+    records: () =>
+      Promise.resolve([
+        item({ id: 'itm_f', title: 'On the family', metrics: ['group:revenue'] }),
+        item({ id: 'itm_v', title: 'On one variant', metrics: ['metric:revenue_eur_web'] }),
+        item({ id: 'itm_o', title: 'On orders', metrics: ['metric:orders'] }),
+      ]),
   } as unknown as ToolReads
   const tools = createAskTools(reads)
 
@@ -348,6 +351,8 @@ describe('a family of metrics in Ask (FR-142)', () => {
 
   it('never offers a variant as the closest name', async () => {
     const result = await tools.run('records', { about: ['Revenu'], show: 'count' })
-    expect(result).toMatchObject({ error: expect.stringContaining('The closest is Revenue.') })
+    expect((result as { error: string }).error).toContain('The closest is Revenue.')
+    const asked = await tools.run('agent_questions', { about: ['Revenu'] })
+    expect((asked as { error: string }).error).toContain('The closest is Revenue.')
   })
 })

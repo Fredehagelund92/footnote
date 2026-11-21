@@ -282,7 +282,9 @@ export function createCatalogueService(
         id: row.key.slice(row.key.indexOf(':') + 1),
         name: row.name,
         aliases: row.aliases,
-        group: view ? { key: `view:${view}`, name: view } : null,
+        group: view
+          ? { key: `view:${view}`, name: `${view.charAt(0).toUpperCase()}${view.slice(1)}` }
+          : null,
         family: {
           by: axes.by.map((axis) =>
             axis.ref ? (dimensionNames.get(axis.ref) ?? axisWords(axis)) : axisWords(axis),

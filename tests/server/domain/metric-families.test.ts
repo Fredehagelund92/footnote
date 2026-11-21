@@ -208,9 +208,9 @@ describe('families on the Names card', () => {
     ])
     const [flagged] = sourceNames(shop([['revenue', 'Revenue', 'a']]), [], taken, new Set())
     expect(flagged).toMatchObject({ kind: 'metric_group', state: 'flagged' })
-    expect(flagged!.flags).toEqual([
-      { code: 'variants', message: expect.stringContaining('2 of its variants have names already in use') },
-    ])
+    expect(flagged!.flags).toHaveLength(1)
+    expect(flagged!.flags[0]!.code).toBe('variants')
+    expect(flagged!.flags[0]!.message).toContain('2 of its variants have names already in use')
     expect(JSON.stringify(flagged!.flags)).not.toMatch(/\(EUR\)|\(USD\)|Turnover|Sales/)
   })
 
