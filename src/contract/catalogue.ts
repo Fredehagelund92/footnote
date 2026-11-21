@@ -6,6 +6,11 @@ import {
   termDomainSources,
 } from '../domain/catalogue.ts'
 import { familyFoundKinds } from '../domain/family-found.ts'
+import {
+  FAMILY_WORDS_MAX,
+  familyMeaningChoices,
+  familyMeaningSources,
+} from '../domain/family-meaning.ts'
 import type { ItemKind } from '../domain/item.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 
@@ -91,6 +96,40 @@ export const catalogueVariantSchema = z.object({
   items: z.number(),
 })
 
+/**
+ * What a family means (FR-142, M1), worked out at each read: the words its source declares for it,
+ * else an owner's choice, else the words most of its variants share, else the base variant's.
+ */
+export const familyMeaningSchema = z.object({
+  source: z.enum(familyMeaningSources),
+  /**
+   * Its meaning; null for none. The variants' common words write each value as what it stands for,
+   * in braces, by a name of the family's `by`: "Money taken in {Currency} via {Channel}". Any other
+   * source's words are as written.
+   */
+  words: z.nullable(z.string()),
+  /** The variant whose own words are the meaning, by key: of `member` and `base`; else null. */
+  member: z.nullable(z.string()),
+  /** The words most variants share, values aside, and how many share them; null when most don't. */
+  common: z.nullable(z.object({ words: z.string(), agree: z.number() })),
+  /** The variant the others are converted from, by key; null when no one variant is. */
+  base: z.nullable(z.string()),
+  /** The variants whose own words say something else than the meaning, by key. */
+  differing: z.array(z.string()),
+  /** What an owner chose last, and who and when; null when no owner has chosen. */
+  chosen: z.nullable(
+    z.object({
+      choice: z.enum(familyMeaningChoices),
+      member: z.nullable(z.string()),
+      words: z.nullable(z.string()),
+      personId: z.string(),
+      at: z.string(),
+    }),
+  ),
+  /** How many times owners chose: send it back with a change, 0 before the first. */
+  revision: z.number(),
+})
+
 export const catalogueTermSchema = z.object({
   /** The vocabulary key: `metric:orders`, `dim:market`. */
   key: z.string(),
@@ -104,8 +143,8 @@ export const catalogueTermSchema = z.object({
   /**
    * A family of metrics (FR-142): one entry, `group:revenue`, for its variants, which are listed
    * here and nowhere else in the catalogue; `by` is what tells them apart, in words ("Currency",
-   * "Channel"). Its `definition` is the variant that speaks for it, without that variant's words.
-   * Null for any other term.
+   * "Channel"). Its `definition` is the variant that speaks for it, without that variant's words:
+   * the family says what it means in `meaning`. Null for any other term.
    */
   family: z.nullable(
     z.object({
@@ -126,6 +165,7 @@ export const catalogueTermSchema = z.object({
        */
       conversions: z.array(z.object({ from: z.string(), to: z.string(), by: z.string() })),
       variants: z.array(catalogueVariantSchema),
+      meaning: familyMeaningSchema,
     }),
   ),
   /** The vocabulary's area first, the source's hint second, no domain third. */
@@ -218,6 +258,43 @@ export const definitionRelationsSchema = z.object({
   relations: z.array(definitionRelationSchema),
 })
 
+const familyKey = z.string().check(z.regex(/^group:[a-z0-9_]+$/))
+
+/**
+ * An owner's choice of what a family means: worked out by the rule again (`auto`), one variant's
+ * own words (`member`, its key), or words written for the family (`words`). `revision` is the
+ * meaning's as the person last read it.
+ */
+export const familyMeaningInputSchema = z.strictObject({
+  key: familyKey,
+  choice: z.enum(familyMeaningChoices),
+  member: z.optional(z.string().check(z.regex(/^metric:[a-z0-9_]+$/))),
+  words: z.optional(
+    z
+      .string()
+      .check(
+        z.refine(
+          (words) => words.trim().length >= 1 && [...words.trim()].length <= FAMILY_WORDS_MAX,
+        ),
+      ),
+  ),
+  revision: z.number().check(z.int(), z.minimum(0)),
+})
+
+export const familyKeyInputSchema = z.strictObject({ key: familyKey })
+
+/** One choice of what a family means, as it was made. */
+export const familyMeaningVersionSchema = z.object({
+  revision: z.number(),
+  choice: z.enum(familyMeaningChoices),
+  /** The variant whose words were chosen, by key, and by its name now; else both null. */
+  member: z.nullable(z.string()),
+  memberName: z.nullable(z.string()),
+  words: z.nullable(z.string()),
+  personId: z.string(),
+  at: z.string(),
+})
+
 export type Catalogue = z.infer<typeof catalogueSchema>
 export type CatalogueTerm = z.infer<typeof catalogueTermSchema>
 export type CatalogueVariant = z.infer<typeof catalogueVariantSchema>
@@ -226,3 +303,6 @@ export type CatalogueSource = z.infer<typeof catalogueSourceSchema>
 export type CatalogueValue = z.infer<typeof catalogueValueSchema>
 export type DefinitionRelation = z.infer<typeof definitionRelationSchema>
 export type DefinitionRelations = z.infer<typeof definitionRelationsSchema>
+export type FamilyMeaningData = z.infer<typeof familyMeaningSchema>
+export type FamilyMeaningInput = z.infer<typeof familyMeaningInputSchema>
+export type FamilyMeaningVersion = z.infer<typeof familyMeaningVersionSchema>

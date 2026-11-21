@@ -311,6 +311,17 @@ describe('a family of metrics in Ask (FR-142)', () => {
         state: null,
         items: 0,
       })),
+      // No words most variants share, and no base: no meaning, so every variant's own words.
+      meaning: {
+        source: 'none',
+        words: null,
+        member: null,
+        common: null,
+        base: null,
+        differing: ['metric:revenue_usd_web'],
+        chosen: null,
+        revision: 0,
+      },
     },
   }
   const reads = {
@@ -350,6 +361,57 @@ describe('a family of metrics in Ask (FR-142)', () => {
     expect(revenue!.words).toBe(
       "A family of 3 near-identical metrics, one for each currency and channel. An item about it applies to every one of them. USD, web: The EUR web amount multiplied by the row's exchange rate.",
     )
+  })
+
+  it("gives a family's meaning first, then the words of the variants that say something else", async () => {
+    const meaning = {
+      ...family.family.meaning,
+      source: 'common',
+      words: 'Money taken in {Currency} via {Channel}.',
+      common: { words: 'Money taken in {Currency} via {Channel}.', agree: 2 },
+    }
+    const withMeaning = createAskTools({
+      ...reads,
+      catalogue: () =>
+        Promise.resolve({ terms: [{ ...family, family: { ...family.family, meaning } }] }),
+    } as unknown as ToolReads)
+    const result = await withMeaning.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { words: string | null }[] }).definitions
+    expect(revenue!.words).toBe(
+      "Money taken in each currency via each channel. A family of 3 near-identical metrics, one for each currency and channel. An item about it applies to every one of them. 1 variant says something else: USD, web: The EUR web amount multiplied by the row's exchange rate.",
+    )
+  })
+
+  it('lists the variants that say something else by their values, never as all of them', async () => {
+    const same = (key: string, description: string | null) => ({
+      ...family.family.variants[0]!,
+      key,
+      description,
+    })
+    const meaning = {
+      ...family.family.meaning,
+      source: 'declared',
+      words: 'Money taken in {Currency} via {Channel}.',
+      differing: ['metric:revenue_aed_app', 'metric:revenue_eur_web'],
+    }
+    const variantsSaying = [
+      { ...same('metric:revenue_aed_app', 'Money taken in AED via app.'), values: ['AED', 'app'] },
+      { ...same('metric:revenue_eur_web', 'Money taken in EUR via web.'), values: ['EUR', 'web'] },
+      { ...same('metric:revenue_usd_web', null), values: ['USD', 'web'] },
+    ]
+    const withMeaning = createAskTools({
+      ...reads,
+      catalogue: () =>
+        Promise.resolve({
+          terms: [{ ...family, family: { ...family.family, meaning, variants: variantsSaying } }],
+        }),
+    } as unknown as ToolReads)
+    const result = await withMeaning.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { words: string | null }[] }).definitions
+    expect(revenue!.words).toContain(
+      '2 variants say something else: AED, app: Money taken in AED via app. EUR, web: Money taken in EUR via web.',
+    )
+    expect(revenue!.words).not.toContain('each other variant')
   })
 
   it('counts the items on a family and on any of its variants under the family name', async () => {

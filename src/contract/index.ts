@@ -193,6 +193,9 @@ import {
   catalogueSchema,
   definitionRelationsInputSchema,
   definitionRelationsSchema,
+  familyKeyInputSchema,
+  familyMeaningInputSchema,
+  familyMeaningVersionSchema,
 } from './catalogue.ts'
 import { searchAllInputSchema, searchResultsSchema } from './search.ts'
 import { scopeSearchInputSchema, scopeSearchSchema } from './scope.ts'
@@ -359,6 +362,9 @@ export type {
   CatalogueVariant,
   DefinitionRelation,
   DefinitionRelations,
+  FamilyMeaningData,
+  FamilyMeaningInput,
+  FamilyMeaningVersion,
 } from './catalogue.ts'
 export type {
   DeletedTerm,
@@ -397,6 +403,11 @@ const read = oc.$meta<OperationMeta>({ scope: 'read' }).errors({
   NOT_FOUND: { message: refusals.notFound },
 })
 
+const familyNotFound = {
+  NOT_FOUND: {
+    message: "We couldn't find this family of metrics. Its tool may no longer read it.",
+  },
+}
 const notFound = {
   NOT_FOUND: {
     message:
@@ -1209,6 +1220,34 @@ export const contract = {
       .errors(notFound)
       .input(definitionRelationsInputSchema)
       .output(definitionRelationsSchema),
+    setFamilyMeaning: read
+      .meta({ scope: 'propose' })
+      .route({
+        method: 'PUT',
+        path: '/definitions/families/{key}/meaning',
+        tags: ['library'],
+        summary:
+          'Choose what a family of metrics means: an owner of its domain or an admin (FR-142)',
+      })
+      .errors({
+        ...familyNotFound,
+        CONFLICT: {
+          message:
+            'Someone changed what this family means after you opened it, or its tool writes it.',
+        },
+      })
+      .input(familyMeaningInputSchema)
+      .output(familyMeaningVersionSchema),
+    familyMeaningHistory: read
+      .route({
+        method: 'GET',
+        path: '/definitions/families/{key}/meaning/history',
+        tags: ['library'],
+        summary: 'What a family of metrics was chosen to mean, newest first',
+      })
+      .errors(familyNotFound)
+      .input(familyKeyInputSchema)
+      .output(z.array(familyMeaningVersionSchema)),
   },
   areas: {
     list: read

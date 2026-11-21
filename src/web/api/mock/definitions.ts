@@ -1,4 +1,6 @@
+import type { FamilyMeaningVersion } from '@contract/catalogue'
 import { REPOSITORY_URL } from '@domain/brand'
+import { FAMILY_WORDS_MAX, familyMeaning, type FamilyMeaningChoice } from '@domain/family-meaning'
 import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
@@ -6,7 +8,9 @@ import { term, TERMS } from './data/terms'
 import { familyDefinitions, variantDefinitions } from './data/variants'
 import { dbtFolderDefinitions } from './data/dbt-folder'
 import { ApiError } from '@/api/errors'
+import { today } from '@/lib/today'
 import type { DomainId } from '@/model/items'
+import { dateLabel } from '@/model/validity'
 import {
   checkSynonym,
   checkWord,
@@ -81,10 +85,58 @@ const same = (a: string, b: string) => termWord(a) === termWord(b)
 /** The definitions tool whose read finds the demo's families. */
 const FAMILIES_DEFINITIONS = 'dbt-metricflow'
 
+/** An owner's choice of what a family means, as the service keeps it, variants by name. */
+type Chosen = FamilyMeaningVersion
+
+/** A family with its meaning worked out as the catalogue does (M1), variants by name. */
+function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
+  const family = d.family
+  if (!family) return d
+  const meaning = familyMeaning({
+    by: family.by,
+    variants: family.variants.map((v) => ({
+      key: v.name,
+      values: v.values,
+      description: v.description ?? null,
+    })),
+    conversions: family.conversions ?? [],
+    declared: null,
+    chosen: chosen ?? null,
+  })
+  return {
+    ...d,
+    family: {
+      ...family,
+      meaning: {
+        source: meaning.source,
+        words: meaning.words,
+        ...(meaning.member ? { member: meaning.member } : {}),
+        ...(meaning.common ? { common: meaning.common } : {}),
+        ...(meaning.base ? { base: meaning.base } : {}),
+        differing: meaning.differing,
+        ...(chosen
+          ? {
+              chosen: {
+                choice: chosen.choice,
+                ...(chosen.member ? { member: chosen.member } : {}),
+                ...(chosen.words ? { words: chosen.words } : {}),
+                by: chosen.personId,
+                on: dateLabel(chosen.at.slice(0, 10)),
+              },
+            }
+          : {}),
+        revision: chosen?.revision ?? 0,
+      },
+    },
+  }
+}
+
 export { seed as definitionSeed }
 
 export function createDefinitions() {
   let all = seed
+  /** Every choice of what a family means, by the family's name, newest last. */
+  const meanings = new Map<string, Chosen[]>()
 
   return {
     list: () => all,
@@ -109,12 +161,70 @@ export function createDefinitions() {
       if (!all.some((d) => d.family))
         all = [
           ...all,
-          ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) => ({
-            ...d,
-            connector: FAMILIES_DEFINITIONS,
-          })),
+          ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) =>
+            withMeaning({ ...d, connector: FAMILIES_DEFINITIONS }, meanings.get(d.name)?.at(-1)),
+          ),
         ]
     },
+
+    /**
+     * Chooses what a family means, as the service does: one variant with words of its own, words
+     * written for the family, or the rule again, against the meaning the person read.
+     */
+    setFamilyMeaning(
+      input: {
+        name: string
+        choice: FamilyMeaningChoice
+        member?: string
+        words?: string
+        revision: number
+      },
+      by: string,
+    ) {
+      const d = all.find((x) => x.family && same(x.name, input.name))
+      if (!d?.family)
+        throw new ApiError('not-found', `“${input.name}” isn't a family in Definitions any more.`)
+      const words = input.choice === 'written' ? input.words?.trim() : undefined
+      if (input.choice === 'written' && (!words || [...words].length > FAMILY_WORDS_MAX))
+        throw new ApiError(
+          'invalid',
+          `Write the family's meaning in 1 to ${FAMILY_WORDS_MAX} characters.`,
+        )
+      const member =
+        input.choice === 'member'
+          ? d.family.variants.find((v) => input.member && same(v.name, input.member))
+          : undefined
+      if (input.choice === 'member' && !member)
+        throw new ApiError('not-found', 'That variant is no longer in this family.')
+      if (member && !member.description)
+        throw new ApiError(
+          'invalid',
+          'That variant has no words of its own in its tool. Choose another.',
+        )
+      const kept = meanings.get(d.name) ?? []
+      if ((kept.at(-1)?.revision ?? 0) !== input.revision)
+        throw new ApiError(
+          'conflict',
+          'Someone changed what this family means after you opened it. Look at it again, then try again.',
+        )
+      const chosen: Chosen = {
+        revision: input.revision + 1,
+        choice: input.choice,
+        member: member?.name ?? null,
+        memberName: member?.name ?? null,
+        words: words ?? null,
+        personId: by,
+        at: `${today()}T09:00:00.000Z`,
+      }
+      meanings.set(d.name, [...kept, chosen])
+      all = all.map((x) => (x === d ? withMeaning(x, chosen) : x))
+    },
+
+    /** Every choice of what a family means, newest first. */
+    familyMeaningHistory: (name: string) =>
+      [
+        ...(meanings.get(all.find((x) => x.family && same(x.name, name))?.name ?? '') ?? []),
+      ].reverse(),
 
     /** Saves a term; a renamed one replaces the old entry where it stood. Synced items are never saved here. */
     saveTerm(previous: string | undefined, next: Definition) {

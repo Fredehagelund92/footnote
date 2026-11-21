@@ -186,7 +186,7 @@ before any name is published.
    (`{{ Dimension('order__currency_code') }} = 'EUR'`) its variant: the mark of its calculation with
    those literals left out, and each literal with that dimension. Metrics of one semantic model
    with one such mark are one family (FR-142). A metric whose `config.meta.footnote` names a family
-   (`family`, `by`) gets that family as written (D9); one that cannot be kept is none, warned as
+   (`family`, `by`, and `family_description` for what it means) gets that family as written (D9); one that cannot be kept is none, warned as
    `invalid_family`. A metric also gets what it is built from, by name
    (FR-143): a ratio's numerator and denominator and the inputs of a derived, cumulative or
    conversion metric by ref, and the columns its own `expr` reads (a legacy metric's, its

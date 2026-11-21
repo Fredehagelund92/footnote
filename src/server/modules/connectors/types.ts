@@ -83,9 +83,10 @@ export const definitionSchema = z.object({
     .optional(),
   /**
    * The family the source declares a metric is a variant of (`meta.footnote`, FR-142, D9): its
-   * name as the source writes it, and what tells this variant apart, as `variant.by` does. Kept
-   * read only and replaced at each read; null or absent when it declares none, or when the read
-   * left out a declaration that does not hold (`withDeclaredFamilies`).
+   * name as the source writes it, what tells this variant apart, as `variant.by` does, and what
+   * the family means, in the source's words for it (`family_description`), when it writes them.
+   * Kept read only and replaced at each read; null or absent when it declares none, or when the
+   * read left out a declaration that does not hold (`withDeclaredFamilies`).
    */
   family: z
     .object({
@@ -94,6 +95,10 @@ export const definitionSchema = z.object({
         .min(1)
         .refine((name) => Array.from(name).length <= FAMILY_NAME_MAX && !/[\n\r]/.test(name)),
       by: variantBy,
+      description: z
+        .string()
+        .refine((value) => value.trim().length > 0 && Array.from(value).length <= 500)
+        .optional(),
     })
     .nullable()
     .optional(),

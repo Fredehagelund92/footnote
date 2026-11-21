@@ -18,6 +18,7 @@ import {
   type ObsValuesInput,
   type ScopeSearchInput,
 } from '@/api/client'
+import { ApiError } from '@/api/errors'
 import { reportSignedOut } from '@/api/query-client'
 import type { AskInput } from '@/model/ask'
 import type { FigureAsk } from '@/model/figures'
@@ -608,6 +609,8 @@ export const invalidations: {
   resolveComment: () => [queryKeys.comments],
   markThreadSeen: () => [queryKeys.comments],
   markMentionSeen: () => comments,
+  // What a family means is what Ask reads for it too.
+  setFamilyMeaning: () => definitions,
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
@@ -830,6 +833,16 @@ export function useWrite() {
       result = await (api[operation] as (input: WriteInput<K>) => Promise<WriteResult<K>>)(input)
     } catch (error) {
       reportSignedOut(queryClient, error)
+      if (
+        operation === 'setFamilyMeaning' &&
+        error instanceof ApiError &&
+        error.kind === 'conflict'
+      )
+        await Promise.all(
+          coveringKeys(invalidations[operation](input, undefined as WriteResult<K>)).map(
+            (queryKey) => queryClient.invalidateQueries({ queryKey }),
+          ),
+        )
       throw error
     }
     await invalidateAfter(queryClient, operation, input, result)
