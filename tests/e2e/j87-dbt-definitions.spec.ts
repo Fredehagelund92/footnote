@@ -49,7 +49,7 @@ test('backticks in a description read as code, in the list, the panel and the pa
   await dbtList(page)
   const main = page.getByRole('main')
   const row = main.getByRole('row', {
-    name: new RegExp(`^Select ${SPEND.replace(/[()]/g, '\\$&')}`),
+    name: new RegExp(`^Select ${SPEND.replace(/[\\()]/g, '\\$&')}`),
   })
   await expect(row.locator('code')).toHaveText(['spend_local', 'TEST'])
   await expect(row).not.toContainText('`')
