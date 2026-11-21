@@ -1,6 +1,8 @@
 import * as z from 'zod/mini'
 import type { RuntimeDefinition, RuntimeMessage } from '../../domain/connector-runtime.ts'
 import {
+  BUILT_FROM_MAX,
+  columnsOf,
   descriptionCopy,
   domainHint,
   filterVariant,
@@ -247,6 +249,12 @@ interface Resolved {
    * filters compare left out, and those literals. Null when its filters compare none.
    */
   variant: { shape: string; by: { name: string; value: string }[] } | null
+  /**
+   * What it is built from, by name (CON-207): the metrics it takes, and the columns its own
+   * calculation or the measures it names read. Null for a type Footnote does not know, so it is
+   * never said wrong.
+   */
+  builtFrom: { metrics: string[]; columns: string[] } | null
 }
 
 /**
@@ -268,6 +276,11 @@ async function resolveMetrics(
       measureDigests.get(name) ?? meaningMark(simpleCalculation(owned.model, owned.measure))
     measureDigests.set(name, digest)
     return digest
+  }
+
+  const measureColumns = (input: Input) => {
+    const { measure } = measures.get(input.name)!
+    return columnsOf(measure.expr ?? measure.name)
   }
 
   const resolve = async (metric: Metric): Promise<Resolved | null> => {
@@ -316,6 +329,7 @@ async function resolveMetrics(
     let meaning: unknown
     let valueType: string | null = null
     let known = true
+    let builtFrom: Resolved['builtFrom'] = null
     if (metric.type === 'simple') {
       const aggregated = params.metric_aggregation_params
       const legacy = named ? measures.get(named.name) : undefined
@@ -334,6 +348,7 @@ async function resolveMetrics(
       const agg = source.agg ?? null
       known = agg !== null && aggregations.has(agg)
       valueType = known ? agg : null
+      builtFrom = { metrics: [], columns: columnsOf(source.expr ?? source.name) }
     } else if (metric.type === 'ratio') {
       if (!params.numerator || !params.denominator) return null
       meaning = {
@@ -341,6 +356,7 @@ async function resolveMetrics(
         numerator: await refer(params.numerator, true),
         denominator: await refer(params.denominator, true),
       }
+      builtFrom = { metrics: [params.numerator.name, params.denominator.name], columns: [] }
     } else if (metric.type === 'derived') {
       const inputs = await Promise.all(
         (params.metrics ?? []).map(async (input) => ({
@@ -353,6 +369,11 @@ async function resolveMetrics(
         expr: params.expr,
         inputs: inputs.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
       }
+      // Its inputs in name order: the order the file lists them in says nothing.
+      builtFrom = {
+        metrics: (params.metrics ?? []).map((input) => input.name).sort(),
+        columns: [],
+      }
     } else if (metric.type === 'cumulative') {
       const input = params.cumulative_type_params?.metric
       if (!input && !named) return null
@@ -362,6 +383,9 @@ async function resolveMetrics(
         periodAgg: params.cumulative_type_params?.period_agg,
         input: input ? await refer(input, true) : await refer(withoutCarried(named!), false),
       }
+      builtFrom = input
+        ? { metrics: [input.name], columns: [] }
+        : { metrics: [], columns: measureColumns(named!) }
     } else if (metric.type === 'conversion') {
       const conversion = params.conversion_type_params
       const base = conversion?.base_metric ?? conversion?.base_measure
@@ -375,6 +399,16 @@ async function resolveMetrics(
         constantProperties: conversion?.constant_properties,
         base: await refer(base, !!conversion?.base_metric),
         conversion: await refer(converted, !!conversion?.conversion_metric),
+      }
+      const parts = [
+        { input: base, isMetric: !!conversion?.base_metric },
+        { input: converted, isMetric: !!conversion?.conversion_metric },
+      ]
+      builtFrom = {
+        metrics: parts.filter((part) => part.isMetric).map((part) => part.input.name),
+        columns: parts
+          .filter((part) => !part.isMetric)
+          .flatMap((part) => measureColumns(part.input)),
       }
     } else {
       // A type a newer dbt added: it exists, so it is kept, hashed as dbt writes it.
@@ -397,7 +431,14 @@ async function resolveMetrics(
     const variant = found
       ? { shape: await meaningMark({ ...(meaning as object), filter: found.shape }), by: found.by }
       : null
-    return { models: owners, calculation: await meaningMark(meaning), valueType, known, variant }
+    return {
+      models: owners,
+      calculation: await meaningMark(meaning),
+      valueType,
+      known,
+      variant,
+      builtFrom,
+    }
   }
 
   // Each metric waits for the metrics it names; when the last arrives, it is ready.
@@ -464,6 +505,7 @@ export async function mapDefinitions(
     valueType: string | null,
     meaning: unknown,
     variant: RuntimeDefinition['variant'] = null,
+    builtFrom: RuntimeDefinition['builtFrom'] = null,
   ) => {
     const name = `${group}.${entry.name}`
     const description = entry.description?.trim()
@@ -482,6 +524,7 @@ export async function mapDefinitions(
       modelFile: null,
       synonyms: synonymsOf(metaOf(entry).synonyms),
       ...(variant ? { variant } : {}),
+      ...(builtFrom ? { builtFrom } : {}),
       changeMark: await meaningMark({
         kind,
         meaning,
@@ -496,6 +539,22 @@ export async function mapDefinitions(
   const metrics = file.metrics.filter((metric) => !seen.has(metric.name) && seen.add(metric.name))
   const resolved = await resolveMetrics(metrics, models, measures)
   const unresolved = new Set<string>()
+  // A metric's ref: its group is the semantic model all its inputs come from, else `_shared`.
+  const groupOf = (known: Resolved) =>
+    known.models.size === 1 ? [...known.models][0]!.name : SHARED_GROUP
+  /** What a metric is built from as the definitions pipeline keeps it: refs and column names. */
+  const builtFromOf = ({ builtFrom }: Resolved): RuntimeDefinition['builtFrom'] => {
+    if (!builtFrom) return null
+    const refs = [
+      ...new Set(
+        builtFrom.metrics.map(
+          (name) => `${manifest.refPrefix}:${groupOf(resolved.get(name)!)}.${name}`,
+        ),
+      ),
+    ].slice(0, BUILT_FROM_MAX)
+    const columns = [...new Set(builtFrom.columns)].slice(0, BUILT_FROM_MAX)
+    return refs.length || columns.length ? { refs, columns } : null
+  }
   for (const metric of metrics) {
     const known = resolved.get(metric.name)
     const hidden = metric.type_params.is_private === true
@@ -511,7 +570,7 @@ export async function mapDefinitions(
     if (hidden) continue
     if (!known.known) warn(`${manifest.id}.unknown_type`, metric.name)
     const owners = [...known.models]
-    const group = owners.length === 1 ? owners[0]!.name : SHARED_GROUP
+    const group = groupOf(known)
     const own = domainHint(metaOf(metric).domain, domainNames)
     if (own.invalid) warn('invalid_domain', `${group}.${metric.name}`)
     const hints = new Set(owners.map((model) => domains.get(model.name)!.areaHint))
@@ -537,6 +596,7 @@ export async function mapDefinitions(
         shape: known.variant.shape,
         by: known.variant.by.map((by) => ({ ...by, ref: dimensionRef(by.name) })),
       },
+      builtFromOf(known),
     )
   }
 

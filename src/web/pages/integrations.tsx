@@ -1699,6 +1699,11 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                   <Owners key="o" domain={v.domain} />,
                 ])}
               />
+              {d && d.notSelected > 0 && (
+                <p className="border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
+                  {`${groupCount(d.notSelected, groupOf(c))} not selected. The last read found ${d.notSelected === 1 ? 'it' : 'them'}, and the set leaves ${d.notSelected === 1 ? 'it' : 'them'} out.`}
+                </p>
+              )}
               {d && d.noDomain > 0 && (
                 <div className="flex flex-wrap items-center gap-3 border-t bg-caution/8 px-4 py-3 text-sm md:px-5">
                   <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />

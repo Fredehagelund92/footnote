@@ -25,10 +25,15 @@ test('Definitions says where metrics come from in words that are true', async ({
   await go(page, '/definitions')
   const main = page.getByRole('main')
   await expect(
-    main.getByText(
-      'To change one, change it in the tool. Terms are words your company uses. The owner of their domain writes them here.',
-    ),
+    main.getByText('change them there. Terms are written here by their domain owner.'),
   ).toBeVisible()
+  // Who hears about a wrong figure is behind the note's info button, not in the note.
+  await expect(main.getByText(/looks wrong/)).toHaveCount(0)
+  await main.getByRole('button', { name: 'Who hears about a wrong figure' }).click()
+  await expect(
+    page.getByText('A figure that looks wrong goes to Ravi Kapoor, the data contact.'),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
   await expect(main.getByText(/synced/i)).toHaveCount(0)
   await expect(main.getByText(/read today at/i)).toHaveCount(0)
   // Another name is one name, in the filter and in a row.

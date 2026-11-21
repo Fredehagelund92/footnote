@@ -942,6 +942,9 @@ export function createRouter({
       related: authorized.definitions.related.handler(async ({ input, context }) =>
         found(await context.context.related(input.key)),
       ),
+      relations: authorized.definitions.relations.handler(async ({ input, context }) =>
+        found(await context.catalogue.relations(input.key)),
+      ),
     },
     areas: {
       list: authorized.areas.list.handler(({ context }) => context.areas.list()),

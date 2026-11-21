@@ -12,6 +12,7 @@
       "domainSource": "none",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["customer_id"] },
       "changeMark": "a913c27b97e88a6778348e45d54ba63cc113e01e13c8d7643ff372ff89d7daf8"
     },
     {
@@ -26,6 +27,7 @@
       "domainSource": "none",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": ["dbt:customers.customers", "dbt:orders.revenue"], "columns": [] },
       "changeMark": "be75ba453ba2eeb0a7057f96e6560e3440145b72a13ae63f8e28feb66d7bb794"
     },
     {
@@ -40,6 +42,7 @@
       "domainSource": "none",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["customer_id"] },
       "changeMark": "a744019be445c3b2498f989c2aea38bfb649d6e6507ed08a5680a2e25aeaa877"
     },
     {
@@ -110,6 +113,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": ["dbt:orders.revenue", "dbt:orders.orders"], "columns": [] },
       "changeMark": "e72788950adcd27bbcd31d788903f9f398e4bed6976eef940613e40bed46ce73"
     },
     {
@@ -142,6 +146,7 @@
         "shape": "11db32e9f7b066dab2e23bfb85900b2af34716093b1cc5c45850e1304562abe0",
         "by": [{ "name": "status", "ref": "dbt:orders.status", "value": "completed" }]
       },
+      "builtFrom": { "refs": [], "columns": ["order_id"] },
       "changeMark": "41a454fe205b2646f4cfa5d0fd74b3c780ae76130e21e2f5a76f9cf97342fcf3"
     },
     {
@@ -156,6 +161,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["discount"] },
       "changeMark": "9fb763ae9c9f9ec2aa4732ff084c4a079dd9935fdd228dd52e63c20e92477077"
     },
     {
@@ -170,6 +176,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["amount", "discount"] },
       "changeMark": "0917ab2e8cfbe307eb11537054318818bafd3e5fb6a04f030504b9943824b88d"
     },
     {
@@ -184,6 +191,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": ["dbt:orders.discounts", "dbt:orders.revenue"], "columns": [] },
       "changeMark": "bebdd8a0ff66ed2a46fca6b0c532d65484937934e4a17af400746115b98dba87"
     },
     {
@@ -212,6 +220,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": ["purchases", "order count"],
+      "builtFrom": { "refs": [], "columns": ["order_id"] },
       "changeMark": "a378cb8f2c9975816c3dc4a8f178f4980c1394915c05f698b1d1f966db768df7"
     },
     {
@@ -226,6 +235,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["amount"] },
       "changeMark": "6affb07abfa388e6f7c29403984d9e86f09ad749ea6de12008034a5f5680aad9"
     },
     {
@@ -240,6 +250,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["amount"] },
       "changeMark": "b44f6a92a76cc4aecb80d2e46fab04ef845be91a1a77c1ef9cc3ce9fe32fda8e"
     },
     {
@@ -268,6 +279,7 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "builtFrom": { "refs": [], "columns": ["customer_id"] },
       "changeMark": "b9108b44ba63b148c5ca2b91d79794ea5cd616d1fd0e928891496e2d059274c8"
     }
   ],

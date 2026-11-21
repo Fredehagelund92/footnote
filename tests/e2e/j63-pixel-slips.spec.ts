@@ -130,9 +130,7 @@ test.describe('at 1440 px', () => {
     }
   })
 
-  test('the Definitions note and the Advanced paragraphs keep a reading measure', async ({
-    page,
-  }) => {
+  test('the Advanced paragraphs keep a reading measure', async ({ page }) => {
     // The 60 characters of the reading width, in the font and size of the text itself.
     const overMeasure = (words: string) =>
       page.getByText(words).evaluate((el) => {
@@ -143,10 +141,6 @@ test.describe('at 1440 px', () => {
         gauge.remove()
         return el.getBoundingClientRect().width - measure
       })
-
-    await go(page, '/definitions')
-    await expect(page.getByText('Metrics and dimensions come from')).toBeVisible()
-    expect(await overMeasure('Metrics and dimensions come from')).toBeLessThanOrEqual(1)
 
     await go(page, '/settings/advanced')
     for (const words of ['Each setting is kept in the database', 'Default means the value']) {

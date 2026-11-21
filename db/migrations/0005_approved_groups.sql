@@ -21,3 +21,8 @@ alter table public.obs_caught_weekly add constraint obs_caught_weekly_kind_check
     'share'::text, 'fail'::text, 'spend'::text, 'sync'::text, 'views'::text, 'due'::text])));
 insert into public.alert_rules (rule, enabled, threshold, audience) values
   ('views', true, null, 'admins');
+
+-- The groups a read found that the approved set leaves out are a choice, not a warning: a read
+-- keeps them apart from its warnings, for the alert rule above and the source's page.
+alter table public.connector_snapshots
+  add column not_selected text[] not null default '{}'::text[];

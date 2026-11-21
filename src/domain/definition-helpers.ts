@@ -113,6 +113,70 @@ export function meaningMark(
   return contentDigest(options.keepEmpty ? meaning : withoutEmpty(meaning))
 }
 
+/** The most definitions, and the most columns, Footnote keeps of what one metric is built from. */
+export const BUILT_FROM_MAX = 50
+/** A column as Footnote keeps it: one identifier, so no part of a calculation can ride in one. */
+export const columnNamePattern = /^[A-Za-z_][A-Za-z0-9_]{0,99}$/
+
+// The words of a SQL calculation that never name a column. Types and date parts are not here:
+// where they sit says what they are (after `::` or `AS`, before a quoted literal, in EXTRACT).
+const sqlKeywords = new Set(
+  'all and any as asc at between by case cast current desc distinct else end escape exists false filter first following from group ignore in interval is last like ilike not null nulls or order over partition precision preceding range respect row rows similar some then time to true unbounded when where within zone'.split(
+    ' ',
+  ),
+)
+const niladicFunctions = new Set([
+  'current_date',
+  'current_time',
+  'current_timestamp',
+  'localtime',
+  'localtimestamp',
+  'current_user',
+  'session_user',
+  'user',
+])
+const dateParts = new Set(
+  'year years month months week weeks day days hour hours minute minutes second seconds quarter quarters'.split(
+    ' ',
+  ),
+)
+const sqlToken =
+  /'(?:[^']|'')*'|"((?:[^"]|"")*)"|`([^`]*)`|\d+(?:\.\d*)?(?:e[+-]?\d+)?|\.\d+|([A-Za-z_][A-Za-z0-9_$]*)|::|\S/gi
+
+/**
+ * The columns a SQL calculation reads, by name, in the order it first names each: `amount_eur`
+ * and `exchange_rate_usd` of `SUM(amount_eur * exchange_rate_usd)`. Functions (a bare `current_date` too), keywords, types,
+ * literals, the date part after `interval` or a number, and a qualifier before a dot are none, and a template's `{{ }}` is left out. Only the
+ * names cross, never the calculation (CON-207); a name Footnote cannot keep as one identifier is
+ * left out rather than guessed.
+ */
+export function columnsOf(expression: string): string[] {
+  const text = expression
+    .replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}|\{#[\s\S]*?#\}/g, ' ')
+    .replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, ' ')
+  const tokens = [...text.matchAll(sqlToken)].map((match) => ({
+    text: match[0],
+    name: match[3] ?? match[1]?.replace(/""/g, '"') ?? match[2] ?? null,
+    bare: match[3] !== undefined,
+  }))
+  const columns: string[] = []
+  tokens.forEach((token, i) => {
+    const before = tokens[i - 1]?.text.toLowerCase()
+    const after = tokens[i + 1]?.text
+    if (token.name === null || !columnNamePattern.test(token.name)) return
+    if (after === '.' || before === '::' || before === 'as') return
+    if (token.bare) {
+      const word = token.name.toLowerCase()
+      if (after === '(' || after?.startsWith("'") || sqlKeywords.has(word)) return
+      if (niladicFunctions.has(word)) return
+      if (dateParts.has(word) && before && (before === 'interval' || /^[\d.]/.test(before))) return
+      if (before === '(' && tokens[i - 2]?.text.toLowerCase() === 'extract') return
+    }
+    if (!columns.includes(token.name)) columns.push(token.name)
+  })
+  return columns.slice(0, BUILT_FROM_MAX)
+}
+
 /** The most values one variant is told apart by: currency and channel are two. */
 export const VARIANT_BY_MAX = 5
 /** The longest value a variant is told apart by, in characters. */

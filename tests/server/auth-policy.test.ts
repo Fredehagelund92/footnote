@@ -173,6 +173,7 @@ const readOperations = [
   'terms.deleted',
   'terms.history',
   'definitions.related',
+  'definitions.relations',
   // Conflicts: anyone signed in reads a pair they may read; the service checks each way of settling
   // it against the item it changes (an owner of it, or an admin).
   'conflicts.list',

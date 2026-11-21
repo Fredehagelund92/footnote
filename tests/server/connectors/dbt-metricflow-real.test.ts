@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
+import { withoutColumnNames } from './kit.ts'
 import {
   mapDefinitions,
   semanticManifestSchema,
@@ -84,7 +85,7 @@ describe('a semantic manifest from a real dbt parse', () => {
   })
 
   it('lets no calculation, filter, database or schema cross', async () => {
-    const text = JSON.stringify(await read('core'))
+    const text = JSON.stringify(withoutColumnNames(await read('core')))
     for (const canary of [
       'case when',
       'product_price',

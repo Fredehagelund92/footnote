@@ -217,6 +217,8 @@ export type Source = {
     dimensions: number
     views: number
     noDomain: number
+    /** The views its last read found that its approved set leaves out. */
+    notSelected: number
     flagged: number
   } | null
   /**

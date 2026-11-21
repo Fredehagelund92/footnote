@@ -203,6 +203,14 @@ export function createSourceOverview({
         [ids],
       )
       const groups = await tx.query<GroupRow>(groupsQuery('connector_id = any($1)'), [ids])
+      const left = await tx.query<{ connector_id: string; n: number }>(
+        `select c.id as connector_id, cardinality(s.not_selected)::int as n
+           from unnest($1::text[]) c(id)
+           cross join lateral (select x.not_selected from connector_snapshots x
+                                where x.connector_id = c.id and x.status <> 'failed'
+                                order by x.fetched_at desc, x.id desc limit 1) s`,
+        [ids],
+      )
       // The live items a change to one of the source's definitions flagged (CON-209).
       const flagged = await tx.query<{ connector_id: string; items: number }>(
         `select d.connector_id, count(distinct o.item_id)::int as items
@@ -298,6 +306,7 @@ export function createSourceOverview({
                   dimensions: own.reduce((n, group) => n + group.dimensions, 0),
                   groups: named.length,
                   groupsWithoutDomain: named.filter((group) => group.domain === null).length,
+                  notSelected: left.find((read) => read.connector_id === row.id)?.n ?? 0,
                   flagged: flaggedOf.get(row.id) ?? 0,
                 }
               : null,

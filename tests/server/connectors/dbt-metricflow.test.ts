@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { withoutColumnNames } from './kit.ts'
 import { manifest } from '../../../src/connectors/dbt-metricflow/manifest.ts'
 import {
   mapDefinitions,
@@ -74,7 +75,7 @@ describe.each([
   })
 
   it('lets no calculation, database or schema cross', async () => {
-    const read = JSON.stringify(await mapped(file))
+    const read = JSON.stringify(withoutColumnNames(await mapped(file)))
     for (const canary of CANARIES) expect(read).not.toContain(canary)
   })
 
@@ -325,7 +326,18 @@ describe('the two specs', () => {
     // These two carry their SQL in another place in the two projects: a real change.
     const apart = ['dbt:customers.status', 'dbt:orders.channel']
     expect(await moved(legacyManifest, latestManifest)).toEqual(apart)
-    const words = (d: (typeof legacy.definitions)[number]) => ({ ...d, changeMark: '' })
+    // A legacy metric on a measure is built from the measure's columns; in the latest spec, from
+    // the metric that took the measure's place. One calculation, said by the names each file has.
+    const onMeasures = [
+      'dbt:_shared.ordering_rate',
+      'dbt:orders.revenue_to_date',
+      'dbt:orders.weekly_ordering_customers',
+    ]
+    const words = (d: (typeof legacy.definitions)[number]) => ({
+      ...d,
+      changeMark: '',
+      ...(onMeasures.includes(d.ref) ? { builtFrom: null } : {}),
+    })
     expect(latest.definitions.map(words)).toEqual(legacy.definitions.map(words))
     expect(latest.warnings).toEqual(legacy.warnings)
   })
@@ -366,6 +378,71 @@ describe('a conversion on the legacy spec', () => {
     ]
     expect(after['dbt:_shared.ordering_rate']).not.toBe(before['dbt:_shared.ordering_rate'])
     expect(after['dbt:_shared.ordering_rate']).toBe(migrated['dbt:_shared.ordering_rate'])
+  })
+})
+
+describe('what a metric is built from (FR-143)', () => {
+  const builtFrom = async (file: unknown) =>
+    Object.fromEntries(
+      (await mapped(file)).definitions.flatMap((d) => (d.builtFrom ? [[d.ref, d.builtFrom]] : [])),
+    )
+
+  it('names a ratio’s two inputs and a derived metric’s, by ref, and no dimension', async () => {
+    for (const file of [legacyManifest, latestManifest]) {
+      const read = await builtFrom(file)
+      expect(read['dbt:orders.average_order_value']).toEqual({
+        refs: ['dbt:orders.revenue', 'dbt:orders.orders'],
+        columns: [],
+      })
+      expect(read['dbt:orders.net_revenue']).toEqual({
+        refs: ['dbt:orders.discounts', 'dbt:orders.revenue'],
+        columns: [],
+      })
+      // An input in another semantic model is named by its own group.
+      expect(read['dbt:_shared.revenue_per_customer']?.refs).toEqual([
+        'dbt:customers.customers',
+        'dbt:orders.revenue',
+      ])
+      expect(Object.keys(read).filter((ref) => ref.endsWith('.status'))).toEqual([])
+    }
+  })
+
+  it('names the columns of a simple metric’s calculation, and on the legacy spec its measure’s', async () => {
+    expect((await builtFrom(latestManifest))['dbt:orders.revenue']).toEqual({
+      refs: [],
+      columns: ['amount'],
+    })
+    // The legacy spec's metric names a measure: the measure is no definition, its columns are.
+    expect((await builtFrom(legacyManifest))['dbt:orders.weekly_ordering_customers']).toEqual({
+      refs: [],
+      columns: ['customer_id'],
+    })
+    expect((await builtFrom(latestManifest))['dbt:orders.weekly_ordering_customers']).toEqual({
+      refs: ['dbt:orders.ordering_customers'],
+      columns: [],
+    })
+  })
+
+  it('names a hidden input by the ref it would have, and says nothing of a type it does not know', async () => {
+    const file = withMetric(latestManifest, 'average_order_value', (metric) => {
+      metric.type = 'sketch'
+    })
+    const read = await mapped(file)
+    const sketch = read.definitions.find((d) => d.ref === 'dbt:orders.average_order_value')
+    expect(sketch).toBeDefined()
+    expect(sketch?.builtFrom).toBeUndefined()
+    // `ordering_customers` is hidden in dbt: what is built on it still names it.
+    expect((await builtFrom(latestManifest))['dbt:_shared.ordering_rate']?.refs).toContain(
+      'dbt:orders.ordering_customers',
+    )
+  })
+
+  it('never holds an expression, an operator or a literal', async () => {
+    for (const file of [legacyManifest, latestManifest])
+      for (const { refs, columns } of Object.values(await builtFrom(file))) {
+        for (const column of columns) expect(column).toMatch(/^[A-Za-z_][A-Za-z0-9_]*$/)
+        for (const ref of refs) expect(ref).toMatch(/^dbt:[a-z_][a-z0-9_]*\.[a-z][a-z0-9_]*$/)
+      }
   })
 })
 

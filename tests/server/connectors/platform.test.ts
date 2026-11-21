@@ -428,14 +428,14 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
       ['segments.size', null, 'none'],
     ])
     // What the read said of a group left out, or a group mapped, says nothing now; the group left
-    // out is named, so one the tool adds later is seen.
+    // out is named apart from the warnings, so one the tool adds later is seen.
     expect(read.warnings).toEqual([
       { code: 'missing_domain', target: 'segments' },
       { code: 'unsupported_file', target: 'model/old.yml' },
-      { code: 'group_not_chosen', target: 'growth' },
       { code: 'domain_override', target: 'cube:orders.count' },
       { code: 'domain_override', target: 'cube:orders.revenue' },
     ])
+    expect(read.notSelected).toEqual(['growth'])
   })
 
   it('reads every group with some mapped: the rest as the tool gives them', () => {
@@ -470,10 +470,9 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
       { code: 'unsupported_file', target: 'model/old.yml' },
       { code: 'invalid_domain', target: 'growth.rate' },
       { code: 'group_not_found', target: 'stock' },
-      { code: 'group_not_chosen', target: 'orders' },
-      { code: 'group_not_chosen', target: 'segments' },
       { code: 'domain_override', target: 'cube:growth.rate' },
     ])
+    expect(read.notSelected).toEqual(['orders', 'segments'])
   })
 
   it('names a listed group the read lacks even when it is mapped to a domain', () => {
@@ -493,10 +492,8 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
     expect(read.warnings).toEqual([
       { code: 'unsupported_file', target: 'model/old.yml' },
       { code: 'no_groups_chosen', target: 'groups' },
-      { code: 'group_not_chosen', target: 'growth' },
-      { code: 'group_not_chosen', target: 'orders' },
-      { code: 'group_not_chosen', target: 'segments' },
     ])
+    expect(read.notSelected).toEqual(['growth', 'orders', 'segments'])
   })
 
   it('keeps the domains the read gave when it only narrows to a list', () => {
@@ -508,9 +505,21 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
     expect(read.warnings).toEqual([
       { code: 'missing_domain', target: 'orders' },
       { code: 'unsupported_file', target: 'model/old.yml' },
-      { code: 'group_not_chosen', target: 'growth' },
-      { code: 'group_not_chosen', target: 'segments' },
     ])
+    expect(read.notSelected).toEqual(['growth', 'segments'])
+  })
+
+  it('reads 5 of 200 views with no warning, and counts the 195 not selected', () => {
+    const views = Array.from({ length: 200 }, (_, i) => `view${String(i).padStart(3, '0')}`)
+    const wide = {
+      ...snapshot,
+      definitions: views.map((view) => definition(`${view}.count`, null)),
+      warnings: [],
+    }
+    const read = withListedGroups(wide, views.slice(0, 5))
+    expect(read.definitions).toHaveLength(5)
+    expect(read.warnings).toEqual([])
+    expect(read.notSelected).toHaveLength(195)
   })
 
   it('never reads a member in no group once a list is kept', () => {

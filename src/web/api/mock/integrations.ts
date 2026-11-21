@@ -339,6 +339,7 @@ function readingOnly(page: SourcePage, kept: Kept | undefined): SourcePage {
         dimensions: views.reduce((n, v) => n + v.dimensions, 0),
         views: views.length,
         noDomain: views.filter((v) => !v.domain).length,
+        notSelected: 0,
       },
     },
   }
@@ -415,6 +416,7 @@ function keptPage(id: string, kept: Kept | undefined, connectedAt: string): Sour
           dimensions,
           views: views.length,
           noDomain: views.filter((v) => !v.domain).length,
+          notSelected: 0,
           flagged: 0,
         }
       : null,

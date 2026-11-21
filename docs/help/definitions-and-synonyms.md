@@ -3,7 +3,7 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
-minutes: 2
+minutes: 3
 reviewed: 2026-11-20
 ---
 
@@ -13,7 +13,18 @@ Metrics and dimensions, the business's own terms, and other names for them.
 
 They come from where your metrics are defined, and are read-only here: their meaning and other names belong to that source. Write context about them instead.
 
+A line under the toolbar says which tool they come from and links to it in Integrations. When the tool has figures switched on, an info button at the end of the line names the data contact who hears about a figure that looks wrong.
+
 A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Set up your workspace](set-up-your-workspace.md#publish-the-names).
+
+## What a metric is built from
+
+A metric's page says what it is built from, as its source's structure says it, under its description:
+
+- Built from: the metrics it takes, such as a ratio's two, each a link to its page, and the columns its calculation reads, by name.
+- Used by: the metrics built from it.
+
+These come from the source at each read and are never edited here. They never show the calculation, and never mark context as due for a check. An input the source no longer has says so.
 
 ## Families
 

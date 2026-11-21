@@ -161,10 +161,11 @@ export class ConnectorService {
         source_version: string | null
         definitions_seen: number
         warnings: SourceWarning[]
+        not_selected: string[]
         content_digest: Buffer | null
         mark_version: number | null
       }>(
-        `select id, source_version, definitions_seen, warnings, content_digest, mark_version
+        `select id, source_version, definitions_seen, warnings, not_selected, content_digest, mark_version
            from connector_snapshots where connector_id=$1 and status <> 'failed'
           order by fetched_at desc limit 1`,
         [source.id],
@@ -250,8 +251,8 @@ export class ConnectorService {
       const status = snapshot ? (snapshot.complete ? 'ok' : 'partial') : 'failed'
       const [saved] = await tx.query<{ id: string }>(
         `insert into connector_snapshots
-         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision,mark_version)
-         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision,mark_version,not_selected)
+         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
         [
           source.id,
           kept ? kept.source_version : (snapshot?.sourceVersion ?? null),
@@ -269,6 +270,7 @@ export class ConnectorService {
           kind.revision,
           // A kept read stands for the marks the last one stored.
           kept ? kept.mark_version : source.markVersion,
+          kept ? kept.not_selected : (snapshot?.notSelected ?? []),
         ],
       )
       const snapshotId = saved!.id
@@ -356,14 +358,15 @@ export class ConnectorService {
         if (rebaseline) rebaselined.push(definition.ref)
         const upserted = await tx.query(
           `insert into definitions
-           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark,variant_shape,variant_by)
-           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14,$15,$16)
+           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark,variant_shape,variant_by,built_from_refs,built_from_columns)
+           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14,$15,$16,$17,$18)
            on conflict (ref) do update set kind=excluded.kind,name=excluded.name,title=excluded.title,
              description_copy=excluded.description_copy,value_type=excluded.value_type,visible_groups=null,
              area_hint=excluded.area_hint,change_mark=excluded.change_mark,source_mark=excluded.source_mark,
              last_seen_snapshot=excluded.last_seen_snapshot,
              model_file=excluded.model_file,synonyms=excluded.synonyms,base_name=excluded.base_name,
              variant_shape=excluded.variant_shape,variant_by=excluded.variant_by,
+             built_from_refs=excluded.built_from_refs,built_from_columns=excluded.built_from_columns,
              missing_since_snapshot=null,renamed_to=null,connector_id=excluded.connector_id
              where definitions.connector_id=excluded.connector_id
                 or definitions.connector_id in (select id from connectors where removed_at is not null)
@@ -385,6 +388,8 @@ export class ConnectorService {
             changeMark === definition.changeMark ? null : definition.changeMark,
             definition.variant?.shape ?? null,
             definition.variant ? JSON.stringify(definition.variant.by) : null,
+            definition.builtFrom?.refs ?? null,
+            definition.builtFrom?.columns ?? null,
           ],
         )
         if (upserted.length !== 1) throw new Error('Definition belongs to another connector')
