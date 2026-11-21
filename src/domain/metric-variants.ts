@@ -41,7 +41,7 @@ export type VariantShape = {
   splits: { words: number; examples: string[] }[]
 }
 
-type Entry = { words: string[]; variant: boolean }
+type Entry = { group: string; words: string[]; variant: boolean }
 
 /** The currency codes, as a split of currencies writes them. */
 const currencies = new Set(Intl.supportedValuesOf('currency').map((code) => code.toLowerCase()))
@@ -61,13 +61,14 @@ function said(words: readonly string[], all: ReadonlySet<string>) {
  * words do.
  */
 function splitOn(entries: Entry[], side: 'end' | 'start') {
-  const restOf = (words: string[]) =>
-    (side === 'end' ? words.slice(0, -1) : words.slice(1)).join('_')
+  const restOf = ({ group, words }: Entry) =>
+    `${group}.${(side === 'end' ? words.slice(0, -1) : words.slice(1)).join('_')}`
   const wordOf = (words: string[]) => (side === 'end' ? words.at(-1)! : words[0]!)
   const siblings = new Map<string, Set<string>>()
-  for (const { words } of entries) {
+  for (const entry of entries) {
+    const { words } = entry
     if (words.length < 2) continue
-    const rest = restOf(words)
+    const rest = restOf(entry)
     const seen = siblings.get(rest) ?? new Set<string>()
     seen.add(wordOf(words))
     siblings.set(rest, seen)
@@ -90,10 +91,10 @@ function splitOn(entries: Entry[], side: 'end' | 'start') {
   for (const word of often) ways.set(top(word), (ways.get(top(word)) ?? new Set()).add(word))
   const splitBy = (split: Set<string>) =>
     entries.filter(
-      ({ words }) =>
-        words.length >= 2 &&
-        split.has(wordOf(words)) &&
-        (siblings.get(restOf(words))?.size ?? 0) >= 2,
+      (entry) =>
+        entry.words.length >= 2 &&
+        split.has(wordOf(entry.words)) &&
+        (siblings.get(restOf(entry))?.size ?? 0) >= 2,
     )
   // The way that splits the most names.
   const [split, splits] = [...ways.values()]
@@ -163,7 +164,7 @@ export function variantShape(names: readonly string[]): VariantShape | null {
   }
   const entries: Entry[] = read.map(({ group, words }) => {
     const shared = sharedStart(groups.get(group)!)
-    return { words: shared ? words.slice(shared) : words, variant: false }
+    return { group, words: shared ? words.slice(shared) : words, variant: false }
   })
   const splits: VariantShape['splits'] = []
   // Each time, the side whose words split more names: a measure's name splits fewer than the
@@ -181,7 +182,7 @@ export function variantShape(names: readonly string[]): VariantShape | null {
   return {
     variants: variants.length,
     metrics: names.length,
-    bases: new Set(variants.map((entry) => entry.words.join('_'))).size,
+    bases: new Set(variants.map((entry) => `${entry.group}.${entry.words.join('_')}`)).size,
     splits,
   }
 }
