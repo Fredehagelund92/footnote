@@ -212,8 +212,10 @@ export function effectsOf(outcome: Outcome): Effects {
 }
 
 /**
- * Whether Ask's loop body draws the turn: a loop answer, or one still reading or stopped while it
- * read. A Not checked turn is drawn as the check that could not run, whatever it read first.
+ * Whether Ask's loop body draws the turn: a loop answer, or one still reading or writing, or
+ * stopped while it did. A follow-up that reads nothing has words before it is done, and shows them
+ * as they come. A Not checked turn is drawn as the check that could not run, whatever it read first.
  */
 export const drawnByLoop = (turn: Turn) =>
-  !!turn.answer.loop || (!!turn.reads && outcomeOf(turn)?.kind !== 'not_checked')
+  !!turn.answer.loop ||
+  ((!!turn.reads || !!turn.words) && outcomeOf(turn)?.kind !== 'not_checked')
