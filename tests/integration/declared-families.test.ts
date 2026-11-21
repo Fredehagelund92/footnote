@@ -430,4 +430,32 @@ describe('what a family means (M1)', () => {
     })
     expect(unknown.statusCode, unknown.body).toBe(404)
   })
+
+  it('is not declared by words only a variant the source stopped reading still has', async () => {
+    await client.query(
+      `update definitions set family_description = null where family_name = 'net_revenue_by_line'`,
+    )
+    const [{ id }] = (
+      await client.query<{ id: string }>(
+        `insert into connector_snapshots (connector_id, status, definitions_seen)
+         select connector_id, 'ok', 1 from definitions where family_name = 'net_revenue_by_line'
+          limit 1 returning id`,
+      )
+    ).rows as [{ id: string }]
+    await client.query(
+      `update definitions set family_description = 'Old words.', missing_since_snapshot = $1
+        where ref = (select ref from definitions where family_name = 'net_revenue_by_line'
+                      order by ref limit 1)`,
+      [id],
+    )
+    const line = await family('Net revenue by line')
+    expect(line.family!.meaning.source).not.toBe('declared')
+    const changed = await choose(line.key, 'owner', {
+      key: line.key,
+      choice: 'written',
+      words: 'Revenue after refunds.',
+      revision: 0,
+    })
+    expect(changed.statusCode, changed.body).toBe(200)
+  })
 })
