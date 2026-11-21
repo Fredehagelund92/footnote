@@ -384,6 +384,7 @@ it("keeps none of the words Ask's tools are given, in any table, and changes not
     ['conflicts', { domain: marker }],
     ['agent_questions', { about: [marker] }],
     ['inbox', {}],
+    ['help', { words: `${marker} answer line` }],
     // An input that does not fit is refused, and its words go nowhere either.
     ['records', { show: marker }],
   ]

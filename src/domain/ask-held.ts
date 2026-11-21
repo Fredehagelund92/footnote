@@ -16,13 +16,15 @@ const VAGUE_CHOICES = 4
  * is one thing to answer about), or another name of one metric
  * that is also a word of other metrics' own names ("sales", written for Net revenue, beside Gross
  * sales), or a word written for more than one metric. With the metrics it may mean, the first
- * four; null when the question names a metric by
- * its own name, names more than one name of a metric, or the word means one metric only. A word
+ * four, the group's name when it is a group's, and whether the question is that word alone; null
+ * when the question names a metric by its own name, names more than one name of a metric, or the
+ * word means one metric only. A word
  * that, with the word before it, is a phrase of a title in `titles` belongs to that phrase ("what
  * stopped online sales to Norway?" beside "Online sales to Norway stopped"), not to a metric; a
  * domain's name written as the domain ("in Marketing", "the sales inbox") is the domain; and a
  * question that names someone in the workspace is left to the model, which declines it or not.
- * Ask's loop asks back with them before any model reads (FR-719.2).
+ * Ask's loop asks back with them before any model reads only when the word is the whole question;
+ * in a sentence the model reads them and decides (FR-719.2).
  */
 export function vagueMetricWord(
   question: string,
@@ -36,7 +38,7 @@ export function vagueMetricWord(
     /** The names of the people in the workspace. */
     people?: readonly string[]
   } = {},
-): { word: string; metrics: Term[] } | null {
+): { word: string; metrics: Term[]; group: string | null; alone: boolean } | null {
   const { titles = [], domains = [], people = [] } = around
   // A question about someone is not about a metric: who it is about is the model's to read.
   const asked = new Set(wordsIn(question))
@@ -56,18 +58,22 @@ export function vagueMetricWord(
   const { span, found } = named[0]!
   const word = question.slice(span.start, span.end)
   if (inPhrase(question, span, titles) || asDomain(question, span, word, domains)) return null
+  // The whole question is the word, give or take its marks and spaces.
+  const alone = wordsIn(question).join(' ') === wordsIn(word).join(' ')
   const metrics = terms.filter((t) => t.kind === 'metric')
   // A word written for more than one metric.
   if (found.length > 1)
     return found.every((t) => t.kind === 'metric')
-      ? { word, metrics: found.slice(0, VAGUE_CHOICES) }
+      ? { word, metrics: found.slice(0, VAGUE_CHOICES), group: null, alone }
       : null
   const term = found[0]!
   if (term.kind === 'metric_group') {
     // A family is one thing to answer about, whichever variant is meant (FR-142).
     if (term.definitionRefs.length) return null
     const members = metrics.filter((m) => m.parentKey === term.key)
-    return members.length > 1 ? { word, metrics: members.slice(0, VAGUE_CHOICES) } : null
+    return members.length > 1
+      ? { word, metrics: members.slice(0, VAGUE_CHOICES), group: term.name, alone }
+      : null
   }
   const said = normalizeName(word)
   if (said === normalizeName(term.name)) return null
@@ -76,7 +82,9 @@ export function vagueMetricWord(
     'u',
   )
   const others = metrics.filter((m) => m.key !== term.key && inName.test(normalizeName(m.name)))
-  return others.length ? { word, metrics: [term, ...others].slice(0, VAGUE_CHOICES) } : null
+  return others.length
+    ? { word, metrics: [term, ...others].slice(0, VAGUE_CHOICES), group: null, alone }
+    : null
 }
 
 const wordsIn = (text: string) =>

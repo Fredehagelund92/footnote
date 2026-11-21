@@ -65,6 +65,7 @@ const battery: { [N in AskToolName]: object[] } = {
   conflicts: [{}, { domain: 'Sales' }],
   agent_questions: [{ limit: 25 }, { about: ['Norway'] }, { found_nothing: true }],
   inbox: [{ limit: 25 }],
+  help: [{ words: 'checked answer line' }, { words: 'add a context item' }],
 }
 
 /** Every tool, on every input of the battery, as this person. */
@@ -207,6 +208,8 @@ describe.each(persons)('as %s', (name) => {
         const text = stringsOf(result).join('\n')
         for (const title of drafts)
           expect(text, `${tool} ${JSON.stringify(input)}`).not.toContain(title)
+        // The help's words are the product's own pages: an item id in them is an example.
+        if (tool === 'help') continue
         // Every item id the result holds is one the person may read, and one it names as returned.
         const itemIds = new Set(text.match(/\bitm_[a-z0-9]{8,16}\b/g) ?? [])
         for (const id of itemIds)

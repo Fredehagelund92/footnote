@@ -546,8 +546,9 @@ const people: EvalCase[] = [
 ]
 
 /**
- * A word for more than one metric, alone or in a sentence: one question back, with the metrics it
- * may mean as choices. A word only one metric holds, or one the chat settles, is answered.
+ * A word for more than one metric: alone, one question back, with the metrics it may mean as
+ * choices; in a sentence, the model is told those metrics and asks back only when the question is
+ * about one of them. A word only one metric holds, or one the chat settles, is answered.
  */
 const vague: EvalCase[] = [
   {
@@ -555,12 +556,9 @@ const vague: EvalCase[] = [
     class: 'X',
     as: ML,
     source: 'harness',
-    what: 'Sales, in a sentence: which metric is meant, never Gross sales picked silently.',
+    what: 'Sales, in a sentence: both metrics it may mean, asked about or answered for, never Gross sales picked silently.',
     turns: [
-      {
-        ask: 'What about sales in the UK?',
-        expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] },
-      },
+      { ask: 'What about sales in the UK?', expect: { says: ['Gross sales', 'Net revenue'] } },
     ],
   },
   {
@@ -568,11 +566,11 @@ const vague: EvalCase[] = [
     class: 'X',
     as: ML,
     source: 'harness',
-    what: 'Revenue, in a sentence: which metric is meant, never a list of what is written.',
+    what: 'The Revenue group, in a sentence about the group: its metrics, with no question back.',
     turns: [
       {
-        ask: 'Tell me about revenue.',
-        expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] },
+        ask: 'Which metrics are in the Revenue group, and how do they differ?',
+        expect: { asksBack: false, says: ['Gross sales', 'Net revenue', 'Units sold'] },
       },
     ],
   },
@@ -599,6 +597,14 @@ const vague: EvalCase[] = [
       { ask: 'What is written about gross sales in the UK?' },
       { ask: 'and sales in Germany?', expect: { asksBack: false, says: ['Gross sales'] } },
     ],
+  },
+  {
+    id: 'Q05',
+    class: 'X',
+    as: ML,
+    source: 'harness',
+    what: 'Revenue, the bare word: which metric is meant, asked by code before any model reads.',
+    turns: [{ ask: 'revenue', expect: { asksBack: true, says: ['Gross sales', 'Net revenue'] } }],
   },
 ]
 

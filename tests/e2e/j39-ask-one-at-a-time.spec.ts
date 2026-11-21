@@ -16,6 +16,8 @@ async function heldAnswers(page: Page, route: string) {
       while (!open) await new Promise((resolve) => setTimeout(resolve, 50))
       await r.continue()
     })
+  // The words show at once: what is held here is the answer, not how its words come in.
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.clock.install()
   await page.clock.pauseAt(Date.now() + 1000)
   await go(page, route)

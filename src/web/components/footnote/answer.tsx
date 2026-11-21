@@ -1232,7 +1232,7 @@ function ContextAnswerBody({
   )
   const total = answered ? (ends.at(-1) ?? 0) : 0
   const [limit, setLimit] = React.useState(total)
-  const revealed = useReveal(limit, { flowing: isLive(turn), instant: true })
+  const revealed = useReveal(limit, { instant: true })
   // Stopped, it finishes the sentence on screen, which was checked, and shows no more.
   const started = ends.findIndex((_, i) => (i ? ends[i - 1]! + 1 : 0) >= revealed)
   const upTo = stopped ? (started < 0 ? total : started ? ends[started - 1]! : 0) : total
