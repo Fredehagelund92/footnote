@@ -1,5 +1,6 @@
 import { BookAIcon, ExternalLinkIcon, NotebookPenIcon, PencilIcon } from '@/components/icons'
 import { DefinitionDetails, TypeTile } from '@/components/footnote/definition'
+import { FamilyVariants } from '@/components/footnote/family-variants'
 import { Canvas, Paper } from '@/components/footnote/doc'
 import { SiteHeader } from '@/components/site-header'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -107,7 +108,10 @@ export function DefinitionPage({ name }: { name: string }) {
                 <p className="text-sm text-muted-foreground">{kindName(d)}</p>
               </div>
             </div>
-            <DefinitionDetails d={d} />
+            <DefinitionDetails
+              d={d}
+              variants={d.family && <FamilyVariants key={d.name} family={d.family} />}
+            />
           </Loadable>
         </Paper>
       </Canvas>

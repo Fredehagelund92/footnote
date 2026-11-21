@@ -293,9 +293,10 @@ test("an answer's badge opens its card after a short wait, fades in on the token
     return w.shown - w.entered
   })
   expect(waited).toBeGreaterThanOrEqual(100)
-  expect(await card.evaluate((el) => getComputedStyle(el).transitionDuration.split(',')[0])).toBe(
-    (await reduced(page)) ? '0s' : '0.15s',
-  )
+  // The duration is read once the card has settled in: while it opens, its style is still moving.
+  await expect
+    .poll(() => card.evaluate((el) => getComputedStyle(el).transitionDuration.split(',')[0]))
+    .toBe((await reduced(page)) ? '0s' : '0.15s')
   await page.mouse.move(0, 0)
   await expect(card).toBeHidden()
 })

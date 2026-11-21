@@ -17,7 +17,8 @@ import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
 import { PersonAvatar } from '@/components/footnote/bits'
-import { AnotherNameFor, FamilyChip, TypeGlyph, TypeTile } from '@/components/footnote/definition'
+import { AnotherNameFor, FamilyChip, TypeTile } from '@/components/footnote/definition'
+import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import {
   AddRow,

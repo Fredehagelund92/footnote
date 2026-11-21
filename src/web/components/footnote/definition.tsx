@@ -1,41 +1,21 @@
 import * as React from 'react'
-import {
-  ChevronDownIcon,
-  EqualIcon,
-  LockIcon,
-  PencilIcon,
-  SigmaIcon,
-  SplitIcon,
-  TriangleAlertIcon,
-  UserIcon,
-  WholeWordIcon,
-  type LucideIcon,
-} from '@/components/icons'
+import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/components/icons'
 import { termWord } from '@domain/terms'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import type { Fact } from '@/model/items'
 import {
   familyMeaning,
   parseTags,
   cubeRef,
   kindName,
-  type Family,
   sourceUrl,
   type Conflict,
   type Definition,
-  type DefinitionType,
   useGlossary,
 } from '@/lib/definitions'
 import { openDock } from '@/lib/dock'
@@ -54,19 +34,6 @@ import { definitionHistoryQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
-
-// The marks of a definition: a lucide glyph in a neutral tile for a catalogue term's type (sigma
-// for a metric, split for a dimension). A term with its own meaning takes whole-word and a
-// synonym takes equals, from the same set.
-
-const glyphs: Record<DefinitionType | 'synonym', LucideIcon> = {
-  metric: SigmaIcon,
-  dimension: SplitIcon,
-  term: WholeWordIcon,
-  synonym: EqualIcon,
-}
-
-const kindOf = (d: Pick<Definition, 'type' | 'sameAs'>) => (d.sameAs ? 'synonym' : d.type)
 
 /** The type as a neutral tile: 24 in compact rows, 28 in comfortable rows, headers and on a phone. Labelled for screen readers. */
 export function TypeTile({
@@ -109,96 +76,6 @@ export function TypeTile({
   )
 }
 
-/**
- * A family's variants, on its own page and nowhere else (FR-142): each with the values that tell
- * it apart, which a menu per axis narrows ("Currency: EUR"). A family can have thousands, so the
- * list grows in steps.
- */
-export function FamilyVariants({ family }: { family: Family }) {
-  const id = React.useId()
-  const [chosen, setChosen] = React.useState<(string | null)[]>(() => family.by.map(() => null))
-  const valuesOf = React.useMemo(
-    () =>
-      family.by.map((_, i) =>
-        [...new Set(family.variants.map((v) => v.values[i] ?? ''))]
-          .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, 'en')),
-      ),
-    [family],
-  )
-  const matching = family.variants.filter((v) =>
-    chosen.every((value, i) => value === null || v.values[i] === value),
-  )
-  const { shown, more, next, showMore } = useShowMore(matching, 20, 100)
-  const total = family.variants.length.toLocaleString('en-GB')
-  return (
-    <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h3 id={id} className="text-sm font-semibold">
-        Variants{' '}
-        <span className="font-normal text-muted-foreground tabular-nums">
-          {matching.length === family.variants.length
-            ? total
-            : `${matching.length.toLocaleString('en-GB')} of ${total}`}
-        </span>
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {family.by.map((axis, i) => (
-          <DropdownMenu key={axis}>
-            <DropdownMenuTrigger render={<Button variant="outline" />}>
-              {axis}: {chosen[i] ?? 'any'}
-              <ChevronDownIcon data-icon="inline-end" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="max-h-72 w-48 overflow-y-auto">
-              <DropdownMenuRadioGroup
-                value={chosen[i] ?? ''}
-                onValueChange={(value) =>
-                  setChosen((was) => was.map((x, j) => (j === i ? (value as string) || null : x)))
-                }
-              >
-                <DropdownMenuRadioItem value="" closeOnClick>
-                  Any
-                </DropdownMenuRadioItem>
-                {valuesOf[i]!.map((value) => (
-                  <DropdownMenuRadioItem key={value} value={value} closeOnClick>
-                    {value}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ))}
-      </div>
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="py-1.5 pr-2 font-normal">Variant</th>
-            {family.by.map((axis) => (
-              <th key={axis} className="w-24 py-1.5 pr-2 font-normal @md:w-32">
-                {axis}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((v) => (
-            <tr key={v.name} className="border-b">
-              <td className="truncate py-1.5 pr-2" title={v.name}>
-                {v.name}
-              </td>
-              {family.by.map((axis, i) => (
-                <td key={axis} className="truncate py-1.5 pr-2 text-muted-foreground">
-                  {v.values[i]}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ShowMoreButton more={more} next={next} onClick={showMore} label="variants" />
-    </section>
-  )
-}
-
 /** A family's mark beside its name: "Family · 250 variants", the same at every width. */
 export function FamilyChip({
   family,
@@ -213,18 +90,6 @@ export function FamilyChip({
       Family · {n} {family.variants.length === 1 ? 'variant' : 'variants'}
     </Badge>
   )
-}
-
-/** The type as a plain glyph, for chips and menus where the words beside it say what it is. */
-export function TypeGlyph({
-  d,
-  className,
-}: {
-  d: Pick<Definition, 'type' | 'sameAs'>
-  className?: string
-}) {
-  const Glyph = glyphs[kindOf(d)]
-  return <Glyph aria-hidden className={cn('size-3.5 shrink-0 text-muted-foreground', className)} />
 }
 
 /** A synonym's quiet link to the definition whose meaning it uses: "Another name for Σ Gross sales". */
@@ -636,7 +501,14 @@ function ContextAbout({ subject, about }: { subject: Definition; about: Fact[] }
   )
 }
 
-export function DefinitionDetails({ d }: { d: Definition }) {
+export function DefinitionDetails({
+  d,
+  variants,
+}: {
+  d: Definition
+  /** A family's variants: its own page lists them, which keeps their code out of the first load. */
+  variants?: React.ReactNode
+}) {
   const me = useMe()
   const canEdit = me.admin || (!!d.domain && me.owns.includes(d.domain))
   const facts = useFacts()
@@ -754,10 +626,10 @@ export function DefinitionDetails({ d }: { d: Definition }) {
           </MoreProperties>
         )}
       </div>
-      {d.family && (
+      {variants && (
         <>
           <Separator />
-          <FamilyVariants key={d.name} family={d.family} />
+          {variants}
         </>
       )}
       {!d.sameAs && (

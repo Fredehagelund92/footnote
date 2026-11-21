@@ -38,7 +38,7 @@ import { navigate } from '@/lib/router'
 import { kindName } from '@/lib/definitions'
 import { useDomains, useMe } from '@/lib/workspace'
 import { DomainDot } from '@/components/footnote/tag-chip'
-import { TypeGlyph } from '@/components/footnote/definition'
+import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { useTheme } from '@/lib/theme-context'
 import { logos } from '@/model/integrations'
 
