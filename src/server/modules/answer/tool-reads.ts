@@ -76,34 +76,28 @@ export type TurnReads = {
 }
 
 /**
- * The reads a person's next turn may start from: what only a new live edition changes (a sync, a
- * word written), never what the person may read (FR-718.3), which each turn reads again.
+ * The reads a person's next turn may start from: only what the live edition governs, the words
+ * written in Definitions, which a new live edition changes. Everything else is read again each
+ * turn: the catalogue carries the items that mention a term, the open gaps and the library's
+ * index, which a publish or a gap changes without a new live edition (FR-718.3).
  */
-const BETWEEN_TURNS = new Set(['catalogue', 'glossary'])
-
-/** How long a person's reads are kept between their turns, at most: two minutes. */
-const KEPT_BETWEEN_TURNS_MS = 120_000
+const BETWEEN_TURNS = new Set(['glossary'])
 
 /**
  * A person's reads of their workspace, kept between their turns of Ask, so a follow-up does not
- * read the catalogue again (Ask's speed budget, docs/releasing.md): the catalogue and the words
- * written in Definitions, which a sync or a word written changes, and either is a new live edition.
- * They are kept while the live edition is the same, for at most `ttl`. The rest of a turn's reads
- * are its own, made afresh: which items the person may read (FR-718.3), the records, the domains
- * and their owners, the people, the Inbox and the conflicts.
+ * read the words written in Definitions again (Ask's speed budget, docs/releasing.md). They are
+ * kept until the live edition changes, with no time limit. The rest of a turn's reads are its
+ * own, made afresh: the catalogue, which items the person may read, the records, the domains and
+ * their owners, the people, the Inbox and the conflicts.
  */
-export function createKeptReads(ttl = KEPT_BETWEEN_TURNS_MS, now = () => Date.now()) {
-  const kept = new Map<
-    string,
-    { edition: string; reads: Map<string, Promise<unknown>>; expires: number }
-  >()
+export function createKeptReads() {
+  const kept = new Map<string, { edition: string; reads: Map<string, Promise<unknown>> }>()
   return {
     /** The reads of a turn of `person`'s, on the live edition `edition`. */
     turn(person: string, edition: string): TurnReads {
-      for (const [who, at] of kept) if (at.expires <= now()) kept.delete(who)
       let at = kept.get(person)
       if (!at || at.edition !== edition) {
-        at = { edition, reads: new Map(), expires: now() + ttl }
+        at = { edition, reads: new Map() }
         kept.set(person, at)
       }
       const between = at.reads
