@@ -1,6 +1,7 @@
 import * as z from 'zod/mini'
 import type { ConnectorConfig, FieldProblem } from './connector-config.ts'
 import type { ConnectorManifest } from './connector-manifest.ts'
+import { BUILT_FROM_MAX, columnNamePattern } from './definition-helpers.ts'
 
 /*
   A connector's runtime (interface 3.0, docs/contributing/connector-contract.md "The runtime and its
@@ -55,6 +56,23 @@ export const runtimeDefinitionSchema = z.strictObject({
             }),
           )
           .check(z.minLength(1), z.maxLength(5)),
+      }),
+    ),
+  ),
+  /**
+   * What a metric is built from, as its source names it (CON-207): the definitions it takes as
+   * inputs, by ref, and the columns of its view its own calculation reads, by name. Names only,
+   * never the calculation. Absent when the source does not say, and for a dimension.
+   */
+  builtFrom: z.optional(
+    z.nullable(
+      z.strictObject({
+        refs: z
+          .array(z.string().check(z.maxLength(500), z.regex(definitionRefPattern)))
+          .check(z.maxLength(BUILT_FROM_MAX)),
+        columns: z
+          .array(z.string().check(z.regex(columnNamePattern)))
+          .check(z.maxLength(BUILT_FROM_MAX)),
       }),
     ),
   ),

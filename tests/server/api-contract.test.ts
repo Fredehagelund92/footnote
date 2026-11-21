@@ -5,6 +5,7 @@ import { minifyContractRouter } from '@orpc/contract'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ORPCError } from '@orpc/client'
 import { ValidationError } from '@orpc/server'
+import { definitionRelationKinds } from '../../src/contract/catalogue.ts'
 import { contract } from '../../src/contract/index.ts'
 import { refusals } from '../../src/contract/refusals.ts'
 import { buildApp } from '../../src/server/app.ts'
@@ -90,6 +91,22 @@ function app(options: { rows?: object[]; signedIn?: boolean } = {}) {
   close = () => instance.close()
   return { instance, lines }
 }
+
+describe('a definition’s relations (FR-143)', () => {
+  it('hold refs, names and a kind only: no field a calculation could take (CON-207)', () => {
+    const relation = contract.definitions.relations['~orpc'].outputSchema as unknown as {
+      def: { shape: { relations: { def: { element: { def: { shape: object } } } } } }
+    }
+    const fields = Object.keys(relation.def.shape.relations.def.element.def.shape).sort()
+    expect(fields).toEqual(['by', 'key', 'kind', 'missing', 'name', 'ref'])
+    expect(definitionRelationKinds).toEqual([
+      'converted_from',
+      'converted_to',
+      'built_from',
+      'used_by',
+    ])
+  })
+})
 
 describe('a refusal without words of its own', () => {
   it("says the plain default for its code, never the library's English", () => {
@@ -313,6 +330,7 @@ describe('the API over HTTP', () => {
       '/context/deleted',
       '/decisions/undo',
       '/definitions/related',
+      '/definitions/relations',
       '/drafts/from-text',
       '/editions',
       '/editions/{label}/export',

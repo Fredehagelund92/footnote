@@ -60,6 +60,7 @@ import { figureFor, figureTryFor } from './data/figures'
 import { reportedOn, type Answer, type AskInput } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
 import { createDefinitions } from './definitions'
+import { relationsFor } from './data/relations'
 import { dimensionsOf, valuesOf } from './obs-filters'
 import { publishEffects, touchedBy } from './publish'
 import { SAVED_TREND } from './data/saved-questions'
@@ -763,6 +764,7 @@ export function createMockApi() {
         name,
         () => definitions.list().find((d) => d.name.toLowerCase() === name.toLowerCase()) ?? null,
       ),
+    getDefinitionRelations: ({ name }) => now(() => relationsFor(name, definitions.list())),
     getDefinitionHistory: ({ name }) =>
       now(() => {
         const d = definitions.list().find((x) => x.name.toLowerCase() === name.toLowerCase())

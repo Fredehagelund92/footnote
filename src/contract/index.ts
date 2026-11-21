@@ -188,7 +188,11 @@ import {
   testSourceSchema,
   updateSourceSchema,
 } from './sources.ts'
-import { catalogueSchema } from './catalogue.ts'
+import {
+  catalogueSchema,
+  definitionRelationsInputSchema,
+  definitionRelationsSchema,
+} from './catalogue.ts'
 import { searchAllInputSchema, searchResultsSchema } from './search.ts'
 import { scopeSearchInputSchema, scopeSearchSchema } from './scope.ts'
 import {
@@ -352,6 +356,8 @@ export type {
   CatalogueTerm,
   CatalogueValue,
   CatalogueVariant,
+  DefinitionRelation,
+  DefinitionRelations,
 } from './catalogue.ts'
 export type {
   DeletedTerm,
@@ -1191,6 +1197,17 @@ export const contract = {
       .errors(notFound)
       .input(definitionRelatedInputSchema)
       .output(relatedSchema),
+    relations: read
+      .route({
+        method: 'GET',
+        path: '/definitions/relations',
+        tags: ['library'],
+        summary:
+          "What a metric is built from and what is built from it, from its source's structure: refs and column names, never a calculation (FR-143)",
+      })
+      .errors(notFound)
+      .input(definitionRelationsInputSchema)
+      .output(definitionRelationsSchema),
   },
   areas: {
     list: read

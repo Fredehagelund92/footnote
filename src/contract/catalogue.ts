@@ -161,9 +161,49 @@ export const catalogueValueSchema = z.object({
   mentionedBy: z.number(),
 })
 
+/** How a definition relates to another, or to a column, as its source's structure says (D3). */
+export const definitionRelationKinds = [
+  'converted_from',
+  'converted_to',
+  'built_from',
+  'used_by',
+] as const
+
+/**
+ * What a metric is built from and what is built from it (FR-143): the source's structure, kept by
+ * name only (CON-207). Refs, column names and a kind: never an expression, an operator or a query.
+ */
+export const definitionRelationSchema = z.object({
+  kind: z.enum(definitionRelationKinds),
+  /** The definition at the other end, by ref; null for a column. */
+  ref: z.nullable(z.string()),
+  /**
+   * A column's name in the source (`exchange_rate_usd`), or the definition's: the live term's
+   * name when one names it, else its name in the source.
+   */
+  name: z.string(),
+  /** The live term that names the definition, whose page it opens; null for a column, or none. */
+  key: z.nullable(z.string()),
+  /** The definition is no longer in the source; false for a column. */
+  missing: z.boolean(),
+  /** A conversion's column, the one the converted metric reads beyond the other; else null. */
+  by: z.nullable(z.string()),
+})
+
+export const definitionRelationsInputSchema = z.strictObject({
+  key: z.string().check(z.regex(/^metric:[a-z0-9_]+$/)),
+})
+
+export const definitionRelationsSchema = z.object({
+  /** Converted from and to first, then built from in the source's order, then used by, by name. */
+  relations: z.array(definitionRelationSchema),
+})
+
 export type Catalogue = z.infer<typeof catalogueSchema>
 export type CatalogueTerm = z.infer<typeof catalogueTermSchema>
 export type CatalogueVariant = z.infer<typeof catalogueVariantSchema>
 export type CatalogueDefinition = z.infer<typeof catalogueDefinitionSchema>
 export type CatalogueSource = z.infer<typeof catalogueSourceSchema>
 export type CatalogueValue = z.infer<typeof catalogueValueSchema>
+export type DefinitionRelation = z.infer<typeof definitionRelationSchema>
+export type DefinitionRelations = z.infer<typeof definitionRelationsSchema>

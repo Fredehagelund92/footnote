@@ -17,7 +17,12 @@ import type { ObsFilter, TopicSum, ValueGroup, ValueSort } from '@domain/obs-fil
 import type { ScopeSearchResult } from '@contract/scope'
 import type { ReactionEmoji } from '@/components/templates/comment-box/types'
 import type { FactAction } from '@/lib/bulk'
-import type { Definition, DefinitionType, SynonymCheck } from '@/lib/definitions'
+import type {
+  Definition,
+  DefinitionRelation,
+  DefinitionType,
+  SynonymCheck,
+} from '@/lib/definitions'
 import type { Link } from '@/lib/links'
 import type { Answer, AskedWeek, AskInput, Example, SentReport, Thread } from '@/model/ask'
 import type { AskLive } from '@/model/ask-turn'
@@ -532,6 +537,8 @@ export interface FootnoteApi {
   getDefinitionHistory: (input: { name: string }) => Promise<Version[]>
   /** A definition's page; null for an unknown name. */
   definitionPage: (input: { name: string }) => Promise<Definition | null>
+  /** What a synced metric is built from and what is built from it; none for anything else. */
+  getDefinitionRelations: (input: { name: string }) => Promise<DefinitionRelation[]>
   /** Saves a term; a renamed one replaces the old entry. Synced definitions are never saved here. */
   saveTerm: (input: { previous?: string; term: Definition }) => Promise<void>
   /** Another name for a definition, refused when the word already means something. */
@@ -929,6 +936,7 @@ export const footnoteApiMethods = [
   'getDefinitions',
   'definitionsPage',
   'definitionPage',
+  'getDefinitionRelations',
   'getDefinitionHistory',
   'saveTerm',
   'addSynonym',
@@ -1053,6 +1061,7 @@ export const readMethods = [
   'getDefinitions',
   'definitionsPage',
   'definitionPage',
+  'getDefinitionRelations',
   'getDefinitionHistory',
   'getInbox',
   'inboxPage',

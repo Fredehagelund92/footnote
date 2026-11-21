@@ -170,6 +170,7 @@ export const wiredMethods = [
   'getDefinitions',
   'definitionsPage',
   'definitionPage',
+  'getDefinitionRelations',
   'getDefinitionHistory',
   'saveTerm',
   'addSynonym',
@@ -645,6 +646,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     return {
       terms,
       definitions: [...definitionsOf(catalogue.terms), ...termDefinitionsOf(terms, people.name)],
+      /** The key of the metric or dimension Definitions lists by this name, never a family's. */
+      keyOf: (name: string) =>
+        catalogue.terms.find((t) => !t.family && same(t.name, name))?.key ?? null,
       /** What a name means on the service: a metric's or a dimension's key, or a term's id. */
       refOf(name: string) {
         const key = catalogue.terms.find((t) => same(t.name, name))?.key
@@ -1559,6 +1563,19 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     definitionsPage: async () => (await readGlossary()).definitions,
     definitionPage: async ({ name }) =>
       (await readGlossary()).definitions.find((d) => same(d.name, name)) ?? null,
+    getDefinitionRelations: async ({ name }) => {
+      const key = (await readGlossary()).keyOf(name)
+      if (!key?.startsWith('metric:')) return []
+      const found = await orNull(() => read(() => client.definitions.relations({ key })))
+      return (found?.relations ?? []).map((relation) => ({
+        kind: relation.kind,
+        name: relation.name,
+        column: relation.ref === null,
+        linked: relation.key !== null,
+        missing: relation.missing,
+        by: relation.by,
+      }))
+    },
     getDefinitionHistory: async ({ name }) => {
       const glossary = await readGlossary()
       const term = glossary.terms.find((t) => same(t.name, name))

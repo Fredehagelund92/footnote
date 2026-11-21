@@ -30,6 +30,9 @@ const CURRENCIES = new Set(
   ),
 )
 
+/** Whether a word of a name in the tool is a currency's ISO 4217 code, in any case: `usd`. */
+export const isCurrencyCode = (word: string) => CURRENCIES.has(word.toUpperCase())
+
 /**
  * The one currency a metric's name is in: a code written in capitals ("Revenue USD" or
  * "Accrued share (EUR)"), so everyday words such as "all" or "top" are none. Null for none, and for

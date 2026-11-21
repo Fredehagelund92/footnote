@@ -4,6 +4,7 @@ import type {
   CatalogueDefinition,
   CatalogueSource,
   CatalogueTerm,
+  DefinitionRelations,
 } from '../../../contract/index.ts'
 import {
   catalogueStatus,
@@ -15,6 +16,7 @@ import {
   type ShelfItem,
 } from '../../../domain/catalogue.ts'
 import type { VariantValue } from '../../../domain/definition-helpers.ts'
+import { relationsOf, type RelationMember } from '../../../domain/definition-relations.ts'
 import {
   axisWords,
   derivationsOf,
@@ -43,6 +45,12 @@ const withoutRemoved = <T extends { removed: boolean }>({ removed: _removed, ...
  */
 export interface CatalogueService {
   list(): Promise<Catalogue>
+  /**
+   * What the metric a live term names is built from and what is built from it (FR-143), from the
+   * names its source sent (CON-207); null when no live metric term has that key, or its
+   * definition is hidden from the person (CON-509).
+   */
+  relations(key: string): Promise<DefinitionRelations | null>
 }
 
 type VocabularyRow = {
@@ -373,7 +381,82 @@ export function createCatalogueService(
     return { today, terms }
   }
 
+  /**
+   * The metric's definition, the metrics of its view and those built from it, what it is built
+   * from, and the live terms that name any of them, in one statement.
+   */
+  async function readRelations(key: string) {
+    type Row = RelationMember & { connectorId: string; missing: boolean }
+    const [row] = await database.query<{
+      own: Row | null
+      peers: Row[]
+      targets: { ref: string; name: string; missing: boolean; visible: boolean }[]
+      terms: { key: string; name: string; refs: string[] }[]
+    }>(
+      `with vocabulary as materialized (
+         select t.key, t.name, t.definition_refs as refs
+           from serving_vocabulary((select seq from live_edition)) t where t.kind = 'metric'),
+       own as (
+         select d.ref, d.connector_id as "connectorId", d.name,
+                d.missing_since_snapshot is not null as missing,
+                case when d.built_from_refs is null then null
+                     else json_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
+                end as "builtFrom"
+           from definitions d
+          where d.ref = (select v.refs[1] from vocabulary v where v.key = $2)
+            and d.kind = 'metric' and ${visibleTo}),
+       -- The live metrics of its view, which a conversion is found among, and those built from it.
+       peers as (
+         select d.ref, d.connector_id as "connectorId", d.name, false as missing,
+                jsonb_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns) as "builtFrom"
+           from definitions d join own o on d.connector_id = o."connectorId"
+          where d.kind = 'metric' and d.built_from_refs is not null and d.ref <> o.ref
+            and d.missing_since_snapshot is null and ${visibleTo}
+            and regexp_replace(d.name, '[.][^.]*$', '') = regexp_replace(o.name, '[.][^.]*$', '')
+         union
+         select d.ref, d.connector_id, d.name, false,
+                jsonb_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
+           from definitions d join own o on d.built_from_refs @> array[o.ref]
+          where d.missing_since_snapshot is null and ${visibleTo}),
+       targets as (
+         select d.ref, d.name, d.missing_since_snapshot is not null as missing, ${visibleTo} as visible
+           from definitions d join definitions o on o.ref = (select ref from own)
+          where d.ref = any(o.built_from_refs))
+       select
+         (select row_to_json(o) from own o) as own,
+         (select coalesce(json_agg(p), '[]') from peers p) as peers,
+         (select coalesce(json_agg(t), '[]') from targets t) as targets,
+         (select coalesce(json_agg(json_build_object('key', v.key, 'name', v.name, 'refs', v.refs)), '[]')
+            from vocabulary v
+           where v.refs && (array(select ref from peers) || array(select ref from targets where visible))) as terms`,
+      [groups, key],
+    )
+    return row!
+  }
+
   return {
+    async relations(key) {
+      const { own, peers, targets, terms } = await readRelations(key)
+      if (!own) return null
+      const termOf = new Map(terms.flatMap((term) => term.refs.map((ref) => [ref, term] as const)))
+      const stored = new Map<string, { name: string; missing: boolean; visible: boolean }>([
+        ...peers.map((peer) => [peer.ref, { ...peer, visible: true }] as const),
+        ...targets.map((target) => [target.ref, target] as const),
+      ])
+      // A definition the person may not see is left out; one the source never listed, named alone.
+      const targetOf = (ref: string) => {
+        const definition = stored.get(ref)
+        if (!definition) return undefined
+        if (!definition.visible) return null
+        const term = termOf.get(ref)
+        return {
+          name: term?.name ?? definition.name,
+          key: term?.key ?? null,
+          missing: definition.missing,
+        }
+      }
+      return { relations: relationsOf(own, peers, targetOf) }
+    },
     async list() {
       const data = await read()
       const { today, terms } = build(data)

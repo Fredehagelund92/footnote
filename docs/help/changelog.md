@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-20
 ---
 
+## What a metric is built from
+
+2026-11-21
+
+A metric's page now says what it is built from, read from your dbt project: a ratio's two metrics and a derived metric's inputs, each a link, and the columns its calculation reads. Each input says which metrics use it, and a metric in USD worked out from its EUR twin with a rate says so, by that column. See [Definitions](definitions-and-synonyms.md#what-a-metric-is-built-from).
+
 ## Families of metrics
 
 2026-11-20
