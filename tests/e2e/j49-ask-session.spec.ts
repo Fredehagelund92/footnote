@@ -7,7 +7,8 @@ import { expect, go, mode, signOut, test } from './go.ts'
 // chat keeps its first answer, so a reload asks nothing; and Not looked up is not an answer: it does
 // not join, and Ask again that gets it keeps the answer the turn had; and the chats leave the
 // browser at sign-out; a chat whose answers are no longer kept opens on its question and asks
-// nothing until Ask again. Time stands still in the first six, so a stop lands while the answer is on
+// nothing until Ask again; a new chat that asks an earlier chat's first question again is a chat of
+// its own. Time stands still in the first six, so a stop lands while the answer is on
 // its way.
 
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
@@ -39,6 +40,8 @@ async function held(page: Page, route: string, start = true) {
       while (!open) await new Promise((resolve) => setTimeout(resolve, 50))
       await r.continue()
     })
+  // The words show at once: what is held here is the answer, not how its words come in.
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.clock.install()
   await page.clock.pauseAt(Date.now() + 1000)
   await go(page, route)
@@ -301,6 +304,36 @@ test('a four-turn chat opens again after a reload on all four turns and asks not
   expect(seen.count).toBe(4)
 })
 
+test('a new chat that asks an earlier question again gets its own place in the history', async ({
+  page,
+}) => {
+  await go(page, '/ask?n=j49m')
+  const log = page.getByRole('log')
+  const stop = page.getByRole('button', { name: 'Stop', exact: true })
+  for (const question of [QUESTION, FOLLOW_UP, LAST]) {
+    await ask(page, question)
+    await expect(log.getByText(question)).toHaveCount(1)
+    await expect(stop).toHaveCount(0)
+  }
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(1)
+  const first = chatParam(page)
+
+  await page.getByRole('button', { name: 'New chat' }).first().click()
+  await ask(page, QUESTION)
+  await expect(log.getByText(STATE)).toHaveCount(1)
+  await expect(stop).toHaveCount(0)
+  // Two rows: the new chat never takes the earlier one's place.
+  await expect(chats(page).getByText(QUESTION)).toHaveCount(2)
+  expect(chatParam(page)).not.toBe(first)
+
+  // The earlier chat, below the new one, still opens on its three turns.
+  await chats(page).locator('[data-open]').filter({ hasText: QUESTION }).nth(1).click()
+  await expect.poll(() => chatParam(page)).toBe(first)
+  for (const question of [QUESTION, FOLLOW_UP, LAST])
+    await expect(log.getByText(question)).toHaveCount(1)
+  await expect(log.getByText(STATE)).toHaveCount(3)
+})
+
 test('a first question that comes back Not looked up does not join; Ask again that answers does', async ({
   page,
 }) => {
@@ -330,7 +363,8 @@ test('Ask again that comes back Not looked up keeps the answer the turn had', as
   await go(page, '/ask?n=j49i')
   const log = page.getByRole('log')
   await ask(page, QUESTION)
-  await expect(log.getByText(STATE)).toHaveCount(1)
+  // The state shows once the answer's last word is in.
+  await expect(log.getByText(STATE)).toBeVisible()
   const had = await log.getByText(STATE).innerText()
   expect(had).not.toBe('Not looked up')
 

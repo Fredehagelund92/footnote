@@ -9,7 +9,11 @@ import { identifier, localRoles } from '../../src/server/db/roles.ts'
 import { readNow } from '../../src/server/modules/connectors/read-now.ts'
 import { askToolsOf, requestServices } from '../../src/server/http/api.ts'
 import { readCalendar } from '../../src/server/modules/admin/index.ts'
-import { createBundleCache, type AskTools } from '../../src/server/modules/answer/index.ts'
+import {
+  createBundleCache,
+  type AskTools,
+  type TurnReads,
+} from '../../src/server/modules/answer/index.ts'
 import { createModelPort } from '../../src/server/modules/models/index.ts'
 import { generateItems } from '../../db/seed/fixtures/items.ts'
 import { seededName, seedingName } from './global-setup.ts'
@@ -159,7 +163,7 @@ export function apiDatabase(url: string): Database {
 export function askToolsAs(database: Database, clock: Clock) {
   const bundles = createBundleCache()
   const noHooks = { onCommit: () => {}, onRollback: () => {} }
-  return <T>(person: string, work: (tools: AskTools) => Promise<T>) =>
+  return <T>(person: string, work: (tools: AskTools) => Promise<T>, kept?: TurnReads) =>
     database.transaction(person, async (tx) =>
       work(
         askToolsOf(
@@ -174,6 +178,7 @@ export function askToolsAs(database: Database, clock: Clock) {
           }),
           // The workspace's calendar, as a turn of Ask reads it.
           await readCalendar(tx),
+          kept,
         ),
       ),
     )

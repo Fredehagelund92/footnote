@@ -472,6 +472,7 @@ describe('the audience rule on every read path', () => {
       ['conflicts', { item: linking.id }],
       ['agent_questions', { limit: 25 }],
       ['inbox', { limit: 25 }],
+      ['help', { words: 'Vaultsunrise harbour holidays' }],
     ]
     // Every tool is swept.
     expect(new Set(calls.map(([name]) => name))).toEqual(new Set(askToolNames))

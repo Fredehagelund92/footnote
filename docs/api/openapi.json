@@ -89610,6 +89610,32 @@
                                         "tool"
                                       ]
                                     },
+                                    "help": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "slug": {
+                                            "type": "string"
+                                          },
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "title": {
+                                            "type": "string"
+                                          },
+                                          "heading": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "slug",
+                                          "id",
+                                          "title",
+                                          "heading"
+                                        ]
+                                      }
+                                    },
                                     "choices": {
                                       "type": "array",
                                       "items": {
@@ -90730,6 +90756,32 @@
                                             "names",
                                             "tool"
                                           ]
+                                        },
+                                        "help": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "slug": {
+                                                "type": "string"
+                                              },
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "title": {
+                                                "type": "string"
+                                              },
+                                              "heading": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "slug",
+                                              "id",
+                                              "title",
+                                              "heading"
+                                            ]
+                                          }
                                         },
                                         "choices": {
                                           "type": "array",

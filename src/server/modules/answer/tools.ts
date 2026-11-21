@@ -20,7 +20,8 @@ import {
 import { kindFilters } from '../../../domain/mcp-text.ts'
 import { variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
-import { namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
+import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
+import { searchHelp } from './help.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
 import { productName } from '../../brand.ts'
 import { closest, quoted } from '../../mcp/outcomes.ts'
@@ -67,6 +68,7 @@ export const askToolNames = [
   'conflicts',
   'agent_questions',
   'inbox',
+  'help',
 ] as const
 export type AskToolName = (typeof askToolNames)[number]
 
@@ -193,11 +195,11 @@ const noWrite = (): Promise<never> =>
 async function viewOf(reads: ToolReads): Promise<View> {
   // One after the other: a transaction runs one statement at a time.
   const bundle = await reads.bundle()
-  const index = await reads.index()
+  const listed = await reads.readable()
   const catalogue = await reads.catalogue()
   const areas = await reads.areas()
   const people = await reads.people()
-  const readable = new Set(index.items.map((i) => i.id))
+  const readable = new Set(listed.map((i) => i.id))
   const mine: ServingBundle = { ...bundle, items: bundle.items.filter((i) => readable.has(i.id)) }
   const names = new Map(people.map((p) => [p.id, p.name]))
   const area = (id: string | null | undefined) => areas.find((a) => a.id === id)
@@ -225,7 +227,7 @@ async function viewOf(reads: ToolReads): Promise<View> {
   return {
     bundle: mine,
     readable,
-    published: index.items.filter(
+    published: listed.filter(
       (i) => i.status === 'accepted' && Object.values(kindFilters).some((k) => k === i.kind),
     ).length,
     // A family's variants are shown in it (FR-142): they can be named, never listed.
@@ -1241,6 +1243,45 @@ async function readContext(
 }
 
 // ---------------------------------------------------------------------------------------------
+// help
+
+const helpInput = z.strictObject({
+  words: z
+    .string()
+    .min(1)
+    .max(200)
+    .describe(
+      'A few words of what to find in the help: "checked answer line", "add a context item".',
+    ),
+})
+const helpOutput = z.object({
+  words: z.string(),
+  found: z.number(),
+  /** The help's parts that best match, best first. */
+  pages: z.array(
+    z.object({
+      /** The page's address in the help, with the heading's anchor: `write-context#write-an-item`. */
+      page: z.string(),
+      title: z.string(),
+      heading: z.string(),
+      text: z.string(),
+    }),
+  ),
+  ids,
+})
+
+/** The built-in help's parts that best match the words (FR-719.8). */
+function help(input: z.output<typeof helpInput>): z.infer<typeof helpOutput> {
+  const pages = searchHelp(input.words).map((s) => ({
+    page: s.id ? `${s.slug}#${s.id}` : s.slug,
+    title: s.title,
+    heading: s.heading,
+    text: s.text,
+  }))
+  return { words: input.words, found: pages.length, pages, ids: [] }
+}
+
+// ---------------------------------------------------------------------------------------------
 // definitions
 
 const definitionsInput = z.strictObject({
@@ -1343,6 +1384,8 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
   if (input.domain && !area) throw new ToolInputError(unknownDomain(view, input.domain))
   type Entry = z.infer<typeof definitionsOutput>['definitions'][number] & {
     names: string[]
+    /** Its short names: what finds it when no name does ("ROAS"). */
+    short: string[]
     areaId: string | null
   }
   const synced: Entry[] = catalogue.terms.map((t) => {
@@ -1375,8 +1418,17 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       values: null,
       related: null,
       history: null,
-      // A variant's name finds its family.
-      names: [t.name, ...t.aliases, t.key, t.id, ...(t.family?.variants.map((v) => v.name) ?? [])],
+      // A variant's name finds its family, and a word written in Definitions as another name for
+      // it finds it too.
+      names: [
+        t.name,
+        ...t.aliases,
+        t.key,
+        t.id,
+        ...(t.family?.variants.map((v) => v.name) ?? []),
+        ...glossary.terms.flatMap((g) => (g.sameAs?.ref === t.key ? [g.name] : [])),
+      ],
+      short: initialsOf(t.name),
       areaId: t.domain.areaId,
     }
   })
@@ -1396,22 +1448,29 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     related: null,
     history: null,
     names: [t.name],
+    short: [],
     areaId: t.areaId,
   }))
   const all = [...synced, ...written].filter(
     (d) => (!input.kind || d.kind === input.kind) && (!area || d.areaId === area.id),
   )
   const asked = input.names ?? []
-  const named = (d: Entry, n: string) => d.names.some((x) => normalizeName(x) === normalizeName(n))
+  // What a name finds: what is named so, or else what it is the short name of.
+  const finds = (n: string) => {
+    const said = normalizeName(n)
+    const named = all.filter((d) => d.names.some((x) => normalizeName(x) === said))
+    return named.length ? named : all.filter((d) => d.short.includes(said))
+  }
+  const found = new Set(asked.flatMap(finds))
   const notFound = asked
-    .filter((n) => !all.some((d) => named(d, n)))
+    .filter((n) => !finds(n).length)
     .map((n) => ({ name: n, closest: closest(n, all, (d) => d.names)?.name ?? null }))
-  const chosen = asked.length ? all.filter((d) => asked.some((n) => named(d, n))) : all
+  const chosen = asked.length ? all.filter((d) => found.has(d)) : all
   // Names looked up get what they are related to, and one name its history; a listing stays light.
   const valueKeys: string[] = []
   const relatedKeys: string[] = []
   const shown = await Promise.all(
-    chosen.slice(0, input.limit).map(async ({ names: _n, areaId: _a, ...d }) => {
+    chosen.slice(0, input.limit).map(async ({ names: _n, short: _s, areaId: _a, ...d }) => {
       if (!asked.length) return d
       const term = catalogue.terms.find((t) => t.key === d.id)
       const values = view.bundle.terms
@@ -2009,7 +2068,7 @@ const definitionsFor = {
   },
   definitions: {
     description:
-      "What Definitions shows the person: each metric's and dimension's own definition as its source words it, the words people wrote, other names, the domain and its owners, and how many items are about it. Look names up, or count them by kind as the page does. A name looked up also gives a dimension's values, a metric's group and the other metrics in it, and how many items name it; one name alone gives what changed in its definition and when.",
+      "What Definitions shows the person: each metric's and dimension's own definition as its source words it, the words people wrote, other names, the domain and its owners, and how many items are about it. Look names up, by a name, another name or a short name of its initials (ROAS for Return on ad spend), or count them by kind as the page does. A name looked up also gives a dimension's values, a metric's group and the other metrics in it, and how many items name it; one name alone gives what changed in its definition and when.",
     input: definitionsInput,
     output: definitionsOutput,
   },
@@ -2036,6 +2095,11 @@ const definitionsFor = {
       "The person's own Inbox: the cards that wait on them, by group in the Inbox's own order of need, each group with its count and its cards, each card with what it is about, why it waits and its day; how many cards the Inbox counts, and why that differs from what the groups add up to when it does. It gives no one else's Inbox.",
     input: inboxInput,
     output: inboxOutput,
+  },
+  help: {
+    description: `${productName}'s own help pages: how ${productName} works, what its words, states and screens mean, and how to do something in it. Use it for a question about ${productName} itself, never for the company's context. Returns the parts of the pages that best match the words, best first, each with its page, heading and words.`,
+    input: helpInput,
+    output: helpOutput,
   },
 } as const satisfies Record<
   AskToolName,
@@ -2085,6 +2149,7 @@ export function createAskTools(reads: ToolReads) {
     conflicts: (v, input) => conflicts(v, reads, input),
     agent_questions: (v, input) => agentQuestions(v, reads, input),
     inbox: (v, input) => inbox(v, reads, input),
+    help: (_v, input) => help(input),
   }
   async function run<N extends AskToolName>(
     toolName: N,
@@ -2110,11 +2175,15 @@ export function createAskTools(reads: ToolReads) {
     run,
     /**
      * The word of a question that names no one metric, with the metrics the person may see that
-     * it may mean, by id and name (A5, FR-719.2); null when it names one, or none.
+     * it may mean, by id and name, the group's name when it names a group, and whether the
+     * question is that word alone (A5, FR-719.2); null when it names one, or none.
      */
-    async vague(
-      question: string,
-    ): Promise<{ word: string; metrics: { id: string; name: string }[] } | null> {
+    async vague(question: string): Promise<{
+      word: string
+      metrics: { id: string; name: string }[]
+      group: string | null
+      alone: boolean
+    } | null> {
       const v = await viewNow()
       const found = vagueMetricWord(question, v.bundle.terms, today, {
         titles: v.bundle.items.map((i) => i.title),
@@ -2123,7 +2192,12 @@ export function createAskTools(reads: ToolReads) {
       })
       const metrics = (found?.metrics ?? []).filter((m) => isShown(v, m.key))
       return found && metrics.length > 1
-        ? { word: found.word, metrics: metrics.map((m) => ({ id: nounId(m.key), name: m.name })) }
+        ? {
+            word: found.word,
+            metrics: metrics.map((m) => ({ id: nounId(m.key), name: m.name })),
+            group: found.group,
+            alone: found.alone,
+          }
         : null
     },
     /** The tools in the AI SDK's shape: a description, the input schema and the read. */
