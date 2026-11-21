@@ -57,9 +57,9 @@ for (const { name, width, height } of widths) {
 
       // History keeps both choices, after its tool's reads.
       await go(page, '/definitions/Revenue')
-      await expect(
-        page.getByRole('main').getByRole('button', { name: /changes - last edited by Jon Abara/ }),
-      ).toBeVisible()
+      const main = page.getByRole('main')
+      await main.getByRole('button', { name: /changes - last edited by Jon Abara/ }).click()
+      await expect(main.getByRole('button', { name: /Jon edited wording/ })).toHaveCount(2)
     })
 
     test('a pair one rate converts reads the base variant’s words', async ({ page }) => {

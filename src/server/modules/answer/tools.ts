@@ -1388,7 +1388,7 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
   const others = meaning.words
     ? family.variants.filter((variant) => differing.has(variant.key))
     : family.variants
-  const lines = variantWords(others).map((line) => quoted(line).text)
+  const lines = variantWords(others, !!meaning.words).map((line) => quoted(line).text)
   return [
     ...(meaning.words ? [quoted(meaningLine(meaning.words, family.by)).text] : []),
     `A family of ${family.variants.length} near-identical metrics, one for each ${family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`,

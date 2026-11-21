@@ -382,6 +382,38 @@ describe('a family of metrics in Ask (FR-142)', () => {
     )
   })
 
+  it('lists the variants that say something else by their values, never as all of them', async () => {
+    const same = (key: string, description: string | null) => ({
+      ...family.family.variants[0]!,
+      key,
+      description,
+    })
+    const meaning = {
+      ...family.family.meaning,
+      source: 'declared',
+      words: 'Money taken in {Currency} via {Channel}.',
+      differing: ['metric:revenue_aed_app', 'metric:revenue_eur_web'],
+    }
+    const variantsSaying = [
+      { ...same('metric:revenue_aed_app', 'Money taken in AED via app.'), values: ['AED', 'app'] },
+      { ...same('metric:revenue_eur_web', 'Money taken in EUR via web.'), values: ['EUR', 'web'] },
+      { ...same('metric:revenue_usd_web', null), values: ['USD', 'web'] },
+    ]
+    const withMeaning = createAskTools({
+      ...reads,
+      catalogue: () =>
+        Promise.resolve({
+          terms: [{ ...family, family: { ...family.family, meaning, variants: variantsSaying } }],
+        }),
+    } as unknown as ToolReads)
+    const result = await withMeaning.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { words: string | null }[] }).definitions
+    expect(revenue!.words).toContain(
+      '2 variants say something else: AED, app: Money taken in AED via app. EUR, web: Money taken in EUR via web.',
+    )
+    expect(revenue!.words).not.toContain('each other variant')
+  })
+
   it('counts the items on a family and on any of its variants under the family name', async () => {
     const result = await tools.run('records', { about: ['Revenue'], show: 'count' })
     expect(result).toMatchObject({ count: 2, filters: { about: ['Revenue'] } })

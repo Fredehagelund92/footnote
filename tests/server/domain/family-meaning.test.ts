@@ -206,6 +206,7 @@ describe('the words a source declares for a family', () => {
   it('is the one wording the variants write, case and spaces aside; none when they differ', () => {
     expect(declaredWords([null, 'Money taken.', 'money  taken.'])).toBe('money  taken.')
     expect(declaredWords([null, undefined])).toBeNull()
+    expect(declaredWords(['  ', null])).toBeNull()
     expect(declaredWords(['Money taken.', 'Money given.'])).toBeUndefined()
   })
 

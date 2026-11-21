@@ -15,7 +15,7 @@ function automatic(family: Family): string {
   const meaning = family.meaning!
   if (meaning.common)
     return `The common words of ${n(meaning.common.agree)} of ${n(family.variants.length)} variants.`
-  if (meaning.base)
+  if (baseWords(family))
     return `The words of ${meaning.base}, the variant the others are converted from.`
   return 'Nothing yet: its variants say different things.'
 }
@@ -144,7 +144,11 @@ export default function FamilyMeaningDialog({
           {choice === 'member' && (
             <div className="flex flex-col gap-2">
               <Command className="rounded-md border" label="Variants">
-                <CommandInput placeholder="Find a variant" />
+                <CommandInput
+                  placeholder="Find a variant"
+                  aria-invalid={problem ? true : undefined}
+                  aria-describedby={problem ? 'family-words-problem' : undefined}
+                />
                 <CommandList className="max-h-48">
                   <CommandEmpty>No variant has these words in its name.</CommandEmpty>
                   {described.map((v) => (
@@ -197,7 +201,7 @@ export default function FamilyMeaningDialog({
             </p>
           )}
           {problem && (
-            <p id="family-words-problem" className="text-sm text-destructive">
+            <p id="family-words-problem" role="alert" className="text-sm text-destructive">
               {problem}
             </p>
           )}

@@ -374,7 +374,7 @@ export function createCatalogueService(
           source: own?.sourceId ?? '',
           name: own?.name ?? member.name,
           variant: own?.variantBy ? { shape: own.variantShape ?? '', by: own.variantBy } : null,
-          declared: own?.declared ?? null,
+          declared: own && !own.missing ? own.declared : null,
           builtFrom: own?.builtFrom ?? null,
         }
       })

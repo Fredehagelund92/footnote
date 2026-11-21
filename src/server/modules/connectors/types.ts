@@ -97,8 +97,7 @@ export const definitionSchema = z.object({
       by: variantBy,
       description: z
         .string()
-        .min(1)
-        .refine((value) => Array.from(value).length <= 500)
+        .refine((value) => value.trim().length > 0 && Array.from(value).length <= 500)
         .optional(),
     })
     .nullable()

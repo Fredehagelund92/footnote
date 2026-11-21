@@ -540,7 +540,7 @@ export function declaredWords(
   descriptions: readonly (string | null | undefined)[],
 ): string | null | undefined {
   const written = new Map<string, string>()
-  for (const words of descriptions) if (words) written.set(normalizeName(words), words)
+  for (const words of descriptions) if (words?.trim()) written.set(normalizeName(words), words)
   if (written.size > 1) return undefined
   return [...written.values()][0] ?? null
 }
@@ -585,6 +585,8 @@ const VARIANT_WORDS_MAX = 4
  */
 export function variantWords(
   variants: readonly { values: readonly string[]; description: string | null }[],
+  /** Given only some of a family's variants: each is listed by its values, never as all of them. */
+  subset = false,
 ): string[] {
   const described = variants.flatMap((variant) => {
     const words = variant.description?.trim()
@@ -596,6 +598,7 @@ export function variantWords(
   const label = (variant: (typeof described)[number]) =>
     variant.values.filter(Boolean).join(', ') || 'One variant'
   if (
+    !subset &&
     described.length > 1 &&
     described.length === variants.length &&
     new Set(described.map(without)).size === 1

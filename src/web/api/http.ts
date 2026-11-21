@@ -1611,11 +1611,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const family = (await readGlossary()).familyOf(name)
       if (!family?.family)
         throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
-      // A variant gone since is the service's to refuse.
+      const variant = family.family.variants.find((v) => v.name === member)
+      if (choice === 'member' && !variant)
+        throw new ApiError('not-found', 'That variant is no longer in this family.')
       const input = {
         key: family.key,
         choice,
-        member: family.family.variants.find((v) => v.name === member)?.key,
+        member: variant?.key,
         words,
         revision,
       }

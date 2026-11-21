@@ -18,6 +18,7 @@ import {
   type ObsValuesInput,
   type ScopeSearchInput,
 } from '@/api/client'
+import { ApiError } from '@/api/errors'
 import { reportSignedOut } from '@/api/query-client'
 import type { AskInput } from '@/model/ask'
 import type { FigureAsk } from '@/model/figures'
@@ -832,6 +833,16 @@ export function useWrite() {
       result = await (api[operation] as (input: WriteInput<K>) => Promise<WriteResult<K>>)(input)
     } catch (error) {
       reportSignedOut(queryClient, error)
+      if (
+        operation === 'setFamilyMeaning' &&
+        error instanceof ApiError &&
+        error.kind === 'conflict'
+      )
+        await Promise.all(
+          coveringKeys(invalidations[operation](input, undefined as WriteResult<K>)).map(
+            (queryKey) => queryClient.invalidateQueries({ queryKey }),
+          ),
+        )
       throw error
     }
     await invalidateAfter(queryClient, operation, input, result)
