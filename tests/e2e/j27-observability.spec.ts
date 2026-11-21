@@ -592,7 +592,7 @@ test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, 
   page,
 }) => {
   await go(page, '/observability/alerts')
-  await expect(page.getByRole('switch')).toHaveCount(8)
+  await expect(page.getByRole('switch')).toHaveCount(9)
   await expect(
     page.getByText('After a publish, an archive, a restore, a sync, or a check date passing'),
   ).toBeVisible()

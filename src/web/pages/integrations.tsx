@@ -2198,7 +2198,8 @@ function ConnectSteps({
   reload: () => Promise<ConnectForm | null | undefined>
 }) {
   const { query } = useRoute()
-  const at = Math.min(5, Math.max(1, Number(query.get('step')) || 1))
+  // A server's own source has nothing to pick: it opens on where the server sets it.
+  const at = Math.min(5, Math.max(1, Number(query.get('step')) || (form.server ? 2 : 1)))
   const keyed = c.keyFile !== undefined
   const isDefinitions = c.kind === 'definitions'
   const [copied, copy] = useCopied()
