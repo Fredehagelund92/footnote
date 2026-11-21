@@ -1485,15 +1485,17 @@ export function footerOf(
     const wider = isObj(r.wider) && arr(r.searched)[1] ? arr(r.wider.items).length : null
     return `${n.toLocaleString('en-GB')} of ${of} ${n === 1 ? 'applies' : 'apply'}${wider !== null ? `; a wider read found ${wider.toLocaleString('en-GB')}` : ''}.`
   }
-  // An answer that cites what a search found, where the subject's read found none, says what it
-  // is out of, never that none apply.
+  // An answer that cites what a search found, where the subject's read found none, says how many
+  // of what it is out of it cites, in a sentence, never that none apply.
   const applies = subject && (arr((subject.result as Obj).items).length || !cited.length)
   const denominator = records
     ? `Counted ${str((records.result as Obj).counted)}.`
     : applies && outOf
       ? applying(subject.result as Obj)
       : outOf
-        ? `Ask looked through ${of}.`
+        ? cited.length
+          ? `${cited.length.toLocaleString('en-GB')} of ${of} ${cited.length === 1 ? 'is' : 'are'} cited.`
+          : `None of the ${of} is cited.`
         : null
   const more = ok.reduce((n, r) => n + num(r.more), 0)
   const notSeen = [

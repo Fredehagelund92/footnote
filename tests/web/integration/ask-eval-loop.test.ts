@@ -17,6 +17,10 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   to what is written" in its own voice; K16 keeps Conflict over a follow-up that cites one of the
   two items; F11, FP04 and G02 leave a sentence with a hole ("one in Marketing 2 and."); V02, V08,
   G06, H04, H06, H13 and H24 say what they must not.
+  The same day the steps were keyed again with no model, after the reads stopped counting items
+  that do not apply as not shown, began giving a metric's definition with its look-up, said which
+  domains own the subject and shared a records read's rows among its groups: each step a build
+  sends differently took the step the last real run took at the same place in the same case.
   19 steps follow tool results that are not the same from one run to the next even with the ids
   made afresh each run put back by place, so no recorded step matches them: the scripted reader
   takes those in every build, which is why K18's follow-up is listed as missing here.

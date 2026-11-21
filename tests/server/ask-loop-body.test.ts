@@ -209,7 +209,7 @@ describe("the model's words, checked against the reads", () => {
 
   it('fills a number from its read, and leaves out the clause whose number no read holds', () => {
     const t = turnOf(
-      'Of [#r1.outOf], [#r1.items.length] apply. It was checked on [#r1.items.0.checked.date]. It closed [#r1.tickets] tickets.',
+      'Of [#r1.outOf], [#r1.items.length] apply. It was checked on [#r1.items.0.checked.date]. It has [#r1.tickets] tickets.',
       made,
       [],
     )
@@ -243,6 +243,27 @@ describe("the model's words, checked against the reads", () => {
     ).toBe('Billing closes first, and Platform second.')
     // An answer of one sentence keeps it, the number left out: it is never emptied.
     expect(said('Support holds [#r1.counts.teams] teams.')).toBe('Support holds teams.')
+    // What is left would only open the sentence ("Of the 12 items you can see,"): it goes whole.
+    expect(
+      said('Billing closes first. Of [#r1.outOf], the oldest check is on [#r1.items.9.day].'),
+    ).toBe('Billing closes first.')
+    // Two references to nothing: which words go with which is not clear, so only they go.
+    expect(said('Billing closed [#r1.a] tickets, and Platform [#r1.b]. It is all.')).toBe(
+      'Billing closed tickets, and Platform. It is all.',
+    )
+    // A line of a list is never left out whole.
+    expect(said('Two are due:\n\n- checked on [#r1.items.9.day]\n- Billing')).toBe(
+      'Two are due:\n\n- checked on\n- Billing',
+    )
+    // One its clause reads whole without, at a clause's end, goes alone, as does one after a word
+    // that leads into no value.
+    expect(said('Two are due [#r1.a] and both are old. Billing closed [#r1.b] tickets.')).toBe(
+      'Two are due and both are old. Billing closed tickets.',
+    )
+    // A reference to an id no read holds is a citation that goes alone: its clause stays.
+    expect(
+      said('Two are due: [#r1.groups.0.items.0.id] on Billing, and one on Platform. It is all.'),
+    ).toBe('Two are due: on Billing, and one on Platform. It is all.')
   })
 
   it('writes the number alone of what a count is out of, for words in another language', () => {

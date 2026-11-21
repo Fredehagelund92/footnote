@@ -451,7 +451,9 @@ describe('a turn whose words are about something its subject read is not', () =>
     expect(t.defined).toBeUndefined()
     expect(t.definitions).toEqual([])
     // It says, in a sentence, what it is out of, never how many of a subject it did not use apply.
-    expect(t.footer.denominator).toBe('Ask looked through 21 published context items you can see.')
+    expect(t.footer.denominator).toBe(
+      'None of the 21 published context items you can see is cited.',
+    )
     // Who owns it, and what was read, still show.
     expect(t.owners).toEqual([{ domain: 'domain:area_sales', people: ['person:p1', 'person:p2'] }])
     expect(t.read).toHaveLength(3)

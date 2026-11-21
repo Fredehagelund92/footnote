@@ -207,7 +207,9 @@ describe("Ask's loop", () => {
       expect(a.loop?.subject).toBeNull()
       expect(a.state).toBeNull()
       expect(a.loop?.defined).toBeUndefined()
-      expect(a.footer?.denominator).toBe('Ask looked through 21 published context items you can see.')
+      expect(a.footer?.denominator).toBe(
+        'None of the 21 published context items you can see is cited.',
+      )
     } finally {
       decide = null
     }
@@ -391,8 +393,8 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(a.state).not.toBe('missing')
     expect(a.sources).toEqual(found.map((i) => i.id))
     expect(a.text).toContain('campaigns.[1] [2]')
-    // What the count is out of, never that none apply under what the answer cites.
-    expect(a.footer?.denominator).toBe('Ask looked through 21 published context items you can see.')
+    // How many of what it is out of it cites, in a sentence, never that none apply under them.
+    expect(a.footer?.denominator).toBe('2 of 21 published context items you can see are cited.')
   })
 
   it('under Not found, leaves out the words that only listed what it cited', async () => {
