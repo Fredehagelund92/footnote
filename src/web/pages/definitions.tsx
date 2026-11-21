@@ -188,8 +188,14 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
 const endOf = (name: string) => /^(.*\S)(\s+\([^()]*\)(?:\s*\([^()]*\))*)$/.exec(name)
 
 /**
- * A name that is cut before its bracketed end, never in it: at 390 wide "Acquisition Channel First
- * Touch (orders)" reads "Acquisition Chan… (orders)", so two rows of one start stay apart.
+ * A name that gives its room to its start: "Clicks (partner platform)" is drawn whole while it fits.
+ * A narrow row cuts a long bracketed end first, down to its first few letters ("Search clicks
+ * (reported) (search_c…"), and only then the start; a short end is never cut, so at 390 wide
+ * "Acquisition Channel First Touch (orders)" reads "Acquisition Chan… (orders)" and two rows of
+ * one start stay apart. A long end shrinks a million times faster than the start, so the start
+ * loses not even a fraction of a pixel (and its last letters to an ellipsis) while the end can
+ * give; the start leaves it 4.5rem. A cut start says the whole name on hover. No grid or hidden
+ * copy holds the end's floor: at 5,000 rows they slowed the list's scrolling by a fifth.
  */
 function NameKeepingEnd({ name, query }: { name: string; query: string }) {
   const end = endOf(name)
@@ -200,12 +206,19 @@ function NameKeepingEnd({ name, query }: { name: string; query: string }) {
       </TruncatedText>
     )
   const [, start = '', tail = ''] = end
+  // Sixteen characters are wider than 4.5rem, so the start's cap never cuts a name that fits.
+  const long = tail.length >= 16
   return (
     <span className="flex min-w-0">
-      <TruncatedText text={name}>
+      <TruncatedText text={name} className={cn(long && 'max-w-name-start')}>
         <Highlight text={start} query={query} />
       </TruncatedText>
-      <span className="max-w-2/3 shrink-0 truncate whitespace-pre">
+      <span
+        className={cn(
+          'block min-w-0 truncate whitespace-pre',
+          long ? 'shrink-1000000' : 'shrink-0',
+        )}
+      >
         <Highlight text={tail} query={query} />
       </span>
     </span>
@@ -674,12 +687,14 @@ export function DefinitionsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <SiteHeader title="Definitions" icon={<BookAIcon />}>
         {/* With a definition's quick view open, its own action (Write context) is the one solid blue button. */}
+        {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
         <Button
           variant={dock?.kind === 'def' ? 'outline' : 'default'}
+          className="max-sm:size-7 max-sm:px-0"
           onClick={() => navigate('/definitions/new')}
         >
           <PlusIcon data-icon="inline-start" />
-          New term
+          <span className="max-sm:sr-only">New term</span>
         </Button>
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}

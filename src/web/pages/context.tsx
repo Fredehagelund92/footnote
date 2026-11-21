@@ -427,12 +427,14 @@ export function ContextPage() {
     <div className="flex h-full min-h-0 flex-col">
       <SiteHeader title="Context" icon={<NotebookTextIcon />}>
         {/* With a context item's quick view open, its own action (Edit) is the one solid blue button. */}
+        {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
         <Button
           variant={dock?.kind === 'context' ? 'outline' : 'default'}
+          className="max-sm:size-7 max-sm:px-0"
           onClick={() => navigate('/context/new')}
         >
           <PlusIcon data-icon="inline-start" />
-          New context
+          <span className="max-sm:sr-only">New context</span>
         </Button>
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}

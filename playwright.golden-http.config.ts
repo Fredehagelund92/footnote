@@ -72,6 +72,9 @@ export default defineConfig({
     // J90 changes what the mock's ?demo=families Revenue means; the service keeps and refuses such
     // choices in tests/integration/declared-families.test.ts.
     /\/j90-family-meaning\.spec\.ts$/,
+    // J92 reads the mock's ?demo=dbt names and its ?label=; the service cuts a long description
+    // in tests/server/domain/description-copy.test.ts and names its install from the environment.
+    /\/j92-definitions-fit\.spec\.ts$/,
     // J3 states asks for each answer state by a question the mock's recorded turns answer with it,
     // and opens the mock's Not looked up example; the service's demo week has no check that fails.
     /\/j3-ask-states\.spec\.ts$/,

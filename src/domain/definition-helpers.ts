@@ -41,6 +41,8 @@ export function synonymsOf(value: unknown): string[] {
 /**
  * A description as Footnote keeps it: its first 500 characters, as a copy, and whether it was cut,
  * so the connector warns that it was (its own `description_cut`). Null for none or an empty one.
+ * A cut copy ends on a whole word with an ellipsis, inside the 500: never mid-word, after a comma,
+ * or inside a code span it cannot close ("as `commerci" is "as…").
  */
 export function descriptionCopy(text: string | null | undefined): {
   copy: string | null
@@ -48,10 +50,19 @@ export function descriptionCopy(text: string | null | undefined): {
 } {
   if (!text) return { copy: null, cut: false }
   const characters = Array.from(text)
-  return {
-    copy: characters.slice(0, DESCRIPTION_COPY_MAX).join(''),
-    cut: characters.length > DESCRIPTION_COPY_MAX,
-  }
+  if (characters.length <= DESCRIPTION_COPY_MAX) return { copy: text, cut: false }
+  return { copy: `${wholeWords(characters.slice(0, DESCRIPTION_COPY_MAX))}…`, cut: true }
+}
+
+/** The start of a cut text, one character shorter so its ellipsis fits, to its last whole word. */
+function wholeWords(characters: string[]): string {
+  const kept = characters.slice(0, -1).join('')
+  // The character after the kept ones says whether the last word was cut.
+  const words = /\s/.test(characters.at(-1) ?? '') ? kept : kept.replace(/\S*$/, '')
+  let start = words.trimEnd() || kept
+  // An odd backtick opens a code span the cut would leave open: it goes, with what follows it.
+  if ((start.match(/`/g)?.length ?? 0) % 2) start = start.slice(0, start.lastIndexOf('`')).trimEnd()
+  return start.replace(/[\s,;:.!?(\-–]+$/, '') || kept
 }
 
 /**

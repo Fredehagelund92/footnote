@@ -246,16 +246,14 @@ export function SiteHeader({
           {children}
         </div>
         {/* Which install this is, when it is named: last but the theme, so it never moves. It has no
-            width of its own and takes what the title leaves, up to its words: on a phone with a
-            page action the label is cut, never the title. With room for less than a few letters it
-            wraps onto a second line, which is cut off: an empty first line holds the height. */}
+            width of its own and takes what the title leaves, up to its words: on a phone a page's
+            action is its icon alone, so the label keeps its words, and only a long one is cut, never
+            the title. With room for less than a few letters it wraps onto a second line, which is
+            cut off: an empty first line holds the height. */}
         {!lean && profileLabel && (
           <span className="flex h-5 w-0 max-w-fit min-w-0 grow-1000 flex-wrap justify-end overflow-hidden">
             <span aria-hidden className="h-5 w-0" />
-            <ProfileLabel
-              label={profileLabel}
-              className="min-w-0 shrink grow basis-12 max-sm:max-w-28"
-            />
+            <ProfileLabel label={profileLabel} className="min-w-0 shrink grow basis-12" />
           </span>
         )}
         <div data-header-actions className="flex shrink-0 items-center gap-2 empty:hidden sm:gap-3">

@@ -164,7 +164,7 @@ It then maps the file:
 - **A metric's type** is its aggregation, such as `sum`, when it is simple, and otherwise its own, such as `ratio` or `derived`.
 - **Left out**: measures, entities, saved queries and time spines. They are inputs, join keys and plumbing, not what people ask about.
 
-Each definition keeps its label, the first 500 characters of its description, the other names in `meta.synonyms` and a domain. Every read that takes the file is a full listing, so a definition that left is marked gone.
+Each definition keeps its label, its description, cut at a whole word inside 500 characters, the other names in `meta.synonyms` and a domain. Every read that takes the file is a full listing, so a definition that left is marked gone.
 
 **Domains.** A definition's own valid `meta.domain` wins. A dimension otherwise takes its semantic model's, as a metric does. A metric under `_shared` takes the one domain all its semantic models agree on, or none. A missing domain is never guessed: an admin maps it.
 
@@ -180,7 +180,7 @@ The domain, the other names, and the database and schema the project was built f
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | No domain named                                          | A semantic model, or a metric under `_shared`, names no domain. Map it, or set `meta.domain` |
 | A domain we do not have                                  | A `meta.domain` is not a domain id. Add it to Domain names                                   |
-| A description was cut                                    | A description is over 500 characters. Only the first 500 are kept                            |
+| A description was cut                                    | A description is over 500 characters. It is cut at a whole word inside 500                   |
 | A type we do not know                                    | The definition is kept with no type, never a guessed one. A newer dbt may have added it      |
 | A metric and a dimension share a name                    | Only the metric is kept. Rename one of them in dbt                                           |
 | A metric is built on something the file does not hold    | It is left out and the read is in part, so what was known stays. Commit a whole file         |

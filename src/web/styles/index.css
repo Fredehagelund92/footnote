@@ -103,6 +103,20 @@
   justify-content: flex-start;
 }
 
+/* A text button that is its icon alone below a width (Ask's History, a page's New term on a
+   phone) is an icon button there, so it keeps its centre too. */
+@media (width < 64rem) {
+  [data-header-actions] :is(button, a)[class*='max-lg:w-7'] {
+    justify-content: center;
+  }
+}
+
+@media (width < 40rem) {
+  [data-header-actions] :is(button, a)[class*='max-sm:size-7'] {
+    justify-content: center;
+  }
+}
+
 /* Switching the theme eases the colours across; reduced motion switches at once. */
 @media (prefers-reduced-motion: no-preference) {
   .theme-switching,
