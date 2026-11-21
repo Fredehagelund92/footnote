@@ -62,6 +62,7 @@ function FamilyName({
       type="button"
       className="text-left font-medium text-foreground underline decoration-border underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       aria-label={`Look at the family ${name.name}`}
+      data-row-open={name.key}
       onClick={() => onOpen(name.key)}
     >
       {children}

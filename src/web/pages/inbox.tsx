@@ -68,7 +68,7 @@ import type { DomainId, Fact } from '@/model/items'
 import { questionDates } from '@/model/validity'
 import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { openDock, useDock } from '@/lib/dock'
+import { openDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
 import { href, navigate, setQuery, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
@@ -999,7 +999,7 @@ function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next:
     <React.Suspense fallback={<ListSkeleton />}>
       <NamesReview
         onFinished={next}
-        onOpenFamily={(key) => openDock('family', key)}
+        onOpenFamily={(key) => openFromRow('family', key)}
         frame={(body, foot) => (
           <InboxPanel label={card.title} nav={nav} foot={foot}>
             {body}

@@ -82,16 +82,22 @@ function ValueRow({ axis, values, max }: { axis: string; values: Value[]; max: n
   const P = useParts()
   const [all, setAll] = React.useState(false)
   const shown = all ? values : values.slice(0, max)
+  const firstNew = React.useRef<HTMLSpanElement>(null)
+  React.useEffect(() => {
+    if (all) firstNew.current?.focus()
+  }, [all])
   return (
     <div className="grid grid-cols-(--cols-lead-23) items-start gap-3">
       <dt className="pt-0.5 text-xs leading-5 font-medium text-muted-foreground">{axis}</dt>
       <dd className="flex min-w-0 flex-wrap gap-1.5">
         {/* The spaces between chips and in them are for a screen reader: flex lays out none. */}
-        {shown.map(({ value, marks }) => (
+        {shown.map(({ value, marks }, i) => (
           <React.Fragment key={value}>
             <span
+              ref={i === max ? firstNew : undefined}
+              tabIndex={i === max ? -1 : undefined}
               className={P.cn(
-                'inline-flex h-6 max-w-full items-center gap-1 rounded-md border px-2 text-xs',
+                'inline-flex h-6 max-w-full items-center gap-1 rounded-md border px-2 text-xs outline-none',
                 marks.length ? 'border-foreground/50 font-semibold' : 'text-foreground',
               )}
             >
@@ -387,6 +393,7 @@ function UsualDialog({
                 onSelect={() => setMember(null)}
               >
                 No usual variant
+                {member === null && <span className="sr-only"> (current)</span>}
               </P.CommandItem>
               {family.variants.map((v) => (
                 <P.CommandItem
@@ -396,6 +403,7 @@ function UsualDialog({
                   onSelect={() => setMember(v.name)}
                 >
                   {v.name}
+                  {v.name === member && <span className="sr-only"> (current)</span>}
                 </P.CommandItem>
               ))}
             </P.CommandList>
