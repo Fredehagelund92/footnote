@@ -237,6 +237,12 @@ const dueWhy = (i: RecordsItem) =>
 
 /** The most items a group lists; `more` counts the rest. */
 export const GROUP_ITEMS = 25
+/**
+ * The most items one read lists across its groups, shared out among them, at least one a
+ * group: what one read sends the model stays small however many groups it has (22 metrics' 25
+ * rows each were 181 KB, F4 of the Ask re-run).
+ */
+export const GROUPS_ITEMS = 50
 /** The statuses in the order a group of them is read: what needs a check first. */
 const statusOrder: readonly (typeof statuses)[number][] = ['due', 'live', 'archived']
 
@@ -268,6 +274,7 @@ function groupsOf(
       for (const key of keys) add(nounId(key), table.nameOf(key), i)
     }
   }
+  const shown = Math.min(GROUP_ITEMS, Math.max(1, Math.floor(GROUPS_ITEMS / groups.size)))
   const rank = (g: { key: string | null }) =>
     by === 'status' ? statusOrder.indexOf(g.key as (typeof statuses)[number]) : 0
   return {
@@ -290,7 +297,7 @@ function groupsOf(
         key: g.key,
         name: g.name,
         count: g.ids.length,
-        items: g.ids.slice(0, GROUP_ITEMS).map((i) => ({
+        items: g.ids.slice(0, shown).map((i) => ({
           id: i.id,
           title: i.title,
           kind: kindOf[i.kind],
@@ -301,7 +308,7 @@ function groupsOf(
           lastChecked: isoDay(i.checkedAt),
           checkDate: i.reviewDate,
         })),
-        more: Math.max(0, g.ids.length - GROUP_ITEMS),
+        more: Math.max(0, g.ids.length - shown),
       })),
   }
 }
