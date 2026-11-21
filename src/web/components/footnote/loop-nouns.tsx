@@ -265,10 +265,14 @@ export function NounChip({
             'bg-muted text-foreground',
             undefined,
             <>
+              {/* Its hue's dot, or a neutral ring for a domain with none (the sandbox), as DomainDot. */}
               <span
                 aria-hidden
-                style={{ '--chip-h': hue } as React.CSSProperties}
-                className="size-2 shrink-0 self-center rounded-full bg-chip-dot"
+                style={hue === null ? undefined : ({ '--chip-h': hue } as React.CSSProperties)}
+                className={P.cn(
+                  'size-2 shrink-0 self-center rounded-full',
+                  hue === null ? 'border border-muted-foreground' : 'bg-chip-dot',
+                )}
               />
               <span className="min-w-0 truncate">{name}</span>
             </>,

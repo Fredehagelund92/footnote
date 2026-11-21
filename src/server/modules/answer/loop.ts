@@ -1493,7 +1493,7 @@ export function footerOf(
     : applies && outOf
       ? applying(subject.result as Obj)
       : outOf
-        ? `Out of ${of}.`
+        ? `Ask looked through ${of}.`
         : null
   const more = ok.reduce((n, r) => n + num(r.more), 0)
   const notSeen = [

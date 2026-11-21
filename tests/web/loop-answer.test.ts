@@ -781,6 +781,30 @@ describe('the nouns of an answer on any workspace', () => {
     expect(buttons(el, /^Billing, value$/)).toHaveLength(1)
   })
 
+  it('draws a domain with no hue of its own (the sandbox) with a neutral ring, never an empty dot', () => {
+    const sandbox: LoopTurn = {
+      ...invented,
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'It is in ' },
+            { t: 'noun', id: 'domain:area_sandbox' },
+            { t: 'text', text: '.' },
+          ],
+        },
+      ],
+      nouns: [
+        ...invented.nouns,
+        { id: 'domain:area_sandbox', name: 'Sandbox', of: null, type: null },
+      ],
+    }
+    const chip = buttons(render(sandbox), /^Sandbox, domain$/)[0] as HTMLElement
+    const dot = chip.querySelector('[aria-hidden]') as HTMLElement
+    expect(dot.className).toMatch(/\bborder-muted-foreground\b/)
+    expect(dot.className).not.toMatch(/\bbg-chip-dot\b/)
+  })
+
   it("opens a value's card on a press, which says what it is a value of", () => {
     const el = render(invented, 'Tickets closed by billing?')
     act(() => (buttons(el, /^Billing, value$/)[0] as HTMLElement).click())
