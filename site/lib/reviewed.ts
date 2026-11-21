@@ -66,12 +66,13 @@ function screensOf(root: string): RegExp[] {
   return [...routes.matchAll(/'(\/[^']*)'/g)]
     .map((match) => match[1]!)
     .filter((path) => path !== '/$')
-    .map((path) =>
-      new RegExp(
-        `^${path.replace(/\$(\w+)/g, (_, name: string) =>
-          name === 'section' ? `(?:${settingsSectionIds.join('|')})` : '[^/]+',
-        )}$`,
-      ),
+    .map(
+      (path) =>
+        new RegExp(
+          `^${path.replace(/\$(\w+)/g, (_, name: string) =>
+            name === 'section' ? `(?:${settingsSectionIds.join('|')})` : '[^/]+',
+          )}$`,
+        ),
     )
 }
 

@@ -85,7 +85,7 @@ const block =
 /** The text after each rule is applied again and again until it no longer changes it. */
 function stripped(text: string, rules: [RegExp, (name: string) => string][]): string {
   for (const [pattern, replacement] of rules) {
-    for (let before = ''; before !== text; ) {
+    for (let before = ''; before !== text;) {
       before = text
       text = text.replace(pattern, (_, name: string) => replacement(name))
     }
@@ -140,7 +140,8 @@ function pageWords(
     ),
     text: wordsOf(shown),
     pictures: [...shown.matchAll(/<img\b[^>]*>/gi)].map(
-      ([tag]) => `${decode(attribute(tag, 'alt') ?? '')} ${pictureName(attribute(tag, 'src')!, hashed)}`,
+      ([tag]) =>
+        `${decode(attribute(tag, 'alt') ?? '')} ${pictureName(attribute(tag, 'src')!, hashed)}`,
     ),
     links: [...shown.matchAll(/<a\b[^>]*\shref="([^"]*)"/gi)].flatMap(([, href]) => {
       // A link to a heading of the same page, which the site writes as the heading alone.
@@ -149,7 +150,9 @@ function pageWords(
       const [path = '', hash = ''] = href!.slice(base.length).split('#')
       return [`${path.replace(/^\/|\/$/g, '')}#${hash}`]
     }),
-    includes: [...body.matchAll(/<[a-z]+\b[^>]*\sdata-include="([^"]*)"/gi)].map(([, name]) => name!),
+    includes: [...body.matchAll(/<[a-z]+\b[^>]*\sdata-include="([^"]*)"/gi)].map(
+      ([, name]) => name!,
+    ),
   }
 }
 
@@ -174,13 +177,7 @@ export function sitePageWords(slug: string, html: string, base: string): PageWor
   const title = /<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1]
   if (!content || title === undefined) return undefined
   // A change's day on What's new, a paragraph of its own.
-  return pageWords(
-    slug,
-    title,
-    content.replace(/<p>\d{4}-\d{2}-\d{2}<\/p>/g, ''),
-    base,
-    siteHash,
-  )
+  return pageWords(slug, title, content.replace(/<p>\d{4}-\d{2}-\d{2}<\/p>/g, ''), base, siteHash)
 }
 
 /** Where two texts part, with a little of each around it. */
