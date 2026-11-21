@@ -12,7 +12,8 @@
  */
 import { agreedDomain } from './catalogue.ts'
 import type { FamilyFound } from './family-found.ts'
-import { axisWords, byWords, familiesOf, type Family } from './metric-families.ts'
+import { axisValues, familyMeaning, type FamilyMeaning } from './family-meaning.ts'
+import { axisWords, byWords, declaredWords, familiesOf, type Family } from './metric-families.ts'
 import { viewOf } from './source-views.ts'
 import {
   keyPart,
@@ -63,9 +64,17 @@ export type SourceName = Omit<TermCandidate, 'kind'> & {
    * words ("Currency", "Channel"), and how it was found (D1). The card shows the family, never its
    * variants; a family the names alone suggest (`names`) waits for the owner to publish it as one
    * family or apart, and names them. `plain` is the name its variants give, before any view's name
-   * told it from another.
+   * told it from another. `values` is each variant's values, in the order of `by`, as `variants`.
    */
-  family?: { by: string[]; variants: SourceName[]; found: FamilyFound; plain: string }
+  family?: {
+    by: string[]
+    variants: SourceName[]
+    values: string[][]
+    found: FamilyFound
+    plain: string
+    /** What it would mean once published (M1): no owner has chosen yet. */
+    meaning: FamilyMeaning
+  }
 }
 
 /** What has each word now, by its compared form: terms, synonyms and live vocabulary. */
@@ -294,7 +303,10 @@ function withFamilies(
     const name =
       !entry.group && taken.has(normalizeName(plain)) && view ? withView(plain, view) : plain
     taken.add(normalizeName(name))
-    return { ...entry, plain, name }
+    const declared = declaredWords(
+      entry.family.variants.map(({ ref }) => memberOf.get(ref)?.declared?.description),
+    )
+    return { ...entry, plain, name, declared: declared ?? null }
   })
   const made = named.map((entry) =>
     familyName(
@@ -354,6 +366,8 @@ type NamedFamily = {
   plain: string
   /** The name it is offered by: `plain`, with its view's after it when another has that. */
   name: string
+  /** The words its tool writes for the family; null when it writes none, or several. */
+  declared: string | null
 }
 
 /**
@@ -361,7 +375,7 @@ type NamedFamily = {
  * or another new family whose name reads as its own is flagged, as two metrics of one name are.
  */
 function familyName(
-  { family, key, group, variants, plain, name }: NamedFamily,
+  { family, key, group, variants, plain, name, declared }: NamedFamily,
   others: readonly NamedFamily[],
   holders: WordHolders,
   names: readonly SourceName[],
@@ -394,9 +408,14 @@ function familyName(
   if (suggested)
     flags.push({
       code: 'look_alike',
-      message: `Their names differ only by ${byWords(family.variants.map((v) => v.values.join(' ')))}. Publish them as one family, or apart.`,
+      message: `Their names differ only by ${byWords(family.variants.map((v) => v.values.join(' ')))}. Publish them as one family, or keep them separate.`,
     })
   const left = refs.every((ref) => leftOut.has(ref))
+  const by = family.by.map(axisName)
+  const values = variants.map(
+    (variant) =>
+      family.variants.find(({ ref }) => variant.definitionRefs.includes(ref))?.values ?? [],
+  )
   return {
     source: family.source,
     key,
@@ -414,13 +433,61 @@ function familyName(
     flags,
     leftByOwner: left,
     family: {
-      by: family.by.map(axisName),
+      by,
       plain,
       variants: variants.map((variant) => ({ ...variant, parentKey: key })),
+      values,
       found: family.found,
+      meaning: familyMeaning({
+        by,
+        variants: variants.map((variant, i) => ({
+          key: variant.key,
+          values: values[i]!,
+          description: variant.description,
+        })),
+        conversions: [],
+        declared,
+        chosen: null,
+      }),
     },
   }
 }
+
+/**
+ * A family as the Names card reads it (FR-142): its variants counted, what tells them apart, how
+ * it was found, the values each axis holds, and what it would mean. A family the names alone
+ * suggest names its variants, as the owner publishes them as one family or apart.
+ */
+export function familyRead(name: Pick<SourceName, 'family' | 'linked'>) {
+  const family = name.family
+  if (!family) return null
+  return {
+    variants: family.variants.length,
+    by: family.by,
+    found: family.found,
+    names:
+      family.found === 'names' && !name.linked.length
+        ? family.variants.map((variant) => variant.name)
+        : [],
+    values: axisValues(
+      family.by,
+      family.values.map((values) => ({ values })),
+    ),
+    meaning: {
+      source: family.meaning.source,
+      words: family.meaning.words,
+      agree: family.meaning.common?.agree ?? 0,
+      differing: family.meaning.differing.length,
+    },
+  }
+}
+
+/**
+ * Whether a family waiting on the Names card can go live apart, each variant by its own name
+ * (Keep them separate): one Footnote suggests, never one its tool declares or one live already.
+ */
+export const mayGoApart = (name: Pick<SourceName, 'family' | 'linked'>) =>
+  !!name.family && !name.linked.length && name.family.found !== 'declared'
 
 /** What is wrong with the shape of a name, whatever else holds its word; null when it is fine. */
 function nameShapeRefusal(name: string): string | null {

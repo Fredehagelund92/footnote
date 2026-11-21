@@ -173,3 +173,16 @@ export function meaningLine(words: string, by: readonly string[]): string {
     by.includes(axis) ? `each ${axis.toLowerCase()}` : slot,
   )
 }
+
+/**
+ * The values a family's variants hold for each of what tells them apart, each once, in the order
+ * the variants first give it: `[["EUR", "USD"], ["web", "app"]]` of a family by Currency and Channel.
+ */
+export function axisValues(
+  by: readonly string[],
+  variants: readonly { values: readonly string[] }[],
+): string[][] {
+  return by.map((_, i) => [
+    ...new Set(variants.flatMap((variant) => (variant.values[i] ? [variant.values[i]] : []))),
+  ])
+}

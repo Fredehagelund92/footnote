@@ -999,6 +999,7 @@ function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next:
     <React.Suspense fallback={<ListSkeleton />}>
       <NamesReview
         onFinished={next}
+        onOpenFamily={(key) => openDock('family', key)}
         frame={(body, foot) => (
           <InboxPanel label={card.title} nav={nav} foot={foot}>
             {body}

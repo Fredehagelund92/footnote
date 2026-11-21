@@ -70,6 +70,7 @@ import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
 import { createScopeSearch, withScope } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
+import { familyFacts } from './data/variants'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -795,6 +796,17 @@ export function createMockApi() {
           )
         definitions.setFamilyMeaning(input, me())
       }),
+    setFamilyUsual: (input) =>
+      now(() => {
+        const d = definitions.list().find((x) => x.family && x.name === input.name)
+        const person = meAsPerson()
+        if (d && !person.admin && !(d.domain && person.owns.includes(d.domain)))
+          throw new ApiError(
+            'forbidden',
+            'Only an owner of its domain, or an admin, can pick its usual variant.',
+          )
+        definitions.setFamilyUsual(input, me())
+      }),
     saveTerm: ({ previous, term }) => now(() => definitions.saveTerm(previous, term)),
     addSynonym: ({ target, word }) => now(() => definitions.addSynonym(target, word, me())),
     removeTerm: ({ name }) => now(() => remember(definitions.removeTerm(name))),
@@ -1306,6 +1318,9 @@ export function createMockApi() {
         if (demo === 'families') {
           definitions.loadFamilies()
           names.load(true)
+          // Context about a family, and about one of its variants alone, for its quick view.
+          for (const fact of familyFacts())
+            if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         }
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })

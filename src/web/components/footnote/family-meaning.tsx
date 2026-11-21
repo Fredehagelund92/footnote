@@ -36,7 +36,7 @@ import { useMe } from '@/lib/workspace'
 // bundler would split the code the first load shares with it into more chunks the first load
 // then fetches too.
 
-const MeaningDialog = React.lazy(() => import('@/components/footnote/family-meaning-dialog'))
+export const MeaningDialog = React.lazy(() => import('@/components/footnote/family-meaning-dialog'))
 
 const n = (x: number) => x.toLocaleString('en-GB')
 
@@ -137,7 +137,12 @@ export function FamilyMeaningBlock({
   // Words the tool writes for the family are changed there.
   const canChange =
     meaning.source !== 'declared' && (me.admin || (!!d.domain && me.owns.includes(d.domain)))
-  const differing = differingLine(meaning)
+  // A variant converted from another says how, which the page shows: it says nothing else.
+  const converted = new Set((family.conversions ?? []).map((c) => c.to))
+  const differing = differingLine({
+    ...meaning,
+    differing: meaning.differing.filter((name) => !converted.has(name)),
+  })
   const source = meaningSource(family, meaning, d.tool ?? 'its tool')
   return (
     <div className={className}>

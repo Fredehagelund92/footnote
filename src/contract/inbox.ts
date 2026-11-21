@@ -9,6 +9,7 @@ import * as z from 'zod/mini'
 import { alertCardRules } from '../domain/alerts.ts'
 import { cardGroups, cardActions, setupSteps } from '../domain/inbox.ts'
 import { familyFoundKinds } from '../domain/family-found.ts'
+import { familyMeaningSources } from '../domain/family-meaning.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
 import { proposalActions } from '../domain/proposal.ts'
@@ -235,6 +236,19 @@ export const sourceNameSchema = z.object({
       found: z.enum(familyFoundKinds),
       /** The variants' names, of a family the names alone suggest; empty for any other. */
       names: z.array(z.string()),
+      /** The values its variants hold for each of `by`, each once: `[["EUR", "USD"], ["web"]]`. */
+      values: z.array(z.array(z.string())),
+      /**
+       * What it would mean once published (M1), as the catalogue works it out from its variants'
+       * own words: their common words, each value as the axis it stands for ("in {Currency}"), or
+       * none. `agree` counts the variants that share them, `differing` those that say otherwise.
+       */
+      meaning: z.object({
+        source: z.enum(familyMeaningSources),
+        words: z.nullable(z.string()),
+        agree: z.number(),
+        differing: z.number(),
+      }),
     }),
   ),
 })
@@ -260,8 +274,8 @@ export const decideNamesSchema = z.strictObject({
         key: nameKeySchema,
         name: z.optional(z.string().check(z.minLength(1), z.maxLength(200))),
         /**
-         * A family the names alone suggest, published apart: each of its variants by its own name,
-         * and no family.
+         * A family Footnote suggests, published apart (Keep them separate): each of its variants
+         * by its own name, and no family. Never a family its tool declares, nor one live already.
          */
         apart: z.optional(z.literal(true)),
       }),

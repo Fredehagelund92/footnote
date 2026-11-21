@@ -44348,6 +44348,16 @@
                                             }
                                           ]
                                         },
+                                        "ref": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
                                         "state": {
                                           "anyOf": [
                                             {
@@ -44373,6 +44383,7 @@
                                         "aliases",
                                         "values",
                                         "description",
+                                        "ref",
                                         "state",
                                         "items"
                                       ]
@@ -44517,6 +44528,51 @@
                                       "chosen",
                                       "revision"
                                     ]
+                                  },
+                                  "usual": {
+                                    "type": "object",
+                                    "properties": {
+                                      "member": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "chosen": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "personId": {
+                                                "type": "string"
+                                              },
+                                              "at": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "personId",
+                                              "at"
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "revision": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "member",
+                                      "chosen",
+                                      "revision"
+                                    ]
                                   }
                                 },
                                 "required": [
@@ -44525,7 +44581,8 @@
                                   "derivations",
                                   "conversions",
                                   "variants",
-                                  "meaning"
+                                  "meaning",
+                                  "usual"
                                 ]
                               },
                               {
@@ -49362,6 +49419,353 @@
                         "message": {
                           "type": "string",
                           "default": "Someone changed what this family means after you opened it, or its tool writes it."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/definitions/families/{key}/usual": {
+      "put": {
+        "operationId": "definitions.setFamilyUsual",
+        "summary": "Pick the variant agents read when a question names none of a family's values (FR-142)",
+        "tags": [
+          "library"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^group:[a-z0-9_]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "member": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^metric:[a-z0-9_]+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "member",
+                  "revision"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "member": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "chosen": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "personId": {
+                              "type": "string"
+                            },
+                            "at": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "personId",
+                            "at"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "revision": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "member",
+                    "chosen",
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find this family of metrics. Its tool may no longer read it."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this family's usual variant after you opened it."
                         },
                         "data": {}
                       },
@@ -66335,13 +66739,62 @@
                                     "items": {
                                       "type": "string"
                                     }
+                                  },
+                                  "values": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "meaning": {
+                                    "type": "object",
+                                    "properties": {
+                                      "source": {
+                                        "enum": [
+                                          "declared",
+                                          "member",
+                                          "written",
+                                          "common",
+                                          "base",
+                                          "none"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "words": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "agree": {
+                                        "type": "number"
+                                      },
+                                      "differing": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "source",
+                                      "words",
+                                      "agree",
+                                      "differing"
+                                    ]
                                   }
                                 },
                                 "required": [
                                   "variants",
                                   "by",
                                   "found",
-                                  "names"
+                                  "names",
+                                  "values",
+                                  "meaning"
                                 ]
                               },
                               {
@@ -66835,13 +67288,62 @@
                                         "items": {
                                           "type": "string"
                                         }
+                                      },
+                                      "values": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      },
+                                      "meaning": {
+                                        "type": "object",
+                                        "properties": {
+                                          "source": {
+                                            "enum": [
+                                              "declared",
+                                              "member",
+                                              "written",
+                                              "common",
+                                              "base",
+                                              "none"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "words": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "agree": {
+                                            "type": "number"
+                                          },
+                                          "differing": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": [
+                                          "source",
+                                          "words",
+                                          "agree",
+                                          "differing"
+                                        ]
                                       }
                                     },
                                     "required": [
                                       "variants",
                                       "by",
                                       "found",
-                                      "names"
+                                      "names",
+                                      "values",
+                                      "meaning"
                                     ]
                                   },
                                   {

@@ -1,4 +1,5 @@
 import type { Definition } from '@/lib/definitions'
+import { withWhen, type Fact } from '@/model/items'
 
 // A catalogue with a metric per currency and per sales channel, for Definitions at that size
 // (`?demo=variants`): twenty money measures of an invented shop, by fifty currencies and five
@@ -102,6 +103,13 @@ function variantWords(measure: string, code: string, channel: string): string {
     : `Money taken for paid orders in ${code} via ${channel}, after discounts and before tax.`
 }
 
+/** A variant's id in the tool, as its source reads it: `dbt:orders.revenue_eur_web`. */
+const refOf = (name: string) =>
+  `dbt:orders.${name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')}`
+
 function measureFamilies(tool: string): Definition[] {
   // Two of the measures are the demo's own metrics by name: one word has one meaning (FR-138).
   const own: Record<string, string> = { 'Net revenue': 'Net takings', 'Gross margin': 'Margin' }
@@ -125,8 +133,20 @@ function measureFamilies(tool: string): Definition[] {
             name: `${label} (${code.toUpperCase()}) ${channel}`,
             values: [code.toUpperCase(), channel],
             description: variantWords(label, code.toUpperCase(), channel),
+            ref: refOf(`${label} ${code} ${channel}`),
           })),
         ),
+        // Revenue's owners say a question that names no currency or channel means euros on the web.
+        ...(label === 'Revenue'
+          ? {
+              usual: {
+                member: 'Revenue (EUR) web',
+                by: 'Jon Abara',
+                on: '20 Nov 2026',
+                revision: 1,
+              },
+            }
+          : {}),
       },
     }
   })
@@ -167,11 +187,13 @@ function accruedShare(tool: string): Definition {
           values: ['EUR'],
           description:
             "The share of a contract's value booked in its first three months, in euros.",
+          ref: refOf('Accrued share front loaded EUR'),
         },
         {
           name: 'Accrued share front loaded (USD)',
           values: ['USD'],
           description: "The EUR amount multiplied by the row's exchange rate.",
+          ref: refOf('Accrued share front loaded USD'),
         },
       ],
     },
@@ -195,4 +217,59 @@ export function variantDefinitions(tool: string): Definition[] {
       })),
     ),
   )
+}
+
+/**
+ * Context about the families (FR-142): two notes on Revenue, for all its variants, and three on
+ * one variant alone, as its quick view tells apart.
+ */
+export function familyFacts(): Fact[] {
+  const note = (id: string, title: string, summary: string, where: string[]): Fact =>
+    withWhen({
+      id,
+      title,
+      summary,
+      domain: 'sales',
+      kind: 'note',
+      where,
+      valid: {},
+      status: 'Live',
+      checkedBy: 'Jon Abara',
+      checkedOn: '18 Nov 2026',
+      source: 'https://wiki.example/data/definitions/revenue',
+      quote: '',
+      dontConclude: '',
+    })
+  return [
+    note(
+      'itm_fam_rev_refund',
+      'Revenue leaves out refunds',
+      'Revenue counts an order once it is paid. A refund lowers Refunds, never Revenue.',
+      ['Revenue'],
+    ),
+    note(
+      'itm_fam_rev_day',
+      'Revenue is booked on the day of payment',
+      'An order paid after midnight counts on the next day, in the shop’s own time zone.',
+      ['Revenue'],
+    ),
+    note(
+      'itm_fam_rev_usd_app',
+      'Revenue (USD) app starts on 3 March 2026',
+      'The app took no US dollars before 3 March 2026, so Revenue (USD) app has no earlier days.',
+      ['Revenue (USD) app'],
+    ),
+    note(
+      'itm_fam_rev_gbp_store',
+      'Revenue (GBP) store counts the London pop-up',
+      'Revenue (GBP) store counts the London pop-up store from its first day, 1 June 2026.',
+      ['Revenue (GBP) store'],
+    ),
+    note(
+      'itm_fam_rev_gbp_store_vat',
+      'Revenue (GBP) store is before UK VAT',
+      'Revenue (GBP) store is before UK VAT, as every other variant of Revenue is before tax.',
+      ['Revenue (GBP) store'],
+    ),
+  ]
 }

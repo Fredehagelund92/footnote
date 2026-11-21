@@ -611,6 +611,7 @@ export const invalidations: {
   markMentionSeen: () => comments,
   // What a family means is what Ask reads for it too.
   setFamilyMeaning: () => definitions,
+  setFamilyUsual: () => definitions,
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
@@ -834,7 +835,7 @@ export function useWrite() {
     } catch (error) {
       reportSignedOut(queryClient, error)
       if (
-        operation === 'setFamilyMeaning' &&
+        (operation === 'setFamilyMeaning' || operation === 'setFamilyUsual') &&
         error instanceof ApiError &&
         error.kind === 'conflict'
       )

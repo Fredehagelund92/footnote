@@ -49,9 +49,13 @@ export const rootSearch = lenient(
 export const shellSearch = lenient(
   z.object({
     dock: z.optional(
-      z.string().check(z.regex(/^(review|context|def|ask|try|topic|share|where|conflict)(\..+)?$/)),
+      z
+        .string()
+        .check(z.regex(/^(review|context|def|family|ask|try|topic|share|where|conflict)(\..+)?$/)),
     ),
     flag: text,
+    // A family's quick view opened from a search that found it by this variant's name.
+    variant: text,
     ptab: oneOf(['overview', 'steps', 'warnings']),
     when: text,
     wn: digits,

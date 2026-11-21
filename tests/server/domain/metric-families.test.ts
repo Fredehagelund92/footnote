@@ -433,7 +433,7 @@ describe('a family its names alone suggest: one metric in two currencies', () =>
           {
             code: 'look_alike',
             message:
-              'Their names differ only by EUR and USD. Publish them as one family, or apart.',
+              'Their names differ only by EUR and USD. Publish them as one family, or keep them separate.',
           },
         ],
         family: { by: ['Currency'], found: 'names' },

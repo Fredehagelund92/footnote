@@ -21,7 +21,11 @@ export async function sourceVocabulary(tx: Queryable, everyone = false) {
             case when d.variant_shape is not null
                  then jsonb_build_object('shape',d.variant_shape,'by',d.variant_by) end as variant,
             case when d.family_name is not null
-                 then jsonb_build_object('name',d.family_name,'by',d.family_by) end as declared,
+                 then jsonb_build_object('name',d.family_name,'by',d.family_by)
+                      || case when d.family_description is not null
+                              then jsonb_build_object('description',d.family_description)
+                              else '{}'::jsonb end
+            end as declared,
             case when d.built_from_refs is not null
                  then jsonb_build_object('refs',d.built_from_refs,'columns',d.built_from_columns)
             end as "builtFrom"

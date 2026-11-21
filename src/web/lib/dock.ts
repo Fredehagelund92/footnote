@@ -3,7 +3,7 @@ import { setQuery, useRoute } from '@/lib/router'
 // The dock's content lives in the address (?dock=kind.id), so Back closes it and every state has a link.
 
 export type DockKind =
-  'review' | 'context' | 'def' | 'ask' | 'try' | 'topic' | 'share' | 'where' | 'conflict'
+  'review' | 'context' | 'def' | 'family' | 'ask' | 'try' | 'topic' | 'share' | 'where' | 'conflict'
 export type DockState = { kind: DockKind; id?: string; width: number }
 
 /** Each dock's title, for its frame before its own content draws: while its code loads, or after it fails. */
@@ -11,6 +11,7 @@ export const DOCK_TITLE: Record<DockKind, string> = {
   review: 'Review',
   context: 'Context',
   def: 'Definition',
+  family: 'Suggested family',
   ask: 'Ask',
   try: 'Try it',
   topic: 'Answer',
@@ -41,12 +42,20 @@ export function openDock(kind: DockKind, id?: string, extra?: Record<string, str
     flag: undefined,
     ptab: undefined,
     when: undefined,
+    variant: undefined,
     ...extra,
   })
 }
 
 export function closeDock() {
-  setQuery({ dock: undefined, tab: undefined, flag: undefined, ptab: undefined, when: undefined })
+  setQuery({
+    dock: undefined,
+    tab: undefined,
+    flag: undefined,
+    ptab: undefined,
+    when: undefined,
+    variant: undefined,
+  })
 }
 
 /*
@@ -57,11 +66,15 @@ let fromRow: string | undefined
 let intoPanel = false
 
 /** Opens a list row's peek and takes focus into it. */
-export function openFromRow(kind: DockKind, id: string) {
+export function openFromRow(
+  kind: DockKind,
+  id: string,
+  extra?: Record<string, string | undefined>,
+) {
   const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
   fromRow = id
   intoPanel = !already
-  openDock(kind, id)
+  openDock(kind, id, extra)
 }
 
 /** A panel that has just drawn asks once whether focus should go into it. */

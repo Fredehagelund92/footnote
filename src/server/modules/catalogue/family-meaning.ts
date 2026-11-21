@@ -1,5 +1,10 @@
 import { ORPCError } from '@orpc/client'
-import type { FamilyMeaningInput, FamilyMeaningVersion } from '../../../contract/index.ts'
+import type {
+  FamilyMeaningInput,
+  FamilyMeaningVersion,
+  FamilyUsualData,
+  FamilyUsualInput,
+} from '../../../contract/index.ts'
 import { declaredWords } from '../../../domain/metric-families.ts'
 import type { Queryable } from '../../db/database.ts'
 
@@ -106,6 +111,52 @@ export function createFamilyMeaningService(tx: Queryable) {
     return version!
   }
 
+  /**
+   * Picks the variant agents read when a question names none of the family's values, or none, so
+   * they ask. Who may pick is who may change what the family means; the source never picks.
+   */
+  async function setUsual(input: FamilyUsualInput): Promise<FamilyUsualData> {
+    const state = await stateOf(input.key, input.member)
+    if (!state.found)
+      throw new ORPCError('NOT_FOUND', {
+        message: "We couldn't find this family of metrics. Its tool may no longer read it.",
+      })
+    if (!state.mayChange)
+      throw new ORPCError('FORBIDDEN', {
+        message: state.areaName
+          ? `Only an owner of ${state.areaName} or an admin can pick its usual variant.`
+          : 'Only an admin can pick the usual variant of a family in no domain.',
+      })
+    if (input.member && !state.memberFound)
+      throw new ORPCError('NOT_FOUND', { message: 'That variant is no longer in this family.' })
+    const [current] = await tx.query<{ revision: number }>(
+      'select revision from family_usual where family_key = $1',
+      [input.key],
+    )
+    const stale = () =>
+      new ORPCError('CONFLICT', {
+        message:
+          "Someone changed this family's usual variant after you opened it. Look at it again, then try again.",
+      })
+    if ((current?.revision ?? 0) !== input.revision) throw stale()
+    const [made] = await tx.query<{ revision: number; personId: string; at: string }>(
+      `insert into family_usual (family_key, member_key, updated_by)
+       values ($1, $2, cl_person())
+       on conflict (family_key) do update
+         set member_key = excluded.member_key, revision = family_usual.revision + 1,
+             updated_by = cl_person(), updated_at = now()
+         where family_usual.revision = $3
+       returning revision, updated_by::text as "personId", ${iso('updated_at')} as at`,
+      [input.key, input.member, input.revision],
+    )
+    if (!made) throw stale()
+    return {
+      member: input.member,
+      chosen: { personId: made.personId, at: made.at },
+      revision: made.revision,
+    }
+  }
+
   /** Every choice of what the family means, newest first. */
   async function history(key: string): Promise<FamilyMeaningVersion[]> {
     const found = await tx.query<FamilyMeaningVersion>(
@@ -119,5 +170,5 @@ export function createFamilyMeaningService(tx: Queryable) {
     return found
   }
 
-  return { set, history }
+  return { set, setUsual, history }
 }

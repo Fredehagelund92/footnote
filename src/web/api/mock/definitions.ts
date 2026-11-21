@@ -220,6 +220,33 @@ export function createDefinitions() {
       all = all.map((x) => (x === d ? withMeaning(x, chosen) : x))
     },
 
+    /**
+     * Picks the variant Ask reads when a question names none of the family's values, or none, as
+     * the service does: against the pick the person read.
+     */
+    setFamilyUsual(input: { name: string; member: string | null; revision: number }, by: string) {
+      const d = all.find((x) => x.family && same(x.name, input.name))
+      if (!d?.family)
+        throw new ApiError('not-found', `“${input.name}” isn't a family in Definitions any more.`)
+      const member = input.member
+        ? d.family.variants.find((v) => same(v.name, input.member!))
+        : undefined
+      if (input.member && !member)
+        throw new ApiError('not-found', 'That variant is no longer in this family.')
+      if ((d.family.usual?.revision ?? 0) !== input.revision)
+        throw new ApiError(
+          'conflict',
+          "Someone changed this family's usual variant after you opened it. Look at it again, then try again.",
+        )
+      const usual = {
+        ...(member ? { member: member.name } : {}),
+        by,
+        on: dateLabel(today()),
+        revision: input.revision + 1,
+      }
+      all = all.map((x) => (x === d ? { ...x, family: { ...d.family!, usual } } : x))
+    },
+
     /** Every choice of what a family means, newest first. */
     familyMeaningHistory: (name: string) =>
       [

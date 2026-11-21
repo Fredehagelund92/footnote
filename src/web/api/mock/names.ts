@@ -1,6 +1,8 @@
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import { contentDigest } from '@domain/canonical'
 import {
+  familyRead,
+  mayGoApart,
   nameRefusal,
   sourceNames,
   variantNameRefusal,
@@ -57,6 +59,7 @@ const variants: CandidateMember[] = [
         `Packaging costs (${currency}) ${channel}`,
         {
           valueType: 'sum',
+          description: `What boxes, fill and labels cost for orders in ${currency} via ${channel}.`,
           variant: {
             shape: 'a'.repeat(64),
             by: [
@@ -135,17 +138,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
       }) => ({
         ...name,
         tool: 'dbt',
-        family: family
-          ? {
-              variants: family.variants.length,
-              by: family.by,
-              found: family.found,
-              names:
-                family.found === 'names' && !name.linked.length
-                  ? family.variants.map((variant) => variant.name)
-                  : [],
-            }
-          : null,
+        family: familyRead({ family, linked: name.linked }),
       }),
     )
     return { revision: await contentDigest(shown), names: shown }
@@ -182,16 +175,18 @@ export function createMockNames(heldWords: WordHolders = holders) {
       const found = names()
       for (const { key, apart } of input.accept) {
         const waiting = found.find((n) => n.key === key)
-        if (apart && (waiting?.family?.found !== 'names' || waiting.linked.length))
+        if (apart && !(waiting && mayGoApart(waiting)))
           throw new ApiError(
             'invalid',
-            `“${waiting?.name ?? key}” is not a family of names that look alike. Publish it as it is.`,
+            waiting?.family?.found === 'declared'
+              ? `dbt declares “${waiting.name}” as one family. Keep its variants separate there.`
+              : `“${waiting?.name ?? key}” is not a family waiting to be published. Publish it as it is.`,
           )
       }
       const asked = [...input.accept.map(({ key }) => key), ...input.leaveOut]
       if (new Set(asked).size !== asked.length)
         throw new ApiError('conflict', 'Publish a name or leave it out, not both.')
-      // A family the names alone suggest, published apart: its variants, each by its own name.
+      // A family Footnote suggests, published apart: its variants, each by its own name.
       const apart = input.accept.flatMap(({ key, apart }) =>
         apart
           ? (found.find((n) => n.key === key)?.family?.variants ?? []).map((v) => ({
@@ -202,7 +197,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
       )
       const list = [
         ...found,
-        ...found.flatMap((n) => (n.family?.found === 'names' ? n.family.variants : [])),
+        ...found.flatMap((n) => (n.family && mayGoApart(n) ? n.family.variants : [])),
       ]
       const chosen = new Map(
         [...input.accept.filter((pick) => !pick.apart), ...apart].map(({ key, name }) => [

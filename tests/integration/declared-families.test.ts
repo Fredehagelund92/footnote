@@ -240,33 +240,52 @@ describe('the Names card', () => {
       flags: [
         {
           code: 'look_alike',
-          message: 'Their names differ only by EUR and USD. Publish them as one family, or apart.',
+          message:
+            'Their names differ only by EUR and USD. Publish them as one family, or keep them separate.',
         },
       ],
       family: { found: 'names', names: ['Partner fee (EUR)', 'Partner fee (USD)'] },
     })
   })
 
-  it('refuses to publish apart a family its source declares or its calculation finds', async () => {
+  it('says the values a family holds and what it would mean, before it is published (F4)', async () => {
     const list = await names()
-    for (const name of ['Net revenue by line', 'Accrued share 1']) {
-      const response = await call('POST', '/inbox/names/decide', 'admin', {
-        revision: list.revision,
-        accept: [{ key: named(list, name)!.key, apart: true }],
-        leaveOut: [],
-      })
-      expect(response.statusCode, response.body).toBe(422)
-    }
+    expect(named(list, 'Net revenue by line')!.family).toMatchObject({
+      values: [
+        ['online', 'retail', 'wholesale'],
+        ['EUR', 'USD'],
+      ],
+      meaning: {
+        source: 'declared',
+        words: 'Revenue from partners after refunds, by sales line.',
+      },
+    })
+    expect(named(list, 'Accrued share 1')!.family!.values).toEqual([['EUR', 'USD']])
+  })
+
+  it('refuses to keep apart the variants of a family its source declares', async () => {
+    const list = await names()
+    const response = await call('POST', '/inbox/names/decide', 'admin', {
+      revision: list.revision,
+      accept: [{ key: named(list, 'Net revenue by line')!.key, apart: true }],
+      leaveOut: [],
+    })
+    expect(response.statusCode, response.body).toBe(422)
+    expect(response.json<{ message: string }>().message).toContain('declares')
   })
 
   it('publishes them apart at one press, each by its own name, and no family', async () => {
     const list = await names()
     const fee = named(list, 'Partner fee')!
-    const ready = list.names.filter((n) => n.state === 'ready').map(({ key }) => ({ key }))
+    // A family its calculation finds can be kept separate too (Keep them separate).
+    const converted = named(list, 'Accrued share 2')!
+    const ready = list.names
+      .filter((n) => n.state === 'ready' && n.key !== converted.key)
+      .map(({ key }) => ({ key }))
     const decided = await ok<NamesDecision>(
       call('POST', '/inbox/names/decide', 'admin', {
         revision: list.revision,
-        accept: [...ready, { key: fee.key, apart: true }],
+        accept: [...ready, { key: fee.key, apart: true }, { key: converted.key, apart: true }],
         leaveOut: [],
       }),
     )
@@ -280,6 +299,16 @@ describe('the Names card', () => {
     expect(rows.map((r) => [r.kind, r.parent])).toEqual([
       ['metric', null],
       ['metric', null],
+    ])
+    const apart = await client.query<{ kind: string; parent: string | null }>(
+      `select t.kind::text as kind, t.parent_key as parent
+         from serving_vocabulary((select seq from live_edition)) t
+        where t.definition_refs && $1::text[]`,
+      [converted.definitionRefs],
+    )
+    expect(apart.rows).toEqual([
+      { kind: 'metric', parent: null },
+      { kind: 'metric', parent: null },
     ])
   })
 })
@@ -415,7 +444,7 @@ describe('what a family means (M1)', () => {
 
   it('refuses a variant of another family, and an unknown family', async () => {
     const accrued = await family('Accrued share 1')
-    const other = (await family('Accrued share 2')).family!.variants[0]!.key
+    const other = (await family('Net revenue by line')).family!.variants[0]!.key
     const wrong = await choose(accrued.key, 'admin', {
       key: accrued.key,
       choice: 'member',
@@ -477,5 +506,68 @@ describe('Ask on a family', () => {
     ])
     expect(looked.definitions?.[0]?.words).toContain('A family of 6 near-identical metrics')
     expect(looked.definitions?.[0]?.words).toBe(defined.definitions?.[0]?.words)
+  })
+})
+
+describe('the usual variant of a family (F3)', () => {
+  const family = async (name: string) =>
+    (await ok<Catalogue>(call('GET', '/catalogue', 'member'))).terms.find((t) => t.name === name)!
+  const pick = (key: string, who: Who, body: object) =>
+    call('PUT', `/definitions/families/${encodeURIComponent(key)}/usual`, who, body)
+
+  it('is none until an owner of its domain picks one, against the pick they read', async () => {
+    const accrued = await family('Accrued share 1')
+    expect(accrued.family!.usual).toEqual({ member: null, chosen: null, revision: 0 })
+    const eur = accrued.family!.variants.find((v) => v.values[0] === 'EUR')!
+    // Each variant says its id in the source tool, which the quick view's Details names.
+    expect(eur.ref).toMatch(/^dbt-metricflow:|:/)
+    const body = { key: accrued.key, member: eur.key, revision: 0 }
+    const forbidden = await pick(accrued.key, 'member', body)
+    expect(forbidden.statusCode, forbidden.body).toBe(403)
+    const made = await ok<{ member: string | null; revision: number }>(
+      pick(accrued.key, 'owner', body),
+    )
+    expect(made).toMatchObject({ member: eur.key, revision: 1 })
+    expect((await family('Accrued share 1')).family!.usual).toMatchObject({
+      member: eur.key,
+      chosen: { personId: people.owner },
+      revision: 1,
+    })
+    // Someone who read it before that pick is told so.
+    const stale = await pick(accrued.key, 'admin', body)
+    expect(stale.statusCode, stale.body).toBe(409)
+    // None again: agents are told of no usual variant.
+    await ok(pick(accrued.key, 'admin', { key: accrued.key, member: null, revision: 1 }))
+    expect((await family('Accrued share 1')).family!.usual).toMatchObject({
+      member: null,
+      revision: 2,
+    })
+    const { rows } = await client.query<{ revision: number; member: string | null }>(
+      `select revision, member_key as member from family_usual_versions
+        where family_key = $1 order by revision`,
+      [accrued.key],
+    )
+    expect(rows).toEqual([
+      { revision: 1, member: eur.key },
+      { revision: 2, member: null },
+    ])
+    await expect(
+      database.query(`update family_usual_versions set member_key = null where family_key = $1`, [
+        accrued.key,
+      ]),
+    ).rejects.toThrow()
+  })
+
+  it('refuses a variant of another family, and an unknown family', async () => {
+    const accrued = await family('Accrued share 1')
+    const other = (await family('Net revenue by line')).family!.variants[0]!.key
+    const wrong = await pick(accrued.key, 'admin', { key: accrued.key, member: other, revision: 2 })
+    expect(wrong.statusCode, wrong.body).toBe(404)
+    const unknown = await pick('group:no_such_family', 'admin', {
+      key: 'group:no_such_family',
+      member: null,
+      revision: 0,
+    })
+    expect(unknown.statusCode, unknown.body).toBe(404)
   })
 })

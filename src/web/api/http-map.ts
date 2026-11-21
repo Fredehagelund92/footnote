@@ -19,7 +19,7 @@ import type {
   CommentReaction,
   CommentReply,
 } from '@/components/templates/comment-box/types'
-import type { Definition, FamilyMeaning, SynonymCheck } from '@/lib/definitions'
+import type { Definition, FamilyMeaning, FamilyUsual, SynonymCheck } from '@/lib/definitions'
 import type { Comments, Subject } from '@/model/comments'
 import type { Fact, Status } from '@/model/items'
 import { anyDate, shiftDate } from '@domain/validity'
@@ -133,6 +133,20 @@ function meaningOf(
   }
 }
 
+/** A family's usual variant by name, and who picked it by name. */
+function usualOf(
+  family: NonNullable<CatalogueTerm['family']>,
+  person: (id: string) => string,
+): FamilyUsual {
+  const { member, chosen, revision } = family.usual
+  const name = family.variants.find((v) => v.key === member)?.name
+  return {
+    ...(name ? { member: name } : {}),
+    ...(chosen ? { by: person(chosen.personId), on: dateLabel(chosen.at.slice(0, 10)) } : {}),
+    revision,
+  }
+}
+
 /** The catalogue's metrics and dimensions as definitions: synced from the source, read-only here. */
 export function definitionsOf(
   terms: readonly CatalogueTerm[],
@@ -169,8 +183,10 @@ export function definitionsOf(
               name: v.name,
               values: v.values,
               ...(v.description ? { description: v.description } : {}),
+              ...(v.ref ? { ref: v.ref } : {}),
             })),
             meaning: meaningOf(term.family, person),
+            usual: usualOf(term.family, person),
           },
         }
       : {}),

@@ -245,7 +245,10 @@ export function CommandPalette() {
                   key={d.name}
                   value={`definition ${d.name}`}
                   keywords={[FOUND, DEFINITION]}
-                  onSelect={run(() => openDock('def', d.name))}
+                  onSelect={run(() =>
+                    // A family found by a variant's name opens naming it (S3).
+                    openDock('def', d.name, { variant: d.variants?.matched ?? undefined }),
+                  )}
                 >
                   <TypeGlyph d={d} className="text-current" />
                   <span className="min-w-0 flex-1 truncate">

@@ -23,6 +23,21 @@ export type Variant = {
   values: string[]
   /** Its tool's own words for it; absent when the tool gives none. */
   description?: string
+  /** Its id in its tool, as its source reads it: `cube:orders.revenue_eur_web`. */
+  ref?: string
+}
+
+/**
+ * The variant Ask reads when a question names none of the values a family's variants are told
+ * apart by (F3), as an owner of its domain or an admin picked it: by name, who and on which day.
+ */
+export type FamilyUsual = {
+  /** The usual variant; absent when none is picked, and Ask asks which one is meant. */
+  member?: string
+  by?: string
+  on?: string
+  /** How many times owners picked: a change sends it back. */
+  revision: number
 }
 
 /**
@@ -71,6 +86,8 @@ export type Family = {
   conversions?: { from: string; to: string; by: string }[]
   /** What it means, and where that comes from. */
   meaning?: FamilyMeaning
+  /** The variant Ask reads when a question names none of its values. */
+  usual?: FamilyUsual
 }
 
 export type Definition = {
