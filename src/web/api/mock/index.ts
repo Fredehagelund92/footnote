@@ -351,6 +351,8 @@ export function createMockApi() {
   /** The app's own address, which an invite link leads back to. */
   const origin = () => globalThis.location?.origin ?? 'http://localhost'
   const now = <T>(run: () => T) => new Promise<T>((resolve) => resolve(copy(run())))
+  /** The install's label, as FOOTNOTE_PROFILE_LABEL sets it: the address's ?label=, none without. */
+  const profileLabel = () => scenario.address().query.label?.trim() || null
 
   const api: FootnoteApi = {
     // Session and workspace
@@ -359,15 +361,15 @@ export function createMockApi() {
         user: state.user,
         install: state.install,
         fresh: state.fresh,
-        profileLabel: null,
+        profileLabel: profileLabel(),
         // The mock's Ask is its own reader in the browser, a design preview of Ask.
         answeredBy: 'preview',
       })),
-    // The picker, with no label; an invite link opens the invite it names. Not the demo install
-    // (demo: false), which lets a visitor in as its admin and has its own switch between people:
-    // here every journey starts signed in, and signs in as others through the picker.
+    // The picker, with the address's label if any; an invite link opens the invite it names. Not
+    // the demo install (demo: false), which lets a visitor in as its admin and has its own switch
+    // between people: here every journey starts signed in, and signs in as others through the picker.
     getSignInMethod: () =>
-      now(() => ({ kind: 'picker' as const, demo: false, profileLabel: null })),
+      now(() => ({ kind: 'picker' as const, demo: false, profileLabel: profileLabel() })),
     readInvite: ({ token }) => now(() => workspace.readInvite(token)),
     // The mock's people are all invented, as the demo's are.
     listSignInPeople: () =>
@@ -387,7 +389,7 @@ export function createMockApi() {
           user: state.user,
           install: state.install,
           fresh: state.fresh,
-          profileLabel: null,
+          profileLabel: profileLabel(),
           answeredBy: 'preview',
         }
       })

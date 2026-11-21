@@ -188,8 +188,14 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
 const endOf = (name: string) => /^(.*\S)(\s+\([^()]*\)(?:\s*\([^()]*\))*)$/.exec(name)
 
 /**
- * A name that is cut before its bracketed end, never in it: at 390 wide "Acquisition Channel First
- * Touch (orders)" reads "Acquisition Chan… (orders)", so two rows of one start stay apart.
+ * A name that gives its room to its start: "Clicks (partner platform)" is drawn whole while it fits,
+ * and a narrow row cuts its bracketed end first, down to its first few letters ("Search clicks
+ * (reported) (search_c…"), and only then the start: at 390 wide "Acquisition Channel First Touch
+ * (orders)" reads "Acquisition Chan… (orders)", so two rows of one start stay apart. The end
+ * shrinks a million times faster than the start, so the start loses not even a fraction of a pixel
+ * (and its last letters to an ellipsis) while the end can give. The end's floor is a hidden copy no
+ * wider than 4.5rem: never a width, which the row would take as the end's whole size. Either part
+ * cut says the whole name on hover.
  */
 function NameKeepingEnd({ name, query }: { name: string; query: string }) {
   const end = endOf(name)
@@ -205,8 +211,16 @@ function NameKeepingEnd({ name, query }: { name: string; query: string }) {
       <TruncatedText text={name}>
         <Highlight text={start} query={query} />
       </TruncatedText>
-      <span className="max-w-2/3 shrink-0 truncate whitespace-pre">
-        <Highlight text={tail} query={query} />
+      <span className="grid shrink-1000000">
+        <span
+          aria-hidden
+          className="invisible col-start-1 row-start-1 h-0 max-w-18 overflow-clip whitespace-pre"
+        >
+          {tail}
+        </span>
+        <TruncatedText text={name} className="col-start-1 row-start-1 whitespace-pre">
+          <Highlight text={tail} query={query} />
+        </TruncatedText>
       </span>
     </span>
   )
@@ -674,12 +688,14 @@ export function DefinitionsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <SiteHeader title="Definitions" icon={<BookAIcon />}>
         {/* With a definition's quick view open, its own action (Write context) is the one solid blue button. */}
+        {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
         <Button
           variant={dock?.kind === 'def' ? 'outline' : 'default'}
+          className="max-sm:size-7 max-sm:px-0"
           onClick={() => navigate('/definitions/new')}
         >
           <PlusIcon data-icon="inline-start" />
-          New term
+          <span className="max-sm:sr-only">New term</span>
         </Button>
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
