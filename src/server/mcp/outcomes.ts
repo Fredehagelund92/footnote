@@ -427,7 +427,13 @@ export function definitionOf(
   const domain = areaName(bundle, term.areaId ?? bundle.metricArea[term.key])
   const group = term.kind === 'metric' && term.parentKey ? termName(bundle, term.parentKey) : null
   const originWords = family
-    ? `${tool ?? 'The definition source'} defines ${plural(variants, 'metric', 'metrics')} that differ only by the values their filters compare, such as one for each currency, read as one family, ${term.name}. Context about ${term.name} applies to each of them; the calculations stay in ${tool ?? 'the source'}.`
+    ? `${tool ?? 'The definition source'} defines ${plural(variants, 'metric', 'metrics')} that differ only by the values their filters compare, such as one for each currency, read as one family, ${term.name}. Context about ${term.name} applies to each of them; the calculations stay in ${tool ?? 'the source'}.${
+        state === 'changed'
+          ? ` ${tool ?? 'The source'} changed the definition of at least one of them after some context items about ${term.name} were checked: those context items need checking until an owner of the domain checks them.`
+          : state === 'missing'
+            ? ` ${tool ?? 'The source'} no longer lists at least one of them: the context items about ${term.name} are marked for a check.`
+            : ''
+      }`
     : origin === 'source'
       ? [
           words
@@ -471,6 +477,7 @@ export function definitionOf(
     definition: words,
     origin,
     origin_words: originWords,
+    ...(family && tool ? { source: { tool, state } } : {}),
     ...(described
       ? {
           source: {

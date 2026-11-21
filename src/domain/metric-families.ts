@@ -31,17 +31,13 @@ const CURRENCIES = new Set(
 )
 
 /**
- * The one currency a metric's name is in: a code written in capitals ("Revenue USD") or in
- * brackets ("Accrued share (eur)"), so everyday words such as "all" or "top" are none. Null for
- * none, and for a name with two.
+ * The one currency a metric's name is in: a code written in capitals ("Revenue USD" or
+ * "Accrued share (EUR)"), so everyday words such as "all" or "top" are none. Null for none, and for
+ * a name with two.
  */
 export function currencyIn(said: string): string | null {
   const found = [...said.matchAll(/(?<![\p{L}\p{N}])([A-Za-z]{3})(?![\p{L}\p{N}])/gu)].filter(
-    (match) => {
-      const code = match[1]!
-      const bracketed = said[match.index - 1] === '(' && said[match.index + 3] === ')'
-      return CURRENCIES.has(code.toUpperCase()) && (code === code.toUpperCase() || bracketed)
-    },
+    (match) => CURRENCIES.has(match[1]!),
   )
   return found.length === 1 ? found[0]![1]!.toUpperCase() : null
 }
@@ -192,12 +188,18 @@ export function familiesOf(members: readonly VariantMember[]): Family[] {
   }
   const families: Family[] = []
   for (const group of groups.values()) {
-    const distinct = new Set(group.map((m) => m.variant!.by.map((by) => by.value).join('\u0000')))
-    if (group.length < FAMILY_MIN || distinct.size !== group.length) continue
-    const first = group[0]!
-    const ordered = axesOf(group)
+    const seen = new Set<string>()
+    const unique = [...group]
+      .sort((a, b) => (a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0))
+      .filter((m) => {
+        const values = m.variant!.by.map((by) => by.value).join('\u0000')
+        return !seen.has(values) && !!seen.add(values)
+      })
+    if (unique.length < FAMILY_MIN) continue
+    const first = unique[0]!
+    const ordered = axesOf(unique)
     const name = familyName(
-      group.map((member) => ({
+      unique.map((member) => ({
         said: member.said,
         values: member.variant!.by.map((b) => b.value),
       })),
@@ -208,7 +210,7 @@ export function familiesOf(members: readonly VariantMember[]): Family[] {
       source: first.source,
       by: ordered.map(({ axis }) => axis),
       min: FAMILY_MIN,
-      variants: group
+      variants: unique
         .map((member) => ({
           ref: member.ref,
           values: ordered.map(({ index }) => member.variant!.by[index]!.value),

@@ -185,6 +185,29 @@ describe('find_context (FR-338)', () => {
     expect(gone.origin_words).toContain('Cube no longer lists this definition')
   })
 
+  it('says a family changed or went missing when any variant did, naming none', async () => {
+    const family = (data: ServingBundle, missing: boolean) => {
+      const orders = data.terms[0]!
+      data.terms.push({
+        ...orders,
+        key: 'group:revenue',
+        kind: 'metric_group',
+        name: 'Revenue',
+        aliases: [],
+        parentKey: null,
+        definitionRefs: [orders.definitions[0]!.ref],
+        definitions: [{ ...orders.definitions[0]!, missing }],
+      })
+    }
+    const gone = await setup((data) => family(data, true)).call('find_context', {
+      query: 'what is revenue',
+    })
+    const entry = gone.out.definitions.find((d) => d.key === 'group:revenue')!
+    expect(entry.source).toEqual({ tool: 'Cube', state: 'missing' })
+    expect(entry.origin_words).toContain('no longer lists at least one of them')
+    expect(entry.origin_words).not.toContain('cube:finance.orders')
+  })
+
   it("points to the library's notes when no source describes a term, and says when nothing does", async () => {
     const s = setup((data) => {
       data.items.push({

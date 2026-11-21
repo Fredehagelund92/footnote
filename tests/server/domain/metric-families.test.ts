@@ -129,6 +129,14 @@ describe('families from the shape of the calculation', () => {
     })
   })
 
+  it('keeps the family when a copied measure repeats one value set, leaving out only the copy', () => {
+    const members = shop([['revenue', 'Revenue', 'a']])
+    const copy = { ...members[0]!, ref: 'dbt:orders.revenue_eur_app_copy' }
+    const [family] = familiesOf(asVariants([...members, copy]))
+    expect(family!.variants).toHaveLength(6)
+    expect(family!.variants.map((v) => v.ref)).not.toContain('dbt:orders.revenue_eur_app_copy')
+  })
+
   it('groups by more than currency only from the shape, and never fewer than three', () => {
     const members = shop([['revenue', 'Revenue', 'a']])
     // With no shape from the source, the names group the variants by currency alone.
@@ -290,10 +298,12 @@ describe('a family its names alone make: one metric in two currencies', () => {
     accrued('USD', "The EUR amount multiplied by the row's exchange rate.", null),
   ]
 
-  it('reads the currency a name is in, written in capitals or in brackets', () => {
+  it('reads the currency a name is in, written in capitals, bracketed or not', () => {
     expect(currencyIn('Accrued share front loaded (EUR)')).toBe('EUR')
     expect(currencyIn('Revenue USD')).toBe('USD')
-    expect(currencyIn('Accrued share (eur)')).toBe('EUR')
+    expect(currencyIn('Accrued share (eur)')).toBeNull()
+    expect(currencyIn('Products (all)')).toBeNull()
+    expect(currencyIn('Products (top)')).toBeNull()
     // Everyday words are no currency, and two currencies are none.
     expect(currencyIn('All orders on top')).toBeNull()
     expect(currencyIn('EUR to USD rate')).toBeNull()
