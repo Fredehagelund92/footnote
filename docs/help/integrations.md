@@ -3,8 +3,8 @@ title: Integrations
 line: Connect where metrics are defined and where documents live, and what is read.
 group: Set up
 order: 2
-minutes: 3
-reviewed: 2026-11-19
+minutes: 4
+reviewed: 2026-11-21
 ---
 
 Connect where metrics are defined and where documents live, and what is read from each.
@@ -34,6 +34,14 @@ Only admins connect a tool. It takes five steps on one page:
 5. Schedule: how often it is read and what each read does. Then say why it is added.
 
 **Change settings** goes through the same steps, filled in. A token or a key left empty stays as it is. **Disconnect** stops reading the tool and forgets its key: its open suggestions are withdrawn, and what owners published stays.
+
+## Choose what it reads
+
+Your organisation decides which views or semantic models are its catalogue. **Choose views** under What it reads opens Choose, Map and Schedule, for every definitions tool. That includes one the person who hosts this app set up, whose settings stay theirs.
+
+Every view is read until an admin chooses. A view taken out leaves Definitions at the next read, and the context that relies on it comes back to its owners to check. It keeps its domain, so choosing it again restores it.
+
+A view the tool adds later is not read until it is chosen. The admins get one card in the Inbox, New views not chosen, which opens Choose.
 
 ## Figures in Ask
 

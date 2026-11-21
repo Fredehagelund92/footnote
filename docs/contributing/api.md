@@ -296,7 +296,12 @@ repository read with a read-only token, tests it before saving and changes its s
 (`POST /api/v1/sources/test`, `POST /api/v1/sources`, `PUT /api/v1/sources/{id}`), choosing the
 views it reads and the domain of each (every view, or only those listed, with
 `POST /api/v1/sources/{id}/left-out` naming what a shorter list stops reading), and disconnects it
-(`POST /api/v1/sources/{id}/disconnect`). See
+(`POST /api/v1/sources/{id}/disconnect`). The views a definitions source reads are the
+organisation's approved set, for the server's own sources too: `GET /api/v1/sources/{id}` gives a
+server source's set (`origin: server`, with no settings or secrets), `POST /api/v1/sources/test`
+with its id reads it as the server set it, with every view, and `PUT /api/v1/sources/{id}/groups`
+chooses the views and their domains for any definitions source, with a reason, keeping one line in
+the history log. A view a change leaves out keeps the domain it had (`kept`). See
 [the connector contract](connector-contract.md) for what a connector declares and reports, the
 invariants, sources an administrator adds and snapshot behavior;
 [Security and egress](connector-security.md) for the secret store and the hosts a connector
@@ -1118,22 +1123,24 @@ the contract is in `src/contract/alerts.ts`.
   fail); this month's model spend at the threshold of the monthly cap (Model spend); a
   definition source whose last read failed or that has not read for longer than it should (A
   connected tool could not be read), told to the owners of the domains whose live items rely on its
-  definitions too; and a live item whose check date passed, from 07:00 UTC (A check is due).
+  definitions too; a definitions source that reads only the views chosen and found views that are
+  new since they were chosen, once for each list of them, to the administrators (New views not
+  chosen); and a live item whose check date passed, from 07:00 UTC (A check is due).
 - A raise is one row and one outbox event, written together by `cl_alert_raise`; the relay
   delivers it as Inbox items to the rule's audience less those who muted it for the domain. Its
   title is counts and scopes only, never anyone's words, and a count from agents under the minimum
   reads "fewer than 5 times" (FR-614). A share fires only on a part of at least the minimum, so it
   never tells of a hidden count.
 - In the Inbox (`GET /inbox/feed`), a domain whose saved questions need a look has one card
-  (`look:<domain>`, group `look`) that lists them. Each raise of the five rules with no other card
-  (Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read) is
-  an Alert card (`alert:<raise id>`, group `alert`, in the Alerts group after Saved questions) for
+  (`look:<domain>`, group `look`) that lists them. Each raise of the six rules with no other card
+  (Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read,
+  New views not chosen) is an Alert card (`alert:<raise id>`, group `alert`, in the Alerts group after Saved questions) for
   whom it reached, for a week: its title, the rule, and where
   its one action goes. An Alert card, a Not found card, a Saved questions card and a card for an
   item whose check date passed do not reach anyone while their rule is off, nor someone who muted
   their rule for the card's domain. An Alert card is left out only when the person muted its rule
   for every one of its raise's domains they own now; a raise with no domains is never muted away.
-- `GET /alerts/rules`: the eight rules, each `enabled`, its `threshold`, its `audience`, the
+- `GET /alerts/rules`: the nine rules, each `enabled`, its `threshold`, its `audience`, the
   domains the person muted it for, and its newest raise the person may read. For owners and
   administrators.
 - `POST /alerts/rules/{rule}` (`{ enabled?, threshold? }`): turns a rule on or off, or sets its

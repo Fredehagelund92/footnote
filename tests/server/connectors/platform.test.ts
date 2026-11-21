@@ -453,10 +453,12 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
       ['orders.revenue', 'finance', 'override'],
       ['segments.size', null, 'none'],
     ])
-    // What the read said of a group left out, or a group mapped, says nothing now.
+    // What the read said of a group left out, or a group mapped, says nothing now; the group left
+    // out is named, so one the tool adds later is seen.
     expect(read.warnings).toEqual([
       { code: 'missing_domain', target: 'segments' },
       { code: 'unsupported_file', target: 'model/old.yml' },
+      { code: 'group_not_chosen', target: 'growth' },
       { code: 'domain_override', target: 'cube:orders.count' },
       { code: 'domain_override', target: 'cube:orders.revenue' },
     ])
@@ -494,6 +496,8 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
       { code: 'unsupported_file', target: 'model/old.yml' },
       { code: 'invalid_domain', target: 'growth.rate' },
       { code: 'group_not_found', target: 'stock' },
+      { code: 'group_not_chosen', target: 'orders' },
+      { code: 'group_not_chosen', target: 'segments' },
       { code: 'domain_override', target: 'cube:growth.rate' },
     ])
   })
@@ -515,6 +519,9 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
     expect(read.warnings).toEqual([
       { code: 'unsupported_file', target: 'model/old.yml' },
       { code: 'no_groups_chosen', target: 'groups' },
+      { code: 'group_not_chosen', target: 'growth' },
+      { code: 'group_not_chosen', target: 'orders' },
+      { code: 'group_not_chosen', target: 'segments' },
     ])
   })
 
@@ -527,6 +534,8 @@ describe('the groups an admin chose for a definitions source (CON-118)', () => {
     expect(read.warnings).toEqual([
       { code: 'missing_domain', target: 'orders' },
       { code: 'unsupported_file', target: 'model/old.yml' },
+      { code: 'group_not_chosen', target: 'growth' },
+      { code: 'group_not_chosen', target: 'segments' },
     ])
   })
 

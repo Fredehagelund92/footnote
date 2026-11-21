@@ -120,6 +120,14 @@ const daysBefore = (day: string, n: number) => {
   return d.toISOString().slice(0, 10)
 }
 
+/** The groups a raise names, the first three by name: "orders, stock and 4 more". */
+function namedGroups(groups: readonly string[]) {
+  const shown = groups.slice(0, 3)
+  const more = groups.length - shown.length
+  if (more) return `${shown.join(', ')} and ${more} more`
+  return shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown.at(-1)!}` : shown[0]!
+}
+
 const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
   /** Not found: a gap opened on a topic agents keep finding nothing for; its card is the Inbox's. */
   async gap({ tx, bundle, minimum }) {
@@ -294,6 +302,47 @@ const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
           ]
         : []
     })
+  },
+
+  /**
+   * New views not chosen: a definitions source that reads only the groups chosen (a Cube view) has
+   * groups its approved set leaves out that are new since the set was chosen. A group is new when
+   * the first good read under the source's current settings did not find it, and the source never
+   * read a definition of it, as one taken out of the set did. Once for each such list of groups.
+   */
+  async views({ tx }) {
+    const rows = await tx.query<{ id: string; name: string; groups: string[]; digest: string }>(
+      `with fresh as (
+         select c.id, c.name, c.revision, array(
+                  select g from (
+                    select w->>'target' as g from jsonb_array_elements(last.warnings) w
+                     where w->>'code' = 'group_not_chosen'
+                    except
+                    select w->>'target' from jsonb_array_elements(base.warnings) w
+                     where w->>'code' = 'group_not_chosen') n
+                   where not exists (
+                     select 1 from definitions d
+                      where d.connector_id = c.id
+                        and substring(d.name from '^(.+)\\.[^.]*$') = n.g)
+                   order by g collate "C") as groups
+           from connectors c
+           join lateral (select s.warnings from connector_snapshots s
+                          where s.connector_id = c.id and s.status in ('ok', 'partial')
+                          order by s.fetched_at desc limit 1) last on true
+           join lateral (select s.warnings from connector_snapshots s
+                          where s.connector_id = c.id and s.status in ('ok', 'partial')
+                            and s.settings_revision = c.revision
+                          order by s.fetched_at limit 1) base on true
+          where c.enabled and c.kind = 'definition_source' and not c.all_groups)
+       select id, name, groups, md5(array_to_string(groups, E'\n')) as digest
+         from fresh where cardinality(groups) > 0 order by id`,
+    )
+    return rows.map((c) => ({
+      key: `${c.id}:${c.digest}`,
+      areas: [],
+      title: `${c.name}: ${c.groups.length === 1 ? '1 new view' : `${c.groups.length} new views`} not chosen (${namedGroups(c.groups)})`,
+      subject: { connector: c.id },
+    }))
   },
 
   /** A check is due: a live item's check date passed; the reminder goes from 07:00, UTC. */

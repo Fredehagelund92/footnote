@@ -51,7 +51,8 @@ export const jobOverviewSchema = z.object({
  * read takes), and is in part when it held more text than one read takes, or would have withdrawn
  * more suggestions than a read may at once. A tool that asks to be called less often is `rate_limited`. A source that
  * reads only the groups listed for it (a Cube view) names each listed group the read did not find,
- * and says when no group is listed, so it read nothing.
+ * says when no group is listed, so it read nothing, and names each group it found that the list
+ * leaves out, so a group the tool adds later is seen.
  */
 export const sourceWarningCodes = [
   'unsupported_file',
@@ -89,6 +90,7 @@ export const sourceWarningCodes = [
   'rate_limited',
   'group_not_found',
   'no_groups_chosen',
+  'group_not_chosen',
 ] as const
 export type SourceWarningCode = (typeof sourceWarningCodes)[number]
 

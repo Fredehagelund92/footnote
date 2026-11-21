@@ -708,12 +708,18 @@ Where the build differs from the decided text above:
   with a domain or none, map domains: each definition of a chosen group takes the domain an admin
   mapped it to (`domain_override`) or none. With an allow list a group left out is not read, so a
   complete read marks its definitions missing and flags the live items that rely on them; each
-  listed group the read did not find is named (`group_not_found`), and a list of none reads
-  nothing and says so (`no_groups_chosen`), never every group. Before a change stops reading a
+  listed group the read did not find is named (`group_not_found`), a list of none reads
+  nothing and says so (`no_groups_chosen`), never every group, and each group the read found that
+  the list leaves out is named too (`group_not_chosen`), so the alert rule New views not chosen can
+  tell the administrators of one the tool adds later. Before a change stops reading a
   definition a live item relies on, `POST /api/v1/sources/{id}/left-out` names what it leaves
   behind, and the change needs `acceptLeftOut` (`withChosenGroups` and `withListedGroups` in
-  `platform.ts`). The server's own Cube folder reads the views `CUBE_VIEWS_FILE` lists the same
-  way, and its row keeps that list.
+  `platform.ts`). A group a change leaves out keeps the domain it was mapped to
+  (`connectors.kept_domains`), so choosing it again restores it. The server's own sources keep
+  their groups in the same columns, chosen in the app (`PUT /api/v1/sources/{id}/groups`, which
+  works for any definitions source) and applied by `withApprovedGroups` in `server-source.ts`;
+  until an administrator chooses them, the server's Cube folder reads the views `CUBE_VIEWS_FILE`
+  lists, and its row keeps that list.
   A domain from the tool is `source` in the core and the API (`domainSource`, and the coverage
   it counts), whatever the tool; it was never stored, so no migration moved it.
 - **Cube** is one connector, `cube`, for a model in a Git repository an administrator adds and

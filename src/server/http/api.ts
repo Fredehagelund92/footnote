@@ -1026,6 +1026,10 @@ export function createRouter({
         readSoon(context.hooks)
         return workspaceSources.update(context.tx, input, context.hooks)
       }),
+      groups: authorized.sources.groups.handler(({ context, input }) => {
+        readSoon(context.hooks)
+        return workspaceSources.chooseGroups(context.tx, input)
+      }),
       test: authorized.sources.test.handler(({ context, input }) =>
         workspaceSources.test(context.tx, input),
       ),

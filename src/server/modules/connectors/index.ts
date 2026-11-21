@@ -2,6 +2,8 @@ export {
   createCubeSource,
   createFolderSource,
   cubeServerType,
+  withApprovedGroups,
+  type ApprovedGroups,
   type CubeSourceOptions,
 } from './server-source.ts'
 export {

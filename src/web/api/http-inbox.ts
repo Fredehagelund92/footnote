@@ -271,7 +271,11 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         alert: {
           rule: card.rule,
           name: alertRule(card.rule).name,
-          href: hrefOf(card.subject),
+          // New views not chosen go straight to choosing what the tool reads.
+          href:
+            card.rule === 'views' && 'connector' in card.subject
+              ? `/settings/integrations/${card.subject.connector}/connect?step=3`
+              : hrefOf(card.subject),
           ...('pair' in card.subject && card.subject.pair ? { pair: card.subject.pair } : {}),
         },
       }

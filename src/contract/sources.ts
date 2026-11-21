@@ -89,12 +89,16 @@ const secretsSchema = z.record(fieldKey, z.string().check(z.minLength(1), z.maxL
 /**
  * A source an admin added, as its page shows it: its settings and, for each secret its
  * connector has, whether the store holds one. A secret itself never leaves the service (CON-105).
+ * A definitions source the server's configuration selects has neither here, only the groups it
+ * reads: whoever runs the server sets where it reads from.
  */
 export const sourceSettingsSchema = z.object({
   id: z.string(),
   /** Its connector's id. */
   type: z.string(),
   name: z.string(),
+  /** Added by an admin, or selected by the server's configuration. */
+  origin: z.enum(['workspace', 'server']),
   /** Its revision; a change names the one it read. */
   revision: z.number(),
   config: sourceConfigSchema,
@@ -106,6 +110,11 @@ export const sourceSettingsSchema = z.object({
   scopes: chosenScopesSchema,
   /** A definitions source reads every group; false, only the groups chosen (none when none is). */
   allGroups: allGroupsSchema,
+  /**
+   * The groups a definitions source no longer reads, each with the domain it was mapped to: one
+   * chosen again starts from it.
+   */
+  kept: chosenScopesSchema,
   /** How often it is read; null for its connector's default. */
   schedule: z.nullable(scheduleSchema),
   /** When it is read next, ISO 8601 in UTC; a time that has passed means it is queued. */
@@ -163,9 +172,26 @@ export const updateSourceSchema = z.strictObject({
 })
 
 /**
+ * Chooses the groups a definitions source reads, its approved set, and the domain each maps to,
+ * with why, on the revision read: for a source an admin added or one the server's configuration
+ * selects. Every group, its scopes then only mapping domains, or only those chosen (an allow list).
+ */
+export const chooseGroupsSchema = z.strictObject({
+  id: sourceId,
+  revision: z.number().check(z.int(), z.minimum(1)),
+  scopes: chosenScopesSchema,
+  allGroups: allGroupsSchema,
+  /** As at Change settings: whoever changes it has seen what it stops reading (`sources.leftOut`). */
+  acceptLeftOut: z.optional(z.boolean()),
+  reason,
+})
+
+/**
  * Tries settings without keeping them or changing anything: the connector's check, then for a
  * definitions connector one read, and for a content connector what it may cover (discover). With
- * the id of a source already added, a secret left out is the one in the store.
+ * the id of a source already added, a secret left out is the one in the store. With the id of a
+ * definitions source the server's configuration selects, it reads that source as the server set it,
+ * with every group it has, and the settings given are not used.
  */
 export const testSourceSchema = z.strictObject({
   id: z.optional(sourceId),
@@ -265,6 +291,7 @@ export type SourceConfig = z.infer<typeof sourceConfigSchema>
 export type SourceSettings = z.infer<typeof sourceSettingsSchema>
 export type AddSourceInput = z.infer<typeof addSourceSchema>
 export type UpdateSourceInput = z.infer<typeof updateSourceSchema>
+export type ChooseGroupsInput = z.infer<typeof chooseGroupsSchema>
 export type TestSourceInput = z.infer<typeof testSourceSchema>
 export type SourceCheck = z.infer<typeof sourceCheckSchema>
 export type RemoveSourceInput = z.infer<typeof removeSourceSchema>

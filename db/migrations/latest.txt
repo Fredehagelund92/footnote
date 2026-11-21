@@ -1,1 +1,1 @@
-0005_family_words.sql
+0006_approved_groups.sql

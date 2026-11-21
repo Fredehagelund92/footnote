@@ -178,6 +178,12 @@ export interface DefinitionSource {
   /** The server's configuration it reads, shown read only in Sources. */
   readonly serverSettings: readonly ServerSetting[]
   /**
+   * The groups the server's configuration lists for it (`CUBE_VIEWS_FILE`), read at each read: the
+   * views it reads until an administrator chooses them in the app. Null when it lists none, and
+   * absent from a source the server's configuration does not select.
+   */
+  listedGroups?(): Promise<readonly string[] | null>
+  /**
    * One read: a snapshot, or a `SourceReadError` with warnings when the source cannot be read at
    * all. It changes nothing anywhere (CON-102), so the core also tests settings with it.
    */
