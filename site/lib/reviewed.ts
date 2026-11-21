@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { settingsSectionIds } from '../../src/web/lib/settings-access.ts'
 import { repoRoot, type SitePage } from './pages.ts'
 
 /*
@@ -57,7 +58,7 @@ function settingsInCode(root: string): Set<string> {
   return names
 }
 
-/** The app's addresses as patterns, from its router: `/settings/$section` matches `/settings/agents`. */
+/** The app's addresses as patterns, from its router: `/settings/$section` matches `/settings/agents`, not `/settings/gone`. */
 function screensOf(root: string): RegExp[] {
   const routes = readFileSync(join(root, 'src/web/routeTree.gen.ts'), 'utf8')
     .split('export interface FileRoutesByTo {')[1]!
@@ -65,7 +66,13 @@ function screensOf(root: string): RegExp[] {
   return [...routes.matchAll(/'(\/[^']*)'/g)]
     .map((match) => match[1]!)
     .filter((path) => path !== '/$')
-    .map((path) => new RegExp(`^${path.replace(/\$\w+/g, '[^/]+')}$`))
+    .map((path) =>
+      new RegExp(
+        `^${path.replace(/\$(\w+)/g, (_, name: string) =>
+          name === 'section' ? `(?:${settingsSectionIds.join('|')})` : '[^/]+',
+        )}$`,
+      ),
+    )
 }
 
 /** The addresses of a page's links to the app's screens, and of the screen its front matter opens. */
@@ -88,8 +95,14 @@ export function checkReviewed(
   let screens: RegExp[] | undefined
   for (const { file, reviewed } of pages) {
     const day = reviewed ? Date.parse(`${reviewed}T00:00:00Z`) : NaN
-    if (Number.isNaN(day)) {
-      review.problems.push(`${file}: say in its front matter when it was last checked, reviewed:`)
+    if (Number.isNaN(day) || new Date(day).toISOString().slice(0, 10) !== reviewed) {
+      review.problems.push(
+        `${file}: say in its front matter the day it was last checked, as a real YYYY-MM-DD day, reviewed:`,
+      )
+      continue
+    }
+    if (day > today.getTime()) {
+      review.problems.push(`${file}: reviewed: ${reviewed} is a day that has not come yet`)
       continue
     }
     const age = Math.floor((today.getTime() - day) / DAY)

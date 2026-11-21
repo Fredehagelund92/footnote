@@ -219,6 +219,7 @@ function missingFiles(build: DocsBuild, slug: string, html: string, who: string)
 /** Every link of the app's docs to one of their pages, or to a heading there, that goes nowhere. */
 function brokenLinks(app: DocsBuild, slug: string, words: PageWords, slugs: string[]): string[] {
   return words.links.flatMap((link) => {
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(link)) return []
     const [target = '', hash] = link.split('#')
     if (!target) return []
     if (!slugs.includes(target))

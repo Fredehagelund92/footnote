@@ -74,9 +74,36 @@ describe('a page due for a check', () => {
     ).toEqual(['docs/help/privacy.md: links to the screen /gone, which the app no longer has'])
   })
 
+  it('fails on a settings section the app does not have', () => {
+    write(
+      'docs/help/privacy.md',
+      page('2026-01-02', 'Open [Agents](/settings/agents) and [Gone](/settings/gone).'),
+    )
+    expect(
+      checkReviewed([{ file: 'docs/help/privacy.md', reviewed: '2026-01-02' }], today, root)
+        .problems,
+    ).toEqual([
+      'docs/help/privacy.md: links to the screen /settings/gone, which the app no longer has',
+    ])
+  })
+
+  it('fails on a day that is not a real one, or has not come yet', () => {
+    write('docs/help/privacy.md', page('2026-02-30', 'Words.'))
+    expect(
+      checkReviewed([{ file: 'docs/help/privacy.md', reviewed: '2026-02-30' }], today, root)
+        .problems,
+    ).toEqual([
+      'docs/help/privacy.md: say in its front matter the day it was last checked, as a real YYYY-MM-DD day, reviewed:',
+    ])
+    expect(
+      checkReviewed([{ file: 'docs/help/privacy.md', reviewed: '2027-01-02' }], today, root)
+        .problems,
+    ).toEqual(['docs/help/privacy.md: reviewed: 2027-01-02 is a day that has not come yet'])
+  })
+
   it('fails when a page does not say when it was checked', () => {
     expect(checkReviewed([{ file: 'docs/help/privacy.md' }], today, root).problems).toEqual([
-      'docs/help/privacy.md: say in its front matter when it was last checked, reviewed:',
+      'docs/help/privacy.md: say in its front matter the day it was last checked, as a real YYYY-MM-DD day, reviewed:',
     ])
   })
 })
