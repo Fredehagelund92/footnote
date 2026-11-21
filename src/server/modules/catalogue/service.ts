@@ -16,6 +16,7 @@ import {
 } from '../../../domain/catalogue.ts'
 import type { VariantValue } from '../../../domain/definition-helpers.ts'
 import { axisWords, derivationsOf, familiesOf, familyAxes } from '../../../domain/metric-families.ts'
+import { viewOf } from '../../../domain/source-views.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -267,6 +268,8 @@ export function createCatalogueService(
               found.variants.find(({ ref }) => ref === entry.ref)?.values ?? [],
           }
         : familyAxes(said)
+      const views = new Set(said.map((entry) => viewOf(entry.name)))
+      const view = views.size === 1 ? [...views][0] : null
       const keys = new Set([row.key, ...members.map((member) => member.key)])
       const names = (item: ShelfItem) =>
         item.scope.metrics.some((id: string) => keys.has(metricKeyOf(id)))
@@ -279,7 +282,7 @@ export function createCatalogueService(
         id: row.key.slice(row.key.indexOf(':') + 1),
         name: row.name,
         aliases: row.aliases,
-        group: null,
+        group: view ? { key: `view:${view}`, name: view } : null,
         family: {
           by: axes.by.map((axis) =>
             axis.ref ? (dimensionNames.get(axis.ref) ?? axisWords(axis)) : axisWords(axis),

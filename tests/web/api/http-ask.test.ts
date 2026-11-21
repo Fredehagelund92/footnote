@@ -300,3 +300,16 @@ describe("the subject of a loop turn's answer", () => {
     expect(none.markets).toEqual([])
   })
 })
+
+describe('a family in the names of a question', () => {
+  const withFamily = namesOf({
+    ...vocabulary,
+    families: [{ key: 'group:revenue', name: 'Revenue', variants: 250 }],
+  })
+
+  it('is named by its own name, never the raw key', () => {
+    expect(withFamily.metric('group:revenue')).toBe('Revenue')
+    expect(withFamily.metricKey('revenue')).toBe('group:revenue')
+    expect(withFamily.terms?.map((t) => [t.key, t.name])).toContainEqual(['group:revenue', 'Revenue'])
+  })
+})

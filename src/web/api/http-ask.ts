@@ -31,7 +31,10 @@ export function namesOf(vocabulary: Vocabulary): Names & {
   /** A market's key by its name, any case. */
   marketKey: (name: string) => string | undefined
 } {
-  const metrics = new Map(vocabulary.metrics.map((m) => [`metric:${m.id}`, m.name]))
+  const metrics = new Map([
+    ...vocabulary.families.map((f) => [f.key, f.name] as const),
+    ...vocabulary.metrics.map((m) => [`metric:${m.id}`, m.name] as const),
+  ])
   const values = new Map(
     vocabulary.dimensions.flatMap((d) => d.values.map((v) => [`val:${d.id}/${v.id}`, v.name])),
   )
@@ -48,6 +51,7 @@ export function namesOf(vocabulary: Vocabulary): Names & {
   })
   return {
     terms: [
+      ...vocabulary.families.map((f) => term(f.key, 'metric', f.name)),
       ...vocabulary.metrics.map((m) => term(`metric:${m.id}`, 'metric', m.name)),
       ...(market?.values ?? []).map((v) =>
         term(`val:${market!.id}/${v.id}`, 'dimension_value', v.name, v.aliases),
@@ -56,6 +60,8 @@ export function namesOf(vocabulary: Vocabulary): Names & {
     metric: (key) => metrics.get(key) ?? key.replace(/^[a-z]+:/, ''),
     value: (key) => values.get(key) ?? key.replace(/^.*\//, ''),
     metricKey: (name) => {
+      const f = vocabulary.families.find((x) => same(x.name, name))
+      if (f) return f.key
       const m = vocabulary.metrics.find((x) => same(x.name, name))
       return m && `metric:${m.id}`
     },

@@ -102,6 +102,7 @@ function measureFamilies(tool: string): Definition[] {
       tool,
       sourceNames: [],
       domain: 'sales',
+      group: 'orders',
       updated: '22 Oct 2026',
       family: {
         by: ['Currency', 'Channel'],
@@ -129,6 +130,7 @@ function accruedShare(tool: string): Definition {
     tool,
     sourceNames: [],
     domain: 'sales',
+    group: 'orders',
     updated: '22 Oct 2026',
     family: {
       by: ['Currency'],

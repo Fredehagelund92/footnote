@@ -567,7 +567,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       pendingKeys.delete(id)
       // A term written, renamed, moved or deleted changes the words a mention is named by.
-      if (operation.startsWith('terms.') || operation === 'decisions.undo') words = undefined
+      if (
+        operation.startsWith('terms.') ||
+        operation === 'decisions.undo' ||
+        operation === 'inbox.decideNames'
+      )
+        words = undefined
       return result
     } catch (error) {
       const failure = toApiError(error)
@@ -1401,7 +1406,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (!view) return null
       const words = namesOf(vocabulary)
       const where = view.where.map((k) =>
-        k.startsWith('metric:') ? words.metric(k) : words.value(k),
+        k.startsWith('metric:') || k.startsWith('group:') ? words.metric(k) : words.value(k),
       )
       return conflictOf(view, { person: people.name }, where)
     },

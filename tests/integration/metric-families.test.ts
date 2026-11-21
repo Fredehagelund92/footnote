@@ -234,6 +234,7 @@ describe('the catalogue', () => {
     expect(terms.map((term) => term.name)).not.toContain('Revenue (EUR) web')
     const revenue = metrics.find((term) => term.key === 'group:revenue')!
     expect(revenue.family?.by).toEqual(['Currency', 'Channel'])
+    expect(revenue.group).toMatchObject({ name: expect.any(String) })
     expect(revenue.family?.variants).toContainEqual(
       expect.objectContaining({ name: 'Revenue (EUR) web', values: ['EUR', 'web'] }),
     )
