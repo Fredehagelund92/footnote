@@ -161,6 +161,63 @@ describe("the app's Docs area and the site", () => {
     ])
   })
 
+  it('name a picture without its hash, whatever characters the hash has', () => {
+    const picture = (src: string) => `<img alt="A" src="${src}">`
+    const page = (src: string) => appPage('Words', 'The words.', picture(src))
+    const named = (appFile: string, siteFile: string) => {
+      write('app/words.html', page(`/docs/assets/${appFile}`))
+      write(
+        'site/words/index.html',
+        sitePage('Words', `<p>The words.</p>${picture(`/docs/_astro/${siteFile}`)}`),
+      )
+      write(`app/assets/${appFile}`, '')
+      write(`site/_astro/${siteFile}`, '')
+      return checkAppDocs(app, site, pages).filter((problem) => problem.startsWith('words'))
+    }
+    for (const hash of ['Ab_cdefg', '-bcdefgh', 'abcdefg-', 'Ab-cd_fg', '_bcdefg_'])
+      expect(named(`agents-light-${hash}.webp`, `agents-light.${hash}_mJ68c.webp`)).toEqual([])
+    expect(named('agents-light-Ab_cdefg.webp', 'agents.Ab_cdefg_mJ68c.webp')).toEqual([
+      `words: the app's Docs area has picture "A agents-light.webp", the site not`,
+      `words: the site has picture "A agents.webp", the app's Docs area not`,
+    ])
+  })
+
+  it('fail on an included list the app draws empty or not at all', () => {
+    write(
+      'app/privacy.html',
+      appPage(
+        'Privacy',
+        'What is kept, and for how long.',
+        privacyBody.replace(/<div class="contents" data-include="words">[\s\S]*?<\/dl><\/div>/, ''),
+      ),
+    )
+    expect(checkAppDocs(app, site, pages)).toEqual([
+      `privacy: the site has include "words", the app's Docs area not`,
+    ])
+  })
+
+  it('compare links to other sites as written', () => {
+    write(
+      'app/privacy.html',
+      appPage(
+        'Privacy',
+        'What is kept, and for how long.',
+        privacyBody.replace('</ol>', '<li><a href="https://a.example/x">Docs</a></li></ol>'),
+      ),
+    )
+    write(
+      'site/privacy/index.html',
+      sitePage(
+        'Privacy',
+        privacyContent.replace('</ol>', '<li><a href="https://b.example/x">Docs</a></li></ol>'),
+      ),
+    )
+    expect(checkAppDocs(app, site, pages)).toEqual([
+      `privacy: the app's Docs area has link "https://a.example/x", the site not`,
+      `privacy: the site has link "https://b.example/x", the app's Docs area not`,
+    ])
+  })
+
   it('say to build the app’s docs when there are none', () => {
     rmSync(join(root, 'app'), { recursive: true })
     expect(checkAppDocs(app, site, pages)).toEqual([

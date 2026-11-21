@@ -32,8 +32,10 @@ export type PageWords = {
   text: string
   /** Each picture's words, then its file's name without the build's hash, or `inline`. */
   pictures: string[]
-  /** Each link to a page of the docs, as `slug#heading`. */
+  /** Each link: to a page of the docs as `slug#heading`, any other as its address. */
   links: string[]
+  /** The name of each of the app's own lists the page draws, in order. */
+  includes: string[]
 }
 
 const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
@@ -103,16 +105,21 @@ export function wordsOf(html: string): string {
 
 const attribute = (tag: string, name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1]
 
-/** A picture's file name as the page names it: `agents-light`, without the hash a build adds. */
-const pictureName = (src: string) =>
-  src.startsWith('data:')
-    ? 'inline'
-    : src
-        .split('/')
-        .at(-1)!
-        .replace(/[-.][A-Za-z0-9_-]{8}(?:_[A-Za-z0-9_-]+)?\.(webp|svg|png)$/, '.$1')
+/** The hash a build adds to a picture's file, at the end of its name: the app's and the site's. */
+const appHash = /-[\w-]{8}(\.\w+)$/
+const siteHash = /\.[\w-]{8}_[\w-]+(\.\w+)$/
 
-function pageWords(slug: string, title: string, body: string, base: string): PageWords {
+/** A picture's file name as the page names it: `agents-light`, without the hash a build adds. */
+const pictureName = (src: string, hash: RegExp) =>
+  src.startsWith('data:') ? 'inline' : src.split('/').at(-1)!.replace(hash, '$1')
+
+function pageWords(
+  slug: string,
+  title: string,
+  body: string,
+  base: string,
+  hashed: RegExp,
+): PageWords {
   const shown = without(body, /<[a-z]+\b[^>]*\sdata-include="/i)
   return {
     title: wordsOf(title),
@@ -121,15 +128,16 @@ function pageWords(slug: string, title: string, body: string, base: string): Pag
     ),
     text: wordsOf(shown),
     pictures: [...shown.matchAll(/<img\b[^>]*>/gi)].map(
-      ([tag]) => `${decode(attribute(tag, 'alt') ?? '')} ${pictureName(attribute(tag, 'src')!)}`,
+      ([tag]) => `${decode(attribute(tag, 'alt') ?? '')} ${pictureName(attribute(tag, 'src')!, hashed)}`,
     ),
     links: [...shown.matchAll(/<a\b[^>]*\shref="([^"]*)"/gi)].flatMap(([, href]) => {
       // A link to a heading of the same page, which the site writes as the heading alone.
       if (href!.startsWith('#')) return [`${slug}${href}`]
-      if (!href!.startsWith(`${base}/`) && href !== base) return []
+      if (!href!.startsWith(`${base}/`) && href !== base) return [href!]
       const [path = '', hash = ''] = href!.slice(base.length).split('#')
       return [`${path.replace(/^\/|\/$/g, '')}#${hash}`]
     }),
+    includes: [...body.matchAll(/<[a-z]+\b[^>]*\sdata-include="([^"]*)"/gi)].map(([, name]) => name!),
   }
 }
 
@@ -145,7 +153,7 @@ export function appPageWords(slug: string, html: string, base: string): PageWord
   const page = `${lead}${body}`
     .replace(/(<li\b[^>]*>\s*)<span\b[^>]*>\d+<\/span>/g, '$1')
     .replace(/<time\b[\s\S]*?<\/time>/g, '')
-  return pageWords(slug, title, page, base)
+  return pageWords(slug, title, page, base, appHash)
 }
 
 /** A page of these docs, as `npm run build` draws it. */
@@ -154,7 +162,13 @@ export function sitePageWords(slug: string, html: string, base: string): PageWor
   const title = /<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1]
   if (!content || title === undefined) return undefined
   // A change's day on What's new, a paragraph of its own.
-  return pageWords(slug, title, content.replace(/<p>\d{4}-\d{2}-\d{2}<\/p>/g, ''), base)
+  return pageWords(
+    slug,
+    title,
+    content.replace(/<p>\d{4}-\d{2}-\d{2}<\/p>/g, ''),
+    base,
+    siteHash,
+  )
 }
 
 /** Where two texts part, with a little of each around it. */
@@ -253,6 +267,7 @@ export function checkAppDocs(
       ...compareLists(slug, 'headings', a.headings, s.headings),
       ...compareLists(slug, 'pictures', a.pictures, s.pictures),
       ...compareLists(slug, 'links', a.links, s.links),
+      ...compareLists(slug, 'includes', a.includes, s.includes),
       ...(a.text === s.text
         ? []
         : [`${slug}: the words differ: ${firstDifference(a.text, s.text)}`]),
@@ -273,10 +288,11 @@ if (import.meta.main) {
     base: '/docs',
     fileOf: (slug) => join(appDist, `${slug}.html`),
   }
+  const siteDist = join(repoRoot, 'site/dist/docs')
   const site: DocsBuild = {
-    dist: resolve('dist/docs'),
+    dist: siteDist,
     base: '/docs',
-    fileOf: (slug) => join(resolve('dist/docs'), slug, 'index.html'),
+    fileOf: (slug) => join(siteDist, slug, 'index.html'),
   }
   const pages = sitePages()
   const problems = checkAppDocs(app, site, pages)
