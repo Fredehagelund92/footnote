@@ -768,6 +768,9 @@ describe('the nouns of an answer on any workspace', () => {
     expect(billing[0]!.querySelector('svg')?.getAttribute('class')).toMatch(/tag/)
     expect(text(el)).toContain('; again Billing.')
     expect(text(el)).not.toMatch(/market/i)
+    // A mark right after a chip reads as the name's own ("Sprint 41;"), with no gap before it.
+    expect(sprint.className).toMatch(/\bpr-0\.5\b/)
+    expect(billing[0]!.className).not.toMatch(/\bpr-0\.5\b/)
     // Drawn again, the first mention is still the chip.
     const answer = loopAnswerOf(invented, 'Tickets closed by billing?', names)
     act(() =>
