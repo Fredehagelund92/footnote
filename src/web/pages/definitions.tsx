@@ -11,6 +11,7 @@ import {
   CircleDashedIcon,
   TriangleAlertIcon,
   EqualIcon,
+  InfoIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { ToolLogo } from '@/components/footnote/tool-logo'
@@ -43,6 +44,7 @@ import { useSelection } from '@/hooks/use-selection'
 import { DefinitionsBulk } from '@/components/footnote/definitions-bulk'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -835,13 +837,13 @@ export function DefinitionsPage() {
                 />
               )}
             </FilterRow>
-            {/* Where the definitions come from, as the catalogue says it under its toolbar. */}
+            {/* Where the definitions come from, in one line under the toolbar. Who hears about a
+                figure that looks wrong is an info button at its end, when the source has a contact. */}
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
-              <span className="max-w-reading">
-                Metrics and dimensions come from {tool ?? 'your definitions tool'}. To change one,
-                change it in the tool. Terms are words your company uses. The owner of their domain
-                writes them here.{' '}
+              <span className="min-w-0">
+                From {tool ?? 'your definitions tool'} - change them there. Terms are written here
+                by their domain owner.{' '}
                 <a
                   href={integrationHref(reader?.id)}
                   className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -849,9 +851,26 @@ export function DefinitionsPage() {
                   {tool ?? 'Integrations'}
                   {tool && ' in Integrations'}
                 </a>
-                .
-                {reader?.figures &&
-                  ` A figure that looks wrong goes to ${figures.contact(reader.id)}, the data contact.`}
+                {reader?.figures && (
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="-my-1 ms-1 inline-flex size-6 align-middle text-muted-foreground"
+                          aria-label="Who hears about a wrong figure"
+                        />
+                      }
+                    >
+                      <InfoIcon />
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="text-pretty">
+                      A figure that looks wrong goes to {figures.contact(reader.id)}, the data
+                      contact.
+                    </PopoverContent>
+                  </Popover>
+                )}
               </span>
             </p>
             {/* Coverage first: how much of what agents can be asked has nothing written down. */}
