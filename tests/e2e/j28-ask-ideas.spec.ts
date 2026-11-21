@@ -123,7 +123,7 @@ test('once a message is sent, nothing in the chat suggests what to ask', async (
   // Not found keeps its next step, and only that.
   await follow(missing)
   await expect(log.getByText('Not found', { exact: true }).first()).toBeVisible()
-  await expect(log.getByText(/Write context for/).first()).toBeVisible()
+  await expect(log.getByRole('button', { name: /^Write context for/ }).first()).toBeVisible()
   await suggestsNothing(page)
   // Two items that disagree offer the comparison, never a question.
   await follow('Do Norway orders include gift-card money?')
@@ -140,7 +140,7 @@ test('someone who does not own the domain gets no unfinished control under Not f
   const log = page.getByRole('log')
   await expect(log.getByText('Not found', { exact: true }).first()).toBeVisible()
   // Not theirs to write: the next step is to tell the owners, which sends at once (J66).
-  await expect(log.getByRole('link', { name: /^Write context/ })).toHaveCount(0)
+  await expect(log.getByRole('button', { name: /^Write context/ })).toHaveCount(0)
   await expect(log.getByRole('button', { name: 'Tell the owner' })).toBeVisible()
   await expect(page.getByText(/Coming soon|comes later/)).toHaveCount(0)
 })

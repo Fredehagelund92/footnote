@@ -34,7 +34,7 @@ vi.mock('@/lib/workspace', () => ({
       text: '',
     },
   }),
-  usePeople: () => [world.me],
+  usePeople: () => [world.me, { name: 'Ravi Kapoor', role: 'Admin', owns: [], admin: true }],
 }))
 vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
 vi.mock('@/api/queries', () => ({
@@ -97,6 +97,14 @@ const text = (el: Element) => {
   for (const hidden of shown.querySelectorAll('.sr-only')) hidden.remove()
   return shown.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 }
+/** A control's name: its label, or what it says, a screen reader's words included. */
+const nameOf = (el: Element) => {
+  const label = el.getAttribute('aria-label')
+  if (label) return label
+  const said = el.cloneNode(true) as Element
+  for (const hidden of said.querySelectorAll('[aria-hidden="true"]')) hidden.remove()
+  return said.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+}
 const buttons = (el: Element, name: RegExp) =>
   [...el.querySelectorAll('[role="button"], button')].filter((b) =>
     name.test(b.getAttribute('aria-label') ?? b.textContent ?? ''),
@@ -109,8 +117,11 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).not.toContain('This is written down and checked.')
     expect(buttons(el, /^Orders, metric$/)).toHaveLength(1)
     expect(buttons(el, /, value$/).length).toBeGreaterThan(0)
-    expect(text(el)).toContain('Used')
-    expect(buttons(el, /^Source 1: /).length).toBeGreaterThan(0)
+    // What it rests on, as a chip with its title under the words, without a press.
+    const item = example('loop-checked').items.find((i) => i.n === 1)!
+    const chips = el.querySelector('[data-sources]')!
+    expect(text(chips)).toContain(item.title)
+    expect(buttons(chips, /^Source 1: /)).toHaveLength(1)
   })
 
   it('Not found: one sentence, the closest written counted by value with four rows, the owners, and Write context', () => {
@@ -123,25 +134,31 @@ describe("Ask's loop answer, state by state", () => {
     expect(more).toBeDefined()
     act(() => more!.click())
     expect(el.querySelectorAll('li').length).toBe(example('loop-missing').closest!.items.length)
-    expect(text(el)).toMatch(/owned by/)
-    expect(text(el)).toMatch(/Write context for Orders in Poland/)
+    // The gap card: what is not written, and, to its owner, Write context for it.
+    const gap = el.querySelector('[data-gap]')!
+    expect(gap.getAttribute('aria-label')).toBe('Not written yet: Orders in Poland')
+    expect(text(gap)).toMatch(
+      /^Orders in PolandNo context item covers it yet\. It is yours to write/,
+    )
+    expect(buttons(gap, /^Write context for Orders in Poland$/)).toHaveLength(1)
     expect(text(el)).toMatch(/^.*0 of 21 published context items you can see apply/)
   })
 
   it('Stopped: one sentence first, then the plain read with its answer line and evidence', () => {
     const sentence =
       'Ask stopped at its time limit of 30 seconds before it had an answer, so this is what is written, as agents get it.'
+    // A stop is a stop: the service gives it no state, and the page says Stopped in its place.
     const el = render({
       ...example('loop-missing'),
       kind: 'stopped',
       text: sentence,
       stopped: 'time',
+      state: null,
     })
     const shown = text(el)
-    expect(shown.startsWith(sentence)).toBe(true)
-    expect(shown.indexOf('Not found')).toBeGreaterThan(sentence.length - 1)
-    expect(shown).toContain('Nothing is written about this yet.')
-    expect(shown).toContain('Written nearest about')
+    expect(shown.startsWith(`Stopped${sentence}`)).toBe(true)
+    expect(shown).not.toMatch(/Not found|Checked|Partial/)
+    expect(el.querySelector('[data-gap]')).toBeNull()
     expect(shown).not.toContain('Nothing it wrote was checked')
   })
 
@@ -154,6 +171,12 @@ describe("Ask's loop answer, state by state", () => {
       expect(text(el)).not.toMatch(/Write context/)
       const tell = [...el.querySelectorAll('button')].find((b) => text(b) === 'Tell the owner')
       expect(tell).toBeDefined()
+      expect(text(el.querySelector('[data-gap]')!)).toContain(
+        'Jon Abara and Sofia Brandt, the owners of Sales, can write it.',
+      )
+      expect(text(el.querySelector('[data-gap]')!)).toContain(
+        'Only what it is about is sent, never your words.',
+      )
       await act(async () => {
         tell!.click()
         await Promise.resolve()
@@ -162,13 +185,71 @@ describe("Ask's loop answer, state by state", () => {
       expect(world.writes).toEqual([
         { op: 'tellOwner', input: { about: ['metric:orders', 'value:market/poland'] } },
       ])
-      expect(text(el)).toContain('Sent to the owners of Sales. It waits in their Inbox.')
+      // Before: who can write it, by name, and that only what it is about is sent.
+      // After: who was told, by name.
+      expect(text(el.querySelector('[data-gap]')!)).toContain(
+        'Sent to Jon Abara and Sofia Brandt, the owners of Sales. It waits in their Inbox.',
+      )
       expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Tell the owner')).toBe(
         false,
       )
     } finally {
       world.me = owner
     }
+  })
+
+  const ebitda = (): LoopTurn => ({
+    ...example('loop-missing'),
+    state: null,
+    subject: null,
+    owners: [],
+    closest: null,
+    text: 'Nothing written covers EBITDA, so Ask has no definition of it to give you.',
+    body: [
+      {
+        t: 'p',
+        runs: [
+          {
+            t: 'text',
+            text: 'Nothing written covers EBITDA, so Ask has no definition of it to give you.',
+          },
+        ],
+      },
+    ],
+    unknown: ['EBITDA'],
+  })
+
+  it('A word the reads found nothing under: Tell an admin sends the word alone, and says who was told', async () => {
+    const owner = world.me
+    world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    world.writes.length = 0
+    try {
+      const el = render(ebitda(), 'What is our EBITDA definition?')
+      const gap = el.querySelector('[data-gap]')!
+      expect(gap.getAttribute('aria-label')).toBe('Not written yet: “EBITDA”')
+      expect(text(gap)).toContain(
+        'No metric, other name or context item uses this word yet. Ravi Kapoor, an admin, can add it.',
+      )
+      expect(text(gap)).toContain('Only this word is sent, never your question.')
+      const tell = buttons(gap, /^Tell an admin$/)
+      expect(tell).toHaveLength(1)
+      await act(async () => {
+        ;(tell[0] as HTMLElement).click()
+        await Promise.resolve()
+      })
+      expect(world.writes).toEqual([{ op: 'tellOwner', input: { about: [], word: 'EBITDA' } }])
+      expect(text(gap)).toContain('Sent to Ravi Kapoor, an admin. It waits in their Inbox.')
+    } finally {
+      world.me = owner
+    }
+  })
+
+  it('A word the reads found nothing under, to an admin: Add it to Definitions', () => {
+    const el = render(ebitda(), 'What is our EBITDA definition?')
+    const gap = el.querySelector('[data-gap]')!
+    expect(text(gap)).toContain('It is yours to add.')
+    expect(buttons(gap, /^Add it to Definitions$/)).toHaveLength(1)
+    expect(buttons(gap, /^Tell/)).toHaveLength(0)
   })
 
   it('makes the chips and the citations the buttons in the words, never a sentence', () => {
@@ -247,22 +328,42 @@ describe("Ask's loop answer, state by state", () => {
     expect(el.querySelector('time')?.getAttribute('dateTime')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it('Used: one closed line with how many items, counting the live ones when some need a look', () => {
-    const base = usedTurn(4)
-    const statuses = ['live', 'due', 'archived', 'live'] as const
-    const el = render({
-      ...base,
-      items: base.items.map((i, k) => ({ ...i, status: statuses[k]! })),
-    })
-    const fold = buttons(el, /^Used 4 items$/)
-    expect(fold).toHaveLength(1)
-    expect(fold[0]!.getAttribute('aria-expanded')).toBe('false')
-    expect(text(el.querySelector('[data-used]')!)).toMatch(
-      /^Used 4 items·2 published, checked .+ to .+ 2026/,
+  it('Sources: the first three as chips with their titles, the rest behind +n', () => {
+    const turn = usedTurn(5)
+    const el = render(turn)
+    const chips = el.querySelector('[data-sources]')!
+    // A chip's name is what it shows: its number, its title and the day it was checked.
+    const named = () => buttons(chips, /^Source \d+: /).map(nameOf)
+    expect(named().map((name) => name.replace(/, checked .+$/, ''))).toEqual(
+      turn.items.slice(0, 3).map((i) => `Source ${i.n}: ${i.title}`),
     )
+    for (const name of named()) expect(name).toMatch(/, checked \d+ \w+ \d{4}$/)
+    for (const i of turn.items.slice(0, 3)) expect(text(chips)).toContain(i.title)
+    const more = buttons(chips, /^Show 2 more sources$/)
+    expect(more).toHaveLength(1)
+    expect(text(more[0]!)).toBe('+2')
+    act(() => (more[0] as HTMLElement).click())
+    expect(named()).toHaveLength(5)
+    expect(buttons(chips, /more sources?$/)).toHaveLength(0)
   })
 
-  it('Used: an item due, out of date or archived stays in sight under the closed line, one each', () => {
+  it('Sources: pointing at a chip lights its marks in the words', () => {
+    const el = render(usedTurn(2))
+    const chip = buttons(el.querySelector('[data-sources]')!, /^Source 2: /)[0] as HTMLElement
+    const marks = () =>
+      buttons(el.querySelector('[data-answer-words]')!, /^Source 2: /) as HTMLElement[]
+    expect(marks().length).toBeGreaterThan(0)
+    expect(marks().every((m) => !m.className.includes('bg-foreground'))).toBe(true)
+    act(() => chip.focus())
+    expect(marks().every((m) => m.className.includes('bg-foreground'))).toBe(true)
+    // Only its own number's marks.
+    const first = buttons(el.querySelector('[data-answer-words]')!, /^Source 1: /) as HTMLElement[]
+    expect(first.every((m) => !m.className.includes('bg-foreground'))).toBe(true)
+    act(() => chip.blur())
+    expect(marks().every((m) => !m.className.includes('bg-foreground'))).toBe(true)
+  })
+
+  it('Sources: an item due, out of date or archived is never a chip; it stays under them, one line each', () => {
     const base = usedTurn(5)
     const el = render({
       ...base,
@@ -276,7 +377,8 @@ describe("Ask's loop answer, state by state", () => {
               : i,
       ),
     })
-    const pinned = [...el.querySelectorAll('[data-used] [data-pinned] > li')]
+    const sources = el.querySelector('[data-sources]')!
+    const pinned = [...sources.querySelectorAll('[data-pinned] > li')]
     expect(pinned.map((li) => buttons(li, /^Source \d+: /)[0]?.getAttribute('aria-label'))).toEqual(
       [
         expect.stringMatching(/^Source 2: /),
@@ -289,9 +391,15 @@ describe("Ask's loop answer, state by state", () => {
       expect.stringContaining(answerLines.stale.long),
       expect.stringContaining('Archived'),
     ])
+    // The live ones are the chips: sources 1 and 4.
+    const chips = [...sources.querySelectorAll('ul[aria-label="Sources"] > li')]
+    expect(chips.map((li) => nameOf(buttons(li, /^Source \d+: /)[0]!))).toEqual([
+      expect.stringMatching(/^Source 1: /),
+      expect.stringMatching(/^Source 4: /),
+    ])
   })
 
-  it('Used: each pinned item due for a check has its own Mark it still true, naming its title', () => {
+  it('Sources: each pinned item due for a check has its own Mark it still true, naming its title', () => {
     const base = usedTurn(4, { look: 2 })
     const turn = {
       ...base,
@@ -300,7 +408,7 @@ describe("Ask's loop answer, state by state", () => {
       ),
     }
     const el = render(turn)
-    const pinned = [...el.querySelectorAll('[data-used] [data-pinned] > li')]
+    const pinned = [...el.querySelectorAll('[data-sources] [data-pinned] > li')]
     expect(pinned).toHaveLength(2)
     const marks = pinned.map((li) => buttons(li, /^Mark it still true/))
     expect(marks.map((b) => b.map((m) => m.getAttribute('aria-label')))).toEqual([
@@ -316,9 +424,9 @@ describe("Ask's loop answer, state by state", () => {
     ])
   })
 
-  it('Used: an answer whose items are all live pins none', () => {
+  it('Sources: an answer whose items are all live pins none', () => {
     const el = render(usedTurn(4))
-    expect(el.querySelectorAll('[data-used] [data-pinned]')).toHaveLength(0)
+    expect(el.querySelectorAll('[data-sources] [data-pinned]')).toHaveLength(0)
   })
 
   it("A list: the count bold with what it is out of, then the read's items as rows", () => {
@@ -404,12 +512,74 @@ describe("Ask's loop answer, state by state", () => {
         ...example('loop-checked'),
         state: null,
         sources: [],
-        defined: { names: ['Orders'], tool: 'Cube' },
+        defined: { names: ['Orders'], tool: 'Cube', cards: [] },
       },
       'What is orders?',
     )
     expect(text(el)).toMatch(/^Definition/)
     expect(text(el)).not.toMatch(/Checked|Partial|Not found/)
+  })
+
+  const card = {
+    id: 'metric:orders',
+    name: 'Orders',
+    kind: 'metric' as const,
+    words: 'The value of orders customers completed and paid for, in euros.',
+    tool: 'Cube',
+    member: 'sales.orders',
+    group: 'Revenue',
+    domain: { id: 'domain:area_sales', name: 'Sales' },
+    owners: ['Jon Abara', 'Sofia Brandt'],
+    context: { count: 3, items: [] as string[] },
+    inWords: true,
+  }
+  const defining = (over: Partial<typeof card>, words = 'Orders is the value of paid orders.') => {
+    const base = example('loop-checked')
+    return {
+      ...base,
+      state: null,
+      sources: [],
+      text: words,
+      body: [{ t: 'p' as const, runs: [{ t: 'text' as const, text: words }] }],
+      defined: { names: ['Orders'], tool: 'Cube', cards: [{ ...card, ...over }] },
+    }
+  }
+
+  it('Definition card: the source words, where they come from, its domain and owners, and its context', () => {
+    const base = example('loop-checked')
+    const listed = base.items.map((i) => i.id)
+    const el = render(defining({ context: { count: 5, items: listed } }), 'What is orders?')
+    const shown = el.querySelector('[data-definition-card]')!
+    expect(shown).not.toBeNull()
+    // The words give the definition: the card stands in for them, as the answer.
+    expect(text(el)).not.toContain('Orders is the value of paid orders.')
+    expect(el.querySelector('[data-answer-words] [data-definition-card]')).not.toBeNull()
+    expect(text(shown)).toContain('Metric in the Revenue group')
+    expect(text(shown)).toContain(card.words)
+    expect(text(shown)).toContain('From Cube, as sales.orders')
+    expect(text(shown)).toMatch(/Owned by Jon Abara and Sofia Brandt, in Sales/)
+    expect(buttons(shown, /^Open the definition$/)).toHaveLength(1)
+    // Its context opens in the card: the rows a read of it returned, and how many more it found.
+    const see = buttons(shown, /^See the 5 context items$/)[0] as HTMLElement
+    expect(see.getAttribute('aria-expanded')).toBe('false')
+    act(() => see.click())
+    expect(shown.querySelectorAll('li')).toHaveLength(listed.length)
+    expect(text(shown)).toContain(`${5 - listed.length} more were found than listed.`)
+  })
+
+  it('Definition card: under the words when they say more than the definition, with no rows to open', () => {
+    const el = render(
+      defining(
+        { inWords: false },
+        'Orders counts paid orders, and Net revenue starts from them after returns.',
+      ),
+      'How do orders differ from net revenue?',
+    )
+    expect(text(el)).toContain('Orders counts paid orders')
+    const shown = el.querySelector('[data-definition-card]')!
+    expect(el.querySelector('[data-answer-words] [data-definition-card]')).toBeNull()
+    expect(text(shown)).toContain('3 context items about it')
+    expect(buttons(shown, /^See the/)).toHaveLength(0)
   })
 
   it('A reply to the chat that read nothing and cites nothing: its words and the actions only', () => {

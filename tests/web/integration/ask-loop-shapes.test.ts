@@ -195,6 +195,38 @@ const cases: Case[] = [
       }
     },
   },
+  {
+    id: 'loop-definition',
+    question: 'What is net revenue?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'net revenue', no_period: true } },
+      { toolName: 'definitions', input: { names: ['net revenue'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      return { text: `${mention(`metric:${String(d.id)}`)} is ${String(d.words)}` }
+    },
+  },
+  {
+    id: 'loop-unknown',
+    question: 'What is our EBITDA definition?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'EBITDA definition', no_period: true } },
+      { toolName: 'definitions', input: { names: ['EBITDA'] } },
+    ],
+    write: () => ({
+      text: 'Nothing written covers EBITDA, so Ask has no definition of it to give you.',
+    }),
+  },
+  {
+    id: 'loop-stopped',
+    question: 'Give me all about orders in poland',
+    calls: [{ toolName: 'get_context', input: { about: 'orders in Poland' } }],
+    // A model that keeps reading until the turn stops at its step limit.
+    write: (p) => ({
+      calls: [{ toolName: 'find_context', input: { words: `orders ${p.step}` } }],
+    }),
+  },
 ]
 
 let current: Case | undefined
@@ -344,6 +376,41 @@ describe("Ask's loop answers, as the page draws them", () => {
       assumedToday: false,
     })
     expect(loop.state).not.toBe('missing')
+  })
+
+  it('draws an answer about what a metric is as its definition card, standing in for the words', async () => {
+    const loop = await ask(cases[12]!)
+    expect(loop.state).toBeNull()
+    const [card] = loop.defined!.cards
+    expect(card).toMatchObject({
+      id: 'metric:net_revenue',
+      name: 'Net revenue',
+      kind: 'metric',
+      tool: 'Cube',
+      inWords: true,
+    })
+    expect(card!.words).toMatch(/^Gross sales after returns/)
+    expect(card!.member).toBeTruthy()
+    // Its domain is a chip a read named, with its owners by name.
+    expect(loop.nouns.map((n) => n.id)).toContain(card!.domain!.id)
+    expect(card!.owners.length).toBeGreaterThan(0)
+    // Its context: the items the read of it returned, as the turn's rows, and how many in all.
+    expect(card!.context.items.length).toBeGreaterThan(0)
+    expect(card!.context.count).toBe(card!.context.items.length)
+    for (const id of card!.context.items) expect(loop.items.map((i) => i.id)).toContain(id)
+  })
+
+  it('names the word its reads found nothing under, when nothing it read covers the question', async () => {
+    const loop = await ask(cases[13]!)
+    expect(loop.unknown).toEqual(['EBITDA'])
+    expect(loop.state).toBeNull()
+    expect(loop.sources).toEqual([])
+  })
+
+  it('says Stopped at its step limit with no state, over the plain read', async () => {
+    const loop = await ask(cases[14]!)
+    expect(loop).toMatchObject({ kind: 'stopped', stopped: 'steps', state: null })
+    expect(loop.text).toMatch(/^Ask stopped at its limit of \d+ steps/)
   })
 
   it('writes the examples the mock shows, when asked to', () => {

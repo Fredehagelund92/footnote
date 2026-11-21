@@ -12,6 +12,7 @@ import {
 import * as z from 'zod'
 import type {
   ChatTurnInput,
+  DefinitionCard,
   LookupEvent,
   LoopBlock,
   LoopRead,
@@ -655,7 +656,8 @@ export async function* askLoop(
   /**
    * A turn that stopped: its fixed sentence over the plain read, whatever the model read or
    * wrote; when the plain read cannot be made, or the spending limits stopped it, the sentence
-   * alone.
+   * alone. A stop is a stop: it carries no state, nor a Definition or help label, since no
+   * answer was checked (a Not found would say nothing is written when Ask only ran out of time).
    */
   const stopped = async (
     why: NonNullable<LoopTurn['stopped']>,
@@ -665,11 +667,13 @@ export async function* askLoop(
     const shown = why === 'spending' ? null : await plainTurn()
     if (!shown)
       return { type: 'turn', turn: stoppedTurn(stoppedSentence(why, limits, spend), why, read) }
+    const { defined: _defined, help: _help, ...plain } = shown.turn
     return {
       type: 'turn',
       turn: {
-        ...shown.turn,
+        ...plain,
         kind: 'stopped',
+        state: null,
         text: stoppedSentence(why, limits, spend, true),
         read: [...new Set([...read, ...readLines(shown.plain)])],
         stopped: why,
@@ -1183,6 +1187,36 @@ function definitionsRead(results: readonly unknown[]) {
   return found
 }
 
+/** The most words a gap card offers to tell an admin about. */
+const UNKNOWN_SHOWN = 3
+
+/**
+ * The words the turn's definitions reads looked up and found nothing under, when none of them
+ * found a definition: what is not written in the workspace at all ("EBITDA"). Taken from what the
+ * reads were asked for, as the model gave them, never from the question.
+ */
+function unknownOf(made: readonly MadeRead[]): string[] {
+  const looked = made.filter(
+    (m) => m.tool === 'definitions' && isObj(m.result) && !isError(m.result),
+  )
+  if (!looked.length || looked.some((m) => num((m.result as Obj).found) > 0)) return []
+  const words = looked.flatMap((m) =>
+    arr((m.result as Obj).notFound).map((n) => str(n.name).trim()),
+  )
+  // Each word once, as it was first written.
+  const seen = new Set<string>()
+  return words
+    .filter((w) => w && !seen.has(w.toLowerCase()) && seen.add(w.toLowerCase()))
+    .slice(0, UNKNOWN_SHOWN)
+}
+
+/**
+ * The reads that look up a definition: a listing of Definitions, by a domain or a kind, reads no
+ * one definition, so it is left out.
+ */
+const definitionReads = (reads: readonly MadeRead[]) =>
+  reads.filter((m) => m.tool !== 'definitions' || Array.isArray(m.input.names))
+
 /** The reads of the records: what they count is not context about the question's subject. */
 const RECORDS_TOOLS: ReadonlySet<AskToolName> = new Set([
   'records',
@@ -1230,8 +1264,9 @@ function foundIds(m: MadeRead, whole = false): string[] {
  * An answer whose every item the records listed is an answer from the records and carries none,
  * and so is one that uses no item after a read of the records. One that uses an item the subject
  * read found carries that read's state; one that uses only items a search or a read of an item
- * found carries what they are (Outdated when one may be out of date, else Checked), except when
- * every subject read found no item: then nothing covers the subject, and it is Partial. An answer
+ * found carries what they are (Outdated when one may be out of date, Partial when a search matched
+ * each of them on some of its words only, else Checked), except when every subject read found no
+ * item: then nothing covers the subject, and it is Partial. An answer
  * that uses none carries the subject read's state when the turn made one, Not found after a
  * search, and none after no read at all. A subject read that could not read a value its words
  * name ("orders in jordan") is a read that found nothing: Not found. A turn that cites an item a
@@ -1282,7 +1317,11 @@ function readsState(
   if (used.length) {
     if (subject.length && used.some((id) => ofSubject.has(id))) return leastSure(subject)
     if (subject.length && subject.every((s) => s === 'missing')) return 'partial'
-    return used.some((id) => items.get(id)?.outOfDate) ? 'stale' : 'grounded'
+    if (used.some((id) => items.get(id)?.outOfDate)) return 'stale'
+    // What a search matched on some of its words only covers part of what was asked: never
+    // Checked ("returns doubled in Germany" answered from a guide on returns in Germany).
+    const whole = new Set(ok.flatMap((m) => foundIds(m, true)))
+    return used.some((id) => whole.has(id)) ? 'grounded' : 'partial'
   }
   if (subject.length) return leastSure(subject)
   return ok.some((m) => m.tool === 'find_context' || m.tool === 'read_context') ? 'missing' : null
@@ -1563,20 +1602,89 @@ function gives(text: string, definition: string) {
  */
 function definedOf(
   text: string,
-  read: ReturnType<typeof definitionsRead>,
+  reads: readonly MadeRead[],
   subject: LoopTurn['subject'],
   state: AnswerState | null,
+  nouns: WordsContext['nouns'],
 ): LoopTurn['defined'] {
   const about = new Set(subject?.about ?? [])
-  const candidates = [...read.values()].filter(
-    (d) => d.words && (!about.size || (d.id !== undefined && about.has(d.id))),
-  )
+  const candidates = [...definitionsRead(definitionReads(reads).map((m) => m.result)).values()]
+    .filter((d) => d.words && (!about.size || (d.id !== undefined && about.has(d.id))))
+    .slice(0, CARDS_SHOWN)
   if (!candidates.length) return undefined
   const given = candidates.some((d) => gives(text, d.words!))
   const scoped =
     !!subject && (subject.about.some((id) => id.startsWith('value:')) || !subject.assumedToday)
   if (state === 'missing' && (!given || scoped)) return undefined
-  return { names: candidates.map((d) => d.name), tool: candidates[0]!.tool }
+  return {
+    names: candidates.map((d) => d.name),
+    tool: candidates[0]!.tool,
+    cards: candidates.flatMap((d) => cardOf(d, text, reads, nouns) ?? []),
+  }
+}
+
+/** The most definitions an answer draws as cards: a comparison of two at most, side by side. */
+const CARDS_SHOWN = 2
+
+/**
+ * A definition as its card shows it, from the definitions read that returned it: the source's own
+ * words and where they come from ("Cube (revenue.net_revenue)"), its group, its domain and owners,
+ * and the context about it. The items are those a read of it returned (a get_context read about it
+ * alone), the ones that apply; with no such read, the count the definitions read gives and no rows.
+ */
+function cardOf(
+  d: { id?: string; name: string; words: string | null },
+  text: string,
+  reads: readonly MadeRead[],
+  nouns: WordsContext['nouns'],
+): DefinitionCard | null {
+  // The definitions tool's own entry first: it gives the owners and the items about it.
+  const raw = [...reads]
+    .sort((a, b) => Number(b.tool === 'definitions') - Number(a.tool === 'definitions'))
+    .flatMap((m) => (isObj(m.result) && !isError(m.result) ? arr(m.result.definitions) : []))
+    .find((x) => nounId(str(x.id)) === d.id)
+  if (!raw || !d.id) return null
+  const from = str(raw.from) || str(raw.source)
+  const member = /\((.+)\)$/.exec(from)?.[1] ?? null
+  const domainName = str(raw.domain)
+  const domain = domainName
+    ? {
+        id:
+          [...nouns.values()].find((n) => n.id.startsWith('domain:') && n.name === domainName)
+            ?.id ?? null,
+        name: domainName,
+      }
+    : null
+  const about = reads.findLast(
+    (m) =>
+      m.tool === 'get_context' &&
+      isObj(m.result) &&
+      !isError(m.result) &&
+      isObj(m.result.read) &&
+      Array.isArray(m.result.read.about) &&
+      m.result.read.about.length === 1 &&
+      m.result.read.about[0] === d.id,
+  )
+  const items = about
+    ? arr((about.result as Obj).items).flatMap((i) => (ITEM_ID.test(str(i.id)) ? [str(i.id)] : []))
+    : []
+  const kind = str(raw.kind)
+  return {
+    id: d.id,
+    name: d.name,
+    kind: kind === 'dimension' || kind === 'term' ? kind : 'metric',
+    words: d.words,
+    tool: from.replace(/ \(.*\)$/, '') || 'Definitions',
+    member,
+    group: isObj(raw.related) && typeof raw.related.group === 'string' ? raw.related.group : null,
+    domain,
+    owners: Array.isArray(raw.owners)
+      ? raw.owners.filter((o): o is string => typeof o === 'string')
+      : [],
+    // What applies to it, as its read lists them: what more matched does not apply.
+    context: { count: about ? items.length : num(raw.items), items },
+    inWords: !!d.words && gives(text, d.words),
+  }
 }
 
 /**
@@ -1807,17 +1915,17 @@ export function turnOf(
   const closest = missing ? closestOf(about, subject, ctx.items, []) : null
   const listed = stripped.flatMap((b) => (b.t === 'list' ? b.rows : []))
   const replyOnly = !made.length && !sources.length
-  // A listing of Definitions, by a domain or a kind, reads no one definition.
   const definitionsOf = (reads: readonly MadeRead[]) =>
-    definitionsRead(
-      reads.flatMap((m) =>
-        m.tool !== 'definitions' || Array.isArray(m.input.names) ? [m.result] : [],
-      ),
-    )
+    definitionsRead(definitionReads(reads).map((m) => m.result))
   const defined =
     words.cited.length || aside || fromHelp
       ? undefined
-      : definedOf(plain, definitionsOf(about), subject, state)
+      : definedOf(plain, about, subject, state, ctx.nouns)
+  const cardItems = defined?.cards.flatMap((c) => c.context.items) ?? []
+  const unknown =
+    sources.length || defined || fromHelp || aside || subject?.about.length || listed.length
+      ? []
+      : unknownOf(made)
   return {
     kind: 'answer',
     text: plain,
@@ -1835,6 +1943,7 @@ export function turnOf(
         : definitionsShown(question, plain, definitionsOf(made), subject, named),
     ...(defined ? { defined } : {}),
     ...(fromHelp ? { help } : {}),
+    ...(unknown.length ? { unknown } : {}),
     choices: [],
     reads: readsBack(made),
     stopped: null,
@@ -1848,7 +1957,7 @@ export function turnOf(
     // The words as the model wrote them, with what they cite, nearby items too: what it said.
     said: bodyMarkup(words.body, ctx.nouns, ctx.items, words.cited),
     nouns: [...ctx.nouns.values()],
-    items: rowsOf([...sources, ...listed, ...(closest?.items ?? [])], ctx, sources),
+    items: rowsOf([...sources, ...listed, ...(closest?.items ?? []), ...cardItems], ctx, sources),
     closest,
     owners: fromHelp ? [] : ownersOf(about),
     overview: null,

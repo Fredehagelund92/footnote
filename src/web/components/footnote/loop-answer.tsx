@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type {
   ChosenPeriodInput,
+  DefinitionCard,
   LoopBlock,
   LoopItem,
   LoopOverview,
@@ -11,7 +12,10 @@ import type { LucideIcon } from '@/components/icons'
 import {
   CompactItemRow,
   ItemRow,
+  LitSource,
   NounChip,
+  PersonChip,
+  SourceChip,
   Runs,
   dayText,
   runLength,
@@ -23,7 +27,6 @@ import {
   type Nouns,
 } from '@/components/footnote/loop-nouns'
 import { useReveal } from '@/lib/ask-motion'
-import { dayMonth } from '@/lib/dates'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
 import type { Fact } from '@/model/items'
@@ -560,97 +563,63 @@ function Rows({
   )
 }
 
-/**
- * How fresh the items used are, in a few words: "all published, checked 21 Aug to 3 Nov 2026".
- * An item that needs a look says so on its own pinned row, so only the rest are counted, "4
- * published"; the days are the first and last any of them was checked.
- */
-function freshness(items: readonly LoopItem[], rest: readonly LoopItem[]) {
-  const said =
-    rest.length < items.length
-      ? rest.length
-        ? `${rest.length} published`
-        : null
-      : items.length > 1
-        ? 'all published'
-        : 'published'
-  const days = items.flatMap((i) => (i.checked ? [i.checked] : [])).sort()
-  const first = days[0]
-  const last = days.at(-1)
-  if (!first || !last) return said
-  const checked = said ? `${said}, checked` : 'checked'
-  // A day is never broken across two lines.
-  const whole = (day: string) => day.replaceAll(' ', '\u00a0')
-  const to = whole(dayText(last, true))
-  if (first === last) return `${checked} ${to}`
-  const from = whole(
-    first.slice(0, 4) === last.slice(0, 4) ? dayMonth(first) : dayText(first, true),
-  )
-  return `${checked} ${from} to ${to}`
-}
+/** The most sources shown as chips before the rest fold behind +n. */
+const SOURCES_SHOWN = 3
 
 /**
- * What the answer used, as one line: how many items and how fresh they are, closed whenever an
- * answer arrives, since each is already cited in the words with its card. An item that needs a
- * look is never folded: it stays under the line, one line each. Opening it lists the rest.
+ * What the answer rests on, as source chips under its words (the source chips): the first three
+ * with their titles, the rest behind +n, so a reader sees what it rests on without a press. An item
+ * that needs a look is never a chip: it stays under them, one line each, with what its owner can
+ * do about it there.
  */
-function Used({
+function Sources({
   items,
-  nouns,
   owns,
 }: {
   items: readonly LoopItem[]
-  nouns: Nouns
   /** Whether the reader may mark what is due still true. */
   owns: boolean
 }) {
-  const P = useParts()
   const needsLook = useNeedsLook()
-  const summary = React.useId()
+  const [all, setAll] = React.useState(false)
   const look: LoopItem[] = []
-  const rest: LoopItem[] = []
-  for (const i of items) (needsLook(i) ? look : rest).push(i)
-  const label = `Used ${items.length} ${items.length === 1 ? 'item' : 'items'}`
-  const fresh = freshness(items, rest)
+  const rest: (LoopItem & { n: number })[] = []
+  for (const i of items)
+    if (needsLook(i)) look.push(i)
+    else if (i.n) rest.push({ ...i, n: i.n })
+  const shown = all ? rest : rest.slice(0, SOURCES_SHOWN)
+  const hidden = rest.length - shown.length
   return (
-    <P.Collapsible data-used className="@container/used flex max-w-reading flex-col gap-2">
-      {/* Inline text, so a summary too long for the line wraps after the dot, never before it. */}
-      <p className="text-xs text-muted-foreground">
-        {rest.length ? (
-          <P.FoldTrigger
-            variant="inline"
-            label={label}
-            aria-describedby={summary}
-            className="-ml-1 px-1 text-xs font-medium text-foreground"
-          />
-        ) : (
-          // Every item is in sight below: there is nothing more to open.
-          <span className="font-medium text-foreground">{label}</span>
-        )}
-        {fresh && (
-          <>
-            {/* The fold's own padding is most of its space before the dot. */}
-            <span aria-hidden className={rest.length ? 'mr-1.5 ml-0.5' : 'mx-1.5'}>
-              ·
-            </span>
-            <span id={summary}>{fresh}</span>
-          </>
-        )}
-      </p>
+    <div data-sources className="@container/sources flex max-w-reading flex-col gap-1.5">
+      {rest.length > 0 && (
+        <ul aria-label="Sources" className="flex flex-wrap items-center gap-1.5">
+          {shown.map((item) => (
+            <li key={item.id} className="flex max-w-full min-w-0">
+              <SourceChip item={item} />
+            </li>
+          ))}
+          {hidden > 0 && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setAll(true)}
+                aria-label={`Show ${hidden} more ${hidden === 1 ? 'source' : 'sources'}`}
+                className="inline-flex h-8 items-center rounded-md border px-2.5 text-sm font-medium tabular-nums transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                +{hidden}
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
       {look.length > 0 && (
-        // 4 px under the line, so k of them stay within 24 + 32k px (J70).
-        <ul data-pinned className="-mt-1 flex flex-col gap-0.5">
+        <ul data-pinned className="flex flex-col gap-0.5">
           {look.map((item) => (
             <PinnedRow key={item.id} item={item} owns={owns} />
           ))}
         </ul>
       )}
-      {rest.length > 0 && (
-        <P.CollapsibleContent>
-          <Rows items={rest} nouns={nouns} compact />
-        </P.CollapsibleContent>
-      )}
-    </P.Collapsible>
+    </div>
   )
 }
 
@@ -989,113 +958,376 @@ function useOwns(loop: LoopTurn) {
   return me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
 }
 
+/** Names as a sentence says them: "A", "A and B", "A, B and C". */
+const listed = (names: readonly string[]) =>
+  names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+
 /**
- * What to do next that fits the state: write the missing context, or check what may be old when
- * no row of Used already offers it. Under Not found a reader who may not write tells the owners
- * instead (decision 7): Ask writes nothing.
+ * What is not written that the answer is about: the subject under Not found, and under Partial
+ * what no item covers, when the answer found nothing to cite (with sources, it is written in
+ * part). Empty when the answer covers it, or names nothing a read named.
+ */
+const missingOf = (loop: LoopTurn, nouns: Nouns) =>
+  (loop.state === 'partial' && !loop.sources.length
+    ? (loop.subject?.uncovered ?? [])
+    : loop.state === 'missing'
+      ? (loop.subject?.about ?? [])
+      : []
+  ).filter((id) => nouns.has(id))
+
+/**
+ * Who a gap reaches: the owners of the subject's domains, by name, or the admins when no one owns
+ * it or it is a word the workspace does not know (`toAdmins`). Said as the card says it, "Jon Abara and Sofia Brandt, the owners of Sales".
+ */
+function useTold(loop: LoopTurn, nouns: Nouns, toAdmins = false) {
+  const P = useParts()
+  const admins = P.usePeople().filter((p) => p.admin)
+  const owned = toAdmins ? [] : loop.owners.filter((o) => o.people.length && nouns.has(o.domain))
+  const people = [
+    ...new Set(owned.flatMap((o) => o.people.map((id) => nouns.get(id)?.name ?? key(id)))),
+  ]
+  if (people.length) {
+    const domains = listed(owned.map((o) => nouns.get(o.domain)!.name))
+    return { people, role: `${people.length === 1 ? 'the owner' : 'the owners'} of ${domains}` }
+  }
+  const names = admins.map((a) => a.name)
+  return { people: names, role: names.length === 1 ? 'an admin' : 'the admins' }
+}
+
+const key = (id: string) => id.slice(id.indexOf(':') + 1)
+
+/** People by name, each as their chip, joined as a sentence says them: "A, B and C". */
+function People({ names }: { names: readonly string[] }) {
+  return (
+    <>
+      {names.map((name, i) => (
+        <React.Fragment key={name}>
+          {i > 0 && (i === names.length - 1 ? ' and ' : ', ')}
+          <PersonChip name={name} />
+        </React.Fragment>
+      ))}
+    </>
+  )
+}
+
+/**
+ * The gap prompt: a "nothing written" ends in something to press. Under Not found, and under
+ * Partial for what no item covers, a dashed card says what is not written yet and offers its one
+ * next step: to a reader who may write it, Write context for it; to anyone else, Tell the owner,
+ * which reports the subject as missing to its owners' Inbox (decision 7 of the chat audit), its
+ * metrics, values and days and nothing of the question, and then says who was told. For a word
+ * the reads found nothing under (`unknown`), it is Tell an admin, which sends the word alone, or
+ * to an admin, Add it to Definitions. Ask itself writes nothing.
+ */
+function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?: string }) {
+  const P = useParts()
+  const write = P.useWrite()
+  const me = P.useMe()
+  const owns = useOwns(loop)
+  const [told, setTold] = React.useState(false)
+  const [sending, setSending] = React.useState(false)
+  const about = missingOf(loop, nouns)
+  const words = about.length ? [] : (loop.unknown ?? [])
+  const to = useTold(loop, nouns, !about.length)
+  if (!about.length && !words.length) return null
+  const quoted = listed(words.map((w) => `“${w}”`))
+  const said = about.length ? subjectWords(about, nouns) : quoted
+  const mayWrite = about.length ? owns : me.admin
+  const tell = () => {
+    setSending(true)
+    const sent = about.length
+      ? [write('tellOwner', { about, ...(dates ? { dates } : {}) })]
+      : words.map((word) => write('tellOwner', { about: [], word }))
+    void Promise.all(sent).then(
+      () => setTold(true),
+      () => {
+        setSending(false)
+        P.toast.error("It wasn't sent", { description: 'Nothing was lost: try again in a moment.' })
+      },
+    )
+  }
+  const whom = to.people.length ? `${listed(to.people)}, ${to.role},` : `${to.role}`
+  const Whom = `${whom.charAt(0).toUpperCase()}${whom.slice(1)}`
+  const it = words.length > 1 ? 'these words' : 'this word'
+  const line = about.length
+    ? mayWrite
+      ? 'No context item covers it yet. It is yours to write: agents get it once it is published.'
+      : `No context item covers it yet. ${Whom} can write it.`
+    : mayWrite
+      ? `No metric, other name or context item uses ${it} yet. It is yours to add.`
+      : `No metric, other name or context item uses ${it} yet. ${Whom} can add it.`
+  return (
+    <section
+      data-gap
+      aria-label={`Not written yet: ${said}`}
+      className="grid max-w-reading grid-cols-(--cols-lead-6) gap-x-1 gap-y-2.5 rounded-frame border border-dashed border-input py-3.5 pr-4 pl-3"
+    >
+      <P.CircleDashedIcon aria-hidden className="mt-1 size-4 text-muted-foreground" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-sm font-medium break-words">
+          {about.length ? <Subject ids={about} nouns={nouns} /> : quoted}
+        </p>
+        {told ? (
+          <p role="status" className="flex items-start gap-1.5 text-sm">
+            <P.CheckIcon aria-hidden className="mt-1 size-4 shrink-0 text-good" />
+            <span>
+              Sent to{' '}
+              {to.people.length ? (
+                <>
+                  <People names={to.people} />, {to.role}
+                </>
+              ) : (
+                to.role
+              )}
+              . It waits in their Inbox.
+            </span>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">{line}</p>
+        )}
+      </div>
+      {!told && (
+        <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {mayWrite ? (
+            about.length ? (
+              <P.Button
+                variant="outline"
+                nativeButton={false}
+                aria-label={`Write context for ${said}`}
+                render={
+                  <a
+                    href={P.href('/context/new', {
+                      about: about.map((id) => nouns.get(id)!.name).join('|'),
+                    })}
+                  />
+                }
+              >
+                <P.PencilIcon data-icon="inline-start" />
+                Write context
+              </P.Button>
+            ) : (
+              <P.Button
+                variant="outline"
+                nativeButton={false}
+                render={<a href={P.href('/definitions/new')} />}
+              >
+                <P.BookOpenIcon data-icon="inline-start" />
+                Add it to Definitions
+              </P.Button>
+            )
+          ) : (
+            <>
+              <P.Button variant="outline" disabled={sending} onClick={tell}>
+                <P.BellIcon data-icon="inline-start" />
+                {about.length ? 'Tell the owner' : 'Tell an admin'}
+              </P.Button>
+              <span className="text-xs text-muted-foreground">
+                {about.length
+                  ? 'Only what it is about is sent, never your words.'
+                  : `Only ${it} ${words.length > 1 ? 'are' : 'is'} sent, never your question.`}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** A subject in plain words, as `Subject` says it with chips: "Orders in Poland". */
+const subjectWords = (ids: readonly string[], nouns: Nouns) => {
+  const name = (id: string) => nouns.get(id)?.name ?? key(id)
+  const metrics = listed(ids.filter((id) => !id.startsWith('value:')).map(name))
+  const values = listed(ids.filter((id) => id.startsWith('value:')).map(name))
+  return metrics && values ? `${metrics} in ${values}` : metrics || values
+}
+
+/**
+ * What to do next that fits the state, beside the gap card (`GapCard`), which offers what is not
+ * written: under Partial with sources, its owner writes the part no item covers; under Outdated,
+ * they check what may be old, when no row of Sources already offers it.
  */
 function Next({
   loop,
   nouns,
   items,
-  dates,
 }: {
   loop: LoopTurn
   nouns: Nouns
-  /** The items used that no row of Used pins: a check of one of them is offered here. */
+  /** The items used that no row of Sources pins: a check of one of them is offered here. */
   items: readonly LoopItem[]
-  /** The days the answer was read for, as it says them; none when it named none. */
-  dates?: string
 }) {
   const P = useParts()
-  const write = P.useWrite()
-  const [told, setTold] = React.useState(false)
-  const subject = loop.subject
   const owns = useOwns(loop)
-  if (loop.state === 'missing' && !owns && subject?.about.length) {
-    const domains = loop.owners.flatMap((o) =>
-      nouns.has(o.domain) ? [nouns.get(o.domain)!.name] : [],
-    )
-    const whose = domains.length
-      ? `the owners of ${domains.length === 1 ? domains[0] : `${domains.slice(0, -1).join(', ')} and ${domains.at(-1)}`}`
-      : 'the owners'
-    if (told)
-      return (
-        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-          <P.CheckIcon aria-hidden className="size-4 shrink-0 text-good" />
-          Sent to {whose}. It waits in their Inbox.
-        </p>
-      )
-    return (
-      <P.Button
-        variant="outline"
-        className="w-fit"
-        onClick={() =>
-          void write('tellOwner', { about: subject.about, ...(dates ? { dates } : {}) }).then(
-            () => setTold(true),
-            () =>
-              P.toast.error("It wasn't sent", {
-                description: 'Nothing was lost: try again in a moment.',
-              }),
-          )
-        }
-      >
-        <P.BellIcon data-icon="inline-start" />
-        Tell the owner
-      </P.Button>
-    )
-  }
-  if (loop.state === 'missing' || loop.state === 'partial') {
-    // What is not written: the subject under Not found, what no item covers under Partial.
-    const about = (
-      loop.state === 'partial' ? (subject?.uncovered ?? []) : (subject?.about ?? [])
-    ).filter((id) => nouns.has(id))
+  if (loop.state === 'partial' && loop.sources.length) {
+    const about = (loop.subject?.uncovered ?? []).filter((id) => nouns.has(id))
     if (!owns || !about.length) return null
-    const names = about.map((id) => nouns.get(id)!.name)
     return (
       <P.Button
         variant="outline"
         className="w-fit"
         nativeButton={false}
-        render={<a href={P.href('/context/new', { about: names.join('|') })} />}
+        render={
+          <a
+            href={P.href('/context/new', {
+              about: about.map((id) => nouns.get(id)!.name).join('|'),
+            })}
+          />
+        }
       >
         <P.PencilIcon data-icon="inline-start" />
         Write context for <Subject ids={about} nouns={nouns} still />
       </P.Button>
     )
   }
-  if (loop.state === 'stale') {
-    const f = items.find(checkable)
-    if (!f || !owns) return null
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        <MarkStillTrue
-          item={f}
-          onDone={() =>
-            P.toast('Checked: still true', {
-              description: 'Agents get it without the warning from now on.',
-            })
-          }
-        />
-        <P.Button
-          variant="ghost"
-          nativeButton={false}
-          render={<a href={P.href(`/context/${f.id}/edit`)} />}
-        >
-          Edit
-        </P.Button>
+  if (loop.state !== 'stale') return null
+  const f = items.find(checkable)
+  if (!f || !owns) return null
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <MarkStillTrue
+        item={f}
+        onDone={() =>
+          P.toast('Checked: still true', {
+            description: 'Agents get it without the warning from now on.',
+          })
+        }
+      />
+      <P.Button
+        variant="ghost"
+        nativeButton={false}
+        render={<a href={P.href(`/context/${f.id}/edit`)} />}
+      >
+        Edit
+      </P.Button>
+    </div>
+  )
+}
+
+/**
+ * The definition card, for an answer about what something is: the definition's chip and what it
+ * is, the source's own words at the answer's size, then two quiet lines on where the words come
+ * from and who owns it, and the context about it, which opens in the card. With the words of the
+ * answer giving the same definition, the card stands in for them.
+ */
+function DefinitionCards({ loop, maps }: { loop: LoopTurn; maps: ReturnType<typeof useMaps> }) {
+  const cards = loop.defined?.cards ?? []
+  if (!cards.length) return null
+  return (
+    <div
+      className={cards.length > 1 ? 'grid max-w-reading gap-3 @lg:grid-cols-2' : 'max-w-reading'}
+    >
+      {cards.map((c) => (
+        <DefinitionCardOf key={c.id} card={c} maps={maps} />
+      ))}
+    </div>
+  )
+}
+
+const kindWord = { metric: 'Metric', dimension: 'Dimension', term: 'Word' } as const
+
+function DefinitionCardOf({
+  card,
+  maps,
+}: {
+  card: DefinitionCard
+  maps: ReturnType<typeof useMaps>
+}) {
+  const P = useParts()
+  const [open, setOpen] = React.useState(false)
+  const title = React.useId()
+  const rows = card.context.items.flatMap((id) => maps.byId.get(id) ?? [])
+  const count = card.context.count
+  const items = `${count.toLocaleString('en-GB')} context ${count === 1 ? 'item' : 'items'}`
+  return (
+    <article
+      data-definition-card
+      aria-labelledby={title}
+      className="flex min-w-0 flex-col rounded-frame border bg-card"
+    >
+      <header className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 pt-3.5">
+        <span id={title} className="contents">
+          {maps.nouns.has(card.id) ? (
+            <NounChip id={card.id} nouns={maps.nouns} />
+          ) : (
+            <span className="text-sm font-medium">{card.name}</span>
+          )}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {kindWord[card.kind]}
+          {card.group && ` in the ${card.group} group`}
+        </span>
+      </header>
+      {card.words && (
+        <blockquote className="px-4 pt-2.5 text-base leading-chat text-pretty">
+          {card.words}
+        </blockquote>
+      )}
+      <div className="mx-4 mt-3 flex flex-col gap-1 border-t pt-3 text-sm text-muted-foreground">
+        <p>
+          From {card.tool}
+          {card.member && (
+            <>
+              {', as '}
+              <code className="rounded-xs bg-muted px-1 py-px font-mono text-xs text-foreground">
+                {card.member}
+              </code>
+            </>
+          )}
+        </p>
+        {card.domain && (
+          // Its owners, then its domain: no punctuation follows a chip.
+          <p>
+            {card.owners.length > 0 && (
+              <>
+                {'Owned by '}
+                <People names={card.owners} />
+                {', in '}
+              </>
+            )}
+            {card.owners.length === 0 && 'In '}
+            {card.domain.id ? (
+              <NounChip id={card.domain.id} nouns={maps.nouns} />
+            ) : (
+              <span className="text-foreground">{card.domain.name}</span>
+            )}
+          </p>
+        )}
       </div>
-    )
-  }
-  return null
+      <div className="flex flex-wrap items-center gap-2 px-4 pt-3 pb-3.5">
+        <P.Button variant="outline" onClick={() => P.openDock('def', card.name)}>
+          <P.BookOpenIcon data-icon="inline-start" />
+          Open the definition
+        </P.Button>
+        {rows.length > 0 ? (
+          <P.Button variant="ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            {`See the ${items}`}
+            <P.ChevronDownIcon
+              data-icon="inline-end"
+              className={P.cn('transition-transform', open && 'rotate-180')}
+            />
+          </P.Button>
+        ) : (
+          count > 0 && <span className="text-sm text-muted-foreground">{items} about it</span>
+        )}
+      </div>
+      {open && (
+        <div className="border-t px-4 py-3">
+          <Rows items={rows} nouns={maps.nouns} more={count - rows.length} compact />
+        </div>
+      )}
+    </article>
+  )
 }
 
 /** The definition, only when the service shows it: a quote captioned with its metric and tool. */
 function Definitions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
-  if (!loop.definitions.length) return null
+  const carded = new Set(loop.defined?.cards.map((c) => c.id))
+  const shown = loop.definitions.filter((d) => !d.id || !carded.has(d.id))
+  if (!shown.length) return null
   return (
     <div className="flex max-w-reading flex-col gap-2">
-      {loop.definitions.map((d) => (
+      {shown.map((d) => (
         <figure key={d.name} className="flex flex-col gap-1 border-l-2 pl-3 text-sm">
           <figcaption className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             {d.mark && (
@@ -1339,6 +1571,13 @@ function StateRow({
 }) {
   const P = useParts()
   const shown = (() => {
+    if (loop.kind === 'stopped')
+      return (
+        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+          <P.CircleStopIcon aria-hidden className="size-4" />
+          Stopped
+        </p>
+      )
     if (!loop.state && loop.defined)
       return (
         <P.DefinitionHelp
@@ -1412,16 +1651,10 @@ function HelpSources({ loop }: { loop: LoopTurn }) {
 const footerLines = (loop: LoopTurn) =>
   [loop.footer.denominator, loop.footer.stale, loop.footer.notSeen].filter((x): x is string => !!x)
 
-/** A stopped turn's fixed sentence, with the stop mark. */
-function StoppedLine({ text }: { text: string }) {
-  const P = useParts()
-  return (
-    <p className="flex items-start gap-2 text-base leading-chat">
-      <P.CircleStopIcon aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" />
-      {text}
-    </p>
-  )
-}
+/** A stopped turn's fixed sentence, under its Stopped mark. */
+const StoppedLine = ({ text }: { text: string }) => (
+  <p className="max-w-reading text-base leading-chat">{text}</p>
+)
 
 /**
  * A turn of the loop that stopped with no plain read under it: its fixed sentence, Ask again, and
@@ -1473,7 +1706,18 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 
 /** The characters of a turn's words that the reveal types in: its words, or its question back. */
 const wordsLength = (loop: LoopTurn, nouns: Nouns) =>
-  loop.overview ? 0 : loop.kind === 'question' ? loop.text.length : bodyLength(loop.body, nouns)
+  loop.overview || cardsStandIn(loop)
+    ? 0
+    : loop.kind === 'question'
+      ? loop.text.length
+      : bodyLength(loop.body, nouns)
+
+/**
+ * Whether the definition cards stand in for the answer's words: every definition the answer is
+ * about has its card, and the words only give those definitions.
+ */
+const cardsStandIn = (loop: LoopTurn) =>
+  !!loop.defined?.cards.length && loop.defined.cards.every((c) => c.inWords)
 
 function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const P = useParts()
@@ -1606,7 +1850,12 @@ function Finished({
   const listed = new Set(loop.body.flatMap((b) => (b.t === 'list' ? b.rows : [])))
   const shownUsed = loop.overview ? [] : used.filter((i) => !listed.has(i.id))
   const owns = useOwns(loop)
-  const showOwners = loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale'
+  // The gap card names who owns what is not written: the owners line would say it twice.
+  const gap = missingOf(loop, maps.nouns).length > 0 || !!loop.unknown?.length
+  const showOwners =
+    !gap && (loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale')
+  const [lit, light] = React.useState<number | null>(null)
+  const lighting = React.useMemo(() => ({ lit, light }), [lit])
   const footer = footerLines(loop)
   // A turn that stopped shows the plain read under its sentence, when it has one (decision 5).
   const bare = loop.kind === 'stopped' && !loop.body.length
@@ -1614,141 +1863,152 @@ function Finished({
   const typing = upTo !== undefined
   const rest = P.cn('flex flex-col gap-4', typed && 'animate-in duration-(--dur-4) fade-in-0')
   return (
-    <div
-      aria-busy={busy || typing}
-      className={P.cn(
-        'group/msg flex min-w-0 flex-col gap-4',
-        !typed && 'animate-in duration-(--dur-3) fade-in-0',
-      )}
-    >
-      {bare ? (
-        <Stopped answer={answer} onRetry={onRetry} />
-      ) : (
-        <>
-          {loop.kind === 'stopped' && <StoppedLine text={loop.text} />}
-          <StateRow
-            loop={loop}
-            words={words}
-            className={typing ? 'invisible' : typed ? rest : undefined}
-          />
-          <div ref={words}>
-            {loop.overview ? (
-              <Overview o={loop.overview} loop={loop} maps={maps} />
-            ) : loop.kind === 'question' ? (
-              <p data-answer-words className="max-w-reading text-base leading-chat">
-                {typing ? (
-                  <Runs
-                    runs={[{ t: 'text', text: loop.text }]}
-                    nouns={maps.nouns}
-                    items={maps.numbered}
-                    upTo={upTo}
-                  />
-                ) : (
-                  loop.text
-                )}
-              </p>
-            ) : (
-              <Body
-                body={loop.body}
-                nouns={maps.nouns}
-                numbered={maps.numbered}
-                byId={maps.byId}
-                seen={seen}
-                upTo={upTo}
-              />
-            )}
-          </div>
-          {unfinished && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <P.CircleStopIcon className="size-4 shrink-0" aria-hidden />
-                You stopped it before the answer was finished.
-              </span>
-              {onRetry && (
-                <P.Button variant="outline" onClick={onRetry}>
-                  <P.RefreshCwIcon data-icon="inline-start" />
-                  Ask again
-                </P.Button>
+    <LitSource.Provider value={lighting}>
+      <div
+        aria-busy={busy || typing}
+        className={P.cn(
+          'group/msg flex min-w-0 flex-col gap-4',
+          !typed && 'animate-in duration-(--dur-3) fade-in-0',
+        )}
+      >
+        {bare ? (
+          <>
+            <StateRow loop={loop} words={words} />
+            <Stopped answer={answer} onRetry={onRetry} />
+          </>
+        ) : (
+          <>
+            <StateRow
+              loop={loop}
+              words={words}
+              className={typing ? 'invisible' : typed ? rest : undefined}
+            />
+            {loop.kind === 'stopped' && <StoppedLine text={loop.text} />}
+            <div ref={words}>
+              {cardsStandIn(loop) ? (
+                // The definition card is the answer: the source's own words, where they come from.
+                !typing && (
+                  <div data-answer-words className={typed ? rest : undefined}>
+                    <DefinitionCards loop={loop} maps={maps} />
+                  </div>
+                )
+              ) : loop.overview ? (
+                <Overview o={loop.overview} loop={loop} maps={maps} />
+              ) : loop.kind === 'question' ? (
+                <p data-answer-words className="max-w-reading text-base leading-chat">
+                  {typing ? (
+                    <Runs
+                      runs={[{ t: 'text', text: loop.text }]}
+                      nouns={maps.nouns}
+                      items={maps.numbered}
+                      upTo={upTo}
+                    />
+                  ) : (
+                    loop.text
+                  )}
+                </p>
+              ) : (
+                <Body
+                  body={loop.body}
+                  nouns={maps.nouns}
+                  numbered={maps.numbered}
+                  byId={maps.byId}
+                  seen={seen}
+                  upTo={upTo}
+                />
               )}
             </div>
-          )}
-        </>
-      )}
-      {!typing && !unfinished && (
-        <div className={rest}>
-          {!bare && (
-            <>
-              {loop.choices.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {loop.choices.map((choice) =>
-                    onAsk ? (
-                      <P.Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
-                        {choice}
-                      </P.Button>
-                    ) : (
-                      <span
-                        key={choice}
-                        className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
-                      >
-                        {choice}
-                      </span>
-                    ),
-                  )}
-                </div>
-              )}
-              <HelpSources loop={loop} />
-              {loop.state === 'partial' &&
-                !!loop.subject?.uncovered.length &&
-                !loop.sources.length && (
-                  <p className="text-xs leading-6 text-muted-foreground">
-                    Nothing is written about{' '}
-                    <Subject ids={loop.subject.uncovered} nouns={maps.nouns} /> yet.
-                  </p>
+            {unfinished && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <P.CircleStopIcon className="size-4 shrink-0" aria-hidden />
+                  You stopped it before the answer was finished.
+                </span>
+                {onRetry && (
+                  <P.Button variant="outline" onClick={onRetry}>
+                    <P.RefreshCwIcon data-icon="inline-start" />
+                    Ask again
+                  </P.Button>
                 )}
-              {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
-              {shownUsed.length > 0 && <Used items={shownUsed} nouns={maps.nouns} owns={owns} />}
-              {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
-              {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
-              <Definitions loop={loop} nouns={maps.nouns} />
-              {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
-              <Next
-                loop={loop}
-                nouns={maps.nouns}
-                items={used.filter((i) => !shownUsed.includes(i))}
-                {...(answer.dates ? { dates: answer.dates } : {})}
+              </div>
+            )}
+          </>
+        )}
+        {!typing && !unfinished && (
+          <div className={rest}>
+            {!bare && (
+              <>
+                {loop.choices.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {loop.choices.map((choice) =>
+                      onAsk ? (
+                        <P.Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
+                          {choice}
+                        </P.Button>
+                      ) : (
+                        <span
+                          key={choice}
+                          className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+                        >
+                          {choice}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                )}
+                <HelpSources loop={loop} />
+                {!cardsStandIn(loop) && <DefinitionCards loop={loop} maps={maps} />}
+                {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
+                {shownUsed.length > 0 && <Sources items={shownUsed} owns={owns} />}
+                {gap && (
+                  <GapCard
+                    loop={loop}
+                    nouns={maps.nouns}
+                    {...(answer.dates ? { dates: answer.dates } : {})}
+                  />
+                )}
+                {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
+                {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
+                <Definitions loop={loop} nouns={maps.nouns} />
+                {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
+                <Next
+                  loop={loop}
+                  nouns={maps.nouns}
+                  items={used.filter((i) => !shownUsed.includes(i))}
+                />
+                {(footer.length > 0 || loop.read.length > 0) && (
+                  <WhatAskRead loop={loop} footer={footer} />
+                )}
+              </>
+            )}
+            {sent && <P.ReportLine report={sent} />}
+            {wrong && !sent && cited.length > 0 && (
+              <P.SomethingWrong
+                answer={answer}
+                facts={cited}
+                onClose={() => setWrong(false)}
+                onSent={() => {
+                  setWrong(false)
+                  setSent({ on: 'just now' })
+                }}
               />
-              {(footer.length > 0 || loop.read.length > 0) && (
-                <WhatAskRead loop={loop} footer={footer} />
-              )}
-            </>
-          )}
-          {sent && <P.ReportLine report={sent} />}
-          {wrong && !sent && cited.length > 0 && (
-            <P.SomethingWrong
+            )}
+            <P.AnswerActions
               answer={answer}
+              copyText={loop.kind === 'stopped' ? '' : copyOf(answer)}
               facts={cited}
-              onClose={() => setWrong(false)}
-              onSent={() => {
-                setWrong(false)
-                setSent({ on: 'just now' })
-              }}
+              answerId={answerId}
+              draft={false}
+              docked={docked}
+              latest={latest}
+              onRetry={bare ? undefined : onRetry}
+              wrong={wrong}
+              onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
+              canReport={cited.length > 0 && !sent}
             />
-          )}
-          <P.AnswerActions
-            answer={answer}
-            copyText={loop.kind === 'stopped' ? '' : copyOf(answer)}
-            facts={cited}
-            answerId={answerId}
-            draft={false}
-            docked={docked}
-            latest={latest}
-            onRetry={bare ? undefined : onRetry}
-            wrong={wrong}
-            onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
-            canReport={cited.length > 0 && !sent}
-          />
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </LitSource.Provider>
   )
 }

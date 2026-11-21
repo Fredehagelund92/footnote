@@ -366,6 +366,14 @@ function strayAtEnd(runs: readonly LoopRun[], run: LoopRun, rest: string, earlie
 }
 
 /** Runs of words, a run of plain words merged with the one before it. */
+/** Runs with words that meet joined, and no empty brackets left in them: "Germany ():". */
+function withoutEmptyBrackets(runs: readonly LoopRun[]): LoopRun[] {
+  const out: LoopRun[] = []
+  for (const r of runs) pushRun(out, r.t === 'text' ? { ...r } : r)
+  for (const r of out) if (r.t === 'text') r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '')
+  return out.filter((r) => r.t !== 'text' || r.text)
+}
+
 function pushRun(runs: LoopRun[], run: LoopRun) {
   const last = runs.at(-1)
   if (run.t === 'text' && last?.t === 'text') last.text += run.text
@@ -557,7 +565,8 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         for (const d of r.text.match(/\d+(?:[.,]\d+)*/g) ?? [])
           if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
     // A name the words give is said once: a mention after it is drawn on it (FR-720.3).
-    const done = stopBeforeCites(placed(runs, ctx.nouns))
+    // Placing a mention can leave the brackets it sat in empty: they go too.
+    const done = withoutEmptyBrackets(stopBeforeCites(placed(runs, ctx.nouns)))
     earlier += ` ${runWords(done, ctx.nouns)}`
     return done
   }

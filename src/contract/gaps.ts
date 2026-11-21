@@ -94,11 +94,17 @@ export const gapIdInputSchema = z.strictObject({ id: gapId })
  * The topic comes from the scope only (FR-604), resolved as get_context resolves it, so an unknown
  * term is refused. The note is optional and short (FR-611); nothing names the person (FR-608), and
  * no words of the question are sent.
+ *
+ * A `word` is a word Ask's reads found nothing under, when its answer names nothing the workspace
+ * knows (Ask's Tell an admin): sent alone, with no metric, value, days or note, it counts against
+ * the topic of no metric and no value this month, which reaches the admins, and is kept as the
+ * report's note, under the note's rules (FR-611).
  */
 export const gapReportInputSchema = z.strictObject({
   ...tryItInputSchema.shape,
   type: z.enum(gapTypes),
   note: z.optional(z.string().check(z.minLength(1), z.maxLength(500))),
+  word: z.optional(z.string().check(z.minLength(1), z.maxLength(80))),
 })
 /** The gap the report counted against. A reader who does not manage it may not see it yet. */
 export const gapReportSchema = z.object({ id: z.string() })

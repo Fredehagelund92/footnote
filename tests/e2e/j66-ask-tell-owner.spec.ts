@@ -9,13 +9,20 @@ test('a reader tells the owner that nothing is written, once', async ({ page }) 
   await go(page, '/ask?example=loop-missing')
   const log = page.getByRole('log')
   await expect(log.getByRole('button', { name: 'Not found', exact: true })).toBeVisible()
+  // The gap card says what is not written and who can write it.
+  const gap = log.getByRole('region', { name: 'Not written yet: Orders in Poland' })
+  await expect(gap).toContainText('Jon Abara and Sofia Brandt, the owners of Sales, can write it.')
   // A reader may not write it, so the next step is to tell the owners.
-  await expect(log.getByRole('link', { name: /^Write context/ })).toHaveCount(0)
+  await expect(log.getByRole('button', { name: /^Write context/ })).toHaveCount(0)
   await log.getByRole('button', { name: 'Tell the owner' }).click()
   await expect(
     log
       .getByRole('status')
-      .filter({ hasText: 'Sent to the owners of Sales. It waits in their Inbox.' }),
+      // Who was told, by name: each a person's chip.
+      .filter({
+        hasText:
+          /^Sent to Jon Abara.* and Sofia Brandt.*, the owners of Sales\. It waits in their Inbox\.$/,
+      }),
   ).toBeVisible()
   await expect(log.getByRole('button', { name: 'Tell the owner' })).toHaveCount(0)
 })
