@@ -12,6 +12,7 @@ export {
   askedThisWeek,
   createBundleCache,
   liveBundle as liveServingBundle,
+  liveEditionKey,
   minimumCount,
   reachOfDraft,
   replayTopic,
@@ -29,7 +30,15 @@ export {
   type AskToolResult,
   type AskTools,
 } from './tools.ts'
-export { toolReadsIn, type ToolReads, type ToolServices } from './tool-reads.ts'
+export {
+  createKeptReads,
+  toolReadsIn,
+  type KeptReads,
+  type ToolReads,
+  type ToolServices,
+  type TurnReads,
+} from './tool-reads.ts'
+export { readHelp, searchHelp, type HelpSection } from './help.ts'
 export {
   ASK_BACK,
   askLoop,

@@ -88,12 +88,15 @@ import {
   askLoop,
   createAskTools,
   createBundleCache,
+  createKeptReads,
+  liveEditionKey,
   liveServingBundle,
   readLoopLimits,
   readAssistantModel,
   scriptedLoopModel,
   replayTopic,
   toolReadsIn,
+  type TurnReads,
   type BundleCache,
   type AskTrace,
 } from '../modules/answer/index.ts'
@@ -282,9 +285,17 @@ export function askToolsOf(
   answerBundles: BundleCache,
   services: ReturnType<typeof requestServices>,
   calendar: Calendar,
+  kept?: TurnReads,
 ) {
   return createAskTools(
-    toolReadsIn(tx, clock, answerBundles, { ...services, people: () => listMembers(tx) }, calendar),
+    toolReadsIn(
+      tx,
+      clock,
+      answerBundles,
+      { ...services, people: () => listMembers(tx) },
+      calendar,
+      kept,
+    ),
   )
 }
 
@@ -308,8 +319,10 @@ export function createRouter({
   profileLabel = null,
 }: ApiServices) {
   const limitGapReports = createLimiter(() => clock.now())
-  // The editions the answer engine reads, kept a short while: one for every person.
+  // The editions the answer engine reads, kept until they change: one for every person.
   const answerBundles = createBundleCache()
+  // Each person's reads of their workspace, kept between their turns of Ask.
+  const keptReads = createKeptReads()
   // Whether Ask answers with an AI model, or with the scripted reader (MODELS=mock), for the page.
   const modelConnected = models.mode === 'live'
   const os = implement(contract).$context<RequestContext>()
@@ -439,6 +452,7 @@ export function createRouter({
     const person = context.session!.person.id
     // Nothing shared with agents yet: refused, as the look-up refuses it.
     await liveServingBundle(context.tx, answerBundles)
+    const edition = (await liveEditionKey(context.tx))!
     const live = models.mode === 'live'
     // The assistant's model is checked meanwhile when it is not checked yet, or its check could not
     // tell and is due again (models/capability.ts).
@@ -455,6 +469,9 @@ export function createRouter({
     const calendar = await readCalendar(context.tx)
     const log = context.request.log
     const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
+    // What the turn reads of the person's workspace, read once for all its transactions, and
+    // what their last turn read of it while it has not changed.
+    const kept = keptReads.turn(person, edition)
     return askLoop(
       {
         database: forRequest(database, context.request.id),
@@ -466,6 +483,7 @@ export function createRouter({
             answerBundles,
             requestServices(tx, person, { clock, answerBundles, models, readPage, hooks: noHooks }),
             calendar,
+            kept,
           ),
         model,
         limits,

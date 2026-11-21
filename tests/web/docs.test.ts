@@ -16,7 +16,7 @@ import {
   type DocInline,
 } from '@domain/docs'
 import { picturesOf } from '../../scripts/docs-plugin.ts'
-import { readDocs } from '../../scripts/docs-read.ts'
+import { readDocs } from '../../src/server/docs-read.ts'
 import { wordsToChange } from '@domain/words'
 import { format, resolveConfig } from 'prettier'
 import { parse } from 'yaml'

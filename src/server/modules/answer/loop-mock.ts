@@ -58,10 +58,9 @@ export function scriptedPrompt(
 ): ScriptedPrompt {
   const last = prompt.findLastIndex((m) => m.role === 'user')
   const asked = prompt[last]
+  // The person's words are the message's first part: the note on its language follows them.
   const question =
-    asked?.role === 'user'
-      ? asked.content.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n')
-      : ''
+    asked?.role === 'user' ? (asked.content.find((p) => p.type === 'text')?.text ?? '') : ''
   const since = prompt.slice(last + 1)
   const results = since.flatMap((m) =>
     m.role === 'tool'

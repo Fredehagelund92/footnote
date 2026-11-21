@@ -39,10 +39,9 @@ const thread = (id: string, question: string, extra: Partial<Thread> = {}): Thre
   ...extra,
 })
 const none = { example: null, chat: null }
-const event = (question: string, threads: Thread[] = []): SessionEvent => ({
+const event = (question: string): SessionEvent => ({
   type: 'answered',
   question,
-  threads,
   mint: 'chat-new',
 })
 
@@ -104,7 +103,7 @@ describe('joining the history', () => {
   it('a fresh thread joins on its first answered turn, whichever button asked it', () => {
     const got = reduce({ kind: 'fresh' }, event('Why?'))
     expect(got.session).toEqual({ kind: 'live', chat: 'chat-new' })
-    expect(got.join).toEqual({ chat: 'chat-new', question: 'Why?', known: false })
+    expect(got.join).toEqual({ chat: 'chat-new', question: 'Why?' })
   })
 
   it('joins once: a turn after it changes nothing', () => {
@@ -114,10 +113,11 @@ describe('joining the history', () => {
     expect(again.join).toBeNull()
   })
 
-  it('a question a chat already asks joins that chat, so the history never has it twice', () => {
-    const got = reduce({ kind: 'fresh' }, event('why?', [thread('old', 'Why?')]))
-    expect(got.session).toEqual({ kind: 'live', chat: 'old' })
-    expect(got.join).toEqual({ chat: 'old', question: 'why?', known: true })
+  it('a new chat is its own chat, even when an earlier chat began with the same question', () => {
+    // The earlier chat keeps its place and its turns: the new one never joins it.
+    const got = reduce({ kind: 'fresh' }, event('why?'))
+    expect(got.session).toEqual({ kind: 'live', chat: 'chat-new' })
+    expect(got.join).toEqual({ chat: 'chat-new', question: 'why?' })
   })
 
   it('a chat from the history goes live without joining again', () => {
