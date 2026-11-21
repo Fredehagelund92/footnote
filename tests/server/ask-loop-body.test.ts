@@ -186,6 +186,13 @@ describe("the model's words, checked against the reads", () => {
     expect(t.checks).toEqual([{ kind: 'number', words: '[#r1.tickets]' }])
   })
 
+  it('writes the number alone of what a count is out of, for words in another language', () => {
+    const t = turnOf('Ask svarer ut fra [#r1.outOf.count] publiserte elementer.', made, [])
+    expect(runs(t).filter((r) => r.t === 'count')).toEqual([{ t: 'count', value: '12', of: null }])
+    expect(t.text).toBe('Ask svarer ut fra 12 publiserte elementer.')
+    expect(t.checks).toEqual([])
+  })
+
   it("writes a reference to a read's words as those words, its sentence kept", () => {
     const t = turnOf(
       'Nothing written gives ticket counts for [#r1.read.period], only what is written about them.',

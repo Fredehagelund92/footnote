@@ -29,6 +29,7 @@ const unread = (): never => {
 const noReads: ToolReads = {
   bundle: unread,
   index: unread,
+  readable: unread,
   records: unread,
   areas: unread,
   people: unread,
@@ -315,7 +316,7 @@ describe('a family of metrics in Ask (FR-142)', () => {
           ...variants.map((key) => term(key, `${key} variant`, 'metric')),
         ],
       }),
-    index: () => Promise.resolve({ items: [] }),
+    readable: () => Promise.resolve([]),
     areas: () => Promise.resolve([{ id: 'area_sales', name: 'Sales', ownerIds: [] }]),
     people: () => Promise.resolve([]),
     catalogue: () => Promise.resolve({ terms: [family] }),
@@ -354,5 +355,116 @@ describe('a family of metrics in Ask (FR-142)', () => {
     expect((result as { error: string }).error).toContain('The closest is Revenue.')
     const asked = await tools.run('agent_questions', { about: ['Revenu'] })
     expect((asked as { error: string }).error).toContain('The closest is Revenue.')
+  })
+})
+
+describe('the definitions tool by other names', () => {
+  const metric = (key: string, name: string, words: string) => ({
+    key,
+    kind: 'metric',
+    id: key.replace(/^metric:/, ''),
+    name,
+    aliases: [],
+    group: null,
+    domain: { areaId: 'area_paid', source: 'vocabulary' },
+    definition: {
+      ref: `cube:marketing.${key}`,
+      name: `marketing.${key.replace(/^metric:/, '')}`,
+      title: name,
+      descriptionCopy: words,
+      valueType: null,
+      state: 'current',
+      renamedTo: null,
+      changedAt: null,
+      readAt: null,
+      sourceId: 'cube',
+      tool: 'Cube',
+      connector: 'cube',
+    },
+    definitions: [],
+    status: 'in_sync',
+    shelf: {
+      items: 3,
+      byKind: { note: 3, event: 0, guide: 0, issue: 0 },
+      needsALook: 0,
+      activeIssues: 0,
+      ended: 0,
+      gaps: 0,
+      mentionedBy: 0,
+      lastUpdated: null,
+    },
+    family: null,
+  })
+  const reads = {
+    ...noReads,
+    bundle: () =>
+      Promise.resolve({
+        items: [],
+        terms: [
+          ['metric:return_on_ad_spend', 'Return on ad spend'],
+          ['metric:net_revenue', 'Net revenue'],
+        ].map(([key, name]) => ({
+          key,
+          name,
+          kind: 'metric',
+          parentKey: null,
+          aliases: [],
+          definitionRefs: [],
+        })),
+      }),
+    readable: () => Promise.resolve([]),
+    areas: () => Promise.resolve([{ id: 'area_paid', name: 'Paid media', ownerIds: [] }]),
+    people: () => Promise.resolve([]),
+    catalogue: () =>
+      Promise.resolve({
+        terms: [
+          metric(
+            'metric:return_on_ad_spend',
+            'Return on ad spend',
+            'Net revenue attributed to paid media divided by paid media spend.',
+          ),
+          metric('metric:net_revenue', 'Net revenue', 'Revenue after returns and discounts.'),
+        ],
+      }),
+    glossary: () =>
+      Promise.resolve({
+        terms: [
+          {
+            id: '0190f3a2-0000-7000-8000-000000000001',
+            name: 'Takings',
+            meaning: null,
+            sameAs: { ref: 'metric:net_revenue', name: 'Net revenue', type: 'metric' },
+            areaId: 'area_paid',
+            items: null,
+          },
+        ],
+      }),
+    termHistory: () => Promise.resolve([]),
+    records: () => Promise.resolve([]),
+  } as unknown as ToolReads
+  const tools = createAskTools(reads)
+
+  it('finds a metric by its short name, before it says none was found', async () => {
+    for (const short of ['ROAS', 'roas', 'RAS']) {
+      const result = await tools.run('definitions', { names: [short] })
+      expect(result, short).toMatchObject({
+        found: 1,
+        notFound: [],
+        definitions: [
+          {
+            name: 'Return on ad spend',
+            words: 'Net revenue attributed to paid media divided by paid media spend.',
+          },
+        ],
+      })
+    }
+    // Two letters say too little to be a name.
+    expect(await tools.run('definitions', { names: ['NR'] })).toMatchObject({ found: 0 })
+  })
+
+  it('finds a metric by a word written in Definitions as another name for it', async () => {
+    const result = await tools.run('definitions', { names: ['Takings'] })
+    expect(result).toMatchObject({ found: 2, notFound: [] })
+    expect(JSON.stringify(result)).toContain('Revenue after returns and discounts.')
   })
 })

@@ -5,7 +5,8 @@ import { expect, go, mode, test } from './go.ts'
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
 
 // J3, how an answer arrives: the question at once, a working line while Ask's loop reads, then
-// its whole turn with its state, sources and actions; stoppable before the turn is in, with no
+// its words typed in at reading pace whatever size they arrive in, and after the last its state,
+// sources and actions; stoppable before the turn is in, with no
 // fade under reduced motion, a new question at the top of the view and the view put while the
 // reader has scrolled up. On the mock the turn comes whole after its working line
 // (src/web/api/mock/ask-live.ts). The loop's own words, shown a sentence at a time as each passes
@@ -80,10 +81,11 @@ test('Escape stops an answer on its way', async ({ page }) => {
   await expect(page.getByRole('log').getByText(STATE)).toHaveCount(0)
 })
 
-test('a question that is already a chat opens that chat', async ({ page }) => {
+test('a question an example asks opens that example', async ({ page }) => {
+  test.skip(mode === 'http', "the examples in the history are the mock's")
   await go(page, '/ask?n=dedupe')
   const rows = page.getByRole('navigation', { name: 'Chats' }).locator('[data-open]')
-  // The mock's history already has this question as a chat; a new history gets it now.
+  // The mock's history has this question as an example, which opens on its own answer.
   const question = 'Do Norway orders include gift-card money?'
   await ask(page, question)
   await expect(page).toHaveURL(/[?&](example|chat)=/)
@@ -113,7 +115,8 @@ test('the question shows the moment it is sent, then a working line, then the wh
     page.getByRole('status').filter({ hasText: 'Looking up the answer.' }),
   ).toBeAttached()
   await expect(log.getByText(STATE)).toHaveCount(0)
-  // Then the turn, whole: its state, its sources and its actions together, and Stop goes.
+  // Then the words, typed in, and after the last its state, its sources and its actions
+  // together, and Stop goes.
   await until(page, log.getByText(STATE).first())
   await expect(log.getByText('Conflict', { exact: true })).toBeVisible()
   await expect(log.getByRole('button', { name: /^Source \d+: / }).first()).toBeVisible()
@@ -123,7 +126,7 @@ test('the question shows the moment it is sent, then a working line, then the wh
   await expect(page.getByRole('status').filter({ hasText: 'Answer written.' })).toBeAttached()
 })
 
-test('the first question of a new chat arrives as a follow-up does, one that is already a chat too', async ({
+test('the first question of a new chat arrives as a follow-up does, one asked before too', async ({
   page,
 }) => {
   test.skip(mode === 'http', "the time before the turn, which the held clock keeps, is the mock's")
@@ -152,16 +155,16 @@ test('the first question of a new chat arrives as a follow-up does, one that is 
   await firstAsk()
   const chat = new URL(page.url()).searchParams.get('chat')!
   const count = await rows.count()
-  // A new chat with the same question, now a chat in the history: answered the same way too, and
-  // it is that chat, not a second one.
+  // A new chat with the same question, now a chat in the history: answered the same way too, as a
+  // chat of its own beside the first.
   await page.getByRole('button', { name: 'New chat' }).first().click()
   await until(
     page,
     page.getByRole('heading', { name: 'What do you want to know about your metrics?' }),
   )
   await firstAsk()
-  expect(new URL(page.url()).searchParams.get('chat')).toBe(chat)
-  await expect(rows).toHaveCount(count)
+  expect(new URL(page.url()).searchParams.get('chat')).not.toBe(chat)
+  await expect(rows).toHaveCount(count + 1)
 })
 
 test('scrolled up to read, the view stays put while an answer comes in', async ({ page }) => {
@@ -210,6 +213,71 @@ test('with reduced motion the answer comes in whole, with no fade', async ({ pag
     return found
   })
   expect(fades).toEqual([])
+})
+
+/** How many characters of the newest answer's words are on screen. */
+const wordsShown = (page: Page) =>
+  page
+    .getByRole('log')
+    .locator('[data-answer-words]')
+    .last()
+    .evaluate((el) => (el.textContent ?? '').length)
+    .catch(() => 0)
+
+test('words that arrive in one piece are typed in at reading pace, then the state and sources', async ({
+  page,
+}) => {
+  test.skip(mode === 'http', "the mock's turn arrives in one piece, after its working line")
+  // A frame at a time, the held clock takes many steps.
+  test.setTimeout(120_000)
+  await held(page, '/ask?n=typed')
+  await ask(page, QUESTION)
+  const log = page.getByRole('log')
+  await until(page, log.getByText(onTheWay))
+  // The turn is in the moment the working line gives way; from then, time moves a frame at a time.
+  while (await log.getByText(onTheWay).isVisible()) await page.clock.runFor(16)
+  let at = 0
+  let first = -1
+  const seen: number[] = []
+  const actions = log.getByRole('button', { name: 'Good answer' })
+  while (!(await actions.isVisible())) {
+    const shown = await wordsShown(page)
+    seen.push(shown)
+    if (first < 0 && shown > 0) first = at
+    // Nothing that backs the words shows before the last of them: not even the state.
+    expect(await log.getByText(STATE).filter({ visible: true }).count()).toBe(0)
+    await page.clock.runFor(16)
+    at += 16
+    expect(at).toBeLessThan(3000)
+  }
+  // The first words within 100 ms; the last 0.6 to 1.5 s after the turn came in.
+  expect(first).toBeGreaterThanOrEqual(0)
+  expect(first).toBeLessThanOrEqual(100)
+  expect(at).toBeGreaterThanOrEqual(600)
+  expect(at).toBeLessThanOrEqual(1500)
+  // A word at a time, never all at once: many steps between none and the whole.
+  const total = await wordsShown(page)
+  expect(total).toBeGreaterThan(250)
+  expect(new Set(seen.filter((n) => n > 0 && n < total)).size).toBeGreaterThan(10)
+  await expect(log.getByText(STATE).first()).toBeVisible()
+  await expect(log.getByRole('button', { name: /^Source \d+: / }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+})
+
+test('with reduced motion the words show at once, with their state and sources', async ({
+  page,
+}) => {
+  test.skip(mode === 'http', "the mock's turn arrives in one piece, after its working line")
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await held(page, '/ask?n=typed-reduced')
+  await ask(page, QUESTION)
+  const log = page.getByRole('log')
+  await until(page, log.getByText(onTheWay))
+  while (await log.getByText(onTheWay).isVisible()) await page.clock.runFor(16)
+  // In the same frame as the turn: every word, the state and the sources.
+  expect(await wordsShown(page)).toBeGreaterThan(250)
+  await expect(log.getByText(STATE).first()).toBeVisible()
+  await expect(log.getByRole('button', { name: /^Source \d+: / }).first()).toBeVisible()
 })
 
 test('a new question goes to the top of the view, and the view stays put as its answer ends', async ({

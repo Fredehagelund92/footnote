@@ -37,7 +37,9 @@
     "J07": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "It is due for a check: Cube changed the definition of Gross margin on 7 Oct."
+      ]
     },
     "J08": {
       "advice": [],
@@ -67,7 +69,10 @@
     "J13": {
       "advice": ["That figure should be checked in your reporting tool."],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "That figure should be checked in your reporting tool.",
+        "The reply assumes the business has a reporting tool, which nothing in the fixed facts or evidence states."
+      ]
     },
     "J14": {
       "advice": [],
@@ -87,7 +92,7 @@
       "unsupported": []
     },
     "J17": {
-      "advice": ["No."],
+      "advice": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
       "verdict": [],
       "unsupported": []
     },
@@ -121,7 +126,7 @@
     "J23": {
       "advice": [],
       "verdict": ["Sales will probably come back once the rule is lifted."],
-      "unsupported": ["Sales will probably come back once the rule is lifted."]
+      "unsupported": []
     },
     "J24": {
       "advice": [],
@@ -138,7 +143,9 @@
       "verdict": [
         "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
       ],
-      "unsupported": ["so 12 May was only the plan [1]"]
+      "unsupported": [
+        "The 21 May date is the right one: it records the first payment the new provider took [2], so 12 May was only the plan [1]."
+      ]
     },
     "J27": {
       "advice": [],
@@ -150,7 +157,9 @@
     "J28": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["but the owners have not marked them as conflicting."]
+      "unsupported": [
+        "Another note counts only card and cash payments [2], but the owners have not marked them as conflicting."
+      ]
     },
     "J29": {
       "advice": [],
@@ -172,7 +181,7 @@
     "J32": {
       "advice": [],
       "verdict": [],
-      "unsupported": ["Seven items are about Norway"]
+      "unsupported": ["Seven items are about Norway, and one of them is archived."]
     },
     "J33": {
       "advice": [],
@@ -202,7 +211,9 @@
     "J38": {
       "advice": [],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "Footnote has nothing about the Italian regulator in the last quarter (July to September 2026)."
+      ]
     },
     "J39": {
       "advice": [],
@@ -232,14 +243,14 @@
       ]
     },
     "J45": {
-      "advice": ["so a campaign should be read only once those 30 days have passed [1]"],
+      "advice": [],
       "verdict": [],
       "unsupported": []
     },
     "J46": {
       "advice": ["Do not report it weekly [1]."],
       "verdict": [],
-      "unsupported": []
+      "unsupported": ["Do not report it weekly [1]."]
     },
     "J44": {
       "advice": [],

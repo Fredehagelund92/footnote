@@ -11,12 +11,13 @@ import { isLive, type Turn } from '@/model/ask-turn'
  * fading in (`--ask-word-fade`); `sentences`, each fading in whole; `instant`, each there at once.
  */
 export const ASK_CADENCE: 'words' | 'sentences' | 'instant' = 'words'
-/** The steady reveal of checked words, in characters a second. */
+/** The steady reveal of checked words, in characters a second: reading pace. */
 export const ASK_REVEAL_CPS = 360
-/** The longest a backlog of checked words takes to show while the model still writes. */
-export const ASK_CATCH_UP_MS = 600
-/** The longest what is left takes to show once the model is done (or stopped). */
-export const ASK_FLUSH_MS = 400
+/**
+ * The longest the words that have arrived take to show, however many came at once: a long answer
+ * that arrives in one piece is typed in faster than `ASK_REVEAL_CPS`, never slower than this.
+ */
+export const ASK_REVEAL_MAX_MS = 1500
 /** The working line shows only once a look-up has taken this long: a fast one never flashes it. */
 export const ASK_WORKING_AFTER_MS = 150
 /** A working label stays at least this long, so it can be read. */
@@ -83,33 +84,27 @@ export function useStillLooking(looking: boolean, progress?: string | null) {
 }
 
 /**
- * How many characters of `total` are shown: at once when `instant`, else growing at
- * `ASK_REVEAL_CPS`, faster when it falls behind, so the backlog shows within `ASK_CATCH_UP_MS`
- * while more may come (`flowing`) and within `ASK_FLUSH_MS` once nothing more will.
+ * How many characters of `total` are shown: at once when `instant`, else growing from none at
+ * reading pace, whatever size the pieces arrive in. Each time more arrives the pace is set
+ * afresh: `ASK_REVEAL_CPS`, or faster, so what has arrived shows within `ASK_REVEAL_MAX_MS`.
  */
-export function useReveal(
-  total: number,
-  { flowing, instant }: { flowing: boolean; instant: boolean },
-) {
+export function useReveal(total: number, { instant }: { instant: boolean }) {
   const [shown, setShown] = React.useState(() => (instant ? total : 0))
   const at = React.useRef(shown)
   React.useEffect(() => {
-    if (instant) {
-      at.current = total
+    if (instant || at.current >= total) {
+      at.current = Math.min(instant ? total : at.current, total)
       return
     }
-    if (at.current >= total) return
+    const rate = Math.max(ASK_REVEAL_CPS, (total - at.current) / (ASK_REVEAL_MAX_MS / 1000))
     let last = performance.now()
     let frame = requestAnimationFrame(function step(now) {
-      const backlog = total - at.current
-      const within = (flowing ? ASK_CATCH_UP_MS : ASK_FLUSH_MS) / 1000
-      const rate = Math.max(ASK_REVEAL_CPS, backlog / within)
-      at.current = Math.min(total, at.current + (rate * (now - last)) / 1000)
+      at.current = Math.min(total, at.current + (rate * Math.max(0, now - last)) / 1000)
       last = now
       setShown(Math.floor(at.current))
       if (at.current < total) frame = requestAnimationFrame(step)
     })
     return () => cancelAnimationFrame(frame)
-  }, [total, flowing, instant])
+  }, [total, instant])
   return instant ? total : Math.min(shown, total)
 }

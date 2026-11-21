@@ -5,7 +5,8 @@ import { WORLD_TODAY, worldTerms } from './case-world.ts'
 
 /*
   A word that names no one metric, wherever it sits in the question (A5 of the release judgement,
-  FR-719.2): Ask's loop asks back with the metrics it may mean before any model reads. On the plan
+  FR-719.2): alone, Ask's loop asks back with the metrics it may mean before any model reads; in a
+  sentence, the model is told them. On the plan
   world, Sales is written for Net revenue and is a word of Gross sales; Revenue is a group of three.
 */
 
@@ -22,6 +23,19 @@ describe('a word that names no one metric', () => {
     expect(vague('Tell me about revenue.')).toEqual(['Net revenue', 'Gross sales', 'Units sold'])
     expect(vague('revenue')).toEqual(['Net revenue', 'Gross sales', 'Units sold'])
     expect(vagueMetricWord('Tell me about revenue.', worldTerms, WORLD_TODAY)?.word).toBe('revenue')
+  })
+
+  it('says whether the question is the word alone, which code asks about, and names a group', () => {
+    const found = (question: string) => vagueMetricWord(question, worldTerms, WORLD_TODAY, around)
+    expect(found('revenue')).toMatchObject({ alone: true, group: 'Revenue' })
+    expect(found(' Revenue? ')).toMatchObject({ alone: true })
+    expect(found('sales')).toMatchObject({ alone: true, group: null })
+    // In a sentence the model reads the metrics it may mean and decides.
+    expect(found('Which metrics are in the Revenue group, and how do they differ?')).toMatchObject({
+      alone: false,
+      group: 'Revenue',
+    })
+    expect(found('What about sales in the UK?')).toMatchObject({ alone: false })
   })
 
   it('is no question back when the words name one metric, by its own name or a word only it has', () => {

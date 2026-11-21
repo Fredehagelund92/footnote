@@ -44,10 +44,12 @@ RUN npm install --global npm@11.21.3 && npm cache clean --force
 WORKDIR /app
 COPY --from=service-deps /app/node_modules node_modules
 # What the service runs: its code, the migrations, the seed and the demo model, which the demo
-# reads from here (CMD). Not the tests, the docs or the build scripts.
+# reads from here (CMD), and the help pages Ask answers questions about Footnote from. Not the
+# tests, the rest of the docs or the build scripts.
 COPY package.json ./
 COPY src src
 COPY db db
+COPY docs/help docs/help
 # The keys the service makes on its first start (MCP, sign-in for agents), kept in a volume so a
 # connected agent stays connected when the container is made again.
 RUN mkdir -p /var/lib/footnote && chown node:node /var/lib/footnote

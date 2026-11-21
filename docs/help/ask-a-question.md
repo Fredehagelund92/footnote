@@ -3,8 +3,8 @@ title: Ask a question
 line: Ask about a number, read how the answer was made, ask again at other dates, and tell the owner what is missing.
 group: Ask
 order: 1
-minutes: 4
-reviewed: 2026-11-20
+minutes: 5
+reviewed: 2026-11-21
 open:
   label: Open Ask
   href: /ask
@@ -47,6 +47,10 @@ Ask the next question in the same chat, such as "And in Spain?". Ask carries wha
 
 **New chat** starts again with nothing carried.
 
+## Ask how it works
+
+Ask also answers questions about how it works, such as "What does Checked mean on an answer?" or "How do I add a context item?". It answers from these help pages and links the page it used under the answer. Such an answer has no answer line, since it rests on the help and not on your context.
+
 ## When nothing is written
 
 A Not found answer means nothing is written about it yet. If you do not own that domain, Tell the owner sends the owners what you asked about and the dates, never your words. It waits in their Inbox, where they can write it: [When nothing is written yet](when-nothing-is-written-yet.md).
@@ -61,4 +65,4 @@ The owners of a domain and admins can save a question, so it is answered again a
 
 ## Your chats
 
-**History** lists your chats, newest first, with a search. Only you see them. They are kept in this browser and go when you sign out: [Privacy](privacy.md).
+**History** lists your chats, newest first, with a search. Each new chat is a row of its own, even when it asks a question you asked before. Only you see them. They are kept in this browser and go when you sign out: [Privacy](privacy.md).
