@@ -127,6 +127,38 @@ afterAll(async () => {
 describe('families in a Cube model', () => {
   let itemId = ''
 
+  it('refuses a family whose variant has a taken name, saying so without naming a variant', async () => {
+    const taken = await ok<{ id: string }>(
+      call('POST', '/terms', 'owner', {
+        name: 'Net revenue EUR web',
+        meaning: 'What the finance team calls net revenue taken in euros on the web.',
+        areaId: 'sales',
+      }),
+    )
+    const { revision, names } = await ok<NamesRead>(call('GET', '/inbox/names', 'admin'))
+    const family = names.find((name) => name.key === 'group:net_revenue')!
+    expect(family.state).toBe('flagged')
+    expect(family.flags.map((flag) => flag.code)).toEqual(['variants'])
+    expect(JSON.stringify(family.flags)).not.toMatch(/\(EUR\)|Net revenue EUR web/)
+    const refused = await call('POST', '/inbox/names/decide', 'admin', {
+      revision,
+      accept: [{ key: family.key }],
+      leaveOut: [],
+    })
+    expect(refused.statusCode, refused.body).toBe(422)
+    expect(refused.body).not.toMatch(/\(EUR\)|Net revenue EUR web/)
+    const left = await ok<{ leftOut: number }>(
+      call('POST', '/inbox/names/decide', 'admin', {
+        revision,
+        accept: [],
+        leaveOut: [family.key],
+      }),
+    )
+    expect(left.leftOut).toBe(1)
+    await client.query('delete from names_left_out')
+    await ok(call('POST', '/terms/delete', 'owner', { ids: [taken.id] }))
+  }, 120_000)
+
   it('are found from the measures’ filters and published with one press each', async () => {
     const { revision, names } = await ok<NamesRead>(call('GET', '/inbox/names', 'admin'))
     const families = names.filter((name) => name.kind === 'metric_group')

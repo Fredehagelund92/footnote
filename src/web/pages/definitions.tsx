@@ -361,7 +361,6 @@ export function DefinitionsPage() {
       byView[d.type]++
     }
   const typeCount = (t: View) => byView[t]
-  const mix = definitionCounts
   const rowKeys = useRowKeys({
     rows: { order, reveal: (name, then) => drawn.current?.reveal(name, then) },
     onMove: (name) => peeked && openDock('def', name),
@@ -417,7 +416,7 @@ export function DefinitionsPage() {
       : plainText(glossary.meaningOf(d).definition)
     // Found by its variants' words alone, a family says how many: never which (FR-142).
     const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
-    const facts = [
+    const rowFacts = [
       group !== 'domain' && (d.domain ? domains[d.domain]?.name : 'All domains'),
       d.type === 'dimension' ? 'Every context item' : n ? `${n} context` : 'No context yet',
     ].filter(Boolean)
@@ -496,7 +495,7 @@ export function DefinitionsPage() {
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {familyBy(family)}
-                  {facts.map((fact) => (
+                  {rowFacts.map((fact) => (
                     <span key={String(fact)} className="@xl/main:hidden">
                       {' '}
                       · {fact}
@@ -525,7 +524,7 @@ export function DefinitionsPage() {
                 />
                 {/* On a phone the short facts go on a second line. */}
                 <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
-                  {facts.map((fact) => (
+                  {rowFacts.map((fact) => (
                     <span key={String(fact)}>{fact}</span>
                   ))}
                 </span>
@@ -975,7 +974,7 @@ export function DefinitionsPage() {
                       <GroupRow
                         {...measure}
                         label={l.heading}
-                        detail={mix(l.rows)}
+                        detail={definitionCounts(l.rows)}
                         open={l.open}
                         colSpan={cols}
                         onToggle={() => setFolded((x) => toggle(x, l.heading))}
@@ -1005,7 +1004,7 @@ export function DefinitionsPage() {
                   <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
                     <td className="hidden @xl/main:table-cell" />
                     <td className="h-bar pr-2 pl-4 md:pl-6 @xl/main:pl-1.5">
-                      {mix(shown) || plural(0, 'definition')}
+                      {definitionCounts(shown) || plural(0, 'definition')}
                       {/* Each context item once, however many of these it is about. */}
                       <span className="hidden @xl/main:inline">
                         , with{' '}

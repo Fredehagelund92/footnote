@@ -91,7 +91,7 @@ export function familyDefinitions(tool: string): Definition[] {
 
 function measureFamilies(tool: string): Definition[] {
   // Two of the measures are the demo's own metrics by name: one word has one meaning (FR-138).
-  const own: Record<string, string> = { 'Net revenue': 'Net sales', 'Gross margin': 'Margin' }
+  const own: Record<string, string> = { 'Net revenue': 'Net takings', 'Gross margin': 'Margin' }
   return measures.map<Definition>((measure) => {
     const label = own[measure] ?? measure
     return {

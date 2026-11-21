@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -181,7 +182,9 @@ export function FamilyVariants({ family }: { family: Family }) {
         <tbody>
           {shown.map((v) => (
             <tr key={v.name} className="border-b">
-              <td className="truncate py-1.5 pr-2">{v.name}</td>
+              <td className="truncate py-1.5 pr-2" title={v.name}>
+                {v.name}
+              </td>
               {family.by.map((axis, i) => (
                 <td key={axis} className="truncate py-1.5 pr-2 text-muted-foreground">
                   {v.values[i]}
@@ -206,14 +209,9 @@ export function FamilyChip({
 }) {
   const n = family.variants.length.toLocaleString('en-GB')
   return (
-    <span
-      className={cn(
-        'inline-flex h-5 shrink-0 items-center rounded-full border bg-muted px-1.5 text-xs font-semibold whitespace-nowrap text-muted-foreground',
-        className,
-      )}
-    >
+    <Badge variant="outline" className={cn('shrink-0 text-muted-foreground', className)}>
       Family · {n} {family.variants.length === 1 ? 'variant' : 'variants'}
-    </span>
+    </Badge>
   )
 }
 
