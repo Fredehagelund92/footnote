@@ -277,6 +277,39 @@ describe('what code writes from the reads', () => {
     ])
   })
 
+  it("takes a look-up's definition as the answer only where nothing applies, never as a card beside one", () => {
+    const words =
+      'A family of 2 near-identical metrics, one for each currency. USD: the EUR amount times the rate.'
+    const defined = (state: string, items: object[]): MadeRead => {
+      const read = get(state, items)
+      const result = read.result as { read: object }
+      return {
+        ...read,
+        result: {
+          ...result,
+          read: { ...result.read, about: ['metric:group:revenue'], assumedToday: true },
+          definitions: [{ id: 'metric:group:revenue', name: 'Revenue', words, from: 'dbt' }],
+        },
+      }
+    }
+    // The family question: nothing applies, and the words give its definition.
+    const missing = turnOf(
+      `USD is the EUR amount times the rate. ${words}`,
+      [defined('missing', [])],
+      [],
+    )
+    expect(missing.defined).toEqual({ names: ['Revenue'], tool: 'dbt' })
+    expect(missing.state).toBeNull()
+    // An answer that cites what applies keeps its state, and shows no card of the definition.
+    const checked = turnOf(
+      'As written [itm_revenue01].',
+      [defined('grounded', [item('itm_revenue01')])],
+      [],
+    )
+    expect(checked.state).toBe('grounded')
+    expect(checked.definitions).toEqual([])
+  })
+
   it('is at most Partial when the subject read found no item and a search found what the words cite', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',

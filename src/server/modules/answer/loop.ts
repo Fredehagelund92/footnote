@@ -1825,17 +1825,22 @@ export function turnOf(
   const closest = missing ? closestOf(about, subject, ctx.items, []) : null
   const listed = stripped.flatMap((b) => (b.t === 'list' ? b.rows : []))
   const replyOnly = !made.length && !sources.length
-  // A listing of Definitions, by a domain or a kind, reads no one definition.
-  const definitionsOf = (reads: readonly MadeRead[]) =>
+  // A listing of Definitions, by a domain or a kind, reads no one definition. The definitions a
+  // look-up gives with its subject are not shown beside every answer about it; they make an
+  // answer that gives one a definition only where nothing written applies (Not found).
+  const definitionsOf = (reads: readonly MadeRead[], lookups = false) =>
     definitionsRead(
       reads.flatMap((m) =>
-        m.tool !== 'definitions' || Array.isArray(m.input.names) ? [m.result] : [],
+        (m.tool !== 'definitions' || Array.isArray(m.input.names)) &&
+        (lookups || m.tool !== 'get_context')
+          ? [m.result]
+          : [],
       ),
     )
   const defined =
     words.cited.length || aside || fromHelp
       ? undefined
-      : definedOf(plain, definitionsOf(about), subject, state)
+      : definedOf(plain, definitionsOf(about, state === 'missing'), subject, state)
   return {
     kind: 'answer',
     text: plain,
