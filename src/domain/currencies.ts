@@ -8,5 +8,14 @@ export const CURRENCIES = new Set(
   ),
 )
 
-/** Whether a word of a name in the tool is a currency's ISO 4217 code, in any case: `usd`. */
-export const isCurrencyCode = (word: string) => CURRENCIES.has(word.toUpperCase())
+/** Codes that are everyday words in a name in the tool: `sessions_all` is no currency. */
+const EVERYDAY_WORDS = new Set(['ALL', 'TOP', 'CUP', 'MAD', 'PEN', 'BOB', 'MOP', 'SOS'])
+
+/**
+ * Whether a word of a name in the tool is a currency's ISO 4217 code, in any case: `usd`. The codes
+ * that are everyday words are none.
+ */
+export const isCurrencyCode = (word: string) => {
+  const code = word.toUpperCase()
+  return CURRENCIES.has(code) && !EVERYDAY_WORDS.has(code)
+}

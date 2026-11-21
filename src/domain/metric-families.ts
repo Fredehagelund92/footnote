@@ -309,13 +309,18 @@ function filterFamilies(members: readonly VariantMember[]): Family[] {
 
 /**
  * The families one rate works out (D2): the metrics of each source converted from one another by a
- * column that converts at least `RATE_CONVERSIONS_MIN` of them, each set joined by its conversions,
- * by Currency, its values the currency each name is in. A set where a metric would be in two
+ * column that converts at least `RATE_CONVERSIONS_MIN` of the source's metrics (`everyone`, whether
+ * a finder took them before or not), each set joined by its conversions between metrics still
+ * `members`, by Currency, its values the currency each name is in. A set where a metric would be in two
  * currencies, or two in one, is none.
  */
-function convertedFamilies(members: readonly VariantMember[]): Family[] {
+function convertedFamilies(
+  members: readonly VariantMember[],
+  everyone: readonly VariantMember[],
+): Family[] {
+  const free = new Set(members.map((member) => member.ref))
   const bySource = new Map<string, VariantMember[]>()
-  for (const member of members)
+  for (const member of everyone)
     if (member.builtFrom)
       bySource.set(member.source, [...(bySource.get(member.source) ?? []), member])
   const families: Family[] = []
@@ -325,7 +330,12 @@ function convertedFamilies(members: readonly VariantMember[]): Family[] {
     )
     const uses = new Map<string, number>()
     for (const conversion of all) uses.set(conversion.by, (uses.get(conversion.by) ?? 0) + 1)
-    const rated = all.filter((conversion) => uses.get(conversion.by)! >= RATE_CONVERSIONS_MIN)
+    const rated = all.filter(
+      (conversion) =>
+        uses.get(conversion.by)! >= RATE_CONVERSIONS_MIN &&
+        free.has(conversion.from) &&
+        free.has(conversion.to),
+    )
     const top = new Map<string, string>()
     const root = (ref: string): string => {
       const up = top.get(ref) ?? ref
@@ -414,8 +424,15 @@ export function familiesOf(members: readonly VariantMember[]): Family[] {
   const families: Family[] = []
   const taken = new Set<string>()
   const rest = () => members.filter((member) => !taken.has(member.ref))
-  for (const find of [declaredFamilies, filterFamilies, convertedFamilies, lookAlikes])
+  const finders = [
+    declaredFamilies,
+    filterFamilies,
+    (free: readonly VariantMember[]) => convertedFamilies(free, members),
+    lookAlikes,
+  ]
+  for (const find of finders)
     for (const family of find(rest())) {
+      if (!keyPart(family.name)) continue
       families.push(family)
       for (const { ref } of family.variants) taken.add(ref)
     }

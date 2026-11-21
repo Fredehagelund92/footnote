@@ -30,6 +30,7 @@ import {
   familyAxes,
 } from '../../../domain/metric-families.ts'
 import { modelFileUrl, viewOf } from '../../../domain/source-views.ts'
+import { memberName } from '../../../domain/term-candidates.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -135,6 +136,10 @@ export function createCatalogueService(
     const [row] = await database.query<{
       vocabulary: VocabularyRow[]
       definitions: DefinitionRow[]
+      familyMembers: (Pick<
+        DefinitionRow,
+        'ref' | 'name' | 'title' | 'variantBy' | 'variantShape' | 'declared' | 'builtFrom'
+      > & { sourceId: string; baseName: string | null })[]
       sources: (Omit<CatalogueSource, 'tool' | 'connector'> & {
         type: string
         removed: boolean
@@ -186,6 +191,20 @@ export function createCatalogueService(
                join connector_snapshots s on s.id = m.snapshot_id
               where m.definition_ref = d.ref and m.snapshot_id is distinct from d.first_seen_snapshot) changed on true
           where d.ref in (select unnest(v."definitionRefs") from vocabulary v)),
+       -- Every metric its sources read, live or not: what makes a family, and a rate, does not
+       -- depend on what has been published.
+       siblings as (
+         select d.ref, d.connector_id as "sourceId", d.name, d.title, d.base_name as "baseName",
+                d.variant_by as "variantBy", d.variant_shape as "variantShape",
+                case when d.family_name is not null
+                     then json_build_object('name', d.family_name, 'by', d.family_by) end as declared,
+                case when d.built_from_refs is not null
+                     then json_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
+                end as "builtFrom"
+           from definitions d
+          where d.kind = 'metric' and d.missing_since_snapshot is null and ${visibleTo}
+            and d.connector_id in (select x.connector_id from definitions x
+                                    where x.ref in (select unnest(v."definitionRefs") from vocabulary v))),
        sources as (
          select c.id, c.name, c.type, ${iso('ok.fetched_at')} as "readAt", ok.source_version as "sourceVersion",
                 coalesce(latest.status = 'failed', false) as failing,
@@ -206,6 +225,7 @@ export function createCatalogueService(
        select
          (select coalesce(json_agg(v), '[]') from vocabulary v) as vocabulary,
          (select coalesce(json_agg(d), '[]') from described d) as definitions,
+         (select coalesce(json_agg(f), '[]') from siblings f) as "familyMembers",
          (select coalesce(json_agg(s order by s.id collate "C"), '[]') from sources s) as sources,
          (select coalesce(json_agg(m), '[]') from mentions m) as mentions,
          (select coalesce(json_agg(s), '[]') from (
@@ -217,7 +237,7 @@ export function createCatalogueService(
          ${libraryIndexItems} as items`,
       [groups, linkSettings],
     )
-    const { vocabulary, definitions, mentions, items } = row!
+    const { vocabulary, definitions, familyMembers, mentions, items } = row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
     const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
@@ -229,7 +249,7 @@ export function createCatalogueService(
         modelFolder: modelFolderOf({ type, fromServer, config }, (key) => settings.get(key)),
       }))
     const gaps = row!.gaps.map((keys) => ({ keys }))
-    return { vocabulary, definitions, sources, mentions, gaps, items }
+    return { vocabulary, definitions, familyMembers, sources, mentions, gaps, items }
   }
 
   function build(data: Awaited<ReturnType<typeof read>>) {
@@ -269,32 +289,28 @@ export function createCatalogueService(
     for (const row of data.vocabulary)
       if (row.kind === 'metric' && row.parentKey && families.has(row.parentKey))
         variantsOf.set(row.parentKey, [...(variantsOf.get(row.parentKey) ?? []), row])
-    // How each family was found and what tells its variants apart, worked out once over every live
-    // metric: a rate is a rate when it converts more than the one family's pair (D2).
+    // How each family was found and what tells its variants apart, worked out once over every
+    // metric the sources read, live or not: a rate is a rate when it converts more than the one
+    // family's pair (D2), whatever has been published.
+    const liveName = new Map(
+      data.vocabulary.flatMap((row) =>
+        row.kind === 'metric' ? row.definitionRefs.map((ref) => [ref, row.name] as const) : [],
+      ),
+    )
     let sourceFamilies: ReturnType<typeof familiesOf> | null = null
     const foundFamilies = () =>
       (sourceFamilies ??= familiesOf(
-        data.vocabulary.flatMap((row) => {
-          const own =
-            row.kind === 'metric'
-              ? row.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
-              : undefined
-          return own
-            ? [
-                {
-                  ref: own.ref,
-                  source: own.sourceId,
-                  name: own.name,
-                  said: row.name,
-                  variant: own.variantBy
-                    ? { shape: own.variantShape ?? '', by: own.variantBy }
-                    : null,
-                  declared: own.declared,
-                  builtFrom: own.builtFrom,
-                },
-              ]
-            : []
-        }),
+        data.familyMembers.map((own) => ({
+          ref: own.ref,
+          source: own.sourceId,
+          name: own.name,
+          said:
+            liveName.get(own.ref) ??
+            memberName({ name: own.name, title: own.title, baseName: own.baseName }),
+          variant: own.variantBy ? { shape: own.variantShape ?? '', by: own.variantBy } : null,
+          declared: own.declared,
+          builtFrom: own.builtFrom,
+        })),
       ))
     const dimensionNames = new Map(
       data.vocabulary

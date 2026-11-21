@@ -326,7 +326,11 @@ export function createNamesService(tx: Queryable) {
       throw new ORPCError('UNPROCESSABLE_CONTENT', {
         message: `“${renamed.name}” is live already. Rename it where it is edited.`,
       })
-    if (new Set([...picked, ...left].map((name) => name.key)).size !== picked.length + left.length)
+    const requested = [...input.accept.map(({ key }) => key), ...input.leaveOut]
+    if (
+      new Set(requested).size !== requested.length ||
+      new Set([...picked, ...left].map((name) => name.key)).size !== picked.length + left.length
+    )
       throw new ORPCError('CONFLICT', { message: 'Publish a name or leave it out, not both.' })
     const chosen = new Map(
       picked.map((name) => [
