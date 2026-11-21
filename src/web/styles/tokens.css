@@ -513,9 +513,11 @@
   --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -12px rgb(0 0 0 / 0.25);
 
   /* Sizes with a rule of their own: a dialog or sheet inside the window, a short caption's
-     measure, the safe area at the foot of a phone, the palette's place, the sidebar's rail and
+     measure, a name's start beside a long bracketed end that keeps its first letters, the safe
+     area at the foot of a phone, the palette's place, the sidebar's rail and
      the in-between sizes of switches, sheets, menus and popovers. */
   --container-inset: calc(100% - 2rem);
+  --container-name-start: calc(100% - 4.5rem);
   --container-viewport-inset: calc(100vw - 2rem);
   --container-caption: 46ch;
   --container-caption-wide: 48ch;

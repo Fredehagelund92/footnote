@@ -188,14 +188,14 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
 const endOf = (name: string) => /^(.*\S)(\s+\([^()]*\)(?:\s*\([^()]*\))*)$/.exec(name)
 
 /**
- * A name that gives its room to its start: "Clicks (partner platform)" is drawn whole while it fits,
- * and a narrow row cuts its bracketed end first, down to its first few letters ("Search clicks
- * (reported) (search_c…"), and only then the start: at 390 wide "Acquisition Channel First Touch
- * (orders)" reads "Acquisition Chan… (orders)", so two rows of one start stay apart. The end
- * shrinks a million times faster than the start, so the start loses not even a fraction of a pixel
- * (and its last letters to an ellipsis) while the end can give. The end's floor is a hidden copy no
- * wider than 4.5rem: never a width, which the row would take as the end's whole size. Either part
- * cut says the whole name on hover.
+ * A name that gives its room to its start: "Clicks (partner platform)" is drawn whole while it fits.
+ * A narrow row cuts a long bracketed end first, down to its first few letters ("Search clicks
+ * (reported) (search_c…"), and only then the start; a short end is never cut, so at 390 wide
+ * "Acquisition Channel First Touch (orders)" reads "Acquisition Chan… (orders)" and two rows of
+ * one start stay apart. A long end shrinks a million times faster than the start, so the start
+ * loses not even a fraction of a pixel (and its last letters to an ellipsis) while the end can
+ * give; the start leaves it 4.5rem. A cut start says the whole name on hover. No grid or hidden
+ * copy holds the end's floor: at 5,000 rows they slowed the list's scrolling by a fifth.
  */
 function NameKeepingEnd({ name, query }: { name: string; query: string }) {
   const end = endOf(name)
@@ -206,21 +206,20 @@ function NameKeepingEnd({ name, query }: { name: string; query: string }) {
       </TruncatedText>
     )
   const [, start = '', tail = ''] = end
+  // Sixteen characters are wider than 4.5rem, so the start's cap never cuts a name that fits.
+  const long = tail.length >= 16
   return (
     <span className="flex min-w-0">
-      <TruncatedText text={name}>
+      <TruncatedText text={name} className={cn(long && 'max-w-name-start')}>
         <Highlight text={start} query={query} />
       </TruncatedText>
-      <span className="grid shrink-1000000">
-        <span
-          aria-hidden
-          className="invisible col-start-1 row-start-1 h-0 max-w-18 overflow-clip whitespace-pre"
-        >
-          {tail}
-        </span>
-        <TruncatedText text={name} className="col-start-1 row-start-1 whitespace-pre">
-          <Highlight text={tail} query={query} />
-        </TruncatedText>
+      <span
+        className={cn(
+          'block min-w-0 truncate whitespace-pre',
+          long ? 'shrink-1000000' : 'shrink-0',
+        )}
+      >
+        <Highlight text={tail} query={query} />
       </span>
     </span>
   )

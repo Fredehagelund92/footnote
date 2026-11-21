@@ -14,10 +14,8 @@ const LONG = 'Net revenue after refunds'
 const drawn = (name: Locator) =>
   name.evaluate((button) => {
     const cut = (el: Element) => el.scrollWidth > el.clientWidth + 1
-    // The end is the last of its two parts, under the hidden copy that holds its first letters.
     const parts = button.querySelector(':scope > span')!
-    const start = parts.firstElementChild!
-    const end = parts.lastElementChild!.lastElementChild ?? parts.lastElementChild!
+    const [start, end] = [parts.firstElementChild!, parts.lastElementChild!]
     const cell = button.closest('td')!.getBoundingClientRect()
     return {
       start: { text: start.textContent, cut: cut(start) },

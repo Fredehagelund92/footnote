@@ -80,10 +80,7 @@ test.describe('390', () => {
     // The start of the name is cut, never its model: "(orders)" is drawn whole.
     const drawn = await second.evaluate((button) => {
       const cut = (el: Element) => el.scrollWidth > el.clientWidth + 1
-      const spans = [
-        button.querySelector(':scope > span > span:first-child')!,
-        button.querySelector(':scope > span > span:last-child > span:last-child')!,
-      ]
+      const spans = [...button.querySelectorAll(':scope > span > span')]
       return spans.map((span) => ({ text: span.textContent, cut: cut(span) }))
     })
     expect(drawn).toEqual([
