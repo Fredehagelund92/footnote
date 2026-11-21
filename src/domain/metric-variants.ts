@@ -125,18 +125,21 @@ function splitOn(entries: Entry[], side: 'end' | 'start') {
 }
 
 /**
- * How many words every name of a group starts with, to be taken off: those of the group's own
- * name ("paid_search_clicks" in "paid_search"), and none for a measure the names share
- * ("revenue_eur", "revenue_net_eur"), which stays to tell the measures apart.
+ * How many words every name of a group starts with, to be taken off: all of them, but for a
+ * prefix that is a measure the names share and leaves a bare currency code ("revenue_eur"), which
+ * stays to tell the measures apart.
  */
-function sharedStart(group: string, entries: readonly { words: string[] }[]) {
-  const own = group
-    .slice(group.lastIndexOf('.') + 1)
-    .toLowerCase()
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-  const shared = entries.every((entry) => own.every((word, at) => entry.words[at] === word))
-  return shared ? own.length : 0
+function sharedStart(group: readonly { words: string[] }[]) {
+  if (group.length < 2) return 0
+  const [first, ...rest] = group.map((entry) => entry.words)
+  let shared = 0
+  while (
+    shared < first!.length &&
+    rest.every((words) => words.length > shared && words[shared] === first![shared])
+  )
+    shared++
+  const bare = (words: string[]) => words.length - shared === 1 && currencies.has(words.at(-1)!)
+  return group.some((entry) => bare(entry.words)) ? 0 : shared
 }
 
 /**
@@ -159,7 +162,7 @@ export function variantShape(names: readonly string[]): VariantShape | null {
     else groups.set(entry.group, [entry])
   }
   const entries: Entry[] = read.map(({ group, words }) => {
-    const shared = sharedStart(group, groups.get(group)!)
+    const shared = sharedStart(groups.get(group)!)
     return { words: shared ? words.slice(shared) : words, variant: false }
   })
   const splits: VariantShape['splits'] = []

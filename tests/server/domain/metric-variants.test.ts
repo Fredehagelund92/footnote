@@ -44,6 +44,19 @@ describe('metrics that look like variants of a few', () => {
     expect(variantShape(names)).toMatchObject({ variants: 30, bases: 3 })
   })
 
+  it('takes the words every name of a model starts with off, and never reads them as an axis', () => {
+    const codes = ['eur', 'usd', 'gbp', 'chf', 'sek', 'nok', 'dkk', 'pln', 'cad', 'aud']
+    const names = codes.flatMap((code) =>
+      ['clicks', 'spend', 'leads'].map((measure) => `marketing.paid_search_${measure}_${code}`),
+    )
+    expect(variantShape(names)).toEqual({
+      variants: 30,
+      metrics: 30,
+      bases: 3,
+      splits: [{ words: 10, examples: ['EUR', 'USD', 'GBP'] }],
+    })
+  })
+
   it('names the real ways a project splits its metrics, when each group starts its names with its own', () => {
     // An invented dbt project: three ad channels, each a semantic model whose metrics start with
     // its name, with clicks and impressions, and spend per currency; and a shop's sales per
