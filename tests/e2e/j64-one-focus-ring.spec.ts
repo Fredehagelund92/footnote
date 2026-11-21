@@ -34,12 +34,15 @@ async function walk(page: Page, stops: number): Promise<Stop[]> {
     for (let tries = 0; tries < 8; tries++) {
       await page.waitForTimeout(150)
       stop = await read(page)
-      if (!stop || stop.looks.some((l) => /^(ring|outline) 3px /.test(l))) break
+      if (!stop || stop.looks.some((l) => /^(ring|outline) 3px /.test(l) && settled(l))) break
     }
     if (stop) found.push(stop)
   }
   return found
 }
+
+/** The alpha has arrived at 50 percent, or at the 25 percent of a field's box. */
+const settled = (look: string) => [0.5, 0.25].some((v) => Math.abs(alphaOf(look) - v) < 0.02)
 
 const read = (page: Page) =>
   page.evaluate((): Stop | null => {
@@ -98,11 +101,7 @@ for (const path of pages) {
       // One ring, not two laid over each other.
       expect(rings.length, `${stop.what}: ${rings.join(' | ')}`).toBe(1)
       // 50 percent; a field's box takes the calmer 25 percent (design contract 2.6).
-      const a = alphaOf(rings[0]!)
-      expect(
-        [0.5, 0.25].some((v) => Math.abs(a - v) < 0.02),
-        `${stop.what}: ${rings[0]}`,
-      ).toBe(true)
+      expect(settled(rings[0]!), `${stop.what}: ${rings[0]}`).toBe(true)
     }
   })
 }
