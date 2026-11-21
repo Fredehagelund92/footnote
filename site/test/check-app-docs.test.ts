@@ -95,6 +95,10 @@ describe("the app's Docs area and the site", () => {
     )
   })
 
+  it('leave no tag or comment behind when one is written inside another', () => {
+    expect(wordsOf('<<!-- -->script>x</script>a<<b>b>c<!<!-- -->-- x -->d')).toBe('acd')
+  })
+
   it('fail on a page only one of them has', () => {
     write('app/llms.txt', '- [Privacy](/docs/privacy): What is kept.\n- [Ask](/docs/ask): Ask.\n')
     expect(checkAppDocs(app, site, pages)).toEqual([

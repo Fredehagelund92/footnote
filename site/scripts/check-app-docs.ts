@@ -82,16 +82,28 @@ function without(html: string, opening: RegExp): string {
 const block =
   /^(?:p|div|li|ul|ol|h[1-6]|table|thead|tbody|tr|td|th|figure|figcaption|aside|pre|br|dl|dt|dd|section|blockquote|img)$/i
 
+/** The text after each rule is applied again and again until it no longer changes it. */
+function stripped(text: string, rules: [RegExp, (name: string) => string][]): string {
+  for (const [pattern, replacement] of rules) {
+    for (let before = ''; before !== text; ) {
+      before = text
+      text = text.replace(pattern, (_, name: string) => replacement(name))
+    }
+  }
+  return text
+}
+
 /**
  * The words a reader reads, the same however each renderer sets them: no tags, comments, scripts or
  * buttons, and the typographer's quotes and dashes the site sets as the plain ones the pages write.
  */
 export function wordsOf(html: string): string {
   return decode(
-    html
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/<(script|style|button)\b[\s\S]*?<\/\1>/gi, '')
-      .replace(/<\/?([a-z0-9-]+)\b[^>]*>/gi, (_, name: string) => (block.test(name) ? ' ' : '')),
+    stripped(html, [
+      [/<!--[\s\S]*?-->/g, () => ''],
+      [/<(script|style|button)\b[\s\S]*?<\/\1>/gi, () => ''],
+      [/<\/?([a-z0-9-]+)\b[^>]*>/gi, (name) => (block.test(name) ? ' ' : '')],
+    ]),
   )
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
