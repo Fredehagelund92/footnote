@@ -1004,7 +1004,8 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
       const last = out.at(-1)
       const led = last?.t === 'text' && LEADS_ON.test(last.text)
       const trails = trailing[n] && !led
-      if (trails && out.slice(from.run).some((x) => x.t === 'noun' && x.id === r.id)) {
+      const id = r.id
+      if (trails && out.slice(from.run).some((x) => x.t === 'noun' && x.id === id)) {
         vacated = true
         return
       }
