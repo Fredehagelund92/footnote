@@ -36,6 +36,14 @@ describe('metrics that look like variants of a few', () => {
     })
   })
 
+  it('takes no prefix off when a name would keep fewer than two words', () => {
+    const codes = ['eur', 'usd', 'gbp', 'chf', 'sek', 'nok', 'dkk', 'pln', 'cad', 'aud']
+    const names = codes.flatMap((code) =>
+      ['revenue', 'revenue_net', 'revenue_gross'].map((measure) => `sales.${measure}_${code}`),
+    )
+    expect(variantShape(names)).toMatchObject({ variants: 30, bases: 3 })
+  })
+
   it('names the real ways a project splits its metrics, when each group starts its names with its own', () => {
     // An invented dbt project: three ad channels, each a semantic model whose metrics start with
     // its name, with clicks and impressions, and spend per currency; and a shop's sales per

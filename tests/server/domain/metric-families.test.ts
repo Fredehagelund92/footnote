@@ -9,6 +9,7 @@ import {
   type VariantMember,
 } from '../../../src/domain/metric-families.ts'
 import { searchScope } from '../../../src/domain/scope-search.ts'
+import { asSuggested } from '../../../src/domain/suggested-names.ts'
 import { sourceNames, type WordHolders } from '../../../src/domain/source-names.ts'
 import type { Term } from '../../../src/domain/vocabulary.ts'
 import type { CandidateMember, KnownTerm } from '../../../src/domain/term-candidates.ts'
@@ -187,6 +188,22 @@ describe('families on the Names card', () => {
       'group:revenue',
     ])
     expect(revenue!.definitionRefs).toHaveLength(6)
+  })
+
+  it('never publishes a family as suggested because a plain metric has its name', () => {
+    const plain: CandidateMember = {
+      ...shop([['revenue', 'Revenue', 'a']])[0]!,
+      ref: 'dbt:returns.revenue',
+      name: 'returns.revenue',
+      title: 'Revenue',
+      variant: null,
+    }
+    const names = sourceNames([...shop([['revenue', 'Revenue', 'a']]), plain], [], none, new Set())
+    expect(names.find((n) => n.kind === 'metric_group')).toMatchObject({
+      state: 'flagged',
+      flags: [{ code: 'same_name' }],
+    })
+    expect(asSuggested(names)).toEqual([])
   })
 
   it('flags a family whose name has another meaning, and leaves it out with its variants', () => {
