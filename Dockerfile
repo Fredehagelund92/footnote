@@ -74,7 +74,8 @@ CMD ["sh", "-c", "[ \"$NODE_ENV\" = production ] || export CUBE_MODEL_DIR=\"${CU
 FROM nginx:1.31-alpine@sha256:0563c36f94a6d3ec3584161b77859f740f7e20b4853f52c796a864ce6908e8ea AS web
 # nginx as its own user, not root: no `user` line (that needs root), its pid file and the
 # config the entrypoint writes from the template in places that user owns.
-RUN sed -i '/^user /d; s,^pid .*,pid /tmp/nginx.pid;,' /etc/nginx/nginx.conf \
+RUN apk upgrade --no-cache libxml2 \
+    && sed -i '/^user /d; s,^pid .*,pid /tmp/nginx.pid;,' /etc/nginx/nginx.conf \
     && rm /etc/nginx/conf.d/default.conf \
     && chown -R nginx:nginx /var/cache/nginx /etc/nginx/conf.d
 COPY docker/web.conf.template /etc/nginx/templates/default.conf.template
