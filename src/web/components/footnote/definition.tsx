@@ -523,7 +523,7 @@ export function DefinitionDetails({
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
   const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
   const mentioned = related.links.length > 0
-  const hasDetails = !!d.values || (d.synced && !!(d.ref || d.changed)) || mentioned
+  const hasDetails = !!d.values || (d.synced && !!(d.ref || d.changed || d.sourceNames.length > 0)) || mentioned
   // The meaning is the page; then one quiet line on where it comes from, and the rest folded into Details.
   return (
     <div className="flex flex-col gap-5">
