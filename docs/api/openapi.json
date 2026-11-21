@@ -66750,41 +66750,48 @@
                                     }
                                   },
                                   "meaning": {
-                                    "type": "object",
-                                    "properties": {
-                                      "source": {
-                                        "enum": [
-                                          "declared",
-                                          "member",
-                                          "written",
-                                          "common",
-                                          "base",
-                                          "none"
-                                        ],
-                                        "type": "string"
-                                      },
-                                      "words": {
-                                        "anyOf": [
-                                          {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "source": {
+                                            "enum": [
+                                              "declared",
+                                              "member",
+                                              "written",
+                                              "common",
+                                              "base",
+                                              "none"
+                                            ],
                                             "type": "string"
                                           },
-                                          {
-                                            "type": "null"
+                                          "words": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          "agree": {
+                                            "type": "number"
+                                          },
+                                          "differing": {
+                                            "type": "number"
                                           }
+                                        },
+                                        "required": [
+                                          "source",
+                                          "words",
+                                          "agree",
+                                          "differing"
                                         ]
                                       },
-                                      "agree": {
-                                        "type": "number"
-                                      },
-                                      "differing": {
-                                        "type": "number"
+                                      {
+                                        "type": "null"
                                       }
-                                    },
-                                    "required": [
-                                      "source",
-                                      "words",
-                                      "agree",
-                                      "differing"
                                     ]
                                   }
                                 },
@@ -67299,41 +67306,48 @@
                                         }
                                       },
                                       "meaning": {
-                                        "type": "object",
-                                        "properties": {
-                                          "source": {
-                                            "enum": [
-                                              "declared",
-                                              "member",
-                                              "written",
-                                              "common",
-                                              "base",
-                                              "none"
-                                            ],
-                                            "type": "string"
-                                          },
-                                          "words": {
-                                            "anyOf": [
-                                              {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "source": {
+                                                "enum": [
+                                                  "declared",
+                                                  "member",
+                                                  "written",
+                                                  "common",
+                                                  "base",
+                                                  "none"
+                                                ],
                                                 "type": "string"
                                               },
-                                              {
-                                                "type": "null"
+                                              "words": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "agree": {
+                                                "type": "number"
+                                              },
+                                              "differing": {
+                                                "type": "number"
                                               }
+                                            },
+                                            "required": [
+                                              "source",
+                                              "words",
+                                              "agree",
+                                              "differing"
                                             ]
                                           },
-                                          "agree": {
-                                            "type": "number"
-                                          },
-                                          "differing": {
-                                            "type": "number"
+                                          {
+                                            "type": "null"
                                           }
-                                        },
-                                        "required": [
-                                          "source",
-                                          "words",
-                                          "agree",
-                                          "differing"
                                         ]
                                       }
                                     },

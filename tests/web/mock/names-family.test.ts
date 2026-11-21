@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { sourceNames } from '@domain/source-names'
+import type { CandidateMember } from '@domain/term-candidates'
 import { termWord } from '@domain/terms'
 import { createMockNames } from '@/api/mock/names'
 
@@ -137,5 +139,35 @@ describe('the mock refusing what the service refuses', () => {
       .catch((error: Error) => error)
     expect(refusal).toBeInstanceOf(Error)
     expect((refusal as Error).message).toContain('not both')
+  })
+})
+
+describe('what a converted pair would mean on the Names card', () => {
+  const pair = (code: 'EUR' | 'USD'): CandidateMember => ({
+    ref: `dbt:orders.accrued_share_${code.toLowerCase()}`,
+    source: 'dbt',
+    kind: 'metric',
+    name: `orders.accrued_share_${code.toLowerCase()}`,
+    title: `Accrued share (${code})`,
+    description: code === 'EUR' ? 'What partners earned, in euros.' : null,
+    valueType: 'sum',
+    areaHint: 'sales',
+    synonyms: [],
+    baseName: null,
+    mergeDimensions: 'never',
+    builtFrom: {
+      refs: [],
+      columns: code === 'EUR' ? ['accrued_share_eur'] : ['accrued_share_eur', 'exchange_rate_usd'],
+    },
+  })
+
+  it("reads the base variant's words when only it has any", () => {
+    const family = sourceNames([pair('EUR'), pair('USD')], [], new Map(), new Set()).find(
+      (name) => name.kind === 'metric_group',
+    )!
+    expect(family.family!.meaning).toMatchObject({
+      source: 'base',
+      words: 'What partners earned, in euros.',
+    })
   })
 })

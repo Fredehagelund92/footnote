@@ -242,13 +242,16 @@ export const sourceNameSchema = z.object({
        * What it would mean once published (M1), as the catalogue works it out from its variants'
        * own words: their common words, each value as the axis it stands for ("in {Currency}"), or
        * none. `agree` counts the variants that share them, `differing` those that say otherwise.
+       * Null for a family already live, whose meaning its page gives.
        */
-      meaning: z.object({
-        source: z.enum(familyMeaningSources),
-        words: z.nullable(z.string()),
-        agree: z.number(),
-        differing: z.number(),
-      }),
+      meaning: z.nullable(
+        z.object({
+          source: z.enum(familyMeaningSources),
+          words: z.nullable(z.string()),
+          agree: z.number(),
+          differing: z.number(),
+        }),
+      ),
     }),
   ),
 })

@@ -33,6 +33,7 @@ function whyOne(name: Suggested, familyBy: FamilyParts['familyBy']): string {
 /** Where the words it would mean come from, in one line; empty for none, which says why itself. */
 function sourceSaid(name: Suggested): string {
   const { meaning, variants } = name.family
+  if (!meaning) return ''
   if (meaning.source === 'declared') return `Written for the family in ${name.tool}`
   if (meaning.source !== 'common') return ''
   return meaning.agree === variants
@@ -74,12 +75,13 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
   const name = found as Suggested
   const { family } = name
   const revision = read.data.revision
+  const joining = name.linked.length > 0
   const domain = name.areaId ? domains[name.areaId] : undefined
   const owners = domain?.owners ?? []
   // Its tool declares it one family, or it is live already and gains variants: no other answer.
-  const mayKeepApart = !name.linked.length && family.found !== 'declared'
+  const mayKeepApart = !joining && family.found !== 'declared'
   const problems = name.flags.filter((flag) => flag.code !== 'look_alike')
-  const meaning = {
+  const meaning = family.meaning && {
     source: family.meaning.source,
     words: family.meaning.words,
     differing: [],
@@ -134,13 +136,21 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
     >
       <P.PeekBands>
         <P.PeekBand first>
-          <FamilyHead name={name.name} family={family} count={family.variants} suggested />
-          <p className="mt-3 text-base leading-7 text-pretty">
-            <P.MeaningWords meaning={meaning} by={family.by} />
-          </p>
+          <FamilyHead
+            name={name.name}
+            family={family}
+            count={family.variants}
+            suggested
+            joining={joining}
+          />
+          {meaning && (
+            <p className="mt-3 text-base leading-7 text-pretty">
+              <P.MeaningWords meaning={meaning} by={family.by} />
+            </p>
+          )}
           {source && (
             <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
-              {family.meaning.source === 'declared' ? (
+              {family.meaning?.source === 'declared' ? (
                 <P.LockIcon aria-hidden className="mt-0.75 size-3.5 shrink-0" />
               ) : (
                 <P.SparklesIcon aria-hidden className="mt-0.75 size-3.5 shrink-0" />
@@ -148,7 +158,7 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
               <span className="min-w-0">{source}</span>
             </p>
           )}
-          {family.meaning.words && family.meaning.differing > 0 && (
+          {family.meaning?.words && family.meaning.differing > 0 && (
             <P.PeekAttention icon={P.TriangleAlertIcon}>
               {family.meaning.differing === 1
                 ? '1 variant says'
@@ -167,7 +177,10 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
           >
             <P.LayersIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <p className="min-w-0 text-pretty">
-              {whyOne(name, P.familyBy)} Published as a family, people and agents see one name.{' '}
+              {whyOne(name, P.familyBy)}{' '}
+              {joining
+                ? 'These variants join the live family.'
+                : 'Published as a family, people and agents see one name.'}{' '}
               {domain ? `An owner of ${domain.name} decides.` : 'An admin decides.'}
             </p>
           </div>
@@ -203,7 +216,12 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
         <P.PeekBand flush>
           <P.PeekDetails
             rows={[
-              ['Type', 'Family of metrics, not published yet'],
+              [
+                'Type',
+                joining
+                  ? 'Family of metrics, with new variants waiting'
+                  : 'Family of metrics, not published yet',
+              ],
               [
                 `${name.tool} names`,
                 <RefsSaid

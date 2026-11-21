@@ -48,11 +48,13 @@ export function FamilyHead({
   family,
   count,
   suggested,
+  joining,
 }: {
   name: string
   family: Pick<Family, 'by'>
   count: number
   suggested?: boolean
+  joining?: boolean
 }) {
   const P = useParts()
   return (
@@ -63,8 +65,10 @@ export function FamilyHead({
         {name}
       </P.PeekTitle>
       <p className="mt-1 pl-10 text-sm text-pretty text-muted-foreground">
-        {suggested ? 'Suggested family' : 'Family'} of {n(count)} metrics,{' '}
-        {P.familyBy({ by: family.by, variants: [] })}
+        {joining
+          ? `Family of ${n(count)} new ${count === 1 ? 'variant' : 'variants'}`
+          : `${suggested ? 'Suggested family' : 'Family'} of ${n(count)} metrics`}
+        , {P.familyBy({ by: family.by, variants: [] })}
       </p>
     </>
   )

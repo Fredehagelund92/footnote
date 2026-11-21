@@ -12,6 +12,7 @@
  */
 import { agreedDomain } from './catalogue.ts'
 import type { FamilyFound } from './family-found.ts'
+import { conversionsOf } from './definition-relations.ts'
 import { axisValues, familyMeaning, type FamilyMeaning } from './family-meaning.ts'
 import { axisWords, byWords, declaredWords, familiesOf, type Family } from './metric-families.ts'
 import { viewOf } from './source-views.ts'
@@ -306,7 +307,22 @@ function withFamilies(
     const declared = declaredWords(
       entry.family.variants.map(({ ref }) => memberOf.get(ref)?.declared?.description),
     )
-    return { ...entry, plain, name, declared: declared ?? null }
+    const keyOf = new Map(
+      entry.variants.flatMap((variant) =>
+        variant.definitionRefs.map((ref) => [ref, variant.key] as const),
+      ),
+    )
+    const conversions = conversionsOf(
+      entry.family.variants.flatMap(({ ref }) => {
+        const member = memberOf.get(ref)
+        return member?.builtFrom ? [{ ref, name: member.name, builtFrom: member.builtFrom }] : []
+      }),
+    ).flatMap((conversion) => {
+      const from = keyOf.get(conversion.from)
+      const to = keyOf.get(conversion.to)
+      return from && to ? [{ from, to }] : []
+    })
+    return { ...entry, plain, name, declared: declared ?? null, conversions }
   })
   const made = named.map((entry) =>
     familyName(
@@ -368,6 +384,8 @@ type NamedFamily = {
   name: string
   /** The words its tool writes for the family; null when it writes none, or several. */
   declared: string | null
+  /** Which variant is converted from which, by their keys. */
+  conversions: { from: string; to: string }[]
 }
 
 /**
@@ -375,7 +393,7 @@ type NamedFamily = {
  * or another new family whose name reads as its own is flagged, as two metrics of one name are.
  */
 function familyName(
-  { family, key, group, variants, plain, name, declared }: NamedFamily,
+  { family, key, group, variants, plain, name, declared, conversions }: NamedFamily,
   others: readonly NamedFamily[],
   holders: WordHolders,
   names: readonly SourceName[],
@@ -445,7 +463,7 @@ function familyName(
           values: values[i]!,
           description: variant.description,
         })),
-        conversions: [],
+        conversions,
         declared,
         chosen: null,
       }),
@@ -473,12 +491,14 @@ export function familyRead(name: Pick<SourceName, 'family' | 'linked'>) {
       family.by,
       family.values.map((values) => ({ values })),
     ),
-    meaning: {
-      source: family.meaning.source,
-      words: family.meaning.words,
-      agree: family.meaning.common?.agree ?? 0,
-      differing: family.meaning.differing.length,
-    },
+    meaning: name.linked.length
+      ? null
+      : {
+          source: family.meaning.source,
+          words: family.meaning.words,
+          agree: family.meaning.common?.agree ?? 0,
+          differing: family.meaning.differing.length,
+        },
   }
 }
 
