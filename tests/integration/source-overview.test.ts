@@ -271,6 +271,7 @@ describe('the sources an admin reads (CON-104)', () => {
       dimensions: 1,
       groups: 2,
       groupsWithoutDomain: 1,
+      notSelected: 0,
       flagged: 0,
     })
   })

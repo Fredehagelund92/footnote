@@ -381,7 +381,8 @@ export const sourceRowSchema = z.object({
   failures: count,
   /**
    * A definitions source: the metrics and dimensions its copy holds, its groups (a Cube view) and
-   * how many of them map to no domain, and the live items flagged by a change to one of them.
+   * how many of them map to no domain, how many the last good read found that the approved set
+   * leaves out, and the live items flagged by a change to one of them.
    */
   definitions: z.nullable(
     z.object({
@@ -389,6 +390,7 @@ export const sourceRowSchema = z.object({
       dimensions: count,
       groups: count,
       groupsWithoutDomain: count,
+      notSelected: count,
       flagged: count,
     }),
   ),

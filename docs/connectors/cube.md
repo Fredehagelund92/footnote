@@ -103,7 +103,7 @@ Taking a view out of the list marks its definitions missing at the next read. Ea
 
 Before you save, the app names the views left out and those items, and Save waits until you say you have seen them. Listing the view again clears the marks, and it keeps the domain it was mapped to.
 
-A view the model adds later is not read until it is chosen. The admins get one card in the Inbox, **New views not chosen**, which opens Choose.
+A view the list leaves out is a choice, not a warning: the source's page counts the views not selected. A view the model adds later is not read until it is chosen. The admins get one card in the Inbox, **New views not chosen**, which opens Choose.
 
 The server's file is read at each read. A file that is not a JSON list of names, each once, fails the read rather than reading every view.
 
@@ -181,7 +181,6 @@ A model of 10,000 members takes about 45 seconds. An empty or unreadable model f
 | `too_many_records` | The folder holds too many files             |
 | `group_not_found`  | A listed view is not in the model           |
 | `no_groups_chosen` | The list of views is empty: nothing is read |
-| `group_not_chosen` | A view in the model is not in the list      |
 
 ## Figures in Ask
 

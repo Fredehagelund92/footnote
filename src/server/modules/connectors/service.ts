@@ -161,10 +161,11 @@ export class ConnectorService {
         source_version: string | null
         definitions_seen: number
         warnings: SourceWarning[]
+        not_selected: string[]
         content_digest: Buffer | null
         mark_version: number | null
       }>(
-        `select id, source_version, definitions_seen, warnings, content_digest, mark_version
+        `select id, source_version, definitions_seen, warnings, not_selected, content_digest, mark_version
            from connector_snapshots where connector_id=$1 and status <> 'failed'
           order by fetched_at desc limit 1`,
         [source.id],
@@ -250,8 +251,8 @@ export class ConnectorService {
       const status = snapshot ? (snapshot.complete ? 'ok' : 'partial') : 'failed'
       const [saved] = await tx.query<{ id: string }>(
         `insert into connector_snapshots
-         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision,mark_version)
-         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+         (connector_id,source_version,status,fetched_at,duration_ms,definitions_seen,warnings,error,content_digest,cursor,settings_revision,mark_version,not_selected)
+         values ($1,$2,$3,clock_timestamp(),$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
         [
           source.id,
           kept ? kept.source_version : (snapshot?.sourceVersion ?? null),
@@ -269,6 +270,7 @@ export class ConnectorService {
           kind.revision,
           // A kept read stands for the marks the last one stored.
           kept ? kept.mark_version : source.markVersion,
+          kept ? kept.not_selected : (snapshot?.notSelected ?? []),
         ],
       )
       const snapshotId = saved!.id

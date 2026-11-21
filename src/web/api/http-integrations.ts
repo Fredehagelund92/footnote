@@ -181,6 +181,7 @@ export function sourceOf(row: SourceRow, now: Date): Source | null {
           dimensions: row.definitions.dimensions,
           views: row.definitions.groups,
           noDomain: row.definitions.groupsWithoutDomain,
+          notSelected: row.definitions.notSelected,
           flagged: row.definitions.flagged,
         }
       : null,

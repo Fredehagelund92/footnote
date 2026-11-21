@@ -315,22 +315,20 @@ const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
       `with fresh as (
          select c.id, c.name, c.revision, array(
                   select g from (
-                    select w->>'target' as g from jsonb_array_elements(last.warnings) w
-                     where w->>'code' = 'group_not_chosen'
+                    select unnest(last.not_selected) as g
                     except
-                    select w->>'target' from jsonb_array_elements(base.warnings) w
-                     where w->>'code' = 'group_not_chosen') n
+                    select unnest(base.not_selected)) n
                    where not exists (
                      select 1 from definitions d
                       where d.connector_id = c.id
                         and substring(d.name from '^(.+)\\.[^.]*$') = n.g)
                    order by g collate "C") as groups
            from connectors c
-           join lateral (select s.warnings from connector_snapshots s
+           join lateral (select s.not_selected from connector_snapshots s
                           where s.connector_id = c.id and s.status in ('ok', 'partial')
                           order by s.fetched_at desc limit 1) last on true
-           join lateral (select s.warnings from connector_snapshots s
-                          where s.connector_id = c.id and s.status in ('ok', 'partial')
+           join lateral (select s.not_selected from connector_snapshots s
+                          where s.connector_id = c.id and s.status = 'ok'
                             and s.settings_revision = c.revision
                           order by s.fetched_at limit 1) base on true
           where c.enabled and c.kind = 'definition_source' and not c.all_groups)

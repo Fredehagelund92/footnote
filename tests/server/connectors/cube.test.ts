@@ -309,11 +309,9 @@ describe('offline Cube source', () => {
     expect(two.complete).toBe(true)
     expect(two.groups).toEqual(['sales', 'marketing', 'warehouse'])
     expect(two.warnings).toContainEqual({ code: 'group_not_found', target: 'warehouse' })
-    // Each view the list leaves out is named, so one the model adds later is seen.
-    expect(two.warnings.filter((w) => w.code === 'group_not_chosen')).toEqual([
-      { code: 'group_not_chosen', target: 'growth' },
-      { code: 'group_not_chosen', target: 'operations' },
-    ])
+    // Each view the list leaves out is named apart from the warnings, so one the model adds later
+    // is seen.
+    expect(two.notSelected).toEqual(['growth', 'operations'])
     // What the read said of a view left out says nothing now: operations has no domain.
     expect(two.warnings).not.toContainEqual({ code: 'missing_domain', target: 'operations' })
     // One view taken out of the list: the cube it shared stays read through the other.

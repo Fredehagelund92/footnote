@@ -90,7 +90,6 @@ export const sourceWarningCodes = [
   'rate_limited',
   'group_not_found',
   'no_groups_chosen',
-  'group_not_chosen',
 ] as const
 export type SourceWarningCode = (typeof sourceWarningCodes)[number]
 

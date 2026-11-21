@@ -710,8 +710,9 @@ Where the build differs from the decided text above:
   complete read marks its definitions missing and flags the live items that rely on them; each
   listed group the read did not find is named (`group_not_found`), a list of none reads
   nothing and says so (`no_groups_chosen`), never every group, and each group the read found that
-  the list leaves out is named too (`group_not_chosen`), so the alert rule New views not chosen can
-  tell the administrators of one the tool adds later. Before a change stops reading a
+  the list leaves out is a choice, not a warning: it is kept apart from the warnings
+  (`SourceSnapshot.notSelected`, `connector_snapshots.not_selected`), so the alert rule New views
+  not chosen can tell the administrators of one the tool adds later. Before a change stops reading a
   definition a live item relies on, `POST /api/v1/sources/{id}/left-out` names what it leaves
   behind, and the change needs `acceptLeftOut` (`withChosenGroups` and `withListedGroups` in
   `platform.ts`). A group a change leaves out keeps the domain it was mapped to
