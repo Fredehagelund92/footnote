@@ -462,54 +462,116 @@ function ItemCard({ item }: { item: LoopItem }) {
   )
 }
 
+/** The characters a run takes as the answer draws it: what the reveal counts (`Runs` `upTo`). */
+export function runLength(run: LoopRun, nouns: Nouns): number {
+  switch (run.t) {
+    case 'text':
+      return run.text.length
+    case 'noun':
+      return (nouns.get(run.id)?.name ?? key(run.id)).length
+    case 'cite':
+      return 1
+    case 'count':
+      return run.value.length + (run.of ? run.of.length + 1 : 0)
+    case 'date':
+      return dayText(run.day).length
+  }
+}
+
+/** How a word, a chip or a mark comes in as the words are revealed: a fade (none with reduced motion). */
+const wordIn = 'animate-in fade-in-0 duration-(--ask-word-fade)'
+
 /**
  * Runs of words as the answer draws them. A noun gets its chip the first time the answer names it
- * (`seen`), plain words after; punctuation right after a chip stays with it on the line.
+ * (`seen`), plain words after; punctuation right after a chip stays with it on the line. With
+ * `upTo`, only that many characters show (`runLength`): plain words a whole word at a time, a chip,
+ * mark, count or day whole once the reveal is past it, each fading in as it comes.
  */
 export function Runs({
   runs,
   nouns,
   items,
   seen,
+  upTo,
 }: {
   runs: readonly LoopRun[]
   nouns: Nouns
   items: ReadonlyMap<number, LoopItem>
   seen?: Set<string>
+  upTo?: number
 }) {
+  // Where each run ends, in the characters the reveal counts.
+  const ends: number[] = []
+  for (const r of runs) ends.push((ends.at(-1) ?? 0) + runLength(r, nouns))
   return (
     <>
       {runs.map((r, i) => {
-        switch (r.t) {
-          case 'text':
-            return <React.Fragment key={i}>{r.text}</React.Fragment>
-          case 'noun': {
-            if (seen?.has(r.id))
-              return <React.Fragment key={i}>{nouns.get(r.id)?.name ?? key(r.id)}</React.Fragment>
-            seen?.add(r.id)
-            return <NounChip key={i} id={r.id} nouns={nouns} told={toldAfter(runs[i + 1], r.id)} />
-          }
-          case 'cite':
-            return <CiteMark key={i} n={r.n} item={items.get(r.n)} />
-          case 'count':
-            return (
-              <React.Fragment key={i}>
-                <span className="font-semibold tabular-nums">{r.value}</span>
-                {r.of && ` ${r.of}`}
-              </React.Fragment>
-            )
-          case 'date':
-            return (
-              <time
-                key={i}
-                dateTime={r.day}
-                className="tabular-nums underline decoration-dotted underline-offset-4"
-              >
-                {dayText(r.day)}
-              </time>
-            )
-        }
+        const from = i ? ends[i - 1]! : 0
+        // Plain words go a word at a time, the same spans from the first word to the last, so a
+        // word that is in never fades in again.
+        if (upTo !== undefined && r.t === 'text')
+          return <Typed key={i} text={r.text} upTo={upTo - from} />
+        if (upTo !== undefined && ends[i]! > upTo) return null
+        const drawn = run(r, i)
+        return upTo === undefined ? (
+          drawn
+        ) : (
+          <span key={i} className={wordIn}>
+            {drawn}
+          </span>
+        )
       })}
+    </>
+  )
+
+  function run(r: LoopRun, i: number) {
+    switch (r.t) {
+      case 'text':
+        return <React.Fragment key={i}>{r.text}</React.Fragment>
+      case 'noun': {
+        if (seen?.has(r.id))
+          return <React.Fragment key={i}>{nouns.get(r.id)?.name ?? key(r.id)}</React.Fragment>
+        seen?.add(r.id)
+        return <NounChip key={i} id={r.id} nouns={nouns} told={toldAfter(runs[i + 1], r.id)} />
+      }
+      case 'cite':
+        return <CiteMark key={i} n={r.n} item={items.get(r.n)} />
+      case 'count':
+        return (
+          <React.Fragment key={i}>
+            <span className="font-semibold tabular-nums">{r.value}</span>
+            {r.of && ` ${r.of}`}
+          </React.Fragment>
+        )
+      case 'date':
+        return (
+          <time
+            key={i}
+            dateTime={r.day}
+            className="tabular-nums underline decoration-dotted underline-offset-4"
+          >
+            {dayText(r.day)}
+          </time>
+        )
+    }
+  }
+}
+
+/**
+ * Plain words cut at a reveal: the whole words within `upTo` characters, each fading in, with the
+ * spaces before them, and those after the last word, so a chip or a day after them keeps its space.
+ */
+function Typed({ text, upTo }: { text: string; upTo: number }) {
+  const words = [...text.matchAll(/\s*\S+(?:\s+$)?|^\s+$/g)].filter(
+    (m) => m.index + m[0].length <= upTo,
+  )
+  return (
+    <>
+      {words.map((m) => (
+        <span key={m.index} className={wordIn}>
+          {m[0]}
+        </span>
+      ))}
     </>
   )
 }

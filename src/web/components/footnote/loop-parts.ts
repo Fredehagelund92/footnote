@@ -2,8 +2,10 @@ import { toast } from 'sonner'
 import {
   ArrowLeftRightIcon,
   ArrowRightIcon,
+  ArrowUpRightIcon,
   AtSignIcon,
   BellIcon,
+  BookOpenIcon,
   CalendarClockIcon,
   CalendarIcon,
   CheckIcon,
@@ -35,6 +37,7 @@ import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { useWrite } from '@/api/queries'
 import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
+import { docHref } from '@/lib/doc-links'
 import { openDock } from '@/lib/dock'
 import { ANSWER_LINES } from '@/lib/help-content'
 import { href } from '@/lib/router'
@@ -56,8 +59,10 @@ export const loopParts = {
   toast,
   ArrowLeftRightIcon,
   ArrowRightIcon,
+  ArrowUpRightIcon,
   AtSignIcon,
   BellIcon,
+  BookOpenIcon,
   CalendarClockIcon,
   CalendarIcon,
   CheckIcon,
@@ -92,6 +97,7 @@ export const loopParts = {
   useWrite,
   PRODUCT,
   useDefinitions,
+  docHref,
   openDock,
   useReadAhead,
   useReadCitedAhead,

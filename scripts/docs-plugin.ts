@@ -11,7 +11,7 @@ import {
   type Docs,
 } from '../src/domain/docs.ts'
 import { drawnWidth, pictureSize } from './picture-size.ts'
-import { readDocs } from './docs-read.ts'
+import { readDocs } from '../src/server/docs-read.ts'
 
 /*
   The documentation's pages (docs/help) for the app, the static docs site and their tests, read

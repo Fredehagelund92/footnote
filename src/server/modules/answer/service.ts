@@ -55,29 +55,39 @@ async function headBefore(tx: Queryable): Promise<Head | null> {
 }
 
 /**
- * The bundles answers are read from, by edition and overlay, kept for 15 seconds like the agents'
- * edition source keeps them, so a look-up does not read the whole edition each time. A bundle is
- * what agents get, the same for every person (its reads are the security definer serving
- * functions), so one bundle serves everyone. A new publish, a stop switch, a term written or a
- * sync is a new key, so Ask reads a word as agents do from the next question.
+ * The bundles answers are read from, by edition, overlay and terms mark, kept until their key
+ * changes, so a look-up does not read the whole edition each time. A bundle is what agents get,
+ * the same for every person (its reads are the security definer serving functions), so one bundle
+ * serves everyone. A new publish, a stop switch, a term written or a sync is a new key, so Ask
+ * reads a word as agents do from the next question. The `capacity` bundles used last are kept.
  */
-export function createBundleCache(capacity = 4, ttl = 15_000, now = () => Date.now()) {
-  const cache = new Map<string, { bundle: Promise<ServingBundle>; expires: number }>()
+export function createBundleCache(capacity = 4) {
+  const cache = new Map<string, Promise<ServingBundle>>()
   return {
     bundle(tx: Queryable, head: Head): Promise<ServingBundle> {
       const key = `${head.seq}:${head.overlay}:${head.terms ?? ''}`
       const cached = cache.get(key)
-      if (cached && cached.expires > now()) return cached.bundle
-      const bundle = loadServingBundle(tx, head)
-      cache.set(key, { bundle, expires: now() + ttl })
+      // Used now: it is the last to go.
+      cache.delete(key)
+      const bundle = cached ?? loadServingBundle(tx, head)
+      cache.set(key, bundle)
       // A failed read is not kept: the next request reads again.
-      bundle.catch(() => cache.delete(key))
+      if (!cached) bundle.catch(() => cache.delete(key))
       while (cache.size > capacity) cache.delete(cache.keys().next().value!)
       return bundle
     },
   }
 }
 export type BundleCache = ReturnType<typeof createBundleCache>
+
+/**
+ * The live edition's key: its edition, overlay and terms mark, which a publish, a stop switch, a
+ * word written or a sync changes. Null when nothing is shared yet.
+ */
+export async function liveEditionKey(tx: Queryable): Promise<string | null> {
+  const head = await liveHead(tx)
+  return head && `${head.seq}:${head.overlay}:${head.terms ?? ''}`
+}
 
 /** What agents get now, from the cache; refused when nothing is shared yet. */
 export async function liveBundle(tx: Queryable, cache: BundleCache): Promise<ServingBundle> {
