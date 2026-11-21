@@ -247,3 +247,112 @@ describe('the records tool (FR-720.3)', () => {
     expect(read({ about: ['Orders', 'Atlantis'] })).toEqual({ error: '"Atlantis" names nothing.' })
   })
 })
+
+describe('a family of metrics in Ask (FR-142)', () => {
+  const term = (key: string, name: string, kind: string, parentKey: string | null = null) => ({
+    key,
+    name,
+    kind,
+    parentKey,
+    aliases: [],
+    definitionRefs: [],
+  })
+  const variants = ['metric:revenue_aed_app', 'metric:revenue_eur_web', 'metric:revenue_usd_web']
+  const family = {
+    key: 'group:revenue',
+    kind: 'metric',
+    id: 'revenue',
+    name: 'Revenue',
+    aliases: [],
+    group: null,
+    domain: { areaId: 'area_sales', source: 'vocabulary' },
+    definition: {
+      ref: 'dbt:orders.revenue_aed_app',
+      name: 'orders.revenue_aed_app',
+      title: null,
+      descriptionCopy: null,
+      valueType: null,
+      state: 'current',
+      renamedTo: null,
+      changedAt: null,
+      readAt: null,
+      sourceId: 'dbt',
+      tool: 'dbt',
+      connector: 'dbt-metricflow',
+    },
+    definitions: [],
+    status: 'in_sync',
+    shelf: {
+      items: 0,
+      byKind: { note: 0, event: 0, guide: 0, issue: 0 },
+      needsALook: 0,
+      activeIssues: 0,
+      ended: 0,
+      gaps: 0,
+      mentionedBy: 0,
+      lastUpdated: null,
+    },
+    family: {
+      by: ['Currency', 'Channel'],
+      derivations: [],
+      variants: variants.map((key) => ({
+        key,
+        name: `${key} variant`,
+        aliases: [],
+        values: [],
+        state: null,
+        items: 0,
+      })),
+    },
+  }
+  const reads = {
+    ...noReads,
+    bundle: () =>
+      Promise.resolve({
+        items: [],
+        terms: [
+          term('group:revenue', 'Revenue', 'metric_group'),
+          ...variants.map((key) => term(key, `${key} variant`, 'metric')),
+        ],
+      }),
+    index: () => Promise.resolve({ items: [] }),
+    areas: () => Promise.resolve([{ id: 'area_sales', name: 'Sales', ownerIds: [] }]),
+    people: () => Promise.resolve([]),
+    catalogue: () => Promise.resolve({ terms: [family] }),
+    glossary: () => Promise.resolve({ terms: [] }),
+    asked: () => Promise.resolve({ asked: { week: '2026-10-19', rows: [] }, minimum: 5 }),
+    records: () =>
+      Promise.resolve([
+        item({ id: 'itm_f', title: 'On the family', metrics: ['group:revenue'] }),
+        item({ id: 'itm_v', title: 'On one variant', metrics: ['metric:revenue_eur_web'] }),
+        item({ id: 'itm_o', title: 'On orders', metrics: ['metric:orders'] }),
+      ]),
+  } as unknown as ToolReads
+  const tools = createAskTools(reads)
+
+  it('says where a family comes from without naming a variant', async () => {
+    const result = await tools.run('definitions', {})
+    expect(JSON.stringify(result)).not.toMatch(/revenue_aed_app/)
+    expect(result).toMatchObject({ definitions: [{ name: 'Revenue', from: 'dbt' }] })
+  })
+
+  it('counts the items on a family and on any of its variants under the family name', async () => {
+    const result = await tools.run('records', { about: ['Revenue'], show: 'count' })
+    expect(result).toMatchObject({ count: 2, filters: { about: ['Revenue'] } })
+    expect(JSON.stringify(result)).not.toMatch(/variant/)
+  })
+
+  it('names only the family for an item on a variant', async () => {
+    const result = await tools.run('records', { show: 'list' })
+    const names = ('names' in result ? result.names : []).map((n: { name: string }) => n.name)
+    expect(names).toContain('Revenue')
+    expect(names.filter((n: string) => /variant/.test(n))).toEqual([])
+  })
+
+  it('never offers a variant as the closest name', async () => {
+    const result = await tools.run('records', { about: ['Revenu'], show: 'count' })
+    expect((result as { error: string }).error).toContain('The closest is Revenue.')
+    const asked = await tools.run('agent_questions', { about: ['Revenu'] })
+    expect((asked as { error: string }).error).toContain('The closest is Revenue.')
+  })
+})

@@ -182,7 +182,10 @@ before any name is published.
    - **Left out:** measures, entities, saved queries and time spines. They are inputs, join keys
      and plumbing, not what people ask about.
 3. Gives each one its label and description (500 characters at most), the other names in
-   `meta.synonyms` and a domain, then ends with the commit as its version and its cursor (for the
+   `meta.synonyms` and a domain, and a metric whose own `filter` compares a dimension with a literal
+   (`{{ Dimension('order__currency_code') }} = 'EUR'`) its variant: the mark of its calculation with
+   those literals left out, and each literal with that dimension. Metrics of one semantic model
+   with one such mark are one family (FR-142). It then ends with the commit as its version and its cursor (for the
    other places, a digest of the file, and for an address or an object the file's marks as its
    cursor). Every read that takes the file is a full listing. A change to the source's settings,
    or a new version of this connector, reads the file again whatever the store says of it.

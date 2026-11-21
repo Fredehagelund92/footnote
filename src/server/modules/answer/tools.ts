@@ -159,6 +159,8 @@ type View = {
   published: number
   /** The metrics and dimensions Definitions shows the person, by key. */
   shown: ReadonlySet<string>
+  /** Each variant's family, by key: what a variant is called is its family's name. */
+  familyOf: ReadonlyMap<string, string>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -225,7 +227,15 @@ async function viewOf(reads: ToolReads): Promise<View> {
     published: index.items.filter(
       (i) => i.status === 'accepted' && Object.values(kindFilters).some((k) => k === i.kind),
     ).length,
-    shown: new Set(catalogue.terms.map((t) => t.key)),
+    // A family's variants are shown in it (FR-142): they can be named, never listed.
+    shown: new Set(
+      catalogue.terms.flatMap((t) => [t.key, ...(t.family?.variants.map((v) => v.key) ?? [])]),
+    ),
+    familyOf: new Map(
+      catalogue.terms.flatMap((t) =>
+        (t.family?.variants ?? []).map((v) => [v.key, t.key] as const),
+      ),
+    ),
     areas,
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
     areaName: (id) => area(id)?.name ?? 'no domain',
@@ -244,6 +254,10 @@ const isShown = (view: View, key: string) => {
   if (term.kind === 'dimension_value') return !term.parentKey || view.shown.has(term.parentKey)
   return true
 }
+/** The terms a person may name: those shown, never a variant of a family, which only its family names. */
+const speakable = (view: View) => {
+  return view.bundle.terms.filter((t) => isShown(view, t.key) && !view.familyOf.has(t.key))
+}
 const termName = (view: View, key: string) =>
   view.bundle.terms.find((t) => t.key === key)?.name ?? key
 
@@ -257,7 +271,8 @@ function namesFor(
   },
 ): z.infer<typeof namesSchema> {
   const out = new Map<string, z.infer<typeof nameSchema>>()
-  for (const key of parts.terms ?? []) {
+  for (const named of parts.terms ?? []) {
+    const key = view.familyOf.get(named) ?? named
     const term = view.bundle.terms.find((t) => t.key === key)
     if (!term || !isShown(view, key) || out.has(nounId(key))) continue
     const dimension = term.kind === 'dimension_value' ? term.parentKey : null
@@ -285,10 +300,13 @@ function namesFor(
 }
 
 /** The metric and value keys an item applies to, those the person may see. */
-const aboutKeys = (view: View, item: ServingItem) =>
-  [...item.scope.metrics, ...item.scope.dimensionValues.map((v) => v.value)].filter((k) =>
-    isShown(view, k),
-  )
+const aboutKeys = (view: View, item: ServingItem) => [
+  ...new Set(
+    [...item.scope.metrics, ...item.scope.dimensionValues.map((v) => v.value)]
+      .map((k) => view.familyOf.get(k) ?? k)
+      .filter((k) => isShown(view, k)),
+  ),
+]
 
 /** The names of what these items apply to, and their domains. */
 const itemNames = (
@@ -1054,7 +1072,7 @@ function unreadOf(
   /** The wider read it made, when it was asked to and could. */
   tried?: { searched: readonly Searched[]; widened: z.infer<typeof widenedSchema> },
 ) {
-  const shownTerms = view.bundle.terms.filter((t) => isShown(view, t.key))
+  const shownTerms = speakable(view)
   const unknown = issues.flatMap((i) =>
     'input' in i && typeof i.input === 'string' ? [i.input] : [],
   )
@@ -1327,7 +1345,12 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     areaId: string | null
   }
   const synced: Entry[] = catalogue.terms.map((t) => {
-    const words = t.definition?.descriptionCopy ? quoted(t.definition.descriptionCopy).text : null
+    // A family is one entry for its variants (FR-142): what it is, never the variants one by one.
+    const words = t.family
+      ? `A family of ${t.family.variants.length} near-identical metrics, one for each ${t.family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`
+      : t.definition?.descriptionCopy
+        ? quoted(t.definition.descriptionCopy).text
+        : null
     return {
       id: t.key,
       name: t.name,
@@ -1336,14 +1359,19 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       owners: view.ownersOf(t.domain.areaId),
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
-      from: t.definition ? `${t.definition.tool} (${t.definition.name})` : 'no source definition',
+      from: t.family
+        ? (t.definition?.tool ?? 'no source definition')
+        : t.definition
+          ? `${t.definition.tool} (${t.definition.name})`
+          : 'no source definition',
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
       values: null,
       related: null,
       history: null,
-      names: [t.name, ...t.aliases, t.key, t.id],
+      // A variant's name finds its family.
+      names: [t.name, ...t.aliases, t.key, t.id, ...(t.family?.variants.map((v) => v.name) ?? [])],
       areaId: t.domain.areaId,
     }
   })
@@ -1386,9 +1414,10 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
         .sort((a, b) => a.name.localeCompare(b.name))
       valueKeys.push(...values.slice(0, VALUES_SHOWN).map((v) => v.key))
       const group = term?.group ?? null
-      const kin = group
-        ? catalogue.terms.filter((t) => t.group?.key === group.key && t.key !== d.id)
-        : []
+      const kin =
+        group && !term?.family
+          ? catalogue.terms.filter((t) => t.group?.key === group.key && t.key !== d.id && !t.family)
+          : []
       relatedKeys.push(...kin.map((t) => t.key))
       return {
         ...d,
@@ -1504,8 +1533,12 @@ const recordsOutput = z.object({
 })
 
 async function records(view: View, reads: ToolReads, input: z.output<typeof recordsInput>) {
-  const items = await reads.records()
-  const terms = view.bundle.terms.filter((t) => isShown(view, t.key))
+  const items = (await reads.records()).map((i) => ({
+    ...i,
+    metrics: i.metrics && [...new Set(i.metrics.map((k) => view.familyOf.get(k) ?? k))],
+  }))
+  const families = new Set(view.familyOf.values())
+  const terms = speakable(view).filter((t) => t.kind !== 'metric_group' || families.has(t.key))
   const found = queryRecords(input, {
     items,
     areas: view.areas,
@@ -1517,14 +1550,17 @@ async function records(view: View, reads: ToolReads, input: z.output<typeof reco
       for (const n of names) {
         const term = terms.find(
           (t) =>
-            (t.kind === 'metric' || t.kind === 'dimension_value') &&
+            (t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value') &&
             namesOf(t).includes(normalizeName(n)),
         )
         if (term) keys.push(term.key)
         else {
           const near = closest(
             n,
-            terms.filter((t) => t.kind === 'metric' || t.kind === 'dimension_value'),
+            terms.filter(
+              (t) =>
+                t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value',
+            ),
             (t) => [t.name, ...t.aliases],
           )
           unknown.push(
@@ -1679,7 +1715,7 @@ const askedOutput = z.object({
 
 async function agentQuestions(view: View, reads: ToolReads, input: z.output<typeof askedInput>) {
   const { asked, minimum } = await reads.asked()
-  const terms = view.bundle.terms.filter((t) => isShown(view, t.key))
+  const terms = speakable(view)
   const keysOf = (n: string) =>
     terms.filter((t) => namesOf(t).includes(normalizeName(n))).map((t) => t.key)
   const unknown = (input.about ?? []).filter((n) => !keysOf(n).length)
@@ -1694,7 +1730,11 @@ async function agentQuestions(view: View, reads: ToolReads, input: z.output<type
     )
   const about = (input.about ?? []).map(keysOf)
   const rows = asked.rows.filter((r) => {
-    const named = new Set([...r.scope.metrics, ...Object.values(r.scope.filters).flat()])
+    const named = new Set(
+      [...r.scope.metrics, ...Object.values(r.scope.filters).flat()].map(
+        (k) => view.familyOf.get(k) ?? k,
+      ),
+    )
     return (
       about.every((keys) => keys.some((k) => named.has(k))) &&
       (!input.found_nothing || r.nothing === null || r.nothing > 0)

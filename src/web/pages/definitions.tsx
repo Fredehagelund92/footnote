@@ -17,7 +17,8 @@ import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
 import { PersonAvatar } from '@/components/footnote/bits'
-import { AnotherNameFor, TypeGlyph, TypeTile } from '@/components/footnote/definition'
+import { AnotherNameFor, FamilyChip, TypeTile } from '@/components/footnote/definition'
+import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import {
   AddRow,
@@ -57,6 +58,8 @@ import { useQuery } from '@tanstack/react-query'
 import { definitionsPageQuery } from '@/api/queries'
 import type { DomainId } from '@/model/items'
 import {
+  definitionCounts,
+  familyBy,
   sourceUrl,
   typeLabel,
   toolOf,
@@ -246,6 +249,8 @@ export function DefinitionsPage() {
             words: wordsIn(
               `${names} ${plainText(d.definition)} ${d.sameAs ?? ''} ${d.group ?? ''}`,
             ),
+            // A family is found by its variants' names too, and shows as itself (FR-142).
+            variants: d.family?.variants.map((v) => wordsIn(v.name)) ?? [],
           },
         ]
       }),
@@ -255,11 +260,21 @@ export function DefinitionsPage() {
   const otherNames = (d: Definition) => (synonymRows ? [] : index.alsoCalled(d).map((x) => x.name))
   const cueOfRow = (d: Definition) => (said.has(d.name) ? said.get(d.name)!.cue : cueOf(d))
   const asked = words(text)
+  // The variants of a family the words find when its own words do not: what the row then says.
+  const variantHits = new Map<string, number>()
+  const found = (d: Definition) => {
+    const row = said.get(d.name)
+    if (matchesWords(asked, row?.words ?? wordsIn(d.name))) return true
+    if (!row?.variants.length) return false
+    if (!variantHits.has(d.name))
+      variantHits.set(d.name, row.variants.filter((v) => matchesWords(asked, v)).length)
+    return variantHits.get(d.name)! > 0
+  }
   const pass = (d: Definition, skip?: 'view' | 'domain' | 'cue') =>
     (skip === 'view' || view === 'all' || d.type === view) &&
     (skip === 'domain' || !domain.length || (d.domain && domain.includes(d.domain))) &&
     (skip === 'cue' || !cues.length || cues.includes(cueOfRow(d)!)) &&
-    (!asked.length || matchesWords(asked, said.get(d.name)?.words ?? wordsIn(d.name)))
+    (!asked.length || found(d))
   // Found by one of its other names: the row says which, quietly.
   const matchedBy = (d: Definition) =>
     text.trim() && !matches(text, d.name)
@@ -269,13 +284,26 @@ export function DefinitionsPage() {
       : undefined
   const onSort = (k: Sort, press?: Press) => move(press, () => setSort(clicked(SORTS, sorting, k)))
   const passing = rows.filter((d) => pass(d))
-  // How many of the query's words each row's names hold, once a key, for Best match.
+  // How many of the query's words each row's names hold, once a key, for Best match. A family
+  // holds what its best variant does, and a little more when that variant starts with the words:
+  // "revenue eur web" finds Revenue (EUR) web first, then Net revenue (EUR) web.
+  const asWords = asked.join(' ')
   const hits = new Map(
     sort === 'best'
-      ? passing.map((d) => [
-          d.name,
-          asked.filter((w) => said.get(d.name)?.names.includes(w)).length,
-        ])
+      ? passing.map((d) => {
+          const row = said.get(d.name)
+          const own = asked.filter((w) => row?.names.includes(w)).length
+          const variants = variantHits.get(d.name)
+            ? Math.max(
+                ...row!.variants.map(
+                  (v) =>
+                    asked.filter((w) => v.some((h) => h.startsWith(w))).length +
+                    (v.filter(Boolean).join(' ').startsWith(asWords) ? 0.5 : 0),
+                ),
+              )
+            : 0
+          return [d.name, Math.max(own, variants)]
+        })
       : [],
   )
   const shown = passing.sort((a, b) =>
@@ -334,15 +362,6 @@ export function DefinitionsPage() {
       byView[d.type]++
     }
   const typeCount = (t: View) => byView[t]
-  const mix = (rows: Definition[]) =>
-    (['metric', 'dimension', 'term'] as DefinitionType[])
-      .map(
-        (t) =>
-          rows.filter((d) => d.type === t).length &&
-          plural(rows.filter((d) => d.type === t).length, typeLabel[t].toLowerCase()),
-      )
-      .filter(Boolean)
-      .join(', ')
   const rowKeys = useRowKeys({
     rows: { order, reveal: (name, then) => drawn.current?.reveal(name, then) },
     onMove: (name) => peeked && openDock('def', name),
@@ -391,7 +410,37 @@ export function DefinitionsPage() {
     const target = d.sameAs ? glossary.find(d.sameAs) : undefined
     const flag = flagOf(d)
     const n = about(d)
-    const meaning = plainText(glossary.meaningOf(d).definition)
+    const family = d.family
+    // The row already says what tells the variants apart: its meaning says what writing about it does.
+    const meaning = family
+      ? `Context about it applies to all ${family.variants.length.toLocaleString('en-GB')} variants.`
+      : plainText(glossary.meaningOf(d).definition)
+    // Found by its variants' words alone, a family says how many: never which (FR-142).
+    const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
+    const rowFacts = [
+      group !== 'domain' && (d.domain ? domains[d.domain]?.name : 'All domains'),
+      d.type === 'dimension' ? 'Every context item' : n ? `${n} context` : 'No context yet',
+    ].filter(Boolean)
+    const name = (
+      <button
+        type="button"
+        data-row-open={d.name}
+        aria-label={
+          family
+            ? `${d.name}, family of ${family.variants.length.toLocaleString('en-GB')} ${family.variants.length === 1 ? 'variant' : 'variants'}`
+            : undefined
+        }
+        className="flex min-h-6 min-w-0 shrink items-center text-left font-medium outline-none hover:underline"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
+        }}
+      >
+        <TruncatedText text={d.name}>
+          <Highlight text={d.name} query={text} />
+        </TruncatedText>
+      </button>
+    )
     // The lock is said once, in the line above the table; a row shows only who wrote a term.
     const source = d.synced ? null : (
       <span title={`Written by ${d.by}, ${d.updated}`} className="inline-flex">
@@ -407,7 +456,10 @@ export function DefinitionsPage() {
         data-peeked={peeked === d.name || undefined}
         data-leaving={leaving.has(d.name) || undefined}
         data-vt-move
-        className="group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto"
+        className={cn(
+          'group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto',
+          family && 'h-auto',
+        )}
         onMouseDown={sel.onMouseDown}
         onClick={(e) => sel.rowClick(d.name, e) || openFromRow('def', d.name)}
       >
@@ -425,47 +477,61 @@ export function DefinitionsPage() {
           />
         </td>
         {/* The name with its type tile, its other names as tags (or, in the audit view, a synonym's Another name for); the rest are short facts. */}
-        <td className="max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5">
-          <span className="flex min-w-0 items-center gap-2.5">
-            <TypeTile d={d} />
-            <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
-              <button
-                type="button"
-                data-row-open={d.name}
-                className="flex min-h-6 min-w-0 shrink items-center text-left font-medium outline-none hover:underline"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
-                }}
-              >
-                <TruncatedText text={d.name}>
-                  <Highlight text={d.name} query={text} />
-                </TruncatedText>
-              </button>
-              {target && <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />}
-              <AlsoCalledChips
-                names={otherNames(d)}
-                conflicts={index
-                  .alsoCalled(d)
-                  .filter((x) => index.conflictOf(x))
-                  .map((x) => x.name)}
-                matched={matchedBy(d)}
-              />
-              {/* On a phone the short facts go on a second line. */}
-              <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
-                {group !== 'domain' && (
-                  <span>{d.domain ? domains[d.domain]?.name : 'All domains'}</span>
-                )}
-                <span>
-                  {d.type === 'dimension'
-                    ? 'Every context item'
-                    : n
-                      ? `${n} context`
-                      : 'No context yet'}
+        <td
+          className={cn(
+            'max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5',
+            family && 'py-1.5',
+          )}
+        >
+          {family ? (
+            // A family's mark: the stack, "Family · 250 variants" and what tells them apart, the
+            // same at every width (FR-142).
+            <span className="flex min-w-0 items-center gap-2.5">
+              <TypeTile d={d} />
+              <span className="flex min-w-0 flex-col">
+                <span className="flex min-w-0 items-center gap-2">
+                  {name}
+                  <FamilyChip family={family} />
+                  <AlsoCalledChips names={otherNames(d)} conflicts={[]} matched={matchedBy(d)} />
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {familyBy(family)}
+                  {rowFacts.map((fact) => (
+                    <span key={String(fact)} className="@xl/main:hidden">
+                      {' '}
+                      · {fact}
+                    </span>
+                  ))}
+                  {matched > 0 &&
+                    ` · ${matched === 1 ? '1 variant matches' : `${matched.toLocaleString('en-GB')} variants match`}`}
                 </span>
               </span>
             </span>
-          </span>
+          ) : (
+            <span className="flex min-w-0 items-center gap-2.5">
+              <TypeTile d={d} />
+              <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
+                {name}
+                {target && (
+                  <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />
+                )}
+                <AlsoCalledChips
+                  names={otherNames(d)}
+                  conflicts={index
+                    .alsoCalled(d)
+                    .filter((x) => index.conflictOf(x))
+                    .map((x) => x.name)}
+                  matched={matchedBy(d)}
+                />
+                {/* On a phone the short facts go on a second line. */}
+                <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
+                  {rowFacts.map((fact) => (
+                    <span key={String(fact)}>{fact}</span>
+                  ))}
+                </span>
+              </span>
+            </span>
+          )}
         </td>
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
@@ -909,7 +975,7 @@ export function DefinitionsPage() {
                       <GroupRow
                         {...measure}
                         label={l.heading}
-                        detail={mix(l.rows)}
+                        detail={definitionCounts(l.rows)}
                         open={l.open}
                         colSpan={cols}
                         onToggle={() => setFolded((x) => toggle(x, l.heading))}
@@ -939,7 +1005,7 @@ export function DefinitionsPage() {
                   <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
                     <td className="hidden @xl/main:table-cell" />
                     <td className="h-bar pr-2 pl-4 md:pl-6 @xl/main:pl-1.5">
-                      {mix(shown) || plural(0, 'definition')}
+                      {definitionCounts(shown) || plural(0, 'definition')}
                       {/* Each context item once, however many of these it is about. */}
                       <span className="hidden @xl/main:inline">
                         , with{' '}

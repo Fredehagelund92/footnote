@@ -48,6 +48,34 @@ export const definitionSchema = z.object({
    * `traffic.store_store_name`); null or absent when the name after the view is its own.
    */
   baseName: z.string().min(1).max(500).nullable().optional(),
+  /**
+   * A metric that is one variant of a family (FR-142): `shape`, the digest of its calculation with
+   * the literals its filters compare left out, the same for every variant of the family; `by`,
+   * those literals, each with the column or dimension it is compared with and the ref of that
+   * dimension when the source reads it. Null or absent for any other definition.
+   */
+  variant: z
+    .object({
+      shape: z.string().regex(/^[a-f0-9]{64}$/),
+      by: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(500),
+            ref: z
+              .string()
+              .regex(/^[a-z][a-z0-9_]*:[A-Za-z0-9_.:/-]+$/)
+              .nullable(),
+            value: z
+              .string()
+              .min(1)
+              .refine((value) => Array.from(value).length <= 200),
+          }),
+        )
+        .min(1)
+        .max(5),
+    })
+    .nullable()
+    .optional(),
   changeMark: z.string().regex(/^[a-f0-9]{64}$/),
 })
 export type Definition = z.infer<typeof definitionSchema>

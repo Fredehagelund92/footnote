@@ -88,7 +88,18 @@ export const personInstead =
 export const personSaid = "Ask does not answer questions about one person's work."
 
 type Names = { terms: readonly { key: string; name: string }[] }
-type Groups = Names & { groupsOfMetric: Readonly<Record<string, readonly string[]>> }
+type Groups = {
+  terms: readonly { key: string; name: string; definitionRefs?: readonly string[] }[]
+  groupsOfMetric: Readonly<Record<string, readonly string[]>>
+}
+
+/**
+ * A family of metrics (FR-142): a metric group that names its variants' definitions. It is one
+ * thing to answer about, never its variants one by one.
+ */
+export const isFamily = (bundle: Pick<Groups, 'terms'>, key: string) =>
+  key.startsWith('group:') &&
+  !!bundle.terms.find((term) => term.key === key)?.definitionRefs?.length
 
 const count = (n: number, one: string, many: string) =>
   `${n.toLocaleString('en')} ${n === 1 ? one : many}`
@@ -209,14 +220,21 @@ export const whenWords = (validity: Parameters<typeof periodWords>[0]) =>
 
 /**
  * The metrics a scope asks about, with each metric group opened into its metrics (by name, as the
- * definition source groups them): the keys in the order asked, a group's metrics by name.
+ * definition source groups them): the keys in the order asked, a group's metrics by name. A family
+ * stays itself: its variants are one metric to answer about (FR-142).
  */
 export function askedMetrics(bundle: Groups, scope: ResolvedScope): string[] {
   const byName = (a: string, b: string) => {
     const [x, y] = [nameOf(bundle, a), nameOf(bundle, b)]
     return x < y ? -1 : x > y ? 1 : 0
   }
-  return [...new Set(scope.metrics.flatMap((key) => metricsOf(bundle, key).sort(byName)))]
+  return [
+    ...new Set(
+      scope.metrics.flatMap((key) =>
+        isFamily(bundle, key) ? [key] : metricsOf(bundle, key).sort(byName),
+      ),
+    ),
+  ]
 }
 
 /** A metric group a question asks about: its name and the names of the metrics it holds. */
@@ -225,7 +243,7 @@ export type AskedGroup = { name: string; metrics: readonly string[] }
 /** The metric groups a scope asks about, each with the names of its metrics. */
 export function askedGroups(bundle: Groups, scope: ResolvedScope): AskedGroup[] {
   return scope.metrics
-    .filter((key) => key.startsWith('group:'))
+    .filter((key) => key.startsWith('group:') && !isFamily(bundle, key))
     .map((key) => ({
       name: nameOf(bundle, key),
       metrics: askedMetrics(bundle, { ...scope, metrics: [key] }).map((m) => nameOf(bundle, m)),

@@ -8,6 +8,7 @@ import type {
 import { contentDigest } from '../../../domain/canonical.ts'
 import {
   nameRefusal,
+  variantNameRefusal,
   sourceNames,
   wordsOf,
   type SourceName,
@@ -50,7 +51,7 @@ const REASON = 'Accepted the names a read made.'
 /** The names as the person read them: any change to what they would decide changes this. */
 const revisionOf = (names: readonly SourceNameRead[]) =>
   contentDigest(
-    names.map(({ key, name, aliases, definitionRefs, linked, areaId, state, flags }) => ({
+    names.map(({ key, name, aliases, definitionRefs, linked, areaId, state, flags, family }) => ({
       key,
       name,
       aliases,
@@ -59,6 +60,7 @@ const revisionOf = (names: readonly SourceNameRead[]) =>
       areaId,
       state,
       flags: flags.map((flag) => flag.code),
+      family,
     })),
   )
 
@@ -125,6 +127,7 @@ export function createNamesService(tx: Queryable) {
     state: name.state,
     flags: name.flags,
     leftByOwner: name.leftByOwner,
+    family: name.family ? { variants: name.family.variants.length, by: name.family.by } : null,
   })
 
   /** The names and when the newest was read, or left out when none waits: no digest of the list. */
@@ -167,7 +170,7 @@ export function createNamesService(tx: Queryable) {
           const term = {
             key: name.key,
             kind: name.kind,
-            parentKey: null,
+            parentKey: name.parentKey ?? null,
             name: name.chosen,
             aliases: name.aliases.filter((alias) => termWord(alias) !== termWord(name.chosen)),
             areaId: name.areaId,
@@ -186,7 +189,7 @@ export function createNamesService(tx: Queryable) {
     const each = 'from jsonb_array_elements($1::jsonb) with ordinality as e(row, n)'
     await tx.query(
       `insert into vocab_terms(key,kind,parent_key)
-       select row->>'key',(row->>'kind')::term_kind,null ${each} order by n
+       select row->>'key',(row->>'kind')::term_kind,row->>'parentKey' ${each} order by n
        on conflict (key) do nothing`,
       [rows],
     )
@@ -278,9 +281,16 @@ export function createNamesService(tx: Queryable) {
         })
       return name
     }
-    const picked = input.accept.map(({ key, name }) => {
+    // A family goes live with its variants, each by its own name, and is left out with them.
+    const picked = input.accept.flatMap(({ key, name }) => {
       const waiting = found(key)
-      return { ...waiting, chosen: name === undefined ? waiting.name : termName(name) }
+      return [
+        { ...waiting, chosen: name === undefined ? waiting.name : termName(name) },
+        ...(waiting.family?.variants ?? []).map((variant) => ({
+          ...variant,
+          chosen: variant.name,
+        })),
+      ]
     })
     const left = input.leaveOut.map(found)
     const live = left.find((name) => name.linked.length)
@@ -310,9 +320,16 @@ export function createNamesService(tx: Queryable) {
     const known = new Map([...holders, ...also])
     const findings = picked.flatMap((name) => {
       const message = name.linked.length ? null : nameRefusal(name.key, name.chosen, known, chosen)
-      return message
-        ? [{ code: 'word_taken', field: name.key, message, severity: 'error' as const }]
-        : []
+      if (!message) return []
+      const family = name.parentKey ? byKey.get(name.parentKey) : null
+      return [
+        {
+          code: 'word_taken',
+          field: family?.key ?? name.key,
+          message: family ? variantNameRefusal(family.name) : message,
+          severity: 'error' as const,
+        },
+      ]
     })
     if (findings.length)
       throw new ORPCError('UNPROCESSABLE_CONTENT', {

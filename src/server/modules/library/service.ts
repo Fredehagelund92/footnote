@@ -75,7 +75,8 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
        names as materialized (
          select t.key, t.name from serving_vocabulary((select seq from live_edition)) t),
        keys as (
-         select 1 as part, l.version_id, 'metric:' || m.id as key, m.id
+         select 1 as part, l.version_id,
+                case when m.id like 'group:%' then m.id else 'metric:' || m.id end as key, m.id
            from listed l, jsonb_array_elements_text(l.entry->'scope'->'metrics') m(id)
          union all
          select 2, l.version_id, 'dim:' || d.id, d.id
@@ -163,13 +164,24 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
               and (v.search @@ q.words or a.title ilike q.anywhere or a.summary ilike q.anywhere)
             order by starts desc, rank desc, a.title collate "en-x-icu", a.id collate "C"
             limit $4),
+         vocabulary as materialized (select * from serving_vocabulary((select seq from live_edition))),
+         -- A family of metrics (FR-142) is found by its name and by its variants' names, and is
+         -- the one entry for them: a variant is never a result of its own.
+         families as (
+           select key, name, aliases from vocabulary
+            where kind = 'metric_group' and cardinality(definition_refs) > 0),
+         found as (
+           select coalesce(f.key, t.key) as key,
+                  case when t.kind = 'dimension' then 'dimension' else 'metric' end as kind,
+                  coalesce(f.name, t.name) as name, coalesce(f.aliases, t.aliases, '{}') as aliases,
+                  t.name ilike q.start as starts
+             from vocabulary t left join families f on f.key = t.parent_key cross join q
+            where (t.kind in ('metric', 'dimension') or t.key in (select key from families))
+              and (t.name ilike q.anywhere or exists (select 1 from unnest(t.aliases) x where x ilike q.anywhere))),
          definitions as (
-           select t.key, case t.kind when 'metric' then 'metric' else 'dimension' end as kind,
-                  t.name, coalesce(t.aliases, '{}') as aliases, t.name ilike q.start as starts
-             from serving_vocabulary((select seq from live_edition)) t cross join q
-            where t.kind in ('metric', 'dimension')
-              and (t.name ilike q.anywhere or exists (select 1 from unnest(t.aliases) x where x ilike q.anywhere))
-            order by starts desc, t.name collate "en-x-icu", t.key collate "C"
+           select d.* from (select f.key, f.kind, f.name, f.aliases, bool_or(f.starts) as starts
+                              from found f group by f.key, f.kind, f.name, f.aliases) d
+            order by d.starts desc, d.name collate "en-x-icu", d.key collate "C"
             limit $4),
          domains as (
            select a.id, a.name, a.name ilike q.start as starts

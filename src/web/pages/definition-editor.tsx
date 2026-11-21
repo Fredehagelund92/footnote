@@ -22,13 +22,8 @@ import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { plainText } from '@/lib/mentions'
 import { PersonAvatar } from '@/components/footnote/bits'
-import {
-  ConflictNote,
-  SynonymTags,
-  TypeGlyph,
-  TypeTile,
-  WordNote,
-} from '@/components/footnote/definition'
+import { ConflictNote, SynonymTags, TypeTile, WordNote } from '@/components/footnote/definition'
+import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { openDock } from '@/lib/dock'
 import { DocFooter, Paper, SideSection } from '@/components/footnote/doc'
 import {

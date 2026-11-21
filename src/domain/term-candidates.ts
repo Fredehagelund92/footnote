@@ -7,6 +7,7 @@
  * Pure: the service and the mock binding suggest the same terms from the same members.
  */
 import { agreedDomain } from './catalogue.ts'
+import type { MemberVariant } from './metric-families.ts'
 import { viewOf } from './source-views.ts'
 import { normalizeName, refView } from './vocabulary.ts'
 
@@ -38,6 +39,8 @@ export type CandidateMember = {
    * each view's its own term.
    */
   mergeDimensions?: 'by-name' | 'never'
+  /** A metric that is one variant of a family, as its source read it (`metric-families.ts`). */
+  variant?: MemberVariant | null
 }
 
 /** A live term or an open term proposal (`open`), with what it links. */
@@ -159,8 +162,10 @@ export function termCandidates(
   known: readonly KnownTerm[],
 ): TermCandidate[] {
   const linkedBy = new Map<string, KnownTerm[]>()
+  // A family names its variants' members too, but a variant is a term of its own.
   for (const term of known)
-    for (const ref of term.definitionRefs) linkedBy.set(ref, [...(linkedBy.get(ref) ?? []), term])
+    if (term.kind !== 'metric_group')
+      for (const ref of term.definitionRefs) linkedBy.set(ref, [...(linkedBy.get(ref) ?? []), term])
   const keys = new Set(known.map((term) => term.key))
   const waiting = new Set(known.filter((term) => term.open).map((term) => term.key))
   const memberByRef = new Map(members.map((member) => [member.ref, member]))

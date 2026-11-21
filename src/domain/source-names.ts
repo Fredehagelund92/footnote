@@ -10,7 +10,10 @@
  *
  * Pure: the service and the mock binding make the same names from the same members.
  */
+import { agreedDomain } from './catalogue.ts'
+import { axisWords, familiesOf, type Family } from './metric-families.ts'
 import {
+  keyPart,
   memberName,
   termCandidates,
   type CandidateMember,
@@ -27,7 +30,13 @@ import {
 } from './terms.ts'
 
 /** Why a name needs an owner's eyes before it goes live. */
-export const nameFlagCodes = ['taken', 'same_name', 'titles_differ', 'bad_name'] as const
+export const nameFlagCodes = [
+  'taken',
+  'same_name',
+  'titles_differ',
+  'bad_name',
+  'variants',
+] as const
 export type NameFlagCode = (typeof nameFlagCodes)[number]
 export type NameFlag = { code: NameFlagCode; message: string }
 
@@ -35,11 +44,20 @@ export type NameFlag = { code: NameFlagCode; message: string }
 export const nameStates = ['ready', 'flagged', 'left_out'] as const
 export type NameState = (typeof nameStates)[number]
 
-export type SourceName = TermCandidate & {
+export type SourceName = Omit<TermCandidate, 'kind'> & {
+  /** A metric, a dimension, or a family of metrics (`metric_group`, FR-142). */
+  kind: TermCandidate['kind'] | 'metric_group'
   state: NameState
   flags: NameFlag[]
   /** Whether an owner left it out, rather than it being a date or an id. */
   leftByOwner: boolean
+  /** The family a variant goes live in, by key; absent for any other name. */
+  parentKey?: string
+  /**
+   * A family's variants, each a name of its own that goes live with it, and what tells them
+   * apart, in words ("Currency", "Channel"). The card shows the family, never its variants.
+   */
+  family?: { by: string[]; variants: SourceName[] }
 }
 
 /** What has each word now, by its compared form: terms, synonyms and live vocabulary. */
@@ -176,7 +194,7 @@ export function sourceNames(
       })
     return flags
   }
-  return candidates.map((candidate) => {
+  const names = candidates.map((candidate): SourceName => {
     const flags = flagsOf(candidate)
     return {
       ...candidate,
@@ -190,6 +208,151 @@ export function sourceNames(
       leftByOwner: leftByOwner(candidate) && candidate.suggested,
     }
   })
+  return withFamilies(names, members, known, holders, leftOut)
+}
+
+/**
+ * The names with each family of variants (FR-142) as one name that holds them: the family a
+ * metric group, its variants metrics in it. A family the vocabulary has already gains the
+ * variants a later read found. Its variants' own names go live with it and are never shown
+ * apart, so a flag on one of them is a flag on the family.
+ */
+function withFamilies(
+  names: readonly SourceName[],
+  members: readonly CandidateMember[],
+  known: readonly KnownTerm[],
+  holders: WordHolders,
+  leftOut: ReadonlySet<string>,
+): SourceName[] {
+  const families = familiesOf(
+    members.flatMap((member) =>
+      member.kind === 'metric'
+        ? [{ ...member, said: memberName(member), variant: member.variant ?? null }]
+        : [],
+    ),
+  )
+  if (!families.length) return [...names]
+  const byRef = new Map(
+    names.flatMap((name) =>
+      name.kind === 'metric' && !name.linked.length && name.definitionRefs.length === 1
+        ? [[name.definitionRefs[0]!, name] as const]
+        : [],
+    ),
+  )
+  const live = known.filter((term) => !term.open)
+  const liveGroups = live.filter((term) => term.kind === 'metric_group')
+  const keys = new Set([...known.map((term) => term.key), ...names.map((name) => name.key)])
+  const dimensionName = (ref: string) =>
+    [...names, ...live].find(
+      (term) => term.kind === 'dimension' && term.definitionRefs.includes(ref),
+    )?.name
+  const folded = new Set<SourceName>()
+  const made: SourceName[] = []
+  for (const family of families) {
+    const variants = family.variants.flatMap(({ ref }) => byRef.get(ref) ?? [])
+    const group = liveGroups.find((term) =>
+      family.variants.some(({ ref }) => term.definitionRefs.includes(ref)),
+    )
+    if (!variants.length || (!group && variants.length < family.min)) continue
+    const key = group?.key ?? freeKey(family, keys)
+    keys.add(key)
+    for (const variant of variants) folded.add(variant)
+    made.push(
+      familyName(family, key, group ?? null, variants, holders, names, leftOut, (axis) =>
+        axis.ref ? (dimensionName(axis.ref) ?? axisWords(axis)) : axisWords(axis),
+      ),
+    )
+  }
+  return [...names.filter((name) => !folded.has(name)), ...made].sort(
+    (a, b) =>
+      Number(a.kind === 'dimension') - Number(b.kind === 'dimension') ||
+      a.name.localeCompare(b.name, 'en'),
+  )
+}
+
+/** A family's key: from its name, else with its view's in front, else numbered. */
+function freeKey(family: Family, keys: ReadonlySet<string>): string {
+  const part = family.key.slice('group:'.length)
+  const view = keyPart(family.variants[0]!.ref.split(':').at(-1)!.split('.')[0] ?? '')
+  const tries = [
+    part,
+    `${view}_${part}`,
+    ...Array.from({ length: 98 }, (_, i) => `${part}_${i + 2}`),
+  ]
+  return `group:${tries.find((key) => !keys.has(`group:${key}`)) ?? `${part}_${keys.size}`}`
+}
+
+const variantProblems: Record<Exclude<NameFlagCode, 'variants'>, string> = {
+  taken: 'names already in use',
+  same_name: 'names other definitions share',
+  titles_differ: 'titles that differ',
+  bad_name: 'names that cannot be used',
+}
+
+/** What is wrong with a family's variants, counted and in kind, never naming one. */
+function variantsFlagMessage(looking: readonly SourceName[]): string {
+  const kinds = [
+    ...new Set(looking.flatMap((variant) => variant.flags.map((flag) => flag.code))),
+  ].flatMap((code) => (code === 'variants' ? [] : [variantProblems[code]]))
+  return `${looking.length === 1 ? 'One of its variants has' : `${looking.length} of its variants have`} ${kinds.join(' and ')}. Leave the family out, or fix them in the tool.`
+}
+
+/** Why a family can't go live when a variant's name can't be published; never names the variant. */
+export const variantNameRefusal = (family: string) =>
+  `A variant of “${family}” has a name that can't be published as it stands, so the family can't go live. Leave it out, or fix its variants in the tool.`
+
+/** The name a family of variants makes: itself, flagged as any name is, and its variants. */
+function familyName(
+  family: Family,
+  key: string,
+  group: KnownTerm | null,
+  variants: readonly SourceName[],
+  holders: WordHolders,
+  names: readonly SourceName[],
+  leftOut: ReadonlySet<string>,
+  axisName: (axis: Family['by'][number]) => string,
+): SourceName {
+  const refs = variants.flatMap((variant) => variant.definitionRefs)
+  const name = group?.name ?? family.name
+  const flags: NameFlag[] = []
+  if (!group) {
+    const shape = nameShapeRefusal(name)
+    if (shape) flags.push({ code: 'bad_name', message: shape })
+    const held = wordRefusal(name, othersOf(key, termWord(name), holders), null)
+    if (held) flags.push({ code: 'taken', message: held.message })
+    const same = names.filter(
+      (other) => other.state !== 'left_out' && termWord(other.name) === termWord(name),
+    )
+    if (same.length)
+      flags.push({
+        code: 'same_name',
+        message: `${same.length === 1 ? 'Another definition is' : `${same.length} others are`} called “${name}”: ${same.map((other) => other.name).join(', ')}.`,
+      })
+  }
+  const looking = variants.filter((variant) => variant.flags.length)
+  if (looking.length) flags.push({ code: 'variants', message: variantsFlagMessage(looking) })
+  const left = refs.every((ref) => leftOut.has(ref))
+  return {
+    source: family.source,
+    key,
+    kind: 'metric_group',
+    name,
+    aliases: group?.aliases ?? [],
+    definitionRefs: [...new Set([...(group?.definitionRefs ?? []), ...refs])].sort(),
+    linked: group ? [...group.definitionRefs] : [],
+    areaId: group?.areaId ?? agreedDomain(variants.map((variant) => variant.areaId)),
+    views: [...new Set(variants.flatMap((variant) => variant.views))],
+    description: null,
+    valueType: null,
+    suggested: true,
+    state: left ? 'left_out' : flags.length ? 'flagged' : 'ready',
+    flags,
+    leftByOwner: left,
+    family: {
+      by: family.by.map(axisName),
+      variants: variants.map((variant) => ({ ...variant, parentKey: key })),
+    },
+  }
 }
 
 /** What is wrong with the shape of a name, whatever else holds its word; null when it is fine. */

@@ -291,8 +291,9 @@ export function answerItemOf(
 }
 
 /** The metric keys an item is about, with a group opened into its metrics. */
+/** What an item is about: its metrics, a group opened into its metrics, and a family itself too. */
 const itemMetrics = (bundle: Pick<EditionBundle, 'groupsOfMetric'>, item: ResolverItem) =>
-  new Set(item.scope.metrics.flatMap((key) => metricsOf(bundle, key)))
+  new Set(item.scope.metrics.flatMap((key) => [key, ...metricsOf(bundle, key)]))
 
 /**
  * The asked parts no item covers in full: each metric asked (a group opened into its metrics),

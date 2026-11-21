@@ -4,7 +4,7 @@ line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
 minutes: 2
-reviewed: 2026-11-06
+reviewed: 2026-11-20
 ---
 
 Metrics and dimensions, the business's own terms, and other names for them.
@@ -14,6 +14,14 @@ Metrics and dimensions, the business's own terms, and other names for them.
 They come from where your metrics are defined, and are read-only here: their meaning and other names belong to that source. Write context about them instead.
 
 A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Set up your workspace](set-up-your-workspace.md#publish-the-names).
+
+## Families
+
+A family is one entry for many near-identical metrics, such as a metric for each currency and channel. Its row shows a stack of tiles, Family · 250 variants, and what tells them apart, such as by Currency and Channel.
+
+- Its variants are never rows of their own. A search for one finds its family, and says how many variants match.
+- Its own page lists the variants, and narrows them by each value, such as Currency: EUR.
+- Context about the family applies to every variant. See [Variants: a dimension, not a metric each](metric-variants.md).
 
 ## Terms and synonyms
 

@@ -35,6 +35,7 @@ describe('"Applies to" terms', () => {
         alias: 'Norge',
         recent: false,
         uses: 3,
+        variants: null,
       }),
     ).toEqual(norway)
     expect(
@@ -46,6 +47,7 @@ describe('"Applies to" terms', () => {
         alias: null,
         recent: true,
         uses: 0,
+        variants: null,
       }),
     ).toEqual(market)
   })

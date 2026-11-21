@@ -99,7 +99,7 @@ export function catalogueStatus(
   return 'in_sync'
 }
 
-type ShelfItem = Pick<
+export type ShelfItem = Pick<
   ContextItem,
   'kind' | 'status' | 'validity' | 'reviewDate' | 'checkFlag' | 'scope' | 'updatedAt'
 >
@@ -111,6 +111,8 @@ type ShelfItem = Pick<
 export function scopeNames(key: string): (item: Pick<ContextItem, 'scope'>) => boolean {
   const [prefix = '', rest = ''] = key.split(/:(.*)/s)
   if (prefix === 'metric') return (item) => item.scope.metrics.includes(rest)
+  // A family is named by its whole key (FR-142).
+  if (prefix === 'group') return (item) => item.scope.metrics.includes(key)
   if (prefix === 'dim')
     return (item) =>
       item.scope.dimensions.includes(rest) ||

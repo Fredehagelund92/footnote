@@ -44238,6 +44238,87 @@
                               }
                             ]
                           },
+                          "family": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "by": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "derivations": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "variants": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "key": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "aliases": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "values": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "state": {
+                                          "anyOf": [
+                                            {
+                                              "enum": [
+                                                "current",
+                                                "changed",
+                                                "missing"
+                                              ],
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "items": {
+                                          "type": "number"
+                                        }
+                                      },
+                                      "required": [
+                                        "key",
+                                        "name",
+                                        "aliases",
+                                        "values",
+                                        "state",
+                                        "items"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "by",
+                                  "derivations",
+                                  "variants"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "domain": {
                             "type": "object",
                             "properties": {
@@ -44564,6 +44645,7 @@
                           "name",
                           "aliases",
                           "group",
+                          "family",
                           "domain",
                           "definition",
                           "definitions",
@@ -61615,6 +61697,29 @@
                         ]
                       }
                     },
+                    "families": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "variants": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name",
+                          "variants"
+                        ]
+                      },
+                      "default": []
+                    },
                     "dimensions": {
                       "type": "array",
                       "items": {
@@ -62028,6 +62133,18 @@
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 9007199254740991
+                          },
+                          "variants": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -62037,7 +62154,8 @@
                           "dimension",
                           "alias",
                           "recent",
-                          "uses"
+                          "uses",
+                          "variants"
                         ]
                       }
                     },
@@ -62099,6 +62217,18 @@
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 9007199254740991
+                          },
+                          "variants": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -62108,7 +62238,8 @@
                           "dimension",
                           "alias",
                           "recent",
-                          "uses"
+                          "uses",
+                          "variants"
                         ]
                       }
                     },
@@ -62173,6 +62304,18 @@
                                 "type": "integer",
                                 "minimum": 0,
                                 "maximum": 9007199254740991
+                              },
+                              "variants": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
                             },
                             "required": [
@@ -62182,7 +62325,8 @@
                               "dimension",
                               "alias",
                               "recent",
-                              "uses"
+                              "uses",
+                              "variants"
                             ]
                           },
                           "named": {
@@ -62251,6 +62395,18 @@
                                   "type": "integer",
                                   "minimum": 0,
                                   "maximum": 9007199254740991
+                                },
+                                "variants": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 }
                               },
                               "required": [
@@ -62260,7 +62416,8 @@
                                 "dimension",
                                 "alias",
                                 "recent",
-                                "uses"
+                                "uses",
+                                "variants"
                               ]
                             }
                           }
@@ -63999,7 +64156,8 @@
                           "kind": {
                             "enum": [
                               "metric",
-                              "dimension"
+                              "dimension",
+                              "metric_group"
                             ],
                             "type": "string"
                           },
@@ -64065,7 +64223,8 @@
                                     "taken",
                                     "same_name",
                                     "titles_differ",
-                                    "bad_name"
+                                    "bad_name",
+                                    "variants"
                                   ],
                                   "type": "string"
                                 },
@@ -64081,6 +64240,31 @@
                           },
                           "leftByOwner": {
                             "type": "boolean"
+                          },
+                          "family": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "variants": {
+                                    "type": "number"
+                                  },
+                                  "by": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "variants",
+                                  "by"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -64095,7 +64279,8 @@
                           "tool",
                           "state",
                           "flags",
-                          "leftByOwner"
+                          "leftByOwner",
+                          "family"
                         ]
                       }
                     }
@@ -64377,7 +64562,7 @@
                       "properties": {
                         "key": {
                           "type": "string",
-                          "pattern": "^(?:metric|dim):[a-z0-9_]+$"
+                          "pattern": "^(?:metric|dim|group):[a-z0-9_]+$"
                         },
                         "name": {
                           "type": "string",
@@ -64396,7 +64581,7 @@
                     "maxItems": 20000,
                     "items": {
                       "type": "string",
-                      "pattern": "^(?:metric|dim):[a-z0-9_]+$"
+                      "pattern": "^(?:metric|dim|group):[a-z0-9_]+$"
                     }
                   }
                 },

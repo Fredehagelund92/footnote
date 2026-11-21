@@ -567,7 +567,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       pendingKeys.delete(id)
       // A term written, renamed, moved or deleted changes the words a mention is named by.
-      if (operation.startsWith('terms.') || operation === 'decisions.undo') words = undefined
+      if (
+        operation.startsWith('terms.') ||
+        operation === 'decisions.undo' ||
+        operation === 'inbox.decideNames'
+      )
+        words = undefined
       return result
     } catch (error) {
       const failure = toApiError(error)
@@ -1356,12 +1361,21 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const vocabulary = await read(() => client.vocabulary.get())
       const markets = vocabulary.dimensions.find((d) => d.id === 'market')?.values ?? []
       return {
-        metrics: vocabulary.metrics.map((m) => ({
-          name: m.name,
-          group: m.group,
-          facts: 0,
-          definition: '',
-        })),
+        // A family is one metric to write about: an item about it applies to every variant (FR-142).
+        metrics: [
+          ...vocabulary.families.map((f) => ({
+            name: f.name,
+            group: '',
+            facts: 0,
+            definition: '',
+          })),
+          ...vocabulary.metrics.map((m) => ({
+            name: m.name,
+            group: m.group,
+            facts: 0,
+            definition: '',
+          })),
+        ],
         dimensions: vocabulary.dimensions.map((d) => ({
           name: d.name,
           values: d.values.map((v) => v.name).join(', '),
@@ -1397,7 +1411,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (!view) return null
       const words = namesOf(vocabulary)
       const where = view.where.map((k) =>
-        k.startsWith('metric:') ? words.metric(k) : words.value(k),
+        k.startsWith('metric:') || k.startsWith('group:') ? words.metric(k) : words.value(k),
       )
       return conflictOf(view, { person: people.name }, where)
     },

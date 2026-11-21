@@ -46,6 +46,7 @@ A definition has these fields ([the schema](../../src/domain/connector-runtime.t
 | `modelFile`       | The file that defines it, relative to the folder you read, or null            |
 | `synonyms`        | `synonymsOf(value)`: the other names the tool lists                           |
 | `baseName`        | The member's own name when the tool joins it under a prefix, or leave it out  |
+| `variant`         | For a metric with filters: `filterVariant(filters)` and the shape's mark      |
 | `changeMark`      | `meaningMark(meaning)`: the SHA-256 of what it means                          |
 
 A read yields three kinds of message:
@@ -121,6 +122,7 @@ Every definitions connector follows these, and the template does each of them.
 - **Domain warnings.** A group that names no domain warns `missing_domain`. A value that is not a domain id warns `invalid_domain` and gives no hint. If the tool copies a group's value onto its members, warn once, on the group.
 - **Synonyms.** `synonymsOf` trims them, keeps each once whatever its case, and keeps at most 20.
 - **Value types.** The tool's own word, from a list you know. Anything else is null.
+- **Variants.** When the tool gives a metric's filters, `filterVariant(filters)` leaves out the literal each compares and returns those literals. Send them as the metric's `variant`, with the mark of its calculation with those filters in its place, and the ref of the dimension each literal is compared with when you read it. A tool that gives no calculation sends none: its variants stay metrics.
 - **Records built on records.** Hash an input once and put its digest in what is built on it. Sort warnings as well as definitions.
 
 ### Unknown, not guessed

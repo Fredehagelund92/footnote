@@ -19,6 +19,8 @@ export const scopeHitSchema = z.object({
   recent: z.boolean(),
   /** Live items whose scope names it. */
   uses: z.number().check(z.int(), z.minimum(0)),
+  /** A family of metrics (FR-142), offered for its variants: how many it has. Null otherwise. */
+  variants: z.nullable(z.number().check(z.int(), z.minimum(0))),
 })
 
 export const scopeSearchInputSchema = z.object({

@@ -36,7 +36,11 @@ export function searchWorld(
       (f) => f.title,
     ).map((f) => ({ id: f.id, title: f.title, kind: f.kind, domain: f.domain })),
     definitions: best(
-      world.definitions.filter((d) => has(d.name) || d.sourceNames.some(has)),
+      // A family is found by its variants' names too, and is the one hit for them (FR-142).
+      world.definitions.filter(
+        (d) =>
+          has(d.name) || d.sourceNames.some(has) || !!d.family?.variants.some((v) => has(v.name)),
+      ),
       (d) => d.name,
     ).map((d) => ({
       name: d.name,

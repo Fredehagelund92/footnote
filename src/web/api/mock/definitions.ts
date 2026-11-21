@@ -2,7 +2,7 @@ import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
-import { variantDefinitions } from './data/variants'
+import { familyDefinitions, variantDefinitions } from './data/variants'
 import { ApiError } from '@/api/errors'
 import type { DomainId } from '@/model/items'
 import {
@@ -60,6 +60,12 @@ export function createDefinitions() {
     loadVariants() {
       if (!all.some((d) => d.name === 'Revenue (EUR) web'))
         all = [...all, ...variantDefinitions(demoTool(DEMO_DEFINITIONS))]
+    },
+
+    /** Adds the same 5,000 metrics as the 20 families a read finds in them (FR-142). */
+    loadFamilies() {
+      if (!all.some((d) => d.family))
+        all = [...all, ...familyDefinitions(demoTool(DEMO_DEFINITIONS))]
     },
 
     /** Saves a term; a renamed one replaces the old entry where it stood. Synced items are never saved here. */

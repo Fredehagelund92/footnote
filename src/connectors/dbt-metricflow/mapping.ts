@@ -3,6 +3,7 @@ import type { RuntimeDefinition, RuntimeMessage } from '../../domain/connector-r
 import {
   descriptionCopy,
   domainHint,
+  filterVariant,
   meaningMark,
   synonymsOf,
 } from '../../domain/definition-helpers.ts'
@@ -241,6 +242,11 @@ interface Resolved {
   calculation: string
   valueType: string | null
   known: boolean
+  /**
+   * As a variant of a family (FR-142): the digest of its calculation with the literals its own
+   * filters compare left out, and those literals. Null when its filters compare none.
+   */
+  variant: { shape: string; by: { name: string; value: string }[] } | null
 }
 
 /**
@@ -387,7 +393,11 @@ async function resolveMetrics(
       known = false
     }
     if (metricTypes.has(metric.type)) valueType = metric.type
-    return { models: owners, calculation: await meaningMark(meaning), valueType, known }
+    const found = filterVariant((meaning as { filter: string[] }).filter)
+    const variant = found
+      ? { shape: await meaningMark({ ...(meaning as object), filter: found.shape }), by: found.by }
+      : null
+    return { models: owners, calculation: await meaningMark(meaning), valueType, known, variant }
   }
 
   // Each metric waits for the metrics it names; when the last arrives, it is ready.
@@ -453,6 +463,7 @@ export async function mapDefinitions(
     domain: Pick<ReturnType<typeof domainHint>, 'areaHint' | 'domainSource'>,
     valueType: string | null,
     meaning: unknown,
+    variant: RuntimeDefinition['variant'] = null,
   ) => {
     const name = `${group}.${entry.name}`
     const description = entry.description?.trim()
@@ -470,6 +481,7 @@ export async function mapDefinitions(
       domainSource: domain.domainSource,
       modelFile: null,
       synonyms: synonymsOf(metaOf(entry).synonyms),
+      ...(variant ? { variant } : {}),
       changeMark: await meaningMark({
         kind,
         meaning,
@@ -509,9 +521,23 @@ export async function mapDefinitions(
       own.areaHint !== null ? own : (agreed ?? { areaHint: null, domainSource: 'none' as const })
     if (group === SHARED_GROUP && domain.areaHint === null)
       warn('missing_domain', `${group}.${metric.name}`)
-    await add('metric', group, metric, domain, known.valueType, {
-      calculation: known.calculation,
-    })
+    // What a variant's filters compare: a dimension of its semantic models, by its ref.
+    const dimensionRef = (name: string) => {
+      const model = owners.find((owner) => owner.dimensions?.some((d) => d.name === name))
+      return model ? `${manifest.refPrefix}:${model.name}.${name}` : null
+    }
+    await add(
+      'metric',
+      group,
+      metric,
+      domain,
+      known.valueType,
+      { calculation: known.calculation },
+      known.variant && {
+        shape: known.variant.shape,
+        by: known.variant.by.map((by) => ({ ...by, ref: dimensionRef(by.name) })),
+      },
+    )
   }
 
   for (const model of models.values()) {

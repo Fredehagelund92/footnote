@@ -22,6 +22,7 @@ import type { Names } from '@/api/http-map'
 import type { Fact } from '@/model/items'
 
 const vocabulary: Vocabulary = {
+  families: [],
   metrics: [
     { id: 'orders', name: 'Orders', group: 'Sales' },
     { id: 'gross_sales', name: 'Gross sales', group: 'Sales' },

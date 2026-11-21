@@ -25,6 +25,8 @@ export type ScopeHit = {
   recent: boolean
   /** Live items whose scope names it. */
   uses: number
+  /** A family of metrics (FR-142), offered for its variants: how many it has. Null otherwise. */
+  variants: number | null
 }
 
 /** One dimension in the results: the dimension itself ("any value") and a few of its values. */
@@ -82,9 +84,11 @@ const idOf = (key: string) =>
 /** How well a name meets the words: 0 equal, 1 starts with them, 2 each word starts a word, else null. */
 function fit(name: string, tokens: readonly string[], phrase: string): number | null {
   const normalized = normalizeName(name)
-  if (normalized === phrase) return 0
-  if (normalized.startsWith(phrase)) return 1
   const own = words(name)
+  // Words as written, brackets and dashes aside: "revenue eur web" is "Revenue (EUR) web".
+  const said = own.join(' ')
+  if (normalized === phrase || said === tokens.join(' ')) return 0
+  if (normalized.startsWith(phrase) || said.startsWith(tokens.join(' '))) return 1
   return tokens.every((token) => own.some((word) => word.startsWith(token))) ? 2 : null
 }
 
@@ -93,8 +97,13 @@ type Ranked = { hit: ScopeHit; fit: number }
 function scopeKind(term: Term): ScopeTermKind | null {
   return term.kind === 'metric' || term.kind === 'dimension' || term.kind === 'dimension_value'
     ? term.kind
-    : null
+    : isFamily(term)
+      ? 'metric'
+      : null
 }
+
+/** A family of metrics (FR-142): a metric group that names its variants' definitions. */
+const isFamily = (term: Term) => term.kind === 'metric_group' && term.definitionRefs.length > 0
 
 /** A ranked hit for a term, or null when the words miss it. Empty words meet every term. */
 function rank(
@@ -103,6 +112,8 @@ function rank(
   usage: ScopeUsage,
   tokens: readonly string[],
   phrase: string,
+  /** A family's variants: it is found by their names too, and never names them. */
+  variants: readonly Term[] = [],
 ): Ranked | null {
   const kind = scopeKind(term)
   if (!kind) return null
@@ -113,6 +124,7 @@ function rank(
     [term.name, null],
     [idOf(term.key).replace(/_/g, ' '), null],
     ...term.aliases.map((name) => [name, name] as const),
+    ...variants.map((variant) => [variant.name, null] as const),
   ] as const) {
     if (!tokens.length) break
     const value = fit(candidate, tokens, phrase)
@@ -133,6 +145,7 @@ function rank(
       alias: best.alias,
       recent: usage.recent.includes(term.key),
       uses: usage.uses[term.key] ?? 0,
+      variants: isFamily(term) ? variants.length : null,
     },
   }
 }
@@ -161,13 +174,21 @@ export function searchScope(
   const names = new Map(terms.map((term) => [term.key, term]))
   const valuesOf = new Map<string, Term[]>()
   for (const term of terms)
-    if (term.kind === 'dimension_value' && term.parentKey)
+    if ((term.kind === 'dimension_value' || term.kind === 'metric') && term.parentKey)
       valuesOf.set(term.parentKey, [...(valuesOf.get(term.parentKey) ?? []), term])
   const ranked = (list: readonly Term[], query = tokens, whole = phrase) =>
     list
-      .map((term) => rank(term, names, usage, query, whole))
+      .map((term) =>
+        rank(term, names, usage, query, whole, isFamily(term) ? valuesOf.get(term.key) : []),
+      )
       .filter((entry): entry is Ranked => entry !== null)
       .sort(order)
+  // A family is offered for its variants, which are never offered apart (FR-142).
+  const inFamily = (term: Term) =>
+    term.kind === 'metric' && !!term.parentKey && isFamily(names.get(term.parentKey) ?? term)
+  const metricTerms = terms.filter(
+    (term) => (term.kind === 'metric' && !inFamily(term)) || isFamily(term),
+  )
 
   if (input.dimension !== undefined) {
     const dimension = names.get(input.dimension)
@@ -195,13 +216,15 @@ export function searchScope(
     const recent = usage.recent
       .flatMap((key) => {
         const term = names.get(key)
-        const entry = term ? rank(term, names, usage, [], '') : null
+        const entry = term
+          ? rank(term, names, usage, [], '', isFamily(term) ? valuesOf.get(term.key) : [])
+          : null
         return entry ? [entry.hit] : []
       })
       .slice(0, MAX_RECENT)
     // What the picker can offer when it opens: the busiest metrics, and each dimension with how
     // many values it has, never the values themselves.
-    const metrics = ranked(terms.filter((term) => term.kind === 'metric'))
+    const metrics = ranked(metricTerms)
       .slice(0, MAX_OPENING_METRICS)
       .map((entry) => entry.hit)
     const groups = ranked(terms.filter((term) => term.kind === 'dimension')).map((entry) => ({
@@ -212,7 +235,7 @@ export function searchScope(
     }))
     return { recent, metrics, groups, nextCursor: null }
   }
-  const metrics = ranked(terms.filter((term) => term.kind === 'metric')).slice(0, MAX_METRICS)
+  const metrics = ranked(metricTerms).slice(0, MAX_METRICS)
   const dimensions = terms.filter((term) => term.kind === 'dimension')
   const groups = dimensions
     .map((dimension) => {

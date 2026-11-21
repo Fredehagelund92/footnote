@@ -391,7 +391,12 @@ export function definitionOf(
 ) {
   const items = termItems(bundle, term, today)
   const about = items.given
-  const described = term.described ?? null
+  // A family of metrics (FR-142) names its variants' definitions: the source defines each variant,
+  // never the family, so no variant's words speak for it.
+  const family = term.kind === 'metric_group' && term.definitionRefs.length > 0
+  const variants = family ? bundle.terms.filter((t) => t.parentKey === term.key).length : 0
+  const tool = term.described?.tool ?? null
+  const described = family ? null : (term.described ?? null)
   // A term in several views is missing or changed when any of its definitions is.
   const definitions = term.definitions
   const state = definitions.some((definition) => definition.missing)
@@ -411,17 +416,25 @@ export function definitionOf(
     .map((item) => ({ id: item.id, kind: item.kind, title: item.title, summary: item.summary }))
   const source = described?.description ? quoted(described.description) : null
   const words = source?.text ?? null
-  const origin = described ? 'source' : notes.length ? 'library' : 'none'
-  const kind =
-    term.kind === 'metric_group'
+  const origin = described || family ? 'source' : notes.length ? 'library' : 'none'
+  const kind = family
+    ? 'metric family'
+    : term.kind === 'metric_group'
       ? 'metric group'
       : term.kind === 'dimension'
         ? 'dimension'
         : 'metric'
   const domain = areaName(bundle, term.areaId ?? bundle.metricArea[term.key])
   const group = term.kind === 'metric' && term.parentKey ? termName(bundle, term.parentKey) : null
-  const originWords =
-    origin === 'source'
+  const originWords = family
+    ? `${tool ?? 'The definition source'} defines ${plural(variants, 'metric', 'metrics')} that differ only by the values their filters compare, such as one for each currency, read as one family, ${term.name}. Context about ${term.name} applies to each of them; the calculations stay in ${tool ?? 'the source'}.${
+        state === 'changed'
+          ? ` ${tool ?? 'The source'} changed the definition of at least one of them after some context items about ${term.name} were checked: those context items need checking until an owner of the domain checks them.`
+          : state === 'missing'
+            ? ` ${tool ?? 'The source'} no longer lists at least one of them: the context items about ${term.name} are marked for a check.`
+            : ''
+      }`
+    : origin === 'source'
       ? [
           words
             ? `${described!.tool} defines it, read through Sources (${described!.source}, ${described!.ref}). These are the source's own words${source!.shortened ? `, shortened to ${definitionChars} characters` : ''}; the calculation stays in ${described!.tool}.`
@@ -464,6 +477,7 @@ export function definitionOf(
     definition: words,
     origin,
     origin_words: originWords,
+    ...(family && tool ? { source: { tool, ref: null, state } } : {}),
     ...(described
       ? {
           source: {

@@ -138,6 +138,10 @@
       "domainSource": "source",
       "modelFile": null,
       "synonyms": [],
+      "variant": {
+        "shape": "11db32e9f7b066dab2e23bfb85900b2af34716093b1cc5c45850e1304562abe0",
+        "by": [{ "name": "status", "ref": "dbt:orders.status", "value": "completed" }]
+      },
       "changeMark": "41a454fe205b2646f4cfa5d0fd74b3c780ae76130e21e2f5a76f9cf97342fcf3"
     },
     {

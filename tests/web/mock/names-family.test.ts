@@ -1,0 +1,28 @@
+import { describe, expect, it } from 'vitest'
+import { termWord } from '@domain/terms'
+import { createMockNames } from '@/api/mock/names'
+
+// A family goes live with its variants (FR-142), each by its own name: a variant whose name another
+// definition holds refuses the family, in words that name no variant.
+
+describe('the mock refusing a family whose variant has a taken name', () => {
+  it('refuses it without naming the variant, as the service does', async () => {
+    const taken = new Map([
+      [
+        termWord('Packaging costs (EUR) web'),
+        [{ origin: 'vocabulary' as const, ref: 'metric:turnover', name: 'Turnover' }],
+      ],
+    ])
+    const names = createMockNames(taken)
+    names.load(true)
+    const { revision, names: shown } = await names.read()
+    const family = shown.find((name) => name.family)!
+    expect(family.flags.map((flag) => flag.code)).toEqual(['variants'])
+    const refusal = await names
+      .decide({ revision, accept: [{ key: family.key }], leaveOut: [] })
+      .catch((error: Error) => error)
+    expect(refusal).toBeInstanceOf(Error)
+    expect((refusal as Error).message).toContain('A variant of “Packaging costs”')
+    expect((refusal as Error).message).not.toMatch(/\(EUR\)|Turnover/)
+  })
+})

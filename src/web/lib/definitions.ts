@@ -14,6 +14,24 @@ import { servedToAgents, type DomainId, type Fact } from '@/model/items'
 
 export type DefinitionType = 'metric' | 'dimension' | 'term'
 
+/** A variant of a family: a metric its family's own page lists, and nothing else (FR-142). */
+export type Variant = {
+  name: string
+  /** What tells it apart, in the order of its family's `by`: `["EUR", "web"]`. */
+  values: string[]
+}
+
+/**
+ * A family of metrics (FR-142): one entry for its variants, which only its own page lists. `by`
+ * is what tells them apart, in words: ["Currency", "Channel"].
+ */
+export type Family = {
+  by: string[]
+  variants: Variant[]
+  /** What the source says of how a variant is worked out from another, as plain lines. */
+  derivations?: string[]
+}
+
 export type Definition = {
   name: string
   type: DefinitionType
@@ -34,6 +52,8 @@ export type Definition = {
   group?: string
   /** A dimension's values, as its tool lists them. */
   values?: string
+  /** A metric that is a family of variants, one entry for them all (FR-142). */
+  family?: Family
   /** Its tool changed it at the last sync. */
   changed?: string
   /** Who wrote a term. */
@@ -47,8 +67,9 @@ export const typeLabel: Record<DefinitionType, string> = {
   term: 'Term',
 }
 /** A type as people read it; a term that points at something else is a synonym. */
-export const kindName = (d: Pick<Definition, 'type' | 'sameAs'>) =>
-  d.sameAs ? 'Synonym' : typeLabel[d.type]
+export const kindName = (
+  d: Pick<Definition, 'type' | 'sameAs'> & Pick<Partial<Definition>, 'family'>,
+) => (d.family ? 'Family of metrics' : d.sameAs ? 'Synonym' : typeLabel[d.type])
 /** A name as an address or a reference reads it, never as a sentence: "Net revenue" is net_revenue. */
 const slug = (name: string) => name.toLowerCase().replace(/[^a-z]+/g, '_')
 const groupSlug = (d: Definition) => (d.group ?? 'segments').toLowerCase()
@@ -83,8 +104,51 @@ const wordOf = (name: string) => {
   return word
 }
 const same = (a: string, b: string) => wordOf(a) === wordOf(b)
+/** A definition by its name, or the family a variant's name is in: a variant has no entry. */
 export const findDefinition = (all: Definition[], name: string | undefined) =>
-  name ? (all.find((d) => d.name === name) ?? all.find((d) => same(d.name, name))) : undefined
+  name
+    ? (all.find((d) => d.name === name) ??
+      all.find((d) => same(d.name, name)) ??
+      all.find((d) => d.family?.variants.some((v) => same(v.name, name))))
+    : undefined
+
+const counted = (n: number, one: string, many: string) =>
+  `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
+const kindWords = {
+  metric: ['metric', 'metrics'],
+  dimension: ['dimension', 'dimensions'],
+  term: ['term', 'terms'],
+} as const
+
+/**
+ * How many of each kind a list holds, in words: "20 metrics (5,000 variants), 3 dimensions". A
+ * family counts as one metric and says its variants apart (FR-142). Empty for none.
+ */
+export function definitionCounts(rows: readonly Definition[]): string {
+  return (['metric', 'dimension', 'term'] as const)
+    .flatMap((type) => {
+      const of = rows.filter((d) => d.type === type)
+      const variants = of.reduce((n, d) => n + (d.family?.variants.length ?? 0), 0)
+      return of.length
+        ? [
+            `${counted(of.length, kindWords[type][0], kindWords[type][1])}${variants ? ` (${counted(variants, 'variant', 'variants')})` : ''}`,
+          ]
+        : []
+    })
+    .join(', ')
+}
+
+/** What a family is, in a sentence or two, for its page and its quick view. */
+export function familyMeaning(family: Family): string {
+  const n = family.variants.length.toLocaleString('en-GB')
+  return `Its ${n} variants differ only ${familyBy(family)}. Context written about it applies to all ${n}.`
+}
+
+/** "by Currency and Channel": what tells a family's variants apart. */
+export function familyBy(family: Family): string {
+  const by = family.by
+  return `by ${by.length < 2 ? (by[0] ?? '') : `${by.slice(0, -1).join(', ')} and ${by.at(-1)}`}`
+}
 
 /** The terms that mean the same as this definition: its "Also called in Footnote". */
 export const synonymsOf = (all: Definition[], name: string) =>
@@ -108,6 +172,8 @@ export const namesOf = (all: Definition[], d: Definition) => [
   d.name,
   ...d.sourceNames,
   ...synonymsOf(all, d.name).map((s) => s.name),
+  // Context about a family's variant is context about the family (FR-142).
+  ...(d.family?.variants.map((v) => v.name) ?? []),
 ]
 
 /** `short` is the one line a quick view shows; `other` is what the word already means. */
@@ -367,6 +433,7 @@ export function listIndex(all: Definition[], facts: Fact[]) {
           target.name,
           ...target.sourceNames,
           ...(pointing.get(wordOf(target.name)) ?? []).map((s) => s.name),
+          ...(target.family?.variants.map((v) => v.name) ?? []),
         ].map((n) => n.toLowerCase())
         const ids = new Set(names.flatMap((n) => where.get(n) ?? []))
         // In the order of the items, as the glossary's own rule gives them.

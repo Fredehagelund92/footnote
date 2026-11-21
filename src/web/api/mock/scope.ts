@@ -1,6 +1,7 @@
 import { searchScope, type ScopeUsage } from '@domain/scope-search'
 import type { Term } from '@domain/vocabulary'
 import type { ScopeSearch, ScopeSearchInput } from '../client'
+import type { Definition } from '@/lib/definitions'
 import type { Fact, ScopeTerm } from '@/model/items'
 import { markets, metrics } from './data/world'
 
@@ -111,6 +112,18 @@ export function scopeOfWhere(where: readonly string[]): ScopeTerm[] {
 export const withScope = (fact: Fact): Fact =>
   fact.scope ? fact : { ...fact, scope: scopeOfWhere(fact.where) }
 
+/** The families of metrics as the service's terms: one group naming its variants, which are metrics in it. */
+const familyTermsOf = (families: readonly Definition[]): Term[] =>
+  families.flatMap((d) => {
+    const key = `group:${idOf(d.name)}`
+    return [
+      { ...term(key, 'metric_group', d.name), definitionRefs: ['variants'] },
+      ...(d.family?.variants ?? []).map((v) =>
+        term(`metric:${idOf(v.name)}`, 'metric', v.name, key),
+      ),
+    ]
+  })
+
 /** The demo's search: the person's recent terms are those they published or suggested this visit. */
 export function createScopeSearch() {
   let recent: string[] = []
@@ -120,7 +133,11 @@ export function createScopeSearch() {
       const keys = (scope ?? []).map((t) => t.key)
       recent = [...keys, ...recent.filter((k) => !keys.includes(k))].slice(0, 20)
     },
-    search(input: ScopeSearchInput, facts: readonly Fact[]): ScopeSearch {
+    search(
+      input: ScopeSearchInput,
+      facts: readonly Fact[],
+      families: readonly Definition[] = [],
+    ): ScopeSearch {
       const uses: Record<string, number> = {}
       for (const fact of facts) {
         if (fact.status === 'Draft' || fact.status === 'Archived') continue
@@ -132,7 +149,7 @@ export function createScopeSearch() {
         for (const key of keys) uses[key] = (uses[key] ?? 0) + 1
       }
       const usage: ScopeUsage = { recent, uses }
-      return searchScope(terms, usage, {
+      return searchScope([...terms, ...familyTermsOf(families)], usage, {
         query: input.q,
         ...(input.dimension === undefined ? {} : { dimension: input.dimension }),
         ...(input.cursor === undefined ? {} : { cursor: input.cursor }),

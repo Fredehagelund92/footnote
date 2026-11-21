@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input'
 import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
 import { useOnline } from '@/lib/send'
 import { memberOf } from '@domain/vocabulary'
+import { familyBy } from '@/lib/definitions'
+import { cn } from '@/lib/utils'
 import { namesWords } from '@/model/inbox'
 
 // The one card that makes a source's definitions usable (FR-141): the names a read made, what
@@ -20,32 +22,52 @@ import { namesWords } from '@/model/inbox'
 /** How many ready names show before Show all: a model can have thousands. */
 const FIRST_ROWS = 40
 
-const kindWord = { metric: 'Metric', dimension: 'Dimension' } as const
+const kindWord = { metric: 'Metric', dimension: 'Dimension', metric_group: 'Family' } as const
 
-/** A name that is ready: what it is, and the source's own words for it. */
+/** What a family holds, in words: "250 variants by Currency and Channel" (FR-142). */
+const familyWords = (family: NonNullable<SourceNameRead['family']>) =>
+  `${family.variants.toLocaleString('en-GB')} ${family.variants === 1 ? 'variant' : 'variants'} ${familyBy({ by: family.by, variants: [] })}`
+
+/**
+ * A name that is ready: what it is, and the source's own words for it. A family says what it holds
+ * and is published with one press, its variants with it; they are never listed here.
+ */
 function ReadyRow({
   name,
   busy,
   onLeaveOut,
+  onPublish,
 }: {
   name: SourceNameRead
   busy: boolean
   onLeaveOut: () => void
+  onPublish: () => void
 }) {
   return (
     <li className="flex min-w-0 flex-col gap-0.5 py-2">
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-medium">{name.name}</span>
-        <span className="text-xs text-muted-foreground">{kindWord[name.kind]}</span>
+        <span className="text-xs text-muted-foreground">
+          {name.family ? `Family · ${familyWords(name.family)}` : kindWord[name.kind]}
+        </span>
         {name.linked.length > 0 && (
-          <span className="text-xs text-muted-foreground">Adds another view</span>
+          <span className="text-xs text-muted-foreground">
+            {name.family ? 'Adds variants' : 'Adds another view'}
+          </span>
         )}
         {name.areaId && <Domain id={name.areaId} />}
-        {name.linked.length === 0 && (
-          <Button variant="ghost" className="ml-auto" disabled={busy} onClick={onLeaveOut}>
-            Leave out
-          </Button>
-        )}
+        <span className="ml-auto flex items-center gap-1">
+          {name.family && (
+            <Button variant="outline" disabled={busy} onClick={onPublish}>
+              Publish
+            </Button>
+          )}
+          {name.linked.length === 0 && (
+            <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
+              Leave out
+            </Button>
+          )}
+        </span>
       </span>
       {name.description && (
         <span className="line-clamp-1 text-xs text-muted-foreground">{name.description}</span>
@@ -70,16 +92,19 @@ function FlaggedRow({
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
+  const onlyVariants = name.family !== null && name.flags.every((flag) => flag.code === 'variants')
   // The name the tool has for it, small after the plain name, so two rows of one name can be
-  // told apart.
-  const member = memberOf(name.definitionRefs[0] ?? name.key)
+  // told apart; a family says what it holds.
+  const member = name.family
+    ? familyWords(name.family)
+    : memberOf(name.definitionRefs[0] ?? name.key)
   return (
     <li className="flex min-w-0 flex-col gap-2 border-t py-3 first:border-t-0">
       <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
           <span className="text-sm font-medium text-foreground">{name.name}</span>
           <span>{kindWord[name.kind]}</span>
-          <span className="font-mono">{member}</span>
+          <span className={cn(!name.family && 'font-mono')}>{member}</span>
         </span>
         {name.flags.map((flag) => flag.message).join(' ')}
       </label>
@@ -87,15 +112,17 @@ function FlaggedRow({
         <Input
           id={id}
           value={chosen}
-          readOnly={name.linked.length > 0}
+          readOnly={name.linked.length > 0 || onlyVariants}
           aria-invalid={problem ? true : undefined}
           aria-label={`Name for ${member}`}
           className="min-w-48 flex-1"
           onChange={(e) => setChosen(e.target.value)}
         />
-        <Button variant="outline" disabled={busy} onClick={() => onAccept(chosen)}>
-          Publish
-        </Button>
+        {!onlyVariants && (
+          <Button variant="outline" disabled={busy} onClick={() => onAccept(chosen)}>
+            Publish
+          </Button>
+        )}
         {onLeaveOut && (
           <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
             Leave out
@@ -134,6 +161,7 @@ export default function NamesReview({
   const flagged = names.filter((name) => name.state === 'flagged')
   const left = names.filter((name) => name.state === 'left_out')
   const tools = [...new Set(names.map((name) => name.tool))].sort()
+  const families = names.filter((name) => name.family && name.state !== 'left_out').length
 
   const decide = async (
     picks: { key: string; name?: string }[],
@@ -184,7 +212,7 @@ export default function NamesReview({
       <PaneHead
         state={{ label: 'New metrics and dimensions', icon: 'names', tone: 'neutral' }}
         title={namesWords({ ready: ready.length, flagged: flagged.length, tools }).title}
-        summary={`These metrics and dimensions were found in ${tools.length ? tools.join(', ') : 'your definitions tool'}. Publish them, and people can write context about them and agents can use them.`}
+        summary={`These metrics and dimensions were found in ${tools.length ? tools.join(', ') : 'your definitions tool'}. Publish them, and people can write context about them and agents can use them.${families ? ` ${families === 1 ? 'One is a family' : `${families} are families`} of near-identical metrics: each is published as one name, with its variants.` : ''}`}
       />
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
         {flagged.length > 0 && (
@@ -226,6 +254,7 @@ export default function NamesReview({
                   name={name}
                   busy={busy}
                   onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
+                  onPublish={() => void acceptOne(name, name.name)}
                 />
               ))}
             </ul>

@@ -12,7 +12,8 @@ const VAGUE_CHOICES = 4
 
 /**
  * The word of a question that names no one metric (A5 of the release judgement), wherever it
- * sits, alone or in a sentence: the name of a group of metrics, or another name of one metric
+ * sits, alone or in a sentence: the name of a group of metrics (never of a family, FR-142, which
+ * is one thing to answer about), or another name of one metric
  * that is also a word of other metrics' own names ("sales", written for Net revenue, beside Gross
  * sales), or a word written for more than one metric. With the metrics it may mean, the first
  * four; null when the question names a metric by
@@ -63,6 +64,8 @@ export function vagueMetricWord(
       : null
   const term = found[0]!
   if (term.kind === 'metric_group') {
+    // A family is one thing to answer about, whichever variant is meant (FR-142).
+    if (term.definitionRefs.length) return null
     const members = metrics.filter((m) => m.parentKey === term.key)
     return members.length > 1 ? { word, metrics: members.slice(0, VAGUE_CHOICES) } : null
   }

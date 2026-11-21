@@ -1,29 +1,21 @@
 import * as React from 'react'
-import {
-  EqualIcon,
-  LockIcon,
-  PencilIcon,
-  SigmaIcon,
-  SplitIcon,
-  TriangleAlertIcon,
-  UserIcon,
-  WholeWordIcon,
-  type LucideIcon,
-} from '@/components/icons'
+import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/components/icons'
 import { termWord } from '@domain/terms'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 import type { Fact } from '@/model/items'
 import {
+  familyMeaning,
   parseTags,
   cubeRef,
   kindName,
   sourceUrl,
   type Conflict,
   type Definition,
-  type DefinitionType,
   useGlossary,
 } from '@/lib/definitions'
 import { openDock } from '@/lib/dock'
@@ -43,56 +35,61 @@ import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
 
-// The marks of a definition: a lucide glyph in a neutral tile for a catalogue term's type (sigma
-// for a metric, split for a dimension). A term with its own meaning takes whole-word and a
-// synonym takes equals, from the same set.
-
-const glyphs: Record<DefinitionType | 'synonym', LucideIcon> = {
-  metric: SigmaIcon,
-  dimension: SplitIcon,
-  term: WholeWordIcon,
-  synonym: EqualIcon,
-}
-
-const kindOf = (d: Pick<Definition, 'type' | 'sameAs'>) => (d.sameAs ? 'synonym' : d.type)
-
 /** The type as a neutral tile: 24 in compact rows, 28 in comfortable rows, headers and on a phone. Labelled for screen readers. */
 export function TypeTile({
   d,
   size = 'md',
   className,
 }: {
-  d: Pick<Definition, 'type' | 'sameAs'>
+  d: Pick<Definition, 'type' | 'sameAs' | 'family'>
   size?: 'md' | 'lg'
   className?: string
 }) {
   const Glyph = glyphs[kindOf(d)]
-  return (
+  const corner = size === 'md' ? 'rounded-sm' : 'rounded-md'
+  const tile = (
     <span
       role="img"
       aria-label={kindName(d)}
       title={kindName(d)}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center border bg-muted text-foreground',
-        size === 'md' ? 'size-6 rounded-sm [&>svg]:size-3.5' : 'size-7 rounded-md [&>svg]:size-4',
-        className,
+        'relative inline-flex shrink-0 items-center justify-center border bg-muted text-foreground',
+        size === 'md' ? 'size-6 [&>svg]:size-3.5' : 'size-7 [&>svg]:size-4',
+        corner,
+        !d.family && className,
       )}
     >
       <Glyph aria-hidden />
     </span>
   )
+  if (!d.family) return tile
+  // A family is its metric's tile with two more behind it, each a step up and to the right: a
+  // stack of variants.
+  const behind = cn('absolute border bg-background', size === 'md' ? 'size-6' : 'size-7', corner)
+  return (
+    // The stack takes no room of its own: the name beside it starts where a metric's would.
+    <span className={cn('relative -mt-1 -mr-1 inline-flex shrink-0 pt-1 pr-1', className)}>
+      <span aria-hidden className={cn(behind, 'top-0 right-0')} />
+      <span aria-hidden className={cn(behind, 'top-0.5 right-0.5')} />
+      {tile}
+    </span>
+  )
 }
 
-/** The type as a plain glyph, for chips and menus where the words beside it say what it is. */
-export function TypeGlyph({
-  d,
+/** A family's mark beside its name: "Family · 250 variants", the same at every width. */
+export function FamilyChip({
+  family,
   className,
 }: {
-  d: Pick<Definition, 'type' | 'sameAs'>
+  family: NonNullable<Definition['family']>
   className?: string
 }) {
-  const Glyph = glyphs[kindOf(d)]
-  return <Glyph aria-hidden className={cn('size-3.5 shrink-0 text-muted-foreground', className)} />
+  const n = family.variants.length.toLocaleString('en-GB')
+  return (
+    <Badge variant="outline" className={cn('shrink-0 text-muted-foreground', className)}>
+      Family · {n} {family.variants.length === 1 ? 'variant' : 'variants'}
+    </Badge>
+  )
 }
 
 /** A synonym's quiet link to the definition whose meaning it uses: "Another name for Σ Gross sales". */
@@ -504,7 +501,14 @@ function ContextAbout({ subject, about }: { subject: Definition; about: Fact[] }
   )
 }
 
-export function DefinitionDetails({ d }: { d: Definition }) {
+export function DefinitionDetails({
+  d,
+  variants,
+}: {
+  d: Definition
+  /** A family's variants: its own page lists them, which keeps their code out of the first load. */
+  variants?: React.ReactNode
+}) {
   const me = useMe()
   const canEdit = me.admin || (!!d.domain && me.owns.includes(d.domain))
   const facts = useFacts()
@@ -525,7 +529,17 @@ export function DefinitionDetails({ d }: { d: Definition }) {
   return (
     <div className="flex flex-col gap-5">
       <ConflictNote d={d} />
-      {target ? (
+      {d.family ? (
+        <div className="flex max-w-reading flex-col gap-2">
+          <p className="text-base leading-7">{familyMeaning(d.family)}</p>
+          {/* How a variant is worked out from another, when the source says so: its own words. */}
+          {d.family.derivations?.map((line) => (
+            <p key={line} className="text-sm text-muted-foreground">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : target ? (
         <div className="flex flex-col items-start gap-2">
           <AnotherNameFor target={target} />
           <p className="max-w-reading text-base leading-7 text-muted-foreground">
@@ -612,6 +626,12 @@ export function DefinitionDetails({ d }: { d: Definition }) {
           </MoreProperties>
         )}
       </div>
+      {variants && (
+        <>
+          <Separator />
+          {variants}
+        </>
+      )}
       {!d.sameAs && (
         <>
           <Separator />

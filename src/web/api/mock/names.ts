@@ -1,6 +1,11 @@
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import { contentDigest } from '@domain/canonical'
-import { nameRefusal, sourceNames, type WordHolders } from '@domain/source-names'
+import {
+  nameRefusal,
+  sourceNames,
+  variantNameRefusal,
+  type WordHolders,
+} from '@domain/source-names'
 import type { CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'
@@ -41,38 +46,73 @@ const shop: CandidateMember[] = [
   member('orders.paid_at', 'Paid at', { kind: 'dimension', valueType: 'time' }),
 ]
 
+/** With ?demo=families: a metric per currency and channel, which the read finds as one family (FR-142). */
+const variants: CandidateMember[] = [
+  member('orders.currency_code', 'Currency', { kind: 'dimension', valueType: 'categorical' }),
+  member('orders.channel', 'Channel', { kind: 'dimension', valueType: 'categorical' }),
+  ...['EUR', 'USD', 'GBP', 'SEK'].flatMap((currency) =>
+    ['web', 'app'].map((channel) =>
+      member(
+        `orders.packaging_costs_${currency.toLowerCase()}_${channel}`,
+        `Packaging costs (${currency}) ${channel}`,
+        {
+          valueType: 'sum',
+          variant: {
+            shape: 'a'.repeat(64),
+            by: [
+              { name: 'currency_code', ref: 'dbt:orders.currency_code', value: currency },
+              { name: 'channel', ref: 'dbt:orders.channel', value: channel },
+            ],
+          },
+        },
+      ),
+    ),
+  ),
+]
+
 /** The words that mean something else in the mock's demo: the demo has its own Orders. */
 const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
 ])
 
-export function createMockNames() {
+export function createMockNames(heldWords: WordHolders = holders) {
   let waiting = false
+  let members = shop
   const taken = new Set<string>()
   const left = new Set<string>()
 
   const names = () =>
     waiting
       ? sourceNames(
-          shop.filter((m) => !taken.has(m.ref)),
+          members.filter((m) => !taken.has(m.ref)),
           [],
-          holders,
+          heldWords,
           left,
         )
       : []
   const read = async (): Promise<NamesRead> => {
     const shown = names().map(
-      ({ source: _source, views: _views, valueType: _type, suggested: _s, ...name }) => ({
+      ({
+        source: _source,
+        views: _views,
+        valueType: _type,
+        suggested: _s,
+        parentKey: _parent,
+        family,
+        ...name
+      }) => ({
         ...name,
         tool: 'dbt',
+        family: family ? { variants: family.variants.length, by: family.by } : null,
       }),
     )
     return { revision: await contentDigest(shown), names: shown }
   }
   return {
-    /** A read of a definitions tool ended. */
-    load: () => {
+    /** A read of a definitions tool ended; with `families`, it found a family of metrics too. */
+    load: (families = false) => {
       waiting = true
+      if (families) members = [...shop, ...variants]
     },
     read,
     card(me: string): InboxCard | null {
@@ -111,8 +151,12 @@ export function createMockNames() {
         ]),
       )
       for (const [key, name] of chosen) {
-        const refused = nameRefusal(key, name, holders, going)
+        const refused = nameRefusal(key, name, heldWords, going)
         if (refused) throw new ApiError('invalid', refused)
+        const family = list.find((n) => n.key === key)
+        for (const variant of family?.family?.variants ?? [])
+          if (nameRefusal(variant.key, variant.name, heldWords, going))
+            throw new ApiError('invalid', variantNameRefusal(family!.name))
       }
       for (const key of chosen.keys())
         list

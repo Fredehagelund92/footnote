@@ -810,7 +810,8 @@ export function createToolService(
         const groups = resolution.scope ? askedGroups(bundle, resolution.scope) : []
         const metrics = resolution.scope ? askedMetrics(bundle, resolution.scope) : []
         const aboutOf = (item: ServingItem) => {
-          const own = new Set(item.scope.metrics.flatMap((key) => metricsOf(bundle, key)))
+          // A family is about itself too (FR-142): a question names it, not its variants.
+          const own = new Set(item.scope.metrics.flatMap((key) => [key, ...metricsOf(bundle, key)]))
           return metrics
             .filter((key) => !own.size || own.has(key))
             .map((key) => bundle.terms.find((t) => t.key === key)?.name ?? key)

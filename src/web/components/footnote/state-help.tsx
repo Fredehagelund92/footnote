@@ -201,7 +201,7 @@ function BadgeCard({
           else if (e.currentTarget.matches(':focus-visible')) show(true)
         }}
         onBlur={() => (returning.current = false)}
-        className="w-fit rounded-md text-left outline-none hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="w-fit self-start rounded-md text-left outline-none hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {badge}
       </PopoverTrigger>

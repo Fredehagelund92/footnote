@@ -8,6 +8,7 @@ import type { RuntimeDefinition } from '../../domain/connector-runtime.ts'
 import {
   descriptionCopy,
   domainHint,
+  filterVariant,
   meaningMark,
   synonymsOf,
 } from '../../domain/definition-helpers.ts'
@@ -179,6 +180,60 @@ async function compile(
     return own!.startsWith(prefix) && own!.length > prefix.length ? own!.slice(prefix.length) : null
   }
 
+  /** The member a view member stands for (`orders.revenue` of `sales.revenue`), or itself. */
+  function sourceOf(name: string): string {
+    const [view, own] = name.split('.')
+    const cube = cubeEvaluator.evaluatedCubes[view!]
+    const alias: unknown = record(cube?.measures[own!] ?? cube?.dimensions[own!]).aliasMember
+    return typeof alias === 'string' ? sourceOf(alias) : name
+  }
+
+  /**
+   * A measure as a variant of a family (FR-142): what it calculates with the literals its filters
+   * compare left out, and those literals, each with the view's dimension it compares when there
+   * is one. Null for a measure whose filters compare nothing with a literal.
+   */
+  async function variantOf(
+    name: string,
+    type: string | undefined,
+    dimensions: ReadonlyMap<string, string>,
+  ): Promise<RuntimeDefinition['variant']> {
+    const source = sourceOf(name)
+    const raw = record(rawMembers.get(source))
+    const filters = Array.isArray(raw.filters)
+      ? (raw.filters as unknown[]).map((filter) => record(filter).sql)
+      : []
+    if (!filters.length || filters.some((sql) => typeof sql !== 'string')) return null
+    const found = filterVariant(filters as string[])
+    if (!found) return null
+    const { name: _name, title: _title, description: _description, meta: _meta, ...rest } = raw
+    const cube = cubeEvaluator.evaluatedCubes[source.split('.')[0]!]
+    return {
+      shape: await meaningMark({
+        view: name.split('.')[0],
+        type,
+        member: { ...rest, filters: found.shape },
+        relation: semanticValue(cube?.sql ?? cube?.sqlTable),
+      }),
+      by: found.by.map((by) => ({ ...by, ref: dimensions.get(by.name) ?? null })),
+    }
+  }
+
+  /** A view's dimensions by the names a filter compares them by: their own, and their column. */
+  function dimensionsOf(members: readonly { name: string; isVisible?: boolean }[]) {
+    const byName = new Map<string, string>()
+    for (const member of members) {
+      if (member.isVisible === false) continue
+      const ref = `cube:${member.name}`
+      const sql = record(rawMembers.get(sourceOf(member.name))).sql
+      const column =
+        typeof sql === 'string' ? /^(?:\$?\{CUBE\}\.)?(\w+)$/.exec(sql.trim())?.[1] : undefined
+      for (const key of [sourceOf(member.name).split('.')[1], member.name.split('.')[1], column])
+        if (key && !byName.has(key)) byName.set(key, ref)
+    }
+    return byName
+  }
+
   const definitions: RuntimeDefinition[] = []
   for (const { config } of metaTransformer.cubes) {
     if (!config.isVisible) continue
@@ -186,6 +241,7 @@ async function compile(
     if (viewDomain.invalid) warnings.push({ code: 'invalid_domain', target: config.name })
     else if (viewDomain.areaHint === null)
       warnings.push({ code: 'missing_domain', target: config.name })
+    const dimensions = dimensionsOf(config.dimensions)
     for (const [kind, members] of [
       ['metric', config.measures],
       ['dimension', config.dimensions],
@@ -196,6 +252,8 @@ async function compile(
         if (memberDomain.invalid) warnings.push({ code: 'invalid_domain', target: member.name })
         // A member's own valid domain wins over its view's.
         const domain = memberDomain.areaHint === null ? viewDomain : memberDomain
+        const variant =
+          kind === 'metric' ? await variantOf(member.name, member.type, dimensions) : null
         definitions.push({
           ref: `cube:${member.name}`,
           kind,
@@ -209,6 +267,7 @@ async function compile(
           areaHint: domain.areaHint,
           domainSource: domain.domainSource,
           modelFile: containerFiles.get(config.name) ?? null,
+          ...(variant ? { variant } : {}),
           // Type, calculation, description and visibility (CON-505). The domain stays out: a
           // changed domain informs the owner and never flags an item (plan 4.3, step 7). Empty
           // parts are left out, and the compiled member is its meaning only (mark version 2,

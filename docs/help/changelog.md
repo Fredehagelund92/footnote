@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-20
 ---
 
+## Families of metrics
+
+2026-11-20
+
+A model with a metric for each currency and channel now shows each set of variants as one family, such as Revenue with 250 variants. The Names card publishes a family with one press, Definitions lists it once with a family mark, and a search for a variant finds its family.
+
+Context about a family applies to every variant, and is due for a check once when any of them changes. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
+
 ## A metric for each currency
 
 2026-11-20
