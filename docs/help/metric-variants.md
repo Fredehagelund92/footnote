@@ -3,7 +3,7 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 5
+minutes: 4
 reviewed: 2026-11-21
 ---
 
@@ -36,11 +36,12 @@ A sum over several currencies needs one reporting currency. Keep the amount in t
 
 ## If you keep a metric for each variant
 
-A read groups near-identical metrics into a family, such as Revenue, with 250 variants by Currency and Channel. It finds a family in three ways, and trusts them in this order:
+A read groups near-identical metrics into a family, such as Revenue, with 250 variants by Currency and Channel. It finds a family in four ways, and trusts them in this order:
 
 1. Declared in your tool. A metric that names its family under `meta.footnote` is a variant of it, as written. Two metrics are enough.
-2. Found from how each metric is worked out. One way is the same calculation, with filters that differ only by the value they compare, such as EUR or web. Three metrics are enough. The other is a metric worked out from another with one more column, such as Accrued share (USD) from Accrued share (EUR) and the column `exchange_rate_usd`. When one such column, a rate, does this for several pairs, each pair is a family by Currency.
-3. Suggested by the names alone. Metrics whose names are one name in other currencies, such as Shipping fee (EUR) and Shipping fee (USD), wait under Look alike on the Names card. They are never a family until you say so.
+2. Found from the calculation, with filters that differ only by the value they compare, such as EUR or web. Three metrics are enough.
+3. Found from a rate. A metric worked out from another with one more column, such as Accrued share (USD) from Accrued share (EUR) and the column `exchange_rate_usd`. When that column does this for several pairs, each pair is a family by Currency.
+4. Suggested by the names alone. Metrics whose names are one name in other currencies, such as Shipping fee (EUR) and Shipping fee (USD), wait under Look alike on the Names card. They are never a family until you say so.
 
 - On the Names card a family is one name, marked declared in your tool or found from the calculation. Publish it, and its variants are published with it.
 - Under Look alike, choose Publish as a family, or Publish apart to publish each metric by its own name.

@@ -174,7 +174,7 @@ function LookAlikeRow({
   problem: string | undefined
   onFamily: (chosen: string) => void
   onApart: () => void
-  onLeaveOut: () => void
+  onLeaveOut?: () => void
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
@@ -184,7 +184,7 @@ function LookAlikeRow({
       <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
           <span className="text-sm font-medium text-foreground">{names.join(', ')}</span>
-          <span>{names.length} metrics</span>
+          <span>{names.length.toLocaleString('en-GB')} metrics</span>
         </span>
         {name.flags.map((flag) => flag.message).join(' ')}
       </label>
@@ -203,9 +203,11 @@ function LookAlikeRow({
         <Button variant="outline" disabled={busy} onClick={onApart}>
           Publish apart
         </Button>
-        <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
-          Leave out
-        </Button>
+        {onLeaveOut && (
+          <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
+            Leave out
+          </Button>
+        )}
       </div>
       {problem && (
         <p role="alert" className="text-xs text-destructive">
@@ -366,14 +368,14 @@ export default function NamesReview({
                 <LookAlikeRow
                   key={name.key}
                   name={name}
-                  busy={busy}
+                  busy={busy || !online}
                   problem={problems[name.key]}
                   onFamily={(chosen) => void acceptOne(name, chosen)}
                   onApart={() =>
                     void decide(
                       [{ key: name.key, apart: true }],
                       [],
-                      `${name.family!.names.length} metrics are published apart`,
+                      `${name.family!.names.length.toLocaleString('en-GB')} metrics are published apart`,
                     )
                   }
                   onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
@@ -411,15 +413,32 @@ export default function NamesReview({
             summary={`${left.length} ${left.length === 1 ? 'name' : 'names'}: dates and ids stay out by themselves`}
           >
             <ul className="divide-y divide-border">
-              {left.map((name) => (
-                <FlaggedRow
-                  key={name.key}
-                  name={name}
-                  busy={busy}
-                  problem={problems[name.key]}
-                  onAccept={(chosen) => void acceptOne(name, chosen)}
-                />
-              ))}
+              {left.map((name) =>
+                looksAlike(name) ? (
+                  <LookAlikeRow
+                    key={name.key}
+                    name={name}
+                    busy={busy || !online}
+                    problem={problems[name.key]}
+                    onFamily={(chosen) => void acceptOne(name, chosen)}
+                    onApart={() =>
+                      void decide(
+                        [{ key: name.key, apart: true }],
+                        [],
+                        `${name.family!.names.length.toLocaleString('en-GB')} metrics are published apart`,
+                      )
+                    }
+                  />
+                ) : (
+                  <FlaggedRow
+                    key={name.key}
+                    name={name}
+                    busy={busy}
+                    problem={problems[name.key]}
+                    onAccept={(chosen) => void acceptOne(name, chosen)}
+                  />
+                ),
+              )}
             </ul>
           </Fold>
         )}

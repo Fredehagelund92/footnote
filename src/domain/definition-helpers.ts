@@ -1,5 +1,4 @@
 import { contentDigest } from './canonical.ts'
-import { keyPart } from './term-candidates.ts'
 
 /*
   What every definitions connector does the same way, as pure functions it imports: the other
@@ -259,6 +258,9 @@ export type DeclaredFamily = {
   by: VariantValue[]
 }
 
+/** Whether a name holds a letter or digit a key can be made of, as `keyPart` reads it. */
+const hasKeyPart = (name: string) => /[a-z0-9]/.test(name.normalize('NFKD').toLowerCase())
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -278,7 +280,7 @@ export function declaredFamily(
   const footnote = isObject(meta) ? meta.footnote : undefined
   if (!isObject(footnote) || footnote.family === undefined || footnote.family === null) return null
   const name = typeof footnote.family === 'string' ? footnote.family.trim() : ''
-  if (!name || [...name].length > FAMILY_NAME_MAX || /[\n\r]/.test(name) || !keyPart(name))
+  if (!name || [...name].length > FAMILY_NAME_MAX || /[\n\r]/.test(name) || !hasKeyPart(name))
     return 'invalid'
   if (!isObject(footnote.by)) return 'invalid'
   const by: VariantValue[] = []
