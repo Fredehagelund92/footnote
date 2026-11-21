@@ -127,7 +127,11 @@ Every definitions connector follows these, and the template does each of them.
 - **Value types.** The tool's own word, from a list you know. Anything else is null.
 - **Variants.** When the tool gives a metric's filters, `filterVariant(filters)` leaves out the literal each compares and returns those literals. Send them as the metric's `variant`, with the mark of its calculation with those filters in its place, and the ref of the dimension each literal is compared with when you read it. A tool that gives no calculation sends none: its variants stay metrics.
 - **What a metric is built from.** Send the refs of the definitions it takes as `builtFrom.refs`, and the columns its own calculation reads, from `columnsOf(expression)`, as `builtFrom.columns`. Names only: never the expression. Leave it out for a type you do not know.
-- **A declared family.** When the tool keeps a `meta` per member, `declaredFamily(meta, dimensionRef)` reads Footnote's one convention, `meta.footnote.family` and `meta.footnote.by`, as written. Send it as the member's `family`. For `invalid`, send none and warn `invalid_family` with the member's name. Leave `footnote` out of the change mark: a family changes no meaning. The core checks the families across members and warns for one that does not hold.
+- **A declared family.** When the tool keeps a `meta` per member, read Footnote's one convention as written:
+  - Call `declaredFamily(meta, dimensionRef)`: it reads `meta.footnote.family` and `meta.footnote.by`. Send the result as the member's `family`.
+  - For `invalid`, send none and warn `invalid_family` with the member's name.
+  - Leave `footnote` out of the change mark: a family changes no meaning.
+  - The core checks the families across members and warns for one that does not hold.
 - **Records built on records.** Hash an input once and put its digest in what is built on it. Sort warnings as well as definitions.
 
 ### Unknown, not guessed

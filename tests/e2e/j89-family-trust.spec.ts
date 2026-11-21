@@ -45,9 +45,14 @@ for (const { name, width, height } of widths) {
       await expect(ready).not.toContainText('Shipping fee')
       expect(await sideways(page)).toBe(0)
 
-      await fee.getByRole('button', { name: 'Publish apart' }).click()
-      await expect(page.getByText('2 metrics are published apart')).toBeVisible()
+      await fee.getByRole('button', { name: 'Leave out' }).click()
       await expect(alike).toHaveCount(0)
+      await main.getByText('Left out').click()
+      const left = main.getByRole('listitem').filter({ hasText: 'Shipping fee (EUR)' })
+      await expect(left.getByRole('button', { name: 'Publish as a family' })).toBeVisible()
+      await expect(left.getByRole('button', { name: 'Leave out' })).toHaveCount(0)
+      await left.getByRole('button', { name: 'Publish apart' }).click()
+      await expect(page.getByText('2 metrics are published apart')).toBeVisible()
     })
 
     test('a family’s page says how it was found, and which variant is converted from which', async ({
