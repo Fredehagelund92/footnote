@@ -106,6 +106,7 @@ function measureFamilies(tool: string): Definition[] {
       updated: '22 Oct 2026',
       family: {
         by: ['Currency', 'Channel'],
+        found: 'calculation',
         variants: currencies.flatMap((code) =>
           channels.map((channel) => ({
             name: `${label} (${code.toUpperCase()}) ${channel}`,
@@ -119,7 +120,8 @@ function measureFamilies(tool: string): Definition[] {
 
 /**
  * A metric in EUR and one in USD worked out from it with each row's rate: two calculations, one
- * family by its names, whose source says how the second comes from the first.
+ * family found from the calculation (one rate converts the second from the first, D2), whose
+ * source also says so in its own words.
  */
 function accruedShare(tool: string): Definition {
   return {
@@ -136,6 +138,14 @@ function accruedShare(tool: string): Definition {
       by: ['Currency'],
       derivations: [
         "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
+      ],
+      found: 'calculation',
+      conversions: [
+        {
+          from: 'Accrued share front loaded (EUR)',
+          to: 'Accrued share front loaded (USD)',
+          by: 'exchange_rate_usd',
+        },
       ],
       variants: ['EUR', 'USD'].map((code) => ({
         name: `Accrued share front loaded (${code})`,

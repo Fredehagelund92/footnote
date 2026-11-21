@@ -16,8 +16,13 @@ import {
   termDomain,
   type ShelfItem,
 } from '../../../domain/catalogue.ts'
-import type { VariantValue } from '../../../domain/definition-helpers.ts'
-import { relationsOf, type RelationMember } from '../../../domain/definition-relations.ts'
+import type { DeclaredFamily, VariantValue } from '../../../domain/definition-helpers.ts'
+import {
+  conversionsOf,
+  relationsOf,
+  type BuiltFrom,
+  type RelationMember,
+} from '../../../domain/definition-relations.ts'
 import {
   axisWords,
   derivationsOf,
@@ -84,6 +89,10 @@ type DefinitionRow = Omit<CatalogueDefinition, 'state' | 'fileUrl'> & {
   /** What tells a variant of a family apart, as its source read it (FR-142); null otherwise. */
   variantBy: VariantValue[] | null
   variantShape: string | null
+  /** The family its source declares it is a variant of (`meta.footnote`, D9); null for none. */
+  declared: DeclaredFamily | null
+  /** What it is built from, as its source names it (CON-207); null when the source does not say. */
+  builtFrom: BuiltFrom | null
 }
 
 const iso = (column: string) =>
@@ -158,6 +167,11 @@ export function createCatalogueService(
                 d.description_copy as "descriptionCopy", d.value_type as "valueType",
                 d.renamed_to as "renamedTo", d.model_file as "modelFile", d.variant_by as "variantBy",
                 d.variant_shape as "variantShape",
+                case when d.family_name is not null
+                     then json_build_object('name', d.family_name, 'by', d.family_by) end as declared,
+                case when d.built_from_refs is not null
+                     then json_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
+                end as "builtFrom",
                 ${visibleTo} as visible,
                 d.missing_since_snapshot is not null as missing,
                 ${iso('seen.fetched_at')} as "readAt",
@@ -255,6 +269,33 @@ export function createCatalogueService(
     for (const row of data.vocabulary)
       if (row.kind === 'metric' && row.parentKey && families.has(row.parentKey))
         variantsOf.set(row.parentKey, [...(variantsOf.get(row.parentKey) ?? []), row])
+    // How each family was found and what tells its variants apart, worked out once over every live
+    // metric: a rate is a rate when it converts more than the one family's pair (D2).
+    let sourceFamilies: ReturnType<typeof familiesOf> | null = null
+    const foundFamilies = () =>
+      (sourceFamilies ??= familiesOf(
+        data.vocabulary.flatMap((row) => {
+          const own =
+            row.kind === 'metric'
+              ? row.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
+              : undefined
+          return own
+            ? [
+                {
+                  ref: own.ref,
+                  source: own.sourceId,
+                  name: own.name,
+                  said: row.name,
+                  variant: own.variantBy
+                    ? { shape: own.variantShape ?? '', by: own.variantBy }
+                    : null,
+                  declared: own.declared,
+                  builtFrom: own.builtFrom,
+                },
+              ]
+            : []
+        }),
+      ))
     const dimensionNames = new Map(
       data.vocabulary
         .filter((t) => t.kind === 'dimension')
@@ -295,11 +336,23 @@ export function createCatalogueService(
           source: own?.sourceId ?? '',
           name: own?.name ?? member.name,
           variant: own?.variantBy ? { shape: own.variantShape ?? '', by: own.variantBy } : null,
+          declared: own?.declared ?? null,
+          builtFrom: own?.builtFrom ?? null,
         }
       })
-      const found = familiesOf(said).find((candidate) =>
+      const found = foundFamilies().find((candidate) =>
         candidate.variants.some(({ ref }) => said.some((entry) => entry.ref === ref)),
       )
+      const keyOf = new Map(said.map((entry) => [entry.ref, entry.member.key]))
+      const conversions = conversionsOf(
+        said.flatMap((entry) =>
+          entry.builtFrom ? [{ ref: entry.ref, name: entry.name, builtFrom: entry.builtFrom }] : [],
+        ),
+      ).map((conversion) => ({
+        from: keyOf.get(conversion.from)!,
+        to: keyOf.get(conversion.to)!,
+        by: conversion.by,
+      }))
       const axes = found
         ? {
             by: found.by,
@@ -328,6 +381,9 @@ export function createCatalogueService(
           by: axes.by.map((axis) =>
             axis.ref ? (dimensionNames.get(axis.ref) ?? axisWords(axis)) : axisWords(axis),
           ),
+          // A family an owner published from names that look alike was found by its names.
+          found: found?.found ?? 'names',
+          conversions,
           derivations: derivationsOf(
             said.map((entry) => ({
               said: entry.said,
@@ -409,7 +465,7 @@ export function createCatalogueService(
   }
 
   /**
-   * The metric's definition, the metrics built from it, what it is built
+   * The metric's definition, the metrics of its view and those built from it, what it is built
    * from, and the live terms that name any of them, in one statement.
    */
   async function readRelations(key: string) {
@@ -432,10 +488,18 @@ export function createCatalogueService(
            from definitions d
           where d.ref = (select v.refs[1] from vocabulary v where v.key = $2)
             and d.kind = 'metric' and ${visibleTo}),
-       -- The live metrics built from it.
+       -- The live metrics of its view, which a conversion is found among (D2), and those built
+       -- from it.
        peers as (
          select d.ref, d.connector_id as "connectorId", d.name, false as missing,
                 jsonb_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns) as "builtFrom"
+           from definitions d join own o on d.connector_id = o."connectorId"
+          where d.kind = 'metric' and d.built_from_refs is not null and d.ref <> o.ref
+            and d.missing_since_snapshot is null and ${visibleTo}
+            and regexp_replace(d.name, '[.][^.]*$', '') = regexp_replace(o.name, '[.][^.]*$', '')
+         union
+         select d.ref, d.connector_id, d.name, false,
+                jsonb_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
            from definitions d join own o on d.built_from_refs @> array[o.ref]
           where d.missing_since_snapshot is null and ${visibleTo}),
        targets as (

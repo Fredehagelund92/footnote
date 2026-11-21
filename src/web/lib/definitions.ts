@@ -1,4 +1,5 @@
 import * as React from 'react'
+import type { FamilyFound } from '@domain/family-found'
 import { lookAlikes, termWord, wordRefusal, type WordHolder } from '@domain/terms'
 import { useDefinitions as useDefinitionList } from '@/api/queries'
 import { servedToAgents, type DomainId, type Fact } from '@/model/items'
@@ -30,6 +31,13 @@ export type Family = {
   variants: Variant[]
   /** What the source says of how a variant is worked out from another, as plain lines. */
   derivations?: string[]
+  /** How it was found (D1): declared in its tool, from the calculation, or from its names. */
+  found?: FamilyFound
+  /**
+   * The variants worked out from another with one column more, as the tool's structure says (D2):
+   * each by its name, and the column.
+   */
+  conversions?: { from: string; to: string; by: string }[]
 }
 
 export type Definition = {
@@ -73,7 +81,7 @@ export type Definition = {
  * a definition by its name, or a column of its view. Never a calculation.
  */
 export type DefinitionRelation = {
-  kind: 'built_from' | 'used_by'
+  kind: 'converted_from' | 'converted_to' | 'built_from' | 'used_by'
   /** A definition's name in Definitions, or else in its tool; a column's name in its tool. */
   name: string
   /** A column of its view, not a definition. */
@@ -82,6 +90,8 @@ export type DefinitionRelation = {
   linked: boolean
   /** The definition is no longer in its tool. */
   missing: boolean
+  /** A conversion's column: the one the converted metric reads beyond the other; else null. */
+  by: string | null
 }
 
 export const typeLabel: Record<DefinitionType, string> = {

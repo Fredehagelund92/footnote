@@ -7,6 +7,8 @@
  * Pure: the service and the mock binding suggest the same terms from the same members.
  */
 import { agreedDomain } from './catalogue.ts'
+import type { DeclaredFamily } from './definition-helpers.ts'
+import type { BuiltFrom } from './definition-relations.ts'
 import type { MemberVariant } from './metric-families.ts'
 import { viewOf } from './source-views.ts'
 import { normalizeName, refView } from './vocabulary.ts'
@@ -41,6 +43,10 @@ export type CandidateMember = {
   mergeDimensions?: 'by-name' | 'never'
   /** A metric that is one variant of a family, as its source read it (`metric-families.ts`). */
   variant?: MemberVariant | null
+  /** The family its source declares it is a variant of (`meta.footnote`, D9). */
+  declared?: DeclaredFamily | null
+  /** What it is built from, as its source names it: what a conversion is found from (D2). */
+  builtFrom?: BuiltFrom | null
 }
 
 /** A live term or an open term proposal (`open`), with what it links. */

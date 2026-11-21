@@ -1,6 +1,7 @@
 import * as z from 'zod/mini'
 import type { RuntimeDefinition, RuntimeMessage } from '../../domain/connector-runtime.ts'
 import {
+  declaredFamily,
   descriptionCopy,
   domainHint,
   meaningMark,
@@ -82,10 +83,13 @@ export function parseMeta(text: string): Meta | null {
 const shown = (entry: { isVisible?: boolean | undefined; public?: boolean | undefined }) =>
   entry.isVisible !== false && entry.public !== false
 
-/** The member's metadata without what a mark leaves out: its domain and its other names. */
+/**
+ * The member's metadata without what a mark leaves out: its domain, its other names and the family
+ * Footnote's convention declares (`footnote`).
+ */
 function metaMeaning(meta: Member['meta']): Record<string, unknown> | null {
   if (!meta) return null
-  const { domain: _domain, synonyms: _synonyms, ...rest } = meta
+  const { domain: _domain, synonyms: _synonyms, footnote: _footnote, ...rest } = meta
   return rest
 }
 
@@ -154,6 +158,14 @@ export async function mapDefinitions(
     if (groupDomain.invalid) warn('invalid_domain', group.name)
     else if (groupDomain.areaHint === null) warn('missing_domain', group.name)
 
+    // A view's dimensions by their own names: what a declared family's `by` names.
+    const dimensionRefs = new Map(
+      members.flatMap(({ kind, member }) =>
+        kind === 'dimension' && shown(member)
+          ? [[member.name.slice(group.name.length + 1), `${manifest.refPrefix}:${member.name}`]]
+          : [],
+      ),
+    )
     for (const { kind, member } of members) {
       if (!shown(member) || named.has(member.name)) continue
       named.add(member.name)
@@ -161,6 +173,10 @@ export async function mapDefinitions(
       if (own.invalid) warn('invalid_domain', member.name)
       // A member's own valid domain wins over its view's.
       const domain = own.areaHint === null ? groupDomain : own
+      // The family its `meta.footnote` declares, read as written (D9); one that cannot be kept
+      // is none.
+      const family = declaredFamily(member.meta, (name) => dimensionRefs.get(name) ?? null)
+      if (family === 'invalid') warn('invalid_family', member.name)
       definitions.push({
         ref: `${manifest.refPrefix}:${member.name}`,
         kind,
@@ -174,6 +190,7 @@ export async function mapDefinitions(
         modelFile: null,
         synonyms: synonymsOf(member.meta?.synonyms),
         baseName: baseNameOf(member.name, member.aliasMember),
+        ...(family && family !== 'invalid' ? { family } : {}),
         // What `/v1/meta` says of it, and the member it stands for: never its domain or its
         // other names, which change no meaning (CON-505).
         changeMark: await meaningMark({

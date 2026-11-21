@@ -246,3 +246,52 @@ export function filterVariant(
     return null
   return { shape, by }
 }
+
+/** The longest name of a family a source declares, in characters. */
+export const FAMILY_NAME_MAX = 200
+
+/** A family a source declares a metric is a variant of (FR-142, D9), as it writes it. */
+export type DeclaredFamily = {
+  /** The family's name as the source writes it: `accrued_share` or "Accrued share". */
+  name: string
+  /** What tells this variant apart: each name and value of `by`, in the order written. */
+  by: VariantValue[]
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * The family a member's `meta` declares (Footnote's one optional convention, D9):
+ * `meta.footnote.family`, the family's name, and `meta.footnote.by`, what tells this variant apart
+ * (`{currency: EUR}`), each name with the dimension of that name the connector reads, by ref
+ * (`dimensionRef`). Null when it declares none; `invalid` when it declares one Footnote cannot
+ * keep (no name, no `by`, more than five values, a value that is not a short text, number or
+ * true/false), which the connector warns as `invalid_family` and reads as none. Read as written,
+ * never guessed.
+ */
+export function declaredFamily(
+  meta: unknown,
+  dimensionRef: (name: string) => string | null = () => null,
+): DeclaredFamily | 'invalid' | null {
+  const footnote = isObject(meta) ? meta.footnote : undefined
+  if (!isObject(footnote) || footnote.family === undefined || footnote.family === null) return null
+  const name = typeof footnote.family === 'string' ? footnote.family.trim() : ''
+  if (!name || [...name].length > FAMILY_NAME_MAX || /[\n\r]/.test(name)) return 'invalid'
+  if (!isObject(footnote.by)) return 'invalid'
+  const by: VariantValue[] = []
+  for (const [axis, raw] of Object.entries(footnote.by)) {
+    const value =
+      typeof raw === 'string'
+        ? raw.trim()
+        : typeof raw === 'number' || typeof raw === 'boolean'
+          ? String(raw)
+          : ''
+    const column = axis.trim()
+    if (!column || [...column].length > 500 || !value || [...value].length > VARIANT_VALUE_MAX)
+      return 'invalid'
+    by.push({ name: column, ref: dimensionRef(column), value })
+  }
+  if (!by.length || by.length > VARIANT_BY_MAX) return 'invalid'
+  return { name, by }
+}

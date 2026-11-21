@@ -142,6 +142,20 @@ measures:
 
 A model that a Jinja loop fills with a measure for each currency is skipped, as every Jinja file is. When most of a model's measures look like variants of a few, **Test connection** says so before any name is published.
 
+When you keep a measure for each currency, a measure can say which family it is a variant of, under `meta.footnote`. Each view that takes the measures has the family: [Declare a family in your tool](../help/metric-variants.md#declare-a-family-in-your-tool) says how.
+
+```yaml
+measures:
+  - name: revenue_eur
+    type: sum
+    sql: amount_eur
+    meta:
+      footnote:
+        family: revenue
+        by:
+          currency: EUR
+```
+
 ## Links to model files
 
 Set the model folder's address to link each view to its file. On the Cube source's page, set **Model folder address**, for example:

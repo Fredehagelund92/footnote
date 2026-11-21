@@ -41,7 +41,7 @@ Each time your definitions are read, a name is made for every metric and dimensi
 
 - **Publish all** makes the ready names live at once, so context can apply to them and agents can use them.
 - **Look at these first** holds a name that would give a word a second meaning, such as two metrics both called Revenue. Keep it, change it, or leave it out. Nothing is picked for you.
-- A family is one name for many near-identical metrics, such as a metric for each currency. Publish it, and its variants are published with it. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
+- A family is one name for many near-identical metrics, such as a metric for each currency. Publish it, and its variants are published with it. Metrics whose names alone look alike wait under Look alike, to publish as one family or apart. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
 - **Publish these as suggested** publishes, at one press, the names there only because another definition has the same name, each with the name shown, which tells it apart. A project that keeps one dimension, such as Region, in many semantic models has a copy for each.
 - **Left out** holds dates and ids, which a context item's dates and Applies to already cover, and what you left out. While the card is open you can still publish any of them. Dates and ids alone never raise the card.
 
