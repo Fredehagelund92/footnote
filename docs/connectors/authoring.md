@@ -38,7 +38,7 @@ A definition has these fields ([the schema](../../src/domain/connector-runtime.t
 | `kind`            | `metric` or `dimension`                                                       |
 | `name`            | `<group>.<name>`, the ref without its prefix                                  |
 | `title`           | The tool's label, or null                                                     |
-| `descriptionCopy` | `descriptionCopy(text).copy`: the first 500 characters, or null               |
+| `descriptionCopy` | `descriptionCopy(text).copy`: a copy of at most 500 characters, or null       |
 | `valueType`       | The tool's own word for the type, or null when it says none                   |
 | `visibleGroups`   | Always null                                                                   |
 | `areaHint`        | The domain id the tool names, from `domainHint`, or null                      |

@@ -40,7 +40,7 @@ An admin then adds it in Settings, Integrations, as [Integrations](../help/integ
 2. It asks how that environment's latest build stands. When the build is done and is the one the last read saw, the read ends there, and what that read found stays.
 3. It trades the key for a token that reads metadata only and lasts 5 minutes, made for the security context. The token cannot reach private members.
 4. It reads the deployment's metadata at the REST API address with the token.
-5. Each member of each public view and cube becomes a definition, with its title, the first 500 characters of its description, its type, its other names from `meta.synonyms`, and its domain from `meta.domain`: the member's own first, then its view's.
+5. Each member of each public view and cube becomes a definition, with its title, its description, cut at a whole word inside 500 characters, its type, its other names from `meta.synonyms`, and its domain from `meta.domain`: the member's own first, then its view's.
 
 Every read that reads the metadata is a full listing: a member that left is marked gone, and the items that rely on it are flagged. A cube, view or member Cube hides is left out. A view Cube Cloud describes in a way the connector does not read is left out too, and the read is then in part, so it marks nothing gone.
 
