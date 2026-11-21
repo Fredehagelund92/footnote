@@ -185,7 +185,10 @@ before any name is published.
    `meta.synonyms` and a domain, and a metric whose own `filter` compares a dimension with a literal
    (`{{ Dimension('order__currency_code') }} = 'EUR'`) its variant: the mark of its calculation with
    those literals left out, and each literal with that dimension. Metrics of one semantic model
-   with one such mark are one family (FR-142). It then ends with the commit as its version and its cursor (for the
+   with one such mark are one family (FR-142). A metric also gets what it is built from, by name
+   (FR-143): a ratio's numerator and denominator and the inputs of a derived, cumulative or
+   conversion metric by ref, and the columns its own `expr` reads (a legacy metric's, its
+   measure's), never the `expr` itself. It then ends with the commit as its version and its cursor (for the
    other places, a digest of the file, and for an address or an object the file's marks as its
    cursor). Every read that takes the file is a full listing. A change to the source's settings,
    or a new version of this connector, reads the file again whatever the store says of it.
