@@ -167,6 +167,8 @@ type View = {
   shown: ReadonlySet<string>
   /** Each variant's family, by key: what a variant is called is its family's name. */
   familyOf: ReadonlyMap<string, string>
+  /** Each metric's and family's definition, as `definitions` words it, by key. */
+  wordsOf: ReadonlyMap<string, string | null>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -240,6 +242,11 @@ async function viewOf(reads: ToolReads): Promise<View> {
     familyOf: new Map(
       catalogue.terms.flatMap((t) =>
         (t.family?.variants ?? []).map((v) => [v.key, t.key] as const),
+      ),
+    ),
+    wordsOf: new Map(
+      catalogue.terms.flatMap((t) =>
+        t.kind === 'metric' || t.family ? [[t.key, termWords(t)] as const] : [],
       ),
     ),
     areas,
@@ -723,6 +730,13 @@ const getOutput = z.object({
     }),
   ),
   owners: ownersSchema,
+  /**
+   * The definition of each metric and family the subject names, as Definitions gives it: for a
+   * family, what it is and its variants' own words. Null words when its source gives none.
+   */
+  definitions: z.array(
+    z.object({ id: z.string(), name: z.string(), words: z.nullable(z.string()) }),
+  ),
   searched: z.array(searchedSchema),
   widened: widenedSchema,
   outOf: outOfSchema,
@@ -1044,6 +1058,11 @@ function getContext(
     more: cut,
     wider: wider ? { without: input.widen!.without!, items: widerItems } : null,
     owners,
+    definitions: [...new Set(keysOf(counted).map((k) => view.familyOf.get(k) ?? k))].flatMap((k) =>
+      view.wordsOf.has(k) && isShown(view, k)
+        ? [{ id: nounId(k), name: termName(view, k), words: view.wordsOf.get(k) ?? null }]
+        : [],
+    ),
     searched,
     widened,
     outOf: outOf(view),
@@ -1125,6 +1144,7 @@ function unreadOf(
     more: 0,
     wider: null,
     owners: [],
+    definitions: [],
     searched: [searched, ...(tried?.searched.slice(1) ?? [])],
     widened: tried?.widened ?? ('not asked' as const),
     outOf: outOf(view),
@@ -1412,6 +1432,15 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
   ].join(' ')
 }
 
+/**
+ * A metric's definition as its source words it; a family's (FR-142), as `familyWords` gives it.
+ * What `definitions` gives, and what `get_context` gives of the metrics it read.
+ */
+function termWords(t: Catalogue['terms'][number]): string | null {
+  if (t.family) return familyWords(t.family)
+  return t.definition?.descriptionCopy ? quoted(t.definition.descriptionCopy).text : null
+}
+
 async function definitions(view: View, reads: ToolReads, input: z.output<typeof definitionsInput>) {
   const catalogue = await reads.catalogue()
   const glossary = await reads.glossary()
@@ -1427,11 +1456,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     // A family is one entry for its variants (FR-142): what it means and what it is, never the
     // variants one by one. The words of variants that say something else go with it: the USD
     // one's source may say how it is worked out.
-    const words = t.family
-      ? familyWords(t.family)
-      : t.definition?.descriptionCopy
-        ? quoted(t.definition.descriptionCopy).text
-        : null
+    const words = termWords(t)
     return {
       id: t.key,
       name: t.name,
@@ -2089,7 +2114,7 @@ const definitionsFor = {
   },
   get_context: {
     description:
-      'Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, and what was read. Ask it to widen, and when nothing applies it reads once more by another name or without one part.',
+      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
     input: getInput,
     output: getOutput,
   },

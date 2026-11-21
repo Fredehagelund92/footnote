@@ -23,7 +23,7 @@ import { gitHost, type GitHost } from '../server/connectors/git-server.ts'
 import { partnerManifest } from '../server/connectors/partner-relations-fixture.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { foundation, people } from './fixtures.ts'
-import { apiDatabase, queueReads, testDatabase } from './support.ts'
+import { apiDatabase, askToolsAs, queueReads, testDatabase } from './support.ts'
 
 /*
   Families in the order of trust (FR-142, D1, D2, D9) on the real service and PostgreSQL 18: an
@@ -457,5 +457,26 @@ describe('what a family means (M1)', () => {
       revision: 0,
     })
     expect(changed.statusCode, changed.body).toBe(200)
+  })
+})
+
+describe('Ask on a family', () => {
+  it("gives the family's own words with the look-up of it, the variants' with them", async () => {
+    // Asked why its USD variant differs from its EUR one, Ask read only the look-up and said
+    // nothing was written (captain's install, 21 November 2026): the words were only in Definitions.
+    const read = (await askToolsAs(database, clock)(people.member, (tools) =>
+      tools.run('get_context', {
+        about: 'why is net revenue by line in USD different from EUR',
+        no_period: true,
+      }),
+    )) as { definitions?: { name: string; words: string | null }[] }
+    expect(read.definitions).toEqual([
+      expect.objectContaining({
+        name: 'Net revenue by line',
+        words: expect.stringMatching(
+          /^A family of 6 near-identical metrics, one for each sales line and currency\./,
+        ),
+      }),
+    ])
   })
 })
