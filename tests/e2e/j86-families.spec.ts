@@ -34,7 +34,7 @@ for (const { name, width, height } of widths) {
       // No variant is ever a row.
       await expect(main.locator('tbody tr').filter({ hasText: /\(EUR\)/ })).toHaveCount(0)
       // The families come from dbt, beside the demo's Cube: each row says which tool (F8).
-      await expect(main.getByText(/^Metrics and dimensions come from Cube and dbt\./)).toBeVisible()
+      await expect(main.getByText(/^From Cube and dbt - change them there\./)).toBeVisible()
       await expect(row.getByRole('img', { name: 'From dbt' })).toBeVisible()
       await expect(
         main
