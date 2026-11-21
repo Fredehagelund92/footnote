@@ -119,7 +119,7 @@ const current = async () =>
       `select split_part(substr(ref, 5), '.', 1) as model,
               array_agg(distinct area_hint) as domains
          from definitions where connector_id = $1 and missing_since_snapshot is null
-        group by 1 order by 1 collate "C"`,
+        group by 1 order by split_part(substr(ref, 5), '.', 1) collate "C"`,
       [id],
     )
   ).rows
