@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  asSuggested,
   nameRefusal,
   sourceNames,
   wordsOf,
   type WordHolders,
 } from '../../../src/domain/source-names.ts'
+import { asSuggested } from '../../../src/domain/suggested-names.ts'
 import type { CandidateMember, KnownTerm } from '../../../src/domain/term-candidates.ts'
 import type { WordHolder } from '../../../src/domain/terms.ts'
 
