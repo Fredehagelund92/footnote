@@ -41,8 +41,8 @@ export function NavUser() {
             <PersonAvatar name={me.name} size={32} />
             <span className="flex-1 truncate font-medium group-data-[collapsible=icon]:sr-only">
               {me.name}
-              <span className="sr-only">{me.role}</span>
             </span>
+            <span className="sr-only">{me.role}</span>
             <ChevronsUpDownIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
