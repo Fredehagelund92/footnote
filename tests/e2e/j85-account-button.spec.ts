@@ -85,7 +85,7 @@ for (const { width, height } of [
         await expect(button.getByText('Jon Abara')).toBeVisible()
         // What they own is for screen readers there, not drawn.
         expect((await button.getByText(/Owner of/).boundingBox())!.width).toBeLessThanOrEqual(1)
-        await expect(button).toHaveAttribute('title', /^Jon Abara, Owner of .*Support tickets/)
+        await expect(button).toHaveAttribute('title', 'Jon Abara')
         expect(await spills(button)).toEqual([])
 
         await button.click()
@@ -115,7 +115,7 @@ test('folded to its icons, the account button is the avatar alone', async ({ pag
   await go(page, '/inbox')
   await page.getByRole('button', { name: 'Collapse the sidebar', exact: true }).click()
   const button = await accountButton(page, 1440)
-  await expect(button).toHaveAttribute('title', /^Jon Abara, Owner of /)
+  await expect(button).toHaveAttribute('title', 'Jon Abara')
   // Measured once the fold has stopped moving.
   await expect
     .poll(async () => {
