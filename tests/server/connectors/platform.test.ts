@@ -30,6 +30,7 @@ import { modelFileUrl } from '../../../src/domain/source-views.ts'
 import { SourceReadError } from '../../../src/server/modules/connectors/types.ts'
 import {
   withChosenGroups,
+  withDeclaredFamilies,
   withListedGroups,
 } from '../../../src/server/modules/connectors/platform.ts'
 
@@ -631,5 +632,65 @@ describe('a folder on the server (CON-119)', () => {
     expect(named('cube')).toThrow(
       'FOOTNOTE_SERVER_FOLDERS: cube has CUBE_MODEL_DIR for its folder.',
     )
+  })
+})
+
+describe('the families a read declares (FR-142, D9)', () => {
+  const declaring = (name: string, family: string | null, value: string, kind = 'metric') => ({
+    ref: `dbt:${name}`,
+    kind: kind as 'metric' | 'dimension',
+    name,
+    title: null,
+    descriptionCopy: null,
+    valueType: null,
+    visibleGroups: null,
+    areaHint: null,
+    domainSource: 'none' as const,
+    changeMark: 'a'.repeat(64),
+    modelFile: null,
+    family: family ? { name: family, by: [{ name: 'sales_line', ref: null, value }] } : null,
+  })
+  const read = (definitions: ReturnType<typeof declaring>[]) => ({
+    sourceVersion: 'v1',
+    complete: true,
+    definitions,
+    warnings: [],
+  })
+
+  it('keeps those that hold as the tool gives them', () => {
+    const whole = read([
+      declaring('sales.net_retail', 'net_revenue', 'retail'),
+      declaring('sales.net_online', 'net_revenue', 'online'),
+    ])
+    expect(withDeclaredFamilies(whole)).toBe(whole)
+  })
+
+  it('reads one that does not hold as none, and warns once by its name', () => {
+    const checked = withDeclaredFamilies(
+      read([
+        declaring('sales.net_retail', 'net_revenue', 'retail'),
+        declaring('payouts.net_online', 'net_revenue', 'online'),
+        declaring('sales.tax', 'tax', 'all'),
+        declaring('sales.net_wholesale', null, 'wholesale'),
+      ]),
+    )
+    expect(checked.warnings).toEqual([
+      { code: 'family_two_views', target: 'net_revenue' },
+      { code: 'family_one_member', target: 'tax' },
+    ])
+    expect(checked.definitions.map((d) => d.family ?? null)).toEqual([null, null, null, null])
+    // The read stays whole: a declaration that does not hold leaves no member out.
+    expect(checked.complete).toBe(true)
+    expect(checked.definitions).toHaveLength(4)
+  })
+
+  it('never makes a family of a dimension', () => {
+    const checked = withDeclaredFamilies(
+      read([
+        declaring('sales.net_retail', 'net_revenue', 'retail'),
+        declaring('sales.sales_line', 'net_revenue', 'online', 'dimension'),
+      ]),
+    )
+    expect(checked.warnings).toEqual([{ code: 'family_two_kinds', target: 'net_revenue' }])
   })
 })

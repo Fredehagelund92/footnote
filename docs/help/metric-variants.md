@@ -3,8 +3,8 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 3
-reviewed: 2026-11-20
+minutes: 4
+reviewed: 2026-11-21
 ---
 
 Some models keep a metric for each currency or sales channel, such as Revenue (EUR) web and Revenue (USD) app. Model them as one metric, Revenue, with currency and channel as dimensions. Agents then find what your team wrote about revenue, whatever the currency.
@@ -36,13 +36,37 @@ A sum over several currencies needs one reporting currency. Keep the amount in t
 
 ## If you keep a metric for each variant
 
-A read groups the variants of one calculation into a family, such as Revenue, with 250 variants by Currency and Channel. It finds a family from how each metric is worked out: the same calculation, with filters that differ only by the value they compare, such as EUR or web.
+A read groups near-identical metrics into a family, such as Revenue, with 250 variants by Currency and Channel. It finds a family in four ways, and trusts them in this order:
 
-Metrics whose names are one name in other currencies are a family too, however they are worked out. Accrued share (EUR) and an Accrued share (USD) worked out from it with each row's rate are one family, by Currency. When the source describes how one comes from the other, the family's page says so.
+1. Declared in your tool. A metric that names its family under `meta.footnote` is a variant of it, as written. Two metrics are enough.
+2. Found from the calculation, with filters that differ only by the value they compare, such as EUR or web. Three metrics are enough.
+3. Found from a rate. A metric worked out from another with one more column, such as Accrued share (USD) from Accrued share (EUR) and the column `exchange_rate_usd`. When that column does this for several pairs, each pair is a family by Currency.
+4. Suggested by the names alone. Metrics whose names are one name in other currencies, such as Shipping fee (EUR) and Shipping fee (USD), wait under Look alike on the Names card. They are never a family until you say so.
 
-- On the Names card a family is one name. Publish it, and its variants are published with it.
-- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked Family · 250 variants. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants.
+- On the Names card a family is one name, marked declared in your tool or found from the calculation. Publish it, and its variants are published with it.
+- Under Look alike, choose Publish as a family, or Publish apart to publish each metric by its own name.
+- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked Family · 250 variants. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants, says how the family was found, and which variant is converted from which.
 - A context item about the family applies to every variant, and agents get it for a question about revenue.
 - When any variant changes, the item is due for a check once, not once for each variant.
 
-A source that gives only the names of its metrics, not how they are worked out, makes no families. Each variant is then a metric of its own: a row in Definitions, a name to publish, and found by its exact name.
+A source that gives only the names of its metrics, not how they are worked out, makes families only from what it declares. The other metrics whose names look alike wait under Look alike.
+
+## Declare a family in your tool
+
+You never have to. Declaring is the surest way, and the only way for variants that are columns of their own, such as a sales line. Under each variant's `meta`, write the family's name and the values that tell it apart:
+
+```yaml title="A metric that names its family, in dbt"
+metrics:
+  - name: net_revenue_retail_eur
+    config:
+      meta:
+        footnote:
+          family: net_revenue
+          by:
+            sales_line: retail
+            currency: EUR
+```
+
+In a tool whose metrics are measures, the same `footnote` key goes under the measure's `meta`. Every variant names the same family and the same keys under `by`, each with its own values. A name under `by` that is a dimension of the view is shown by that dimension's name.
+
+A family that can't be kept is read as separate metrics, and Test connection says why: only one metric names it, its metrics are in different views, one is a dimension, they name different keys under `by`, or two name the same values.

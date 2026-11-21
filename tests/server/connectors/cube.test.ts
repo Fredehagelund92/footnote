@@ -72,6 +72,49 @@ describe('offline Cube source', () => {
     )
   }, 60_000)
 
+  it("reads a measure's meta.footnote family as written, in each view, and moves no mark for it", async () => {
+    // Revenue in EUR and the count as its twin in USD: one family of two in every view with both.
+    const declaring = (revenue: string, count = '{family: order_amount, by: {currency: USD}}') =>
+      model((text) =>
+        text
+          .replace(
+            '        sql: amount\n        description: Total order revenue.\n',
+            `        sql: amount\n        description: Total order revenue.\n        meta:\n          footnote: ${revenue}\n`,
+          )
+          .replace(
+            '        meta:\n          domain: commerce\n',
+            `        meta:\n          domain: commerce\n          footnote: ${count}\n`,
+          ),
+      )
+    const plain = await read(await model())
+    const declared = await read(
+      await declaring(
+        '{family: order_amount, by: {currency: EUR, country: DE}}',
+        '{family: order_amount, by: {currency: USD, country: DE}}',
+      ),
+    )
+    const familyOf = (snapshot: typeof plain, ref: string) =>
+      snapshot.definitions.find((entry) => entry.ref === ref)?.family
+    expect(familyOf(declared, 'cube:sales.revenue')).toEqual({
+      name: 'order_amount',
+      by: [
+        { name: 'currency', ref: null, value: 'EUR' },
+        { name: 'country', ref: 'cube:sales.country', value: 'DE' },
+      ],
+    })
+    expect(familyOf(declared, 'cube:sales.count')?.by[0]?.value).toBe('USD')
+    // A view that takes the revenue alone holds one variant: no family there, and the read says so.
+    expect(familyOf(declared, 'cube:operations.revenue')).toBeNull()
+    expect(declared.warnings).toContainEqual({ code: 'family_two_views', target: 'order_amount' })
+    const mark = (snapshot: typeof plain, ref: string) =>
+      snapshot.definitions.find((entry) => entry.ref === ref)?.changeMark
+    expect(mark(declared, 'cube:sales.revenue')).toBe(mark(plain, 'cube:sales.revenue'))
+    // One it cannot keep is none, and the read says so.
+    const unreadable = await read(await declaring('{family: order_amount}'))
+    expect(familyOf(unreadable, 'cube:sales.revenue')).toBeUndefined()
+    expect(unreadable.warnings).toContainEqual({ code: 'invalid_family', target: 'sales.revenue' })
+  }, 60_000)
+
   it('names a member a view joins with a prefix by its own name', async () => {
     const snapshot = await read(await model())
     const baseName = (ref: string) =>

@@ -547,6 +547,33 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
     title: 'No view chosen',
     detail: 'Nothing is read. Choose the views to read.',
   },
+  invalid_family: {
+    title: 'A family we cannot read',
+    detail:
+      'Its meta.footnote names a family without a by, or with a by we cannot keep. The metric is read on its own.',
+  },
+  family_one_member: {
+    title: 'A family of one metric',
+    detail: 'Only one metric names this family in meta.footnote, so it is read on its own.',
+  },
+  family_two_views: {
+    title: 'A family in two views',
+    detail: 'The metrics that name this family are in different views, so each is read on its own.',
+  },
+  family_two_kinds: {
+    title: 'A family with a dimension in it',
+    detail: 'Only metrics make a family. Its members are read on their own.',
+  },
+  family_axes_differ: {
+    title: 'A family told apart in two ways',
+    detail:
+      'Its metrics name different keys under by, so each is read on its own. Give them the same keys.',
+  },
+  family_same_values: {
+    title: 'A family with two of the same',
+    detail:
+      'Two of its metrics name the same values under by, so each is read on its own. Give each its own value.',
+  },
 }
 
 /** A read's warnings, each kind once with how many there are, in the words of who says them. */

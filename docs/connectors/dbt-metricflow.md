@@ -115,6 +115,19 @@ config:
     synonyms: ['purchases', 'order count']
 ```
 
+A metric can also say which family it is a variant of, under `meta.footnote`. You never have to: [Declare a family in your tool](../help/metric-variants.md#declare-a-family-in-your-tool) says how, and when it helps.
+
+```yaml
+# Either spec: one variant of the family net_revenue, by sales line and currency.
+config:
+  meta:
+    footnote:
+      family: net_revenue
+      by:
+        sales_line: retail
+        currency: EUR
+```
+
 ## Connect it
 
 An admin adds it in Settings, Integrations, as [Integrations](../help/integrations.md) says. The fields follow the place you choose:
@@ -163,16 +176,19 @@ The domain, the other names, and the database and schema the project was built f
 
 **Test connection** reads the file once, keeps nothing, and says what it found:
 
-| On screen                                             | What it means, and what to do                                                                |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| No domain named                                       | A semantic model, or a metric under `_shared`, names no domain. Map it, or set `meta.domain` |
-| A domain we do not have                               | A `meta.domain` is not a domain id. Add it to Domain names                                   |
-| A description was cut                                 | A description is over 500 characters. Only the first 500 are kept                            |
-| A type we do not know                                 | The definition is kept with no type, never a guessed one. A newer dbt may have added it      |
-| A metric and a dimension share a name                 | Only the metric is kept. Rename one of them in dbt                                           |
-| A metric is built on something the file does not hold | It is left out and the read is in part, so what was known stays. Commit a whole file         |
-| This is not dbt's semantic manifest                   | The read fails: the file is another one, often `manifest.json`. Point File at the right one  |
-| This signature can do more than read                  | The read fails: make a shared access signature with `sp=r`                                   |
+| On screen                                                | What it means, and what to do                                                                |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| No domain named                                          | A semantic model, or a metric under `_shared`, names no domain. Map it, or set `meta.domain` |
+| A domain we do not have                                  | A `meta.domain` is not a domain id. Add it to Domain names                                   |
+| A description was cut                                    | A description is over 500 characters. Only the first 500 are kept                            |
+| A type we do not know                                    | The definition is kept with no type, never a guessed one. A newer dbt may have added it      |
+| A metric and a dimension share a name                    | Only the metric is kept. Rename one of them in dbt                                           |
+| A metric is built on something the file does not hold    | It is left out and the read is in part, so what was known stays. Commit a whole file         |
+| A family we cannot read                                  | A `meta.footnote` names a family without a `by`. The metric is read on its own               |
+| A family of one metric, or in two views                  | A declared family needs two metrics of one semantic model. Each is read on its own           |
+| A family told apart in two ways, or with two of the same | Its metrics name other keys, or the same values, under `by`. Give each its own value         |
+| This is not dbt's semantic manifest                      | The read fails: the file is another one, often `manifest.json`. Point File at the right one  |
+| This signature can do more than read                     | The read fails: make a shared access signature with `sp=r`                                   |
 
 A read that fails, in the test or on its schedule, says why in Integrations when it is one of these. Any other failure of a scheduled read shows only that it couldn't be read, and Test connection says more.
 

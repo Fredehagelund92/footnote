@@ -162,17 +162,32 @@ describe('families in a Cube model', () => {
   it('are found from the measures’ filters and published with one press each', async () => {
     const { revision, names } = await ok<NamesRead>(call('GET', '/inbox/names', 'admin'))
     const families = names.filter((name) => name.kind === 'metric_group')
-    expect(families.map((name) => [name.name, name.family])).toEqual([
-      ['Accrued share front loaded', { variants: 2, by: ['Currency'] }],
-      ['Gross revenue', { variants: 8, by: ['Currency', 'Channel'] }],
-      ['Net revenue', { variants: 8, by: ['Currency', 'Channel'] }],
-      ['Revenue', { variants: 8, by: ['Currency', 'Channel'] }],
+    const calculation = { by: ['Currency', 'Channel'], found: 'calculation', names: [] }
+    expect(families.map((name) => [name.name, name.state, name.family])).toEqual([
+      // Cube says nothing of how the USD one is worked out: only its name says it is the same
+      // amount in USD, so the owner says whether the two are one family (D1).
+      [
+        'Accrued share front loaded',
+        'flagged',
+        {
+          variants: 2,
+          by: ['Currency'],
+          found: 'names',
+          names: ['Accrued share front loaded (EUR)', 'Accrued share front loaded (USD)'],
+        },
+      ],
+      ['Gross revenue', 'ready', { variants: 8, ...calculation }],
+      ['Net revenue', 'ready', { variants: 8, ...calculation }],
+      ['Revenue', 'ready', { variants: 8, ...calculation }],
     ])
     expect(names.filter((name) => name.kind === 'metric')).toEqual([])
+    // Publish all and, at its own press, the names that look alike as one family.
     await ok(
       call('POST', '/inbox/names/decide', 'admin', {
         revision,
-        accept: names.filter((name) => name.state === 'ready').map(({ key }) => ({ key })),
+        accept: names
+          .filter((name) => name.state === 'ready' || name.family?.found === 'names')
+          .map(({ key }) => ({ key })),
         leaveOut: [],
       }),
     )
@@ -189,6 +204,7 @@ describe('families in a Cube model', () => {
     // The family's page says how one variant is worked out from the other, in the source's words.
     // Both carry one more filter, the same on each: the names still say it is the currency.
     expect(terms[0]!.family).toMatchObject({
+      found: 'names',
       by: ['Currency'],
       variants: [{ values: ['EUR'] }, { values: ['USD'] }],
       derivations: [

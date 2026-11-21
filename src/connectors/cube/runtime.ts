@@ -29,7 +29,13 @@ export const MODEL_BYTES_MAX = 20_000_000
 const yaml = /\.ya?ml$/i
 
 const fileWarning = z.object({
-  code: z.enum(['unsupported_file', 'unreadable_file', 'invalid_domain', 'missing_domain']),
+  code: z.enum([
+    'unsupported_file',
+    'unreadable_file',
+    'invalid_domain',
+    'missing_domain',
+    'invalid_family',
+  ]),
   target: z.string().check(z.maxLength(500)),
 })
 

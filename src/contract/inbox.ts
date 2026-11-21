@@ -8,6 +8,7 @@
 import * as z from 'zod/mini'
 import { alertCardRules } from '../domain/alerts.ts'
 import { cardGroups, cardActions, setupSteps } from '../domain/inbox.ts'
+import { familyFoundKinds } from '../domain/family-found.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
 import { proposalActions } from '../domain/proposal.ts'
@@ -221,10 +222,21 @@ export const sourceNameSchema = z.object({
   /** An owner left it out; otherwise it is a date or an id, which stay out by themselves. */
   leftByOwner: z.boolean(),
   /**
-   * A family's variants, counted, and what tells them apart in words (["Currency", "Channel"]):
-   * they go live with it, and are never listed one by one. Null for any other name.
+   * A family's variants, counted, what tells them apart in words (["Currency", "Channel"]), and how
+   * it was found (D1): declared in the tool, found from the calculation, or suggested by the names
+   * alone. They go live with it, and are never listed one by one, but for a family the names alone
+   * suggest: its variants' names (`names`), as the owner publishes them as one family or apart.
+   * Null for any other name.
    */
-  family: z.nullable(z.object({ variants: z.number(), by: z.array(z.string()) })),
+  family: z.nullable(
+    z.object({
+      variants: z.number(),
+      by: z.array(z.string()),
+      found: z.enum(familyFoundKinds),
+      /** The variants' names, of a family the names alone suggest; empty for any other. */
+      names: z.array(z.string()),
+    }),
+  ),
 })
 export type SourceNameRead = z.infer<typeof sourceNameSchema>
 
@@ -247,6 +259,11 @@ export const decideNamesSchema = z.strictObject({
       z.strictObject({
         key: nameKeySchema,
         name: z.optional(z.string().check(z.minLength(1), z.maxLength(200))),
+        /**
+         * A family the names alone suggest, published apart: each of its variants by its own name,
+         * and no family.
+         */
+        apart: z.optional(z.literal(true)),
       }),
     )
     .check(z.maxLength(NAMES_MAX)),

@@ -8,6 +8,7 @@ import {
 import { contentDigest } from '../../../domain/canonical.ts'
 import { connectorIdPattern } from '../../../domain/connector-id.ts'
 import { connectorConfigDomains, parseConnectorConfig } from '../../../domain/connector-config.ts'
+import { declaredFamilyProblems } from '../../../domain/metric-families.ts'
 import {
   checkReportSchema,
   figureResultSchema,
@@ -577,6 +578,24 @@ export function withChosenGroups(
   return { ...read, definitions, warnings: [...warnings, ...mapped] }
 }
 
+/**
+ * A read with the families its definitions declare (`meta.footnote`, D9) that hold: one that does
+ * not (one member, two views, a dimension, other columns, the same values twice) is warned once by
+ * its name and read as none, so its members are only metrics. Checked on what the read keeps, after
+ * the groups it was narrowed to, for every connector alike.
+ */
+export function withDeclaredFamilies(snapshot: SourceSnapshot): SourceSnapshot {
+  const { warnings, dropped } = declaredFamilyProblems(snapshot.definitions)
+  if (!warnings.length) return snapshot
+  return {
+    ...snapshot,
+    definitions: snapshot.definitions.map((definition) =>
+      dropped.has(definition.ref) ? { ...definition, family: null } : definition,
+    ),
+    warnings: [...snapshot.warnings, ...warnings],
+  }
+}
+
 /** The most a stored cursor holds (the snapshot's own limit). */
 const CURSOR_MAX = 500
 /** The room the settings digest and its separator take in front of a runtime's cursor. */
@@ -642,17 +661,19 @@ function runtimeSource(running: Running, stored: StoredSource): DefinitionSource
             // Nothing read can only say what the read before it found stands.
             if (message.unchanged && (!cursor || definitions.length)) throw invalid()
             const kept = message.cursor === undefined ? undefined : tied(message.cursor, tie)
-            return withChosenGroups(
-              {
-                sourceVersion: message.version,
-                complete: message.complete && !capped,
-                definitions,
-                warnings,
-                ...(kept === undefined ? {} : { cursor: kept }),
-                ...(message.unchanged ? { unchanged: true as const } : {}),
-              },
-              stored.scopes ?? [],
-              stored.allGroups,
+            return withDeclaredFamilies(
+              withChosenGroups(
+                {
+                  sourceVersion: message.version,
+                  complete: message.complete && !capped,
+                  definitions,
+                  warnings,
+                  ...(kept === undefined ? {} : { cursor: kept }),
+                  ...(message.unchanged ? { unchanged: true as const } : {}),
+                },
+                stored.scopes ?? [],
+                stored.allGroups,
+              ),
             )
           }
           // A definitions connector sends definitions, under its tool's prefix, each once.
