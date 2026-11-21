@@ -255,6 +255,7 @@ describe("Ask's loop answer, state by state", () => {
     try {
       const el = render({ ...ebitda(), unknown: ['EBITDA', 'ARR'] }, 'What are our EBITDA and ARR?')
       const gap = el.querySelector('[data-gap]')!
+      expect(text(gap)).toContain('uses these words yet. Ravi Kapoor, an admin, can add them.')
       const press = async () => {
         await act(async () => {
           ;(buttons(gap, /^Tell an admin$/)[0] as HTMLElement).click()

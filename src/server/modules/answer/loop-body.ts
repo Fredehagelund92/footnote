@@ -447,6 +447,9 @@ function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
   return out.filter((r) => r.t !== 'text' || r.text)
 }
 
+/** Stands in for a "()" the model wrote while a sentence is read. */
+const LITERAL_BRACKETS = '\uE000'
+
 /**
  * The model's words checked and drawn (FR-720.2, FR-720.3): paragraphs, the short lists it wrote,
  * the lists of reads it asked for, and in each sentence its nouns, numbers and citations. Every
@@ -483,7 +486,9 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     }
   }
   /** One sentence's runs, every one kept. */
-  const sentence = (words: string): LoopRun[] => {
+  const sentence = (written: string): LoopRun[] => {
+    // A "()" the model wrote itself ("refresh()") is no bracket a reference left empty: set aside.
+    const words = written.replace(/\(\)/g, LITERAL_BRACKETS)
     const runs: LoopRun[] = []
     let at = 0
     for (const m of words.matchAll(TOKEN)) {
@@ -542,7 +547,9 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     }
     pushRun(runs, { t: 'text', text: words.slice(at) })
     // A reference left out of brackets leaves no empty brackets behind.
-    for (const r of runs) if (r.t === 'text') r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '')
+    for (const r of runs)
+      if (r.t === 'text')
+        r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '').replaceAll(LITERAL_BRACKETS, '()')
     // A citation sits right after what it supports: three or more at a sentence's end are a pile.
     let piled = 0
     for (let i = runs.length - 1; i >= 0; i--) {
