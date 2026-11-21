@@ -16,7 +16,9 @@ When agents keep asking about something and find nothing written down, the answe
 
 ## What raises a card
 
-A card is about one topic: a metric, the values asked about, such as a market, and the month. It comes when agents' questions about it find nothing 5 or more times in 7 days, a number an admin can change in Alerts. When someone presses Tell the owner on a Not found answer in Ask, the card says so: [Ask a question](ask-a-question.md#when-nothing-is-written). A word someone told an admin about from Ask, because no metric or context item uses it, comes to the admins as a card titled with that word.
+A card is about one topic: a metric, the values asked about, such as a market, and the month. It comes when agents' questions about it find nothing 5 or more times in 7 days, a number an admin can change in Alerts. When someone presses Tell the owner on a Not found answer in Ask, the card says so: [Ask a question](ask-a-question.md#when-nothing-is-written).
+
+A word someone told an admin about from Ask, because no metric or context item uses it, comes to the admins as a card titled with that word.
 
 The owners of the topic's domain get it, and admins. A topic that spans domains reaches the owners of each.
 

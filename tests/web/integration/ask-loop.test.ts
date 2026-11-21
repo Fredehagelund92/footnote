@@ -258,8 +258,8 @@ describe("Ask's loop", () => {
       const a = await api.ask({ question })
       expect(a.stopped).toBe('steps')
       expect(a.text).toMatch(/so this is what is written, as agents get it\.$/)
-      // Its answer line: the state of what was read, or the Definition label (decision 3).
-      expect(a.state ?? a.loop?.defined?.names).toBeTruthy()
+      // A stop is a stop: it shows "Stopped" and no state.
+      expect(a.state).toBeNull()
       expect(a.loop?.body.length).toBeGreaterThan(0)
     } finally {
       decide = null
