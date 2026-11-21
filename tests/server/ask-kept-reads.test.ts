@@ -12,8 +12,9 @@ import {
 /*
   What Ask's turns read of the person's workspace, and how often (Ask's speed budget,
   docs/releasing.md): each read once a turn, however many transactions the turn's reads take, and
-  the catalogue and the words written in Definitions kept between a person's turns while the live
-  edition is the same. Which items the person may read is read every turn (FR-718.3).
+  the words written in Definitions kept between a person's turns until the live edition changes.
+  The catalogue (its mention counts and gaps) and which items the person may read are read every
+  turn (FR-718.3).
 */
 
 /** Services that count each read, as the person's request would make it. */
@@ -61,29 +62,24 @@ describe("the reads of Ask's turns", () => {
     expect(reads).toEqual({ readable: 1, catalogue: 1, areas: 1, people: 1, glossary: 1 })
   })
 
-  it('keep the catalogue and the words between turns on the same edition, never what may be read', async () => {
+  it('keep the words between turns on the same edition, never the catalogue or what may be read', async () => {
     const { reads, services } = counted()
     const kept = createKeptReads()
     await viewRead(readsOf(services, kept.turn('p_ada', 'e1')))
     await viewRead(readsOf(services, kept.turn('p_ada', 'e1')))
-    expect(reads).toEqual({ readable: 2, catalogue: 1, areas: 2, people: 2, glossary: 1 })
+    expect(reads).toEqual({ readable: 2, catalogue: 2, areas: 2, people: 2, glossary: 1 })
     // Another person reads their own.
     await viewRead(readsOf(services, kept.turn('p_jon', 'e1')))
-    expect(reads.catalogue).toBe(2)
+    expect(reads.glossary).toBe(2)
   })
 
-  it('read everything again on a new edition, and after the time they are kept', async () => {
+  it('read the words again on a new edition, however long it has been', async () => {
     const { reads, services } = counted()
-    let now = 0
-    const kept = createKeptReads(1000, () => now)
+    const kept = createKeptReads()
     await viewRead(readsOf(services, kept.turn('p_ada', 'e1')))
     await viewRead(readsOf(services, kept.turn('p_ada', 'e2')))
-    expect(reads.catalogue).toBe(2)
-    now = 999
+    expect(reads.glossary).toBe(2)
     await viewRead(readsOf(services, kept.turn('p_ada', 'e2')))
-    expect(reads.catalogue).toBe(2)
-    now = 1000
-    await viewRead(readsOf(services, kept.turn('p_ada', 'e2')))
-    expect(reads.catalogue).toBe(3)
+    expect(reads.glossary).toBe(2)
   })
 })
