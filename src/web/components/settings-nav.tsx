@@ -44,7 +44,10 @@ export const settingsSections = [
       { id: 'integrations' satisfies SectionId, title: 'Integrations', icon: PlugIcon },
     ],
   },
-  { group: 'System', items: [{ id: 'advanced' satisfies SectionId, title: 'Advanced', icon: WrenchIcon }] },
+  {
+    group: 'System',
+    items: [{ id: 'advanced' satisfies SectionId, title: 'Advanced', icon: WrenchIcon }],
+  },
 ] as const
 
 export function SettingsNav({ section, close }: { section: string; close: () => void }) {
