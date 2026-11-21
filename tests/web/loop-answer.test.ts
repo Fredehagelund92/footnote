@@ -20,6 +20,7 @@ import { usedTurn } from '@/api/mock/loop-used'
 const world = vi.hoisted(() => ({
   me: { name: 'Jon Abara', role: 'Owner of Sales, admin', owns: ['area_sales'], admin: true },
   writes: [] as { op: string; input: unknown }[],
+  failing: new Set<string>(),
 }))
 vi.mock('@/lib/workspace', () => ({
   useFacts: () => [],
@@ -40,6 +41,8 @@ vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
 vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: unknown) => {
     world.writes.push({ op, input })
+    const word = (input as { word?: string }).word
+    if (word && world.failing.has(word)) return Promise.reject(new Error('down'))
     return Promise.resolve({ id: 'g1' })
   },
 }))
@@ -241,6 +244,36 @@ describe("Ask's loop answer, state by state", () => {
       expect(text(gap)).toContain('Sent to Ravi Kapoor, an admin. It waits in their Inbox.')
     } finally {
       world.me = owner
+    }
+  })
+
+  it('Tell an admin, retried after one word failed, sends only the word that failed', async () => {
+    const owner = world.me
+    world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    world.writes.length = 0
+    world.failing = new Set(['ARR'])
+    try {
+      const el = render({ ...ebitda(), unknown: ['EBITDA', 'ARR'] }, 'What are our EBITDA and ARR?')
+      const gap = el.querySelector('[data-gap]')!
+      const press = async () => {
+        await act(async () => {
+          ;(buttons(gap, /^Tell an admin$/)[0] as HTMLElement).click()
+          await new Promise((done) => setTimeout(done))
+        })
+      }
+      await press()
+      expect(text(gap)).not.toContain('Sent to')
+      world.failing = new Set()
+      await press()
+      expect(world.writes.map((w) => (w.input as { word: string }).word)).toEqual([
+        'EBITDA',
+        'ARR',
+        'ARR',
+      ])
+      expect(text(gap)).toContain('Sent to')
+    } finally {
+      world.me = owner
+      world.failing = new Set()
     }
   })
 

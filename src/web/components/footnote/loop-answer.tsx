@@ -1026,6 +1026,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   const owns = useOwns(loop)
   const [told, setTold] = React.useState(false)
   const [sending, setSending] = React.useState(false)
+  const sentWords = React.useRef(new Set<string>())
   const about = missingOf(loop, nouns)
   const words = about.length ? [] : (loop.unknown ?? [])
   const to = useTold(loop, nouns, !about.length)
@@ -1037,14 +1038,18 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
     setSending(true)
     const sent = about.length
       ? [write('tellOwner', { about, ...(dates ? { dates } : {}) })]
-      : words.map((word) => write('tellOwner', { about: [], word }))
-    void Promise.all(sent).then(
-      () => setTold(true),
-      () => {
+      : words
+          .filter((word) => !sentWords.current.has(word))
+          .map((word) =>
+            write('tellOwner', { about: [], word }).then(() => void sentWords.current.add(word)),
+          )
+    void Promise.allSettled(sent).then((results) => {
+      if (results.every((r) => r.status === 'fulfilled')) setTold(true)
+      else {
         setSending(false)
         P.toast.error("It wasn't sent", { description: 'Nothing was lost: try again in a moment.' })
-      },
-    )
+      }
+    })
   }
   const whom = to.people.length ? `${listed(to.people)}, ${to.role},` : `${to.role}`
   const Whom = `${whom.charAt(0).toUpperCase()}${whom.slice(1)}`

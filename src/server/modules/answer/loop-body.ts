@@ -366,14 +366,6 @@ function strayAtEnd(runs: readonly LoopRun[], run: LoopRun, rest: string, earlie
 }
 
 /** Runs of words, a run of plain words merged with the one before it. */
-/** Runs with words that meet joined, and no empty brackets left in them: "Germany ():". */
-function withoutEmptyBrackets(runs: readonly LoopRun[]): LoopRun[] {
-  const out: LoopRun[] = []
-  for (const r of runs) pushRun(out, r.t === 'text' ? { ...r } : r)
-  for (const r of out) if (r.t === 'text') r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '')
-  return out.filter((r) => r.t !== 'text' || r.text)
-}
-
 function pushRun(runs: LoopRun[], run: LoopRun) {
   const last = runs.at(-1)
   if (run.t === 'text' && last?.t === 'text') last.text += run.text
@@ -566,7 +558,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
           if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
     // A name the words give is said once: a mention after it is drawn on it (FR-720.3).
     // Placing a mention can leave the brackets it sat in empty: they go too.
-    const done = withoutEmptyBrackets(stopBeforeCites(placed(runs, ctx.nouns)))
+    const done = stopBeforeCites(placed(runs, ctx.nouns))
     earlier += ` ${runWords(done, ctx.nouns)}`
     return done
   }
@@ -979,6 +971,8 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
   const trailing = trailingRuns(runs)
   // Where the sentence being read starts: a run, and the place in it when it is words.
   let from = { run: 0, at: 0 }
+  // A mention left its place: the brackets it sat in ("Germany ([#germany]):") are left empty.
+  let vacated = false
   const inSentence = (i: number, at: number) => i > from.run || (i === from.run && at >= from.at)
   /** Where the words so far give a name: where they end with it, or its first place this sentence. */
   const find = (name: RegExp, ending: boolean) => {
@@ -1003,15 +997,20 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
       const last = out.at(-1)
       const led = last?.t === 'text' && LEADS_ON.test(last.text)
       const trails = trailing[n] && !led
-      if (trails && out.slice(from.run).some((x) => x.t === 'noun' && x.id === r.id)) return
+      if (trails && out.slice(from.run).some((x) => x.t === 'noun' && x.id === r.id)) {
+        vacated = true
+        return
+      }
       const name = nouns.get(r.id)?.name
       const found = name
         ? (find(nameIn(name), true) ?? (trails ? find(nameIn(name), false) : null))
         : null
       if (!found) {
         out.push(r)
+        vacated = false
         return
       }
+      vacated = true
       const x = out[found.i] as Extract<LoopRun, { t: 'text' }>
       const after = x.text.slice(found.at + found.length)
       out.splice(
@@ -1022,7 +1021,17 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
         ...(after ? [{ t: 'text' as const, text: after }] : []),
       )
     } else if (r.t === 'text') {
-      const last = out.at(-1)
+      let last = out.at(-1)
+      if (vacated && last?.t === 'text') {
+        const open = /[ \t]*\([ \t]*$/.exec(last.text)
+        const close = /^[ \t]*\)/.exec(r.text)
+        if (open && close) {
+          last = { ...last, text: last.text.slice(0, open.index) }
+          out[out.length - 1] = last
+          r = { ...r, text: r.text.slice(close[0].length) }
+        }
+      }
+      vacated = false
       const start = lastSentenceStart(r.text)
       if (last?.t === 'text') {
         if (start >= 0) from = { run: out.length - 1, at: last.text.length + start }
@@ -1031,7 +1040,10 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
         if (start >= 0) from = { run: out.length, at: start }
         out.push({ ...r })
       }
-    } else out.push(r)
+    } else {
+      out.push(r)
+      vacated = false
+    }
   })
   return out.flatMap((x): LoopRun[] => {
     if (x.t !== 'text') return [x]
