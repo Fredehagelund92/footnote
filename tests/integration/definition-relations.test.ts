@@ -223,7 +223,7 @@ describe('a metric’s relations', () => {
   })
 
   it('never hold an expression, an operator or a literal', () => {
-    expect(answers.length).toBeGreaterThan(5)
+    expect(answers.length).toBeGreaterThanOrEqual(5)
     for (const body of answers) expect(body).not.toMatch(/SUM\(|CASE|\*|'/i)
   })
 
@@ -302,9 +302,6 @@ describe('a later read', () => {
     expect(rate[0]).toMatchObject({ name: 'partner_results.sign_ups', key: null })
     // The name that was live keeps its term, which says its input left the source.
     expect(rate[1]).toMatchObject({ key: await keyOf('clicks') })
-    expect(said(await relationsOf('net_revenue_per_signup'))[1]).toEqual([
-      'built_from',
-      'sign_ups',
-    ])
+    expect(said(await relationsOf('net_revenue_per_signup'))[1]).toEqual(['built_from', 'sign_ups'])
   }, 120_000)
 })

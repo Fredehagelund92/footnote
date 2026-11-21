@@ -55,7 +55,9 @@ describe('how a metric is built', () => {
       relation({ kind: 'built_from', name: 'commission_eur', column: true, linked: false }),
       relation({ kind: 'built_from', name: 'exchange_rate_usd', column: true, linked: false }),
     ])
-    expect(rows(page)).toEqual([['Built from', 'Commission (EUR)columnscommission_eurexchange_rate_usd']])
+    expect(rows(page)).toEqual([
+      ['Built from', 'Commission (EUR)columnscommission_eurexchange_rate_usd'],
+    ])
     const link = page.querySelector('a')!
     expect(link.textContent).toBe('Commission (EUR)')
     expect(link.getAttribute('href')).toBe('/definitions/Commission%20(EUR)')

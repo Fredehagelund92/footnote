@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { columnsOf } from '../../../src/domain/definition-helpers.ts'
-import {
-  relationsOf,
-  type RelationMember,
-} from '../../../src/domain/definition-relations.ts'
+import { relationsOf, type RelationMember } from '../../../src/domain/definition-relations.ts'
 
 /*
   What a metric is built from, and what is built from it (FR-143): the columns a calculation
@@ -36,9 +33,10 @@ describe('the columns a calculation reads', () => {
   })
 
   it('leaves out bare functions such as current_date, and the date part after interval or a number', () => {
-    expect(
-      columnsOf('SUM(CASE WHEN created_at >= current_date THEN amount END)'),
-    ).toEqual(['created_at', 'amount'])
+    expect(columnsOf('SUM(CASE WHEN created_at >= current_date THEN amount END)')).toEqual([
+      'created_at',
+      'amount',
+    ])
     expect(columnsOf('current_timestamp - booked_at > localtimestamp - current_user')).toEqual([
       'booked_at',
     ])

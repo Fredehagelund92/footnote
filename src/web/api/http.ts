@@ -1573,7 +1573,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         column: relation.ref === null,
         linked: relation.key !== null,
         missing: relation.missing,
-        by: relation.by,
       }))
     },
     getDefinitionHistory: async ({ name }) => {
