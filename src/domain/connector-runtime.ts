@@ -68,9 +68,9 @@ export const runtimeDefinitionSchema = z.strictObject({
         ),
         by: variantBy,
         description: z.optional(
-          z.string().check(
-            z.refine((value) => value.trim().length > 0 && [...value].length <= 500),
-          ),
+          z
+            .string()
+            .check(z.refine((value) => value.trim().length > 0 && [...value].length <= 500)),
         ),
       }),
     ),
