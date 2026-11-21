@@ -11,6 +11,7 @@ import { servedToAgents } from '@/model/items'
 import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
+import { familyMeaningHistoryOf } from '../http-family-meaning'
 import { connectorById } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
@@ -768,7 +769,29 @@ export function createMockApi() {
     getDefinitionHistory: ({ name }) =>
       now(() => {
         const d = definitions.list().find((x) => x.name.toLowerCase() === name.toLowerCase())
-        return d ? historyOfDefinition(d, d.tool ?? demoTool(DEMO_DEFINITIONS)) : []
+        if (!d) return []
+        const read = historyOfDefinition(d, d.tool ?? demoTool(DEMO_DEFINITIONS))
+        return d.family
+          ? [
+              ...familyMeaningHistoryOf(
+                definitions.familyMeaningHistory(d.name),
+                (by) => by,
+                (at) => at.slice(0, 10),
+              ),
+              ...read,
+            ]
+          : read
+      }),
+    setFamilyMeaning: (input) =>
+      now(() => {
+        const d = definitions.list().find((x) => x.family && x.name === input.name)
+        const person = meAsPerson()
+        if (d && !person.admin && !(d.domain && person.owns.includes(d.domain)))
+          throw new ApiError(
+            'forbidden',
+            'Only an owner of its domain, or an admin, can change what it means.',
+          )
+        definitions.setFamilyMeaning(input, me())
       }),
     saveTerm: ({ previous, term }) => now(() => definitions.saveTerm(previous, term)),
     addSynonym: ({ target, word }) => now(() => definitions.addSynonym(target, word, me())),

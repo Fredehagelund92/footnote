@@ -18,6 +18,7 @@ import {
   type Calendar,
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
+import { meaningLine } from '../../../domain/family-meaning.ts'
 import { variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
@@ -1377,6 +1378,27 @@ async function historyOf(
     .map((v) => ({ on: v.at.slice(0, 10), change: words[v.change] ?? 'changed' }))
 }
 
+/**
+ * A family as an agent reads it (FR-142, M1): its meaning, what it is, and the own words of the
+ * variants that say something else than the meaning. With no meaning, every variant's own words.
+ */
+function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>): string {
+  const { meaning } = family
+  const differing = new Set(meaning.differing)
+  const others = meaning.words
+    ? family.variants.filter((variant) => differing.has(variant.key))
+    : family.variants
+  const lines = variantWords(others, !!meaning.words).map((line) => quoted(line).text)
+  return [
+    ...(meaning.words ? [quoted(meaningLine(meaning.words, family.by)).text] : []),
+    `A family of ${family.variants.length} near-identical metrics, one for each ${family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`,
+    ...(meaning.words && lines.length
+      ? [`${plural(others.length, 'variant says', 'variants say')} something else:`]
+      : []),
+    ...lines,
+  ].join(' ')
+}
+
 async function definitions(view: View, reads: ToolReads, input: z.output<typeof definitionsInput>) {
   const catalogue = await reads.catalogue()
   const glossary = await reads.glossary()
@@ -1389,13 +1411,11 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     areaId: string | null
   }
   const synced: Entry[] = catalogue.terms.map((t) => {
-    // A family is one entry for its variants (FR-142): what it is, never the variants one by one.
-    // Its variants' own words go with it: the USD one's source may say how it is worked out.
+    // A family is one entry for its variants (FR-142): what it means and what it is, never the
+    // variants one by one. The words of variants that say something else go with it: the USD
+    // one's source may say how it is worked out.
     const words = t.family
-      ? [
-          `A family of ${t.family.variants.length} near-identical metrics, one for each ${t.family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`,
-          ...variantWords(t.family.variants).map((line) => quoted(line).text),
-        ].join(' ')
+      ? familyWords(t.family)
       : t.definition?.descriptionCopy
         ? quoted(t.definition.descriptionCopy).text
         : null

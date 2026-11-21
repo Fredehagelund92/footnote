@@ -23,8 +23,10 @@ import {
   type BuiltFrom,
   type RelationMember,
 } from '../../../domain/definition-relations.ts'
+import { familyMeaning } from '../../../domain/family-meaning.ts'
 import {
   axisWords,
+  declaredWords,
   derivationsOf,
   familiesOf,
   familyAxes,
@@ -147,6 +149,15 @@ export function createCatalogueService(
         config: SourceConfig
       })[]
       settings: { key: string; value: unknown }[]
+      meanings: {
+        key: string
+        choice: 'auto' | 'member' | 'written'
+        member: string | null
+        words: string | null
+        revision: number
+        personId: string
+        at: string
+      }[]
       mentions: { key: string; items: number }[]
       gaps: string[][]
       items: IndexedItem[]
@@ -173,7 +184,10 @@ export function createCatalogueService(
                 d.renamed_to as "renamedTo", d.model_file as "modelFile", d.variant_by as "variantBy",
                 d.variant_shape as "variantShape",
                 case when d.family_name is not null
-                     then json_build_object('name', d.family_name, 'by', d.family_by) end as declared,
+                     then jsonb_build_object('name', d.family_name, 'by', d.family_by)
+                          || case when d.family_description is not null
+                                  then jsonb_build_object('description', d.family_description)
+                                  else '{}'::jsonb end end as declared,
                 case when d.built_from_refs is not null
                      then json_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
                 end as "builtFrom",
@@ -197,7 +211,10 @@ export function createCatalogueService(
          select d.ref, d.connector_id as "sourceId", d.name, d.title, d.base_name as "baseName",
                 d.variant_by as "variantBy", d.variant_shape as "variantShape",
                 case when d.family_name is not null
-                     then json_build_object('name', d.family_name, 'by', d.family_by) end as declared,
+                     then jsonb_build_object('name', d.family_name, 'by', d.family_by)
+                          || case when d.family_description is not null
+                                  then jsonb_build_object('description', d.family_description)
+                                  else '{}'::jsonb end end as declared,
                 case when d.built_from_refs is not null
                      then json_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
                 end as "builtFrom"
@@ -228,6 +245,10 @@ export function createCatalogueService(
          (select coalesce(json_agg(f), '[]') from siblings f) as "familyMembers",
          (select coalesce(json_agg(s order by s.id collate "C"), '[]') from sources s) as sources,
          (select coalesce(json_agg(m), '[]') from mentions m) as mentions,
+         (select coalesce(json_agg(json_build_object(
+                   'key', f.family_key, 'choice', f.choice, 'member', f.member_key, 'words', f.words,
+                   'revision', f.revision, 'personId', f.updated_by::text, 'at', ${iso('f.updated_at')})), '[]')
+            from family_meanings f) as meanings,
          (select coalesce(json_agg(s), '[]') from (
             select distinct on (key) key, value from settings_versions
              where key = any($2::text[]) order by key, version desc) s) as settings,
@@ -237,7 +258,7 @@ export function createCatalogueService(
          ${libraryIndexItems} as items`,
       [groups, linkSettings],
     )
-    const { vocabulary, definitions, familyMembers, mentions, items } = row!
+    const { vocabulary, definitions, familyMembers, mentions, meanings, items } = row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
     const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
@@ -249,7 +270,7 @@ export function createCatalogueService(
         modelFolder: modelFolderOf({ type, fromServer, config }, (key) => settings.get(key)),
       }))
     const gaps = row!.gaps.map((keys) => ({ keys }))
-    return { vocabulary, definitions, familyMembers, sources, mentions, gaps, items }
+    return { vocabulary, definitions, familyMembers, sources, mentions, meanings, gaps, items }
   }
 
   function build(data: Awaited<ReturnType<typeof read>>) {
@@ -259,6 +280,7 @@ export function createCatalogueService(
       data.vocabulary.filter((t) => t.kind === 'metric_group').map((t) => [t.key, t.name]),
     )
     const mentionedBy = new Map(data.mentions.map((row) => [row.key, row.items]))
+    const chosenMeanings = new Map(data.meanings.map((row) => [row.key, row]))
     // A gap counts once for a term, even when its topic names several of the term's values. A
     // dimension is named by itself or by any of its values.
     const gapsNaming = (key: string) =>
@@ -352,7 +374,7 @@ export function createCatalogueService(
           source: own?.sourceId ?? '',
           name: own?.name ?? member.name,
           variant: own?.variantBy ? { shape: own.variantShape ?? '', by: own.variantBy } : null,
-          declared: own?.declared ?? null,
+          declared: own && !own.missing ? own.declared : null,
           builtFrom: own?.builtFrom ?? null,
         }
       })
@@ -376,6 +398,24 @@ export function createCatalogueService(
               found.variants.find(({ ref }) => ref === entry.ref)?.values ?? [],
           }
         : familyAxes(said)
+      const by = axes.by.map((axis) =>
+        axis.ref ? (dimensionNames.get(axis.ref) ?? axisWords(axis)) : axisWords(axis),
+      )
+      const descriptionOf = (entry: (typeof said)[number]) =>
+        entry.member.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
+          ?.descriptionCopy ?? null
+      const chosen = chosenMeanings.get(row.key)
+      const meaning = familyMeaning({
+        by,
+        variants: said.map((entry) => ({
+          key: entry.member.key,
+          values: axes.valuesOf(entry),
+          description: descriptionOf(entry),
+        })),
+        conversions,
+        declared: declaredWords(said.map((entry) => entry.declared?.description)) ?? null,
+        chosen: chosen ?? null,
+      })
       const views = new Set(said.map((entry) => viewOf(entry.name)))
       const view = views.size === 1 ? [...views][0] : null
       const keys = new Set([row.key, ...members.map((member) => member.key)])
@@ -394,9 +434,7 @@ export function createCatalogueService(
           ? { key: `view:${view}`, name: `${view.charAt(0).toUpperCase()}${view.slice(1)}` }
           : null,
         family: {
-          by: axes.by.map((axis) =>
-            axis.ref ? (dimensionNames.get(axis.ref) ?? axisWords(axis)) : axisWords(axis),
-          ),
+          by,
           // A family an owner published from names that look alike was found by its names.
           found: found?.found ?? 'names',
           conversions,
@@ -404,9 +442,7 @@ export function createCatalogueService(
             said.map((entry) => ({
               said: entry.said,
               values: axes.valuesOf(entry),
-              description:
-                entry.member.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
-                  ?.descriptionCopy ?? null,
+              description: descriptionOf(entry),
             })),
           ),
           variants: said.map((entry) => {
@@ -422,6 +458,19 @@ export function createCatalogueService(
               items: shelfOf(items, scopeNames(member.key), today).items,
             }
           }),
+          meaning: {
+            ...meaning,
+            chosen: chosen
+              ? {
+                  choice: chosen.choice,
+                  member: chosen.member,
+                  words: chosen.words,
+                  personId: chosen.personId,
+                  at: chosen.at,
+                }
+              : null,
+            revision: chosen?.revision ?? 0,
+          },
         },
         domain: termDomain(row.areaId, row.sourceAreaId),
         definition,

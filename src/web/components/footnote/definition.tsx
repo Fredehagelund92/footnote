@@ -3,6 +3,7 @@ import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/
 import { termWord } from '@domain/terms'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
 import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
@@ -534,7 +535,15 @@ export function DefinitionDetails({
       <ConflictNote d={d} />
       {d.family ? (
         <div className="flex max-w-reading flex-col gap-2">
-          <p className="text-base leading-7">{familyMeaning(d.family)}</p>
+          <FamilyMeaningBlock d={d} family={d.family} className="text-base leading-7" />
+          <p
+            className={cn(
+              'text-base leading-7',
+              d.family.meaning && 'text-sm text-muted-foreground',
+            )}
+          >
+            {familyMeaning(d.family)}
+          </p>
           {/* How a variant is worked out from another, when the source says so: its own words. */}
           {d.family.derivations?.map((line) => (
             <p key={line} className="text-sm text-muted-foreground">

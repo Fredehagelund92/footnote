@@ -256,6 +256,11 @@ export type DeclaredFamily = {
   name: string
   /** What tells this variant apart: each name and value of `by`, in the order written. */
   by: VariantValue[]
+  /**
+   * What the family means, in the source's words for the family (`meta.footnote.family_description`):
+   * its first 500 characters, as a description copy. Absent when it writes none.
+   */
+  description?: string
 }
 
 /** Whether a name holds a letter or digit a key can be made of, as `keyPart` reads it. */
@@ -268,10 +273,11 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
  * The family a member's `meta` declares (Footnote's one optional convention, D9):
  * `meta.footnote.family`, the family's name, and `meta.footnote.by`, what tells this variant apart
  * (`{currency: EUR}`), each name with the dimension of that name the connector reads, by ref
- * (`dimensionRef`). Null when it declares none; `invalid` when it declares one Footnote cannot
- * keep (no name, no `by`, more than five values, a value that is not a short text, number or
- * true/false), which the connector warns as `invalid_family` and reads as none. Read as written,
- * never guessed.
+ * (`dimensionRef`), and `meta.footnote.family_description`, what the family means, when it writes
+ * it. Null when it declares none; `invalid` when it declares one Footnote cannot keep (no name, no
+ * `by`, more than five values, a value that is not a short text, number or true/false, a
+ * description that is not text), which the connector warns as `invalid_family` and reads as none.
+ * Read as written, never guessed.
  */
 export function declaredFamily(
   meta: unknown,
@@ -297,5 +303,8 @@ export function declaredFamily(
     by.push({ name: column, ref: dimensionRef(column), value })
   }
   if (!by.length || by.length > VARIANT_BY_MAX) return 'invalid'
-  return { name, by }
+  const described = footnote.family_description ?? null
+  if (described !== null && typeof described !== 'string') return 'invalid'
+  const description = descriptionCopy(typeof described === 'string' ? described.trim() : null).copy
+  return description ? { name, by, description } : { name, by }
 }

@@ -19,7 +19,7 @@ import type {
   CommentReaction,
   CommentReply,
 } from '@/components/templates/comment-box/types'
-import type { Definition, SynonymCheck } from '@/lib/definitions'
+import type { Definition, FamilyMeaning, SynonymCheck } from '@/lib/definitions'
 import type { Comments, Subject } from '@/model/comments'
 import type { Fact, Status } from '@/model/items'
 import { anyDate, shiftDate } from '@domain/validity'
@@ -110,8 +110,34 @@ export function factsOf(rows: readonly LibraryItem[], names: Names): Fact[] {
   })
 }
 
+/** What a family means, with its variants by name and who chose it by name. */
+function meaningOf(
+  family: NonNullable<CatalogueTerm['family']>,
+  person: (id: string) => string,
+): FamilyMeaning {
+  const nameOf = (key: string | null) => family.variants.find((v) => v.key === key)?.name
+  const { chosen, common, ...meaning } = family.meaning
+  return {
+    ...meaning,
+    member: nameOf(meaning.member),
+    base: nameOf(meaning.base),
+    common: common ?? undefined,
+    differing: meaning.differing.flatMap((key) => nameOf(key) ?? []),
+    chosen: chosen && {
+      choice: chosen.choice,
+      member: nameOf(chosen.member),
+      words: chosen.words ?? undefined,
+      by: person(chosen.personId),
+      on: dateLabel(chosen.at.slice(0, 10)),
+    },
+  }
+}
+
 /** The catalogue's metrics and dimensions as definitions: synced from the source, read-only here. */
-export function definitionsOf(terms: readonly CatalogueTerm[]): Definition[] {
+export function definitionsOf(
+  terms: readonly CatalogueTerm[],
+  person: (id: string) => string = () => 'someone',
+): Definition[] {
   return terms.map((term) => ({
     name: term.name,
     type: term.kind,
@@ -139,7 +165,12 @@ export function definitionsOf(terms: readonly CatalogueTerm[]): Definition[] {
               const [was, is] = [nameOf(from), nameOf(to)]
               return was && is ? [{ from: was, to: is, by }] : []
             }),
-            variants: term.family.variants.map((v) => ({ name: v.name, values: v.values })),
+            variants: term.family.variants.map((v) => ({
+              name: v.name,
+              values: v.values,
+              ...(v.description ? { description: v.description } : {}),
+            })),
+            meaning: meaningOf(term.family, person),
           },
         }
       : {}),

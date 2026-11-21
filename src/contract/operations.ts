@@ -96,6 +96,7 @@ export const sourceWarningCodes = [
   'family_two_kinds',
   'family_axes_differ',
   'family_same_values',
+  'family_words_differ',
 ] as const
 export type SourceWarningCode = (typeof sourceWarningCodes)[number]
 

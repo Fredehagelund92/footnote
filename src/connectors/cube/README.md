@@ -50,7 +50,7 @@ whole model, and the core keeps the members of the listed views ([the views it r
 'EUR'`) its variant: the mark of the measure with those literals left out, and each literal with
    the view's dimension of that column. Measures of one view with one such mark are one family
    (FR-142), one name on the Names card for all of them.
-6. Gives a member whose `meta.footnote` names a family (`family`, `by`) that family, as written
+6. Gives a member whose `meta.footnote` names a family (`family`, `by`, and `family_description` for what it means) that family, as written
    (D9). A measure is in each view that takes it, so each view's copies are a family of their
    own. One that cannot be kept is none, warned as `invalid_family`; `footnote` stays out of the
    change mark.

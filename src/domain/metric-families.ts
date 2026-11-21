@@ -446,6 +446,7 @@ export type DeclaredFamilyProblem =
   | 'family_two_kinds'
   | 'family_axes_differ'
   | 'family_same_values'
+  | 'family_words_differ'
 
 /**
  * What is wrong with one view's members of a declared family; none when it holds. One member is
@@ -478,7 +479,8 @@ function problemsOf(
  * a family of one member, of one member in a view when the rest are in others, of a dimension, of
  * members told apart by other columns, or of two members with the same values. Each problem is
  * warned once, by the family's name, and those members are read as of no family: their
- * declarations are left out (`dropped`, by ref), never guessed at.
+ * declarations are left out (`dropped`, by ref), never guessed at. A family whose members write
+ * its meaning in different words holds, warned once as `family_words_differ`.
  */
 export function declaredFamilyProblems(
   definitions: readonly {
@@ -515,9 +517,32 @@ export function declaredFamilyProblems(
           warnings.push({ code, target: group[0]!.family!.name })
         }
       if (problems.length) for (const { ref } of group) dropped.add(ref)
+      // Variants that write the family's meaning in other words: the family holds, and means what
+      // none of them says until they agree (declaredWords).
+      else if (
+        !said.has('family_words_differ') &&
+        declaredWords(group.map((definition) => definition.family?.description)) === undefined
+      ) {
+        said.add('family_words_differ')
+        warnings.push({ code: 'family_words_differ', target: group[0]!.family!.name })
+      }
     }
   }
   return { warnings, dropped }
+}
+
+/**
+ * The words a declared family's variants write for what it means (`family_description`), one per
+ * variant: the one wording those that write one give, case and spaces aside. Null when none writes any; undefined
+ * when they write different words, which the read warns as `family_words_differ`.
+ */
+export function declaredWords(
+  descriptions: readonly (string | null | undefined)[],
+): string | null | undefined {
+  const written = new Map<string, string>()
+  for (const words of descriptions) if (words?.trim()) written.set(normalizeName(words), words)
+  if (written.size > 1) return undefined
+  return [...written.values()][0] ?? null
 }
 
 /** The most lines a family's page gives on how its variants are worked out from one another. */
@@ -560,6 +585,8 @@ const VARIANT_WORDS_MAX = 4
  */
 export function variantWords(
   variants: readonly { values: readonly string[]; description: string | null }[],
+  /** Given only some of a family's variants: each is listed by its values, never as all of them. */
+  subset = false,
 ): string[] {
   const described = variants.flatMap((variant) => {
     const words = variant.description?.trim()
@@ -570,7 +597,12 @@ export function variantWords(
     nameWithout(variant.words, variant.values)
   const label = (variant: (typeof described)[number]) =>
     variant.values.filter(Boolean).join(', ') || 'One variant'
-  if (described.length === variants.length && new Set(described.map(without)).size === 1)
+  if (
+    !subset &&
+    described.length > 1 &&
+    described.length === variants.length &&
+    new Set(described.map(without)).size === 1
+  )
     return [`${label(described[0]!)}, and each other variant with its own: ${described[0]!.words}`]
   const lines = described
     .slice(0, VARIANT_WORDS_MAX)

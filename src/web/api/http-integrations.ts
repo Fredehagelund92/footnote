@@ -574,6 +574,11 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
     detail:
       'Two of its metrics name the same values under by, so each is read on its own. Give each its own value.',
   },
+  family_words_differ: {
+    title: 'A family described two ways',
+    detail:
+      'Its metrics give different words under family_description, so the family is read without them. Give them the same words.',
+  },
 }
 
 /** A read's warnings, each kind once with how many there are, in the words of who says them. */

@@ -100,6 +100,9 @@ export const policies = {
   'terms.history': 'read',
   'definitions.related': 'read',
   'definitions.relations': 'read',
+  // What a family means: the service checks who owns its domain.
+  'definitions.setFamilyMeaning': 'propose',
+  'definitions.familyMeaningHistory': 'read',
   // Conflicts: anyone signed in reads a pair they may read; settling is checked against the item each
   // way changes (an owner of it, or an admin) in the service.
   'conflicts.list': 'read',

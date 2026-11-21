@@ -174,6 +174,8 @@ const readOperations = [
   'terms.history',
   'definitions.related',
   'definitions.relations',
+  'definitions.setFamilyMeaning',
+  'definitions.familyMeaningHistory',
   // Conflicts: anyone signed in reads a pair they may read; the service checks each way of settling
   // it against the item it changes (an owner of it, or an admin).
   'conflicts.list',

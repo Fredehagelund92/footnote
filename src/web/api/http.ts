@@ -172,6 +172,7 @@ export const wiredMethods = [
   'definitionPage',
   'getDefinitionRelations',
   'getDefinitionHistory',
+  'setFamilyMeaning',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -645,7 +646,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     ])
     return {
       terms,
-      definitions: [...definitionsOf(catalogue.terms), ...termDefinitionsOf(terms, people.name)],
+      definitions: [
+        ...definitionsOf(catalogue.terms, people.name),
+        ...termDefinitionsOf(terms, people.name),
+      ],
+      /** The family Definitions lists by this name, as the catalogue has it. */
+      familyOf: (name: string) =>
+        catalogue.terms.find((t) => t.family && same(t.name, name)) ?? null,
       /** The key of the metric or dimension Definitions lists by this name, never a family's. */
       keyOf: (name: string) =>
         catalogue.terms.find((t) => !t.family && same(t.name, name))?.key ?? null,
@@ -1587,7 +1594,36 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         return termHistoryOf(versions, people.name, calendar.shift)
       }
       const synced = glossary.definitions.find((d) => same(d.name, name))
-      return synced ? glossary.syncedHistory(synced) : []
+      if (!synced) return []
+      const family = glossary.familyOf(name)
+      if (!family) return glossary.syncedHistory(synced)
+      const [versions, people, { familyMeaningHistoryOf }] = await Promise.all([
+        read(() => client.definitions.familyMeaningHistory({ key: family.key })),
+        readPeople(),
+        import('./http-family-meaning'),
+      ])
+      return [
+        ...familyMeaningHistoryOf(versions, people.name, (at) => serviceDay(at, calendar.shift)),
+        ...glossary.syncedHistory(synced),
+      ]
+    },
+    setFamilyMeaning: async ({ name, choice, member, words, revision }) => {
+      const family = (await readGlossary()).familyOf(name)
+      if (!family?.family)
+        throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
+      const variant = family.family.variants.find((v) => v.name === member)
+      if (choice === 'member' && !variant)
+        throw new ApiError('not-found', 'That variant is no longer in this family.')
+      const input = {
+        key: family.key,
+        choice,
+        member: variant?.key,
+        words,
+        revision,
+      }
+      await write('definitions.setFamilyMeaning', input, (o) =>
+        client.definitions.setFamilyMeaning(input, o),
+      )
     },
     saveTerm: async ({ previous, term }) => {
       if (term.synced) return
