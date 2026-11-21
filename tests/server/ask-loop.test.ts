@@ -245,6 +245,38 @@ describe('what code writes from the reads', () => {
     })
   })
 
+  it("names the owners of the subject and of the items cited, never of every item's domain (F3)", () => {
+    const owner = (id: string, subject: boolean) => ({
+      domain: id,
+      owners: [],
+      id,
+      people: [],
+      subject,
+    })
+    const read = get('grounded', [
+      { ...item('itm_sales0001'), domainId: 'domain:area_sales' },
+      { ...item('itm_market001'), domainId: 'domain:area_marketing' },
+    ])
+    const result = read.result as object
+    const owned: MadeRead = {
+      ...read,
+      result: {
+        ...result,
+        owners: [
+          owner('domain:area_finance', true),
+          owner('domain:area_sales', false),
+          owner('domain:area_marketing', false),
+        ],
+      },
+    }
+    const domains = (words: string) => turnOf(words, [owned], []).owners.map((o) => o.domain)
+    expect(domains('Net revenue is one figure.')).toEqual(['domain:area_finance'])
+    expect(domains('As written [itm_sales0001].')).toEqual([
+      'domain:area_finance',
+      'domain:area_sales',
+    ])
+  })
+
   it('is at most Partial when the subject read found no item and a search found what the words cite', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',
@@ -405,7 +437,7 @@ describe('a turn whose words are about something its subject read is not', () =>
           assumedToday: true,
         },
         names: [{ id: 'metric:gross_sales', name: 'Gross sales' }, ...owners],
-        owners: [{ id: 'domain:area_sales', people: ['person:p1', 'person:p2'] }],
+        owners: [{ id: 'domain:area_sales', people: ['person:p1', 'person:p2'], subject: true }],
       },
     }
   }

@@ -144,6 +144,8 @@ const ownersSchema = z.array(
     /** The domain and its owners by id, as `names` gives them. */
     id: z.string(),
     people: z.array(z.string()),
+    /** It owns a metric the subject names; else only items that apply. */
+    subject: z.boolean(),
   }),
 )
 /** Every id a result returned: an item's, a definition's key, a pair's or a card's. */
@@ -371,12 +373,17 @@ function itemOf(view: View, item: ServingItem, today: string): z.infer<typeof it
 }
 
 /** The owners of the domains a read was about, by name, as Context names them. */
-const ownersFor = (view: View, areaIds: readonly (string | null | undefined)[]) =>
-  [...new Set(areaIds.filter((a): a is string => !!a))].map((id) => ({
+const ownersFor = (
+  view: View,
+  subject: readonly (string | null | undefined)[],
+  items: readonly (string | null | undefined)[],
+) =>
+  [...new Set([...subject, ...items].filter((a): a is string => !!a))].map((id) => ({
     domain: view.areaName(id),
     owners: view.ownersOf(id),
     id: `domain:${id}`,
     people: (view.areas.find((a) => a.id === id)?.ownerIds ?? []).map((p) => `person:${p}`),
+    subject: subject.includes(id),
   }))
 /** The people of these owners, by id, for `names`. */
 const ownerPeople = (owners: ReturnType<typeof ownersFor>) =>
@@ -963,7 +970,11 @@ function getContext(
   const widerItems = wider ? itemsOf(wider).map(({ disagreesWith: _d, ...i }) => i) : []
   const scope = counted.scope
   const metricAreas = (scope?.metrics ?? []).map((k) => view.bundle.metricArea[k] ?? null)
-  const owners = ownersFor(view, [...metricAreas, ...items.map((i) => byId.get(i.id)?.areaId)])
+  const owners = ownersFor(
+    view,
+    metricAreas,
+    items.map((i) => byId.get(i.id)?.areaId),
+  )
   const cut = counted.leftOut.filter((l) => l.reason === 'cut').length
   const shownItems = [...items, ...widerItems, ...nearby].flatMap((i) => byId.get(i.id) ?? [])
   const readWords = searched.at(wider ? 0 : -1)!.words

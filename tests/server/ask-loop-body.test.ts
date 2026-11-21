@@ -79,6 +79,7 @@ const lookup = (
         owners: ['Ada Okafor'],
         id: 'domain:area_support',
         people: ['person:p_ada'],
+        subject: true,
       },
     ],
     searched: [

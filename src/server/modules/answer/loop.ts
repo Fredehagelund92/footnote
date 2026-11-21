@@ -1656,14 +1656,23 @@ function closestOf(
   }
 }
 
-/** Who owns the subject: each domain its reads name, with its owners, by id. */
-const ownersOf = (about: readonly MadeRead[]): LoopTurn['owners'] => {
+/**
+ * Who owns the subject: each domain its reads name as owning a metric the subject names, and the
+ * domain of each item the words cite, with its owners, by id. A domain that owns only items that
+ * apply and are not cited is left out (F3 of the Ask re-run listed five for one metric).
+ */
+const ownersOf = (about: readonly MadeRead[], cited: readonly string[]): LoopTurn['owners'] => {
   const out = new Map<string, string[]>()
   for (const m of about)
-    if (m.tool === 'get_context' && isObj(m.result) && !isError(m.result))
+    if (m.tool === 'get_context' && isObj(m.result) && !isError(m.result)) {
+      const citedIn = new Set(
+        arr(m.result.items).flatMap((i) =>
+          cited.includes(str(i.id)) && i.domainId ? [str(i.domainId)] : [],
+        ),
+      )
       for (const o of arr(m.result.owners)) {
         const id = str(o.id)
-        if (id && !out.has(id))
+        if (id && !out.has(id) && (o.subject === true || citedIn.has(id)))
           out.set(
             id,
             Array.isArray(o.people)
@@ -1671,6 +1680,7 @@ const ownersOf = (about: readonly MadeRead[]): LoopTurn['owners'] => {
               : [],
           )
       }
+    }
   return [...out].map(([domain, people]) => ({ domain, people }))
 }
 
@@ -1856,7 +1866,7 @@ export function turnOf(
     nouns: [...ctx.nouns.values()],
     items: rowsOf([...sources, ...listed, ...(closest?.items ?? [])], ctx, sources),
     closest,
-    owners: fromHelp ? [] : ownersOf(about),
+    owners: fromHelp ? [] : ownersOf(about, sources),
     overview: null,
     checks: words.checks,
   }
