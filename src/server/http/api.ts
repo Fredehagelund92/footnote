@@ -139,7 +139,7 @@ import {
   type SignIn,
 } from '../modules/auth/index.ts'
 import { createAlertsService } from '../modules/alerts/index.ts'
-import { createCatalogueService } from '../modules/catalogue/index.ts'
+import { createCatalogueService, createFamilyMeaningService } from '../modules/catalogue/index.ts'
 import {
   createWorkspaceSources,
   noSecretStore,
@@ -249,6 +249,7 @@ export function requestServices(
       comments,
     }),
     catalogue: createCatalogueService(tx, clock),
+    familyMeaning: createFamilyMeaningService(tx),
     terms: createTermsService(tx),
     areas: createAreasService(tx),
     people: createPeopleService(tx),
@@ -962,6 +963,14 @@ export function createRouter({
       ),
       relations: authorized.definitions.relations.handler(async ({ input, context }) =>
         found(await context.catalogue.relations(input.key)),
+      ),
+      setFamilyMeaning: authorized.definitions.setFamilyMeaning.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'definitions.setFamilyMeaning', input, () =>
+          context.familyMeaning.set(input),
+        ),
+      ),
+      familyMeaningHistory: authorized.definitions.familyMeaningHistory.handler(
+        ({ input, context }) => context.familyMeaning.history(input.key),
       ),
     },
     areas: {

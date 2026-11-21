@@ -8,10 +8,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/proposals",
-          "tags": [
-            "proposals"
-          ]
+          "path": "/proposals"
         }
       }
     },
@@ -23,10 +20,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/proposals",
-          "tags": [
-            "proposals"
-          ]
+          "path": "/proposals"
         }
       }
     },
@@ -38,10 +32,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/proposals/{id}",
-          "tags": [
-            "proposals"
-          ]
+          "path": "/proposals/{id}"
         }
       }
     },
@@ -53,10 +44,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/proposals/{id}/submit",
-          "tags": [
-            "proposals"
-          ]
+          "path": "/proposals/{id}/submit"
         }
       }
     },
@@ -68,10 +56,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/proposals/{id}/withdraw",
-          "tags": [
-            "proposals"
-          ]
+          "path": "/proposals/{id}/withdraw"
         }
       }
     }
@@ -85,11 +70,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/review/{id}/sheet",
-          "tags": [
-            "review"
-          ],
-          "summary": "The review page's read: the change by kind, its claims against the copied sentence, a clash with live context, what agents say before and after, and the Ready line (FR-224 to FR-226)"
+          "path": "/review/{id}/sheet"
         }
       }
     },
@@ -101,11 +82,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/review/sheets",
-          "tags": [
-            "review"
-          ],
-          "summary": "The review page's read for many suggestions in one call, as the Inbox lists them: each sheet in the order asked, leaving out one that went or the person may not read"
+          "path": "/review/sheets"
         }
       }
     },
@@ -117,11 +94,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/review/{id}/read",
-          "tags": [
-            "review"
-          ],
-          "summary": "The person read this version of a suggestion: it may go out with \"Publish the N you've read\" (FR-226)"
+          "path": "/review/{id}/read"
         }
       }
     },
@@ -133,11 +106,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/review/{id}/publish",
-          "tags": [
-            "review"
-          ],
-          "summary": "Publishes the whole change, once the owner said how it relates to each live item it clashes with (FR-225); answers with a token that undoes it"
+          "path": "/review/{id}/publish"
         }
       }
     },
@@ -149,11 +118,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/review/{id}/return",
-          "tags": [
-            "review"
-          ],
-          "summary": "Returns a suggestion to its sender with a note, which becomes the first comment of its discussion; answers with a token that undoes it"
+          "path": "/review/{id}/return"
         }
       }
     },
@@ -165,11 +130,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/review/{id}/close",
-          "tags": [
-            "review"
-          ],
-          "summary": "Closes a suggestion to archive: nothing changes. One its sender took back in the comments closes as it is, any other with a reason from the owner; answers with a token that undoes it"
+          "path": "/review/{id}/close"
         }
       }
     },
@@ -181,11 +142,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/review/publish-read",
-          "tags": [
-            "review"
-          ],
-          "summary": "Publish the N you've read: each plain change the person read publishes as Publish would; the rest is named and left out (FR-226)"
+          "path": "/review/publish-read"
         }
       }
     },
@@ -197,11 +154,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/items/{id}/retire-proposals",
-          "tags": [
-            "review"
-          ],
-          "summary": "Suggest that a context item is archived, with a reason (FR-112); its owners review it like any suggestion"
+          "path": "/items/{id}/retire-proposals"
         }
       }
     }
@@ -215,11 +168,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/editions",
-          "tags": [
-            "editions"
-          ],
-          "summary": "Editions, newest first"
+          "path": "/editions"
         }
       }
     },
@@ -231,11 +180,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/editions/{label}/export",
-          "tags": [
-            "editions"
-          ],
-          "summary": "An edition as one canonical JSON document with its digests (NFR-045, NFR-093)"
+          "path": "/editions/{label}/export"
         }
       }
     },
@@ -247,11 +192,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/editions/{label}/rollback",
-          "tags": [
-            "editions"
-          ],
-          "summary": "Serve the content of an earlier edition again, as a new edition (FR-217)"
+          "path": "/editions/{label}/rollback"
         }
       }
     },
@@ -263,11 +204,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/editions/{label}/rollback-preview",
-          "tags": [
-            "editions"
-          ],
-          "summary": "What going back to an edition would change, and the versions that cannot be served again"
+          "path": "/editions/{label}/rollback-preview"
         }
       }
     }
@@ -281,11 +218,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/serving/stops",
-          "tags": [
-            "editions"
-          ],
-          "summary": "Stop switches that are on, for the banner every signed-in person sees"
+          "path": "/serving/stops"
         }
       }
     },
@@ -297,11 +230,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/serving/stops",
-          "tags": [
-            "editions"
-          ],
-          "summary": "Switch delivery off or on for one item, one domain or everything (FR-805)"
+          "path": "/serving/stops"
         }
       }
     }
@@ -315,11 +244,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/auth/methods",
-          "tags": [
-            "session"
-          ],
-          "summary": "How people sign in here (FR-416): the company's OpenID Connect provider, with its name and the address that starts a sign-in, or the picker in development and demos; and whether this install is the demo, and the label naming it (FOOTNOTE_PROFILE_LABEL)"
+          "path": "/auth/methods"
         }
       }
     },
@@ -331,10 +256,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/auth/people",
-          "tags": [
-            "session"
-          ]
+          "path": "/auth/people"
         }
       }
     },
@@ -346,10 +268,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/auth/sign-in",
-          "tags": [
-            "session"
-          ]
+          "path": "/auth/sign-in"
         }
       }
     },
@@ -361,10 +280,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/auth/sign-out",
-          "tags": [
-            "session"
-          ]
+          "path": "/auth/sign-out"
         }
       }
     },
@@ -376,10 +292,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/auth/session",
-          "tags": [
-            "session"
-          ]
+          "path": "/auth/session"
         }
       }
     }
@@ -393,11 +306,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/connections/request",
-          "tags": [
-            "session"
-          ],
-          "summary": "The agent sign-in that this browser started, for the consent screen (FR-403); the handle goes in the query"
+          "path": "/connections/request"
         }
       }
     },
@@ -409,11 +318,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/connections/request/decision",
-          "tags": [
-            "session"
-          ],
-          "summary": "The signed-in person's answer on the consent screen; returns the app's redirect address with the code or the refusal"
+          "path": "/connections/request/decision"
         }
       }
     },
@@ -425,11 +330,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/connections",
-          "tags": [
-            "session"
-          ],
-          "summary": "The agents connected to Footnote as the signed-in person"
+          "path": "/connections"
         }
       }
     },
@@ -441,11 +342,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/connections/{id}/disconnect",
-          "tags": [
-            "session"
-          ],
-          "summary": "Disconnect an agent: its refresh tokens end and the MCP server refuses its access tokens at once"
+          "path": "/connections/{id}/disconnect"
         }
       }
     }
@@ -459,11 +356,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/agent-connections",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Every person's agent connections that are still open: the person, the app as it names itself, what it may do, when it connected, last refreshed and ends; and every access key not revoked, with who made it, when, and when it was last used"
+          "path": "/agent-connections"
         }
       }
     },
@@ -475,11 +368,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agent-connections/{id}/disconnect",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Disconnect one person's agent, or revoke an access key, with a reason: its refresh tokens end, or the key stops working, and the MCP server refuses it at the next request. The history log keeps the reason"
+          "path": "/agent-connections/{id}/disconnect"
         }
       }
     }
@@ -493,11 +382,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/access-keys",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Create an access key with a name, for a bot or a scheduled job that cannot sign in: it may read context and give feedback, names no person, and lasts until revoked. The key is in this answer only; it is kept as a digest and never shown again"
+          "path": "/access-keys"
         }
       }
     }
@@ -511,11 +396,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/agents",
-          "tags": [
-            "session"
-          ],
-          "summary": "The agents that may reach context: the apps people signed in with and the access keys, each with its name, its kind, every tool with whether it is switched on for this agent and whether the agent may have it, and what it suggested lately. An administrator sees every agent; anyone else their own apps"
+          "path": "/agents"
         }
       }
     },
@@ -527,11 +408,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agents/{id}/name",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Rename an access key, by its agent; the history log keeps the name before and after. An app keeps the name it gives itself"
+          "path": "/agents/{id}/name"
         }
       }
     },
@@ -543,11 +420,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agents/{id}/tools",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Switch one tool on or off for one agent. It acts at the agent's next request and never widens what a person allowed; an access key never gets suggest_context. The history log keeps the reason"
+          "path": "/agents/{id}/tools"
         }
       }
     },
@@ -559,11 +432,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agents/{id}/revoke",
-          "tags": [
-            "session"
-          ],
-          "summary": "End one agent at once: every connection of an app, or an access key. An administrator ends any agent with a reason the history log keeps; anyone else their own apps"
+          "path": "/agents/{id}/revoke"
         }
       }
     }
@@ -577,11 +446,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/areas/{areaId}/agent-policies",
-          "tags": [
-            "session"
-          ],
-          "summary": "One domain's policies that let an agent publish without review, whether the workspace allows them, whether the signed-in person may set one, and the apps that suggested to the domain lately"
+          "path": "/areas/{areaId}/agent-policies"
         }
       }
     },
@@ -593,11 +458,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agent-policies",
-          "tags": [
-            "session"
-          ],
-          "summary": "Let one app agent publish low-risk new items in one domain without review, as the signed-in owner's own decision, up to a daily cap. It replaces the agent's policy there, if it has one, and stays on until someone turns it off. An owner of the domain sets it, while the workspace allows it"
+          "path": "/agent-policies"
         }
       }
     },
@@ -609,11 +470,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agent-policies/{id}/end",
-          "tags": [
-            "session"
-          ],
-          "summary": "Turn a policy off at once: the agent's next suggestions wait for review. Whoever set it, an owner of the domain, an admin or the person the agent works for may. The history log keeps the reason"
+          "path": "/agent-policies/{id}/end"
         }
       }
     },
@@ -625,11 +482,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/agent-policies/switch",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Whether publishing without review is on for the workspace, and how many policies are on"
+          "path": "/agent-policies/switch"
         }
       }
     },
@@ -641,11 +494,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/agent-policies/switch",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Switch publishing without review on or off for the workspace. Off ends every policy at once. The history log keeps the reason"
+          "path": "/agent-policies/switch"
         }
       }
     }
@@ -659,10 +508,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/roles/grant",
-          "tags": [
-            "roles"
-          ]
+          "path": "/roles/grant"
         }
       }
     },
@@ -674,10 +520,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/roles/revoke",
-          "tags": [
-            "roles"
-          ]
+          "path": "/roles/revoke"
         }
       }
     }
@@ -691,10 +534,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/assignments/grant",
-          "tags": [
-            "roles"
-          ]
+          "path": "/assignments/grant"
         }
       }
     },
@@ -706,10 +546,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/assignments/revoke",
-          "tags": [
-            "roles"
-          ]
+          "path": "/assignments/revoke"
         }
       }
     }
@@ -723,11 +560,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/conflicts",
-          "tags": [
-            "conflicts"
-          ],
-          "summary": "The pairs of live context items an owner said disagree, most asked first; a pair kept as both is left out until either item changes (FR-220)"
+          "path": "/conflicts"
         }
       }
     },
@@ -739,11 +572,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/conflicts/{holderId}/{otherId}",
-          "tags": [
-            "conflicts"
-          ],
-          "summary": "One pair side by side: what each says and where it comes from, what agents would say with each alone, and who may settle it how (FR-220)"
+          "path": "/conflicts/{holderId}/{otherId}"
         }
       }
     },
@@ -755,11 +584,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/conflicts/settle",
-          "tags": [
-            "conflicts"
-          ],
-          "summary": "Settle a pair with a reason and an optional quote: keep one (the other is archived), keep both, or not a conflict; a newer version of either holds it (FR-220)"
+          "path": "/conflicts/settle"
         }
       }
     }
@@ -773,11 +598,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/items/{id}/page",
-          "tags": [
-            "library"
-          ],
-          "summary": "A context item's page: the item, what its list row reads, its owners and its history, newest first"
+          "path": "/items/{id}/page"
         }
       }
     },
@@ -789,11 +610,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/items/{id}/read",
-          "tags": [
-            "library"
-          ],
-          "summary": "The person opened an item: only opened items can be marked as checked together"
+          "path": "/items/{id}/read"
         }
       }
     },
@@ -805,11 +622,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/items/{id}/related",
-          "tags": [
-            "library"
-          ],
-          "summary": "Context related to an item, one step away, as get_related follows it: what people see in Related"
+          "path": "/items/{id}/related"
         }
       }
     },
@@ -821,11 +634,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/items/{id}/compare",
-          "tags": [
-            "library"
-          ],
-          "summary": "Two versions of an item side by side, as History compares them: every field and the stored text of each"
+          "path": "/items/{id}/compare"
         }
       }
     },
@@ -837,11 +646,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/items/{id}/restore-draft",
-          "tags": [
-            "library"
-          ],
-          "summary": "Restore an earlier version as a draft, for an owner of its domain or an admin; what agents get does not change (FR-140)"
+          "path": "/items/{id}/restore-draft"
         }
       }
     },
@@ -853,11 +658,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/items/publish",
-          "tags": [
-            "library"
-          ],
-          "summary": "Publish in one step as an owner of the draft's domain or an admin; anyone else sends it to the owners as a suggestion (FR-137)"
+          "path": "/items/publish"
         }
       }
     },
@@ -869,11 +670,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/items/bulk",
-          "tags": [
-            "library"
-          ],
-          "summary": "Change many items at once: each row it may change is done or failed, the rest skipped with why, with one Undo (FR-139)"
+          "path": "/items/bulk"
         }
       }
     },
@@ -885,11 +682,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/context/changes",
-          "tags": [
-            "library"
-          ],
-          "summary": "Changes made to many items at once, newest first: the History log"
+          "path": "/context/changes"
         }
       }
     },
@@ -901,11 +694,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/context/deleted",
-          "tags": [
-            "library"
-          ],
-          "summary": "Drafts that were deleted, newest first, with who deleted them and when"
+          "path": "/context/deleted"
         }
       }
     }
@@ -919,11 +708,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/drafts/from-text",
-          "tags": [
-            "library"
-          ],
-          "summary": "A draft read from pasted text or a link, with no model: the fields it could read, and those it guessed"
+          "path": "/drafts/from-text"
         }
       }
     }
@@ -937,11 +722,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/library",
-          "tags": [
-            "library"
-          ],
-          "summary": "Every item the person may read, as one light index"
+          "path": "/library"
         }
       }
     }
@@ -955,11 +736,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/search",
-          "tags": [
-            "library"
-          ],
-          "summary": "Search everywhere: items, definitions, domains and people whose names have the words, a few of each, best match first"
+          "path": "/search"
         }
       }
     }
@@ -973,11 +750,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/catalogue",
-          "tags": [
-            "library"
-          ],
-          "summary": "Every metric and dimension of the live vocabulary, with its definition copy and what the library holds about it (FR-136)"
+          "path": "/catalogue"
         }
       }
     }
@@ -991,11 +764,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/terms",
-          "tags": [
-            "library"
-          ],
-          "summary": "The terms and synonyms written here, by name, each with how much live context is about it and any conflict (FR-138)"
+          "path": "/terms"
         }
       }
     },
@@ -1007,11 +776,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/terms",
-          "tags": [
-            "library"
-          ],
-          "summary": "Write a term with its own meaning, or another name for a metric, a dimension or a term; a word that already means something is refused, naming who has it (FR-138)"
+          "path": "/terms"
         }
       }
     },
@@ -1023,11 +788,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/terms/{id}",
-          "tags": [
-            "library"
-          ],
-          "summary": "Change a term's word, meaning, what it is another name for, or domain, by an owner of its domain or an admin (FR-138)"
+          "path": "/terms/{id}"
         }
       }
     },
@@ -1039,11 +800,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/terms/delete",
-          "tags": [
-            "library"
-          ],
-          "summary": "Delete terms, with the synonyms that point at them; the rest are left as they were, with why, and one Undo takes it back"
+          "path": "/terms/delete"
         }
       }
     },
@@ -1055,11 +812,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/terms/move",
-          "tags": [
-            "library"
-          ],
-          "summary": "Move terms to another domain, with their synonyms; the rest are left as they were, with why, and one Undo takes it back"
+          "path": "/terms/move"
         }
       }
     },
@@ -1071,11 +824,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/terms/restore",
-          "tags": [
-            "library"
-          ],
-          "summary": "Bring deleted terms back, with the synonyms deleted with them; a word that means something else by now stays deleted, with why"
+          "path": "/terms/restore"
         }
       }
     },
@@ -1087,11 +836,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/terms/deleted",
-          "tags": [
-            "library"
-          ],
-          "summary": "Terms that were deleted, newest first, with who deleted them and the synonyms that went with them: Settings, Advanced, Deleted"
+          "path": "/terms/deleted"
         }
       }
     },
@@ -1103,11 +848,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/terms/{id}/history",
-          "tags": [
-            "library"
-          ],
-          "summary": "A term's versions, newest first: what each write made of it, and who wrote it"
+          "path": "/terms/{id}/history"
         }
       }
     }
@@ -1121,11 +862,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/definitions/related",
-          "tags": [
-            "library"
-          ],
-          "summary": "Context related to a metric or a dimension, one step away, as get_related follows it: what people see in Related"
+          "path": "/definitions/related"
         }
       }
     },
@@ -1137,11 +874,31 @@
         },
         "route": {
           "method": "GET",
-          "path": "/definitions/relations",
-          "tags": [
-            "library"
-          ],
-          "summary": "What a metric is built from and what is built from it, from its source's structure: refs and column names, never a calculation (FR-143)"
+          "path": "/definitions/relations"
+        }
+      }
+    },
+    "setFamilyMeaning": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "PUT",
+          "path": "/definitions/families/{key}/meaning"
+        }
+      }
+    },
+    "familyMeaningHistory": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/definitions/families/{key}/meaning/history"
         }
       }
     }
@@ -1155,11 +912,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/areas",
-          "tags": [
-            "reference"
-          ],
-          "summary": "Domains, by name"
+          "path": "/areas"
         }
       }
     },
@@ -1171,11 +924,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/areas/{areaId}/owners",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Set a domain's owners, all of them, in one step (FR-804): its owners and admins may. Those not named stop owning it, those named start; a domain that has owners keeps at least one"
+          "path": "/areas/{areaId}/owners"
         }
       }
     },
@@ -1187,11 +936,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/areas",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Create a domain with a reason (FR-801), and its owners in the same step; the team is given as one grants.apply batch with the same reason"
+          "path": "/areas"
         }
       }
     },
@@ -1203,11 +948,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/areas/{id}/description",
-          "tags": [
-            "reference"
-          ],
-          "summary": "Write what a domain is and what kind of data it holds: a summary line and a description (FR-813); one of the domain's owners or an administrator"
+          "path": "/areas/{id}/description"
         }
       }
     },
@@ -1219,11 +960,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/areas/{id}/delete",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Delete a domain from its page (FR-815): only one with no context and no terms, never the sandbox. Its open suggestions are withdrawn, its drafts stay with their authors, its owners' ownership ends; one that history names is kept as history"
+          "path": "/areas/{id}/delete"
         }
       }
     },
@@ -1235,11 +972,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/archived-areas",
-          "tags": [
-            "admin"
-          ],
-          "summary": "The deleted domains that history keeps, newest first"
+          "path": "/archived-areas"
         }
       }
     }
@@ -1253,11 +986,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/gaps/{id}",
-          "tags": [
-            "gaps"
-          ],
-          "summary": "One gap, and for its owners and administrators its notes and history"
+          "path": "/gaps/{id}"
         }
       }
     },
@@ -1269,11 +998,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/gaps/reports",
-          "tags": [
-            "gaps"
-          ],
-          "summary": "Say something is missing about a scope (FR-606 case 5, Ask's Tell the owner): counts one report against the topic, as an agent's report of kind missing does, and records no person"
+          "path": "/gaps/reports"
         }
       }
     }
@@ -1287,11 +1012,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/sources",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Every source: its connector, how it is, when it was read and is read next, and what it holds"
+          "path": "/sources"
         }
       }
     },
@@ -1303,11 +1024,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/sources/{id}/activity",
-          "tags": [
-            "sources"
-          ],
-          "summary": "A source's reads, newest first, what it reads with the domain each part maps to, and its documents read most recently"
+          "path": "/sources/{id}/activity"
         }
       }
     },
@@ -1319,11 +1036,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/sources/{id}/paused",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Pause reading a source, or let it go on, with a reason (CON-115)"
+          "path": "/sources/{id}/paused"
         }
       }
     },
@@ -1335,11 +1048,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/sources/types",
-          "tags": [
-            "sources"
-          ],
-          "summary": "The connectors an administrator may add a source of: each manifest, with the access it needs and its form"
+          "path": "/sources/types"
         }
       }
     },
@@ -1351,11 +1060,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/sources/{id}",
-          "tags": [
-            "sources"
-          ],
-          "summary": "A source an administrator added: its settings, and whether each secret is set; or a definitions source the server's configuration selects, with only the groups it reads"
+          "path": "/sources/{id}"
         }
       }
     },
@@ -1368,11 +1073,7 @@
         "route": {
           "method": "POST",
           "path": "/sources",
-          "successStatus": 201,
-          "tags": [
-            "sources"
-          ],
-          "summary": "Add a source with its settings and secrets, with a reason (CON-105)"
+          "successStatus": 201
         }
       }
     },
@@ -1384,11 +1085,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/sources/{id}",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Change a source an administrator added, with a reason; a secret left out is kept"
+          "path": "/sources/{id}"
         }
       }
     },
@@ -1400,11 +1097,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/sources/{id}/groups",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Choose the groups a definitions source reads and the domain each maps to, with a reason, for one an admin added or one the server's configuration selects"
+          "path": "/sources/{id}/groups"
         }
       }
     },
@@ -1416,11 +1109,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/sources/test",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Run the connector's check and read a source once with these settings, keeping nothing and changing nothing"
+          "path": "/sources/test"
         }
       }
     },
@@ -1432,11 +1121,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/sources/{id}/left-out",
-          "tags": [
-            "sources"
-          ],
-          "summary": "What a definitions source would stop reading with these groups, and the live items that rely on it; changes nothing"
+          "path": "/sources/{id}/left-out"
         }
       }
     },
@@ -1449,11 +1134,7 @@
         "route": {
           "method": "POST",
           "path": "/sources/{id}/read",
-          "successStatus": 202,
-          "tags": [
-            "sources"
-          ],
-          "summary": "Read one source now, whatever its schedule (Read again)"
+          "successStatus": 202
         }
       }
     },
@@ -1465,11 +1146,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/sources/{id}/disconnect",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Disconnect a source an administrator added, with a reason: it is read no more, its secrets are removed and its open suggestions withdrawn; what it read stays"
+          "path": "/sources/{id}/disconnect"
         }
       }
     }
@@ -1483,11 +1160,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/members",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Everyone in the workspace: their role (Admin or Member), the domains they own and when they last signed in"
+          "path": "/members"
         }
       }
     },
@@ -1499,11 +1172,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/members/{personId}/activity",
-          "tags": [
-            "roles"
-          ],
-          "summary": "What someone did lately, as People shows it: the context items they checked last, newest first, of those the reader may read"
+          "path": "/members/{personId}/activity"
         }
       }
     },
@@ -1515,11 +1184,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/members/{personId}/role",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Make someone an Admin or a Member (FR-804); not one's own role, and the workspace keeps an active admin"
+          "path": "/members/{personId}/role"
         }
       }
     },
@@ -1531,11 +1196,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/members/{personId}/remove",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Remove someone from the workspace: their roles end, they are signed out and their agents disconnected. Refused while a domain has them as its only owner, and for oneself. What they wrote stays, with their name"
+          "path": "/members/{personId}/remove"
         }
       }
     },
@@ -1547,11 +1208,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/members/{personId}/restore",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Undo a removal: the person is back, with the roles their last removal ended (those of a domain that still exists). They sign in again"
+          "path": "/members/{personId}/restore"
         }
       }
     }
@@ -1565,11 +1222,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/invites/lookup",
-          "tags": [
-            "session"
-          ],
-          "summary": "What an invite link says on the sign-in screen: the address, the role and the domains, while the invite is open. Every other link gets the same answer, whatever the reason"
+          "path": "/invites/lookup"
         }
       }
     },
@@ -1581,11 +1234,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/invites",
-          "tags": [
-            "roles"
-          ],
-          "summary": "The open invites: who, as what, owning which domains, sent when and by whom, and whether each would let its person in"
+          "path": "/invites"
         }
       }
     },
@@ -1597,11 +1246,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/invites",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Invite people by address, as an Admin or a Member owning some domains from the start (FR-417). An admin invites anyone; an owner invites a Member to the domains they own. Each new invite comes with its link, shown only here; an address already in the workspace or already invited is named, not invited again"
+          "path": "/invites"
         }
       }
     },
@@ -1613,11 +1258,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/invites/{id}/resend",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Send an invite again, by its sender or an admin: a new link that works for another week, and the old one stops working. An admin who sends again an invite its sender can no longer make becomes its sender; one to a member already is not sent again"
+          "path": "/invites/{id}/resend"
         }
       }
     },
@@ -1629,11 +1270,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/invites/{id}/revoke",
-          "tags": [
-            "roles"
-          ],
-          "summary": "Take an invite back, by its sender or an admin: its link stops working"
+          "path": "/invites/{id}/revoke"
         }
       }
     }
@@ -1647,11 +1284,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/people",
-          "tags": [
-            "reference"
-          ],
-          "summary": "People, by name"
+          "path": "/people"
         }
       }
     }
@@ -1665,11 +1298,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/vocabulary",
-          "tags": [
-            "reference"
-          ],
-          "summary": "The live vocabulary: metrics, dimensions and their values, by name"
+          "path": "/vocabulary"
         }
       }
     },
@@ -1681,11 +1310,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/vocabulary/search",
-          "tags": [
-            "reference"
-          ],
-          "summary": "A page of metrics, dimensions and values for the scope picker: recent and often used first (FR-107)"
+          "path": "/vocabulary/search"
         }
       }
     }
@@ -1699,11 +1324,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/inbox/feed",
-          "tags": [
-            "inbox"
-          ],
-          "summary": "The Inbox by need: Not found, Reported, Due for a check and Suggestions for the domains the person owns, with what they sent that waits and what is done under All; counts from agents only, small counts hidden (FR-614)"
+          "path": "/inbox/feed"
         }
       }
     },
@@ -1715,11 +1336,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/inbox/names",
-          "tags": [
-            "inbox"
-          ],
-          "summary": "The names the definition sources gave that no live term has yet, as far as the person may accept them, each ready, flagged for a look, or left out (FR-141)"
+          "path": "/inbox/names"
         }
       }
     },
@@ -1731,11 +1348,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/inbox/names/decide",
-          "tags": [
-            "inbox"
-          ],
-          "summary": "Accepts names as one edition and leaves others out. A word with another meaning is refused, naming who has it, and a list that changed since it was read is refused (FR-138, FR-141)"
+          "path": "/inbox/names/decide"
         }
       }
     }
@@ -1749,11 +1362,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/inbox/cards/read",
-          "tags": [
-            "inbox"
-          ],
-          "summary": "The person opened these cards: their unread mark goes"
+          "path": "/inbox/cards/read"
         }
       }
     },
@@ -1765,11 +1374,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/inbox/cards/decide",
-          "tags": [
-            "inbox"
-          ],
-          "summary": "A card's one decision: Not something we write down, Not a problem, Still true or Archive; it answers with a token that undoes it (FR-227)"
+          "path": "/inbox/cards/decide"
         }
       }
     }
@@ -1783,11 +1388,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/comments",
-          "tags": [
-            "comments"
-          ],
-          "summary": "The threads on suggestions and context items the person may read: comments oldest first with their replies and reactions, the reactions on each subject, the newest reply since they last opened it, and the comments that mention them unread. Agents never read comments (FR-817)"
+          "path": "/comments"
         }
       }
     },
@@ -1799,11 +1400,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/comments",
-          "tags": [
-            "comments"
-          ],
-          "summary": "A comment on a suggestion or a context item, or a reply to one, by anyone who may read it; its mentions of people reach their Inbox (FR-817)"
+          "path": "/comments"
         }
       }
     },
@@ -1815,11 +1412,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/comments/{id}",
-          "tags": [
-            "comments"
-          ],
-          "summary": "Changes a comment's words: its author only"
+          "path": "/comments/{id}"
         }
       }
     },
@@ -1831,11 +1424,7 @@
         },
         "route": {
           "method": "DELETE",
-          "path": "/comments/{id}",
-          "tags": [
-            "comments"
-          ],
-          "summary": "Deletes a comment, its author only: one something answers keeps its place without its words, one nobody answered goes"
+          "path": "/comments/{id}"
         }
       }
     },
@@ -1847,11 +1436,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/comments/{id}/withdraw",
-          "tags": [
-            "comments"
-          ],
-          "summary": "Marks one's own comment on a suggestion to archive, while it waits, as taking it back, or takes the mark back: its owners see it in the review and close it or archive anyway"
+          "path": "/comments/{id}/withdraw"
         }
       }
     },
@@ -1863,11 +1448,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/comments/{id}/resolve",
-          "tags": [
-            "comments"
-          ],
-          "summary": "Resolves a thread on a line or a field of a suggestion, or opens it again"
+          "path": "/comments/{id}/resolve"
         }
       }
     },
@@ -1879,11 +1460,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/comments/mentions/read",
-          "tags": [
-            "comments"
-          ],
-          "summary": "The person read the comments that mention them in a thread: their Inbox card goes"
+          "path": "/comments/mentions/read"
         }
       }
     }
@@ -1897,11 +1474,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/reactions/toggle",
-          "tags": [
-            "comments"
-          ],
-          "summary": "Gives or takes back one of the five reactions, on a comment or on the suggestion or item itself"
+          "path": "/reactions/toggle"
         }
       }
     }
@@ -1915,11 +1488,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/comments/threads/read",
-          "tags": [
-            "comments"
-          ],
-          "summary": "The person opened a thread: a reply before now is no longer new to them"
+          "path": "/comments/threads/read"
         }
       }
     }
@@ -1933,11 +1502,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/decisions/undo",
-          "tags": [
-            "review"
-          ],
-          "summary": "Takes back a decision its maker made moments ago, as a new edition that serves again exactly what it changed (FR-227)"
+          "path": "/decisions/undo"
         }
       }
     }
@@ -1951,11 +1516,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/setup",
-          "tags": [
-            "admin"
-          ],
-          "summary": "A new workspace's setup checklist, read from what exists: About our business, a domain, names from definitions live, a published context item, Ask used, an agent connected (FR-816)"
+          "path": "/setup"
         }
       }
     }
@@ -1970,11 +1531,7 @@
           },
           "route": {
             "method": "POST",
-            "path": "/evals/import",
-            "tags": [
-              "evals"
-            ],
-            "summary": "Import a YAML or JSON file of test questions; a dry run by default (FR-504)"
+            "path": "/evals/import"
           }
         }
       }
@@ -1987,11 +1544,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/evals/automatic",
-          "tags": [
-            "evals"
-          ],
-          "summary": "Whether test runs start by themselves, and what a run of every domain is estimated to cost now (decision 6)"
+          "path": "/evals/automatic"
         }
       }
     },
@@ -2004,11 +1557,7 @@
           },
           "route": {
             "method": "GET",
-            "path": "/evals/runs",
-            "tags": [
-              "evals"
-            ],
-            "summary": "Evaluation runs, newest first"
+            "path": "/evals/runs"
           }
         }
       },
@@ -2020,11 +1569,7 @@
           },
           "route": {
             "method": "GET",
-            "path": "/evals/runs/{id}",
-            "tags": [
-              "evals"
-            ],
-            "summary": "A run with its results, flips, cells and replay (FR-509, FR-510, FR-512)"
+            "path": "/evals/runs/{id}"
           }
         }
       },
@@ -2036,11 +1581,7 @@
           },
           "route": {
             "method": "POST",
-            "path": "/evals/runs/{id}/approve",
-            "tags": [
-              "evals"
-            ],
-            "summary": "Approve a run estimated above the budget (FR-516)"
+            "path": "/evals/runs/{id}/approve"
           }
         }
       },
@@ -2052,10 +1593,7 @@
           },
           "route": {
             "method": "POST",
-            "path": "/evals/runs/{id}/cancel",
-            "tags": [
-              "evals"
-            ]
+            "path": "/evals/runs/{id}/cancel"
           }
         }
       },
@@ -2067,11 +1605,7 @@
           },
           "route": {
             "method": "POST",
-            "path": "/evals/runs/{id}/resume",
-            "tags": [
-              "evals"
-            ],
-            "summary": "Resume a run that stopped before every answer was made, making only those (R6)"
+            "path": "/evals/runs/{id}/resume"
           }
         }
       }
@@ -2086,11 +1620,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/workspace",
-          "tags": [
-            "session"
-          ],
-          "summary": "The workspace's name, which an admin sets (workspace.name), for everyone signed in (FR-818)"
+          "path": "/workspace"
         }
       }
     }
@@ -2104,11 +1634,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/me",
-          "tags": [
-            "session"
-          ],
-          "summary": "The signed-in person"
+          "path": "/me"
         }
       }
     }
@@ -2122,11 +1648,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/settings",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Limits, thresholds, retention periods and review times, current versions (FR-809)"
+          "path": "/settings"
         }
       }
     },
@@ -2138,11 +1660,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/settings/{key}",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Change a setting with a reason, as a new version (FR-806, FR-809)"
+          "path": "/settings/{key}"
         }
       }
     }
@@ -2156,11 +1674,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/models/checks",
-          "tags": [
-            "admin"
-          ],
-          "summary": "What the model check found for each role's model: tools, no tools when told, and a JSON schema"
+          "path": "/models/checks"
         }
       }
     }
@@ -2174,11 +1688,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/tools/{tool}",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Switch an MCP tool on or off for every client, with a reason (FR-407)"
+          "path": "/tools/{tool}"
         }
       }
     }
@@ -2192,11 +1702,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/clients",
-          "tags": [
-            "admin"
-          ],
-          "summary": "The AI clients that may connect, with their tools and limits"
+          "path": "/clients"
         }
       }
     },
@@ -2208,11 +1714,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/clients/{label}",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Add a client or change its tools, limits or switch, with a reason (FR-408)"
+          "path": "/clients/{label}"
         }
       }
     }
@@ -2226,11 +1728,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/operations",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Each scheduled job and connector: last success, last error and age of its data, the job queue and model spending (FR-810)"
+          "path": "/operations"
         }
       }
     },
@@ -2243,11 +1741,7 @@
         "route": {
           "method": "POST",
           "path": "/operations/jobs/{job}/run",
-          "successStatus": 202,
-          "tags": [
-            "admin"
-          ],
-          "summary": "Queue a run of a scheduled job now"
+          "successStatus": 202
         }
       }
     }
@@ -2261,11 +1755,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/audit",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Search the history log, newest first (FR-808)"
+          "path": "/audit"
         }
       }
     },
@@ -2277,11 +1767,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/audit/export",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Export the history log as JSON Lines or CSV, oldest first (FR-808)"
+          "path": "/audit/export"
         }
       }
     },
@@ -2293,11 +1779,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/audit/verify",
-          "tags": [
-            "admin"
-          ],
-          "summary": "Check the hash chain of the whole history log (FR-806)"
+          "path": "/audit/verify"
         }
       }
     }
@@ -2311,11 +1793,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/imports",
-          "tags": [
-            "proposals"
-          ],
-          "summary": "Import a YAML or JSON file of items as proposals; a dry run by default (FR-120)"
+          "path": "/imports"
         }
       }
     }
@@ -2329,11 +1807,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/connect",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "How to connect an AI client: the MCP server's address, the tools switched on and the clients that may connect (FR-404)"
+          "path": "/connect"
         }
       }
     },
@@ -2345,11 +1819,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/connect/pending",
-          "tags": [
-            "session"
-          ],
-          "summary": "Connect an agent's live line (FR-418): whether the signed-in person's own agent signed in, or they declined it in the browser, since a moment; the newest of the two, with the agent's own name"
+          "path": "/connect/pending"
         }
       }
     }
@@ -2363,11 +1833,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/try-it/read",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "A question read as a scope with the vocabulary of the live edition, so Try it opens on what was asked; the question is never stored (FR-602)"
+          "path": "/try-it/read"
         }
       }
     }
@@ -2381,11 +1847,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/figures",
-          "tags": [
-            "sources"
-          ],
-          "summary": "The integrations that can read a figure for Ask (FR-716, CON-612): whether Show figures in Ask is on (off by default) and the data contact; for administrators also the data endpoint, its declared host and whether its token is set, never the token"
+          "path": "/figures"
         }
       }
     },
@@ -2397,11 +1859,7 @@
         },
         "route": {
           "method": "PUT",
-          "path": "/figures/{id}",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Change an integration's figures settings: Show figures in Ask, the data endpoint, its token (kept in the secret store, sent only to the endpoint's origin, and forgotten when the scheme, host or port changes) and the data contact; switching figures on needs all three. Recorded in the history log, never the token"
+          "path": "/figures/{id}"
         }
       }
     },
@@ -2413,11 +1871,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/figures/read",
-          "tags": [
-            "sources"
-          ],
-          "summary": "One figure for an answer in Ask, from the integration the metric's definition comes from, for the days and values asked, compared with the days just before, within 4 seconds; a link into the tool while figures are off; or why there is none. Kept nowhere, and no person's identity is passed on"
+          "path": "/figures/read"
         }
       }
     },
@@ -2429,11 +1883,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/figures/{id}/try",
-          "tags": [
-            "sources"
-          ],
-          "summary": "Try a figure: one measure of the integration's first view with a single date, for the last 7 days, read with the figures settings as they are saved and the same 4 second limit as Ask, whether Show figures in Ask is on or off. The value and when the data is from, or a failure code; kept nowhere, and no person's identity is passed on"
+          "path": "/figures/{id}/try"
         }
       }
     }
@@ -2447,11 +1897,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/reports",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "A named report from Ask (FR-622): what is wrong with an answer, to the owners of its item's domain as a Reported card, with the question and the sender's name; nothing else of the chat is kept, and agents never read it"
+          "path": "/reports"
         }
       }
     },
@@ -2463,11 +1909,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/reports/mine",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "The person's own named reports of the last 90 days, newest first, each with what the owners did after it, for Ask to show in the chat"
+          "path": "/reports/mine"
         }
       }
     }
@@ -2481,11 +1923,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/ask/lookup",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "A question looked up on the live edition as get_context answers it, with no model: each step as it is done, then the answer with its state; or a question about the context's own records, answered from what the person may see, with no answer state; the question is never stored (FR-602)"
+          "path": "/ask/lookup"
         }
       }
     },
@@ -2497,11 +1935,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/ask/asked",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614)"
+          "path": "/ask/asked"
         }
       }
     },
@@ -2513,11 +1947,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/ask/ratings",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "Mark an answer of Ask good or wrong (FR-712): counts the verdict by domain and hour, never who rated"
+          "path": "/ask/ratings"
         }
       }
     },
@@ -2529,11 +1959,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/ask/ratings/take-back",
-          "tags": [
-            "assistant"
-          ],
-          "summary": "Take a rating of Ask back (FR-712) by its id"
+          "path": "/ask/ratings/take-back"
         }
       }
     }
@@ -2547,11 +1973,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/observability/agents",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Overview's and Questions' read: what agents asked in a range and how it was answered, per day, per topic and per kind of agent, the topics narrowed by filters; counts and scopes only, small counts hidden (FR-614, FR-620)"
+          "path": "/observability/agents"
         }
       }
     },
@@ -2563,11 +1985,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/observability/dimensions",
-          "tags": [
-            "quality"
-          ],
-          "summary": "The filter's first step: every dimension, the most asked about in a range first, each counted over the topics that pass every other filter; from the topics' shown counts alone (FR-614, FR-620)"
+          "path": "/observability/dimensions"
         }
       }
     },
@@ -2579,11 +1997,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/observability/values",
-          "tags": [
-            "quality"
-          ],
-          "summary": "The filter's second step: a dimension's values asked about in a range, 50 a page, the most asked first or A to Z, or the words searched in every dimension; from the topics' shown counts alone (FR-614, FR-620)"
+          "path": "/observability/values"
         }
       }
     },
@@ -2595,27 +2009,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/observability/feedback",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Feedback's read: what agents and people reported about answers in a range, and the answers people marked good; no person named, small counts hidden (FR-614, FR-620)"
-        }
-      }
-    },
-    "summary": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "maintain"
-        },
-        "route": {
-          "method": "GET",
-          "path": "/observability/summary",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Summary's read: the last whole calendar month or quarter, what agents asked and how it was answered against the period before, a weekly trend, what is still open and what changed; counts only, one disclosure pass, small counts hidden (FR-614, FR-620)"
+          "path": "/observability/feedback"
         }
       }
     },
@@ -2628,11 +2022,7 @@
           },
           "route": {
             "method": "GET",
-            "path": "/observability/snapshots",
-            "tags": [
-              "quality"
-            ],
-            "summary": "Summary's monthly snapshots a reader may open, the latest first (FR-620)"
+            "path": "/observability/snapshots"
           }
         }
       },
@@ -2644,11 +2034,7 @@
           },
           "route": {
             "method": "GET",
-            "path": "/observability/snapshots/{id}",
-            "tags": [
-              "quality"
-            ],
-            "summary": "One monthly snapshot as taken: disclosed counts and their sentences only (FR-612)"
+            "path": "/observability/snapshots/{id}"
           }
         }
       },
@@ -2660,11 +2046,7 @@
           },
           "route": {
             "method": "POST",
-            "path": "/observability/snapshots",
-            "tags": [
-              "quality"
-            ],
-            "summary": "Take the last whole month's snapshots now, as the nightly job does (admins)"
+            "path": "/observability/snapshots"
           }
         }
       }
@@ -2677,11 +2059,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/observability/usage",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Usage's read, for administrators: tool calls and how they ended, calls by kind of agent, reply times, and model spend against the caps (FR-410, FR-620)"
+          "path": "/observability/usage"
         }
       }
     },
@@ -2694,11 +2072,7 @@
           },
           "route": {
             "method": "GET",
-            "path": "/observability/views",
-            "tags": [
-              "quality"
-            ],
-            "summary": "The views people saved on Questions, for everyone in the workspace: a name and filters, never a question"
+            "path": "/observability/views"
           }
         }
       },
@@ -2710,11 +2084,7 @@
           },
           "route": {
             "method": "POST",
-            "path": "/observability/views",
-            "tags": [
-              "quality"
-            ],
-            "summary": "Save Questions' filters as a view everyone in the workspace has as a tab"
+            "path": "/observability/views"
           }
         }
       },
@@ -2726,11 +2096,7 @@
           },
           "route": {
             "method": "DELETE",
-            "path": "/observability/views/{id}",
-            "tags": [
-              "quality"
-            ],
-            "summary": "Remove a saved view: only whoever saved it, or an administrator"
+            "path": "/observability/views/{id}"
           }
         }
       }
@@ -2743,11 +2109,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/observability/replay",
-          "tags": [
-            "quality"
-          ],
-          "summary": "The answer panel's replay: a topic answered now or before the last publish, step by step, with no model; for administrators and the owners of the topic's domains"
+          "path": "/observability/replay"
         }
       }
     }
@@ -2761,11 +2123,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/saved-questions",
-          "tags": [
-            "quality"
-          ],
-          "summary": "The saved questions of the domains the person owns, every domain's for an administrator, newest first, each with what it should keep getting and its last check (FR-526); anyone else gets none"
+          "path": "/saved-questions"
         }
       }
     },
@@ -2777,11 +2135,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/saved-questions",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Save a question for a domain, with the person's name: what the answer engine gives it now becomes what it should keep getting, checked after every change; for the domain's owners and administrators"
+          "path": "/saved-questions"
         }
       }
     },
@@ -2793,11 +2147,7 @@
         },
         "route": {
           "method": "DELETE",
-          "path": "/saved-questions/{id}",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Remove a saved question; for its domain's owners and administrators"
+          "path": "/saved-questions/{id}"
         }
       }
     },
@@ -2809,11 +2159,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/saved-questions/{id}/keep",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Keep the new answer: what a saved question gets now becomes what it should keep getting; Undo takes it back; for its domain's owners and administrators"
+          "path": "/saved-questions/{id}/keep"
         }
       }
     },
@@ -2825,11 +2171,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/saved-questions/check",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Check now: every saved question the person manages, or one domain's, answered again on what agents get, with no model, counting as it goes; nothing is published and nothing waits on it (FR-526)"
+          "path": "/saved-questions/check"
         }
       }
     },
@@ -2841,11 +2183,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/saved-questions/status",
-          "tags": [
-            "quality"
-          ],
-          "summary": "How far the newest check run got, when the saved questions were last checked, and how many answered as saved each of the last eight weeks"
+          "path": "/saved-questions/status"
         }
       }
     }
@@ -2859,11 +2197,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/alerts/rules",
-          "tags": [
-            "quality"
-          ],
-          "summary": "The nine alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners"
+          "path": "/alerts/rules"
         }
       }
     },
@@ -2875,11 +2209,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/alerts/rules/{rule}",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Turn an alert rule on or off for everyone, or set its threshold from those its sentence offers; for administrators"
+          "path": "/alerts/rules/{rule}"
         }
       }
     },
@@ -2891,11 +2221,7 @@
         },
         "route": {
           "method": "POST",
-          "path": "/alerts/rules/{rule}/mute",
-          "tags": [
-            "quality"
-          ],
-          "summary": "Mute an alert rule for domains the person owns, or unmute it: its cards stop reaching them there and still reach the domain's other owners and the administrators"
+          "path": "/alerts/rules/{rule}/mute"
         }
       }
     },
@@ -2907,11 +2233,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/alerts/raised",
-          "tags": [
-            "quality"
-          ],
-          "summary": "What the alert rules raised, newest first, a page at a time, with the counts in all and by rule: every raise for an administrator, those about their own domains for an owner (FR-614)"
+          "path": "/alerts/raised"
         }
       }
     }
@@ -2925,11 +2247,7 @@
         },
         "route": {
           "method": "GET",
-          "path": "/schema/item",
-          "tags": [
-            "reference"
-          ],
-          "summary": "The JSON Schema of the item format, mentions included (FR-124)"
+          "path": "/schema/item"
         }
       }
     }

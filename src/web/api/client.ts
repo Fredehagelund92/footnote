@@ -13,6 +13,7 @@
 import type { JSONContent } from '@tiptap/core'
 import type { ConnectRequest } from '@contract/connections'
 import type { AgentToolName } from '@domain/agents'
+import type { FamilyMeaningChoice } from '@domain/family-meaning'
 import type { ObsFilter, TopicSum, ValueGroup, ValueSort } from '@domain/obs-filters'
 import type { ScopeSearchResult } from '@contract/scope'
 import type { ReactionEmoji } from '@/components/templates/comment-box/types'
@@ -549,6 +550,18 @@ export interface FootnoteApi {
   definitionPage: (input: { name: string }) => Promise<Definition | null>
   /** What a synced metric is built from and what is built from it; none for anything else. */
   getDefinitionRelations: (input: { name: string }) => Promise<DefinitionRelation[]>
+  /**
+   * Chooses what a family of metrics means, by an owner of its domain or an admin: worked out by
+   * the rule again, one variant's own words (by its name), or words written for the family.
+   * `revision` is the meaning's as the person read it.
+   */
+  setFamilyMeaning: (input: {
+    name: string
+    choice: FamilyMeaningChoice
+    member?: string
+    words?: string
+    revision: number
+  }) => Promise<void>
   /** Saves a term; a renamed one replaces the old entry. Synced definitions are never saved here. */
   saveTerm: (input: { previous?: string; term: Definition }) => Promise<void>
   /** Another name for a definition, refused when the word already means something. */
@@ -948,6 +961,7 @@ export const footnoteApiMethods = [
   'definitionPage',
   'getDefinitionRelations',
   'getDefinitionHistory',
+  'setFamilyMeaning',
   'saveTerm',
   'addSynonym',
   'removeTerm',

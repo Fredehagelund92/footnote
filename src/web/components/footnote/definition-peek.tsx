@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils'
 import { DockFrame, DockMissing, PeekBar } from '@/components/dock'
 import { AnotherNameFor, SynonymTags, TypeTile } from '@/components/footnote/definition'
+import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
 import { DockStepper } from '@/components/footnote/list'
 import {
   PeekAttention,
@@ -108,16 +109,19 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekMeaning>
             {target && <AnotherNameFor target={target} className="mb-2" />}
             {d.family ? (
-              // Its variants are listed on its own page only (FR-142).
-              <p>
-                {familyMeaning(d.family)}{' '}
-                <a
-                  href={href(page)}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  See its variants
-                </a>
-              </p>
+              <>
+                <FamilyMeaningBlock d={d} family={d.family} />
+                {/* Its variants are listed on its own page only (FR-142). */}
+                <p className={cn(d.family.meaning && 'mt-3 text-sm text-muted-foreground')}>
+                  {familyMeaning(d.family)}{' '}
+                  <a
+                    href={href(page)}
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    See its variants
+                  </a>
+                </p>
+              </>
             ) : (
               <p className={cn(!subject.definition && 'text-muted-foreground')}>
                 {subject.definition ? (

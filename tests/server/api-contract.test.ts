@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { Writable } from 'node:stream'
 import { gunzipSync } from 'node:zlib'
-import { minifyContractRouter } from '@orpc/contract'
+import { webRoutes } from '../../src/contract/web-routes.ts'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ORPCError } from '@orpc/client'
 import { ValidationError } from '@orpc/server'
@@ -29,9 +29,7 @@ describe('files generated from the contract', () => {
     expect(await readJson('docs/api/openapi.json')).toEqual(
       JSON.parse(JSON.stringify(await openApiDocument())),
     )
-    expect(await readJson('src/web/api/contract.json')).toEqual(
-      JSON.parse(JSON.stringify(minifyContractRouter(contract))),
-    )
+    expect(await readJson('src/web/api/contract.json')).toEqual(webRoutes(contract))
   })
 
   it('name the contract by the digest of the OpenAPI document as written', async () => {
@@ -329,6 +327,8 @@ describe('the API over HTTP', () => {
       '/context/changes',
       '/context/deleted',
       '/decisions/undo',
+      '/definitions/families/{key}/meaning',
+      '/definitions/families/{key}/meaning/history',
       '/definitions/related',
       '/definitions/relations',
       '/drafts/from-text',

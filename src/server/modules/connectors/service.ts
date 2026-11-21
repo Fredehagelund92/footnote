@@ -358,8 +358,8 @@ export class ConnectorService {
         if (rebaseline) rebaselined.push(definition.ref)
         const upserted = await tx.query(
           `insert into definitions
-           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark,variant_shape,variant_by,built_from_refs,built_from_columns,family_name,family_by)
-           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+           (ref,connector_id,kind,name,title,description_copy,value_type,visible_groups,area_hint,change_mark,first_seen_snapshot,last_seen_snapshot,model_file,synonyms,base_name,source_mark,variant_shape,variant_by,built_from_refs,built_from_columns,family_name,family_by,family_description)
+           values ($1,$2,$3,$4,$5,$6,$7,null,$8,$9,$10,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
            on conflict (ref) do update set kind=excluded.kind,name=excluded.name,title=excluded.title,
              description_copy=excluded.description_copy,value_type=excluded.value_type,visible_groups=null,
              area_hint=excluded.area_hint,change_mark=excluded.change_mark,source_mark=excluded.source_mark,
@@ -368,6 +368,7 @@ export class ConnectorService {
              variant_shape=excluded.variant_shape,variant_by=excluded.variant_by,
              built_from_refs=excluded.built_from_refs,built_from_columns=excluded.built_from_columns,
              family_name=excluded.family_name,family_by=excluded.family_by,
+             family_description=excluded.family_description,
              missing_since_snapshot=null,renamed_to=null,connector_id=excluded.connector_id
              where definitions.connector_id=excluded.connector_id
                 or definitions.connector_id in (select id from connectors where removed_at is not null)
@@ -393,6 +394,7 @@ export class ConnectorService {
             definition.builtFrom?.columns ?? null,
             definition.family?.name ?? null,
             definition.family ? JSON.stringify(definition.family.by) : null,
+            definition.family?.description ?? null,
           ],
         )
         if (upserted.length !== 1) throw new Error('Definition belongs to another connector')

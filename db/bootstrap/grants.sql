@@ -14,6 +14,9 @@ grant update on people, areas, area_assignments, global_role_grants, proposals, 
   eval_runs, eval_cells, outbox_events, inbox_items, notification_prefs, webhook_endpoints, webhook_deliveries, idempotency_keys, tool_config, client_policies,
   llm_spend_daily, llm_spend_monthly, job_heartbeats to :api;
 grant delete on saved_views, notification_prefs, inbox_items to :api;     -- user-driven deletes; time-based retention runs through cl_retention_run()
+-- What a family of metrics means (FR-142): an owner's choice; its history is written by a trigger.
+grant insert, update on family_meanings to :api;
+grant execute on function cl_family_area(text) to :api;
 -- Which records questions Ask was asked, by id and week only (FR-718).
 grant insert, update on records_asked_weekly to :api;
 grant usage on all sequences in schema public to :api;
@@ -21,7 +24,7 @@ grant execute on function edition_open(edition_reason, uuid, text, bigint), edit
   edition_serve_item_version(bigint, uuid), edition_close_item(bigint, text), edition_serve_vocab_version(bigint, uuid),
   serving_items(bigint), serving_reviews(bigint), cl_version_review(uuid), serving_vocabulary(bigint), cl_topic_counts_public(int), edition_content_digest(bigint), audit_verify(), cl_person(), cl_is_admin_now(), cl_is_owner_now(text),
   cl_short_id(text) to :api;
--- explicitly NOT granted to :api: UPDATE/DELETE on item_versions, item_version_*, vocab_term_versions, vocab_term_refs, decisions, check_results, proposal_events,
+-- explicitly NOT granted to :api: UPDATE/DELETE on item_versions, item_version_*, vocab_term_versions, vocab_term_refs, family_meaning_versions, decisions, check_results, proposal_events,
 -- audit_log, settings_versions, editions, live_edition; any DML on item_version_service, vocab_term_service.
 
 -- :serve: the MCP read path

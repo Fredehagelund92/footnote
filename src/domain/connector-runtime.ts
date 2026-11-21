@@ -56,7 +56,8 @@ export const runtimeDefinitionSchema = z.strictObject({
   variant: z.optional(z.nullable(z.strictObject({ shape: sha256, by: variantBy }))),
   /**
    * The family the source declares a metric is a variant of (`meta.footnote`, D9): its name as
-   * the source writes it, and what tells this variant apart. Absent when it declares none.
+   * the source writes it, what tells this variant apart, and what the family means when the source
+   * writes it. Absent when it declares none.
    */
   family: z.optional(
     z.nullable(
@@ -66,6 +67,12 @@ export const runtimeDefinitionSchema = z.strictObject({
           z.refine((name) => [...name].length <= FAMILY_NAME_MAX && !/[\n\r]/.test(name)),
         ),
         by: variantBy,
+        description: z.optional(
+          z.string().check(
+            z.minLength(1),
+            z.refine((value) => [...value].length <= 500),
+          ),
+        ),
       }),
     ),
   ),

@@ -89,6 +89,19 @@ export function familyDefinitions(tool: string): Definition[] {
   return [...measureFamilies(tool), accruedShare(tool)]
 }
 
+/**
+ * A variant's own words, as its tool writes them: one wording with its values in it, so the
+ * family's meaning is their common words. Three Revenue variants of the marketplace say something
+ * else, as a model copied by hand does.
+ */
+function variantWords(measure: string, code: string, channel: string): string {
+  if (measure !== 'Revenue')
+    return `${measure} for orders paid in ${code} through the ${channel} channel.`
+  return channel === 'marketplace' && ['BRL', 'MXN', 'INR'].includes(code)
+    ? `Money taken for paid orders in ${code} via ${channel}, before marketplace fees and before tax.`
+    : `Money taken for paid orders in ${code} via ${channel}, after discounts and before tax.`
+}
+
 function measureFamilies(tool: string): Definition[] {
   // Two of the measures are the demo's own metrics by name: one word has one meaning (FR-138).
   const own: Record<string, string> = { 'Net revenue': 'Net takings', 'Gross margin': 'Margin' }
@@ -111,6 +124,7 @@ function measureFamilies(tool: string): Definition[] {
           channels.map((channel) => ({
             name: `${label} (${code.toUpperCase()}) ${channel}`,
             values: [code.toUpperCase(), channel],
+            description: variantWords(label, code.toUpperCase(), channel),
           })),
         ),
       },
@@ -147,10 +161,19 @@ function accruedShare(tool: string): Definition {
           by: 'exchange_rate_usd',
         },
       ],
-      variants: ['EUR', 'USD'].map((code) => ({
-        name: `Accrued share front loaded (${code})`,
-        values: [code],
-      })),
+      variants: [
+        {
+          name: 'Accrued share front loaded (EUR)',
+          values: ['EUR'],
+          description:
+            "The share of a contract's value booked in its first three months, in euros.",
+        },
+        {
+          name: 'Accrued share front loaded (USD)',
+          values: ['USD'],
+          description: "The EUR amount multiplied by the row's exchange rate.",
+        },
+      ],
     },
   }
 }

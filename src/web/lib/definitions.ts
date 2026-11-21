@@ -1,5 +1,6 @@
 import * as React from 'react'
 import type { FamilyFound } from '@domain/family-found'
+import type { FamilyMeaningChoice, FamilyMeaningSource } from '@domain/family-meaning'
 import { lookAlikes, termWord, wordRefusal, type WordHolder } from '@domain/terms'
 import { useDefinitions as useDefinitionList } from '@/api/queries'
 import { servedToAgents, type DomainId, type Fact } from '@/model/items'
@@ -20,6 +21,36 @@ export type Variant = {
   name: string
   /** What tells it apart, in the order of its family's `by`: `["EUR", "web"]`. */
   values: string[]
+  /** Its tool's own words for it; absent when the tool gives none. */
+  description?: string
+}
+
+/**
+ * What a family means (FR-142, M1): the words its tool writes for it, else an owner's choice,
+ * else the words most of its variants share, else the base variant's. Variants by name.
+ */
+export type FamilyMeaning = {
+  source: FamilyMeaningSource
+  /** The meaning; the common words write each value as what it stands for: "in {Currency}". */
+  words: string | null
+  /** The variant whose words are the meaning: of `member` and `base`. */
+  member?: string
+  /** The words most variants share, values aside, and how many share them. */
+  common?: { words: string; agree: number }
+  /** The variant the others are converted from. */
+  base?: string
+  /** The variants whose own words say something else than the meaning. */
+  differing: string[]
+  /** What an owner chose last, by whom and on which day. */
+  chosen?: {
+    choice: FamilyMeaningChoice
+    member?: string
+    words?: string
+    by: string
+    on: string
+  } | null
+  /** How many times owners chose: a change sends it back. */
+  revision: number
 }
 
 /**
@@ -38,6 +69,8 @@ export type Family = {
    * each by its name, and the column.
    */
   conversions?: { from: string; to: string; by: string }[]
+  /** What it means, and where that comes from. */
+  meaning?: FamilyMeaning
 }
 
 export type Definition = {

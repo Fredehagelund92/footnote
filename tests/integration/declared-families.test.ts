@@ -3,7 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { Catalogue, DefinitionRelations } from '../../src/contract/catalogue.ts'
+import type {
+  Catalogue,
+  DefinitionRelations,
+  FamilyMeaningVersion,
+} from '../../src/contract/catalogue.ts'
 import type { NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
 import { buildApp } from '../../src/server/app.ts'
@@ -56,7 +60,7 @@ let host: GitHost
 type Who = keyof typeof people
 const headers: Partial<Record<Who, Record<string, string>>> = {}
 
-const call = (method: 'GET' | 'POST', path: string, who: Who, payload?: object) =>
+const call = (method: 'GET' | 'POST' | 'PUT', path: string, who: Who, payload?: object) =>
   app.inject({
     method,
     url: '/api/v1' + path,
@@ -91,6 +95,7 @@ function project() {
         footnote: {
           family: 'net_revenue_by_line',
           by: { sales_line: line[1], currency: line[2]!.toUpperCase() },
+          family_description: 'Revenue from partners after refunds, by sales line.',
         },
       }
     if (metric.name === 'signups')
@@ -308,5 +313,121 @@ describe('a family’s page', () => {
       key: keyOf('EUR'),
       by: 'exchange_rate_usd',
     })
+  })
+})
+
+describe('what a family means (M1)', () => {
+  const family = async (name: string) =>
+    (await ok<Catalogue>(call('GET', '/catalogue', 'member'))).terms.find((t) => t.name === name)!
+  const choose = (key: string, who: Who, body: object) =>
+    call('PUT', `/definitions/families/${encodeURIComponent(key)}/meaning`, who, body)
+
+  it('is the words its source declares for it, which nobody replaces here', async () => {
+    const line = await family('Net revenue by line')
+    expect(line.family!.meaning).toMatchObject({
+      source: 'declared',
+      words: 'Revenue from partners after refunds, by sales line.',
+      chosen: null,
+      revision: 0,
+    })
+    // The family's definition still never speaks with one variant's words.
+    expect(line.definition?.descriptionCopy).toBeNull()
+    const refused = await choose(line.key, 'owner', {
+      key: line.key,
+      choice: 'written',
+      words: 'Something else.',
+      revision: 0,
+    })
+    expect(refused.statusCode, refused.body).toBe(409)
+  })
+
+  it('is the base variant’s words for a pair one rate converts, and names the other', async () => {
+    const accrued = (await family('Accrued share 1')).family!
+    const keyOf = (code: string) => accrued.variants.find((v) => v.values[0] === code)!.key
+    expect(accrued.meaning.base).toBe(keyOf('EUR'))
+    if (accrued.meaning.source === 'base') {
+      expect(accrued.meaning.member).toBe(keyOf('EUR'))
+      expect(accrued.meaning.differing).toEqual([keyOf('USD')])
+    } else expect(accrued.meaning.source).toBe('common')
+  })
+
+  it('is changed by an owner of its domain only, against the meaning they read, with history', async () => {
+    const accrued = await family('Accrued share 1')
+    const eur = accrued.family!.variants.find((v) => v.values[0] === 'EUR')!
+    const written = {
+      key: accrued.key,
+      choice: 'written',
+      words: '  The share of a partner contract booked up front.  ',
+      revision: 0,
+    }
+    const forbidden = await choose(accrued.key, 'member', written)
+    expect(forbidden.statusCode, forbidden.body).toBe(403)
+    const first = await ok<FamilyMeaningVersion>(choose(accrued.key, 'owner', written))
+    expect(first).toMatchObject({
+      revision: 1,
+      choice: 'written',
+      words: 'The share of a partner contract booked up front.',
+      personId: people.owner,
+    })
+    expect((await family('Accrued share 1')).family!.meaning).toMatchObject({
+      source: 'written',
+      words: 'The share of a partner contract booked up front.',
+      chosen: { choice: 'written', personId: people.owner },
+      revision: 1,
+    })
+    // Someone who read the meaning before that change is told so.
+    const stale = await choose(accrued.key, 'admin', written)
+    expect(stale.statusCode, stale.body).toBe(409)
+
+    if (eur.description) {
+      await ok(
+        choose(accrued.key, 'admin', {
+          key: accrued.key,
+          choice: 'member',
+          member: eur.key,
+          revision: 1,
+        }),
+      )
+      expect((await family('Accrued share 1')).family!.meaning).toMatchObject({
+        source: 'member',
+        member: eur.key,
+        words: eur.description,
+      })
+    } else await ok(choose(accrued.key, 'admin', { key: accrued.key, choice: 'auto', revision: 1 }))
+    const history = await ok<FamilyMeaningVersion[]>(
+      call(
+        'GET',
+        `/definitions/families/${encodeURIComponent(accrued.key)}/meaning/history`,
+        'member',
+      ),
+    )
+    expect(history.map((v) => [v.revision, v.personId])).toEqual([
+      [2, people.admin],
+      [1, people.owner],
+    ])
+    // History is append only, even for the service's own role.
+    await expect(
+      database.query(`update family_meaning_versions set words = 'x' where family_key = $1`, [
+        accrued.key,
+      ]),
+    ).rejects.toThrow()
+  })
+
+  it('refuses a variant of another family, and an unknown family', async () => {
+    const accrued = await family('Accrued share 1')
+    const other = (await family('Accrued share 2')).family!.variants[0]!.key
+    const wrong = await choose(accrued.key, 'admin', {
+      key: accrued.key,
+      choice: 'member',
+      member: other,
+      revision: 2,
+    })
+    expect(wrong.statusCode, wrong.body).toBe(404)
+    const unknown = await choose('group:no_such_family', 'admin', {
+      key: 'group:no_such_family',
+      choice: 'auto',
+      revision: 0,
+    })
+    expect(unknown.statusCode, unknown.body).toBe(404)
   })
 })

@@ -159,13 +159,16 @@ A **definition** has:
 - `family`, optional: the family the source declares the member is a variant of, by Footnote's
   one convention, `meta.footnote` (FR-142, D9). `name` is the family's name as written (at most
   200 characters, no line break); `by` is what tells this variant apart, as `variant.by` is
-  (`{currency: EUR}` in the model), at most five. `declaredFamily(meta)` in
-  `src/domain/definition-helpers.ts` reads it; one it cannot keep is none, warned as
-  `invalid_family`. A family changes no meaning, so `footnote` stays out of the change mark. The
-  core checks each view's members of a family at every read (`withDeclaredFamilies`): one member,
-  one member in a view when the rest are in others, a dimension, other keys under `by`, or the same
-  values twice is warned (`family_one_member`, `family_two_views`, `family_two_kinds`,
-  `family_axes_differ`, `family_same_values`) and read as no family.
+  (`{currency: EUR}` in the model), at most five; `description` is what the family means, as
+  `meta.footnote.family_description` writes it (a description copy, at most 500 characters), or
+  absent. `declaredFamily(meta)` in `src/domain/definition-helpers.ts` reads it; one it cannot
+  keep is none, warned as `invalid_family`. A family changes no meaning of its members, so
+  `footnote` stays out of the change mark. The core checks each view's members of a family at
+  every read (`withDeclaredFamilies`): one member, one member in a view when the rest are in
+  others, a dimension, other keys under `by`, or the same values twice is warned
+  (`family_one_member`, `family_two_views`, `family_two_kinds`, `family_axes_differ`,
+  `family_same_values`) and read as no family. Members that give the family different words are
+  warned (`family_words_differ`); the family holds, without them.
 - `builtFrom`, optional, metrics only: what it is built from, by name (FR-143, CON-207). `refs` are
   the definitions it takes as inputs (a ratio's numerator and denominator, a derived metric's
   inputs), by ref, whether or not each is a definition of its own; `columns` are the columns of its

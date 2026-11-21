@@ -57,7 +57,7 @@ flags nothing until one of those changes too. The connect page says so before an
    a value that is not a domain warns `invalid_domain`. A cube, view or member Cube hides
    (`public: false`) is left out. A view Cube describes in a way this does not read is left out
    with `cube-cloud.unreadable_view`, and the read is then in part, so it marks nothing missing.
-   A member whose `meta.footnote` names a family (`family`, `by`) gets that family as written
+   A member whose `meta.footnote` names a family (`family`, `by`, and `family_description` for what it means) gets that family as written
    (D9); one that cannot be kept is none, warned as `invalid_family`.
 6. Ends with the build's hash as its version and its cursor. Every read that is not unchanged is a
    full listing: a member that left is marked missing, and the items that rely on it are flagged.

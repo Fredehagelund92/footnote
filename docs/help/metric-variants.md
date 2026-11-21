@@ -3,7 +3,7 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 4
+minutes: 5
 reviewed: 2026-11-21
 ---
 
@@ -68,5 +68,7 @@ metrics:
 ```
 
 In a tool whose metrics are measures, the same `footnote` key goes under the measure's `meta`. Every variant names the same family and the same keys under `by`, each with its own values. A name under `by` that is a dimension of the view is shown by that dimension's name.
+
+To say what the family means, add `family_description` beside `family`, with the same words on each variant that has it. Definitions and agents then read those words for the family, and nobody can replace them here. Variants that give different words are read without them, and Test connection says so.
 
 A family that can't be kept is read as separate metrics, and Test connection says why: only one metric names it, its metrics are in different views, one is a dimension, they name different keys under `by`, or two name the same values.

@@ -608,6 +608,8 @@ export const invalidations: {
   resolveComment: () => [queryKeys.comments],
   markThreadSeen: () => [queryKeys.comments],
   markMentionSeen: () => comments,
+  // What a family means is what Ask reads for it too.
+  setFamilyMeaning: () => definitions,
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
