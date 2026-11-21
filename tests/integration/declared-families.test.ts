@@ -461,18 +461,21 @@ describe('what a family means (M1)', () => {
 })
 
 describe('Ask on a family', () => {
-  it("gives the family's own words with the look-up of it, the variants' with them", async () => {
+  it("gives the family's words with the look-up of it, as Definitions gives them", async () => {
     // Asked why its USD variant differs from its EUR one, Ask read only the look-up and said
     // nothing was written (captain's install, 21 November 2026): the words were only in Definitions.
-    const read = (await askToolsAs(database, clock)(people.member, (tools) =>
-      tools.run('get_context', {
+    type Defined = { definitions?: { name: string; from: string; words: string | null }[] }
+    const [looked, defined] = (await askToolsAs(database, clock)(people.member, async (tools) => [
+      await tools.run('get_context', {
         about: 'why is net revenue by line in USD different from EUR',
         no_period: true,
       }),
-    )) as { definitions?: { name: string; from: string; words: string | null }[] }
-    expect(read.definitions?.map((d) => [d.name, d.from])).toEqual([['Net revenue by line', 'dbt']])
-    expect(read.definitions?.[0]?.words).toMatch(
-      /^A family of 6 near-identical metrics, one for each sales line and currency\./,
-    )
+      await tools.run('definitions', { names: ['Net revenue by line'] }),
+    ])) as [Defined, Defined]
+    expect(looked.definitions?.map((d) => [d.name, d.from])).toEqual([
+      ['Net revenue by line', 'dbt'],
+    ])
+    expect(looked.definitions?.[0]?.words).toContain('A family of 6 near-identical metrics')
+    expect(looked.definitions?.[0]?.words).toBe(defined.definitions?.[0]?.words)
   })
 })
