@@ -1,7 +1,7 @@
 import { afterAll, beforeAll } from 'vitest'
 import { createHttpApi } from '@/api/http'
 import type { FootnoteApi } from '@/api/client'
-import type { AskTools, AskTrace } from '../../../src/server/modules/answer/index.ts'
+import type { AskTools, AskTrace, TurnReads } from '../../../src/server/modules/answer/index.ts'
 import type { ModelChecks, ModelPort } from '../../../src/server/modules/models/index.ts'
 import { buildApp } from '../../../src/server/app.ts'
 import { systemClock } from '../../../src/server/clock.ts'
@@ -89,14 +89,18 @@ export function askWorld(
 
   const tools = askToolsAs(database, clock)
   /** Ask's tools as this person, inside one transaction of theirs, as a request makes it. */
-  const withTools = async <T>(name: string, work: (tools: AskTools) => Promise<T>) => {
+  const withTools = async <T>(
+    name: string,
+    work: (tools: AskTools) => Promise<T>,
+    kept?: TurnReads,
+  ) => {
     const { rows } = await client.query<{ id: string }>(
       'select id::text from people where display_name = $1',
       [name],
     )
     const person = rows[0]?.id
     if (!person) throw new Error(`${name} is not in the demo week`)
-    return tools(person, work)
+    return tools(person, work, kept)
   }
 
   return {

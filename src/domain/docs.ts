@@ -3,8 +3,9 @@
   page model that the app's Docs area, the static docs site (npm run docs:build), its search and
   its index for agents (llms.txt) all draw from. A page names the app's own lists (the answer
   lines, the words, the tools, the prompt) with an include, so a change there changes the page.
-  Pure: no input or output, no clock. The build reads the files, and scripts/docs-read.ts reads them into
-  this model, so neither the app nor the docs site carries a Markdown reader.
+  Pure: no input or output, no clock. The build and the service read the files, and
+  src/server/docs-read.ts reads them into this model, so neither the app nor the docs site
+  carries a Markdown reader.
 */
 
 export const docsFolder = 'docs/help'

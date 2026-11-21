@@ -86,35 +86,30 @@ export type SessionEvent = {
   type: 'answered'
   /** The question of that turn. */
   question: string
-  /** The chats now, so a question a chat already asks joins that chat. */
-  threads: readonly Thread[]
   /** The id a chat that starts here gets. */
   mint: string
 }
 
-/** A chat joining the history: its id, and whether the history already has it. */
-export type Join = { chat: string; question: string; known: boolean }
+/** A chat joining the history: its id and its first question. */
+export type Join = { chat: string; question: string }
 
 /**
  * The session after an event, and the chat it joins to the history, if any. A thread joins once:
  * on its first answered turn, and not before, so a first question that was stopped or failed
- * leaves it fresh. The same session comes back when nothing changed.
+ * leaves it fresh. A new chat is always a chat of its own, even when an earlier chat began with
+ * the same question: it never takes that chat's place. The same session comes back when nothing
+ * changed.
  */
 export function reduce(
   session: Session,
   event: SessionEvent,
 ): { session: Session; join: Join | null } {
   switch (session.kind) {
-    case 'fresh': {
-      const asking = event.threads.find(
-        (t) => t.question.toLowerCase() === event.question.toLowerCase(),
-      )
-      const chat = asking?.id ?? event.mint
+    case 'fresh':
       return {
-        session: { kind: 'live', chat },
-        join: { chat, question: event.question, known: !!asking },
+        session: { kind: 'live', chat: event.mint },
+        join: { chat: event.mint, question: event.question },
       }
-    }
     case 'history':
       return { session: { kind: 'live', chat: session.chat }, join: null }
     case 'example':

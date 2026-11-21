@@ -74,6 +74,39 @@ export function normalizeName(name: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 }
+/** Words a short name leaves out: "Cost of goods sold" is COGS or CGS. */
+const SMALL_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'at',
+  'by',
+  'for',
+  'in',
+  'of',
+  'on',
+  'per',
+  'the',
+  'to',
+])
+
+/**
+ * The short names a name is written as, normalised as `normalizeName` does: the first letters of
+ * its words, with and without the small ones ("Return on ad spend" is roas and ras). Only those of
+ * three letters or more: two letters say too little to be a name.
+ */
+export function initialsOf(name: string): string[] {
+  const words = normalizeName(name)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+  if (words.length < 2) return []
+  const all = words.map((w) => w[0]).join('')
+  const main = words
+    .filter((w) => !SMALL_WORDS.has(w))
+    .map((w) => w[0])
+    .join('')
+  return [...new Set([all, main])].filter((n) => n.length >= 3)
+}
 /**
  * A text normalised as `normalizeName` does, with where each character came from: `at[i]` is the
  * place in `text` of the character that gave `normalized[i]`, so a name or a date found in the

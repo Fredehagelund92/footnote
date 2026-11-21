@@ -295,6 +295,22 @@ export const loopTurnSchema = z.object({
    * Definition label, with these names and the tool their words come from, in place of a state.
    */
   defined: z.optional(z.object({ names: z.array(z.string()), tool: z.string() })),
+  /**
+   * The help pages an answer about Footnote itself rests on, from its help reads (FR-719.8): the
+   * page shows each as its source, and no state. Left out when it read no help.
+   */
+  help: z.optional(
+    z.array(
+      z.object({
+        /** The page's slug, as its address in the help takes it. */
+        slug: z.string(),
+        /** The heading's anchor; empty for the top of the page. */
+        id: z.string(),
+        title: z.string(),
+        heading: z.string(),
+      }),
+    ),
+  ),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /**

@@ -1170,13 +1170,13 @@ function AskThread({
   // The thread takes these once, when it mounts: it is not shown before they are in.
   const initial = openingAnswers(session, opening.state === 'read' ? opening.answer : undefined)
   const join = (j: Join) => {
-    if (!j.known) threadActions.add(j.chat, j.question)
+    threadActions.add(j.chat, j.question)
     onJoined(j.chat)
   }
   // Any answered turn starts the chat in the history, once, whichever button asked it.
   const onAnswered = (question: string) => {
     const from = became.current ?? sessionOf(place, threads)
-    const next = reduce(from, { type: 'answered', question, threads, mint: mint() })
+    const next = reduce(from, { type: 'answered', question, mint: mint() })
     if (next.session === from) return
     became.current = next.session
     setAnswered(next.session)

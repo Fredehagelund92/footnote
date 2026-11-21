@@ -3,6 +3,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
+import { readHelp } from '../src/server/modules/answer/index.ts'
 import { readDevPeople } from '../src/server/modules/auth/index.ts'
 import { inlineScriptHashes } from './web-csp.ts'
 
@@ -14,8 +15,9 @@ import { inlineScriptHashes } from './web-csp.ts'
   3. The service bundled into one file, dist/vercel/footnote.mjs, which the function api/footnote.js
      exports. Bundled, the function holds a few MB rather than every package in node_modules,
      which is over Vercel's limit. Cube's native compiler and pg's native driver stay out: the
-     function never loads them. Footnote's version and the picker's people, which the service reads
-     from files beside its code, are written into the bundle (src/server/bundled.ts).
+     function never loads them. Footnote's version, the picker's people and the help pages Ask
+     reads, which the service reads from files beside its code, are written into the bundle
+     (src/server/bundled.ts).
 */
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -67,7 +69,9 @@ export async function bundleService(
     banner: {
       js: "import { createRequire as footnoteCreateRequire } from 'node:module'; const require = footnoteCreateRequire(import.meta.url);",
     },
-    define: { FOOTNOTE_BUNDLE: JSON.stringify(JSON.stringify({ version, people })) },
+    define: {
+      FOOTNOTE_BUNDLE: JSON.stringify(JSON.stringify({ version, people, help: readHelp() })),
+    },
     legalComments: 'none',
     logLevel: 'warning',
   })

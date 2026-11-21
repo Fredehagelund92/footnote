@@ -520,6 +520,7 @@ describe("Ask's loop answer, state by state", () => {
 
 describe('while the loop reads', () => {
   it('shows each read as a step, the done ones with what they found and their chips, the current one moving', () => {
+    motion(true)
     const { askedTurn } = turnModule
     const turn = {
       ...askedTurn('t1', 'Tickets closed by billing?'),
@@ -558,8 +559,16 @@ describe('while the loop reads', () => {
   })
 })
 
+/** Whether the person asked for less motion, as the page reads it. */
+const motion = (reduce: boolean) => {
+  window.matchMedia = ((query: string) => ({
+    matches: reduce && query.includes('reduce'),
+  })) as unknown as typeof window.matchMedia
+}
+
 describe('while the loop writes', () => {
-  it('shows each sentence that passed the check under its state, then the rest once the answer is in, the words staying put', () => {
+  it('shows each sentence that passed the check, then the rest once the answer is in, the words staying put', () => {
+    motion(true)
     const { askedTurn, turnReducer } = turnModule
     const whole = example('loop-checked')
     const first: LoopTurn = {
@@ -584,16 +593,72 @@ describe('while the loop writes', () => {
     turn = turnReducer(turn, { type: 'words', words: null })
     act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
     expect(host.querySelector('[data-answer-words]')).toBeNull()
-    // The whole answer: its words drawn in place, with no fade, and the evidence after them.
-    turn = turnReducer(turnReducer(turn, { type: 'words', words: first }), {
+    // The whole answer: its words drawn in the same place, and the evidence after them.
+    turn = turnReducer(turn, { type: 'words', words: first })
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    const drawn = host.querySelector('[data-answer-words]')
+    turn = turnReducer(turn, {
       type: 'done',
       answer: loopAnswerOf(whole, 'Why is the last day short?', names),
     })
     act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+    expect(host.querySelector('[data-answer-words]')).toBe(drawn)
+    expect(text(drawn!)).toContain('The payment files for Germany')
+    expect(buttons(host, /^Good answer$/)).toHaveLength(1)
+  })
+
+  it('types the words in at reading pace, whatever size they arrive in, then shows the rest', () => {
+    motion(false)
+    const { askedTurn, turnReducer } = turnModule
+    // Asked here, before the page's clock is held.
+    const asked = askedTurn('t1', 'Why is the last day short?')
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+    try {
+      const whole = example('loop-checked')
+      host = document.createElement('div')
+      document.body.append(host)
+      root = createRoot(host)
+      // The whole answer in one piece.
+      const turn = turnReducer(asked, {
+        type: 'done',
+        answer: loopAnswerOf(whole, 'Why is the last day short?', names),
+      })
+      act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+      const words = () => text(host!.querySelector('[data-answer-words]')!)
+      // None of it yet, and its state keeps its place out of sight.
+      expect(words()).toBe('')
+      expect(host.querySelector('.invisible')).not.toBeNull()
+      expect(buttons(host, /^Good answer$/)).toHaveLength(0)
+      act(() => {
+        vi.advanceTimersByTime(300)
+      })
+      const part = words().length
+      expect(part).toBeGreaterThan(0)
+      act(() => {
+        vi.advanceTimersByTime(2000)
+      })
+      // Every word, a whole word at a time, then the state and the rest.
+      expect(words().length).toBeGreaterThan(part)
+      expect(words()).toContain('The payment files for Germany')
+      expect(host.querySelector('.invisible')).toBeNull()
+      expect(buttons(host, /^Good answer$/)).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows a turn opened from the history at once', () => {
+    motion(false)
+    const whole = example('loop-checked')
+    const turn = doneTurn(loopAnswerOf(whole, 'Why is the last day short?', names))
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
     expect(text(host.querySelector('[data-answer-words]')!)).toContain(
       'The payment files for Germany',
     )
-    expect(host.querySelector('.animate-in')).toBeNull()
+    expect(buttons(host, /^Good answer$/)).toHaveLength(1)
   })
 })
 

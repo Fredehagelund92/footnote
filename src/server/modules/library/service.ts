@@ -29,6 +29,11 @@ export type ScopedIndex = Omit<LibraryIndex, 'items'> & { items: ScopedItem[] }
 export interface LibraryService {
   getItem(id: string): Promise<ContextItem | null>
   getIndex(): Promise<ScopedIndex>
+  /**
+   * Which items the person may read, with each one's kind and status: the index's items alone,
+   * read in one light statement for what needs no more (Ask's view of the edition).
+   */
+  getReadable(): Promise<{ id: string; kind: string; status: string }[]>
   /** One item's index row; null for one the person cannot read or that is not in the library. */
   getIndexRow(id: string): Promise<LibraryItem | null>
   /**
@@ -142,6 +147,12 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
         loadedAt: clock.now().toISOString(),
         today: clock.today(),
       }
+    },
+    async getReadable() {
+      return database.query<{ id: string; kind: string; status: string }>(
+        `select id, kind::text as kind, status::text as status
+           from v_item_list where cl_audience_allows(audience_groups) order by id collate "C"`,
+      )
     },
     async getIndexRow(id) {
       return (await indexRows(id))[0] ?? null

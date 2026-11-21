@@ -95,12 +95,9 @@ const unread = (): never => {
 }
 const reads: ToolReads = {
   bundle: () => Promise.resolve(helpDesk()),
-  index: () =>
-    Promise.resolve({
-      items: helpDesk().items.map((i) => ({ id: i.id, status: 'accepted', kind: i.kind })),
-      loadedAt: '2026-10-23T12:00:00.000Z',
-      today: '2026-10-23',
-    } as never),
+  index: unread,
+  readable: () =>
+    Promise.resolve(helpDesk().items.map((i) => ({ id: i.id, status: 'accepted', kind: i.kind }))),
   records: unread,
   areas: () => Promise.resolve([{ id: 'area_support', name: 'Support', ownerIds: ['p_ada'] }]),
   people: () => Promise.resolve([{ id: 'p_ada', name: 'Ada Okafor' }]),

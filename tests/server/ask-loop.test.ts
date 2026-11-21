@@ -955,19 +955,21 @@ describe("Ask's loop on a scripted model", () => {
     })
   })
 
-  it('asks which metric a word means before any model reads, with the metrics as the choices', async () => {
+  it('asks which metric a bare word means before any model reads, with the metrics as the choices', async () => {
     const sales = {
       word: 'sales',
       metrics: [
         { id: 'metric:net_revenue', name: 'Net revenue' },
         { id: 'metric:gross_sales', name: 'Gross sales' },
       ],
+      group: null,
+      alone: true,
     }
     const { turn, asked } = await turnWith(
       () => {
         throw new Error('No model reads a question code asks back.')
       },
-      { question: 'What about sales in the UK?', vague: () => Promise.resolve(sales) },
+      { question: 'sales', vague: () => Promise.resolve(sales) },
     )
     expect(turn).toMatchObject({
       kind: 'question',
@@ -979,6 +981,34 @@ describe("Ask's loop on a scripted model", () => {
     expect(asked).toEqual([])
   })
 
+  it('in a sentence, tells the model the metrics a word may mean and lets it answer', async () => {
+    const revenue = {
+      word: 'Revenue',
+      metrics: [
+        { id: 'metric:net_revenue', name: 'Net revenue' },
+        { id: 'metric:gross_sales', name: 'Gross sales' },
+        { id: 'metric:units_sold', name: 'Units sold' },
+      ],
+      group: 'Revenue',
+      alone: false,
+    }
+    let seen = ''
+    const { turn } = await turnWith(
+      ({ prompt }) => {
+        seen = JSON.stringify(prompt)
+        return { text: 'The Revenue group holds three metrics.' }
+      },
+      {
+        question: 'Which metrics are in the Revenue group, and how do they differ?',
+        vague: () => Promise.resolve(revenue),
+      },
+    )
+    expect(turn).toMatchObject({ kind: 'answer', text: 'The Revenue group holds three metrics.' })
+    expect(seen).toContain(
+      'it is the group Revenue, of the metrics Net revenue (metric:net_revenue), Gross sales (metric:gross_sales), Units sold (metric:units_sold)',
+    )
+  })
+
   it("leaves the word to the model when the chat's reads already name a metric it may mean", async () => {
     const sales = {
       word: 'sales',
@@ -986,6 +1016,8 @@ describe("Ask's loop on a scripted model", () => {
         { id: 'metric:net_revenue', name: 'Net revenue' },
         { id: 'metric:gross_sales', name: 'Gross sales' },
       ],
+      group: null,
+      alone: true,
     }
     const { turn } = await turnWith(() => ({ text: 'Nothing is written about it in Germany.' }), {
       question: 'and sales in Germany?',

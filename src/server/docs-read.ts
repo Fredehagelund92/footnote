@@ -22,13 +22,14 @@ import {
   type Docs,
   type DocSection,
   type DocTarget,
-} from '../src/domain/docs.ts'
-import { headingIds } from '../src/domain/heading-anchors.ts'
+} from '../domain/docs.ts'
+import { headingIds } from '../domain/heading-anchors.ts'
 
 /*
   Reads the documentation's Markdown files (docs/help) into the page model of docs.ts, or says
-  which page cannot be read and why. Only the build runs it (docs-plugin.ts), so neither
-  the app nor the docs site carries a Markdown reader. Pure: it reads only the text it is given.
+  which page cannot be read and why. The build runs it (scripts/docs-plugin.ts), so neither the
+  app nor the docs site carries a Markdown reader, and so does the service, for Ask's help read.
+  Pure: it reads only the text it is given.
 */
 
 const pageFrontMatter = z.strictObject({

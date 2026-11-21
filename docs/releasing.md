@@ -186,8 +186,21 @@ Every release takes the same steps, with its own version where these say `0.2.0`
    `.release-please-manifest.json`, `docs/api/openapi.json`, `SECURITY.md` and
    `compose.images.yaml` say `0.2.0`. Check
    **What's new**. Choose **Approve workflows to run**, and wait for **CI gate**.
-3. Merge it. Wait for **CI gate** to pass on the commit the merge made on `main`.
-4. Tag that commit and push the tag:
+3. Run Ask's speed gate on the release pull request's branch. On a quiet computer, with nothing
+   else running, start the demo on a real model ([Start on a real model](model-providers.md#start-on-a-real-model))
+   and run:
+
+   ```sh
+   node scripts/time-ask.ts http://localhost:8080
+   ```
+
+   It asks "What is net revenue?" and then "Who owns it?" in ten new chats, and times each until
+   the answer's first word shows. It passes when 9 rounds of 10 show the first answer's first word
+   within 4 seconds and the follow-up's within 2.5 seconds. It costs about USD 0.50. When it
+   fails, the release waits until it passes.
+
+4. Merge it. Wait for **CI gate** to pass on the commit the merge made on `main`.
+5. Tag that commit and push the tag:
 
    ```sh
    git fetch origin
@@ -196,9 +209,9 @@ Every release takes the same steps, with its own version where these say `0.2.0`
    git push origin v0.2.0
    ```
 
-5. Watch **Actions, Release**. It takes a few minutes. When it passes, the release is at
+6. Watch **Actions, Release**. It takes a few minutes. When it passes, the release is at
    `https://github.com/Fredehagelund92/footnote/releases/tag/v0.2.0`.
-6. Check the images:
+7. Check the images:
 
    ```sh
    docker buildx imagetools inspect ghcr.io/fredehagelund92/footnote:0.2.0     # linux/amd64 and linux/arm64
@@ -206,7 +219,7 @@ Every release takes the same steps, with its own version where these say `0.2.0`
    gh attestation verify oci://ghcr.io/fredehagelund92/footnote-web:0.2.0 --repo Fredehagelund92/footnote
    ```
 
-7. Check that the release has `footnote-docs-0.2.0.tar.gz` among its files.
+8. Check that the release has `footnote-docs-0.2.0.tar.gz` among its files.
 
 ## When something goes wrong
 

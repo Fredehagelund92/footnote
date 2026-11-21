@@ -225,7 +225,8 @@ Docker and nothing else on its ports: the clone, `docker compose up` in the fore
 a browser, Ctrl+C, `docker compose down --volumes` and the ports moved. It prints how long the first
 start took, and `node scripts/time-demo.ts` times the first page, the Context list and a scripted
 answer. CI runs it on Ubuntu in its own job, after `npm ci` on Node 22 has refused and named the
-Node to install.
+Node to install. `node scripts/time-ask.ts` is Ask's speed gate on a real model, which a
+maintainer runs before each release ([Releasing Footnote](releasing.md#make-a-release)).
 
 ## Folder map
 

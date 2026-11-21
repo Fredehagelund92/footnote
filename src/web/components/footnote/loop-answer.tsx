@@ -14,6 +14,7 @@ import {
   NounChip,
   Runs,
   dayText,
+  runLength,
   useNeedsLook,
   statusWords,
   PartsContext,
@@ -21,6 +22,7 @@ import {
   type LoopParts,
   type Nouns,
 } from '@/components/footnote/loop-nouns'
+import { useReveal } from '@/lib/ask-motion'
 import { dayMonth } from '@/lib/dates'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
@@ -342,25 +344,13 @@ const mentionOf = (id: string, name: string) =>
 
 /* ---------- the answer ---------- */
 
-/** The words as blocks: paragraphs, the model's short lists, and the lists of reads as rows. */
-function Body({
-  body,
-  nouns,
-  numbered,
-  byId,
-  seen,
-}: {
-  body: readonly LoopBlock[]
-  nouns: Nouns
-  numbered: ReadonlyMap<number, LoopItem>
-  byId: ReadonlyMap<string, LoopItem>
-  seen: Set<string>
-}) {
-  const [all, setAll] = React.useState(false)
-  // One sentence to a line, and the short lists' lines as they are. Five sentences show before
-  // Show more, and a list whole up to twelve lines: a list is what the person asked for (S19).
+/**
+ * The lines of each block that show: one sentence to a line, and the short lists' lines as they
+ * are. Five sentences show before Show more (`all`), and a list whole up to twelve lines: a list is
+ * what the person asked for (S19).
+ */
+function shownLines(body: readonly LoopBlock[], all: boolean) {
   const lines = body.map((b) => (b.t === 'p' ? sentencesOf(b.runs) : b.t === 'ul' ? b.items : []))
-  const total = lines.reduce((n, l) => n + l.length, 0)
   const kept: number[] = []
   let sentences = 0
   for (const [i, b] of body.entries()) {
@@ -370,12 +360,71 @@ function Body({
     kept.push(all ? n : cut ? 0 : Math.min(n, room))
     if (b.t === 'p') sentences += n
   }
-  const hidden = total - kept.reduce((n, k) => n + k, 0)
+  return body.map((_, i) => lines[i]!.slice(0, kept[i]))
+}
+
+/** The characters a line's runs take as the reveal counts them. */
+const lineLength = (runs: readonly LoopRun[], nouns: Nouns) =>
+  runs.reduce((n, r) => n + runLength(r, nouns), 0)
+
+/** How many characters the words show before Show more: what the reveal types in (`Body` `upTo`). */
+export const bodyLength = (body: readonly LoopBlock[], nouns: Nouns) =>
+  shownLines(body, false)
+    .flat()
+    .reduce((n, runs) => n + lineLength(runs, nouns), 0)
+
+/** How a block that is not words (a read's rows) comes in as the words reach it. */
+const blockIn = 'animate-in fade-in-0 duration-(--dur-3)'
+
+/**
+ * The words as blocks: paragraphs, the model's short lists, and the lists of reads as rows. With
+ * `upTo`, only that many characters of the words show (`bodyLength`), and a read's rows once the
+ * words before them are in.
+ */
+function Body({
+  body,
+  nouns,
+  numbered,
+  byId,
+  seen,
+  upTo,
+}: {
+  body: readonly LoopBlock[]
+  nouns: Nouns
+  numbered: ReadonlyMap<number, LoopItem>
+  byId: ReadonlyMap<string, LoopItem>
+  seen: Set<string>
+  upTo?: number
+}) {
+  const [all, setAll] = React.useState(false)
+  const lines = shownLines(body, all)
+  const total = body.reduce(
+    (n, b) => n + (b.t === 'p' ? sentencesOf(b.runs).length : b.t === 'ul' ? b.items.length : 0),
+    0,
+  )
+  const hidden = total - lines.reduce((n, l) => n + l.length, 0)
+  // Where each block and each of its lines starts in the characters the reveal counts, and where
+  // the words end.
+  const blockAt: number[] = []
+  const lineAt: number[][] = []
+  let end = 0
+  for (const block of lines) {
+    blockAt.push(end)
+    const starts: number[] = []
+    for (const runs of block) {
+      starts.push(end)
+      end += lineLength(runs, nouns)
+    }
+    lineAt.push(starts)
+  }
+  const shows = (from: number) => upTo === undefined || from < upTo
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
       {body.map((b, i) => {
-        if (b.t === 'list')
-          return (
+        if (b.t === 'list') {
+          // A read's rows come in once the words before them are in.
+          if (upTo !== undefined && blockAt[i]! > upTo) return null
+          const rows = (
             <Rows
               key={i}
               items={b.rows.flatMap((id) => {
@@ -386,12 +435,25 @@ function Body({
               more={b.more}
             />
           )
-        const shown = (lines[i] ?? []).slice(0, kept[i])
+          return upTo === undefined ? (
+            rows
+          ) : (
+            <div key={i} className={blockIn}>
+              {rows}
+            </div>
+          )
+        }
+        const shown = lines[i]!.flatMap((runs, j) => {
+          const from = lineAt[i]![j]!
+          return shows(from)
+            ? [{ runs, j, room: upTo === undefined ? undefined : upTo - from }]
+            : []
+        })
         if (!shown.length) return null
         const Line = b.t === 'p' ? 'p' : 'li'
-        const rows = shown.map((runs, j) => (
+        const rows = shown.map(({ runs, j, room }) => (
           <Line key={j}>
-            <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} />
+            <Runs runs={runs} nouns={nouns} items={numbered} seen={seen} upTo={room} />
           </Line>
         ))
         return b.t === 'p' ? (
@@ -404,7 +466,7 @@ function Body({
           </ul>
         )
       })}
-      {hidden > 0 && (
+      {hidden > 0 && (upTo === undefined || end <= upTo) && (
         <button
           type="button"
           onClick={() => setAll(true)}
@@ -1266,34 +1328,82 @@ const copyOf = (answer: Answer) => answer.text.replace(/\[\d+\]/g, '')
  * The state on one line with its fixed sentence; the Definition label for an answer that uses no
  * item and is about a definition; or From Footnote's records for a records answer.
  */
-function StateRow({ loop, words }: { loop: LoopTurn; words: React.RefObject<HTMLElement | null> }) {
+function StateRow({
+  loop,
+  words,
+  className,
+}: {
+  loop: LoopTurn
+  words: React.RefObject<HTMLElement | null>
+  className?: string
+}) {
   const P = useParts()
-  if (!loop.state && loop.defined)
+  const shown = (() => {
+    if (!loop.state && loop.defined)
+      return (
+        <P.DefinitionHelp
+          names={loop.defined.names}
+          tool={loop.defined.tool}
+          words={words}
+          usesNoItem
+        />
+      )
+    if (!loop.state && loop.help?.length)
+      return (
+        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+          <P.BookOpenIcon aria-hidden className="size-4" />
+          From {P.PRODUCT}&apos;s help
+        </p>
+      )
+    if (!loop.state)
+      return loop.reads.some((r) =>
+        ['records', 'agent_questions', 'inbox', 'conflicts'].includes(r.tool),
+      ) && !loop.overview ? (
+        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+          <P.TableIcon aria-hidden className="size-4" />
+          From {P.PRODUCT}&apos;s records
+        </p>
+      ) : null
     return (
-      <P.DefinitionHelp
-        names={loop.defined.names}
-        tool={loop.defined.tool}
-        words={words}
-        usesNoItem
-      />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <P.StateHelp state={loop.state} words={words} />
+        {loop.state !== 'grounded' && (
+          <span className="text-sm text-muted-foreground">
+            {P.ANSWER_LINES.find((l) => l.state === loop.state)!.sentence}
+          </span>
+        )}
+      </div>
     )
-  if (!loop.state)
-    return loop.reads.some((r) =>
-      ['records', 'agent_questions', 'inbox', 'conflicts'].includes(r.tool),
-    ) && !loop.overview ? (
-      <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
-        <P.TableIcon aria-hidden className="size-4" />
-        From {P.PRODUCT}&apos;s records
-      </p>
-    ) : null
+  })()
+  return shown && <div className={className}>{shown}</div>
+}
+
+/**
+ * The help pages an answer about Footnote itself rests on (FR-719.8), each opening at its part in
+ * the documentation, which opens as its own site.
+ */
+function HelpSources({ loop }: { loop: LoopTurn }) {
+  const P = useParts()
+  if (!loop.help?.length) return null
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <P.StateHelp state={loop.state} words={words} />
-      {loop.state !== 'grounded' && (
-        <span className="text-sm text-muted-foreground">
-          {P.ANSWER_LINES.find((l) => l.state === loop.state)!.sentence}
-        </span>
-      )}
+    <div className="flex flex-col gap-1.5">
+      <BlockLabel icon={P.BookOpenIcon}>From the help</BlockLabel>
+      <ul className="flex flex-col gap-1">
+        {loop.help.map((h) => (
+          <li key={`${h.slug}#${h.id}`}>
+            <a
+              href={P.docHref(h.slug, h.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-6 w-fit items-center gap-1 text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
+            >
+              {h.heading === h.title ? h.title : `${h.title}: ${h.heading}`}
+              <P.ArrowUpRightIcon className="size-3.5" aria-hidden />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -1358,11 +1468,20 @@ export function LoopAnswerBody({ parts, ...props }: Props & { parts: LoopParts }
   )
 }
 
+/** Whether the person asked for less motion: the words then show at once. */
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/** The characters of a turn's words that the reveal types in: its words, or its question back. */
+const wordsLength = (loop: LoopTurn, nouns: Nouns) =>
+  loop.overview ? 0 : loop.kind === 'question' ? loop.text.length : bodyLength(loop.body, nouns)
+
 function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const P = useParts()
   const { answer, stopped } = turn
   const loop = answer.loop
   const done = turn.stage === 'done' && !!loop
+  // What the words are drawn from: the finished answer, or the sentences checked so far.
+  const shown = done ? loop : turn.words
   const words = React.useRef<HTMLDivElement>(null)
   const facts = P.useFacts()
   const [wrong, setWrong] = React.useState(false)
@@ -1378,9 +1497,18 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   React.useEffect(() => {
     if (done) keepShown(key, { answer, facts: cited })
   }, [done, key, answer, cited, keepShown])
-  if ((!done || !loop) && turn.words)
-    return <Writing turn={turn} draft={turn.words} words={words} onRetry={onRetry} />
-  if (!done || !loop)
+  // The words are typed in at reading pace in the page, whatever size the pieces arrive in: a
+  // turn asked here, as it comes, whether its words or its whole answer come first. One opened
+  // from the history (asked before this page), or with reduced motion, shows at once, and Stop
+  // shows what is in at once. Typing in is only how the words show: once the answer is in, the
+  // chat asks the next question without waiting for the last word.
+  const [typed] = React.useState(() => turn.asked > 0 && !reducedMotion())
+  const nouns = React.useMemo(() => new Map((shown?.nouns ?? []).map((n) => [n.id, n])), [shown])
+  const total = shown ? wordsLength(shown, nouns) : 0
+  const revealed = useReveal(total, { instant: !typed || stopped })
+  // The rest, its state and what backs it, comes in after the last word.
+  const revealing = P.isLive(turn) || revealed < total
+  if (!shown)
     return (
       <div className="flex min-w-0 flex-col gap-4" aria-busy={P.isLive(turn)}>
         <LoopProgress turn={turn} />
@@ -1402,10 +1530,14 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
     )
   return (
     <Finished
-      loop={loop}
+      loop={shown}
       answer={answer}
       {...{
-        streamed: !!turn.words,
+        typed,
+        upTo: revealing ? revealed : undefined,
+        // Stopped while the model wrote: the sentences checked so far, and nothing from the reads.
+        unfinished: !done && stopped,
+        busy: P.isLive(turn),
         docked,
         onRetry,
         onAsk,
@@ -1422,57 +1554,9 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   )
 }
 
-/**
- * The answer while the model writes it (decision 5): its state and the sentences that passed the
- * check, drawn as the finished answer draws them, so they stay put when the rest comes in.
- */
-function Writing({
-  turn,
-  draft,
-  words,
-  onRetry,
-}: {
-  turn: Turn
-  draft: LoopTurn
-  words: React.RefObject<HTMLDivElement | null>
-  onRetry?: () => void
-}) {
-  const P = useParts()
-  const maps = useMaps(draft)
-  return (
-    <div className="flex min-w-0 flex-col gap-4" aria-busy={P.isLive(turn)}>
-      <StateRow loop={draft} words={words} />
-      <div ref={words}>
-        <Body
-          body={draft.body}
-          nouns={maps.nouns}
-          numbered={maps.numbered}
-          byId={maps.byId}
-          seen={new Set()}
-        />
-      </div>
-      {turn.stopped && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2">
-            <P.CircleStopIcon className="size-4 shrink-0" aria-hidden />
-            You stopped it before the answer was finished.
-          </span>
-          {onRetry && (
-            <P.Button variant="outline" onClick={onRetry}>
-              <P.RefreshCwIcon data-icon="inline-start" />
-              Ask again
-            </P.Button>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function Finished({
   loop,
   answer,
-  streamed,
   docked,
   onRetry,
   onAsk,
@@ -1484,11 +1568,21 @@ function Finished({
   setSent,
   cited,
   answerId,
+  typed,
+  upTo,
+  unfinished,
+  busy,
 }: {
   loop: LoopTurn
   answer: Answer
-  /** Its words were shown as they were written: they stay as they are, and only the rest fades in. */
-  streamed: boolean
+  /** Its words are typed in: the words come a word at a time, and the rest fades in after them. */
+  typed: boolean
+  /** How many characters of the words show while they are typed in; none once all are in. */
+  upTo: number | undefined
+  /** Stopped while the model wrote: the words so far and the stop, nothing else. */
+  unfinished: boolean
+  /** The turn is still on its way. */
+  busy: boolean
   docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
@@ -1516,11 +1610,15 @@ function Finished({
   const footer = footerLines(loop)
   // A turn that stopped shows the plain read under its sentence, when it has one (decision 5).
   const bare = loop.kind === 'stopped' && !loop.body.length
+  // While the words are typed in, the state keeps its place and shows with the rest after them.
+  const typing = upTo !== undefined
+  const rest = P.cn('flex flex-col gap-4', typed && 'animate-in duration-(--dur-4) fade-in-0')
   return (
     <div
+      aria-busy={busy || typing}
       className={P.cn(
         'group/msg flex min-w-0 flex-col gap-4',
-        !streamed && 'animate-in duration-(--dur-3) fade-in-0',
+        !typed && 'animate-in duration-(--dur-3) fade-in-0',
       )}
     >
       {bare ? (
@@ -1528,13 +1626,26 @@ function Finished({
       ) : (
         <>
           {loop.kind === 'stopped' && <StoppedLine text={loop.text} />}
-          <StateRow loop={loop} words={words} />
+          <StateRow
+            loop={loop}
+            words={words}
+            className={typing ? 'invisible' : typed ? rest : undefined}
+          />
           <div ref={words}>
             {loop.overview ? (
               <Overview o={loop.overview} loop={loop} maps={maps} />
             ) : loop.kind === 'question' ? (
               <p data-answer-words className="max-w-reading text-base leading-chat">
-                {loop.text}
+                {typing ? (
+                  <Runs
+                    runs={[{ t: 'text', text: loop.text }]}
+                    nouns={maps.nouns}
+                    items={maps.numbered}
+                    upTo={upTo}
+                  />
+                ) : (
+                  loop.text
+                )}
               </p>
             ) : (
               <Body
@@ -1543,75 +1654,101 @@ function Finished({
                 numbered={maps.numbered}
                 byId={maps.byId}
                 seen={seen}
+                upTo={upTo}
               />
             )}
           </div>
-          {loop.choices.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {loop.choices.map((choice) =>
-                onAsk ? (
-                  <P.Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
-                    {choice}
-                  </P.Button>
-                ) : (
-                  <span
-                    key={choice}
-                    className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
-                  >
-                    {choice}
-                  </span>
-                ),
+          {unfinished && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <P.CircleStopIcon className="size-4 shrink-0" aria-hidden />
+                You stopped it before the answer was finished.
+              </span>
+              {onRetry && (
+                <P.Button variant="outline" onClick={onRetry}>
+                  <P.RefreshCwIcon data-icon="inline-start" />
+                  Ask again
+                </P.Button>
               )}
             </div>
           )}
-          {loop.state === 'partial' && !!loop.subject?.uncovered.length && !loop.sources.length && (
-            <p className="text-xs leading-6 text-muted-foreground">
-              Nothing is written about <Subject ids={loop.subject.uncovered} nouns={maps.nouns} />{' '}
-              yet.
-            </p>
-          )}
-          {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
-          {shownUsed.length > 0 && <Used items={shownUsed} nouns={maps.nouns} owns={owns} />}
-          {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
-          {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
-          <Definitions loop={loop} nouns={maps.nouns} />
-          {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
-          <Next
-            loop={loop}
-            nouns={maps.nouns}
-            items={used.filter((i) => !shownUsed.includes(i))}
-            {...(answer.dates ? { dates: answer.dates } : {})}
-          />
-          {(footer.length > 0 || loop.read.length > 0) && (
-            <WhatAskRead loop={loop} footer={footer} />
-          )}
         </>
       )}
-      {sent && <P.ReportLine report={sent} />}
-      {wrong && !sent && cited.length > 0 && (
-        <P.SomethingWrong
-          answer={answer}
-          facts={cited}
-          onClose={() => setWrong(false)}
-          onSent={() => {
-            setWrong(false)
-            setSent({ on: 'just now' })
-          }}
-        />
+      {!typing && !unfinished && (
+        <div className={rest}>
+          {!bare && (
+            <>
+              {loop.choices.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {loop.choices.map((choice) =>
+                    onAsk ? (
+                      <P.Button key={choice} variant="outline" onClick={() => onAsk(choice)}>
+                        {choice}
+                      </P.Button>
+                    ) : (
+                      <span
+                        key={choice}
+                        className="rounded-full border px-3 py-1 text-sm text-muted-foreground"
+                      >
+                        {choice}
+                      </span>
+                    ),
+                  )}
+                </div>
+              )}
+              <HelpSources loop={loop} />
+              {loop.state === 'partial' &&
+                !!loop.subject?.uncovered.length &&
+                !loop.sources.length && (
+                  <p className="text-xs leading-6 text-muted-foreground">
+                    Nothing is written about{' '}
+                    <Subject ids={loop.subject.uncovered} nouns={maps.nouns} /> yet.
+                  </p>
+                )}
+              {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
+              {shownUsed.length > 0 && <Used items={shownUsed} nouns={maps.nouns} owns={owns} />}
+              {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
+              {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
+              <Definitions loop={loop} nouns={maps.nouns} />
+              {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
+              <Next
+                loop={loop}
+                nouns={maps.nouns}
+                items={used.filter((i) => !shownUsed.includes(i))}
+                {...(answer.dates ? { dates: answer.dates } : {})}
+              />
+              {(footer.length > 0 || loop.read.length > 0) && (
+                <WhatAskRead loop={loop} footer={footer} />
+              )}
+            </>
+          )}
+          {sent && <P.ReportLine report={sent} />}
+          {wrong && !sent && cited.length > 0 && (
+            <P.SomethingWrong
+              answer={answer}
+              facts={cited}
+              onClose={() => setWrong(false)}
+              onSent={() => {
+                setWrong(false)
+                setSent({ on: 'just now' })
+              }}
+            />
+          )}
+          <P.AnswerActions
+            answer={answer}
+            copyText={loop.kind === 'stopped' ? '' : copyOf(answer)}
+            facts={cited}
+            answerId={answerId}
+            draft={false}
+            docked={docked}
+            latest={latest}
+            onRetry={bare ? undefined : onRetry}
+            wrong={wrong}
+            onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
+            canReport={cited.length > 0 && !sent}
+          />
+        </div>
       )}
-      <P.AnswerActions
-        answer={answer}
-        copyText={loop.kind === 'stopped' ? '' : copyOf(answer)}
-        facts={cited}
-        answerId={answerId}
-        draft={false}
-        docked={docked}
-        latest={latest}
-        onRetry={bare ? undefined : onRetry}
-        wrong={wrong}
-        onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
-        canReport={cited.length > 0 && !sent}
-      />
     </div>
   )
 }
