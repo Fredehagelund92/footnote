@@ -443,10 +443,18 @@ const formKinds: readonly string[] = ['text', 'address', 'path', 'ref', 'json', 
 export const formTakes = (manifest: Pick<ConnectorManifest, 'config'>) =>
   manifest.config.fields.every((field) => !field.required || formKinds.includes(field.kind))
 
+const scopeChoice = (scope: SourceSettings['scopes'][number]): ConnectChoice => ({
+  id: scope.id,
+  title: scope.title,
+  domain: scope.domain,
+})
+
 /**
  * A tool's connect form from its connector's manifest: its settings, with what is set or their
  * defaults, and its secrets, each only as set or not (never their value). With a source's
- * settings, it is that source's Change settings; without, a new connection.
+ * settings, it is that source's Change settings; without, a new connection. A definitions source
+ * the server's configuration selects has neither settings nor secrets here: its form only chooses
+ * what it reads.
  */
 export function connectFormOf(
   manifest: Pick<
@@ -457,9 +465,16 @@ export function connectFormOf(
   secretStore = true,
 ): ConnectForm | null {
   const connector = connectorById(manifest.id)?.id
-  if (!connector || !formTakes(manifest)) return null
+  // The server's own source has nothing to fill in: only what it reads is chosen here.
+  const server = settings?.origin === 'server'
+  if (
+    !connector ||
+    (server && manifest.kind !== 'definitions') ||
+    (!server && !formTakes(manifest))
+  )
+    return null
   const fields = manifest.config.fields.flatMap((field): ConnectField[] => {
-    if (!formKinds.includes(field.kind)) return []
+    if (server || !formKinds.includes(field.kind)) return []
     const set = settings?.config[field.key]
     // A new connection starts from the manifest's default; a source's form from what it has, and
     // a default for what it needs and has none of, such as the settings of a route it is not on.
@@ -488,8 +503,9 @@ export function connectFormOf(
   return {
     connector,
     source: settings ? { id: settings.id, revision: settings.revision } : null,
+    server,
     fields,
-    secrets: manifest.secrets.map((secret) => ({
+    secrets: (server ? [] : manifest.secrets).map((secret) => ({
       key: secret.key,
       label: secret.label,
       description: secret.description,
@@ -500,11 +516,8 @@ export function connectFormOf(
     every: everyWords(settings?.schedule ?? manifest.schedule.default),
     staleAfter: durationWords(manifest.staleAfter),
     perDay: manifest.kind === 'content' ? (manifest.limits.draftsPerDay ?? null) : null,
-    chosen: (settings?.scopes ?? []).map((scope) => ({
-      id: scope.id,
-      title: scope.title,
-      domain: scope.domain,
-    })),
+    chosen: (settings?.scopes ?? []).map(scopeChoice),
+    kept: (settings?.kept ?? []).map(scopeChoice),
     readsAll: settings?.allGroups ?? true,
     secretStore,
   }

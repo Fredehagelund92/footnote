@@ -6,10 +6,10 @@ import { lastOf, rulesFor, thresholdOf } from '@/model/alerts'
 import { savedCounts } from '@/model/saved-questions'
 
 describe('alert rules', () => {
-  it('has eight rules, four of them new, and owners see the four that reach owners plus the shared one', () => {
-    expect(RULES).toHaveLength(8)
-    expect(RULES.filter((r) => r.isNew)).toHaveLength(4)
-    expect(rulesFor(RULES, true)).toHaveLength(8)
+  it('has nine rules, five of them new, and owners see the four that reach owners plus the shared one', () => {
+    expect(RULES).toHaveLength(9)
+    expect(RULES.filter((r) => r.isNew)).toHaveLength(5)
+    expect(rulesFor(RULES, true)).toHaveLength(9)
     expect(rulesFor(RULES, false).map((r) => r.id)).toEqual([
       'gap',
       'saved',

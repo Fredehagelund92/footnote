@@ -4,7 +4,7 @@ line: Observability for owners and admins - what agents asked and got, saved que
 group: Set up
 order: 3
 minutes: 4
-reviewed: 2026-11-20
+reviewed: 2026-11-21
 open:
   label: Open Observability
   href: /observability
@@ -52,7 +52,7 @@ An alert is a card in the Inbox of the people it is for, never an email. The rul
 - Conflict: two items that apply say different things, asked 3 or more times.
 - A check is due: a reminder to the owner at 07:00.
 
-Owners see and mute the alerts for their own domains. Admins also get alerts about the service, such as calls that fail, and they turn rules off and change the levels, such as 3, 5 or 10 times for Not found.
+Owners see and mute the alerts for their own domains. Admins also get alerts about the service, such as calls that fail or new views a tool has that nobody chose, and they turn rules off and change the levels, such as 3, 5 or 10 times for Not found.
 
 ## Usage
 

@@ -3,7 +3,7 @@ import * as z from 'zod'
 import { builtInConnectors } from '../../../connectors/index.ts'
 import { manifest as cubeManifest } from '../../../connectors/cube/manifest.ts'
 import { contentDigest } from '../../../domain/canonical.ts'
-import { fromModule, withListedGroups } from './platform.ts'
+import { fromModule, withChosenGroups, withListedGroups, type StoredScope } from './platform.ts'
 import {
   renameSchema,
   type ConnectorType,
@@ -21,11 +21,15 @@ import { workerLimits } from './worker.ts'
   by the same Cube connector an administrator adds a repository of, which gets the folder as
   `ctx.folder`. What only whoever runs the server can say is applied here, the same for any
   definitions connector: the domains of views the model names none for (`FOOTNOTE_DOMAIN_OVERRIDES`),
-  and the members renamed (`CUBE_RENAMES_FILE`, CON-512). The views Cube's folder is read for
-  (`CUBE_VIEWS_FILE`) are the allow list an administrator keeps for a source they added.
+  and the members renamed (`CUBE_RENAMES_FILE`, CON-512).
 
   Any other connector that declares `capabilities.serverFolder` is read the same way from the
   folder `FOOTNOTE_SERVER_FOLDERS` names for it (CON-119).
+
+  The groups a server source reads, and the domain each maps to, are the organisation's approved
+  set, kept in the database as for a source an administrator added (`withApprovedGroups`): the
+  server only names where to read. Until an administrator chooses them in the app, the views Cube's
+  folder lists (`CUBE_VIEWS_FILE`) are the set, or every group when it lists none.
 */
 
 /** The type of the server's model folder: Cube's, with the setting of its page in Sources. */
@@ -42,7 +46,10 @@ export interface CubeSourceOptions {
   domainOverridesFile?: string
   /** JSON object of renamed members, old id to new id (CON-512). */
   renamesFile?: string
-  /** JSON array of the views it reads, an allow list; unset, it reads every view. */
+  /**
+   * JSON array of the views it reads, an allow list, until an administrator chooses them in the
+   * app; unset, it reads every view until then.
+   */
   viewsFile?: string
   /** The compiler's limits, when the server sets them. */
   timeoutMs?: number
@@ -205,32 +212,75 @@ export function createCubeSource(options: CubeSourceOptions): DefinitionSource {
       { key: 'renames', variable: 'CUBE_RENAMES_FILE', value: options.renamesFile ?? null },
       { key: 'views', variable: 'CUBE_VIEWS_FILE', value: options.viewsFile ?? null },
     ],
+    // The file is read at each read, so a change to it applies from the next one.
+    listedGroups: async () =>
+      options.viewsFile
+        ? viewListSchema.parse(JSON.parse(await readFile(options.viewsFile, 'utf8')) as unknown)
+        : null,
     async read(context) {
       // The files are read at each read, so a change to them applies from the next one.
       const overrides = options.domainOverridesFile
         ? await jsonObject(options.domainOverridesFile)
         : {}
       const entries = options.renamesFile ? await jsonObject(options.renamesFile) : {}
-      const views = options.viewsFile
-        ? viewListSchema.parse(JSON.parse(await readFile(options.viewsFile, 'utf8')) as unknown)
-        : null
-      const overridden = withOverrides(await source.read(context), overrides)
-      const read = views === null ? overridden : withListedGroups(overridden, views)
+      const read = withOverrides(await source.read(context), overrides)
       const { renames, warnings } = renamesOf(read.definitions, entries)
       return {
         ...read,
         sourceVersion:
-          options.domainOverridesFile || options.renamesFile || views !== null
-            ? await contentDigest({
-                version: read.sourceVersion,
-                overrides,
-                renames,
-                ...(views === null ? {} : { views }),
-              })
+          options.domainOverridesFile || options.renamesFile
+            ? await contentDigest({ version: read.sourceVersion, overrides, renames })
             : read.sourceVersion,
         warnings: [...read.warnings, ...warnings],
         renames,
       }
+    },
+  }
+}
+
+/**
+ * The groups an organisation approved for a server source, as its row keeps them: each with the
+ * domain it maps to, whether only those are read (an allow list), and whether an administrator
+ * chose them in the app. Until one did, the server's own list stands (`listedGroups`).
+ */
+export interface ApprovedGroups {
+  scopes: readonly StoredScope[]
+  allGroups: boolean
+  chosenInApp: boolean
+}
+
+/**
+ * A server source read with its approved set, as a source an administrator added is (CON-119):
+ * the groups chosen in the app, each with its domain, or, until any are, the groups the server's
+ * configuration lists. A rename to a member the set leaves out is not read either.
+ */
+export function withApprovedGroups(
+  source: DefinitionSource,
+  approved: ApprovedGroups,
+): DefinitionSource {
+  return {
+    ...source,
+    async read(context) {
+      const snapshot = await source.read(context)
+      let read: SourceSnapshot
+      if (approved.chosenInApp)
+        read = withChosenGroups(snapshot, approved.scopes, approved.allGroups)
+      else {
+        const listed = (await source.listedGroups?.()) ?? null
+        read =
+          listed === null
+            ? snapshot
+            : {
+                ...withListedGroups(snapshot, listed),
+                sourceVersion: await contentDigest({
+                  version: snapshot.sourceVersion,
+                  views: listed,
+                }),
+              }
+      }
+      if (read === snapshot || !snapshot.renames?.length) return read
+      const kept = new Set(read.definitions.map((definition) => definition.ref))
+      return { ...read, renames: snapshot.renames.filter((rename) => kept.has(rename.to)) }
     },
   }
 }

@@ -47,12 +47,12 @@ A domain name applies before a domain is checked. With the line `paid_media → 
 
 Whoever runs the service sets these, and Integrations shows them read only:
 
-| Setting                     | What it does                                                                                                      |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `CUBE_MODEL_DIR`            | The folder to read. Unset, the service reads two invented definitions                                             |
-| `FOOTNOTE_DOMAIN_OVERRIDES` | A JSON file outside the model folder: view to domain, for views the model names no domain for                     |
-| `CUBE_RENAMES_FILE`         | A JSON file of renamed members, old id to new id                                                                  |
-| `CUBE_VIEWS_FILE`           | A JSON file of the views to read. Unset, every view is read. See [the views it reads](#choose-the-views-it-reads) |
+| Setting                     | What it does                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `CUBE_MODEL_DIR`            | The folder to read. Unset, the service reads two invented definitions                                                          |
+| `FOOTNOTE_DOMAIN_OVERRIDES` | A JSON file outside the model folder: view to domain, for views the model names no domain for                                  |
+| `CUBE_RENAMES_FILE`         | A JSON file of renamed members, old id to new id                                                                               |
+| `CUBE_VIEWS_FILE`           | A JSON file of the views to read, until an admin chooses them in the app. See [the views it reads](#choose-the-views-it-reads) |
 
 To read a folder now, without changing it:
 
@@ -82,8 +82,8 @@ A rename is used only when the old member is gone and the new one is there. Any 
 
 Every public view and public cube is read until you keep a list of the views to read. A model with many views can be narrowed to the few your team uses.
 
-- **In the app.** On Cube's page in Integrations, press **Change settings**, then at **Choose what to read** pick **Only the views you choose**. Search the views the model has, each with its metrics and dimensions, and tick the ones to read.
-- **On the server.** Set `CUBE_VIEWS_FILE` to a JSON file that lists them:
+- **In the app.** On Cube's page in Integrations, press **Choose views** under What it reads, then pick **Only the views you choose**. Search the views the model has, each with its metrics and dimensions, and tick the ones to read. This works for a model folder on the server too.
+- **On the server.** Set `CUBE_VIEWS_FILE` to a JSON file that lists them. It is the list until an admin chooses the views in the app, and is not read after that:
 
 ```json
 ["orders", "revenue"]
@@ -99,7 +99,9 @@ Name a view as the model names it. A public cube is read only when it is listed 
 
 The list applies everywhere the definitions do: the names waiting in the Inbox, Definitions, and figures in Ask, where a metric of a view that is not read gets no figure and says why. A listed view the model does not have is named in the read (`group_not_found`), and the other views are read.
 
-Taking a view out of the list marks its definitions missing at the next read. Each item that relies on one is marked **Due for a check** for its owners, and nothing is unpublished or deleted. Before you save, the app names the views left out and those items, and Save waits until you say you have seen them. Listing the view again clears the marks.
+Taking a view out of the list marks its definitions missing at the next read. Each item that relies on one is marked **Due for a check** for its owners, and nothing is unpublished or deleted. Before you save, the app names the views left out and those items, and Save waits until you say you have seen them. Listing the view again clears the marks, and it keeps the domain it was mapped to.
+
+A view the model adds later is not read until it is chosen. The admins get one card in the Inbox, **New views not chosen**, which opens Choose.
 
 The server's file is read at each read. A file that is not a JSON list of names, each once, fails the read rather than reading every view.
 
@@ -177,6 +179,7 @@ A model of 10,000 members takes about 45 seconds. An empty or unreadable model f
 | `too_many_records` | The folder holds too many files             |
 | `group_not_found`  | A listed view is not in the model           |
 | `no_groups_chosen` | The list of views is empty: nothing is read |
+| `group_not_chosen` | A view in the model is not in the list      |
 
 ## Figures in Ask
 

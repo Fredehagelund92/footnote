@@ -15,7 +15,7 @@ import { accept, foundation, people, publish, servingEdition, version } from './
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
-  Alert rules on the service (FR-621): eight rules raise cards in the Inbox through the outbox,
+  Alert rules on the service (FR-621): nine rules raise cards in the Inbox through the outbox,
   never an email. Administrators turn rules on and off and set thresholds; owners mute a rule for
   their own domains. The alert job raises once for what it finds, and a raise tells counts and
   scopes only, a count under the minimum hidden (FR-614).
@@ -184,7 +184,7 @@ beforeAll(async () => {
 afterAll(() => app.close())
 
 describe('the rules', () => {
-  it('lists the eight rules for an administrator, the Not found threshold from its setting', async () => {
+  it('lists the nine rules for an administrator, the Not found threshold from its setting', async () => {
     const { rules: all } = await rules('admin')
     expect(all.map((r) => r.rule)).toEqual([
       'gap',
@@ -194,6 +194,7 @@ describe('the rules', () => {
       'fail',
       'spend',
       'sync',
+      'views',
       'due',
     ])
     expect(all.every((r) => r.enabled)).toBe(true)
@@ -266,6 +267,7 @@ describe('the alert job', () => {
       fail: 0,
       spend: 0,
       sync: 0,
+      views: 0,
       due: 0,
     })
     const all = await raised('admin')

@@ -1339,7 +1339,7 @@
           "tags": [
             "sources"
           ],
-          "summary": "A source an administrator added: its settings, and whether each secret is set"
+          "summary": "A source an administrator added: its settings, and whether each secret is set; or a definitions source the server's configuration selects, with only the groups it reads"
         }
       }
     },
@@ -1373,6 +1373,22 @@
             "sources"
           ],
           "summary": "Change a source an administrator added, with a reason; a secret left out is kept"
+        }
+      }
+    },
+    "groups": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "PUT",
+          "path": "/sources/{id}/groups",
+          "tags": [
+            "sources"
+          ],
+          "summary": "Choose the groups a definitions source reads and the domain each maps to, with a reason, for one an admin added or one the server's configuration selects"
         }
       }
     },
@@ -2831,7 +2847,7 @@
           "tags": [
             "quality"
           ],
-          "summary": "The eight alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners"
+          "summary": "The nine alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners"
         }
       }
     },

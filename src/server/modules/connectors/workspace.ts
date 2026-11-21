@@ -1,6 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import type {
   AddSourceInput,
+  ChooseGroupsInput,
   ConnectorListing,
   LeftOut,
   LeftOutInput,
@@ -56,6 +57,7 @@ interface Row {
   id: string
   type: string
   name: string
+  origin: 'workspace' | 'server'
   config: SourceConfig
   secret_ref: string | null
   revision: number
@@ -63,12 +65,14 @@ interface Row {
   changed_by: string | null
   scopes: StoredScope[]
   all_groups: boolean
+  kept_domains: StoredScope[]
   schedule_seconds: number | null
   next_read_at: Date
 }
 
-const columns = `id, type, name, config, secret_ref, revision, changed_at, changed_by::text, scopes,
-  all_groups, extract(epoch from schedule)::int as schedule_seconds, next_read_at`
+const columns = `id, type, name, origin, config, secret_ref, revision, changed_at, changed_by::text,
+  scopes, all_groups, kept_domains, extract(epoch from schedule)::int as schedule_seconds,
+  next_read_at`
 
 const invalid = (problems: readonly FieldProblem[]): never => {
   throw new ORPCError('UNPROCESSABLE_CONTENT', {
@@ -84,6 +88,31 @@ const invalid = (problems: readonly FieldProblem[]): never => {
       })),
     },
   })
+}
+
+/**
+ * The groups a definitions source no longer reads with these, each with the domain it was mapped
+ * to, so that choosing one again restores its mapping. Reading every group leaves none out.
+ */
+function keptDomains(row: Row, scopes: readonly StoredScope[], allGroups: boolean): StoredScope[] {
+  if (allGroups) return []
+  const read = new Set(scopes.map((scope) => scope.id))
+  const kept = new Map([...row.kept_domains, ...row.scopes].map((scope) => [scope.id, scope]))
+  return [...kept.values()].filter((scope) => !read.has(scope.id)).slice(0, CHOSEN_SCOPES_MAX)
+}
+
+/**
+ * A change that stops reading definitions live items rely on, refused until whoever makes it says
+ * they have seen what it leaves out: its next complete read marks those items for their owners.
+ */
+function refuseUnseen(left: LeftOut | null, accepted: boolean | undefined) {
+  if (left?.items.count && !accepted)
+    invalid([
+      {
+        field: 'scopes',
+        message: `This stops reading definitions that ${left.items.count === 1 ? '1 live item relies' : `${left.items.count} live items rely`} on. Look at what it leaves out, then save again.`,
+      },
+    ])
 }
 
 /**
@@ -196,11 +225,13 @@ export function createWorkspaceSources({
   }
 
   const settingsOf = (row: Row, held: Readonly<Record<string, string>> | null): SourceSettings => {
-    const connector = typeOf(row.type)
+    // The server's own source has no settings or secrets here: whoever runs the server sets them.
+    const connector = row.origin === 'workspace' ? typeOf(row.type) : undefined
     return {
       id: row.id,
       type: row.type,
       name: row.name,
+      origin: row.origin,
       revision: row.revision,
       config: row.config,
       secrets: (connector ? secretKeys(connector) : []).map((key) => ({
@@ -209,6 +240,7 @@ export function createWorkspaceSources({
       })),
       scopes: row.scopes,
       allGroups: row.all_groups,
+      kept: row.kept_domains,
       schedule: row.schedule_seconds === null ? null : durationText(row.schedule_seconds),
       nextReadAt: row.next_read_at.toISOString(),
       changedAt: row.changed_at?.toISOString() ?? null,
@@ -386,6 +418,26 @@ export function createWorkspaceSources({
   }
 
   /**
+   * A definitions source of either origin, as its groups are chosen: one an admin added, or one
+   * the server's configuration selects, once it is registered and while this build reads it.
+   */
+  async function definitionsRow(tx: Queryable, id: string, lock = false): Promise<Row | null> {
+    const [row] = await tx.query<Row>(
+      `select ${columns} from connectors
+        where id = $1 and kind = 'definition_source' and removed_at is null${lock ? ' for update' : ''}`,
+      [id],
+    )
+    if (!row) return null
+    if (row.origin === 'server' && !registry.list().some((source) => source.id === id)) return null
+    return typeOf(row.type) ? row : null
+  }
+
+  const notDefinitions = () =>
+    new ORPCError('NOT_FOUND', {
+      message: "We couldn't find this source among the definitions sources.",
+    })
+
+  /**
    * What a definitions source would stop reading with these groups: the groups of its current
    * definitions the change leaves out (null for definitions in no group, which an allow list never
    * reads), and the live items whose live version relies on one of their definitions. Its next
@@ -490,8 +542,9 @@ export function createWorkspaceSources({
       }))
     },
 
+    /** A source an admin added, or a definitions source the server's configuration selects. */
     async get(tx: Queryable, id: string): Promise<SourceSettings | null> {
-      const row = await workspaceRow(tx, id)
+      const row = (await workspaceRow(tx, id)) ?? (await definitionsRow(tx, id))
       return row && settingsOf(row, await held(row.secret_ref))
     },
 
@@ -604,8 +657,9 @@ export function createWorkspaceSources({
         input.allGroups ?? (input.scopes === undefined ? row.all_groups : !input.scopes.length)
       // A group it stops reading takes its definitions out of the next read, and the live items
       // that rely on one are flagged for their owners: whoever changes it says they saw them.
+      const definitions = connector!.manifest.kind === 'definitions'
       const left =
-        regrouped && connector!.manifest.kind === 'definitions'
+        regrouped && definitions
           ? await leftOutOf(
               tx,
               row.id,
@@ -613,25 +667,21 @@ export function createWorkspaceSources({
               plan.scopes.map((scope) => scope.id),
             )
           : null
-      if (left?.items.count && !input.acceptLeftOut)
-        invalid([
-          {
-            field: 'scopes',
-            message: `This stops reading definitions that ${left.items.count === 1 ? '1 live item relies' : `${left.items.count} live items rely`} on. Look at what it leaves out, then save again.`,
-          },
-        ])
+      refuseUnseen(left, input.acceptLeftOut)
+      // A group it stops reading keeps the domain it was mapped to, for when it is chosen again.
+      const kept = definitions ? keptDomains(row, plan.scopes, allGroups) : []
       let ref = row.secret_ref
       // A stored secret goes only where it was given for: a new address forgets it, so an
       // administrator cannot send a token they never saw to a host of their choosing.
       const rebound = rebinds(connector!, row.config, config)
-      let kept = rebound ? {} : before
+      let keptSecrets = rebound ? {} : before
       const forgotten = rebound
         ? Object.keys(before ?? {}).filter((key) => !(key in input.secrets))
         : []
       if (Object.keys(input.secrets).length || (rebound && row.secret_ref)) {
-        kept = { ...kept, ...input.secrets }
-        if (Object.keys(kept).length) {
-          ref = await secrets.write(kept)
+        keptSecrets = { ...keptSecrets, ...input.secrets }
+        if (Object.keys(keptSecrets).length) {
+          ref = await secrets.write(keptSecrets)
           const written = ref
           hooks.onRollback(() => secrets.remove(written))
         } else ref = null
@@ -642,7 +692,7 @@ export function createWorkspaceSources({
       const [saved] = await tx.query<Row>(
         `update connectors set name = $2, config = $3, secret_ref = $4, revision = revision + 1,
            changed_at = now(), changed_by = cl_person(), scopes = $5, all_groups = $7,
-           schedule = make_interval(secs => $6),
+           kept_domains = $8, schedule = make_interval(secs => $6),
            -- A change applies from the next read, which the job's next turn makes: queued.
            next_read_at = now()
          where id = $1 returning ${columns}`,
@@ -654,6 +704,7 @@ export function createWorkspaceSources({
           JSON.stringify(plan.scopes),
           plan.scheduleSeconds,
           allGroups,
+          JSON.stringify(kept),
         ],
       )
       await recordAudit(tx, {
@@ -680,7 +731,60 @@ export function createWorkspaceSources({
           reason: input.reason,
         },
       })
-      return settingsOf(saved!, kept)
+      return settingsOf(saved!, keptSecrets)
+    },
+
+    /**
+     * Chooses the groups a definitions source reads, its approved set, and the domain each maps
+     * to, for a source of either origin: the server's own keeps them in the database as one an
+     * admin added does, and its configuration only names where it reads. As at Change settings, a
+     * change that stops reading what live items rely on waits until whoever makes it has seen them,
+     * a group it stops reading keeps its domain for when it is chosen again, and the history log
+     * keeps one line. It applies from the next read, which is queued.
+     */
+    async chooseGroups(tx: Queryable, input: ChooseGroupsInput): Promise<SourceSettings> {
+      plainReason(input.reason)
+      const row = await definitionsRow(tx, input.id, true)
+      if (!row) throw notDefinitions()
+      const plan = await checkPlan(tx, typeOf(row.type)!, input.scopes, null)
+      if (row.revision !== input.revision)
+        throw new ORPCError('CONFLICT', {
+          message:
+            'Someone changed this source after you opened it. Look at the latest version, then try again.',
+        })
+      const left = await leftOutOf(
+        tx,
+        row.id,
+        input.allGroups,
+        plan.scopes.map((scope) => scope.id),
+      )
+      refuseUnseen(left, input.acceptLeftOut)
+      const [saved] = await tx.query<Row>(
+        `update connectors set revision = revision + 1, changed_at = now(), changed_by = cl_person(),
+           scopes = $2, all_groups = $3, kept_domains = $4, next_read_at = now()
+         where id = $1 returning ${columns}`,
+        [
+          row.id,
+          JSON.stringify(plan.scopes),
+          input.allGroups,
+          JSON.stringify(keptDomains(row, plan.scopes, input.allGroups)),
+        ],
+      )
+      await recordAudit(tx, {
+        action: 'source.changed',
+        subjectType: 'source',
+        subjectId: row.id,
+        details: {
+          from: row.revision,
+          to: saved!.revision,
+          name: row.name,
+          scopes: plan.scopes,
+          allGroups: input.allGroups,
+          ...(left.items.count ? { leftOutItems: left.items.count } : {}),
+          reason: input.reason,
+        },
+      })
+      return settingsOf(saved!, await held(saved!.secret_ref))
     },
 
     /**
@@ -740,11 +844,8 @@ export function createWorkspaceSources({
 
     /** What a change of the groups it reads would stop reading; changes nothing. */
     async leftOut(tx: Queryable, input: LeftOutInput): Promise<LeftOut> {
-      const row = await workspaceRow(tx, input.id)
-      if (!row || typeOf(row.type)?.manifest.kind !== 'definitions')
-        throw new ORPCError('NOT_FOUND', {
-          message: "We couldn't find this source among the ones an admin added.",
-        })
+      const row = await definitionsRow(tx, input.id)
+      if (!row) throw notDefinitions()
       return leftOutOf(tx, row.id, input.allGroups, input.groups)
     },
 
@@ -753,6 +854,17 @@ export function createWorkspaceSources({
      * keeping nothing. With an id, a secret left out of the form is the one in the store.
      */
     async test(tx: Queryable, input: TestSourceInput): Promise<SourceCheck> {
+      // The server's own source is read as its configuration says, with every group it has, so
+      // its groups can be chosen: whoever runs the server set what it reads from.
+      const server =
+        input.id === undefined
+          ? undefined
+          : registry.list().find((source) => source.id === input.id)
+      if (server) {
+        const row = await definitionsRow(tx, server.id)
+        if (!row || row.type !== input.type) throw notDefinitions()
+        return testRead(tx, server, [])
+      }
       const connector = typeOf(input.type)
       if (!connector) invalid([{ field: 'type', message: "We can't read a source of this type." }])
       const parsed = connector!.parse(input.config)

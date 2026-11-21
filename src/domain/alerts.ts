@@ -1,5 +1,5 @@
 /**
- * Alerts (FR-621, docs/product.md, section 10): eight rules, each one sentence, that raise a card
+ * Alerts (FR-621, docs/product.md, section 10): nine rules, each one sentence, that raise a card
  * in the Inbox. Nothing emails and nothing rings. An administrator turns a rule on or off for
  * everyone and changes its threshold inside the sentence; an owner mutes a rule for their own
  * domains, so its cards stop reaching them and still reach the others.
@@ -10,7 +10,7 @@
  */
 import { visibleCount } from './gaps.ts'
 
-/** The eight rules, in the order the Alerts page lists them. */
+/** The nine rules, in the order the Alerts page lists them. */
 export const alertRuleIds = [
   'gap',
   'saved',
@@ -19,6 +19,7 @@ export const alertRuleIds = [
   'fail',
   'spend',
   'sync',
+  'views',
   'due',
 ] as const
 export type AlertRuleId = (typeof alertRuleIds)[number]
@@ -116,6 +117,14 @@ export const alertRules: readonly AlertRule[] = [
     when: 'A read failed or is overdue',
     then: 'A card to admins and the owners',
     audience: 'both',
+  },
+  {
+    id: 'views',
+    name: 'New views not chosen',
+    when: 'A read finds views added after the views to read were chosen',
+    then: 'A card to admins',
+    audience: 'admins',
+    isNew: true,
   },
   {
     id: 'due',
@@ -223,7 +232,7 @@ export const lookTitle = (n: number) =>
  * owner's call of 28 October 2026). The other three raise the cards the Inbox already has: a Not
  * found card, a domain's saved questions that need a look, and an item whose check date passed.
  */
-export const alertCardRules = ['disagree', 'share', 'fail', 'spend', 'sync'] as const
+export const alertCardRules = ['disagree', 'share', 'fail', 'spend', 'sync', 'views'] as const
 export type AlertCardRule = (typeof alertCardRules)[number]
 
 export const isAlertCardRule = (rule: AlertRuleId): rule is AlertCardRule =>
@@ -259,6 +268,11 @@ export const alertCardWords: Record<AlertCardRule, { line: string; detail: strin
       line: 'Its last read failed, or it has not read for longer than it should.',
       detail: 'Agents keep getting what it read last until it reads again.',
       open: 'Open the integration',
+    },
+    views: {
+      line: 'It reads only the views chosen, and views were added after they were chosen.',
+      detail: 'Their metrics and dimensions are not read until an admin chooses them.',
+      open: 'Choose what to read',
     },
   }
 

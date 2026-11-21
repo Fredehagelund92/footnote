@@ -172,6 +172,7 @@ import {
 import { gapDetailSchema, gapIdInputSchema, gapReportInputSchema, gapReportSchema } from './gaps.ts'
 import {
   addSourceSchema,
+  chooseGroupsSchema,
   connectorListingSchema,
   leftOutInputSchema,
   leftOutSchema,
@@ -1349,7 +1350,8 @@ export const contract = {
         method: 'GET',
         path: '/sources/{id}',
         tags: ['sources'],
-        summary: 'A source an administrator added: its settings, and whether each secret is set',
+        summary:
+          "A source an administrator added: its settings, and whether each secret is set; or a definitions source the server's configuration selects, with only the groups it reads",
       })
       .input(sourceIdInputSchema)
       .output(sourceSettingsSchema),
@@ -1375,6 +1377,20 @@ export const contract = {
       })
       .input(updateSourceSchema)
       .output(sourceSettingsSchema),
+    // The approved set (CON-119): the groups any definitions source reads, the server's own too.
+    groups: sourceSettings
+      .errors({
+        NOT_FOUND: { message: "We couldn't find this source among the definitions sources." },
+      })
+      .route({
+        method: 'PUT',
+        path: '/sources/{id}/groups',
+        tags: ['sources'],
+        summary:
+          "Choose the groups a definitions source reads and the domain each maps to, with a reason, for one an admin added or one the server's configuration selects",
+      })
+      .input(chooseGroupsSchema)
+      .output(sourceSettingsSchema),
     test: sourceSettings
       .errors({
         NOT_FOUND: { message: "We couldn't find this source among the ones an admin added." },
@@ -1392,7 +1408,7 @@ export const contract = {
     // items that rely on it: shown before the change is saved, which then needs acceptLeftOut.
     leftOut: admin
       .errors({
-        NOT_FOUND: { message: "We couldn't find this source among the ones an admin added." },
+        NOT_FOUND: { message: "We couldn't find this source among the definitions sources." },
       })
       .route({
         method: 'POST',
@@ -2368,7 +2384,7 @@ export const contract = {
         path: '/alerts/rules',
         tags: ['quality'],
         summary:
-          'The eight alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners',
+          'The nine alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners',
       })
       .output(alertRulesSchema),
     setRule: admin
