@@ -180,6 +180,17 @@ export function createMockNames(heldWords: WordHolders = holders) {
       if ((await read()).revision !== input.revision)
         throw new ApiError('conflict', 'The names changed after you opened them.')
       const found = names()
+      for (const { key, apart } of input.accept) {
+        const waiting = found.find((n) => n.key === key)
+        if (apart && (waiting?.family?.found !== 'names' || waiting.linked.length))
+          throw new ApiError(
+            'invalid',
+            `“${waiting?.name ?? key}” is not a family of names that look alike. Publish it as it is.`,
+          )
+      }
+      const asked = [...input.accept.map(({ key }) => key), ...input.leaveOut]
+      if (new Set(asked).size !== asked.length)
+        throw new ApiError('conflict', 'Publish a name or leave it out, not both.')
       // A family the names alone suggest, published apart: its variants, each by its own name.
       const apart = input.accept.flatMap(({ key, apart }) =>
         apart

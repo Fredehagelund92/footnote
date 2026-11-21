@@ -1,4 +1,5 @@
 import { contentDigest } from './canonical.ts'
+import { keyPart } from './term-candidates.ts'
 
 /*
   What every definitions connector does the same way, as pure functions it imports: the other
@@ -277,7 +278,8 @@ export function declaredFamily(
   const footnote = isObject(meta) ? meta.footnote : undefined
   if (!isObject(footnote) || footnote.family === undefined || footnote.family === null) return null
   const name = typeof footnote.family === 'string' ? footnote.family.trim() : ''
-  if (!name || [...name].length > FAMILY_NAME_MAX || /[\n\r]/.test(name)) return 'invalid'
+  if (!name || [...name].length > FAMILY_NAME_MAX || /[\n\r]/.test(name) || !keyPart(name))
+    return 'invalid'
   if (!isObject(footnote.by)) return 'invalid'
   const by: VariantValue[] = []
   for (const [axis, raw] of Object.entries(footnote.by)) {

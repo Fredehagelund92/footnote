@@ -64,3 +64,28 @@ describe('the other ways the mock finds a family (D1)', () => {
     expect(after).not.toContain('Shipping fee (EUR)')
   })
 })
+
+describe('the mock refusing what the service refuses', () => {
+  it('refuses a family published apart that is not one of look-alike names', async () => {
+    const names = createMockNames(new Map())
+    names.load(true)
+    const { revision, names: shown } = await names.read()
+    const declared = shown.find((n) => n.name === 'Gift wrap')!
+    const refusal = await names
+      .decide({ revision, accept: [{ key: declared.key, apart: true }], leaveOut: [] })
+      .catch((error: Error) => error)
+    expect(refusal).toBeInstanceOf(Error)
+  })
+
+  it('refuses a name both published and left out, apart or not', async () => {
+    const names = createMockNames(new Map())
+    names.load(true)
+    const { revision, names: shown } = await names.read()
+    const alike = shown.find((n) => n.name === 'Shipping fee')!
+    const refusal = await names
+      .decide({ revision, accept: [{ key: alike.key, apart: true }], leaveOut: [alike.key] })
+      .catch((error: Error) => error)
+    expect(refusal).toBeInstanceOf(Error)
+    expect((refusal as Error).message).toContain('not both')
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterVariant } from '../../../src/domain/definition-helpers.ts'
+import { declaredFamily, filterVariant } from '../../../src/domain/definition-helpers.ts'
 import {
   byWords,
   currencyIn,
@@ -11,6 +11,7 @@ import {
   variantWords,
   type VariantMember,
 } from '../../../src/domain/metric-families.ts'
+import { conversionsOf } from '../../../src/domain/definition-relations.ts'
 import { searchScope } from '../../../src/domain/scope-search.ts'
 import { asSuggested } from '../../../src/domain/suggested-names.ts'
 import { nameRefusal, sourceNames, type WordHolders } from '../../../src/domain/source-names.ts'
@@ -719,5 +720,86 @@ describe('a family one rate works out', () => {
       'dbt:partners.payout_eur',
       'dbt:partners.payout_usd',
     ])
+  })
+})
+
+describe('a family one rate works out, whatever another way claimed first', () => {
+  it('counts the rate over every metric, so a declared family leaves its twin a rate family', () => {
+    const declared = (member: CandidateMember, value: string) => ({
+      ...member,
+      declared: { name: 'revenue', by: [{ name: 'currency', ref: null, value }] },
+    })
+    const [revenueEur, revenueUsd] = twins('revenue', 'Revenue')
+    const members = [
+      declared(revenueEur!, 'EUR'),
+      declared(revenueUsd!, 'USD'),
+      ...twins('cost', 'Cost'),
+    ]
+    expect(familiesOf(asVariants(members)).map((f) => [f.name, f.found])).toEqual([
+      ['Cost', 'calculation'],
+      ['Revenue', 'declared'],
+    ])
+  })
+
+  it('never joins a converted metric to one another family already took', () => {
+    const [revenueEur, revenueUsd] = twins('revenue', 'Revenue')
+    const members = [
+      {
+        ...revenueEur!,
+        declared: { name: 'revenue_by_line', by: [{ name: 'line', ref: null, value: 'a' }] },
+      },
+      {
+        ...revenueUsd!,
+        declared: { name: 'revenue_by_line', by: [{ name: 'line', ref: null, value: 'b' }] },
+      },
+      ...twins('cost', 'Cost'),
+    ]
+    const families = familiesOf(asVariants(members))
+    expect(families.find((f) => f.name === 'Cost')?.variants.map((v) => v.ref)).toEqual([
+      'dbt:partners.cost_eur',
+      'dbt:partners.cost_usd',
+    ])
+    expect(families.find((f) => f.found === 'declared')?.variants).toHaveLength(2)
+  })
+})
+
+describe('a declared family with no name to key it by', () => {
+  it('is invalid, whatever the script its name is in', () => {
+    const by = { currency: 'EUR' }
+    expect(declaredFamily({ footnote: { family: 'Umsatz', by } })).toMatchObject({ name: 'Umsatz' })
+    expect(declaredFamily({ footnote: { family: '売上', by } })).toBe('invalid')
+    expect(declaredFamily({ footnote: { family: '--', by } })).toBe('invalid')
+  })
+
+  it('is no family when a read of it slips through', () => {
+    const members = ['EUR', 'USD'].map((code) =>
+      metric(`sales_${code.toLowerCase()}`, `Sales ${code}`, {
+        declared: { name: '売上', by: [{ name: 'currency', ref: null, value: code }] },
+      }),
+    )
+    expect(familiesOf(asVariants(members)).map((f) => f.key)).not.toContain('group:')
+  })
+})
+
+describe('a metric named with an everyday word that is also a currency code', () => {
+  const sessions = (word: string, columns: string[]) =>
+    metric(`sessions_${word}`, `Sessions ${word}`, { builtFrom: { refs: [], columns } })
+
+  it('is converted from nothing', () => {
+    const all = sessions('all', ['visits'])
+    const top = sessions('top', ['visits', 'page'])
+    expect(
+      conversionsOf([all, top].map((m) => ({ ref: m.ref, name: m.name, builtFrom: m.builtFrom! }))),
+    ).toEqual([])
+  })
+
+  it('still reads real currencies in lowercase', () => {
+    const eur = sessions('eur', ['visits'])
+    const cad = sessions('cad', ['visits', 'rate'])
+    expect(
+      conversionsOf(
+        [eur, cad].map((m) => ({ ref: m.ref, name: m.name, builtFrom: m.builtFrom! })),
+      ).map((c) => c.currencies),
+    ).toEqual([['EUR', 'CAD']])
   })
 })
