@@ -110,7 +110,9 @@ describe('the web API request limit', () => {
     expect(refused.headers['retry-after']).toBe('60')
     expect(refused.headers['x-request-id']).toBeTruthy()
     expect(refused.json()).toEqual({
+      defined: false,
       code: 'TOO_MANY_REQUESTS',
+      status: 429,
       message: 'That was a lot at once. Try again in 60 seconds.',
       data: { retryAfterSeconds: 60 },
     })

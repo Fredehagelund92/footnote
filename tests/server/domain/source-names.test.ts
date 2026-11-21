@@ -5,6 +5,7 @@ import {
   wordsOf,
   type WordHolders,
 } from '../../../src/domain/source-names.ts'
+import { asSuggested } from '../../../src/domain/suggested-names.ts'
 import type { CandidateMember, KnownTerm } from '../../../src/domain/term-candidates.ts'
 import type { WordHolder } from '../../../src/domain/terms.ts'
 
@@ -150,7 +151,7 @@ describe('the names a read makes', () => {
       nothingLeft,
     )
     expect(names[0]).toMatchObject({ state: 'flagged', name: 'Revenue (orders)' })
-    expect(names[0]!.flags[0]!.message).toBe('“Revenue” is already a name for Revenue.')
+    expect(names[0]!.flags[0]!.message).toBe('Another definition is already called “Revenue”.')
   })
 
   it('flags a dimension whose views title it differently', () => {
@@ -306,6 +307,48 @@ describe('the names a read makes', () => {
   })
 })
 
+describe('publishing names as suggested', () => {
+  const region = (model: string) =>
+    member(`dbt:${model}.region`, { kind: 'dimension', valueType: 'categorical', title: 'Region' })
+
+  it('takes every copy of one title in many semantic models, each with the name that tells it apart', () => {
+    const names = sourceNames(
+      [region('orders'), region('customers'), region('stores')],
+      [],
+      noHolders,
+      nothingLeft,
+    )
+    expect(names.map((n) => n.state)).toEqual(['flagged', 'flagged', 'flagged'])
+    const going = asSuggested(names)
+    expect(going.map((n) => n.name)).toEqual(['Region', 'Region (orders)', 'Region (stores)'])
+    // The service takes them in one decision.
+    const chosen = new Map(going.map((n) => [n.key, [n.name, ...n.aliases]]))
+    for (const n of going) expect(nameRefusal(n.key, n.name, noHolders, chosen)).toBeNull()
+  })
+
+  it('leaves a word another meaning holds, and two names that would share a word, for a look', () => {
+    const term: WordHolder = { origin: 'term', id: 't1', name: 'Tier', sameAs: null, by: 'Maria' }
+    const names = sourceNames(
+      [
+        member('dbt:orders.orders', { title: 'Orders' }),
+        member('dbt:orders.order_kind', {
+          kind: 'dimension',
+          valueType: 'categorical',
+          title: 'orders',
+        }),
+        member('dbt:customers.tier', { kind: 'dimension', valueType: 'categorical' }),
+        member('dbt:stores.tier', { kind: 'dimension', valueType: 'categorical' }),
+      ],
+      [],
+      new Map([['tier', [term]]]),
+      nothingLeft,
+    )
+    // Each Tier's word is a term people wrote, and Orders would be a metric and a dimension.
+    expect(names.filter((n) => n.state === 'flagged')).toHaveLength(4)
+    expect(asSuggested(names)).toEqual([])
+  })
+})
+
 describe('accepting a name', () => {
   const held: WordHolders = new Map([
     ['net sales', [{ origin: 'vocabulary', ref: 'metric:net_sales', name: 'Net sales' }]],
@@ -318,7 +361,7 @@ describe('accepting a name', () => {
 
   it('refuses a word with another meaning, and says who has it', () => {
     expect(nameRefusal('metric:orders', ' net  SALES', held, new Map())).toBe(
-      '“net SALES” is already a name for Net sales.',
+      'Another definition is already called “Net sales”.',
     )
   })
 

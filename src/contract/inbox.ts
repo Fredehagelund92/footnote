@@ -258,6 +258,11 @@ export const decideNamesResultSchema = z.object({
   edition: z.nullable(z.string()),
   accepted: z.number(),
   leftOut: z.number(),
+  /**
+   * The names that wait after the decision, as `names` reads them: an owner decides one name
+   * after another, and the card shows the next list without reading it again.
+   */
+  waiting: namesSchema,
 })
 export type NamesDecision = z.infer<typeof decideNamesResultSchema>
 

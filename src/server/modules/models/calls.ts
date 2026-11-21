@@ -156,6 +156,20 @@ export function keyRefused(error: unknown): boolean {
   return false
 }
 
+/**
+ * Whether the provider turned the call away because the key's account is out of credit: HTTP 402,
+ * as a gateway answers once its balance is spent. No retry changes it until someone adds credit.
+ */
+export function outOfCredit(error: unknown): boolean {
+  for (let cause = error, depth = 0; cause && depth < 5; depth++) {
+    if (APICallError.isInstance(cause)) return cause.statusCode === 402
+    cause =
+      (cause as { cause?: unknown; lastError?: unknown }).lastError ??
+      (cause as { cause?: unknown }).cause
+  }
+  return false
+}
+
 /** `retry-after-ms`, or `retry-after` in seconds or as an HTTP date. */
 export function retryAfterMs(
   headers: Record<string, string> | undefined,

@@ -30,6 +30,7 @@ import {
   costMicros,
   createCallMeter,
   keyRefused,
+  outOfCredit,
   parseModelSetting,
   spendLimitReached,
   type ModelChoice,
@@ -554,6 +555,8 @@ export function stoppedSentence(
       return `Ask's model did not answer just now, ${shown ?? 'so nothing is shown'}.`
     case 'key':
       return `The model provider refused Ask's key, ${shown ?? 'so nothing is shown'}. An administrator needs to give ${productName} a key that works.`
+    case 'credit':
+      return `The model provider says the account behind Ask's key is out of credit, ${shown ?? 'so nothing is shown'}. An administrator needs to add credit, or give ${productName} another key.`
   }
 }
 
@@ -973,8 +976,8 @@ export async function* askLoop(
     else if (ToolChoiceViolationError.isInstance(error)) yield await stopped('steps')
     else {
       deps.onError?.(error)
-      // A wrong or revoked key fails every question alike: said as such (T2).
-      yield await stopped(keyRefused(error) ? 'key' : 'model')
+      // A wrong or revoked key, or one out of credit, fails every question alike: said as such (T2).
+      yield await stopped(keyRefused(error) ? 'key' : outOfCredit(error) ? 'credit' : 'model')
     }
   } finally {
     // A call still open (stopped, timed out) is recorded as aborted.

@@ -561,6 +561,12 @@ function Editor({
   const tooLong = summaryLength > SUMMARY_LIMIT
   // With no definitions connected there is nothing to say where it applies with yet.
   const noWords = !form.where.length && !vocabulary.metrics.length && !vocabulary.dimensions.length
+  // A dimension this install has, as the Applies to box's example: a plain one before a copy
+  // told apart by its semantic model ("Region (stores)").
+  const exampleDimension = (
+    vocabulary.dimensions.find((dimension) => !dimension.name.includes('(')) ??
+    vocabulary.dimensions[0]
+  )?.name
   // One answer for the button, the footer and the side panel.
   const readiness = readinessOf({
     missing,
@@ -1260,7 +1266,11 @@ function Editor({
                 label="Applies to"
                 value={form.where}
                 onChange={(w) => set('where', w)}
-                placeholder="Add a metric, or a dimension such as market"
+                placeholder={
+                  exampleDimension
+                    ? `Add a metric, or a dimension such as ${exampleDimension}`
+                    : 'Add a metric or a dimension'
+                }
               />
             </PropertyRow>
             <PropertyRow

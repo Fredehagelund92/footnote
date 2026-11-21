@@ -299,9 +299,9 @@ export const loopTurnSchema = z.object({
   reads: z.array(loopReadSchema),
   /**
    * Why a turn stopped: its step or time limit, the spending limits, its model failed, or the
-   * model's provider refused its key.
+   * model's provider refused its key or said its account is out of credit.
    */
-  stopped: z.nullable(z.enum(['steps', 'time', 'spending', 'model', 'key'])),
+  stopped: z.nullable(z.enum(['steps', 'time', 'spending', 'model', 'key', 'credit'])),
   /**
    * The answer as the page draws it, by code from the model's words and the reads: `text` is the
    * same in plain words. Every noun is one a read returned, every count and day a read's own.

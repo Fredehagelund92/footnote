@@ -1,6 +1,12 @@
 import * as React from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { obsDimensionsQuery, useSavedViews, useSavedQuestions, useWrite } from '@/api/queries'
+import {
+  obsDimensionsQuery,
+  useSavedViews,
+  useSavedQuestions,
+  useWorkspace,
+  useWrite,
+} from '@/api/queries'
 import { toast } from 'sonner'
 import {
   BotIcon,
@@ -92,6 +98,7 @@ import { moveRows } from '@/lib/list-motion'
 import { rememberTopics } from '@/lib/obs-names'
 import { useRecentDimensions } from '@/lib/obs-recent'
 import { changeQuery, href, setQuery, useRoute } from '@/lib/router'
+import { setupSteps } from '@/lib/setup'
 import { clicked, sortingFrom, sortingTo, type Sorting } from '@/lib/sort'
 import { useDomainList, useDomains, useMe } from '@/lib/workspace'
 import { pageKey } from '@/lib/keys'
@@ -1012,8 +1019,11 @@ function Chart({
 function NothingConnected() {
   const obs = useObservability()
   const view = useObsView()
+  const { setup } = useWorkspace()
+  // The setup checklist's own step, as the Inbox shows it: one name, and done only when it is.
+  const about = setupSteps.find((step) => step.id === 'about')!
   const steps = [
-    { done: true, title: 'Write what the business is about' },
+    { done: setup.done.about, title: about.title },
     {
       done: false,
       title: 'Connect an agent',

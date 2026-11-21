@@ -45,6 +45,22 @@ test('an owner accepts the ready names with one press, and looks at the rest', a
   )
 })
 
+test('the names that only share a title go out as suggested at one press, and a word with another meaning still waits', async ({
+  page,
+}) => {
+  await go(page, '/inbox?demo=names')
+  const main = page.getByRole('main')
+  const flagged = main.getByRole('region', { name: 'Look at these first' })
+  await expect(flagged.getByRole('listitem')).toHaveCount(3)
+  // The two Totals, each with the name that tells it apart: one press, not one each.
+  await expect(flagged).toContainText('2 of these share a name with another definition.')
+  await flagged.getByRole('button', { name: 'Publish these as suggested' }).click()
+  await expect(page.getByText('2 names are published as suggested')).toBeVisible()
+  await expect(flagged.getByRole('listitem')).toHaveCount(1)
+  await expect(flagged.getByRole('listitem')).toContainText('Basket value')
+  await expect(flagged.getByRole('button', { name: 'Publish these as suggested' })).toBeHidden()
+})
+
 test('an owner leaves one ready name out, and can still edit and publish it from the fold', async ({
   page,
 }) => {
