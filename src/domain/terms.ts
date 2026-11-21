@@ -100,9 +100,13 @@ export function wordRefusal(
   if (synced)
     return {
       code: 'source',
+      // A second copy of one title, as one dimension in many semantic models, has the same name:
+      // "“Region” is already a name for Region" says nothing.
       message: synced.tool
         ? `“${said}” is ${synced.tool}'s name for ${synced.name}.`
-        : `“${said}” is already a name for ${synced.name}.`,
+        : termWord(synced.name) === termWord(said)
+          ? `Another definition is already called “${synced.name}”.`
+          : `“${said}” is already a name for ${synced.name}.`,
       holder: synced.name,
       by: synced.tool ?? null,
     }

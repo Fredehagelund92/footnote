@@ -353,7 +353,13 @@ export function createNamesService(tx: Queryable) {
         details: { names: left.map((name) => name.name) },
       })
     }
-    return { edition: edition?.label ?? null, accepted: picked.length, leftOut: left.length }
+    const after = await read()
+    return {
+      edition: edition?.label ?? null,
+      accepted: picked.length,
+      leftOut: left.length,
+      waiting: { revision: after.revision, names: after.names },
+    }
   }
 
   return { read, waiting, decide }

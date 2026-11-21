@@ -18,7 +18,7 @@ describe('metrics that look like variants of a few', () => {
       bases: 20,
       splits: [
         { words: 5, examples: ['web', 'app', 'store'] },
-        { words: 50, examples: ['eur', 'usd', 'gbp'] },
+        { words: 50, examples: ['EUR', 'USD', 'GBP'] },
       ],
     })
   })
@@ -32,8 +32,97 @@ describe('metrics that look like variants of a few', () => {
     expect(variantShape(first)).toMatchObject({
       variants: 50,
       bases: 5,
-      splits: [{ words: 10, examples: ['eur', 'usd', 'gbp'] }],
+      splits: [{ words: 10, examples: ['EUR', 'USD', 'GBP'] }],
     })
+  })
+
+  it('takes no prefix off when a name would keep fewer than two words', () => {
+    const codes = ['eur', 'usd', 'gbp', 'chf', 'sek', 'nok', 'dkk', 'pln', 'cad', 'aud']
+    const names = codes.flatMap((code) =>
+      ['revenue', 'revenue_net', 'revenue_gross'].map((measure) => `sales.${measure}_${code}`),
+    )
+    expect(variantShape(names)).toMatchObject({ variants: 30, bases: 3 })
+  })
+
+  it('takes the words a model starts its names with off, and keeps each model apart', () => {
+    const codes = ['eur', 'usd', 'gbp', 'chf', 'sek', 'nok', 'dkk', 'pln', 'cad', 'aud']
+    const models = [
+      ['marketing', 'paid_search'],
+      ['social', 'paid_social'],
+      ['display', 'display_ads'],
+    ] as const
+    const names = (cost: boolean) =>
+      models.flatMap(([model, prefix]) => [
+        `${model}.${prefix}_clicks`,
+        `${model}.${prefix}_impressions`,
+        ...codes.flatMap((code) => [
+          `${model}.${prefix}_spend_${code}`,
+          ...(cost ? [`${model}.${prefix}_cost_${code}`] : []),
+        ]),
+      ])
+    // Each model has its own spend, so three models are 3 bases, not one name read three times.
+    expect(variantShape(names(false))).toEqual({
+      variants: 30,
+      metrics: 36,
+      bases: 3,
+      splits: [{ words: 10, examples: ['EUR', 'USD', 'GBP'] }],
+    })
+    // Two measures per model in 3 models: 6 bases, and spend and cost are never an axis.
+    expect(variantShape(names(true))).toEqual({
+      variants: 60,
+      metrics: 66,
+      bases: 6,
+      splits: [{ words: 10, examples: ['EUR', 'USD', 'GBP'] }],
+    })
+  })
+
+  it('names the real ways a project splits its metrics, when each group starts its names with its own', () => {
+    // An invented dbt project: three ad channels, each a semantic model whose metrics start with
+    // its name, with clicks and impressions, and spend per currency; and a shop's sales per
+    // currency and per product line.
+    const names: string[] = []
+    for (const group of ['paid_search', 'paid_social', 'display_ads']) {
+      names.push(`${group}.${group}_clicks`, `${group}.${group}_impressions`)
+      for (const code of ['eur', 'usd', 'chf']) names.push(`${group}.${group}_spend_${code}`)
+    }
+    for (const measure of ['revenue', 'margin', 'discounts', 'refunds'])
+      for (const code of ['eur', 'usd', 'chf']) {
+        names.push(`shop_sales.shop_sales_${measure}_${code}`)
+        for (const line of ['tents', 'boots', 'packs'])
+          names.push(`shop_sales.shop_sales_${measure}_${line}_${code}`)
+      }
+    // Read across the groups, clicks and impressions looked like variants of each ad channel,
+    // beside the currencies: "clicks, impressions, eur and 2 more".
+    // 7 bases: each ad channel's spend is its own, 3, and the shop's 4 measures.
+    expect(variantShape(names)).toEqual({
+      variants: 57,
+      metrics: 63,
+      bases: 7,
+      splits: [
+        { words: 3, examples: ['EUR', 'USD', 'CHF'] },
+        { words: 3, examples: ['tents', 'boots', 'packs'] },
+      ],
+    })
+  })
+
+  it('names the words that split the most names first, and keeps two ways of splitting apart', () => {
+    // Pounds on three measures and euros and dollars on five, the pounds listed first; and a
+    // product line after the currency on two measures, which also ends names.
+    const names = [
+      ...['revenue', 'margin', 'tax'].map((measure) => `sales.${measure}_gbp`),
+      ...['revenue', 'margin', 'tax', 'fees', 'refunds'].flatMap((measure) =>
+        ['eur', 'usd'].map((code) => `sales.${measure}_${code}`),
+      ),
+      ...['revenue', 'margin'].flatMap((measure) =>
+        ['eur', 'usd'].flatMap((code) =>
+          ['tents', 'boots', 'packs'].map((line) => `sales.${measure}_${code}_${line}`),
+        ),
+      ),
+    ]
+    expect(variantShape(names)?.splits).toEqual([
+      { words: 3, examples: ['EUR', 'USD', 'GBP'] },
+      { words: 3, examples: ['tents', 'boots', 'packs'] },
+    ])
   })
 
   it('says nothing of the same shop with currency and channel as dimensions', () => {

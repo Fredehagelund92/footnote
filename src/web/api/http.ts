@@ -1846,9 +1846,17 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         signedIn(),
         figureSources(),
       ])
-      // The tools connected, which only an admin reads: Settings' menu counts them.
+      // The tools connected, which only an admin reads: Settings' menu counts them as Integrations
+      // lists them, so not the service's demo definitions (src/server/modules/connectors/demo.ts),
+      // which it never shows.
       const connected = who.admin
-        ? [...new Set((await read(() => client.sources.list())).flatMap((row) => [row.type]))]
+        ? [
+            ...new Set(
+              (await read(() => client.sources.list())).flatMap((row) =>
+                row.type === 'demo' ? [] : [row.type],
+              ),
+            ),
+          ]
         : []
       return {
         mcpAddress: connect.address,

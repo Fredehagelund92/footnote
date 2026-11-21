@@ -267,16 +267,16 @@ export const integrationsQuery = () =>
 
 /**
  * While a tool waits for its read (queued, or being read), its row and its page ask again every
- * few seconds, so Queued and Reading end when the read does.
+ * few seconds, so Queued and Reading end when the read does. A first read is queued and done
+ * within seconds, so a queued one is asked about as often: at ten seconds, a finished read
+ * showed Queued and no metrics for five.
  */
-const READING_POLL_MS = 3_000
-/** A queued read waits for the job's next turn, up to five minutes: no need to ask as often. */
-const QUEUED_POLL_MS = 10_000
+const PENDING_POLL_MS = 3_000
 /** A tool's pending read; none while it is paused. */
 const readOf = (source: Source | undefined) =>
   source?.state.intent === 'active' ? source.state.read : null
 const pollFor = (reads: readonly (SourceRead | null | undefined)[]) =>
-  reads.includes('reading') ? READING_POLL_MS : reads.includes('queued') ? QUEUED_POLL_MS : false
+  reads.includes('reading') || reads.includes('queued') ? PENDING_POLL_MS : false
 
 /** Settings › Integrations: the tools connected, and what can be connected. */
 export const integrationsPageQuery = () =>
@@ -616,8 +616,8 @@ export const invalidations: {
   markOpened: () => inbox,
   markReviewed: () => inbox,
   decideCard: () => [...inbox, ...items],
-  // The first names start the vocabulary: every page reads it.
-  decideNames: () => everything,
+  // The names card is open: its list comes with the answer (`inPlace`), and the rest waits (`later`).
+  decideNames: () => inbox,
   completeCard: () => inbox,
   publishReview: () => decision,
   publishReviews: () => decision,
@@ -730,7 +730,11 @@ export function coveringKeys(keys: readonly QueryKey[]): QueryKey[] {
  * whole cache again. Opening an item marks it opened; read again, the library is five requests.
  */
 const inPlace: {
-  [K in WriteOperation]?: (queryClient: QueryClient, input: WriteInput<K>) => void
+  [K in WriteOperation]?: (
+    queryClient: QueryClient,
+    input: WriteInput<K>,
+    result: WriteResult<K>,
+  ) => void
 } = {
   markViewed: (queryClient, { id }) =>
     queryClient.setQueryData<Library>(queryKeys.library, (library) =>
@@ -738,6 +742,27 @@ const inPlace: {
         ? { ...library, viewed: { ...library.viewed, [id]: true } }
         : library,
     ),
+  // The answer holds the names that wait after the decision.
+  decideNames: (queryClient, _input, { waiting }) =>
+    queryClient.setQueryData(queryKeys.names, waiting),
+}
+
+/**
+ * What a write makes stale that the screen it is made from does not show, marked stale without
+ * a read: each is read again where it is shown next. An owner decides names one after another,
+ * and every cache read again after each was a burst of calls the service's limit refused.
+ */
+const later: { [K in WriteOperation]?: QueryKey[] } = {
+  // The names are the vocabulary's terms, a source's page counts them and the history log has
+  // the decision. The checklist reads its step itself (pages/inbox.tsx). Every cache marked stale
+  // would be read again by each row the card draws next.
+  decideNames: [
+    queryKeys.vocabulary,
+    ...definitions,
+    queryKeys.scopeSearches,
+    ...integrations,
+    queryKeys.advancedPage,
+  ],
 }
 
 /**
@@ -769,7 +794,12 @@ export async function invalidateAfter<K extends WriteOperation>(
   result: WriteResult<K>,
 ) {
   if (operation === 'signIn') await forgetLastPerson(queryClient)
-  inPlace[operation]?.(queryClient, input)
+  inPlace[operation]?.(queryClient, input, result)
+  await Promise.all(
+    (later[operation] ?? []).map((queryKey) =>
+      queryClient.invalidateQueries({ queryKey, refetchType: 'none' }),
+    ),
+  )
   const keys = coveringKeys(invalidations[operation](input, result))
   await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })))
 }

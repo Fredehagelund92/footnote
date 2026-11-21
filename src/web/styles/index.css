@@ -163,8 +163,10 @@
     inset-inline: var(--touch-inset);
   }
 
-  /* 28px header buttons 18px apart: a 46px pitch, so no two 44px tap areas overlap. */
-  [data-touch-targets] [data-header-actions] {
+  /* 28px header buttons 18px apart: a 46px pitch, so no two 44px tap areas overlap. The header
+     holds two groups of them, the install's label between. */
+  [data-touch-targets] [data-header-actions],
+  [data-touch-targets] [data-site-header] {
     column-gap: var(--touch-gap);
   }
 }

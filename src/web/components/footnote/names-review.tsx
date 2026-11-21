@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
 import { useOnline } from '@/lib/send'
+import { asSuggested } from '@domain/suggested-names'
 import { memberOf } from '@domain/vocabulary'
 import { familyBy } from '@/lib/definitions'
 import { cn } from '@/lib/utils'
@@ -160,6 +161,8 @@ export default function NamesReview({
   const ready = names.filter((name) => name.state === 'ready')
   const flagged = names.filter((name) => name.state === 'flagged')
   const left = names.filter((name) => name.state === 'left_out')
+  // One title a project keeps in many semantic models flags every copy: they go out at one press.
+  const suggested = asSuggested(flagged)
   const tools = [...new Set(names.map((name) => name.tool))].sort()
   const families = names.filter((name) => name.family && name.state !== 'left_out').length
 
@@ -185,9 +188,11 @@ export default function NamesReview({
       const error = toApiError(e)
       const key = picks.length === 1 ? picks[0]!.key : undefined
       const edited = key && names.some((n) => n.key === key && n.state !== 'ready')
-      if (key && edited) setProblems({ [key]: error.message })
+      // Only a refusal of the name goes under its box: a limit reached or a list that changed is
+      // about no name, and is said once.
+      if (key && edited && error.kind === 'invalid') setProblems({ [key]: error.message })
       else toast("Couldn't publish the names", { description: error.message })
-      await client.invalidateQueries({ queryKey: queryKeys.names })
+      if (error.kind === 'conflict') await client.invalidateQueries({ queryKey: queryKeys.names })
     } finally {
       setBusy(false)
     }
@@ -224,6 +229,28 @@ export default function NamesReview({
               One word has one meaning here. Keep the name below, change it, or leave it out. A name
               that is published already keeps the one it has.
             </p>
+            {suggested.length > 1 && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2">
+                <p className="min-w-0 flex-1 basis-60 text-xs text-muted-foreground">
+                  {suggested.length === flagged.length ? 'These' : `${suggested.length} of these`}{' '}
+                  share a name with another definition. Each can go out with the name shown, which
+                  tells it apart.
+                </p>
+                <Button
+                  variant="outline"
+                  disabled={busy || !online}
+                  onClick={() =>
+                    void decide(
+                      suggested.map((name) => ({ key: name.key })),
+                      [],
+                      `${suggested.length} names are published as suggested`,
+                    )
+                  }
+                >
+                  Publish these as suggested
+                </Button>
+              </div>
+            )}
             <ul>
               {flagged.map((name) => (
                 <FlaggedRow

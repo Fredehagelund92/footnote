@@ -920,6 +920,14 @@ describe("Ask's loop on a scripted model", () => {
     expect(failing.turn.stopped).toBe('model')
   })
 
+  it('says the account behind its key is out of credit, not that it did not answer just now', async () => {
+    const { turn } = await turnWith(() => ({ refuse: 402 }))
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'credit', state: 'missing' })
+    expect(turn.text).toBe(
+      "The model provider says the account behind Ask's key is out of credit, so this is what is written, as agents get it. An administrator needs to add credit, or give Footnote another key.",
+    )
+  })
+
   it('shows the sentence alone when the plain read cannot be made', async () => {
     const { tools } = fakeTools(() => {
       throw new Error('The database is down.')

@@ -106,7 +106,7 @@ export type Answer = {
   /** The readings Ask's question back offers, each a reply the person can send. */
   choices?: string[]
   /** Why the loop stopped before an answer, when it did: its fixed sentence is the text. */
-  stopped?: 'steps' | 'time' | 'spending' | 'model' | 'key'
+  stopped?: 'steps' | 'time' | 'spending' | 'model' | 'key' | 'credit'
 }
 
 /** The question an answer read: the one it repeated, when it was asked again in words. */

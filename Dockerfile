@@ -68,8 +68,9 @@ HEALTHCHECK --start-period=5m --start-interval=2s --interval=30s --timeout=5s --
     CMD ["node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 # Gets the database ready (db/prepare.ts: migrations, and the demo when SEED_DEMO=on), then serves.
 # Outside production the image reads its own copy of the demo Cube model (db/seed/cube) unless
-# CUBE_MODEL_DIR names another folder, so the demo needs no folder shared from the host.
-CMD ["sh", "-c", "[ \"$NODE_ENV\" = production ] || export CUBE_MODEL_DIR=\"${CUBE_MODEL_DIR:-/app/db/seed/cube}\"; node db/prepare.ts && exec node src/server/main.ts"]
+# CUBE_MODEL_DIR names another folder or FOOTNOTE_SERVER_FOLDERS names one of the server's own, so
+# the demo needs no folder shared from the host and never joins your own definitions.
+CMD ["sh", "-c", "[ \"$NODE_ENV\" = production ] || [ -n \"$FOOTNOTE_SERVER_FOLDERS\" ] || export CUBE_MODEL_DIR=\"${CUBE_MODEL_DIR:-/app/db/seed/cube}\"; node db/prepare.ts && exec node src/server/main.ts"]
 
 FROM nginx:1.31-alpine@sha256:0563c36f94a6d3ec3584161b77859f740f7e20b4853f52c796a864ce6908e8ea AS web
 # nginx as its own user, not root: no `user` line (that needs root), its pid file and the

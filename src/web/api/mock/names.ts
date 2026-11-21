@@ -171,6 +171,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
         edition: chosen.size ? 'today.1' : null,
         accepted: chosen.size,
         leftOut: input.leaveOut.length,
+        waiting: await read(),
       }
     },
   }

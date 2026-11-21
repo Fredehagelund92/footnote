@@ -5,7 +5,10 @@
 # A new database gets the demo (SEED_DEMO=on): invented people, domains and facts about the demo
 # Cube model, which the image carries (db/seed/cube), so nothing is read from this computer. To run
 # on your own Cube model instead, name its folder in CUBE_MODEL_DIR (README, "Use your own data");
-# it is shared into the container read only, and the demo is then left out. FOOTNOTE_WEB_PORT and
+# it is shared into the container read only, and the demo is then left out. For dbt, name the
+# folder that holds the semantic_manifest.json `dbt parse` writes (most often the project's target)
+# in DBT_MANIFEST_DIR: it is shared the same way, read as the server's own dbt source, and the demo
+# is left out too (docs/use-your-own-data.md, "Read dbt on this computer"). FOOTNOTE_WEB_PORT and
 # FOOTNOTE_PORT move the web app (8080) and the service (3000). Both listen on this computer only:
 # anyone who reaches them can sign in as any of the demo people.
 #
@@ -55,6 +58,8 @@ services:
       SEED_DEMO: ${SEED_DEMO:-on}
       # Your own model's folder, when you name one; empty, the image reads its demo model.
       CUBE_MODEL_DIR: ${CUBE_MODEL_DIR:+/cube-model}
+      # Your dbt project's semantic manifest, when you name its folder; empty, none.
+      FOOTNOTE_SERVER_FOLDERS: ${DBT_MANIFEST_DIR:+{"dbt-metricflow":"/dbt-manifest"}}
       FOOTNOTE_WEB_ORIGINS: http://localhost:${FOOTNOTE_WEB_PORT:-8080}
       MCP_RESOURCE_URL: http://localhost:${FOOTNOTE_PORT:-3000}/mcp
       # The secret store: the tokens and signed links of the tools you connect, in a folder of its
@@ -78,8 +83,9 @@ services:
       FOOTNOTE_JUDGE_MODEL_PRICES:
     volumes:
       # Your own model's folder, or an empty volume nothing reads when you name none: the demo
-      # never depends on a folder Docker shares from this computer.
+      # never depends on a folder Docker shares from this computer. The same for dbt's folder.
       - ${CUBE_MODEL_DIR:-no-model}:/cube-model:ro
+      - ${DBT_MANIFEST_DIR:-no-dbt-manifest}:/dbt-manifest:ro
       - keys:/var/lib/footnote
     ports:
       - 127.0.0.1:${FOOTNOTE_PORT:-3000}:3000
@@ -98,3 +104,4 @@ volumes:
   db:
   keys:
   no-model:
+  no-dbt-manifest:
