@@ -50,7 +50,7 @@ The data team that runs Footnote is the first reader of this page. The people it
 
 The mockup writes an address after `#` (`#/inbox?demo=week`). The app uses the same paths and the same search names without the `#`. The mapping is one to one. Scenario flags such as `demo`, `state`, `example`, `figures`, `links`, `connect`, `quality`, `bulk`, `decide` and `slow` only set up a demo or a fault for tests. They are not part of the product and never reach a production build.
 
-The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. At its foot: **Help**, **Observability** (admins and owners) and **Settings** (admins; owners see Domains and People). A search field sits at the top of the sidebar. The user menu holds Connect an agent and Sign out. The theme menu is at the right end of every header.
+The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. At its foot: **Help**, **Observability** (admins and owners) and **Settings** (admins; owners see Domains and People). A search field sits at the top of the sidebar. The account button shows your avatar and name; the user menu it opens shows your role and every domain you own, and holds Connect an agent and Sign out. The theme menu is at the right end of every header.
 
 ### Inbox
 

@@ -90,8 +90,9 @@ for (const { width, height } of [
 
         await button.click()
         const menu = page.getByRole('menu')
-        await expect(menu).toContainText('Owner of Sales, Customer lifetime value')
-        await expect(menu).toContainText('Support tickets and satisfaction, admin')
+        // The order is the server's (the mock keeps the order added, the service sorts by name).
+        for (const name of ['Sales', ...longNames]) await expect(menu).toContainText(name)
+        await expect(menu).toContainText(/Owner of .*, admin/)
         expect(await spills(menu)).toEqual([])
         const box = (await menu.boundingBox())!
         expect(box.x).toBeGreaterThanOrEqual(0)
