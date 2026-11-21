@@ -196,14 +196,12 @@ export function FamilyVariants({ family }: { family: Family }) {
   )
 }
 
-/** A family's mark beside its name: "Family · 250 variants", or "Family · 250" where room is short. */
+/** A family's mark beside its name: "Family · 250 variants", the same at every width. */
 export function FamilyChip({
   family,
-  short = false,
   className,
 }: {
   family: NonNullable<Definition['family']>
-  short?: boolean
   className?: string
 }) {
   const n = family.variants.length.toLocaleString('en-GB')
@@ -214,8 +212,7 @@ export function FamilyChip({
         className,
       )}
     >
-      Family · {n}
-      {!short && ` ${family.variants.length === 1 ? 'variant' : 'variants'}`}
+      Family · {n} {family.variants.length === 1 ? 'variant' : 'variants'}
     </span>
   )
 }

@@ -29,7 +29,7 @@ for (const { name, width, height } of widths) {
       await expect(revenue).toBeVisible()
       const row = revenue.locator('xpath=ancestor::tr')
       await expect(row.getByRole('img', { name: 'Family of metrics' })).toBeVisible()
-      await expect(row).toContainText(width > 400 ? 'Family · 250 variants' : 'Family · 250')
+      await expect(row.getByText('Family · 250 variants', { exact: true })).toBeVisible()
       await expect(row).toContainText('by Currency and Channel')
       // No variant is ever a row.
       await expect(main.locator('tbody tr').filter({ hasText: /\(EUR\)/ })).toHaveCount(0)

@@ -1,6 +1,6 @@
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import { contentDigest } from '@domain/canonical'
-import { nameRefusal, sourceNames, type WordHolders } from '@domain/source-names'
+import { nameRefusal, sourceNames, variantNameRefusal, type WordHolders } from '@domain/source-names'
 import type { CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'
@@ -148,6 +148,10 @@ export function createMockNames() {
       for (const [key, name] of chosen) {
         const refused = nameRefusal(key, name, holders, going)
         if (refused) throw new ApiError('invalid', refused)
+        const family = list.find((n) => n.key === key)
+        for (const variant of family?.family?.variants ?? [])
+          if (nameRefusal(variant.key, variant.name, holders, going))
+            throw new ApiError('invalid', variantNameRefusal(family!.name))
       }
       for (const key of chosen.keys())
         list

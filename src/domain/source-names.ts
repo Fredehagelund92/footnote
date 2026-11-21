@@ -30,7 +30,7 @@ import {
 } from './terms.ts'
 
 /** Why a name needs an owner's eyes before it goes live. */
-export const nameFlagCodes = ['taken', 'same_name', 'titles_differ', 'bad_name'] as const
+export const nameFlagCodes = ['taken', 'same_name', 'titles_differ', 'bad_name', 'variants'] as const
 export type NameFlagCode = (typeof nameFlagCodes)[number]
 export type NameFlag = { code: NameFlagCode; message: string }
 
@@ -272,6 +272,25 @@ function freeKey(family: Family, keys: ReadonlySet<string>): string {
   return `group:${tries.find((key) => !keys.has(`group:${key}`)) ?? `${part}_${keys.size}`}`
 }
 
+const variantProblems: Record<Exclude<NameFlagCode, 'variants'>, string> = {
+  taken: 'names already in use',
+  same_name: 'names other definitions share',
+  titles_differ: 'titles that differ',
+  bad_name: 'names that cannot be used',
+}
+
+/** What is wrong with a family's variants, counted and in kind, never naming one. */
+function variantsFlagMessage(looking: readonly SourceName[]): string {
+  const kinds = [
+    ...new Set(looking.flatMap((variant) => variant.flags.map((flag) => flag.code))),
+  ].flatMap((code) => (code === 'variants' ? [] : [variantProblems[code]]))
+  return `${looking.length === 1 ? 'One of its variants has' : `${looking.length} of its variants have`} ${kinds.join(' and ')}. Leave the family out, or fix them in the tool.`
+}
+
+/** Why a family can't go live when a variant's name can't be published; never names the variant. */
+export const variantNameRefusal = (family: string) =>
+  `A variant of “${family}” has a name that can't be published as it stands, so the family can't go live. Leave it out, or fix its variants in the tool.`
+
 /** The name a family of variants makes: itself, flagged as any name is, and its variants. */
 function familyName(
   family: Family,
@@ -301,11 +320,7 @@ function familyName(
       })
   }
   const looking = variants.filter((variant) => variant.flags.length)
-  if (looking.length)
-    flags.push({
-      code: looking[0]!.flags[0]!.code,
-      message: `${looking.length === 1 ? 'One of its variants needs' : `${looking.length} of its variants need`} a look first: “${looking[0]!.name}”. ${looking[0]!.flags[0]!.message}`,
-    })
+  if (looking.length) flags.push({ code: 'variants', message: variantsFlagMessage(looking) })
   const left = refs.every((ref) => leftOut.has(ref))
   return {
     source: family.source,

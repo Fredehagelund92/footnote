@@ -92,6 +92,7 @@ function FlaggedRow({
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
+  const onlyVariants = name.family !== null && name.flags.every((flag) => flag.code === 'variants')
   // The name the tool has for it, small after the plain name, so two rows of one name can be
   // told apart; a family says what it holds.
   const member = name.family
@@ -111,15 +112,17 @@ function FlaggedRow({
         <Input
           id={id}
           value={chosen}
-          readOnly={name.linked.length > 0}
+          readOnly={name.linked.length > 0 || onlyVariants}
           aria-invalid={problem ? true : undefined}
           aria-label={`Name for ${member}`}
           className="min-w-48 flex-1"
           onChange={(e) => setChosen(e.target.value)}
         />
-        <Button variant="outline" disabled={busy} onClick={() => onAccept(chosen)}>
-          Publish
-        </Button>
+        {!onlyVariants && (
+          <Button variant="outline" disabled={busy} onClick={() => onAccept(chosen)}>
+            Publish
+          </Button>
+        )}
         {onLeaveOut && (
           <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
             Leave out

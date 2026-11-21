@@ -159,8 +159,8 @@ type View = {
   published: number
   /** The metrics and dimensions Definitions shows the person, by key. */
   shown: ReadonlySet<string>
-  /** Each family by its key: the keys of its variants. */
-  variantsOf: ReadonlyMap<string, string[]>
+  /** Each variant's family, by key: what a variant is called is its family's name. */
+  familyOf: ReadonlyMap<string, string>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -231,9 +231,9 @@ async function viewOf(reads: ToolReads): Promise<View> {
     shown: new Set(
       catalogue.terms.flatMap((t) => [t.key, ...(t.family?.variants.map((v) => v.key) ?? [])]),
     ),
-    variantsOf: new Map(
-      catalogue.terms.flatMap((t) => (t.family ? [[t.key, t.family.variants.map((v) => v.key)]] : [])),
-    ) as ReadonlyMap<string, string[]>,
+    familyOf: new Map(
+      catalogue.terms.flatMap((t) => (t.family?.variants ?? []).map((v) => [v.key, t.key] as const)),
+    ),
     areas,
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
     areaName: (id) => area(id)?.name ?? 'no domain',
@@ -254,8 +254,7 @@ const isShown = (view: View, key: string) => {
 }
 /** The terms a person may name: those shown, never a variant of a family, which only its family names. */
 const speakable = (view: View) => {
-  const variants = new Set([...view.variantsOf.values()].flat())
-  return view.bundle.terms.filter((t) => isShown(view, t.key) && !variants.has(t.key))
+  return view.bundle.terms.filter((t) => isShown(view, t.key) && !view.familyOf.has(t.key))
 }
 const termName = (view: View, key: string) =>
   view.bundle.terms.find((t) => t.key === key)?.name ?? key
@@ -270,7 +269,8 @@ function namesFor(
   },
 ): z.infer<typeof namesSchema> {
   const out = new Map<string, z.infer<typeof nameSchema>>()
-  for (const key of parts.terms ?? []) {
+  for (const named of parts.terms ?? []) {
+    const key = view.familyOf.get(named) ?? named
     const term = view.bundle.terms.find((t) => t.key === key)
     if (!term || !isShown(view, key) || out.has(nounId(key))) continue
     const dimension = term.kind === 'dimension_value' ? term.parentKey : null
@@ -298,10 +298,13 @@ function namesFor(
 }
 
 /** The metric and value keys an item applies to, those the person may see. */
-const aboutKeys = (view: View, item: ServingItem) =>
-  [...item.scope.metrics, ...item.scope.dimensionValues.map((v) => v.value)].filter((k) =>
-    isShown(view, k),
-  )
+const aboutKeys = (view: View, item: ServingItem) => [
+  ...new Set(
+    [...item.scope.metrics, ...item.scope.dimensionValues.map((v) => v.value)]
+      .map((k) => view.familyOf.get(k) ?? k)
+      .filter((k) => isShown(view, k)),
+  ),
+]
 
 /** The names of what these items apply to, and their domains. */
 const itemNames = (
@@ -1527,9 +1530,13 @@ const recordsOutput = z.object({
 })
 
 async function records(view: View, reads: ToolReads, input: z.output<typeof recordsInput>) {
-  const items = await reads.records()
+  const items = (await reads.records()).map((i) => ({
+    ...i,
+    metrics: i.metrics && [...new Set(i.metrics.map((k) => view.familyOf.get(k) ?? k))],
+  }))
+  const families = new Set(view.familyOf.values())
   const terms = speakable(view).filter(
-    (t) => t.kind !== 'metric_group' || view.variantsOf.has(t.key),
+    (t) => t.kind !== 'metric_group' || families.has(t.key),
   )
   const found = queryRecords(input, {
     items,
@@ -1545,7 +1552,7 @@ async function records(view: View, reads: ToolReads, input: z.output<typeof reco
             (t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value') &&
             namesOf(t).includes(normalizeName(n)),
         )
-        if (term) keys.push(term.key, ...(view.variantsOf.get(term.key) ?? []))
+        if (term) keys.push(term.key)
         else {
           const near = closest(
             n,

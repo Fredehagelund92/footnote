@@ -188,6 +188,19 @@ describe('families on the Names card', () => {
     expect(left).toMatchObject({ kind: 'metric_group', state: 'left_out', leftByOwner: true })
   })
 
+  it('says how many variants have a problem and what kind, never naming one', () => {
+    const taken: WordHolders = new Map([
+      ['revenue eur web', [{ origin: 'vocabulary', ref: 'metric:turnover', name: 'Turnover' }]],
+      ['revenue usd web', [{ origin: 'vocabulary', ref: 'metric:sales', name: 'Sales' }]],
+    ])
+    const [flagged] = sourceNames(shop([['revenue', 'Revenue', 'a']]), [], taken, new Set())
+    expect(flagged).toMatchObject({ kind: 'metric_group', state: 'flagged' })
+    expect(flagged!.flags).toEqual([
+      { code: 'variants', message: expect.stringContaining('2 of its variants have names already in use') },
+    ])
+    expect(JSON.stringify(flagged!.flags)).not.toMatch(/\(EUR\)|\(USD\)|Turnover|Sales/)
+  })
+
   it('adds the variants a later read found to the family that is live', () => {
     const members = shop([['revenue', 'Revenue', 'a']])
     const live: KnownTerm[] = [

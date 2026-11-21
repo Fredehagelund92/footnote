@@ -491,8 +491,7 @@ export function DefinitionsPage() {
               <span className="flex min-w-0 flex-col">
                 <span className="flex min-w-0 items-center gap-2">
                   {name}
-                  <FamilyChip family={family} className="@max-xl/main:hidden" />
-                  <FamilyChip family={family} short className="@xl/main:hidden" />
+                  <FamilyChip family={family} />
                   <AlsoCalledChips names={otherNames(d)} conflicts={[]} matched={matchedBy(d)} />
                 </span>
                 <span className="text-xs text-muted-foreground">

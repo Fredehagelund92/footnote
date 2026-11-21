@@ -8,6 +8,7 @@ import type {
 import { contentDigest } from '../../../domain/canonical.ts'
 import {
   nameRefusal,
+  variantNameRefusal,
   sourceNames,
   wordsOf,
   type SourceName,
@@ -318,9 +319,16 @@ export function createNamesService(tx: Queryable) {
     const known = new Map([...holders, ...also])
     const findings = picked.flatMap((name) => {
       const message = name.linked.length ? null : nameRefusal(name.key, name.chosen, known, chosen)
-      return message
-        ? [{ code: 'word_taken', field: name.key, message, severity: 'error' as const }]
-        : []
+      if (!message) return []
+      const family = name.parentKey ? byKey.get(name.parentKey) : null
+      return [
+        {
+          code: 'word_taken',
+          field: family?.key ?? name.key,
+          message: family ? variantNameRefusal(family.name) : message,
+          severity: 'error' as const,
+        },
+      ]
     })
     if (findings.length)
       throw new ORPCError('UNPROCESSABLE_CONTENT', {

@@ -305,7 +305,15 @@ describe('a family of metrics in Ask (FR-142)', () => {
 
   it('counts the items on a family and on any of its variants under the family name', async () => {
     const result = await tools.run('records', { about: ['Revenue'], show: 'count' })
-    expect(result).toMatchObject({ count: 2 })
+    expect(result).toMatchObject({ count: 2, filters: { about: ['Revenue'] } })
+    expect(JSON.stringify(result)).not.toMatch(/variant/)
+  })
+
+  it('names only the family for an item on a variant', async () => {
+    const result = await tools.run('records', { show: 'list' })
+    const names = ('names' in result ? result.names : []).map((n: { name: string }) => n.name)
+    expect(names).toContain('Revenue')
+    expect(names.filter((n: string) => /variant/.test(n))).toEqual([])
   })
 
   it('never offers a variant as the closest name', async () => {
