@@ -164,6 +164,45 @@ describe('a read', () => {
   })
 })
 
+describe('a family the model declares (FR-142, D9)', () => {
+  it("reads a member's meta.footnote as written, and moves no mark for it", async () => {
+    const plain = await read()
+    const declared = fixtureMeta()
+    const sales = declared.cubes.find((cube) => cube.name === 'sales')!
+    for (const [member, code] of [
+      ['sales.revenue', 'EUR'],
+      ['sales.count', 'USD'],
+    ] as const)
+      sales.measures.find((m) => m.name === member)!.meta = {
+        footnote: { family: 'order_amount', by: { currency: code } },
+      }
+    cloud.setMeta('7', declared)
+    try {
+      const snapshot = await read()
+      const of = (ref: string) => snapshot.definitions.find((d) => d.ref === ref)
+      expect(of('cube:sales.revenue')?.family).toEqual({
+        name: 'order_amount',
+        by: [{ name: 'currency', ref: null, value: 'EUR' }],
+      })
+      expect(of('cube:sales.count')?.family?.by[0]?.value).toBe('USD')
+      const mark = (ref: string) => plain.definitions.find((d) => d.ref === ref)?.changeMark
+      expect(of('cube:sales.revenue')?.changeMark).toBe(mark('cube:sales.revenue'))
+      // One it cannot keep is none, and the read says so.
+      sales.measures.find((m) => m.name === 'sales.count')!.meta = {
+        footnote: { family: 'order_amount' },
+      }
+      cloud.setMeta('7', declared)
+      const unreadable = await read()
+      expect(
+        unreadable.definitions.find((d) => d.ref === 'cube:sales.count')?.family,
+      ).toBeUndefined()
+      expect(unreadable.warnings).toContainEqual({ code: 'invalid_family', target: 'sales.count' })
+    } finally {
+      cloud.setMeta('7', fixtureMeta())
+    }
+  })
+})
+
 describe('the build status', () => {
   it('ends a read of an unchanged build without a token or the metadata', async () => {
     const first = await read()

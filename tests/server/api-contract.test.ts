@@ -93,13 +93,18 @@ function app(options: { rows?: object[]; signedIn?: boolean } = {}) {
 }
 
 describe('a definition’s relations (FR-143)', () => {
-  it('hold refs, names and a kind only: no field a calculation could take (CON-207)', () => {
+  it('hold refs, names, a kind and a conversion’s column only: no field a calculation could take (CON-207)', () => {
     const relation = contract.definitions.relations['~orpc'].outputSchema as unknown as {
       def: { shape: { relations: { def: { element: { def: { shape: object } } } } } }
     }
     const fields = Object.keys(relation.def.shape.relations.def.element.def.shape).sort()
-    expect(fields).toEqual(['key', 'kind', 'missing', 'name', 'ref'])
-    expect(definitionRelationKinds).toEqual(['built_from', 'used_by'])
+    expect(fields).toEqual(['by', 'key', 'kind', 'missing', 'name', 'ref'])
+    expect(definitionRelationKinds).toEqual([
+      'converted_from',
+      'converted_to',
+      'built_from',
+      'used_by',
+    ])
   })
 })
 

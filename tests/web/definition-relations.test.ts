@@ -38,6 +38,7 @@ const relation = (r: Partial<DefinitionRelation> & Pick<DefinitionRelation, 'kin
   column: false,
   linked: true,
   missing: false,
+  by: null,
   ...r,
 })
 
@@ -49,14 +50,15 @@ const rows = (page: HTMLElement) =>
   ])
 
 describe('how a metric is built', () => {
-  it('says what a metric is built from, and links a definition', () => {
+  it('says what a USD twin is converted from, by which column, and what it is built from', () => {
     const page = draw([
-      relation({ kind: 'built_from', name: 'Commission (EUR)' }),
+      relation({ kind: 'converted_from', name: 'Commission (EUR)', by: 'exchange_rate_usd' }),
       relation({ kind: 'built_from', name: 'commission_eur', column: true, linked: false }),
       relation({ kind: 'built_from', name: 'exchange_rate_usd', column: true, linked: false }),
     ])
     expect(rows(page)).toEqual([
-      ['Built from', 'Commission (EUR)columnscommission_eurexchange_rate_usd'],
+      ['Converted from', 'Commission (EUR)by the column exchange_rate_usd'],
+      ['Built from', 'columnscommission_eurexchange_rate_usd'],
     ])
     const link = page.querySelector('a')!
     expect(link.textContent).toBe('Commission (EUR)')

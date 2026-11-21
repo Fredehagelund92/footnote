@@ -5,6 +5,7 @@ import {
   definitionStates,
   termDomainSources,
 } from '../domain/catalogue.ts'
+import { familyFoundKinds } from '../domain/family-found.ts'
 import type { ItemKind } from '../domain/item.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 
@@ -110,10 +111,20 @@ export const catalogueTermSchema = z.object({
     z.object({
       by: z.array(z.string()),
       /**
+       * How it was found (D1): declared in the tool (`meta.footnote`), found from the calculation,
+       * or published by an owner from names that look alike.
+       */
+      found: z.enum(familyFoundKinds),
+      /**
        * What the source says of how a variant is worked out from another, its own words with the
        * variant's name ("Accrued share (USD): the EUR amount multiplied by the row's rate").
        */
       derivations: z.array(z.string()),
+      /**
+       * The variants worked out from another with one column more, as the source's structure says
+       * (D2): the variant converted to and the one it is converted from, by key, and the column.
+       */
+      conversions: z.array(z.object({ from: z.string(), to: z.string(), by: z.string() })),
       variants: z.array(catalogueVariantSchema),
     }),
   ),
@@ -170,7 +181,12 @@ export const catalogueValueSchema = z.object({
 })
 
 /** How a definition relates to another, or to a column, as its source's structure says (D3). */
-export const definitionRelationKinds = ['built_from', 'used_by'] as const
+export const definitionRelationKinds = [
+  'converted_from',
+  'converted_to',
+  'built_from',
+  'used_by',
+] as const
 
 /**
  * What a metric is built from and what is built from it (FR-143): the source's structure, kept by
@@ -189,6 +205,8 @@ export const definitionRelationSchema = z.object({
   key: z.nullable(z.string()),
   /** The definition is no longer in the source; false for a column. */
   missing: z.boolean(),
+  /** A conversion's column, the one the converted metric reads beyond the other (D2); else null. */
+  by: z.nullable(z.string()),
 })
 
 export const definitionRelationsInputSchema = z.strictObject({
@@ -196,7 +214,7 @@ export const definitionRelationsInputSchema = z.strictObject({
 })
 
 export const definitionRelationsSchema = z.object({
-  /** Built from in the source's order, then used by, by name. */
+  /** Converted from and to first, then built from in the source's order, then used by, by name. */
   relations: z.array(definitionRelationSchema),
 })
 
