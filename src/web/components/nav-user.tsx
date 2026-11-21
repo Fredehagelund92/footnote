@@ -32,7 +32,9 @@ export function NavUser() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={<SidebarMenuButton size="lg" className="aria-expanded:bg-muted" title={me.name} />}
+            render={
+              <SidebarMenuButton size="lg" className="aria-expanded:bg-muted" title={me.name} />
+            }
           >
             {/* The name alone: what they own can be a long list, so it is in the menu, which wraps
                 it. A screen reader still hears both, folded to the icons too. */}
