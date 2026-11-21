@@ -443,9 +443,10 @@ export function DefinitionsPage() {
     const n = about(d)
     const family = d.family
     // The row already says what tells the variants apart: its meaning says what writing about it does.
+    const meaningSubject = family ? undefined : glossary.meaningOf(d)
     const meaning = family
       ? `Context about it applies to all ${family.variants.length.toLocaleString('en-GB')} variants.`
-      : plainText(glossary.meaningOf(d).definition)
+      : plainText(meaningSubject?.definition)
     // Found by its variants' words alone, a family says how many: never which (FR-142).
     const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
     const rowFacts = [
@@ -564,8 +565,12 @@ export function DefinitionsPage() {
         </td>
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
-          <TruncatedText text={sourceWords(meaning) || 'No meaning written yet'}>
-            {meaning ? <SourceText text={meaning} /> : '–'}
+          <TruncatedText
+            text={
+              (meaningSubject?.synced ? sourceWords(meaning) : meaning) || 'No meaning written yet'
+            }
+          >
+            {meaning ? meaningSubject?.synced ? <SourceText text={meaning} /> : meaning : '–'}
           </TruncatedText>
         </td>
         <td

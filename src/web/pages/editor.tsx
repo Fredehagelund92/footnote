@@ -260,7 +260,9 @@ function initialForm(
   // there, rather than in the first domain they own.
   const own = query.get('domain')
   const start =
-    own && domains[own] && publishes(own) ? { domain: own, owners: domains[own].owners } : {}
+    own && Object.hasOwn(domains, own) && publishes(own)
+      ? { domain: own, owners: domains[own].owners }
+      : {}
   if (metric || market || about.length)
     return {
       ...blank,

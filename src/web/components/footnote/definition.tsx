@@ -523,7 +523,7 @@ export function DefinitionDetails({
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
   const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
   const mentioned = related.links.length > 0
-  const hasDetails = !!d.values || d.synced || mentioned
+  const hasDetails = !!d.values || (d.synced && !!(d.ref || d.changed)) || mentioned
   // The meaning is the page; then one quiet line on where it comes from, and the rest folded into Details.
   return (
     <div className="flex flex-col gap-5">
@@ -611,10 +611,10 @@ export function DefinitionDetails({
                 ))}
               </Property>
             )}
-            {d.synced && d.ref && (
+            {d.synced && (d.ref || d.changed) && (
               <Property label="From">
                 <span className="py-1">
-                  <span className="font-mono text-xs">{d.ref}</span>
+                  {d.ref && <span className="font-mono text-xs">{d.ref}</span>}
                   {d.changed && (
                     <span className="block text-xs text-muted-foreground">
                       Definition changed in {d.tool ?? 'its tool'} on {d.changed}
