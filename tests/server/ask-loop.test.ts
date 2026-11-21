@@ -222,6 +222,29 @@ describe('what code writes from the reads', () => {
     })
   })
 
+  it('says nothing is written only of a name no item it read is about, not of one covered in part', () => {
+    // F3 of the re-run: 20 items about Net revenue apply, each in some markets, so none covers it
+    // in full; a second asked metric has no item at all.
+    const read = get('partial', [
+      { ...item('itm_revenue01'), about: ['metric:net_revenue', 'value:market/germany'] },
+      { ...item('itm_revenue02'), about: ['metric:net_revenue', 'value:market/spain'] },
+    ])
+    const result = read.result as object
+    const partial = (uncovered: string[]): MadeRead => ({
+      ...read,
+      result: { ...result, uncovered },
+    })
+    const subject = (r: MadeRead) => turnOf('Net revenue is one figure.', [r], []).subject
+    expect(subject(partial(['metric:net_revenue']))).toMatchObject({
+      uncovered: ['metric:net_revenue'],
+      unwritten: [],
+    })
+    expect(subject(partial(['metric:net_revenue', 'metric:orders']))).toMatchObject({
+      uncovered: ['metric:net_revenue', 'metric:orders'],
+      unwritten: ['metric:orders'],
+    })
+  })
+
   it('is at most Partial when the subject read found no item and a search found what the words cite', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',

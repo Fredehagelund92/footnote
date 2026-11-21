@@ -1698,11 +1698,11 @@ function Finished({
               )}
               <HelpSources loop={loop} />
               {loop.state === 'partial' &&
-                !!loop.subject?.uncovered.length &&
+                !!loop.subject?.unwritten.length &&
                 !loop.sources.length && (
                   <p className="text-xs leading-6 text-muted-foreground">
                     Nothing is written about{' '}
-                    <Subject ids={loop.subject.uncovered} nouns={maps.nouns} /> yet.
+                    <Subject ids={loop.subject.unwritten} nouns={maps.nouns} /> yet.
                   </p>
                 )}
               {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}

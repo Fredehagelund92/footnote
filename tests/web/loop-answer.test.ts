@@ -368,6 +368,22 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).not.toMatch(/Show \d+ more/)
   })
 
+  it('Partial, citing nothing: "Nothing is written" only of a name no item is about, never over items about it (F3)', () => {
+    const base = example('loop-checked')
+    const partial = (unwritten: string[]): LoopTurn => ({
+      ...base,
+      state: 'partial',
+      sources: [],
+      subject: { ...base.subject!, uncovered: ['metric:net_revenue', ...unwritten], unwritten },
+      body: [{ t: 'p', runs: [{ t: 'text', text: 'Net revenue is one figure, in euros.' }] }],
+      text: 'Net revenue is one figure, in euros.',
+    })
+    expect(text(render(partial([])))).not.toContain('Nothing is written about')
+    act(() => root?.unmount())
+    host?.remove()
+    expect(text(render(partial(['metric:orders'])))).toContain('Nothing is written about')
+  })
+
   it('The figure: an answer reads the data of its subject, after the evidence; a question back and an overview do not', () => {
     const answer = render(example('loop-checked'))
     expect(answer.querySelector('[data-figure]')).not.toBeNull()
@@ -697,6 +713,7 @@ describe('the nouns of an answer on any workspace', () => {
       assumedToday: false,
       carried: false,
       uncovered: [],
+      unwritten: [],
     },
     sources: [],
     items: [],

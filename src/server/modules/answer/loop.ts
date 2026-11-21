@@ -1337,6 +1337,9 @@ function subjectOf(
   const { names, about, period, assumedToday, datesRead, otherDays } = m.result.read
   const ids = (v: unknown) =>
     Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
+  // An item about a name in part (Net revenue in some markets) is written about it all the same.
+  const written = new Set(arr(m.result.items).flatMap((i) => ids(i.about)))
+  const uncovered = ids(m.result.uncovered)
   return {
     names: ids(names),
     about: ids(about),
@@ -1350,7 +1353,8 @@ function subjectOf(
         .join(' · ') || null,
     assumedToday: assumedToday === true,
     carried,
-    uncovered: ids(m.result.uncovered),
+    uncovered,
+    unwritten: uncovered.filter((id) => !written.has(id)),
   }
 }
 

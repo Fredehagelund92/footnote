@@ -86,6 +86,7 @@ export function usedTurn(count: number, { look = 0 } = {}): LoopTurn {
       assumedToday: false,
       carried: false,
       uncovered: [],
+      unwritten: [],
     },
     nearby: [],
     conflict: [],

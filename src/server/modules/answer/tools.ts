@@ -438,6 +438,7 @@ const findOutput = z.object({
   /** The search found more than it read, so everyWord counts the first readItems only. */
   cut: z.boolean(),
   items: z.array(itemSchema.extend({ match: z.enum(['all', 'some', 'scope']) })),
+  /** Items that match every word and are not shown. Those that match some are never counted. */
   more: z.number(),
   definitions: z.array(namedDefinitionSchema),
   searched: z.array(searchedSchema),
@@ -582,7 +583,7 @@ async function findContext(view: View, input: z.output<typeof findInput>, today:
     readItems: found.length,
     cut: used.total > found.length,
     items,
-    more: used.total - items.length,
+    more: Math.max(0, used.whole - items.filter((i) => i.match !== 'some').length),
     definitions,
     searched,
     widened,
@@ -705,6 +706,7 @@ const getOutput = z.object({
   notCovered: z.array(z.string()),
   /** The same, by id, as `names` gives them. */
   uncovered: z.array(z.string()),
+  /** Items that apply and are not shown. Items that only match the words are never counted. */
   more: z.number(),
   /** What the wider read found when it left a part out: about the names, not the whole subject. */
   wider: z.nullable(
@@ -1028,7 +1030,7 @@ function getContext(
     uncovered: items.length
       ? [...counted.uncovered.metrics, ...counted.uncovered.values].map(nounId)
       : [],
-    more: cut + counted.leftOutMore,
+    more: cut,
     wider: wider ? { without: input.widen!.without!, items: widerItems } : null,
     owners,
     searched,
