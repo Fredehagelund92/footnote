@@ -322,9 +322,11 @@ function FoundBy({ family, name }: { family: Family; name: string }) {
           Found by its variant <b className="font-semibold">{variant.name}</b>
         </p>
         <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-          {variant.description && (differs || !family.meaning?.words)
-            ? variant.description
-            : `Same words as the family, with ${listed(variant.values)}.`}
+          {!variant.description
+            ? 'Its tool gives no words for it.'
+            : differs || !family.meaning?.words
+              ? variant.description
+              : `Same words as the family, with ${listed(variant.values)}.`}
         </p>
       </div>
     </div>
@@ -343,7 +345,9 @@ function UsualDialog({
 }) {
   const P = useParts()
   const write = P.useWrite()
-  const [member, setMember] = React.useState<string | null>(family.usual?.member ?? null)
+  const [member, setMember] = React.useState<string | null>(
+    family.variants.find((v) => v.name === family.usual?.member)?.name ?? null,
+  )
   const saving = P.useReported<void>({
     wasnt: `The usual variant of ${name} wasn't changed.`,
     done: () => {
@@ -429,7 +433,15 @@ function ValuesBand({
   const [picking, setPicking] = React.useState(false)
   const base = family.variants.find((v) => v.name === family.meaning?.base)
   const usual = family.variants.find((v) => v.name === family.usual?.member)
+  const gone = !!family.usual?.member && !usual
   const { lines, more } = conversionLines(family)
+  const converted = new Set(
+    (family.conversions ?? []).flatMap((c) => {
+      const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []
+      const [from, to] = [valuesOf(c.from), valuesOf(c.to)]
+      return to.flatMap((value, i) => (value !== from[i] ? [i] : []))
+    }),
+  )
   const by = family.by.join(' or ').toLowerCase()
   const page = `/definitions/${encodeURIComponent(d.name)}`
   const link = 'font-medium text-primary underline-offset-4 hover:underline'
@@ -440,7 +452,9 @@ function ValuesBand({
         by={family.by}
         values={axisValuesOf(family)}
         marked={[
-          ...(base ? [{ values: base.values, mark: 'base' }] : []),
+          ...(base
+            ? [{ values: base.values.map((v, i) => (converted.has(i) ? v : '')), mark: 'base' }]
+            : []),
           ...(usual ? [{ values: usual.values, mark: 'usual' }] : []),
         ]}
       />
@@ -456,13 +470,17 @@ function ValuesBand({
                 <b className="font-semibold text-foreground">{line.to}</b> is converted from{' '}
                 <b className="font-semibold text-foreground">{line.from}</b> by the column{' '}
                 <code className="font-mono">{line.by}</code>.
-                {more > 0 && ` ${n(more)} more conversions are on its page.`}
               </span>
             </p>
           ))}
+          {more > 0 && (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {n(more)} more conversions are on its page.
+            </p>
+          )}
         </div>
       )}
-      {(usual || canChange) && (
+      {(usual || gone || canChange) && (
         <p className="mt-3 text-xs leading-5 text-muted-foreground">
           {usual ? (
             <>
@@ -483,16 +501,22 @@ function ValuesBand({
               )}
             </>
           ) : (
-            canChange && (
+            (gone || canChange) && (
               <>
-                <P.Button
-                  variant="link"
-                  className="h-auto p-0 text-xs"
-                  onClick={() => setPicking(true)}
-                >
-                  Pick the variant Ask uses
-                </P.Button>{' '}
-                when a question names no {by}.
+                {gone &&
+                  `The usual variant, ${family.usual!.member}, is no longer in this family.${canChange ? ' ' : ''}`}
+                {canChange && (
+                  <>
+                    <P.Button
+                      variant="link"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => setPicking(true)}
+                    >
+                      Pick the variant Ask uses
+                    </P.Button>{' '}
+                    when a question names no {by}.
+                  </>
+                )}
               </>
             )
           )}
@@ -515,12 +539,18 @@ function ContextBand({ d, family }: { d: Definition; family: Family }) {
   const facts = P.useFacts()
   const about = glossary.contextAbout(d, facts)
   const variants = new Map(family.variants.map((v) => [v.name.toLowerCase(), v.name]))
-  // An item names the family, or one of its other names, unless every metric it names is a variant.
+  const own = new Set(
+    [d.name, ...d.sourceNames, ...glossary.synonymsOf(d.name).map((s) => s.name)].map((x) =>
+      x.toLowerCase(),
+    ),
+  )
+  // An item is about the whole family when it names the family or one of its other names; else
+  // about the variants it names, alone. Its dimensions and values name neither.
   const alone = new Map<string, number>()
   let all = 0
   for (const fact of about) {
     const named = fact.where.flatMap((w) => variants.get(w.toLowerCase()) ?? [])
-    const forAll = fact.where.some((w) => !variants.has(w.toLowerCase())) || !named.length
+    const forAll = fact.where.some((w) => own.has(w.toLowerCase())) || !named.length
     if (forAll) all += 1
     else for (const name of new Set(named)) alone.set(name, (alone.get(name) ?? 0) + 1)
   }
@@ -595,7 +625,7 @@ export default function FamilyPeek({
 }) {
   return (
     <FamilyPartsProvider parts={parts}>
-      <FamilyQuickView d={d} family={family} />
+      <FamilyQuickView key={d.name} d={d} family={family} />
     </FamilyPartsProvider>
   )
 }

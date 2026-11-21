@@ -43,7 +43,7 @@ for (const { name, width, height } of widths) {
       const context = dock.getByRole('region', { name: 'Context' })
       await expect(context).toContainText('2 items about Revenue, for all 250 variants')
       await expect(context).toContainText('2 items about Revenue (GBP) store alone')
-      await expect(context).toContainText('1 item about Revenue (USD) app alone')
+      await expect(context).toContainText('2 items about Revenue (USD) app alone')
       expect(await sideways(page)).toBe(0)
 
       await values.getByRole('button', { name: 'Change the usual variant of Revenue' }).click()

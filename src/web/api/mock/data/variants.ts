@@ -220,7 +220,7 @@ export function variantDefinitions(tool: string): Definition[] {
 }
 
 /**
- * Context about the families (FR-142): two notes on Revenue, for all its variants, and three on
+ * Context about the families (FR-142): two notes on Revenue, for all its variants, and four on
  * one variant alone, as its quick view tells apart.
  */
 export function familyFacts(): Fact[] {
@@ -258,6 +258,12 @@ export function familyFacts(): Fact[] {
       'Revenue (USD) app starts on 3 March 2026',
       'The app took no US dollars before 3 March 2026, so Revenue (USD) app has no earlier days.',
       ['Revenue (USD) app'],
+    ),
+    note(
+      'itm_fam_rev_usd_app_norway',
+      'Revenue (USD) app in Norway is booked in kroner first',
+      'Norwegian app orders are taken in kroner and converted, so Revenue (USD) app differs there.',
+      ['Revenue (USD) app', 'Country', 'Norway'],
     ),
     note(
       'itm_fam_rev_gbp_store',
