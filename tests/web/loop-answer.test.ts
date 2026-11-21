@@ -515,6 +515,24 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(el)).not.toMatch(/Show \d+ more/)
   })
 
+  it('Partial, citing nothing: the gap card only of a name no item is about, never over items about it (F3)', () => {
+    const base = example('loop-checked')
+    const partial = (unwritten: string[]): LoopTurn => ({
+      ...base,
+      state: 'partial',
+      sources: [],
+      subject: { ...base.subject!, uncovered: ['metric:net_revenue', ...unwritten], unwritten },
+      body: [{ t: 'p', runs: [{ t: 'text', text: 'Net revenue is one figure, in euros.' }] }],
+      text: 'Net revenue is one figure, in euros.',
+    })
+    expect(render(partial([])).querySelector('[data-gap]')).toBeNull()
+    act(() => root?.unmount())
+    host?.remove()
+    // What nothing is written about is the gap card's: Orders, not Net revenue, which items cover.
+    const gap = render(partial(['metric:orders'])).querySelector('[data-gap]')
+    expect(gap?.getAttribute('aria-label')).toBe('Not written yet: Orders')
+  })
+
   it('The figure: an answer reads the data of its subject, after the evidence; a question back and an overview do not', () => {
     const answer = render(example('loop-checked'))
     expect(answer.querySelector('[data-figure]')).not.toBeNull()
@@ -906,6 +924,7 @@ describe('the nouns of an answer on any workspace', () => {
       assumedToday: false,
       carried: false,
       uncovered: [],
+      unwritten: [],
     },
     sources: [],
     items: [],
@@ -960,6 +979,9 @@ describe('the nouns of an answer on any workspace', () => {
     expect(billing[0]!.querySelector('svg')?.getAttribute('class')).toMatch(/tag/)
     expect(text(el)).toContain('; again Billing.')
     expect(text(el)).not.toMatch(/market/i)
+    // A mark right after a chip reads as the name's own ("Sprint 41;"), with no gap before it.
+    expect(sprint.className).toMatch(/\bpr-0\.5\b/)
+    expect(billing[0]!.className).not.toMatch(/\bpr-0\.5\b/)
     // Drawn again, the first mention is still the chip.
     const answer = loopAnswerOf(invented, 'Tickets closed by billing?', names)
     act(() =>
@@ -968,6 +990,30 @@ describe('the nouns of an answer on any workspace', () => {
       ),
     )
     expect(buttons(el, /^Billing, value$/)).toHaveLength(1)
+  })
+
+  it('draws a domain with no hue of its own (the sandbox) with a neutral ring, never an empty dot', () => {
+    const sandbox: LoopTurn = {
+      ...invented,
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'It is in ' },
+            { t: 'noun', id: 'domain:area_sandbox' },
+            { t: 'text', text: '.' },
+          ],
+        },
+      ],
+      nouns: [
+        ...invented.nouns,
+        { id: 'domain:area_sandbox', name: 'Sandbox', of: null, type: null },
+      ],
+    }
+    const chip = buttons(render(sandbox), /^Sandbox, domain$/)[0] as HTMLElement
+    const dot = chip.querySelector('[aria-hidden]') as HTMLElement
+    expect(dot.className).toMatch(/\bborder-muted-foreground\b/)
+    expect(dot.className).not.toMatch(/\bbg-chip-dot\b/)
   })
 
   it("opens a value's card on a press, which says what it is a value of", () => {

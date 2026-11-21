@@ -147,6 +147,13 @@ const kindWords: Record<string, string> = {
 }
 
 /** Whether the words after a noun start with what it is: "in the [Sales] domain". */
+/**
+ * Whether a mark of punctuation comes right after a chip ("Sales:"): the chip keeps less room on
+ * its right, so the mark reads as the name's own, not as a word after a space.
+ */
+export const markAfter = (next: LoopRun | undefined) =>
+  next?.t === 'text' && /^[:;,.!?)]/.test(next.text)
+
 export function toldAfter(next: LoopRun | undefined, id: string): boolean {
   const kind = nounKindOf(id)
   return (
@@ -162,6 +169,7 @@ export function NounChip({
   nouns,
   still,
   told,
+  snug,
 }: {
   id: string
   nouns: Nouns
@@ -169,6 +177,8 @@ export function NounChip({
   still?: boolean
   /** The words right after it say what it is ("the Sales domain"): a screen reader hears it once. */
   told?: boolean
+  /** A mark of punctuation comes right after it (`markAfter`). */
+  snug?: boolean
 }) {
   const P = useParts()
   const noun = nouns.get(id)
@@ -182,7 +192,7 @@ export function NounChip({
       role={still ? undefined : 'button'}
       tabIndex={still ? undefined : 0}
       style={style}
-      className={P.cn(chip, className)}
+      className={P.cn(chip, className, snug && 'pr-0.5')}
     >
       {body}
       {said}
@@ -255,10 +265,14 @@ export function NounChip({
             'bg-muted text-foreground',
             undefined,
             <>
+              {/* Its hue's dot, or a neutral ring for a domain with none (the sandbox), as DomainDot. */}
               <span
                 aria-hidden
-                style={{ '--chip-h': hue } as React.CSSProperties}
-                className="size-2 shrink-0 self-center rounded-full bg-chip-dot"
+                style={hue === null ? undefined : ({ '--chip-h': hue } as React.CSSProperties)}
+                className={P.cn(
+                  'size-2 shrink-0 self-center rounded-full',
+                  hue === null ? 'border border-muted-foreground' : 'bg-chip-dot',
+                )}
               />
               <span className="min-w-0 truncate">{name}</span>
             </>,
@@ -596,7 +610,15 @@ export function Runs({
         if (seen?.has(r.id))
           return <React.Fragment key={i}>{nouns.get(r.id)?.name ?? key(r.id)}</React.Fragment>
         seen?.add(r.id)
-        return <NounChip key={i} id={r.id} nouns={nouns} told={toldAfter(runs[i + 1], r.id)} />
+        return (
+          <NounChip
+            key={i}
+            id={r.id}
+            nouns={nouns}
+            told={toldAfter(runs[i + 1], r.id)}
+            snug={markAfter(runs[i + 1])}
+          />
+        )
       }
       case 'cite':
         return <CiteMark key={i} n={r.n} item={items.get(r.n)} />

@@ -148,6 +148,7 @@ describe('a workspace of teams and sprints', () => {
         owners: ['Ada Okafor'],
         id: 'domain:area_support',
         people: ['person:p_ada'],
+        subject: true,
       },
     ])
     // A nearby item applies to other values of the dimension the subject names: as data.

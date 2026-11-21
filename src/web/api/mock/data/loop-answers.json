@@ -6,7 +6,7 @@
     "state": "grounded",
     "footer": {
       "denominator": "1 of 21 published context items you can see applies.",
-      "notSeen": "4 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -20,7 +20,8 @@
       "note": null,
       "assumedToday": true,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": [],
@@ -224,7 +225,7 @@
     "state": "missing",
     "footer": {
       "denominator": "0 of 21 published context items you can see apply.",
-      "notSeen": "11 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -238,7 +239,8 @@
       "note": null,
       "assumedToday": false,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [
       "itm_norway_stop",
@@ -564,7 +566,7 @@
     "state": "conflict",
     "footer": {
       "denominator": "3 of 21 published context items you can see apply.",
-      "notSeen": "7 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -578,7 +580,8 @@
       "note": null,
       "assumedToday": true,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
@@ -829,7 +832,8 @@
       "note": null,
       "assumedToday": false,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": [],
@@ -1026,35 +1030,15 @@
       "note": null,
       "assumedToday": true,
       "carried": false,
-      "uncovered": ["metric:net_revenue"]
+      "uncovered": ["metric:net_revenue"],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": [],
     "definitions": [],
     "defined": {
       "names": ["Net revenue"],
-      "tool": "Cube",
-      "cards": [
-        {
-          "id": "metric:net_revenue",
-          "name": "Net revenue",
-          "kind": "metric",
-          "words": "Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
-          "tool": "Cube",
-          "member": "Cube local model",
-          "group": null,
-          "domain": {
-            "id": "domain:area_sales",
-            "name": "Sales"
-          },
-          "owners": [],
-          "context": {
-            "count": 2,
-            "items": ["itm_spain_vat_in", "itm_spain_vat_out"]
-          },
-          "inWords": true
-        }
-      ]
+      "tool": "Cube"
     },
     "choices": [],
     "reads": [
@@ -1142,30 +1126,7 @@
         "type": null
       }
     ],
-    "items": [
-      {
-        "id": "itm_spain_vat_in",
-        "title": "Net revenue in Spain includes VAT",
-        "kind": "rule",
-        "domain": "domain:area_sales",
-        "about": ["metric:net_revenue", "value:market/spain"],
-        "status": "live",
-        "checked": "2026-10-12",
-        "outOfDate": null,
-        "n": null
-      },
-      {
-        "id": "itm_spain_vat_out",
-        "title": "Net revenue in Spain excludes VAT",
-        "kind": "rule",
-        "domain": "domain:area_paid_media",
-        "about": ["metric:net_revenue", "value:market/spain"],
-        "status": "live",
-        "checked": "2026-10-03",
-        "outOfDate": null,
-        "n": null
-      }
-    ],
+    "items": [],
     "closest": null,
     "owners": [
       {
@@ -1174,10 +1135,6 @@
           "person:25a8735f-76bb-4631-8614-1c9af887664d",
           "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
         ]
-      },
-      {
-        "domain": "domain:area_paid_media",
-        "people": ["person:d8c06a17-6a1f-4a95-813c-0d920a7c5446"]
       }
     ],
     "overview": null,
@@ -1190,7 +1147,7 @@
     "state": "conflict",
     "footer": {
       "denominator": "3 of 21 published context items you can see apply.",
-      "notSeen": "8 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -1204,7 +1161,8 @@
       "note": null,
       "assumedToday": false,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
@@ -1453,7 +1411,7 @@
     "state": "conflict",
     "footer": {
       "denominator": "3 of 21 published context items you can see apply.",
-      "notSeen": "6 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -1467,7 +1425,8 @@
       "note": "year not given",
       "assumedToday": false,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": ["itm_gift_card_only", "itm_gift_store_credit"],
@@ -1719,7 +1678,7 @@
     "state": "grounded",
     "footer": {
       "denominator": "1 of 21 published context items you can see applies.",
-      "notSeen": "2 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -1733,7 +1692,8 @@
       "note": null,
       "assumedToday": false,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": [],
@@ -1916,7 +1876,7 @@
     "state": "missing",
     "footer": {
       "denominator": "0 of 21 published context items you can see apply.",
-      "notSeen": "3 more items match and are not shown.",
+      "notSeen": null,
       "stale": null
     },
     "read": [
@@ -1930,7 +1890,8 @@
       "note": null,
       "assumedToday": true,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [
       "itm_norway_stop",
@@ -2252,7 +2213,7 @@
     "sources": [],
     "state": "missing",
     "footer": {
-      "denominator": "Out of 21 published context items you can see.",
+      "denominator": "None of the 21 published context items you can see is cited.",
       "notSeen": null,
       "stale": null
     },
@@ -2370,7 +2331,7 @@
     "sources": [],
     "state": "missing",
     "footer": {
-      "denominator": "Out of 21 published context items you can see.",
+      "denominator": "None of the 21 published context items you can see is cited.",
       "notSeen": null,
       "stale": null
     },
@@ -2425,7 +2386,7 @@
     "state": "stale",
     "footer": {
       "denominator": "1 of 21 published context items you can see applies.",
-      "notSeen": "7 more items match and are not shown.",
+      "notSeen": null,
       "stale": "“What to rule out before explaining a jump in Gross margin” may be out of date: its definition changed since it was checked."
     },
     "read": [
@@ -2439,7 +2400,8 @@
       "note": null,
       "assumedToday": true,
       "carried": false,
-      "uncovered": []
+      "uncovered": [],
+      "unwritten": []
     },
     "nearby": [],
     "conflict": [],

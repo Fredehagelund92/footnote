@@ -91161,6 +91161,12 @@
                                               "items": {
                                                 "type": "string"
                                               }
+                                            },
+                                            "unwritten": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
                                             }
                                           },
                                           "required": [
@@ -91170,7 +91176,8 @@
                                             "note",
                                             "assumedToday",
                                             "carried",
-                                            "uncovered"
+                                            "uncovered",
+                                            "unwritten"
                                           ]
                                         },
                                         {
@@ -92439,6 +92446,12 @@
                                                   "items": {
                                                     "type": "string"
                                                   }
+                                                },
+                                                "unwritten": {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "string"
+                                                  }
                                                 }
                                               },
                                               "required": [
@@ -92448,7 +92461,8 @@
                                                 "note",
                                                 "assumedToday",
                                                 "carried",
-                                                "uncovered"
+                                                "uncovered",
+                                                "unwritten"
                                               ]
                                             },
                                             {

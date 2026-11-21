@@ -292,6 +292,8 @@ export const loopTurnSchema = z.object({
       carried: z.boolean(),
       /** The asked metrics and values no item covers in full, as nouns' ids. */
       uncovered: z.array(z.string()),
+      /** Of those, the ones no item the read gave is about at all: nothing is written about them. */
+      unwritten: z.array(z.string()),
     }),
   ),
   /** Context items about the same names that do not apply, under Not found: named, not used. */

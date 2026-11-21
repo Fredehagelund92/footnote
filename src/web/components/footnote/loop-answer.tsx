@@ -964,12 +964,12 @@ const listed = (names: readonly string[]) =>
 
 /**
  * What is not written that the answer is about: the subject under Not found, and under Partial
- * what no item covers, when the answer found nothing to cite (with sources, it is written in
+ * what no item is about at all (`unwritten`), when the answer found nothing to cite (with sources, it is written in
  * part). Empty when the answer covers it, or names nothing a read named.
  */
 const missingOf = (loop: LoopTurn, nouns: Nouns) =>
   (loop.state === 'partial' && !loop.sources.length
-    ? (loop.subject?.uncovered ?? [])
+    ? (loop.subject?.unwritten ?? [])
     : loop.state === 'missing'
       ? (loop.subject?.about ?? [])
       : []

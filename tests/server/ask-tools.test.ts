@@ -241,6 +241,29 @@ describe('the records tool (FR-720.3)', () => {
     ])
   })
 
+  it('lists at most 50 rows across its groups, whatever their number, counting the rest (F4)', () => {
+    // F4 of the re-run: 22 metrics' groups of 25 rows each sent the model 181 KB for a count.
+    const metrics = Array.from({ length: 22 }, (_, m) => `metric:m${m}`)
+    const many: RecordsTable = {
+      ...table,
+      items: metrics.flatMap((metric, m) =>
+        Array.from({ length: 30 }, (_, i) =>
+          item({ id: `itm_${m}_${i}`, title: `Item ${m} ${i}`, metrics: [metric] }),
+        ),
+      ),
+      isShown: () => true,
+    }
+    const found = queryRecords(recordsInput.parse({ group_by: 'metric', show: 'count' }), many)
+    if ('error' in found) throw new Error(found.error)
+    const rows = found.groups!.rows
+    expect(rows).toHaveLength(22)
+    expect(rows.every((g) => g.count === 30 && g.items.length + g.more === 30)).toBe(true)
+    expect(rows.reduce((n, g) => n + g.items.length, 0)).toBeLessThanOrEqual(50)
+    expect(JSON.stringify(found).length).toBeLessThan(40_000)
+    // Few groups still list up to 25 rows each.
+    expect(query({ group_by: 'value', show: 'count' }).groups?.rows[0]?.items).toHaveLength(2)
+  })
+
   it('names what it does not know instead of counting nothing', () => {
     expect(read({ domain: 'Sails' })).toEqual({
       error: 'No domain is called "Sails". The domains are Sales, Marketing.',
