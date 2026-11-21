@@ -447,10 +447,79 @@ function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
   return out.filter((r) => r.t !== 'text' || r.text)
 }
 
+/** Where a reference that held nothing was, in the runs of its sentence, until its clause goes. */
+const HOLE = '\u0000'
+/** A place in a sentence's runs: a run, and a character of it when it is words. */
+type At = { run: number; char: number }
+/** The words a clause joins the next one with, left out with a first clause that goes. */
+const JOINS = /^\s*(?:and|but|or|so|while|whereas|yet)\b\s*/i
+
+/** The runs with the characters from `from` up to `to` left out. */
+function cutOut(runs: readonly LoopRun[], from: At, to: At): LoopRun[] {
+  return runs.flatMap((r, i): LoopRun[] => {
+    if (i < from.run || i > to.run) return [{ ...r }]
+    if (r.t !== 'text') return []
+    const text =
+      (i === from.run ? r.text.slice(0, from.char) : '') +
+      (i === to.run ? r.text.slice(to.char) : '')
+    return text ? [{ t: 'text', text }] : []
+  })
+}
+
+/**
+ * A sentence's runs without the clause that held a reference to nothing a read holds (F4 of the Ask
+ * re-run: "Footnote holds [#r4.counts.metrics] metrics, and the one with the fewest …" read
+ * "Footnote holds metrics, and …"), so what is left reads whole: from the , ; or : before it to
+ * the next , or ;, or to the sentence's stop. A first clause goes up to the next one with the word
+ * that joins them, and the rest starts with a capital. Null when the clause is the whole sentence.
+ */
+function withoutClause(runs: readonly LoopRun[]): LoopRun[] | null {
+  const hole = runs.findIndex((r) => r.t === 'text' && r.text.includes(HOLE))
+  if (hole < 0) return [...runs]
+  const holeAt = (runs[hole] as { text: string }).text.indexOf(HOLE)
+  let start: At | null = null
+  for (let i = hole; i >= 0 && !start; i--) {
+    const r = runs[i]!
+    if (r.t !== 'text') continue
+    const cut = [...r.text.slice(0, i === hole ? holeAt : undefined).matchAll(/[,;:](?=\s)/g)].at(
+      -1,
+    )
+    if (cut) start = { run: i, char: cut.index }
+  }
+  let end: At | null = null
+  for (let i = hole; i < runs.length && !end; i++) {
+    const r = runs[i]!
+    if (r.t !== 'text') continue
+    const from = i === hole ? holeAt : 0
+    const next = /[,;](?=\s)/.exec(r.text.slice(from))
+    if (next) end = { run: i, char: from + next.index }
+  }
+  if (start) {
+    // To the next clause, or else to the sentence's stop, which stays.
+    let stop: At = { run: runs.length, char: 0 }
+    for (let i = runs.length - 1; i >= hole && !end; i--) {
+      const r = runs[i]!
+      const at = r.t === 'text' ? /[.!?]+\s*$/.exec(r.text) : null
+      if (at && (i > hole || at.index > holeAt)) stop = { run: i, char: at.index }
+      if (at) break
+    }
+    return cutOut(runs, start, end ?? stop)
+  }
+  if (!end) return null
+  const rest = cutOut(runs, { run: 0, char: 0 }, { run: end.run, char: end.char + 1 })
+  const first = rest[0]
+  if (first?.t === 'text') {
+    const text = first.text.replace(JOINS, '').trimStart()
+    first.text = text.charAt(0).toUpperCase() + text.slice(1)
+  }
+  return rest
+}
+
 /**
  * The model's words checked and drawn (FR-720.2, FR-720.3): paragraphs, the short lists it wrote,
  * the lists of reads it asked for, and in each sentence its nouns, numbers and citations. Every
- * sentence is kept: a number no read holds is left out of it, flagged; a long enumeration after a
+ * sentence is kept but one whose only clause held a number no read holds: such a number is left out
+ * with its clause, flagged; a long enumeration after a
  * colon becomes a list. `cited` grows as items are cited, the first cited first, and the rows of a
  * list of a read are cited as they come.
  */
@@ -465,6 +534,8 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
   }
   /** The words of the sentences before the one being read. */
   let earlier = ''
+  /** Whether the words are one sentence: it is never left out whole. */
+  const alone = text.split(SENTENCE_END).filter((x) => x.trim()).length === 1
   /** A mention by its id, or by the name the model wrote in its place: a chip, else the name. */
   const mention = (runs: LoopRun[], written: string) => {
     const id = typedId(written, ctx.nouns)
@@ -522,9 +593,11 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
             pushRun(runs, { t: 'text', text: withoutRepeat(runs, value.trim()) })
           }
         }
-        // One to nothing a read holds as words or a number is left out: its sentence stays.
-        else if (!run) check('number', whole)
-        else if (saidAlready(runs, run)) check('twice', whole)
+        // One to nothing a read holds as words or a number is left out, with its clause.
+        else if (!run) {
+          check('number', whole)
+          pushRun(runs, { t: 'text', text: HOLE })
+        } else if (saidAlready(runs, run)) check('twice', whole)
         else if (strayAtEnd(runs, run, words.slice(at), earlier)) check('twice', whole)
         else {
           pushRun(runs, run)
@@ -541,6 +614,12 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       }
     }
     pushRun(runs, { t: 'text', text: words.slice(at) })
+    // A clause left with a hole goes; a sentence that was only that clause, too, unless it is all.
+    const holed = withoutClause(runs) ?? (alone ? [...runs] : [])
+    runs.length = 0
+    for (const r of holed)
+      pushRun(runs, r.t === 'text' ? { t: 'text', text: r.text.replaceAll(HOLE, '') } : r)
+    if (!runs.length) return runs
     // A reference left out of brackets leaves no empty brackets behind.
     for (const r of runs) if (r.t === 'text') r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '')
     // A citation sits right after what it supports: three or more at a sentence's end are a pile.
