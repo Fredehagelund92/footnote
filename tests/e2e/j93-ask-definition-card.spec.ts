@@ -1,6 +1,6 @@
 import { expect, go, test } from './go.ts'
 
-// J90, the definition card (change 9 of the live test of Ask): "What is net revenue?" is
+// J93, the definition card (change 9 of the live test of Ask): "What is net revenue?" is
 // answered with its definition as a card, as the service wrote it on the demo week
 // (?example=loop-definition): the Definition mark in the state's place, then the card, which
 // stands in for the words: the metric's chip and group, the source's own words at the answer's

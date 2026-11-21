@@ -1,6 +1,6 @@
 import { expect, go, signInAs, test } from './go.ts'
 
-// J91, the gap card for a word the workspace does not know, and a stop (changes 7 and 10 of the
+// J94, the gap card for a word the workspace does not know, and a stop (changes 7 and 10 of the
 // live test of Ask), as the service wrote them on the demo week. "What is our EBITDA
 // definition?" names no metric, value or context item: a reader who may not add it tells an admin,
 // with the word alone, and the card says who was told (?example=loop-unknown); an admin may add it

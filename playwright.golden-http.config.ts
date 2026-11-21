@@ -90,11 +90,11 @@ export default defineConfig({
     // J70 opens answers that cite N items by the mock's example address (loop-used-N); the
     // service's answers have the sources the demo week gives them.
     /\/j70-ask-sources\.spec\.ts$/,
-    // J90 and J91 open answers of Ask's loop by the mock's example address; the service writes
+    // J93 and J94 open answers of Ask's loop by the mock's example address; the service writes
     // them in tests/web/integration/ask-loop-shapes.test.ts, and the word an admin is told about
     // reaches the Inbox in tests/web/integration/ask-tell-owner.test.ts.
-    /\/j90-ask-definition-card\.spec\.ts$/,
-    /\/j91-ask-gap-card\.spec\.ts$/,
+    /\/j93-ask-definition-card\.spec\.ts$/,
+    /\/j94-ask-gap-card\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
