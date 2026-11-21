@@ -32,6 +32,10 @@ export type SourceView = {
   modelFile: string | null
 }
 
+/** A model file's address in its host's web view: the folder's address, then each part of its path. */
+export const modelFileUrl = (folder: string, file: string) =>
+  `${folder.replace(/\/+$/, '')}/${file.split('/').map(encodeURIComponent).join('/')}`
+
 /** The view a member is in, or null when its name has no dot. */
 export function viewOf(name: string): string | null {
   const dot = name.lastIndexOf('.')

@@ -75,6 +75,7 @@ A code is one of [the service's own](../../src/contract/operations.ts), or yours
 - **What may read it unchanged.** A file read over https may have an ETag or a date. Send them back, and end with `unchanged: true` on a `304`, and the last read is kept. Put your mapping's version in the cursor.
 - **Whether an address is a secret.** A signed link is a credential. Keep it in a secret slot and declare its host with `{ fromSecret: <slot> }`. Name only its host in a step.
 - **Whether it can read a folder on the server.** If `read` works from `ctx.folder` with no settings, declare `capabilities.serverFolder: true`. Leave it out for an API or a live service.
+- **Whether a definition links to its file.** If your read names each definition's `modelFile` and the tool's files have a web view, add an address setting for the model folder and name it in `capabilities.modelLinks`. A definition's page then opens its file. Without both, it links nowhere.
 - **What a group is.** The part of a name before the last dot. Admins map each group to a domain, and a name without a dot cannot be listed.
 - **What is left out.** Join keys, inputs people never query, hidden members and saved queries.
 - **Whether same-named dimensions are one.** `mergeDimensions: 'by-name'` when views share their dimensions, as in Cube. `'never'` when each group's is its own, as in dbt.

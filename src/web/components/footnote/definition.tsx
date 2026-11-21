@@ -11,9 +11,7 @@ import type { Fact } from '@/model/items'
 import {
   familyMeaning,
   parseTags,
-  cubeRef,
   kindName,
-  sourceUrl,
   type Conflict,
   type Definition,
   useGlossary,
@@ -23,6 +21,7 @@ import { useReadAhead } from '@/lib/read-ahead'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { mentionId, plainText } from '@/lib/mentions'
 import { MentionText } from '@/components/footnote/mention-chip'
+import { SourceText } from '@/components/footnote/source-text'
 import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
 import { PeekFact, PeekFacts } from '@/components/footnote/peek'
@@ -527,7 +526,8 @@ export function DefinitionDetails({
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
   const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
   const mentioned = related.links.length > 0
-  const hasDetails = !!d.values || d.synced || mentioned
+  const hasDetails =
+    !!d.values || (d.synced && !!(d.ref || d.changed || d.sourceNames.length > 0)) || mentioned
   // The meaning is the page; then one quiet line on where it comes from, and the rest folded into Details.
   return (
     <div className="flex flex-col gap-5">
@@ -551,7 +551,11 @@ export function DefinitionDetails({
         </div>
       ) : d.definition ? (
         <div className="max-w-reading text-base leading-7">
-          <MentionText text={d.definition} />
+          {d.synced ? (
+            <SourceText text={d.definition} code="text-sm" />
+          ) : (
+            <MentionText text={d.definition} />
+          )}
         </div>
       ) : (
         <p className="text-base text-muted-foreground">No meaning written yet.</p>
@@ -561,16 +565,22 @@ export function DefinitionDetails({
         <PeekFacts>
           {d.synced ? (
             <PeekFact icon={LockIcon}>
-              <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} -{' '}
-              <a
-                href={sourceUrl(d)}
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline"
-              >
-                Open in source
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
+              <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'}
+              {d.fileUrl && (
+                <>
+                  {' '}
+                  -{' '}
+                  <a
+                    href={d.fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline"
+                  >
+                    Open in source
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                </>
+              )}
             </PeekFact>
           ) : (
             <PeekFact icon={PencilIcon}>
@@ -588,11 +598,7 @@ export function DefinitionDetails({
         {hasDetails && (
           <MoreProperties
             label="Details"
-            summary={[
-              d.synced && cubeRef(d),
-              d.values,
-              mentioned && `${related.links.length} related`,
-            ]
+            summary={[d.synced && d.ref, d.values, mentioned && `${related.links.length} related`]
               .filter(Boolean)
               .join(' - ')}
           >
@@ -610,10 +616,10 @@ export function DefinitionDetails({
                 ))}
               </Property>
             )}
-            {d.synced && (
+            {d.synced && (d.ref || d.changed) && (
               <Property label="From">
                 <span className="py-1">
-                  <span className="font-mono text-xs">{cubeRef(d)}</span>
+                  {d.ref && <span className="font-mono text-xs">{d.ref}</span>}
                   {d.changed && (
                     <span className="block text-xs text-muted-foreground">
                       Definition changed in {d.tool ?? 'its tool'} on {d.changed}

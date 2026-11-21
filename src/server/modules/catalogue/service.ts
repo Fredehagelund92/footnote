@@ -6,6 +6,7 @@ import type {
   CatalogueTerm,
   DefinitionRelations,
 } from '../../../contract/index.ts'
+import type { SourceConfig } from '../../../contract/sources.ts'
 import {
   catalogueStatus,
   definitionState,
@@ -23,15 +24,23 @@ import {
   familiesOf,
   familyAxes,
 } from '../../../domain/metric-families.ts'
-import { viewOf } from '../../../domain/source-views.ts'
+import { modelFileUrl, viewOf } from '../../../domain/source-views.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
-import { connectorType } from '../connectors/index.ts'
+import { connectorType, connectorTypes, modelFolderOf } from '../connectors/index.ts'
 import { libraryIndexItems } from '../library/index.ts'
 
-const withoutRemoved = <T extends { removed: boolean }>({ removed: _removed, ...source }: T) =>
-  source
+const withoutRemoved = <T extends { removed: boolean; modelFolder: string | null }>({
+  removed: _removed,
+  modelFolder: _folder,
+  ...source
+}: T) => source
+
+/** The administrator settings that hold a model folder's address, for links to model files. */
+const linkSettings = connectorTypes.flatMap((type) =>
+  type.modelLinkSetting ? [type.modelLinkSetting] : [],
+)
 
 /**
  * The catalogue read model (FR-136): the live vocabulary's metrics and dimensions, joined to what
@@ -65,7 +74,9 @@ type VocabularyRow = {
   definitionRefs: string[]
 }
 
-type DefinitionRow = Omit<CatalogueDefinition, 'state'> & {
+type DefinitionRow = Omit<CatalogueDefinition, 'state' | 'fileUrl'> & {
+  /** The model file that defines it, relative to the source's model folder; null for none. */
+  modelFile: string | null
   visible: boolean
   missing: boolean
   changedSinceFirstRead: boolean
@@ -115,7 +126,13 @@ export function createCatalogueService(
     const [row] = await database.query<{
       vocabulary: VocabularyRow[]
       definitions: DefinitionRow[]
-      sources: (Omit<CatalogueSource, 'tool' | 'connector'> & { type: string; removed: boolean })[]
+      sources: (Omit<CatalogueSource, 'tool' | 'connector'> & {
+        type: string
+        removed: boolean
+        fromServer: boolean
+        config: SourceConfig
+      })[]
+      settings: { key: string; value: unknown }[]
       mentions: { key: string; items: number }[]
       gaps: string[][]
       items: IndexedItem[]
@@ -139,7 +156,7 @@ export function createCatalogueService(
        described as (
          select d.ref, d.connector_id as "sourceId", d.name, d.title,
                 d.description_copy as "descriptionCopy", d.value_type as "valueType",
-                d.renamed_to as "renamedTo", d.variant_by as "variantBy",
+                d.renamed_to as "renamedTo", d.model_file as "modelFile", d.variant_by as "variantBy",
                 d.variant_shape as "variantShape",
                 ${visibleTo} as visible,
                 d.missing_since_snapshot is not null as missing,
@@ -158,7 +175,7 @@ export function createCatalogueService(
        sources as (
          select c.id, c.name, c.type, ${iso('ok.fetched_at')} as "readAt", ok.source_version as "sourceVersion",
                 coalesce(latest.status = 'failed', false) as failing,
-                c.removed_at is not null as removed
+                c.removed_at is not null as removed, c.origin = 'server' as "fromServer", c.config
            from connectors c
            left join lateral (select s.fetched_at, s.source_version from connector_snapshots s
                                where s.connector_id = c.id and s.status <> 'failed'
@@ -177,22 +194,26 @@ export function createCatalogueService(
          (select coalesce(json_agg(d), '[]') from described d) as definitions,
          (select coalesce(json_agg(s order by s.id collate "C"), '[]') from sources s) as sources,
          (select coalesce(json_agg(m), '[]') from mentions m) as mentions,
+         (select coalesce(json_agg(s), '[]') from (
+            select distinct on (key) key, value from settings_versions
+             where key = any($2::text[]) order by key, version desc) s) as settings,
          (select coalesce(json_agg(t.metric_keys || t.value_keys || t.dimension_keys), '[]')
             from gaps g join topics t on t.id = g.topic_id
            where g.status = 'open') as gaps,
          ${libraryIndexItems} as items`,
-      [groups],
+      [groups, linkSettings],
     )
     const { vocabulary, definitions, mentions, items } = row!
+    const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
-    const sources: (CatalogueSource & { removed: boolean })[] = row!.sources.map(
-      ({ type, removed, ...source }) => ({
+    const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
+      row!.sources.map(({ type, removed, fromServer, config, ...source }) => ({
         ...source,
         removed,
         tool: connectorType(type, source.name).tool,
         connector: type,
-      }),
-    )
+        modelFolder: modelFolderOf({ type, fromServer, config }, (key) => settings.get(key)),
+      }))
     const gaps = row!.gaps.map((keys) => ({ keys }))
     return { vocabulary, definitions, sources, mentions, gaps, items }
   }
@@ -218,6 +239,10 @@ export function createCatalogueService(
 
     const sourceOf = (sourceId: string) => data.sources.find((source) => source.id === sourceId)
     const toolOf = (sourceId: string) => sourceOf(sourceId)?.tool ?? sourceId
+    const fileUrlOf = ({ sourceId, modelFile }: DefinitionRow) => {
+      const folder = sourceOf(sourceId)?.modelFolder
+      return folder && modelFile ? modelFileUrl(folder, modelFile) : null
+    }
 
     // A family (FR-142) is a metric group that names its variants' definitions: one entry for them
     // all. A group that names none is a group of the tool's, as before.
@@ -252,6 +277,7 @@ export function createCatalogueService(
         sourceId: definition.sourceId,
         tool: toolOf(definition.sourceId),
         connector: sourceOf(definition.sourceId)?.connector ?? definition.sourceId,
+        fileUrl: fileUrlOf(definition),
       }))
     }
 

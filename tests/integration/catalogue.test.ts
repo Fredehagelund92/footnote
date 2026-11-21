@@ -10,6 +10,7 @@ import {
   createCubeSource,
 } from '../../src/server/modules/connectors/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
+import { DEMO_MODEL_URL } from '../../db/seed/fixtures/cube-model.ts'
 import { generateItems } from '../../db/seed/fixtures/items.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { apiDatabase, testDatabase } from './support.ts'
@@ -140,6 +141,20 @@ describe('the catalogue on PostgreSQL', () => {
         sourceId: 'cube',
       },
     })
+  })
+
+  it('links a definition to its view’s model file under the model folder’s address', async () => {
+    expect((await term('metric:average_order_value'))?.definition).toMatchObject({
+      ref: 'cube:basket.average_order_value',
+      fileUrl: `${DEMO_MODEL_URL}/basket.yml`,
+    })
+    // With no folder address, no definition links anywhere.
+    await client.query(
+      `insert into settings_versions (key, version, value, reason)
+       select key, max(version) + 1, 'null', 'test: no address' from settings_versions
+        where key = 'sources.cube_model_url' group by key`,
+    )
+    expect((await term('metric:average_order_value'))?.definition?.fileUrl).toBeNull()
   })
 
   it('keeps the last good read while the source fails (CON-213)', async () => {

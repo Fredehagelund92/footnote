@@ -175,6 +175,25 @@ describe('checking a manifest', () => {
     ])
   })
 
+  it('links to model files only from an address setting of a definitions connector', () => {
+    const cube = builtInManifests.find((m) => m.id === 'cube')!
+    const linking = (modelLinks: string) => ({
+      ...cube,
+      capabilities: { ...cube.capabilities, modelLinks },
+    })
+    expect(problemsOf(cube)).toEqual([])
+    expect(problemsOf(linking('folder'))).toEqual([
+      'capabilities.modelLinks: Name an address setting; folder is not one.',
+    ])
+    expect(
+      problemsOf({
+        ...valid,
+        kind: 'content',
+        capabilities: { ...valid.capabilities, domain: 'per-scope', modelLinks: 'definitions' },
+      }),
+    ).toContain('capabilities.modelLinks: Only a definitions connector links to model files.')
+  })
+
   it('keeps schedules in order and refuses a warning without words', () => {
     expect(
       problemsOf({

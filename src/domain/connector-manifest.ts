@@ -207,6 +207,11 @@ export const connectorManifestSchema = z.strictObject({
      * to a connector that declares this.
      */
     serverFolder: z.optional(z.boolean()),
+    /**
+     * Definitions: the address setting that holds the model folder in the host's web view, so a
+     * definition links to the model file its read names (`modelFile`). Absent, nothing links.
+     */
+    modelLinks: z.optional(z.string()),
     links: z.optional(z.boolean()),
     /**
      * Definitions: it can read one figure for Ask from the tool's data endpoint (CON-612), when
@@ -445,6 +450,9 @@ export function checkManifest(
       )
     if (manifest.limits.draftsPerDay !== undefined)
       problem('limits.draftsPerDay', 'Only a content connector makes drafts.')
+    const links = manifest.capabilities.modelLinks
+    if (links !== undefined && fields.find((field) => field.key === links)?.kind !== 'address')
+      problem('capabilities.modelLinks', `Name an address setting; ${links} is not one.`)
   } else {
     if (manifest.refPrefix !== undefined)
       problem('refPrefix', 'Only a definitions connector has a ref prefix.')
@@ -458,6 +466,8 @@ export function checkManifest(
       problem('capabilities.mergeDimensions', 'Only a definitions connector has dimensions.')
     if (manifest.capabilities.serverFolder !== undefined)
       problem('capabilities.serverFolder', 'Only a definitions connector reads a server folder.')
+    if (manifest.capabilities.modelLinks !== undefined)
+      problem('capabilities.modelLinks', 'Only a definitions connector links to model files.')
     if (manifest.limits.draftsPerDay === undefined)
       problem('limits.draftsPerDay', 'Say how many drafts a source may make in a day.')
   }

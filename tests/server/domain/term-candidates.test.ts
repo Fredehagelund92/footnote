@@ -63,6 +63,20 @@ describe('termCandidates', () => {
     expect(keyPart("Côte d'Ivoire")).toBe('cote_d_ivoire')
   })
 
+  it('keeps a title that only starts with its model’s words', () => {
+    // dbt names a metric after its semantic model: "(EUR)" alone says nothing (N4).
+    expect(
+      memberName({
+        name: 'commercial_revenue.commercial_revenue_eur',
+        title: 'Commercial Revenue (EUR)',
+        baseName: null,
+      }),
+    ).toBe('Commercial Revenue (EUR)')
+    expect(
+      memberName({ name: 'orders.revenue_usd', title: 'Orders - revenue (USD)', baseName: null }),
+    ).toBe('Orders - revenue (USD)')
+  })
+
   it('makes one dimension of a name every view shares, of no domain when the views differ', () => {
     const candidates = termCandidates(
       [

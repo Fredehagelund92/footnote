@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
+import { SourceText } from '@/components/footnote/source-text'
 import { useOnline } from '@/lib/send'
 import { asSuggested } from '@domain/suggested-names'
 import { memberOf } from '@domain/vocabulary'
@@ -71,7 +72,9 @@ function ReadyRow({
         </span>
       </span>
       {name.description && (
-        <span className="line-clamp-1 text-xs text-muted-foreground">{name.description}</span>
+        <span className="line-clamp-1 text-xs text-muted-foreground">
+          <SourceText text={name.description} />
+        </span>
       )}
     </li>
   )

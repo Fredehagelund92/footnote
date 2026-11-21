@@ -126,9 +126,13 @@ export function memberName(member: Pick<CandidateMember, 'name' | 'title' | 'bas
   const title = member.title?.trim()
   if (!title) return capitalized(words(ownName(member)))
   const prefix = view ? words(view).toLowerCase() : ''
-  const rest = (
-    prefix && title.toLowerCase().startsWith(`${prefix} `) ? title.slice(prefix.length + 1) : title
-  ).trim()
+  const after =
+    prefix && title.toLowerCase().startsWith(`${prefix} `)
+      ? title.slice(prefix.length + 1).trim()
+      : ''
+  // Only a title that goes on with a word loses the view's: "Commercial Revenue (EUR)" of the
+  // view `commercial_revenue` is a title of its own, never "(EUR)".
+  const rest = /^[\p{L}\p{N}]/u.test(after) ? after : title
   if (member.baseName) {
     if (rest === titled(afterView)) return capitalized(words(member.baseName))
     const join = words(afterView.slice(0, afterView.length - member.baseName.length)).toLowerCase()

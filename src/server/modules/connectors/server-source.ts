@@ -33,6 +33,7 @@ export const cubeServerType: ConnectorType = {
   type: cubeManifest.id,
   tool: cubeManifest.tool,
   settingKeys: ['sources.cube_model_url'],
+  modelLinkSetting: 'sources.cube_model_url',
   mergeDimensions: cubeManifest.capabilities.mergeDimensions ?? 'by-name',
 }
 

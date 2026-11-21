@@ -101,11 +101,12 @@ A **type** of the sources the server's configuration selects (`ConnectorType` in
 `connectorTypes` in `registry.ts`) says what the screen needs of it. No connector may take its
 id, except the one that reads it (Cube, for the server's model folder):
 
-| Field         | Meaning                                                                                                                                                                                                                                                                                                                                | Cube                     |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `type`        | The type's id, stored on the connector (`connectors.type`).                                                                                                                                                                                                                                                                            | `cube`                   |
-| `tool`        | The tool it reads, as people say it. Every word on screen that names the tool comes from here ("Gone from Cube", "Changed in Cube, 7 Oct 2026", "We could not read Cube lately"): no core code names a vendor (CON-101). The API sends it as `tool` on each catalogue source and definition and on each source of the operations view. | `Cube`                   |
-| `settingKeys` | The administrator settings (FR-809) that belong to the source the server's configuration selects. Its page in Integrations shows and changes them; Limits leaves them out.                                                                                                                                                             | `sources.cube_model_url` |
+| Field              | Meaning                                                                                                                                                                                                                                                                                                                                | Cube                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `type`             | The type's id, stored on the connector (`connectors.type`).                                                                                                                                                                                                                                                                            | `cube`                   |
+| `tool`             | The tool it reads, as people say it. Every word on screen that names the tool comes from here ("Gone from Cube", "Changed in Cube, 7 Oct 2026", "We could not read Cube lately"): no core code names a vendor (CON-101). The API sends it as `tool` on each catalogue source and definition and on each source of the operations view. | `Cube`                   |
+| `settingKeys`      | The administrator settings (FR-809) that belong to the source the server's configuration selects. Its page in Integrations shows and changes them; Limits leaves them out.                                                                                                                                                             | `sources.cube_model_url` |
+| `modelLinkSetting` | Optional. The administrator setting holding the model folder address for the server's own source.                                                                                                                                                                                                                                      | `sources.cube_model_url` |
 
 A **source** (`DefinitionSource`) is one configured reader of that type:
 
@@ -398,6 +399,7 @@ export default defineManifest({
     marks: undefined, // definitions: 'meaning' | 'metadata' (do marks see calculations? CON-505)
     mergeDimensions: undefined, // definitions: 'by-name' | 'never' (CON-201), absent is by-name
     serverFolder: undefined, // definitions: reads a folder on the server with no settings (CON-119)
+    modelLinks: undefined, // definitions: the address setting of the model folder in the host's web view
     links: true,
     figures: undefined, // definitions: reads one figure for Ask (CON-612)
   },

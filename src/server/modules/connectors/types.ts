@@ -140,6 +140,12 @@ export interface ConnectorType {
    * `capabilities.mergeDimensions`, CON-201): `by-name` merges them into one proposed term.
    */
   readonly mergeDimensions: 'by-name' | 'never'
+  /**
+   * The administrator setting that holds the model folder's address in the host's web view, for
+   * the source the server's configuration selects: what `capabilities.modelLinks` is for a source
+   * an administrator adds.
+   */
+  readonly modelLinkSetting?: SettingKey
 }
 
 export type { FieldProblem } from '../../../domain/connector-config.ts'

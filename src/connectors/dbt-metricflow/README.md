@@ -202,7 +202,8 @@ built from, the type, the label and the description. A metric's mark moves when 
 built on is worked out differently, and never for an input's label. It never sees the domain, the
 other names, or the database and schema the project was built for. The same meaning gives the same
 mark under both YAML specs. The two fixture projects were written by hand: `dbt-autofix` itself has
-not been run on them. `modelFile` is null: the file does not say where a definition was written.
+not been run on them. `modelFile` is null: the file does not say where a definition was written,
+so a dbt definition's page has no Open in source.
 
 **Moving between places.** A source moves between Address, Object storage and Git in Change
 settings, keeping its refs. The secrets of the place it leaves are forgotten, and the new place
