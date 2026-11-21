@@ -162,12 +162,7 @@ export const catalogueValueSchema = z.object({
 })
 
 /** How a definition relates to another, or to a column, as its source's structure says (D3). */
-export const definitionRelationKinds = [
-  'converted_from',
-  'converted_to',
-  'built_from',
-  'used_by',
-] as const
+export const definitionRelationKinds = ['built_from', 'used_by'] as const
 
 /**
  * What a metric is built from and what is built from it (FR-143): the source's structure, kept by
@@ -186,8 +181,6 @@ export const definitionRelationSchema = z.object({
   key: z.nullable(z.string()),
   /** The definition is no longer in the source; false for a column. */
   missing: z.boolean(),
-  /** A conversion's column, the one the converted metric reads beyond the other; else null. */
-  by: z.nullable(z.string()),
 })
 
 export const definitionRelationsInputSchema = z.strictObject({
@@ -195,7 +188,7 @@ export const definitionRelationsInputSchema = z.strictObject({
 })
 
 export const definitionRelationsSchema = z.object({
-  /** Converted from and to first, then built from in the source's order, then used by, by name. */
+  /** Built from in the source's order, then used by, by name. */
   relations: z.array(definitionRelationSchema),
 })
 

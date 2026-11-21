@@ -1,20 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import {
-  mapDefinitions,
-  parseSemanticManifest,
-} from '../../../src/connectors/dbt-metricflow/mapping.ts'
 import { columnsOf } from '../../../src/domain/definition-helpers.ts'
 import {
-  conversionsOf,
   relationsOf,
   type RelationMember,
 } from '../../../src/domain/definition-relations.ts'
-import {
-  exampleShape,
-  partnerManifest,
-  stemsOf,
-  summedOf,
-} from '../connectors/partner-relations-fixture.ts'
 
 /*
   What a metric is built from, and what is built from it (FR-143): the columns a calculation
@@ -46,6 +35,18 @@ describe('the columns a calculation reads', () => {
     expect(columnsOf('1')).toEqual([])
   })
 
+  it('leaves out bare functions such as current_date, and the date part after interval or a number', () => {
+    expect(
+      columnsOf('SUM(CASE WHEN created_at >= current_date THEN amount END)'),
+    ).toEqual(['created_at', 'amount'])
+    expect(columnsOf('current_timestamp - booked_at > localtimestamp - current_user')).toEqual([
+      'booked_at',
+    ])
+    expect(columnsOf('created_at > now() - interval 1 day')).toEqual(['created_at'])
+    expect(columnsOf('created_at > now() - interval day')).toEqual(['created_at'])
+    expect(columnsOf('day + amount')).toEqual(['day', 'amount'])
+  })
+
   it('takes a qualified or quoted name as its column, and leaves templates and comments out', () => {
     expect(columnsOf('orders.amount + "Tax Rate" + "tax_rate"')).toEqual(['amount', 'tax_rate'])
     expect(columnsOf("{{ Dimension('order__channel') }} = 'web' -- per channel\n and x")).toEqual([
@@ -62,81 +63,6 @@ const member = (
   ref: `dbt:${name}`,
   name,
   builtFrom: builtFrom && { refs: builtFrom.refs ?? [], columns: builtFrom.columns ?? [] },
-})
-
-describe('a conversion', () => {
-  const eur = member('partners.commission_eur', { columns: ['commission_eur'] })
-  const usd = member('partners.commission_usd', {
-    columns: ['commission_eur', 'exchange_rate_usd'],
-  })
-
-  it('is the metric that reads another’s inputs and one column more, named in another currency', () => {
-    expect(conversionsOf([usd, eur])).toEqual([
-      {
-        from: 'dbt:partners.commission_eur',
-        to: 'dbt:partners.commission_usd',
-        by: 'exchange_rate_usd',
-      },
-    ])
-  })
-
-  it('is none when the names differ by more than a currency, or the inputs by more than a column', () => {
-    const forecast = member('partners.forecast_commission_eur', {
-      columns: ['is_forecast', 'commission_eur'],
-    })
-    const line = member('partners.commission_retail_eur', { columns: ['commission_eur', 'retail'] })
-    const twice = member('partners.commission_gbp', {
-      columns: ['commission_eur', 'exchange_rate_usd', 'exchange_rate_gbp'],
-    })
-    expect(conversionsOf([eur, forecast, line, twice])).toEqual([])
-  })
-
-  it('is none across views, and none when two metrics could each be the one it is converted from', () => {
-    const elsewhere = member('payouts.commission_usd', usd.builtFrom)
-    expect(conversionsOf([eur, elsewhere])).toEqual([])
-    const sek = member('partners.commission_sek', { columns: ['commission_eur'] })
-    expect(conversionsOf([eur, sek, usd]).map((c) => c.to)).toEqual([])
-  })
-
-  it('finds the 37 twins of the example project’s shape, and no forecast or product line', async () => {
-    const read = await mapDefinitions(
-      parseSemanticManifest(JSON.stringify(partnerManifest(exampleShape)))!,
-    )
-    expect(read.complete).toBe(true)
-    const members = read.definitions.map((d) => ({
-      ref: d.ref,
-      name: d.name,
-      builtFrom: d.builtFrom ?? null,
-    }))
-    const found = conversionsOf(members)
-    const twins = [...stemsOf(exampleShape), ...summedOf(exampleShape)]
-    expect(found).toHaveLength(37)
-    expect(found.map((c) => [c.from, c.to, c.by]).sort()).toEqual(
-      twins
-        .map((stem) => [
-          `dbt:partner_results.${stem}_eur`,
-          `dbt:partner_results.${stem}_usd`,
-          'exchange_rate_usd',
-        ])
-        .sort(),
-    )
-  })
-})
-
-describe('a view of thousands of metrics', () => {
-  it('finds its conversions by lookup, not by comparing each pair', () => {
-    const members = Array.from({ length: 2_500 }, (_, n) => [
-      member(`orders.amount_${n}_eur`, { columns: [`amount_${n}_eur`] }),
-      member(`orders.amount_${n}_usd`, { columns: [`amount_${n}_eur`, 'exchange_rate_usd'] }),
-    ]).flat()
-    const started = performance.now()
-    const own = members[1]!
-    const relations = relationsOf(own, members, () => undefined)
-    expect(conversionsOf(members)).toHaveLength(2_500)
-    // Each pair compared would be 25 million comparisons, seconds even on a quiet machine.
-    expect(performance.now() - started).toBeLessThan(2_000)
-    expect(relations[0]).toMatchObject({ kind: 'converted_from', ref: 'dbt:orders.amount_0_eur' })
-  })
 })
 
 describe('the relations of a metric', () => {
@@ -162,7 +88,6 @@ describe('the relations of a metric', () => {
         name: 'signups',
         key: 'metric:signups',
         missing: false,
-        by: null,
       },
       {
         kind: 'built_from',
@@ -170,21 +95,19 @@ describe('the relations of a metric', () => {
         name: 'clicks',
         key: 'metric:clicks',
         missing: false,
-        by: null,
       },
     ])
   })
 
   it('says an input is used by what is built from it, by name, after its own columns', () => {
     expect(relationsOf(signups, [rate, perSignup, clicks], seen)).toEqual([
-      { kind: 'built_from', ref: null, name: 'signup_count', key: null, missing: false, by: null },
+      { kind: 'built_from', ref: null, name: 'signup_count', key: null, missing: false },
       {
         kind: 'used_by',
         ref: 'dbt:_shared.revenue_per_signup',
         name: 'revenue_per_signup',
         key: 'metric:revenue_per_signup',
         missing: false,
-        by: null,
       },
       {
         kind: 'used_by',
@@ -192,7 +115,6 @@ describe('the relations of a metric', () => {
         name: 'signup_rate',
         key: 'metric:signup_rate',
         missing: false,
-        by: null,
       },
     ])
   })
@@ -211,31 +133,11 @@ describe('the relations of a metric', () => {
         name: 'Signups',
         key: 'metric:signups',
         missing: true,
-        by: null,
       },
     ])
     expect(relationsOf(perSignup, [], () => undefined).map((r) => r.name)).toEqual([
       'orders.revenue',
       'partners.signups',
-    ])
-  })
-
-  it('puts a conversion first, both ways', () => {
-    const eur = member('partners.commission_eur', { columns: ['commission_eur'] })
-    const usd = member('partners.commission_usd', {
-      columns: ['commission_eur', 'exchange_rate_usd'],
-    })
-    expect(relationsOf(usd, [eur], seen)[0]).toEqual({
-      kind: 'converted_from',
-      ref: 'dbt:partners.commission_eur',
-      name: 'commission_eur',
-      key: 'metric:commission_eur',
-      missing: false,
-      by: 'exchange_rate_usd',
-    })
-    expect(relationsOf(eur, [usd], seen).map((r) => [r.kind, r.name])).toEqual([
-      ['converted_to', 'commission_usd'],
-      ['built_from', 'commission_eur'],
     ])
   })
 })

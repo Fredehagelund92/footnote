@@ -21,7 +21,6 @@ A metric's page says what it is built from, as its source's structure says it, u
 
 - Built from: the metrics it takes, such as a ratio's two, each a link to its page, and the columns its calculation reads, by name.
 - Used by: the metrics built from it.
-- Converted from and Converted to: a metric in another currency, worked out from the other with one more column, such as `exchange_rate_usd`.
 
 These come from the source at each read and are never edited here. They never show the calculation, and never mark context as due for a check. An input the source no longer has says so.
 

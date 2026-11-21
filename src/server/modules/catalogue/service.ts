@@ -382,7 +382,7 @@ export function createCatalogueService(
   }
 
   /**
-   * The metric's definition, the metrics of its view and those built from it, what it is built
+   * The metric's definition, the metrics built from it, what it is built
    * from, and the live terms that name any of them, in one statement.
    */
   async function readRelations(key: string) {
@@ -405,17 +405,10 @@ export function createCatalogueService(
            from definitions d
           where d.ref = (select v.refs[1] from vocabulary v where v.key = $2)
             and d.kind = 'metric' and ${visibleTo}),
-       -- The live metrics of its view, which a conversion is found among, and those built from it.
+       -- The live metrics built from it.
        peers as (
          select d.ref, d.connector_id as "connectorId", d.name, false as missing,
                 jsonb_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns) as "builtFrom"
-           from definitions d join own o on d.connector_id = o."connectorId"
-          where d.kind = 'metric' and d.built_from_refs is not null and d.ref <> o.ref
-            and d.missing_since_snapshot is null and ${visibleTo}
-            and regexp_replace(d.name, '[.][^.]*$', '') = regexp_replace(o.name, '[.][^.]*$', '')
-         union
-         select d.ref, d.connector_id, d.name, false,
-                jsonb_build_object('refs', d.built_from_refs, 'columns', d.built_from_columns)
            from definitions d join own o on d.built_from_refs @> array[o.ref]
           where d.missing_since_snapshot is null and ${visibleTo}),
        targets as (

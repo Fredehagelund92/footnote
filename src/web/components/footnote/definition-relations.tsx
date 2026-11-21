@@ -8,7 +8,7 @@ import type { Definition, DefinitionRelation } from '@/lib/definitions'
 
 /**
  * What a synced metric is built from and what is built from it (FR-143), as its tool's structure
- * says, never words in its description: Converted from and to, Built from (definitions, then the
+ * says, never words in its description: Built from (definitions, then the
  * columns its calculation reads) and Used by. Definitions open their pages; columns are names in
  * the tool. On the metric's own page, under its description, and nowhere in the first load.
  */
@@ -25,24 +25,12 @@ export function RelationList({
   tool: string
 }) {
   const of = (kind: DefinitionRelation['kind']) => relations.filter((r) => r.kind === kind)
-  const convertedFrom = of('converted_from')
-  const convertedTo = of('converted_to')
   const builtFrom = of('built_from')
   const usedBy = of('used_by')
   if (!relations.length) return null
   return (
     <section aria-label="How it is built" className="max-w-reading text-sm">
       <dl className="flex flex-col">
-        {convertedFrom.length > 0 && (
-          <Row label="Converted from">
-            <Conversions relations={convertedFrom} tool={tool} />
-          </Row>
-        )}
-        {convertedTo.length > 0 && (
-          <Row label="Converted to">
-            <Conversions relations={convertedTo} tool={tool} />
-          </Row>
-        )}
         {builtFrom.length > 0 && (
           <Row label="Built from">
             <Names relations={builtFrom} tool={tool} />
@@ -66,20 +54,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
       <dd className="flex min-w-0 flex-col">{children}</dd>
     </div>
   )
-}
-
-/** Each conversion on a line of its own: the other metric, and the column it is converted by. */
-function Conversions({ relations, tool }: { relations: DefinitionRelation[]; tool: string }) {
-  return relations.map((r) => (
-    <span key={r.name} className="flex min-w-0 flex-wrap items-center gap-1.5 py-1">
-      <Name r={r} tool={tool} />
-      {r.by && (
-        <span className="text-muted-foreground">
-          by the column <Column name={r.by} />
-        </span>
-      )}
-    </span>
-  ))
 }
 
 /** Definitions first, then the columns, said once: "columns" before their names. */

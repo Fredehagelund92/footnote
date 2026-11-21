@@ -66,7 +66,7 @@ export type Definition = {
  * a definition by its name, or a column of its view. Never a calculation.
  */
 export type DefinitionRelation = {
-  kind: 'converted_from' | 'converted_to' | 'built_from' | 'used_by'
+  kind: 'built_from' | 'used_by'
   /** A definition's name in Definitions, or else in its tool; a column's name in its tool. */
   name: string
   /** A column of its view, not a definition. */
@@ -75,8 +75,6 @@ export type DefinitionRelation = {
   linked: boolean
   /** The definition is no longer in its tool. */
   missing: boolean
-  /** A conversion's column: the one the converted metric reads beyond the other. */
-  by: string | null
 }
 
 export const typeLabel: Record<DefinitionType, string> = {

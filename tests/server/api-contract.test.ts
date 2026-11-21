@@ -98,13 +98,8 @@ describe('a definition’s relations (FR-143)', () => {
       def: { shape: { relations: { def: { element: { def: { shape: object } } } } } }
     }
     const fields = Object.keys(relation.def.shape.relations.def.element.def.shape).sort()
-    expect(fields).toEqual(['by', 'key', 'kind', 'missing', 'name', 'ref'])
-    expect(definitionRelationKinds).toEqual([
-      'converted_from',
-      'converted_to',
-      'built_from',
-      'used_by',
-    ])
+    expect(fields).toEqual(['key', 'kind', 'missing', 'name', 'ref'])
+    expect(definitionRelationKinds).toEqual(['built_from', 'used_by'])
   })
 })
 

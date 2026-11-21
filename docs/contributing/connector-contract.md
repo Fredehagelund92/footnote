@@ -163,7 +163,7 @@ A **definition** has:
   of each. Names only: no expression, operator or literal crosses. `columnsOf(expression)` in
   `src/domain/definition-helpers.ts` reads a SQL calculation's columns. Leave it out for a type the
   connector does not know, rather than say it wrong. The core keeps it read only, replaces it at
-  each read and works out from it alone what a metric is used by and converted from
+  each read and works out from it alone what a metric is used by
   (`src/domain/definition-relations.ts`); it never flags an item.
 - `visibleGroups`, always null until access-policy groups are read (CON-508).
 

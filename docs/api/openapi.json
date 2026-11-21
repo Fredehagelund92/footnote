@@ -48496,8 +48496,6 @@
                         "properties": {
                           "kind": {
                             "enum": [
-                              "converted_from",
-                              "converted_to",
                               "built_from",
                               "used_by"
                             ],
@@ -48528,16 +48526,6 @@
                           },
                           "missing": {
                             "type": "boolean"
-                          },
-                          "by": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
                           }
                         },
                         "required": [
@@ -48545,8 +48533,7 @@
                           "ref",
                           "name",
                           "key",
-                          "missing",
-                          "by"
+                          "missing"
                         ]
                       }
                     }
