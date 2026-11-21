@@ -47,6 +47,7 @@ A definition has these fields ([the schema](../../src/domain/connector-runtime.t
 | `synonyms`        | `synonymsOf(value)`: the other names the tool lists                           |
 | `baseName`        | The member's own name when the tool joins it under a prefix, or leave it out  |
 | `variant`         | For a metric with filters: `filterVariant(filters)` and the shape's mark      |
+| `builtFrom`       | For a metric: the refs of its inputs, and `columnsOf(expression)`, or none    |
 | `changeMark`      | `meaningMark(meaning)`: the SHA-256 of what it means                          |
 
 A read yields three kinds of message:
@@ -124,6 +125,7 @@ Every definitions connector follows these, and the template does each of them.
 - **Synonyms.** `synonymsOf` trims them, keeps each once whatever its case, and keeps at most 20.
 - **Value types.** The tool's own word, from a list you know. Anything else is null.
 - **Variants.** When the tool gives a metric's filters, `filterVariant(filters)` leaves out the literal each compares and returns those literals. Send them as the metric's `variant`, with the mark of its calculation with those filters in its place, and the ref of the dimension each literal is compared with when you read it. A tool that gives no calculation sends none: its variants stay metrics.
+- **What a metric is built from.** Send the refs of the definitions it takes as `builtFrom.refs`, and the columns its own calculation reads, from `columnsOf(expression)`, as `builtFrom.columns`. Names only: never the expression. Leave it out for a type you do not know.
 - **Records built on records.** Hash an input once and put its digest in what is built on it. Sort warnings as well as definitions.
 
 ### Unknown, not guessed

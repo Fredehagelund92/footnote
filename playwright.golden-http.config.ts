@@ -60,9 +60,12 @@ export default defineConfig({
     // J86 asks the mock for twenty families of 250 variants (?demo=families); the service reads
     // and publishes families in tests/integration/metric-families.test.ts.
     /\/j86-families\.spec\.ts$/,
-    // J87 asks the mock for a dbt folder beside the demo's Cube model (?demo=dbt); the service reads
+    // J87 reads what the mock's demo metrics are built from; the demo source on the service says
+    // nothing of it, and a dbt read's is tests/integration/definition-relations.test.ts.
+    /\/j87-built-from\.spec\.ts$/,
+    // J88 asks the mock for a dbt folder beside the demo's Cube model (?demo=dbt); the service reads
     // one and gives its refs in tests/integration/server-folder-catalogue.test.ts.
-    /\/j87-dbt-definitions\.spec\.ts$/,
+    /\/j88-dbt-definitions\.spec\.ts$/,
     // J3 states asks for each answer state by a question the mock's recorded turns answer with it,
     // and opens the mock's Not looked up example; the service's demo week has no check that fails.
     /\/j3-ask-states\.spec\.ts$/,

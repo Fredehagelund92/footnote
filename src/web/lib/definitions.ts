@@ -68,6 +68,22 @@ export type Definition = {
   updated: string
 }
 
+/**
+ * What a metric is built from, or what is built from it, as its source's structure says (FR-143):
+ * a definition by its name, or a column of its view. Never a calculation.
+ */
+export type DefinitionRelation = {
+  kind: 'built_from' | 'used_by'
+  /** A definition's name in Definitions, or else in its tool; a column's name in its tool. */
+  name: string
+  /** A column of its view, not a definition. */
+  column: boolean
+  /** Definitions lists it, so its name opens its page. */
+  linked: boolean
+  /** The definition is no longer in its tool. */
+  missing: boolean
+}
+
 export const typeLabel: Record<DefinitionType, string> = {
   metric: 'Metric',
   dimension: 'Dimension',

@@ -1128,6 +1128,22 @@
           "summary": "Context related to a metric or a dimension, one step away, as get_related follows it: what people see in Related"
         }
       }
+    },
+    "relations": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/definitions/relations",
+          "tags": [
+            "library"
+          ],
+          "summary": "What a metric is built from and what is built from it, from its source's structure: refs and column names, never a calculation (FR-143)"
+        }
+      }
     }
   },
   "areas": {

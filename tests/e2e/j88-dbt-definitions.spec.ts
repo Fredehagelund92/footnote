@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 import { expect, go, signInAs, test } from './go.ts'
 
-// J87, a dbt project in a folder on the server, beside the demo's Cube model (the mock's
+// J88, a dbt project in a folder on the server, beside the demo's Cube model (the mock's
 // ?demo=dbt), as a local install met it (N1-N3, N5, N6). A dbt definition's page names its real
 // dbt ref and links nowhere, since a dbt file names no model file, while a Cube one links to its
 // view's file; a description's backticks read as code, never as backticks; at 390 wide a name a
