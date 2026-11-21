@@ -52822,6 +52822,11 @@
                                 "minimum": 0,
                                 "maximum": 9007199254740991
                               },
+                              "notSelected": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
                               "flagged": {
                                 "type": "integer",
                                 "minimum": 0,
@@ -52833,6 +52838,7 @@
                               "dimensions",
                               "groups",
                               "groupsWithoutDomain",
+                              "notSelected",
                               "flagged"
                             ]
                           },
@@ -53332,6 +53338,13 @@
                     "name": {
                       "type": "string"
                     },
+                    "origin": {
+                      "enum": [
+                        "workspace",
+                        "server"
+                      ],
+                      "type": "string"
+                    },
                     "revision": {
                       "type": "number"
                     },
@@ -53433,6 +53446,42 @@
                     "allGroups": {
                       "type": "boolean"
                     },
+                    "kept": {
+                      "type": "array",
+                      "maxItems": 2000,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 300
+                          },
+                          "domain": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "domain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "schedule": {
                       "anyOf": [
                         {
@@ -53472,11 +53521,13 @@
                     "id",
                     "type",
                     "name",
+                    "origin",
                     "revision",
                     "config",
                     "secrets",
                     "scopes",
                     "allGroups",
+                    "kept",
                     "schedule",
                     "nextReadAt",
                     "changedAt",
@@ -55646,7 +55697,7 @@
     "/sources/{id}": {
       "get": {
         "operationId": "sources.get",
-        "summary": "A source an administrator added: its settings, and whether each secret is set",
+        "summary": "A source an administrator added: its settings, and whether each secret is set; or a definitions source the server's configuration selects, with only the groups it reads",
         "tags": [
           "sources"
         ],
@@ -55676,6 +55727,13 @@
                       "type": "string"
                     },
                     "name": {
+                      "type": "string"
+                    },
+                    "origin": {
+                      "enum": [
+                        "workspace",
+                        "server"
+                      ],
                       "type": "string"
                     },
                     "revision": {
@@ -55779,6 +55837,42 @@
                     "allGroups": {
                       "type": "boolean"
                     },
+                    "kept": {
+                      "type": "array",
+                      "maxItems": 2000,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 300
+                          },
+                          "domain": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "domain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "schedule": {
                       "anyOf": [
                         {
@@ -55818,11 +55912,13 @@
                     "id",
                     "type",
                     "name",
+                    "origin",
                     "revision",
                     "config",
                     "secrets",
                     "scopes",
                     "allGroups",
+                    "kept",
                     "schedule",
                     "nextReadAt",
                     "changedAt",
@@ -56249,6 +56345,13 @@
                     "name": {
                       "type": "string"
                     },
+                    "origin": {
+                      "enum": [
+                        "workspace",
+                        "server"
+                      ],
+                      "type": "string"
+                    },
                     "revision": {
                       "type": "number"
                     },
@@ -56350,6 +56453,42 @@
                     "allGroups": {
                       "type": "boolean"
                     },
+                    "kept": {
+                      "type": "array",
+                      "maxItems": 2000,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 300
+                          },
+                          "domain": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "domain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "schedule": {
                       "anyOf": [
                         {
@@ -56389,11 +56528,13 @@
                     "id",
                     "type",
                     "name",
+                    "origin",
                     "revision",
                     "config",
                     "secrets",
                     "scopes",
                     "allGroups",
+                    "kept",
                     "schedule",
                     "nextReadAt",
                     "changedAt",
@@ -56544,6 +56685,651 @@
                         "message": {
                           "type": "string",
                           "default": "We couldn't find this source among the ones an admin added."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this source after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNPROCESSABLE_CONTENT"
+                        },
+                        "status": {
+                          "const": 422
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Some settings need attention. Fix the problems shown, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "findings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "severity": {
+                                    "enum": [
+                                      "error",
+                                      "warning"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "field",
+                                  "message",
+                                  "severity"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "findings"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sources/{id}/groups": {
+      "put": {
+        "operationId": "sources.groups",
+        "summary": "Choose the groups a definitions source reads and the domain each maps to, with a reason, for one an admin added or one the server's configuration selects",
+        "tags": [
+          "sources"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{1,39}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        },
+                        "domain": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "domain"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "allGroups": {
+                    "type": "boolean"
+                  },
+                  "acceptLeftOut": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "revision",
+                  "scopes",
+                  "allGroups",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "origin": {
+                      "enum": [
+                        "workspace",
+                        "server"
+                      ],
+                      "type": "string"
+                    },
+                    "revision": {
+                      "type": "number"
+                    },
+                    "config": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]{0,39}$"
+                      },
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 20000
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "array",
+                            "maxItems": 500,
+                            "items": {
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "additionalProperties": {
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "secrets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "set": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "set"
+                        ]
+                      }
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "maxItems": 2000,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 300
+                          },
+                          "domain": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "domain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "allGroups": {
+                      "type": "boolean"
+                    },
+                    "kept": {
+                      "type": "array",
+                      "maxItems": 2000,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 300
+                          },
+                          "domain": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "domain"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "schedule": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^P(?=\\d|T\\d)(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?)?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "nextReadAt": {
+                      "type": "string"
+                    },
+                    "changedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "changedBy": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "origin",
+                    "revision",
+                    "config",
+                    "secrets",
+                    "scopes",
+                    "allGroups",
+                    "kept",
+                    "schedule",
+                    "nextReadAt",
+                    "changedAt",
+                    "changedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find this source among the definitions sources."
                         },
                         "data": {}
                       },
@@ -57637,7 +58423,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "We couldn't find this source among the ones an admin added."
+                          "default": "We couldn't find this source among the definitions sources."
                         },
                         "data": {}
                       },
@@ -63954,7 +64740,8 @@
                                   "share",
                                   "fail",
                                   "spend",
-                                  "sync"
+                                  "sync",
+                                  "views"
                                 ],
                                 "type": "string"
                               },
@@ -104089,7 +104876,7 @@
     "/alerts/rules": {
       "get": {
         "operationId": "alerts.rules",
-        "summary": "The eight alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners",
+        "summary": "The nine alert rules, each on or off with its threshold, the domains the person muted it for, and its newest raise they may read (FR-621); for administrators and owners",
         "tags": [
           "quality"
         ],
@@ -104115,6 +104902,7 @@
                               "fail",
                               "spend",
                               "sync",
+                              "views",
                               "due"
                             ],
                             "type": "string"
@@ -104163,6 +104951,7 @@
                                       "fail",
                                       "spend",
                                       "sync",
+                                      "views",
                                       "due"
                                     ],
                                     "type": "string"
@@ -104539,6 +105328,7 @@
                 "fail",
                 "spend",
                 "sync",
+                "views",
                 "due"
               ],
               "type": "string"
@@ -104583,6 +105373,7 @@
                         "fail",
                         "spend",
                         "sync",
+                        "views",
                         "due"
                       ],
                       "type": "string"
@@ -104631,6 +105422,7 @@
                                 "fail",
                                 "spend",
                                 "sync",
+                                "views",
                                 "due"
                               ],
                               "type": "string"
@@ -105061,6 +105853,7 @@
                 "fail",
                 "spend",
                 "sync",
+                "views",
                 "due"
               ],
               "type": "string"
@@ -105113,6 +105906,7 @@
                         "fail",
                         "spend",
                         "sync",
+                        "views",
                         "due"
                       ],
                       "type": "string"
@@ -105161,6 +105955,7 @@
                                 "fail",
                                 "spend",
                                 "sync",
+                                "views",
                                 "due"
                               ],
                               "type": "string"
@@ -105601,6 +106396,7 @@
                 "fail",
                 "spend",
                 "sync",
+                "views",
                 "due"
               ],
               "type": "string"
@@ -105654,6 +106450,7 @@
                               "fail",
                               "spend",
                               "sync",
+                              "views",
                               "due"
                             ],
                             "type": "string"
@@ -105685,6 +106482,7 @@
                               "fail",
                               "spend",
                               "sync",
+                              "views",
                               "due"
                             ],
                             "type": "string"

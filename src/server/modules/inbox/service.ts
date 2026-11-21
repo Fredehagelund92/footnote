@@ -602,11 +602,12 @@ export function createInboxFeedService(
 
   /**
    * An Alert card for each raise of a rule with a card of its own (Conflict, More questions not
-   * found, Calls fail, Model spend, A connected tool could not be read) that reached the person: the
-   * relay delivered it to their Inbox items, less those who muted it. It stays for a week after the
-   * raise. A connected tool that could not be read and has read well since needs nothing more: its card
-   * goes, as on a first start, when the alert job looked at the old reads a moment before the first
-   * sync.
+   * found, Calls fail, Model spend, A connected tool could not be read, New views not chosen) that
+   * reached the person: the relay delivered it to their Inbox items, less those who muted it. It
+   * stays for a week after the raise. A connected tool that could not be read and has read well
+   * since needs nothing more: its card goes, as on a first start, when the alert job looked at the
+   * old reads a moment before the first sync. Nor do new views once an admin chose what it reads,
+   * it reads every view, or it is off; a newer raise of them takes the place of an older one.
    */
   async function alertCards(): Promise<Card[]> {
     const rows = await tx.query<{
@@ -625,6 +626,15 @@ export function createInboxFeedService(
             select 1 from connector_snapshots s
              where s.connector_id = r.subject->>'connector' and s.status in ('ok', 'partial')
                and s.fetched_at > r.raised_at))
+          and not (r.rule = 'views' and (
+            not exists (
+              select 1 from connectors c
+               where c.id = r.subject->>'connector' and c.enabled and not c.all_groups
+                 and (c.changed_at is null or c.changed_at < r.raised_at))
+            or exists (
+              select 1 from alert_raises n
+               where n.rule = 'views' and n.subject->>'connector' = r.subject->>'connector'
+                 and n.raised_at > r.raised_at)))
           and not (
             exists (select 1 from unnest(r.area_ids) a where cl_is_owner_now(a))
             and not exists (

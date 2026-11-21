@@ -112,13 +112,17 @@ export function rowsOf(form: ConnectForm, scopes: ConnectScope[], definitions: b
   return [...gone, ...scopes]
 }
 
-/** What a first test that could read begins with: what the tool reads now, or what it found. */
+/**
+ * What a first test that could read begins with: what the tool reads now, or what it found. A view
+ * it no longer reads starts from the domain it had, so choosing it again restores its mapping.
+ */
 export function startChoices(
   form: ConnectForm,
   scopes: ConnectScope[],
   { definitions, why, domains }: { definitions: boolean; why: string; domains: Set<DomainId> },
 ): Choices {
   const before = new Map(form.chosen.map((choice) => [choice.id, choice.domain]))
+  const mapped = new Map([...form.kept, ...form.chosen].map((choice) => [choice.id, choice.domain]))
   const rows = rowsOf(form, scopes, definitions)
   const ids = rows.map((s) => s.id)
   // A tool connected starts from what it reads; a new one from everything found, but what is left
@@ -134,7 +138,7 @@ export function startChoices(
     // A domain the tool suggests goes in only when it is one of the workspace's.
     map: Object.fromEntries(
       rows.map((s) => {
-        const domain = before.has(s.id) ? (before.get(s.id) ?? null) : (s.domain ?? null)
+        const domain = mapped.has(s.id) ? (mapped.get(s.id) ?? null) : (s.domain ?? null)
         return [s.id, domain && domains.has(domain) ? domain : null]
       }),
     ),

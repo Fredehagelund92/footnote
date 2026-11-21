@@ -205,6 +205,12 @@ export const docControls: DocControl[] = [
     drawn: 'button',
   },
   {
+    phrase: 'Choose views',
+    page: 'integrations',
+    at: '/settings/integrations/cube',
+    drawn: 'button',
+  },
+  {
     phrase: 'Disconnect',
     page: 'integrations',
     at: '/settings/integrations/cube',

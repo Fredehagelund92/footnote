@@ -1662,6 +1662,16 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
           <>
             <PanelSection
               title="What it reads"
+              action={
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    navigate(`/settings/integrations/${source.id}/connect`, { step: '3' })
+                  }
+                >
+                  {`Choose ${groupOf(c).many}`}
+                </Button>
+              }
               description={
                 <>
                   {/* One run of text: a name in a run of its own is set a hair differently. */}
@@ -1689,6 +1699,11 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                   <Owners key="o" domain={v.domain} />,
                 ])}
               />
+              {d && d.notSelected > 0 && (
+                <p className="border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
+                  {`${groupCount(d.notSelected, groupOf(c))} not selected. The last read found ${d.notSelected === 1 ? 'it' : 'them'}, and the set leaves ${d.notSelected === 1 ? 'it' : 'them'} out.`}
+                </p>
+              )}
               {d && d.noDomain > 0 && (
                 <div className="flex flex-wrap items-center gap-3 border-t bg-caution/8 px-4 py-3 text-sm md:px-5">
                   <TriangleAlertIcon aria-hidden className="size-4 shrink-0 text-caution" />
@@ -1698,16 +1713,14 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                     </span>{' '}
                     Their definitions stay shared, and no owner is told when they change.
                   </p>
-                  {!own && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        navigate(`/settings/integrations/${source.id}/connect`, { step: '4' })
-                      }
-                    >
-                      Map to a domain
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      navigate(`/settings/integrations/${source.id}/connect`, { step: '4' })
+                    }
+                  >
+                    Map to a domain
+                  </Button>
                 </div>
               )}
               <p className="flex items-center gap-2 border-t px-4 py-3 text-xs text-muted-foreground md:px-5">
@@ -2146,7 +2159,13 @@ export function ConnectFlow({ id }: { id: string }) {
   const load = useQuery(connectFormQuery(id))
   const form = load.data
   const c = connectorById(form?.connector ?? id)
-  const label = form?.source ? 'Change settings' : c ? `Add ${c.label}` : 'Connect'
+  const label = form?.server
+    ? `Choose ${groupOf(c).many}`
+    : form?.source
+      ? 'Change settings'
+      : c
+        ? `Add ${c.label}`
+        : 'Connect'
   return (
     <Page
       title={
@@ -2184,7 +2203,8 @@ function ConnectSteps({
   reload: () => Promise<ConnectForm | null | undefined>
 }) {
   const { query } = useRoute()
-  const at = Math.min(5, Math.max(1, Number(query.get('step')) || 1))
+  // A server's own source has nothing to pick: it opens on where the server sets it.
+  const at = Math.min(5, Math.max(1, Number(query.get('step')) || (form.server ? 2 : 1)))
   const keyed = c.keyFile !== undefined
   const isDefinitions = c.kind === 'definitions'
   const [copied, copy] = useCopied()
@@ -2384,7 +2404,37 @@ function ConnectSteps({
           </p>
         )}
         {at === 1 && <PickStep c={c} />}
-        {at === 2 && (
+        {/* Whoever runs the server set where it reads from: only what it reads is chosen here. */}
+        {at === 2 && form.server && (
+          <>
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">{`${c.label} is set up on the server`}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {`The person who hosts this app sets where it reads from${c.serverSetting ? `, in ${c.serverSetting}` : ''}. Here you choose which ${groupOf(c).many} it reads, and the domain of each.`}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="outline"
+                  className="w-fit"
+                  onClick={() => void runTest()}
+                  disabled={test.running}
+                >
+                  <PlugIcon data-icon="inline-start" />
+                  Test connection
+                </Button>
+                {!tested && !test.running && (
+                  <span className="text-sm text-muted-foreground">
+                    Test it before you continue.
+                  </span>
+                )}
+              </div>
+              {test.run > 0 && <Checks test={test} />}
+            </div>
+          </>
+        )}
+        {at === 2 && !form.server && (
           <>
             <div>
               <h2 className="text-xl font-semibold tracking-tight">
@@ -3025,8 +3075,8 @@ function ChoiceSteps({
           ...(mustSee ? { acceptLeftOut: seen } : {}),
         })
         dispatch({ type: 'saved' })
-        toast(`${c.label} settings saved`, {
-          description: 'They apply from its next read, which starts now. Kept in the history log.',
+        toast(form.server ? `What ${c.label} reads is saved` : `${c.label} settings saved`, {
+          description: `${form.server ? 'It applies' : 'They apply'} from its next read, which starts now. Kept in the history log.`,
         })
         navigate(`/settings/integrations/${form.source.id}`)
         return

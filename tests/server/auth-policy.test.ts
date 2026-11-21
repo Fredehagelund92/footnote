@@ -99,6 +99,7 @@ const adminOperations = [
   'figures.set',
   'figures.try',
   'sources.update',
+  'sources.groups',
   'sources.test',
   'sources.leftOut',
   'sources.read',

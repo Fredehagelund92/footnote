@@ -49,6 +49,10 @@ export const RULES: Rule[] = [
     lastHref: `/settings/integrations/${DEMO_DEFINITIONS}`,
   },
   {
+    ...ruleWords('views'),
+    last: 'Never',
+  },
+  {
     ...ruleWords('due'),
     last: 'Today, 2 items',
     lastHref: '/inbox?card=check-returns',

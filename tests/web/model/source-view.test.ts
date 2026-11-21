@@ -24,7 +24,7 @@ const source = (state: Source['state'], over: Partial<Source> = {}): Source => (
       : state.last === 'refused'
         ? 'Cube refused the key'
         : null,
-  definitions: { metrics: 22, dimensions: 5, views: 7, noDomain: 0, flagged: 0 },
+  definitions: { metrics: 22, dimensions: 5, views: 7, noDomain: 0, notSelected: 0, flagged: 0 },
   documents: null,
   created: null,
   inbox: null,

@@ -11,6 +11,7 @@ import {
   createDemoSource,
   ConnectorRegistry,
   domainCoverage,
+  withApprovedGroups,
   workerReadablePaths,
 } from '../../../src/server/modules/connectors/index.ts'
 import { SourceReadError } from '../../../src/server/modules/connectors/types.ts'
@@ -286,9 +287,11 @@ describe('offline Cube source', () => {
     const configDir = await mkdtemp(join(tmpdir(), 'footnote-views-'))
     temporary.push(configDir)
     const viewsFile = join(configDir, 'views.json')
+    // The file is the approved set until an administrator chooses one in the app.
+    const unchosen = { scopes: [], allGroups: true, chosenInApp: false }
     const listing = async (views: unknown) => {
       await writeFile(viewsFile, JSON.stringify(views))
-      return createCubeSource({ modelDir: dir, viewsFile }).read()
+      return withApprovedGroups(createCubeSource({ modelDir: dir, viewsFile }), unchosen).read()
     }
     const views = (snapshot: { definitions: { name: string }[] }) => [
       ...new Set(snapshot.definitions.map((d) => d.name.split('.')[0])),
@@ -306,6 +309,9 @@ describe('offline Cube source', () => {
     expect(two.complete).toBe(true)
     expect(two.groups).toEqual(['sales', 'marketing', 'warehouse'])
     expect(two.warnings).toContainEqual({ code: 'group_not_found', target: 'warehouse' })
+    // Each view the list leaves out is named apart from the warnings, so one the model adds later
+    // is seen.
+    expect(two.notSelected).toEqual(['growth', 'operations'])
     // What the read said of a view left out says nothing now: operations has no domain.
     expect(two.warnings).not.toContainEqual({ code: 'missing_domain', target: 'operations' })
     // One view taken out of the list: the cube it shared stays read through the other.
@@ -324,10 +330,28 @@ describe('offline Cube source', () => {
     await expect(listing({ sales: true })).rejects.toThrow()
     await expect(listing(['sales', 'sales'])).rejects.toThrow()
     await expect(
-      createCubeSource({ modelDir: dir, viewsFile: '/does/not/exist' }).read(),
+      withApprovedGroups(
+        createCubeSource({ modelDir: dir, viewsFile: '/does/not/exist' }),
+        unchosen,
+      ).read(),
     ).rejects.toThrow()
     // Without the setting, every view is read, as before.
     expect(views(await read(dir))).toEqual(['growth', 'marketing', 'operations', 'sales'])
+    // Once an administrator chose the views in the app, the file is not read: their set is.
+    const chosen = await withApprovedGroups(createCubeSource({ modelDir: dir, viewsFile }), {
+      scopes: [{ id: 'growth', title: 'growth', domain: 'marketing' }],
+      allGroups: false,
+      chosenInApp: true,
+    }).read()
+    expect(views(chosen)).toEqual(['growth'])
+    expect(chosen.definitions.every((d) => d.areaHint === 'marketing')).toBe(true)
+    // The source itself reads every view, which is what Choose lists.
+    expect(views(await createCubeSource({ modelDir: dir, viewsFile }).read())).toEqual([
+      'growth',
+      'marketing',
+      'operations',
+      'sales',
+    ])
     expect(
       createCubeSource({ modelDir: dir, viewsFile }).serverSettings.find((s) => s.key === 'views'),
     ).toEqual({ key: 'views', variable: 'CUBE_VIEWS_FILE', value: viewsFile })

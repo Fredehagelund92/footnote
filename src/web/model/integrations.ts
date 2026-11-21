@@ -217,6 +217,8 @@ export type Source = {
     dimensions: number
     views: number
     noDomain: number
+    /** The views its last read found that its approved set leaves out. */
+    notSelected: number
     flagged: number
   } | null
   /**
@@ -335,6 +337,11 @@ export type ConnectForm = {
   connector: string
   /** Change settings: the source and the revision read; null to connect the tool anew. */
   source: { id: string; revision: number } | null
+  /**
+   * A definitions tool whoever runs the server connected: it has no settings or secrets here, and
+   * only what it reads is chosen, with each one's domain.
+   */
+  server: boolean
   fields: ConnectField[]
   secrets: ConnectSecret[]
   /** How often it is read ("every hour") and how long it may go unread ("6 hours"). */
@@ -344,6 +351,8 @@ export type ConnectForm = {
   perDay: number | null
   /** What it reads now, with each one's domain: Change settings starts from these. */
   chosen: ConnectChoice[]
+  /** What a definitions tool no longer reads, with the domain each had: chosen again, it keeps it. */
+  kept: ConnectChoice[]
   /**
    * A definitions tool reads every view, `chosen` then only mapping domains; false, only the views
    * chosen, an allow list. A new connection reads every view until views are left out.

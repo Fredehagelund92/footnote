@@ -1969,7 +1969,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       await write('sources.pause', input, (o) => client.sources.pause(input, o))
     },
     // The connect flow on the connectors' manifests (CON-112): a source an admin added, to
-    // change; or a tool of the catalog, to connect. The server's own sources are its operator's.
+    // change; or a tool of the catalog, to connect. The server's own sources are its operator's,
+    // but for what a definitions one reads, which is chosen here as for any other.
     connectForm: async ({ id }) => {
       const [rows, types] = await Promise.all([
         read(() => client.sources.list()),
@@ -1978,8 +1979,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const row = rows.find((r) => r.id === id)
       const type = row ? row.type : id
       const listing = types.find((t) => t.manifest.id === type)
-      if (!listing || row?.origin === 'server') return null
-      const settings = row ? await read(() => client.sources.get({ id })) : null
+      if (!listing || (row?.origin === 'server' && row.kind !== 'definitions')) return null
+      // The service answers nothing for a server's source it does not read (not registered, or a
+      // build without its connector): there is no form, as for any server source but definitions.
+      const settings = row ? await orNull(() => read(() => client.sources.get({ id }))) : null
+      if (row?.origin === 'server' && !settings) return null
       return (await integrationWords()).connectFormOf(
         listing.manifest,
         settings,
@@ -2040,6 +2044,19 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     }) => {
       const { changedConfigOf, scopesOf, secretsOf } = await integrationWords()
       const before = await read(() => client.sources.get({ id }))
+      // The server's own source: only what it reads is chosen here.
+      if (before.origin === 'server') {
+        const chosenInput = {
+          id,
+          revision,
+          scopes: scopesOf(chosen),
+          allGroups: readsAll,
+          ...(acceptLeftOut ? { acceptLeftOut } : {}),
+          reason,
+        }
+        await write('sources.groups', chosenInput, (o) => client.sources.groups(chosenInput, o))
+        return
+      }
       const input = {
         id,
         revision,

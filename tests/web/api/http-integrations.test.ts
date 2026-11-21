@@ -57,7 +57,14 @@ const row = (over: Partial<SourceRow> = {}): SourceRow => ({
   lastRead: read({ definitions: { seen: 27, added: 0, changed: 0, gone: 0 } }),
   lastGoodAt: at(23),
   failures: 0,
-  definitions: { metrics: 22, dimensions: 5, groups: 7, groupsWithoutDomain: 2, flagged: 2 },
+  definitions: {
+    metrics: 22,
+    dimensions: 5,
+    groups: 7,
+    groupsWithoutDomain: 2,
+    notSelected: 0,
+    flagged: 2,
+  },
   documents: null,
   addedAt: null,
   addedBy: null,
@@ -125,7 +132,14 @@ describe('a source on its row', () => {
       lastGood: null,
       failures: 0,
       failure: null,
-      definitions: { metrics: 22, dimensions: 5, views: 7, noDomain: 2, flagged: 2 },
+      definitions: {
+        metrics: 22,
+        dimensions: 5,
+        views: 7,
+        noDomain: 2,
+        notSelected: 0,
+        flagged: 2,
+      },
       documents: null,
       created: null,
       inbox: null,
@@ -403,11 +417,13 @@ describe('how a source is connected', () => {
     id: 'handbook',
     type: 'git-markdown',
     name: 'Handbook',
+    origin: 'workspace',
     revision: 1,
     config: { repository: 'https://git.example/handbook.git', ref: 'main', folder: '' },
     secrets: [{ key: 'token', set: secret }],
     scopes: [],
     allGroups: true,
+    kept: [],
     schedule: null,
     nextReadAt: at(23, 11),
     changedAt: null,
@@ -504,11 +520,13 @@ describe('the connect flow, on the manifests', () => {
     id: 'markdown-in-git',
     type: 'git-markdown',
     name: 'Markdown in Git',
+    origin: 'workspace',
     revision: 3,
     config: { repository: 'https://git.example/handbook.git', ref: 'release', folder: 'docs' },
     secrets: [{ key: 'token', set: true }],
     scopes: [{ id: 'docs/sales', title: 'docs/sales', domain: 'sales' }],
     allGroups: false,
+    kept: [],
     schedule: 'PT6H',
     nextReadAt: at(23, 11),
     changedAt: null,
@@ -556,6 +574,32 @@ describe('the connect flow, on the manifests', () => {
     expect(form.secrets[0]?.set).toBe(true)
     expect(form.every).toBe('every 6 hours')
     expect(form.chosen).toEqual(settings.scopes)
+  })
+
+  it("draws the server's own definitions source with nothing to fill in, only what it reads", () => {
+    const own: SourceSettings = {
+      ...settings,
+      id: 'cube',
+      type: 'cube',
+      name: 'Cube local model',
+      origin: 'server',
+      config: {},
+      secrets: [],
+      scopes: [{ id: 'orders', title: 'orders', domain: 'sales' }],
+      kept: [{ id: 'basket', title: 'basket', domain: 'marketing' }],
+    }
+    const form = connectFormOf(cubeManifest, own)!
+    expect(form).toMatchObject({
+      source: { id: 'cube', revision: 3 },
+      server: true,
+      fields: [],
+      secrets: [],
+      readsAll: false,
+      chosen: [{ id: 'orders', title: 'orders', domain: 'sales' }],
+      kept: [{ id: 'basket', title: 'basket', domain: 'marketing' }],
+    })
+    // A content source the server runs has nothing for the form at all.
+    expect(connectFormOf(gitManifest, { ...own, type: 'git-markdown' })).toBeNull()
   })
 
   it("leaves out a setting it can't draw, and a tool the app has no cell for", () => {
@@ -690,11 +734,13 @@ describe('a tool whose file lives in a place you choose', () => {
     id: 'dbt',
     type: 'dbt-metricflow',
     name: 'dbt',
+    origin: 'workspace',
     revision: 2,
     config,
     secrets: dbtManifest.secrets.map(({ key }) => ({ key, set: set.includes(key) })),
     scopes: [],
     allGroups: true,
+    kept: [],
     schedule: null,
     nextReadAt: at(23, 11),
     changedAt: null,

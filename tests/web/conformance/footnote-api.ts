@@ -2650,7 +2650,7 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'getAlerts'))(
-      'lists the eight alert rules as sentences, each threshold one its sentence offers, and what they raised lately',
+      'lists the nine alert rules as sentences, each threshold one its sentence offers, and what they raised lately',
       async () => {
         const { rules, raised: first, settings } = await (await signedIn()).getAlerts()
         const raised = first.raised
@@ -2662,6 +2662,7 @@ export function describeFootnoteApi(
           'fail',
           'spend',
           'sync',
+          'views',
           'due',
         ])
         for (const r of rules) {

@@ -12,7 +12,12 @@ import {
   type StoredScope,
 } from './platform.ts'
 import { noSecretStore, SecretStoreError, type SecretStore } from './secrets.ts'
-import { createCubeSource, createFolderSource, cubeServerType } from './server-source.ts'
+import {
+  createCubeSource,
+  createFolderSource,
+  cubeServerType,
+  withApprovedGroups,
+} from './server-source.ts'
 import type { ConnectorType, DefinitionSource } from './types.ts'
 import { workerLimits, type WorkerLimits } from './worker.ts'
 
@@ -214,16 +219,43 @@ export class ConnectorRegistry {
     return sources
   }
 
+  /**
+   * The server's own sources, each with the groups its organisation approved, as its row keeps
+   * them: one not registered yet reads as its configuration says until it is.
+   */
+  async approved(database: Queryable): Promise<DefinitionSource[]> {
+    const rows = await database.query<{
+      id: string
+      scopes: StoredScope[]
+      all_groups: boolean
+      chosen: boolean
+    }>(
+      `select id, scopes, all_groups, changed_at is not null as chosen from connectors
+        where origin = 'server' and id = any($1::text[])`,
+      [[...this.#sources.keys()]],
+    )
+    const kept = new Map(rows.map((row) => [row.id, row]))
+    return this.list().map((source) => {
+      const row = kept.get(source.id)
+      return withApprovedGroups(source, {
+        scopes: row?.scopes ?? [],
+        allGroups: row?.all_groups ?? true,
+        chosenInApp: row?.chosen ?? false,
+      })
+    })
+  }
+
   /** Every source to read now: the server's own, then those admins added. */
   async current(database: Queryable): Promise<DefinitionSource[]> {
     const added = await this.added(database)
-    return [...this.list(), ...added.filter((source) => !this.#sources.has(source.id))]
+    return [
+      ...(await this.approved(database)),
+      ...added.filter((source) => !this.#sources.has(source.id)),
+    ]
   }
 
   /** One source to read now, by id. */
   async find(database: Queryable, id: string): Promise<DefinitionSource> {
-    const server = this.#sources.get(id)
-    if (server) return server
     const source = (await this.current(database)).find((candidate) => candidate.id === id)
     if (!source) throw new Error(`Unknown connector: ${id}`)
     return source
