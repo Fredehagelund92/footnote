@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { LoopTurn } from '@contract/answer'
 import { MOCK_READ_MS, playAnswer } from '@/api/mock/ask-live'
 import { askedOf, chatTurnOf, type Answer } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
@@ -221,11 +222,17 @@ describe('how a turn ended (one outcome per turn)', () => {
     })
   })
 
-  it('draws a Not checked turn as one, not as the loop still reading', () => {
+  it('draws a Not checked turn as one, not as the loop still reading; a turn with words as the loop', () => {
     // The look-up read once, then the service failed: the loop's body would show it working for good.
     expect(drawnByLoop(notChecked())).toBe(false)
     expect(drawnByLoop(run(asked(), { type: 'reads', reads }))).toBe(true)
     expect(drawnByLoop(run(asked(), { type: 'reads', reads }, { type: 'stop' }))).toBe(true)
+    // A follow-up that reads nothing: its words, as they come.
+    const words = { text: 'Jon owns it.' } as LoopTurn
+    expect(drawnByLoop(run(asked(), { type: 'words', words }))).toBe(true)
+    expect(
+      drawnByLoop(run(asked(), { type: 'words', words }, { type: 'words', words: null })),
+    ).toBe(false)
     expect(drawnByLoop(doneTurn({ ...engine, loop: {} as Answer['loop'] }))).toBe(true)
     expect(drawnByLoop(doneTurn(engine))).toBe(false)
   })

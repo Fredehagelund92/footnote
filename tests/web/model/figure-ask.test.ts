@@ -23,6 +23,7 @@ describe('the figure an answer asks for', () => {
       assumedToday: false,
       carried: false,
       uncovered: [],
+      unwritten: [],
     }
     const asked = figureAskOf({ ...answer, markets: ['Norway'], loop: { subject } as never })
     expect(asked.values).toEqual(['val:market/norway'])

@@ -222,6 +222,105 @@ describe('what code writes from the reads', () => {
     })
   })
 
+  it('says nothing is written only of a name no item it read is about, not of one covered in part', () => {
+    // F3 of the re-run: 20 items about Net revenue apply, each in some markets, so none covers it
+    // in full; a second asked metric has no item at all.
+    const read = get('partial', [
+      { ...item('itm_revenue01'), about: ['metric:net_revenue', 'value:market/germany'] },
+      { ...item('itm_revenue02'), about: ['metric:net_revenue', 'value:market/spain'] },
+    ])
+    const result = read.result as object
+    const partial = (uncovered: string[]): MadeRead => ({
+      ...read,
+      result: { ...result, uncovered },
+    })
+    const subject = (r: MadeRead) => turnOf('Net revenue is one figure.', [r], []).subject
+    expect(subject(partial(['metric:net_revenue']))).toMatchObject({
+      uncovered: ['metric:net_revenue'],
+      unwritten: [],
+    })
+    expect(subject(partial(['metric:net_revenue', 'metric:orders']))).toMatchObject({
+      uncovered: ['metric:net_revenue', 'metric:orders'],
+      unwritten: ['metric:orders'],
+    })
+  })
+
+  it('counts every item that applies, saying how many are shown, never items that only match (F3)', () => {
+    const read = get('grounded', [item('itm_revenue01'), item('itm_revenue02')])
+    const capped: MadeRead = { ...read, result: { ...(read.result as object), more: 3 } }
+    const footer = (r: MadeRead) => turnOf('As written [itm_revenue01].', [r], []).footer
+    expect(footer(capped)).toMatchObject({
+      denominator: '5 of 21 published context items you can see apply; 2 are shown.',
+      notSeen: null,
+    })
+    expect(footer(read).denominator).toBe('2 of 21 published context items you can see apply.')
+  })
+
+  it("names the owners of the subject and of the items cited, never of every item's domain (F3)", () => {
+    const owner = (id: string, subject: boolean) => ({
+      domain: id,
+      owners: [],
+      id,
+      people: [],
+      subject,
+    })
+    const read = get('grounded', [
+      { ...item('itm_sales0001'), domainId: 'domain:area_sales' },
+      { ...item('itm_market001'), domainId: 'domain:area_marketing' },
+    ])
+    const result = read.result as object
+    const owned: MadeRead = {
+      ...read,
+      result: {
+        ...result,
+        owners: [
+          owner('domain:area_finance', true),
+          owner('domain:area_sales', false),
+          owner('domain:area_marketing', false),
+        ],
+      },
+    }
+    const domains = (words: string) => turnOf(words, [owned], []).owners.map((o) => o.domain)
+    expect(domains('Net revenue is one figure.')).toEqual(['domain:area_finance'])
+    expect(domains('As written [itm_sales0001].')).toEqual([
+      'domain:area_finance',
+      'domain:area_sales',
+    ])
+  })
+
+  it("takes a look-up's definition as the answer only where nothing applies, never as a card beside one", () => {
+    const words =
+      'A family of 2 near-identical metrics, one for each currency. USD: the EUR amount times the rate.'
+    const defined = (state: string, items: object[]): MadeRead => {
+      const read = get(state, items)
+      const result = read.result as { read: object }
+      return {
+        ...read,
+        result: {
+          ...result,
+          read: { ...result.read, about: ['metric:group:revenue'], assumedToday: true },
+          definitions: [{ id: 'metric:group:revenue', name: 'Revenue', words, from: 'dbt' }],
+        },
+      }
+    }
+    // The family question: nothing applies, and the words give its definition.
+    const missing = turnOf(
+      `USD is the EUR amount times the rate. ${words}`,
+      [defined('missing', [])],
+      [],
+    )
+    expect(missing.defined).toEqual({ names: ['Revenue'], tool: 'dbt' })
+    expect(missing.state).toBeNull()
+    // An answer that cites what applies keeps its state, and shows no card of the definition.
+    const checked = turnOf(
+      'As written [itm_revenue01].',
+      [defined('grounded', [item('itm_revenue01')])],
+      [],
+    )
+    expect(checked.state).toBe('grounded')
+    expect(checked.definitions).toEqual([])
+  })
+
   it('is at most Partial when the subject read found no item and a search found what the words cite', () => {
     const t = turnOf(
       'France moved on 12 May [itm_france001] and on 21 May [itm_france002].',
@@ -382,7 +481,7 @@ describe('a turn whose words are about something its subject read is not', () =>
           assumedToday: true,
         },
         names: [{ id: 'metric:gross_sales', name: 'Gross sales' }, ...owners],
-        owners: [{ id: 'domain:area_sales', people: ['person:p1', 'person:p2'] }],
+        owners: [{ id: 'domain:area_sales', people: ['person:p1', 'person:p2'], subject: true }],
       },
     }
   }
@@ -395,8 +494,10 @@ describe('a turn whose words are about something its subject read is not', () =>
     expect(t.state).toBeNull()
     expect(t.defined).toBeUndefined()
     expect(t.definitions).toEqual([])
-    // It says what it is out of, never how many of a subject it did not use apply.
-    expect(t.footer.denominator).toBe('Out of 21 published context items you can see.')
+    // It says, in a sentence, what it is out of, never how many of a subject it did not use apply.
+    expect(t.footer.denominator).toBe(
+      'None of the 21 published context items you can see is cited.',
+    )
     // Who owns it, and what was read, still show.
     expect(t.owners).toEqual([{ domain: 'domain:area_sales', people: ['person:p1', 'person:p2'] }])
     expect(t.read).toHaveLength(3)
@@ -687,9 +788,15 @@ describe('the question back', () => {
     // When: a bare word, or no metric named, and the chat does not settle it.
     expect(ASK_BACK).toMatch(/one bare word, or names no metric/)
     expect(ASK_BACK).toContain('the metrics it could mean as the choices')
-    // And on a period whose two readings find other items, with both as the choices (R7).
-    expect(ASK_BACK).toContain('when a get_context read returns choices')
+    // And on a period whose two readings find other items, with both as the choices (R7), only
+    // when the message asks what is written then: never on a request to pretend (D5).
+    expect(ASK_BACK).toContain(
+      'when the message asks what is written for a period and a get_context read returns choices',
+    )
     expect(ASK_BACK).toContain('with both periods as the choices, even one that finds nothing')
+    expect(ASK_BACK).toContain(
+      'Never ask back on a message that asks you to pretend, imagine, suppose or invent that something is written',
+    )
     // Otherwise never: a follow-up the chat settles, nor a question that names one metric.
     expect(ASK_BACK).toMatch(/never ask back on a follow-up whose subject the chat already settles/)
     expect(ASK_BACK).toMatch(/nor on a question that names one metric/)

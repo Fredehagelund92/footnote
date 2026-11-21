@@ -195,10 +195,12 @@ Today is ${dayWords(today)} (${timeZone}). The person is ${asker.admin ? 'an adm
  * settles, nor on a question that names one metric. A word that names no one metric code asks
  * about before the model reads when it is the whole question; in a sentence the model is told the
  * metrics it may mean (`vagueMetricWord`, `vagueNote`). And on a period with two readings that find
- * different items (R7, D6), which code finds: a get_context read that returns choices.
+ * different items (R7, D6), which code finds: a get_context read that returns choices, only for a
+ * question about what is written then. Never on a request to pretend something is written (D5 of
+ * the Ask re-run asked "Which September?" of one).
  */
 export const ASK_BACK =
-  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those.'
+  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when the message asks what is written for a period and a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those. Never ask back on a message that asks you to pretend, imagine, suppose or invent that something is written: say that Ask answers only from what is written.'
 
 /**
  * What goes with the person's latest message, from Footnote, not from them (FR-719.9): the
@@ -1337,6 +1339,9 @@ function subjectOf(
   const { names, about, period, assumedToday, datesRead, otherDays } = m.result.read
   const ids = (v: unknown) =>
     Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
+  // An item about a name in part (Net revenue in some markets) is written about it all the same.
+  const written = new Set(arr(m.result.items).flatMap((i) => ids(i.about)))
+  const uncovered = ids(m.result.uncovered)
   return {
     names: ids(names),
     about: ids(about),
@@ -1350,7 +1355,8 @@ function subjectOf(
         .join(' · ') || null,
     assumedToday: assumedToday === true,
     carried,
-    uncovered: ids(m.result.uncovered),
+    uncovered,
+    unwritten: uncovered.filter((id) => !written.has(id)),
   }
 }
 
@@ -1474,22 +1480,28 @@ export function footerOf(
         m.tool === 'get_context' && isObj(m.result) && !isError(m.result) && isObj(m.result.read),
     )
   const of = outOf ? `${num(outOf.count).toLocaleString('en-GB')} ${str(outOf.of)}` : ''
+  // What applies is what the read gave and what it did not show (`more`, items that apply only).
   const applying = (r: Obj) => {
-    const n = arr(r.items).length
+    const shown = arr(r.items).length
+    const n = shown + num(r.more)
     const wider = isObj(r.wider) && arr(r.searched)[1] ? arr(r.wider.items).length : null
-    return `${n.toLocaleString('en-GB')} of ${of} ${n === 1 ? 'applies' : 'apply'}${wider !== null ? `; a wider read found ${wider.toLocaleString('en-GB')}` : ''}.`
+    return `${n.toLocaleString('en-GB')} of ${of} ${n === 1 ? 'applies' : 'apply'}${n > shown ? `; ${shown.toLocaleString('en-GB')} ${shown === 1 ? 'is' : 'are'} shown` : ''}${wider !== null ? `; a wider read found ${wider.toLocaleString('en-GB')}` : ''}.`
   }
-  // An answer that cites what a search found, where the subject's read found none, says what it
-  // is out of, never that none apply.
+  // An answer that cites what a search found, where the subject's read found none, says how many
+  // of what it is out of it cites, in a sentence, never that none apply.
   const applies = subject && (arr((subject.result as Obj).items).length || !cited.length)
   const denominator = records
     ? `Counted ${str((records.result as Obj).counted)}.`
     : applies && outOf
       ? applying(subject.result as Obj)
       : outOf
-        ? `Out of ${of}.`
+        ? cited.length
+          ? `${cited.length.toLocaleString('en-GB')} of ${of} ${cited.length === 1 ? 'is' : 'are'} cited.`
+          : `None of the ${of} is cited.`
         : null
-  const more = ok.reduce((n, r) => n + num(r.more), 0)
+  // The subject's read says how many of what applies are shown, in its own sentence.
+  const said = applies && outOf && !records ? subject.result : null
+  const more = ok.reduce((n, r) => n + (r === said ? 0 : num(r.more)), 0)
   const notSeen = [
     more
       ? `${counted(more, 'more item matches', 'more items match')} and ${more === 1 ? 'is' : 'are'} not shown.`
@@ -1650,14 +1662,23 @@ function closestOf(
   }
 }
 
-/** Who owns the subject: each domain its reads name, with its owners, by id. */
-const ownersOf = (about: readonly MadeRead[]): LoopTurn['owners'] => {
+/**
+ * Who owns the subject: each domain its reads name as owning a metric the subject names, and the
+ * domain of each item the words cite, with its owners, by id. A domain that owns only items that
+ * apply and are not cited is left out (F3 of the Ask re-run listed five for one metric).
+ */
+const ownersOf = (about: readonly MadeRead[], cited: readonly string[]): LoopTurn['owners'] => {
   const out = new Map<string, string[]>()
   for (const m of about)
-    if (m.tool === 'get_context' && isObj(m.result) && !isError(m.result))
+    if (m.tool === 'get_context' && isObj(m.result) && !isError(m.result)) {
+      const citedIn = new Set(
+        arr(m.result.items).flatMap((i) =>
+          cited.includes(str(i.id)) && i.domainId ? [str(i.domainId)] : [],
+        ),
+      )
       for (const o of arr(m.result.owners)) {
         const id = str(o.id)
-        if (id && !out.has(id))
+        if (id && !out.has(id) && (o.subject === true || citedIn.has(id)))
           out.set(
             id,
             Array.isArray(o.people)
@@ -1665,6 +1686,7 @@ const ownersOf = (about: readonly MadeRead[]): LoopTurn['owners'] => {
               : [],
           )
       }
+    }
   return [...out].map(([domain, people]) => ({ domain, people }))
 }
 
@@ -1807,17 +1829,22 @@ export function turnOf(
   const closest = missing ? closestOf(about, subject, ctx.items, []) : null
   const listed = stripped.flatMap((b) => (b.t === 'list' ? b.rows : []))
   const replyOnly = !made.length && !sources.length
-  // A listing of Definitions, by a domain or a kind, reads no one definition.
-  const definitionsOf = (reads: readonly MadeRead[]) =>
+  // A listing of Definitions, by a domain or a kind, reads no one definition. The definitions a
+  // look-up gives with its subject are not shown beside every answer about it; they make an
+  // answer that gives one a definition only where nothing written applies (Not found).
+  const definitionsOf = (reads: readonly MadeRead[], lookups = false) =>
     definitionsRead(
       reads.flatMap((m) =>
-        m.tool !== 'definitions' || Array.isArray(m.input.names) ? [m.result] : [],
+        (m.tool !== 'definitions' || Array.isArray(m.input.names)) &&
+        (lookups || m.tool !== 'get_context')
+          ? [m.result]
+          : [],
       ),
     )
   const defined =
     words.cited.length || aside || fromHelp
       ? undefined
-      : definedOf(plain, definitionsOf(about), subject, state)
+      : definedOf(plain, definitionsOf(about, state === 'missing'), subject, state)
   return {
     kind: 'answer',
     text: plain,
@@ -1850,7 +1877,7 @@ export function turnOf(
     nouns: [...ctx.nouns.values()],
     items: rowsOf([...sources, ...listed, ...(closest?.items ?? [])], ctx, sources),
     closest,
-    owners: fromHelp ? [] : ownersOf(about),
+    owners: fromHelp ? [] : ownersOf(about, sources),
     overview: null,
     checks: words.checks,
   }

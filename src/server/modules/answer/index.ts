@@ -38,7 +38,7 @@ export {
   type ToolServices,
   type TurnReads,
 } from './tool-reads.ts'
-export { readHelp, searchHelp, type HelpSection } from './help.ts'
+export { readHelp, readyHelp, searchHelp, type HelpSection } from './help.ts'
 export {
   ASK_BACK,
   askLoop,

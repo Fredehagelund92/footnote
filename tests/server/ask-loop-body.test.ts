@@ -79,6 +79,7 @@ const lookup = (
         owners: ['Ada Okafor'],
         id: 'domain:area_support',
         people: ['person:p_ada'],
+        subject: true,
       },
     ],
     searched: [
@@ -206,9 +207,9 @@ describe("the model's words, checked against the reads", () => {
     expect(t.nouns.map((n) => n.id)).toContain('dimension:team')
   })
 
-  it('fills a number from its read, and keeps the sentence whose number no read holds', () => {
+  it('fills a number from its read, and leaves out the clause whose number no read holds', () => {
     const t = turnOf(
-      'Of [#r1.outOf], [#r1.items.length] apply. It was checked on [#r1.items.0.checked.date]. It closed [#r1.tickets] tickets.',
+      'Of [#r1.outOf], [#r1.items.length] apply. It was checked on [#r1.items.0.checked.date]. It has [#r1.tickets] tickets.',
       made,
       [],
     )
@@ -217,11 +218,52 @@ describe("the model's words, checked against the reads", () => {
       { t: 'count', value: '1', of: null },
       { t: 'date', day: '2026-10-02' },
     ])
-    // The reference no read holds is left out of its sentence, which stays, and is flagged.
+    // The reference no read holds goes with its clause, here the whole sentence, and is flagged.
     expect(t.text).toBe(
-      'Of 12 published context items you can see, 1 apply. It was checked on 2 October 2026. It closed tickets.',
+      'Of 12 published context items you can see, 1 apply. It was checked on 2 October 2026.',
     )
     expect(t.checks).toEqual([{ kind: 'number', words: '[#r1.tickets]' }])
+  })
+
+  it('never leaves a broken sentence where a number no read holds was (F4 of the re-run)', () => {
+    const said = (words: string) => turnOf(words, made, []).text
+    // A first clause goes with the word that joins it to the next, which starts with a capital.
+    expect(
+      said(
+        'Every ticket has an owner. Support holds [#r1.counts.metrics] teams, and the one with the most items is [@value:team/billing].',
+      ),
+    ).toBe('Every ticket has an owner. The one with the most items is Billing.')
+    // A later clause goes from the comma before it; the stop stays.
+    expect(said('Billing closes tickets first, and Support holds [#r1.counts.teams] teams.')).toBe(
+      'Billing closes tickets first.',
+    )
+    // One between two goes from its comma to the next.
+    expect(
+      said('Billing closes first, ahead of [#r1.counts.teams] teams, and Platform second.'),
+    ).toBe('Billing closes first, and Platform second.')
+    // An answer of one sentence keeps it, the number left out: it is never emptied.
+    expect(said('Support holds [#r1.counts.teams] teams.')).toBe('Support holds teams.')
+    // What is left would only open the sentence ("Of the 12 items you can see,"): it goes whole.
+    expect(
+      said('Billing closes first. Of [#r1.outOf], the oldest check is on [#r1.items.9.day].'),
+    ).toBe('Billing closes first.')
+    // Two references to nothing: which words go with which is not clear, so only they go.
+    expect(said('Billing closed [#r1.a] tickets, and Platform [#r1.b]. It is all.')).toBe(
+      'Billing closed tickets, and Platform. It is all.',
+    )
+    // A line of a list is never left out whole.
+    expect(said('Two are due:\n\n- checked on [#r1.items.9.day]\n- Billing')).toBe(
+      'Two are due:\n\n- checked on\n- Billing',
+    )
+    // One its clause reads whole without, at a clause's end, goes alone, as does one after a word
+    // that leads into no value.
+    expect(said('Two are due [#r1.a] and both are old. Billing closed [#r1.b] tickets.')).toBe(
+      'Two are due and both are old. Billing closed tickets.',
+    )
+    // A reference to an id no read holds is a citation that goes alone: its clause stays.
+    expect(
+      said('Two are due: [#r1.groups.0.items.0.id] on Billing, and one on Platform. It is all.'),
+    ).toBe('Two are due: on Billing, and one on Platform. It is all.')
   })
 
   it('writes the number alone of what a count is out of, for words in another language', () => {
@@ -252,8 +294,10 @@ describe("the model's words, checked against the reads", () => {
     expect(turnOf('Both apply from [#r2.item.valid].', [...made, dated], []).text).toBe(
       'Both apply from 1 January 2026 on.',
     )
-    // A reference to something that is not words or a number is left out, never its sentence.
+    // A reference to something that is not words or a number is left out with its clause; the
+    // only sentence of an answer stays.
     expect(turnOf('It is [#r1.read] read.', made, []).text).toBe('It is read.')
+    expect(turnOf('It was read. It is [#r1.read] read.', made, []).text).toBe('It was read.')
   })
 
   it('writes a mention it cannot place as the name, never as nothing', () => {

@@ -25,6 +25,7 @@ import {
   type FigureOverrides,
   type SecretStore,
 } from './modules/connectors/index.ts'
+import { readyHelp } from './modules/answer/index.ts'
 import { evalJobs } from './modules/evals/index.ts'
 import { alertsJob } from './modules/alerts/index.ts'
 import { gapDetectionJob } from './modules/gaps/index.ts'
@@ -284,6 +285,9 @@ async function compose(
     ],
   })
   const relay = createRelay({ connectionString: config.databaseUrl, database, logger })
+  // Ask's help is searched in memory: built now, the first question about Footnote never waits.
+  const started = performance.now()
+  logger.info({ parts: readyHelp(), ms: Math.round(performance.now() - started) }, 'help ready')
   const app = buildApp({
     database,
     jobs,

@@ -237,7 +237,7 @@ describe("the subject of a loop turn's answer", () => {
     },
   ]
   const turn = (
-    subject: Omit<NonNullable<LoopTurn['subject']>, 'carried' | 'uncovered'> | null,
+    subject: Omit<NonNullable<LoopTurn['subject']>, 'carried' | 'uncovered' | 'unwritten'> | null,
   ): LoopTurn => ({
     kind: 'answer',
     text: '',
@@ -245,7 +245,7 @@ describe("the subject of a loop turn's answer", () => {
     state: 'missing',
     footer: { denominator: null, notSeen: null, stale: null },
     read: [],
-    subject: subject && { ...subject, carried: false, uncovered: [] },
+    subject: subject && { ...subject, carried: false, uncovered: [], unwritten: [] },
     nearby: [],
     conflict: [],
     definitions: [],

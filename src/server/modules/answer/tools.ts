@@ -144,6 +144,8 @@ const ownersSchema = z.array(
     /** The domain and its owners by id, as `names` gives them. */
     id: z.string(),
     people: z.array(z.string()),
+    /** It owns a metric the subject names; else only items that apply. */
+    subject: z.boolean(),
   }),
 )
 /** Every id a result returned: an item's, a definition's key, a pair's or a card's. */
@@ -165,6 +167,8 @@ type View = {
   shown: ReadonlySet<string>
   /** Each variant's family, by key: what a variant is called is its family's name. */
   familyOf: ReadonlyMap<string, string>
+  /** Each metric's and family's definition, as `definitions` words it, and its source, by key. */
+  wordsOf: ReadonlyMap<string, { words: string | null; from: string }>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -238,6 +242,13 @@ async function viewOf(reads: ToolReads): Promise<View> {
     familyOf: new Map(
       catalogue.terms.flatMap((t) =>
         (t.family?.variants ?? []).map((v) => [v.key, t.key] as const),
+      ),
+    ),
+    wordsOf: new Map(
+      catalogue.terms.flatMap((t) =>
+        t.kind === 'metric' || t.family
+          ? [[t.key, { words: termWords(t), from: termFrom(t) }] as const]
+          : [],
       ),
     ),
     areas,
@@ -371,12 +382,17 @@ function itemOf(view: View, item: ServingItem, today: string): z.infer<typeof it
 }
 
 /** The owners of the domains a read was about, by name, as Context names them. */
-const ownersFor = (view: View, areaIds: readonly (string | null | undefined)[]) =>
-  [...new Set(areaIds.filter((a): a is string => !!a))].map((id) => ({
+const ownersFor = (
+  view: View,
+  subject: readonly (string | null | undefined)[],
+  items: readonly (string | null | undefined)[],
+) =>
+  [...new Set([...subject, ...items].filter((a): a is string => !!a))].map((id) => ({
     domain: view.areaName(id),
     owners: view.ownersOf(id),
     id: `domain:${id}`,
     people: (view.areas.find((a) => a.id === id)?.ownerIds ?? []).map((p) => `person:${p}`),
+    subject: subject.includes(id),
   }))
 /** The people of these owners, by id, for `names`. */
 const ownerPeople = (owners: ReturnType<typeof ownersFor>) =>
@@ -438,6 +454,7 @@ const findOutput = z.object({
   /** The search found more than it read, so everyWord counts the first readItems only. */
   cut: z.boolean(),
   items: z.array(itemSchema.extend({ match: z.enum(['all', 'some', 'scope']) })),
+  /** Items that match every word and are not shown. Those that match some are never counted. */
   more: z.number(),
   definitions: z.array(namedDefinitionSchema),
   searched: z.array(searchedSchema),
@@ -582,7 +599,7 @@ async function findContext(view: View, input: z.output<typeof findInput>, today:
     readItems: found.length,
     cut: used.total > found.length,
     items,
-    more: used.total - items.length,
+    more: Math.max(0, used.whole - items.filter((i) => i.match !== 'some').length),
     definitions,
     searched,
     widened,
@@ -705,6 +722,7 @@ const getOutput = z.object({
   notCovered: z.array(z.string()),
   /** The same, by id, as `names` gives them. */
   uncovered: z.array(z.string()),
+  /** Items that apply and are not shown. Items that only match the words are never counted. */
   more: z.number(),
   /** What the wider read found when it left a part out: about the names, not the whole subject. */
   wider: z.nullable(
@@ -714,6 +732,14 @@ const getOutput = z.object({
     }),
   ),
   owners: ownersSchema,
+  /**
+   * The definition of each metric and family the subject names, as Definitions gives it: for a
+   * family, what it is and its variants' own words, and where it is from. Null words when its
+   * source gives none.
+   */
+  definitions: z.array(
+    z.object({ id: z.string(), name: z.string(), words: z.nullable(z.string()), from: z.string() }),
+  ),
   searched: z.array(searchedSchema),
   widened: widenedSchema,
   outOf: outOfSchema,
@@ -961,7 +987,11 @@ function getContext(
   const widerItems = wider ? itemsOf(wider).map(({ disagreesWith: _d, ...i }) => i) : []
   const scope = counted.scope
   const metricAreas = (scope?.metrics ?? []).map((k) => view.bundle.metricArea[k] ?? null)
-  const owners = ownersFor(view, [...metricAreas, ...items.map((i) => byId.get(i.id)?.areaId)])
+  const owners = ownersFor(
+    view,
+    metricAreas,
+    items.map((i) => byId.get(i.id)?.areaId),
+  )
   const cut = counted.leftOut.filter((l) => l.reason === 'cut').length
   const shownItems = [...items, ...widerItems, ...nearby].flatMap((i) => byId.get(i.id) ?? [])
   const readWords = searched.at(wider ? 0 : -1)!.words
@@ -1028,9 +1058,17 @@ function getContext(
     uncovered: items.length
       ? [...counted.uncovered.metrics, ...counted.uncovered.values].map(nounId)
       : [],
-    more: cut + counted.leftOutMore,
+    more: cut,
     wider: wider ? { without: input.widen!.without!, items: widerItems } : null,
     owners,
+    definitions: [...new Set(keysOf(counted).map((k) => view.familyOf.get(k) ?? k))].flatMap(
+      (k) => {
+        const defined = view.wordsOf.get(k)
+        return defined && isShown(view, k)
+          ? [{ id: nounId(k), name: termName(view, k), ...defined }]
+          : []
+      },
+    ),
     searched,
     widened,
     outOf: outOf(view),
@@ -1112,6 +1150,7 @@ function unreadOf(
     more: 0,
     wider: null,
     owners: [],
+    definitions: [],
     searched: [searched, ...(tried?.searched.slice(1) ?? [])],
     widened: tried?.widened ?? ('not asked' as const),
     outOf: outOf(view),
@@ -1399,6 +1438,23 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
   ].join(' ')
 }
 
+/**
+ * A metric's definition as its source words it; a family's (FR-142), as `familyWords` gives it.
+ * What `definitions` gives, and what `get_context` gives of the metrics it read.
+ */
+function termWords(t: Catalogue['terms'][number]): string | null {
+  if (t.family) return familyWords(t.family)
+  return t.definition?.descriptionCopy ? quoted(t.definition.descriptionCopy).text : null
+}
+
+/** Where a metric's or a family's definition comes from: its source tool, and its name there. */
+const termFrom = (t: Catalogue['terms'][number]) =>
+  t.family
+    ? (t.definition?.tool ?? 'no source definition')
+    : t.definition
+      ? `${t.definition.tool} (${t.definition.name})`
+      : 'no source definition'
+
 async function definitions(view: View, reads: ToolReads, input: z.output<typeof definitionsInput>) {
   const catalogue = await reads.catalogue()
   const glossary = await reads.glossary()
@@ -1414,11 +1470,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
     // A family is one entry for its variants (FR-142): what it means and what it is, never the
     // variants one by one. The words of variants that say something else go with it: the USD
     // one's source may say how it is worked out.
-    const words = t.family
-      ? familyWords(t.family)
-      : t.definition?.descriptionCopy
-        ? quoted(t.definition.descriptionCopy).text
-        : null
+    const words = termWords(t)
     return {
       id: t.key,
       name: t.name,
@@ -1427,11 +1479,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       owners: view.ownersOf(t.domain.areaId),
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
-      from: t.family
-        ? (t.definition?.tool ?? 'no source definition')
-        : t.definition
-          ? `${t.definition.tool} (${t.definition.name})`
-          : 'no source definition',
+      from: termFrom(t),
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
@@ -2076,7 +2124,7 @@ const definitionsFor = {
   },
   get_context: {
     description:
-      'Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, and what was read. Ask it to widen, and when nothing applies it reads once more by another name or without one part.',
+      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
     input: getInput,
     output: getOutput,
   },
