@@ -326,6 +326,32 @@ describe('publishing names as suggested', () => {
     for (const n of going) expect(nameRefusal(n.key, n.name, noHolders, chosen)).toBeNull()
   })
 
+  it('tells apart one title on dimensions of other names in other views, as it does in a model that never merges', () => {
+    // Merged by name, each is a dimension of its own: `sport`, `sport_name` and `sport_type`,
+    // all titled "Sport" in their views.
+    const sport = (view: string, own: string) =>
+      member(`cube:${view}.${own}`, {
+        source: 'cube',
+        kind: 'dimension',
+        valueType: 'categorical',
+        title: 'Sport',
+        mergeDimensions: 'by-name',
+      })
+    const names = sourceNames(
+      [sport('bets', 'sport'), sport('events', 'sport_name'), sport('odds', 'sport_type')],
+      [],
+      noHolders,
+      nothingLeft,
+    )
+    expect(names.map((n) => [n.key, n.name, n.state])).toEqual([
+      ['dim:sport', 'Sport', 'flagged'],
+      ['dim:sport_name', 'Sport (events)', 'flagged'],
+      ['dim:sport_type', 'Sport (odds)', 'flagged'],
+    ])
+    const going = asSuggested(names)
+    expect(going.map((n) => n.name)).toEqual(['Sport', 'Sport (events)', 'Sport (odds)'])
+  })
+
   it('leaves a word another meaning holds, and two names that would share a word, for a look', () => {
     const term: WordHolder = { origin: 'term', id: 't1', name: 'Tier', sameAs: null, by: 'Maria' }
     const names = sourceNames(

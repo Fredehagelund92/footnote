@@ -204,6 +204,30 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(render(named)).match(/owned by/g)).toBeNull()
   })
 
+  it('says a domain once to a screen reader when the words after its chip name it (F9)', () => {
+    const turn = example('loop-missing')
+    const domain = turn.nouns.find((n) => n.id.startsWith('domain:'))!
+    const owned = (after: string): LoopTurn => ({
+      ...turn,
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'Jon Abara owns it in the ' },
+            { t: 'noun', id: domain.id },
+            { t: 'text', text: after },
+          ],
+        },
+      ],
+    })
+    // What a screen reader reads: the words shown and those only it hears.
+    const heard = (turn: LoopTurn) => render(turn).textContent.replace(/\s+/g, ' ')
+    expect(heard(owned(' domain.'))).toContain(`owns it in the ${domain.name} domain.`)
+    expect(heard(owned(', which has no rule.'))).toContain(
+      `owns it in the ${domain.name}, domain, which has no rule.`,
+    )
+  })
+
   it('Conflict: the two that disagree side by side, who decides, and Compare the two', () => {
     const el = render(example('loop-conflict'))
     expect(text(el)).toContain('Two items say different things.')

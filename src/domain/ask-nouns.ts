@@ -3,7 +3,8 @@
   and a person, each by the id a typed mention writes: `metric:orders`, `dimension:channel`,
   `value:channel/web_shop`, `domain:area_sales`, `person:<id>`. The vocabulary's own keys
   (`metric:orders`, `dim:channel`, `val:channel/web_shop`) map to them one to one, so a value
-  always says which dimension it is of. Nothing here knows a dimension, a domain or a person by
+  always says which dimension it is of. A family of metrics (FR-142) is a metric's noun by its
+  own key, `group:revenue`. Nothing here knows a dimension, a domain or a person by
   name: every workspace's own definitions draw the same way.
 */
 
@@ -19,7 +20,7 @@ export function nounId(key: string): string {
 
 /** A metric's, dimension's or value's typed id as its vocabulary key; null for any other id. */
 export function termKeyOf(id: string): string | null {
-  if (id.startsWith('metric:')) return id
+  if (id.startsWith('metric:') || id.startsWith('group:')) return id
   if (id.startsWith('dimension:')) return `dim:${id.slice('dimension:'.length)}`
   if (id.startsWith('value:')) return `val:${id.slice('value:'.length)}`
   return null
@@ -27,6 +28,7 @@ export function termKeyOf(id: string): string | null {
 
 /** The kind a typed id names, or null when it is no noun's. */
 export function nounKindOf(id: string): NounKind | null {
+  if (id.startsWith('group:')) return 'metric'
   const kind = id.slice(0, id.indexOf(':'))
   return (nounKinds as readonly string[]).includes(kind) ? (kind as NounKind) : null
 }

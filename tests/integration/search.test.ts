@@ -84,7 +84,13 @@ describe('search everywhere on PostgreSQL', () => {
     )
     try {
       expect((await search('turnover')).definitions).toEqual([
-        { key: 'metric:net_revenue', kind: 'metric', name: 'Net revenue', aliases: ['Turnover'] },
+        {
+          key: 'metric:net_revenue',
+          kind: 'metric',
+          name: 'Net revenue',
+          aliases: ['Turnover'],
+          family: null,
+        },
       ])
     } finally {
       await client.query(

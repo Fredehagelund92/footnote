@@ -18,6 +18,7 @@ import {
   type Calendar,
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
+import { variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
@@ -1346,8 +1347,12 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
   }
   const synced: Entry[] = catalogue.terms.map((t) => {
     // A family is one entry for its variants (FR-142): what it is, never the variants one by one.
+    // Its variants' own words go with it: the USD one's source may say how it is worked out.
     const words = t.family
-      ? `A family of ${t.family.variants.length} near-identical metrics, one for each ${t.family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`
+      ? [
+          `A family of ${t.family.variants.length} near-identical metrics, one for each ${t.family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`,
+          ...variantWords(t.family.variants).map((line) => quoted(line).text),
+        ].join(' ')
       : t.definition?.descriptionCopy
         ? quoted(t.definition.descriptionCopy).text
         : null

@@ -225,13 +225,30 @@ describe('reading search everywhere', () => {
             summary: '',
           },
         ],
-        definitions: [{ key: 'dim:market', kind: 'dimension', name: 'Market', aliases: [] }],
+        definitions: [
+          { key: 'dim:market', kind: 'dimension', name: 'Market', aliases: [], family: null },
+          {
+            key: 'group:fees',
+            kind: 'metric',
+            name: 'Fees',
+            aliases: [],
+            family: { variants: 2, matched: 'Fees (USD)' },
+          },
+        ],
         domains: [{ id: 'area_sales', name: 'Sales' }],
         people: [{ id: 'p1', name: 'Jon Abara' }],
       }),
     ).toEqual({
       items: [{ id: 'itm_a', title: 'A', kind: 'note', domain: 'area_sales' }],
-      definitions: [{ name: 'Market', type: 'dimension', sourceNames: [] }],
+      definitions: [
+        { name: 'Market', type: 'dimension', sourceNames: [] },
+        {
+          name: 'Fees',
+          type: 'metric',
+          sourceNames: [],
+          variants: { count: 2, matched: 'Fees (USD)' },
+        },
+      ],
       domains: [{ id: 'area_sales', name: 'Sales' }],
       people: [{ name: 'Jon Abara' }],
     })

@@ -182,7 +182,17 @@ export type Library = {
  */
 export type SearchHits = {
   items: { id: string; title: string; kind: Kind; domain: DomainId }[]
-  definitions: { name: string; type: DefinitionType; sameAs?: string; sourceNames: string[] }[]
+  definitions: {
+    name: string
+    type: DefinitionType
+    sameAs?: string
+    sourceNames: string[]
+    /**
+     * A family of metrics: how many variants it has, and the variant whose name the words found
+     * when the family's own names do not have them.
+     */
+    variants?: { count: number; matched: string | null }
+  }[]
   domains: { id: DomainId; name: string }[]
   people: { name: string }[]
 }

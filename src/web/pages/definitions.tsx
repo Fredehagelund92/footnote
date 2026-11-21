@@ -64,6 +64,7 @@ import {
   familyBy,
   typeLabel,
   toolOf,
+  toolsOf,
   connectorOf,
   listIndex,
   type Definition,
@@ -258,6 +259,8 @@ export function DefinitionsPage() {
   const way = flipped(SORTS, sorting) ? -1 : 1
   // The tool the metrics and dimensions come from, when one; neutral words when none or several.
   const tool = toolOf(all)
+  // With more than one tool, each row says which its definition is from.
+  const tools = toolsOf(all)
   const reader = connectorById(connectorOf(all))
   const source = reader ?? connectorByTool(tool)
   const GROUPS = groupsOf(tool)
@@ -383,8 +386,9 @@ export function DefinitionsPage() {
   const [cols, tableRef] = useShownColumns(table, COLS)
 
   const peeked = dock?.kind === 'def' ? dock.id : undefined
-  // What can have context of its own: metrics and terms with their own meaning.
-  const measurable = all.filter((d) => d.type !== 'dimension' && !d.sameAs)
+  // What can have context of its own: metrics and terms with their own meaning, of those the view,
+  // the filters and the search show, whatever their cue.
+  const measurable = rows.filter((d) => d.type !== 'dimension' && !d.sameAs && pass(d, 'cue'))
   const uncovered = measurable.filter((d) => about(d) === 0)
   const filters = domain.length + cues.length + Number(synonymRows)
   // Each view's count, in one pass over the rows.
@@ -464,7 +468,7 @@ export function DefinitionsPage() {
             ? `${d.name}, family of ${family.variants.length.toLocaleString('en-GB')} ${family.variants.length === 1 ? 'variant' : 'variants'}`
             : undefined
         }
-        className="flex min-h-6 min-w-0 shrink items-center text-left font-medium outline-none hover:underline"
+        className="flex min-h-6 max-w-full min-w-0 shrink-0 items-center text-left font-medium outline-none hover:underline"
         onClick={(e) => {
           e.stopPropagation()
           if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
@@ -473,8 +477,20 @@ export function DefinitionsPage() {
         <NameKeepingEnd name={d.name} query={text} />
       </button>
     )
-    // The lock is said once, in the line above the table; a row shows only who wrote a term.
-    const source = d.synced ? null : (
+    // The lock is said once, in the line above the table; a row shows who wrote a term, and
+    // which tool a definition is from when there is more than one.
+    const source = d.synced ? (
+      tools.length > 1 && (
+        <span
+          role="img"
+          aria-label={`From ${d.tool ?? 'its tool'}`}
+          title={`From ${d.tool ?? 'its tool'}`}
+          className="inline-flex"
+        >
+          <ToolLogo c={connectorByTool(d.tool)} size="sm" />
+        </span>
+      )
+    ) : (
       <span title={`Written by ${d.by}, ${d.updated}`} className="inline-flex">
         <PersonAvatar name={d.by ?? 'Someone'} size={20} />
       </span>
@@ -517,25 +533,29 @@ export function DefinitionsPage() {
         >
           {family ? (
             // A family's mark: the stack, "Family · 250 variants" and what tells them apart, the
-            // same at every width (FR-142).
+            // same at every width (FR-142). The name has its line to itself, so names that start
+            // alike ("Partner net revenue…") stay told apart with a panel open or on a phone.
             <span className="flex min-w-0 items-center gap-2.5">
               <TypeTile d={d} />
-              <span className="flex min-w-0 flex-col">
+              <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="flex min-w-0 items-center gap-2">
                   {name}
-                  <FamilyChip family={family} />
                   <AlsoCalledChips names={otherNames(d)} conflicts={[]} matched={matchedBy(d)} />
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {familyBy(family)}
-                  {rowFacts.map((fact) => (
-                    <span key={String(fact)} className="@xl/main:hidden">
-                      {' '}
-                      · {fact}
-                    </span>
-                  ))}
-                  {matched > 0 &&
-                    ` · ${matched === 1 ? '1 variant matches' : `${matched.toLocaleString('en-GB')} variants match`}`}
+                {/* What does not fit beside the chip goes on a line of its own, never cut. */}
+                <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                  <FamilyChip family={family} />
+                  <span className="min-w-0">
+                    {familyBy(family)}
+                    {rowFacts.map((fact) => (
+                      <span key={String(fact)} className="@xl/main:hidden">
+                        {' '}
+                        · {fact}
+                      </span>
+                    ))}
+                    {matched > 0 &&
+                      ` · ${matched === 1 ? '1 variant matches' : `${matched.toLocaleString('en-GB')} variants match`}`}
+                  </span>
                 </span>
               </span>
             </span>
@@ -879,8 +899,11 @@ export function DefinitionsPage() {
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
               <span className="min-w-0">
-                From {tool ?? 'your definitions tool'} - change them there. Terms are written here
-                by their domain owner.{' '}
+                From{' '}
+                {tools.length > 1
+                  ? `${tools.slice(0, -1).join(', ')} and ${tools.at(-1)}`
+                  : (tool ?? 'your definitions tool')}{' '}
+                - change them there. Terms are written here by their domain owner.{' '}
                 <a
                   href={integrationHref(reader?.id)}
                   className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -1116,24 +1139,31 @@ function AlsoCalledChips({
 }) {
   if (!names.length && !matched) return null
   const first = names.slice(0, 3)
+  const chip = (n: string) => (
+    <TagChip
+      key={n}
+      tone={conflicts.includes(n) ? 'warn' : 'term'}
+      icon={conflicts.includes(n) ? <TriangleAlertIcon aria-hidden /> : <EqualIcon aria-hidden />}
+      className="max-w-32"
+      title={conflicts.includes(n) ? `“${n}” has a conflict` : n}
+    >
+      {n}
+    </TagChip>
+  )
+  // The name keeps its room: what does not fit beside it wraps onto a line that is cut off, the
+  // label with its first chip, so a row never shows "Another name" alone.
   return (
-    <span className="flex min-w-0 items-center gap-1 @max-xl/main:hidden">
-      {names.length > 0 && (
-        <span className="shrink-0 text-xs text-muted-foreground">Another name</span>
+    <span className="flex h-6 min-w-0 flex-wrap items-center gap-x-1 overflow-hidden @max-xl/main:hidden">
+      {matched && (
+        <span className="shrink-0 text-xs text-muted-foreground">matches: {matched}</span>
       )}
-      {first.map((n) => (
-        <TagChip
-          key={n}
-          tone={conflicts.includes(n) ? 'warn' : 'term'}
-          icon={
-            conflicts.includes(n) ? <TriangleAlertIcon aria-hidden /> : <EqualIcon aria-hidden />
-          }
-          className="max-w-32"
-          title={conflicts.includes(n) ? `“${n}” has a conflict` : n}
-        >
-          {n}
-        </TagChip>
-      ))}
+      {first.length > 0 && (
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="text-xs text-muted-foreground">Another name</span>
+          {chip(first[0]!)}
+        </span>
+      )}
+      {first.slice(1).map(chip)}
       {names.length > first.length && (
         <span
           className="shrink-0 text-xs text-muted-foreground tabular-nums"
@@ -1141,9 +1171,6 @@ function AlsoCalledChips({
         >
           +{names.length - first.length}
         </span>
-      )}
-      {matched && (
-        <span className="shrink-0 text-xs text-muted-foreground">matches: {matched}</span>
       )}
     </span>
   )

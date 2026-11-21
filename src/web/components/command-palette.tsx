@@ -35,7 +35,7 @@ import type { Kind } from '@/model/items'
 import { searchQuery, useAskExamples } from '@/api/queries'
 import { onOpen, open as openOverlay } from '@/lib/events'
 import { navigate } from '@/lib/router'
-import { kindName } from '@/lib/definitions'
+import { kindName, variantPart } from '@/lib/definitions'
 import { useDomains, useMe } from '@/lib/workspace'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
@@ -248,9 +248,22 @@ export function CommandPalette() {
                   onSelect={run(() => openDock('def', d.name))}
                 >
                   <TypeGlyph d={d} className="text-current" />
-                  <span className="min-w-0 flex-1 truncate">{d.name}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {d.name}
+                    {/* Found by one variant's name, a family says which, by what tells it apart. */}
+                    {d.variants?.matched && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        {variantPart(d.name, d.variants.matched)}
+                      </span>
+                    )}
+                  </span>
                   <CommandShortcut className="tracking-normal max-sm:hidden">
-                    {d.sameAs ? `Another name for ${d.sameAs}` : kindName(d)}
+                    {d.sameAs
+                      ? `Another name for ${d.sameAs}`
+                      : d.variants
+                        ? `Family · ${d.variants.count.toLocaleString('en-GB')} ${d.variants.count === 1 ? 'variant' : 'variants'}`
+                        : kindName(d)}
                   </CommandShortcut>
                 </CommandItem>
               ))}

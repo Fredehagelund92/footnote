@@ -152,10 +152,12 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
       if (!words) return { items: [], definitions: [], domains: [], people: [] }
       // An item matches on its words (the title, summary and body search vector) or on part of a
       // word in its title or summary, as people type; the rest match on part of a name. A name
-      // that starts with the words comes first in each group.
+      // that starts with the words comes first in each group. A definition's name matches with
+      // its brackets and dashes read as spaces too: "revenue usd" finds "Revenue (USD)".
+      const plain = words.replace(/[\s\p{P}\p{S}]+/gu, ' ').trim()
       const [row] = await database.query<SearchResults>(
         `with q as (select $1::text as anywhere, $2::text as start,
-                           websearch_to_tsquery('simple', $3) as words),
+                           websearch_to_tsquery('simple', $3) as words, $5::text as plain),
          items as (
            select a.id, a.kind::text as kind, a.area_id as "areaId", a.status::text as status,
                   a.title, a.summary, a.title ilike q.start as starts, ts_rank(v.search, q.words) as rank
@@ -166,21 +168,35 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
             limit $4),
          vocabulary as materialized (select * from serving_vocabulary((select seq from live_edition))),
          -- A family of metrics (FR-142) is found by its name and by its variants' names, and is
-         -- the one entry for them: a variant is never a result of its own.
+         -- the one entry for them: a variant is never a result of its own. Found by a variant's
+         -- name alone, it says which.
          families as (
-           select key, name, aliases from vocabulary
-            where kind = 'metric_group' and cardinality(definition_refs) > 0),
+           select f.key, f.name, f.aliases,
+                  (select count(*) from vocabulary v where v.parent_key = f.key)::int as variants
+             from vocabulary f
+            where f.kind = 'metric_group' and cardinality(f.definition_refs) > 0),
+         named as (
+           select t.*, n.said
+             from vocabulary t
+             cross join lateral unnest(array[t.name] || t.aliases) n(said)
+            where t.kind in ('metric', 'dimension') or t.key in (select key from families)),
          found as (
            select coalesce(f.key, t.key) as key,
                   case when t.kind = 'dimension' then 'dimension' else 'metric' end as kind,
                   coalesce(f.name, t.name) as name, coalesce(f.aliases, t.aliases, '{}') as aliases,
-                  t.name ilike q.start as starts
-             from vocabulary t left join families f on f.key = t.parent_key cross join q
-            where (t.kind in ('metric', 'dimension') or t.key in (select key from families))
-              and (t.name ilike q.anywhere or exists (select 1 from unnest(t.aliases) x where x ilike q.anywhere))),
+                  t.name ilike q.start
+                    or (q.plain <> ''
+                        and btrim(regexp_replace(t.name, '[[:space:][:punct:]]+', ' ', 'g')) ilike q.plain || '%') as starts,
+                  case when f.key is not null then t.name end as variant
+             from named t left join families f on f.key = t.parent_key cross join q
+            where t.said ilike q.anywhere
+               or (q.plain <> '' and regexp_replace(t.said, '[[:space:][:punct:]]+', ' ', 'g') ilike '%' || q.plain || '%')),
          definitions as (
-           select d.* from (select f.key, f.kind, f.name, f.aliases, bool_or(f.starts) as starts
-                              from found f group by f.key, f.kind, f.name, f.aliases) d
+           select d.*, (select json_build_object('variants', f.variants, 'matched', d.matched)
+                          from families f where f.key = d.key) as family
+             from (select f.key, f.kind, f.name, f.aliases, bool_or(f.starts) as starts,
+                          case when bool_and(f.variant is not null) then min(f.variant) end as matched
+                     from found f group by f.key, f.kind, f.name, f.aliases) d
             order by d.starts desc, d.name collate "en-x-icu", d.key collate "C"
             limit $4),
          domains as (
@@ -201,7 +217,7 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
                      order by i.starts desc, i.rank desc, i.title collate "en-x-icu", i.id collate "C"), '[]')
               from items i) as items,
            (select coalesce(json_agg(json_build_object('key', d.key, 'kind', d.kind, 'name', d.name,
-                     'aliases', d.aliases) order by d.starts desc, d.name collate "en-x-icu", d.key collate "C"), '[]')
+                     'aliases', d.aliases, 'family', d.family) order by d.starts desc, d.name collate "en-x-icu", d.key collate "C"), '[]')
               from definitions d) as definitions,
            (select coalesce(json_agg(json_build_object('id', d.id, 'name', d.name)
                      order by d.starts desc, d.name collate "en-x-icu", d.id collate "C"), '[]')
@@ -209,7 +225,14 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
            (select coalesce(json_agg(json_build_object('id', p.id, 'name', p.name)
                      order by p.starts desc, p.name collate "en-x-icu", p.id), '[]')
               from people p) as people`,
-        [likePattern(words), `${likePattern(words).slice(1)}`, words, SEARCH_GROUP_MAX],
+        [
+          likePattern(words),
+          `${likePattern(words).slice(1)}`,
+          words,
+          SEARCH_GROUP_MAX,
+          // No punctuation: nothing in it reads as a pattern.
+          plain,
+        ],
       )
       return row ?? { items: [], definitions: [], domains: [], people: [] }
     },

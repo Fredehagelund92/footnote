@@ -146,16 +146,29 @@ const kindWords: Record<string, string> = {
   person: 'person',
 }
 
+/** Whether the words after a noun start with what it is: "in the [Sales] domain". */
+export function toldAfter(next: LoopRun | undefined, id: string): boolean {
+  const kind = nounKindOf(id)
+  return (
+    !!kind &&
+    next?.t === 'text' &&
+    new RegExp(`^\\s*${kindWords[kind]}(?![\\p{L}\\p{N}])`, 'iu').test(next.text)
+  )
+}
+
 /** One noun as its chip, with its card. */
 export function NounChip({
   id,
   nouns,
   still,
+  told,
 }: {
   id: string
   nouns: Nouns
   /** Inside another control, such as a button: drawn, with no card and no press of its own. */
   still?: boolean
+  /** The words right after it say what it is ("the Sales domain"): a screen reader hears it once. */
+  told?: boolean
 }) {
   const P = useParts()
   const noun = nouns.get(id)
@@ -163,7 +176,7 @@ export function NounChip({
   const domain = useDomainOf(kind === 'domain' ? id : null)
   const name = noun?.name ?? (kind === 'domain' ? domain?.name : undefined) ?? key(id)
   // Its name as shown, then what it is, said to a screen reader: "Orders, metric".
-  const said = <span className="sr-only">, {kind ? kindWords[kind] : 'name'}</span>
+  const said = told ? null : <span className="sr-only">, {kind ? kindWords[kind] : 'name'}</span>
   const button = (className: string, style?: React.CSSProperties, body?: React.ReactNode) => (
     <span
       role={still ? undefined : 'button'}
@@ -474,7 +487,7 @@ export function Runs({
             if (seen?.has(r.id))
               return <React.Fragment key={i}>{nouns.get(r.id)?.name ?? key(r.id)}</React.Fragment>
             seen?.add(r.id)
-            return <NounChip key={i} id={r.id} nouns={nouns} />
+            return <NounChip key={i} id={r.id} nouns={nouns} told={toldAfter(runs[i + 1], r.id)} />
           }
           case 'cite':
             return <CiteMark key={i} n={r.n} item={items.get(r.n)} />
