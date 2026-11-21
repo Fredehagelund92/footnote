@@ -195,10 +195,12 @@ Today is ${dayWords(today)} (${timeZone}). The person is ${asker.admin ? 'an adm
  * settles, nor on a question that names one metric. A word that names no one metric code asks
  * about before the model reads when it is the whole question; in a sentence the model is told the
  * metrics it may mean (`vagueMetricWord`, `vagueNote`). And on a period with two readings that find
- * different items (R7, D6), which code finds: a get_context read that returns choices.
+ * different items (R7, D6), which code finds: a get_context read that returns choices, only for a
+ * question about what is written then. Never on a request to pretend something is written (D5 of
+ * the Ask re-run asked "Which September?" of one).
  */
 export const ASK_BACK =
-  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those.'
+  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when the message asks what is written for a period and a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those. Never ask back on a message that asks you to pretend, imagine, suppose or invent that something is written: say that Ask answers only from what is written.'
 
 /**
  * What goes with the person's latest message, from Footnote, not from them (FR-719.9): the

@@ -710,9 +710,15 @@ describe('the question back', () => {
     // When: a bare word, or no metric named, and the chat does not settle it.
     expect(ASK_BACK).toMatch(/one bare word, or names no metric/)
     expect(ASK_BACK).toContain('the metrics it could mean as the choices')
-    // And on a period whose two readings find other items, with both as the choices (R7).
-    expect(ASK_BACK).toContain('when a get_context read returns choices')
+    // And on a period whose two readings find other items, with both as the choices (R7), only
+    // when the message asks what is written then: never on a request to pretend (D5).
+    expect(ASK_BACK).toContain(
+      'when the message asks what is written for a period and a get_context read returns choices',
+    )
     expect(ASK_BACK).toContain('with both periods as the choices, even one that finds nothing')
+    expect(ASK_BACK).toContain(
+      'Never ask back on a message that asks you to pretend, imagine, suppose or invent that something is written',
+    )
     // Otherwise never: a follow-up the chat settles, nor a question that names one metric.
     expect(ASK_BACK).toMatch(/never ask back on a follow-up whose subject the chat already settles/)
     expect(ASK_BACK).toMatch(/nor on a question that names one metric/)
