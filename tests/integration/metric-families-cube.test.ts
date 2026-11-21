@@ -162,7 +162,21 @@ describe('families in a Cube model', () => {
   it('are found from the measures’ filters and published with one press each', async () => {
     const { revision, names } = await ok<NamesRead>(call('GET', '/inbox/names', 'admin'))
     const families = names.filter((name) => name.kind === 'metric_group')
-    const calculation = { by: ['Currency', 'Channel'], found: 'calculation', names: [] }
+    const calculation = (name: string) => ({
+      by: ['Currency', 'Channel'],
+      found: 'calculation',
+      names: [],
+      values: [
+        ['EUR', 'GBP', 'SEK', 'USD'],
+        ['app', 'web'],
+      ],
+      meaning: {
+        words: `${name} for orders paid in {Currency} through the {Channel} channel.`,
+        source: 'common',
+        agree: 8,
+        differing: 0,
+      },
+    })
     expect(families.map((name) => [name.name, name.state, name.family])).toEqual([
       // Cube says nothing of how the USD one is worked out: only its name says it is the same
       // amount in USD, so the owner says whether the two are one family (D1).
@@ -174,11 +188,13 @@ describe('families in a Cube model', () => {
           by: ['Currency'],
           found: 'names',
           names: ['Accrued share front loaded (EUR)', 'Accrued share front loaded (USD)'],
+          values: [['EUR', 'USD']],
+          meaning: { words: null, source: 'none', agree: 0, differing: 2 },
         },
       ],
-      ['Gross revenue', 'ready', { variants: 8, ...calculation }],
-      ['Net revenue', 'ready', { variants: 8, ...calculation }],
-      ['Revenue', 'ready', { variants: 8, ...calculation }],
+      ['Gross revenue', 'ready', { variants: 8, ...calculation('Gross revenue') }],
+      ['Net revenue', 'ready', { variants: 8, ...calculation('Net revenue') }],
+      ['Revenue', 'ready', { variants: 8, ...calculation('Revenue') }],
     ])
     expect(names.filter((name) => name.kind === 'metric')).toEqual([])
     // Publish all and, at its own press, the names that look alike as one family.
