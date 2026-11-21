@@ -7,7 +7,8 @@ alter table public.definitions
   add column family_description text,
   add constraint definitions_family_description_check check (
     family_description is null
-    or (family_name is not null and char_length(family_description) between 1 and 500));
+    or (family_name is not null and char_length(family_description) between 1 and 500
+         and btrim(family_description) <> ''));
 
 -- The domain a family is in now: the vocabulary's area map first, the source's hint second, as the
 -- catalogue says it (termDomain). Null for a key that names no live family, or a family of none.
