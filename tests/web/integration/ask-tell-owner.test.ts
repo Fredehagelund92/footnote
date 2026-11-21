@@ -13,6 +13,8 @@ const world = askWorld()
 // Ines Duarte owns no domain; Sofia Brandt owns Sales, which holds Orders.
 const READER = 'Ines Duarte'
 const OWNER = 'Sofia Brandt'
+// Ravi Kapoor is an admin.
+const ADMIN = 'Ravi Kapoor'
 
 const gapCards = async (name: string) =>
   (await (await world.as(name)).getInbox()).cards.filter((c) => c.type === 'gap')
@@ -39,5 +41,39 @@ describe('Tell the owner', () => {
       [id],
     )
     expect(rows[0]).toEqual({ reports: 2, human: 2 })
+  })
+
+  it("tells the admins about a word Ask could not find: the word alone, as the gap's note", async () => {
+    const reader = await world.as(READER)
+    const { id } = await reader.tellOwner({ about: [], word: 'EBITDA' })
+    // The topic of no metric and no value this month: only admins manage it.
+    const card = (await gapCards(ADMIN)).find((c) => c.id === `gap:${id}`)
+    expect(card?.title).toMatch(/^“EBITDA”, [A-Z][a-z]+ \d{4}$/)
+    expect((await gapCards(OWNER)).some((c) => c.id === `gap:${id}`)).toBe(false)
+    expect(JSON.stringify(card)).not.toContain(READER)
+    // The word is kept as the report's note, and nothing else of the question.
+    const { rows } = await world.client.query<{ note: string; source: string }>(
+      'select note, source from gap_notes where gap_id = $1',
+      [id],
+    )
+    expect(rows).toEqual([{ note: 'EBITDA', source: 'person' }])
+    // A second word counts against the same gap, as its own note.
+    expect((await reader.tellOwner({ about: [], word: 'CAC' })).id).toBe(id)
+    const notes = await world.client.query<{ note: string }>(
+      'select note from gap_notes where gap_id = $1 order by note',
+      [id],
+    )
+    expect(notes.rows.map((r) => r.note)).toEqual(['CAC', 'EBITDA'])
+  })
+
+  it('refuses a word sent with a subject, and a word that carries personal data', async () => {
+    // Another reader who owns no domain, so the reports per minute of the first are not spent.
+    const reader = await world.as('Maria Lindqvist')
+    await expect(reader.tellOwner({ about: ['metric:orders'], word: 'EBITDA' })).rejects.toThrow(
+      /word alone/,
+    )
+    await expect(reader.tellOwner({ about: [], word: 'ines@example.com' })).rejects.toThrow(
+      /email address/,
+    )
   })
 })

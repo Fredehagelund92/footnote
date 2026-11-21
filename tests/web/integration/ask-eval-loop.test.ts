@@ -15,7 +15,7 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   listed are that run's own words: F25 asks back as I ("Name the metric so I can check"); F10 and
   H02 give a topic's or a domain's count where the reader sees only a floor; V04 says "Ask points
   to what is written" in its own voice; K16 keeps Conflict over a follow-up that cites one of the
-  two items; F11, FP04 and G02 leave a sentence with a hole ("one in Marketing 2 and."); V02, V08,
+  two items; F11 and FP04 leave a sentence with a hole ("one in Marketing 2 and."); V02, V08,
   G06, H04, H06, H13 and H24 say what they must not.
   The same day the steps were keyed again with no model, after the reads stopped counting items
   that do not apply as not shown, began giving a metric's definition with its look-up, said which
@@ -26,6 +26,7 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   takes those in every build, which is why K18's follow-up is listed as missing here.
   A bare word that names no one metric ("revenue") is asked about by code before the model reads
   (H16), so that case needs no recorded step; in a sentence the model reads the metrics it may mean.
+  G02's sentence with a hole is gone since code drops the brackets a placed mention leaves empty.
 */
 
 askEvalSuite({
@@ -33,7 +34,7 @@ askEvalSuite({
     hidden: ['F10', 'H02'],
     advice: ['V04'],
     state: ['K16'],
-    whole: ['F11', 'FP04', 'G02'],
+    whole: ['F11', 'FP04'],
     voice: ['F25'],
     never: ['V02', 'V08', 'G06', 'H04', 'H06', 'H13', 'H24'],
   },

@@ -238,6 +238,27 @@ const overviewSchema = z.object({
 export type LoopOverview = z.infer<typeof overviewSchema>
 
 /**
+ * A definition as an answer's card shows it (the definition card): its name and kind, the source's
+ * own words, the tool and the source's name for it, its group, its domain (a noun's id when a read
+ * named it) and owners by name, and the context items about it: how many, and the ones a read of
+ * it returned, by id, as the turn's items.
+ */
+const definitionCardSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: z.enum(['metric', 'dimension', 'term']),
+  words: z.nullable(z.string()),
+  tool: z.string(),
+  member: z.nullable(z.string()),
+  group: z.nullable(z.string()),
+  domain: z.nullable(z.object({ id: z.nullable(z.string()), name: z.string() })),
+  owners: z.array(z.string()),
+  context: z.object({ count: z.number(), items: z.array(z.string()) }),
+  inWords: z.boolean(),
+})
+export type DefinitionCard = z.infer<typeof definitionCardSchema>
+
+/**
  * A turn of Ask's loop once it is done (FR-719, FR-720): the model's words, or one question back
  * with the readings it sees as choices, or a fixed sentence when the turn stopped at a limit or
  * its model failed. Everything else is written by code from the reads: the sources (the context
@@ -296,7 +317,18 @@ export const loopTurnSchema = z.object({
    * What an answer that cites no item defines, from its reads (decision 3): the page shows the
    * Definition label, with these names and the tool their words come from, in place of a state.
    */
-  defined: z.optional(z.object({ names: z.array(z.string()), tool: z.string() })),
+  defined: z.optional(
+    z.object({
+      names: z.array(z.string()),
+      tool: z.string(),
+      /**
+       * Each definition as its card shows it, from the definitions read: the source's own words,
+       * where they come from, its domain and owners, and what is written about it. `inWords` when
+       * the answer's words already give the definition: the card then stands in for them.
+       */
+      cards: z.array(definitionCardSchema),
+    }),
+  ),
   /**
    * The help pages an answer about Footnote itself rests on, from its help reads (FR-719.8): the
    * page shows each as its source, and no state. Left out when it read no help.
@@ -313,6 +345,13 @@ export const loopTurnSchema = z.object({
       }),
     ),
   ),
+  /**
+   * The words this turn's definitions reads found nothing under, when nothing the turn read covers
+   * the question (no item cited, no definition found, no subject named): what the gap card offers
+   * to tell an admin is not written. Taken from the reads, never from the question. Left out when
+   * there are none.
+   */
+  unknown: z.optional(z.array(z.string())),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /**

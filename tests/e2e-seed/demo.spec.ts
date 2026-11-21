@@ -143,7 +143,7 @@ test("the demo's Ask says no AI model answers, and its scripted reader reads sen
   await ask('What is net revenue?', 0)
   await expect(turn(0).getByText('Definition', { exact: true })).toBeVisible()
   await expect(turn(0).locator('[data-answer-words]')).toHaveText(
-    /^Net revenue, metric\s*means: Gross sales after returns, discounts, VAT and payment fees/,
+    /^Net revenue, metric\s*Metric\s*Gross sales after returns, discounts, VAT and payment fees/,
   )
   await expect(turn(0).getByText('Partial', { exact: true })).toHaveCount(0)
 

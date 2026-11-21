@@ -52927,6 +52927,11 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 500
+                  },
+                  "word": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
                   }
                 },
                 "required": [
@@ -91238,11 +91243,136 @@
                                         },
                                         "tool": {
                                           "type": "string"
+                                        },
+                                        "cards": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "name": {
+                                                "type": "string"
+                                              },
+                                              "kind": {
+                                                "enum": [
+                                                  "metric",
+                                                  "dimension",
+                                                  "term"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "words": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "tool": {
+                                                "type": "string"
+                                              },
+                                              "member": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "group": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "domain": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "id": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "null"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "id",
+                                                      "name"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "owners": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "context": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "count": {
+                                                    "type": "number"
+                                                  },
+                                                  "items": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "required": [
+                                                  "count",
+                                                  "items"
+                                                ]
+                                              },
+                                              "inWords": {
+                                                "type": "boolean"
+                                              }
+                                            },
+                                            "required": [
+                                              "id",
+                                              "name",
+                                              "kind",
+                                              "words",
+                                              "tool",
+                                              "member",
+                                              "group",
+                                              "domain",
+                                              "owners",
+                                              "context",
+                                              "inWords"
+                                            ]
+                                          }
                                         }
                                       },
                                       "required": [
                                         "names",
-                                        "tool"
+                                        "tool",
+                                        "cards"
                                       ]
                                     },
                                     "help": {
@@ -91269,6 +91399,12 @@
                                           "title",
                                           "heading"
                                         ]
+                                      }
+                                    },
+                                    "unknown": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
                                       }
                                     },
                                     "choices": {
@@ -92392,11 +92528,136 @@
                                             },
                                             "tool": {
                                               "type": "string"
+                                            },
+                                            "cards": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "type": "string"
+                                                  },
+                                                  "name": {
+                                                    "type": "string"
+                                                  },
+                                                  "kind": {
+                                                    "enum": [
+                                                      "metric",
+                                                      "dimension",
+                                                      "term"
+                                                    ],
+                                                    "type": "string"
+                                                  },
+                                                  "words": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "tool": {
+                                                    "type": "string"
+                                                  },
+                                                  "member": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "group": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "domain": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "id": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "string"
+                                                              },
+                                                              {
+                                                                "type": "null"
+                                                              }
+                                                            ]
+                                                          },
+                                                          "name": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "id",
+                                                          "name"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "owners": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "context": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "count": {
+                                                        "type": "number"
+                                                      },
+                                                      "items": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "string"
+                                                        }
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "count",
+                                                      "items"
+                                                    ]
+                                                  },
+                                                  "inWords": {
+                                                    "type": "boolean"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "id",
+                                                  "name",
+                                                  "kind",
+                                                  "words",
+                                                  "tool",
+                                                  "member",
+                                                  "group",
+                                                  "domain",
+                                                  "owners",
+                                                  "context",
+                                                  "inWords"
+                                                ]
+                                              }
                                             }
                                           },
                                           "required": [
                                             "names",
-                                            "tool"
+                                            "tool",
+                                            "cards"
                                           ]
                                         },
                                         "help": {
@@ -92423,6 +92684,12 @@
                                               "title",
                                               "heading"
                                             ]
+                                          }
+                                        },
+                                        "unknown": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
                                           }
                                         },
                                         "choices": {

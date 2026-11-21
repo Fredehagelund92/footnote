@@ -161,7 +161,9 @@ function rejectSensitive(text: string, field: string) {
  * from it alone (FR-604). One report counts against the topic's gap as an agent's report of kind
  * missing does (FR-308), so it reaches the topic's owners as a card in their Inbox. The function
  * writes no person, and nothing here logs who asked (FR-608, FR-613). The retry key makes a double
- * press or a retry count once.
+ * press or a retry count once. A word Ask's reads found nothing under (Ask's Tell an admin) is
+ * sent alone: it counts against the topic of no metric and no value this month, which only admins
+ * manage, and is kept as the report's note, under the note's rules (FR-606 case 5, FR-611).
  */
 export async function reportGap(
   tx: Queryable,
@@ -175,13 +177,26 @@ export async function reportGap(
     throw new ORPCError('PRECONDITION_FAILED', {
       message: "Agents don't get any context yet. Ask an admin to finish the setup.",
     })
-  const { type, note, ...scopeInput } = input
-  const { scope } = scopeOf({ ...scopeInput, question: '' }, bundle, today)
-  if (scope.status !== 'resolved')
+  const { type, word, ...rest } = input
+  // A word no read could find goes alone, as the note of the topic of nothing this month.
+  if (word !== undefined && Object.values(rest).some((v) => v !== undefined))
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
-      message: "Add the metric, the market or the dates it's about.",
-      data: { findings: scopeIssueFindings(scope.issues) },
+      message: 'Send the word alone, with no metric, market, dates or note.',
     })
+  const { note: given, ...scopeInput } = rest
+  const note = word ?? given
+  const topic =
+    word !== undefined
+      ? topicFor({ metrics: [], filters: {}, window: { start: today } }, bundle.metricArea)
+      : (() => {
+          const { scope } = scopeOf({ ...scopeInput, question: '' }, bundle, today)
+          if (scope.status !== 'resolved')
+            throw new ORPCError('UNPROCESSABLE_CONTENT', {
+              message: "Add the metric, the market or the dates it's about.",
+              data: { findings: scopeIssueFindings(scope.issues) },
+            })
+          return topicFor(scope.scope, bundle.metricArea)
+        })()
   if (note !== undefined) {
     const findings = noteFindings(note)
     if (findings.length)
@@ -190,7 +205,6 @@ export async function reportGap(
         data: { findings },
       })
   }
-  const topic = topicFor(scope.scope, bundle.metricArea)
   const [row] = await tx
     .query<{ id: string }>(
       `select cl_report_gap_person($1,$2,$3,$4,$5,$6,$7,$8,decode($9,'hex'),decode($10,'hex'))::text as id`,
