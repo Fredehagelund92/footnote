@@ -130,7 +130,7 @@ describe('families in a Cube model', () => {
   it('refuses a family whose variant has a taken name, saying so without naming a variant', async () => {
     const taken = await ok<{ id: string }>(
       call('POST', '/terms', 'owner', {
-        name: 'Net revenue EUR web',
+        name: 'Net revenue (EUR) web',
         meaning: 'What the finance team calls net revenue taken in euros on the web.',
         areaId: 'sales',
       }),
@@ -139,14 +139,14 @@ describe('families in a Cube model', () => {
     const family = names.find((name) => name.key === 'group:net_revenue')!
     expect(family.state).toBe('flagged')
     expect(family.flags.map((flag) => flag.code)).toEqual(['variants'])
-    expect(JSON.stringify(family.flags)).not.toMatch(/\(EUR\)|Net revenue EUR web/)
+    expect(JSON.stringify(family.flags)).not.toMatch(/\(EUR\)/)
     const refused = await call('POST', '/inbox/names/decide', 'admin', {
       revision,
       accept: [{ key: family.key }],
       leaveOut: [],
     })
     expect(refused.statusCode, refused.body).toBe(422)
-    expect(refused.body).not.toMatch(/\(EUR\)|Net revenue EUR web/)
+    expect(refused.body).not.toMatch(/\(EUR\)/)
     const left = await ok<{ leftOut: number }>(
       call('POST', '/inbox/names/decide', 'admin', {
         revision,

@@ -188,9 +188,23 @@ export function familiesOf(members: readonly VariantMember[]): Family[] {
   }
   const families: Family[] = []
   for (const group of groups.values()) {
+    const stem = familyName(
+      group.map((member) => ({
+        said: member.said,
+        values: member.variant!.by.map((b) => b.value),
+      })),
+    )
+    const fits = (member: VariantMember) =>
+      nameWithout(
+        member.said,
+        member.variant!.by.map((b) => b.value),
+      ) === stem
     const seen = new Set<string>()
     const unique = [...group]
-      .sort((a, b) => (a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0))
+      .sort(
+        (a, b) =>
+          Number(!fits(a)) - Number(!fits(b)) || (a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0),
+      )
       .filter((m) => {
         const values = m.variant!.by.map((by) => by.value).join('\u0000')
         return !seen.has(values) && !!seen.add(values)

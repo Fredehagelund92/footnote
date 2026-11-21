@@ -477,7 +477,7 @@ export function definitionOf(
     definition: words,
     origin,
     origin_words: originWords,
-    ...(family && tool ? { source: { tool, state } } : {}),
+    ...(family && tool ? { source: { tool, ref: null, state } } : {}),
     ...(described
       ? {
           source: {

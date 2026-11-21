@@ -131,10 +131,15 @@ describe('families from the shape of the calculation', () => {
 
   it('keeps the family when a copied measure repeats one value set, leaving out only the copy', () => {
     const members = shop([['revenue', 'Revenue', 'a']])
-    const copy = { ...members[0]!, ref: 'dbt:orders.revenue_eur_app_copy' }
+    const copy = {
+      ...members[0]!,
+      ref: 'dbt:orders.a_revenue_copy',
+      title: 'Revenue (EUR) web copy',
+    }
     const [family] = familiesOf(asVariants([...members, copy]))
     expect(family!.variants).toHaveLength(6)
-    expect(family!.variants.map((v) => v.ref)).not.toContain('dbt:orders.revenue_eur_app_copy')
+    expect(family!.variants.map((v) => v.ref)).toContain(members[0]!.ref)
+    expect(family!.variants.map((v) => v.ref)).not.toContain('dbt:orders.a_revenue_copy')
   })
 
   it('groups by more than currency only from the shape, and never fewer than three', () => {
@@ -198,8 +203,8 @@ describe('families on the Names card', () => {
 
   it('says how many variants have a problem and what kind, never naming one', () => {
     const taken: WordHolders = new Map([
-      ['revenue eur web', [{ origin: 'vocabulary', ref: 'metric:turnover', name: 'Turnover' }]],
-      ['revenue usd web', [{ origin: 'vocabulary', ref: 'metric:sales', name: 'Sales' }]],
+      ['revenue (eur) web', [{ origin: 'vocabulary', ref: 'metric:turnover', name: 'Turnover' }]],
+      ['revenue (usd) web', [{ origin: 'vocabulary', ref: 'metric:sales', name: 'Sales' }]],
     ])
     const [flagged] = sourceNames(shop([['revenue', 'Revenue', 'a']]), [], taken, new Set())
     expect(flagged).toMatchObject({ kind: 'metric_group', state: 'flagged' })

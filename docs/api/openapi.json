@@ -64223,7 +64223,8 @@
                                     "taken",
                                     "same_name",
                                     "titles_differ",
-                                    "bad_name"
+                                    "bad_name",
+                                    "variants"
                                   ],
                                   "type": "string"
                                 },
