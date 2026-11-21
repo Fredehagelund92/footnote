@@ -45,6 +45,13 @@ export type Definition = {
   tool?: string
   /** The connector a synced definition is read by: its id in Integrations. */
   connector?: string
+  /** A synced definition's id in its tool, as its source reads it: `dbt:orders.revenue`. */
+  ref?: string
+  /**
+   * The model file that defines a synced definition, in its source's web view. Absent when the
+   * source names no file or has no folder address: then nothing links to the source.
+   */
+  fileUrl?: string
   /** Other names that came with the synced item from its tool; read-only. */
   sourceNames: string[]
   domain?: DomainId
@@ -70,12 +77,6 @@ export const typeLabel: Record<DefinitionType, string> = {
 export const kindName = (
   d: Pick<Definition, 'type' | 'sameAs'> & Pick<Partial<Definition>, 'family'>,
 ) => (d.family ? 'Family of metrics' : d.sameAs ? 'Synonym' : typeLabel[d.type])
-/** A name as an address or a reference reads it, never as a sentence: "Net revenue" is net_revenue. */
-const slug = (name: string) => name.toLowerCase().replace(/[^a-z]+/g, '_')
-const groupSlug = (d: Definition) => (d.group ?? 'segments').toLowerCase()
-export const sourceUrl = (d: Definition) =>
-  `https://git.example/data/cube-model/blob/main/model/${groupSlug(d)}.yml`
-export const cubeRef = (d: Definition) => `cube:${groupSlug(d)}.${slug(d.name)}`
 
 /**
  * The tool synced definitions come from, as people say it, when they all come from one; undefined

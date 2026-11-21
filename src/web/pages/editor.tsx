@@ -229,7 +229,15 @@ function initialForm(
     vocabulary,
     gapDraft,
     fromText,
-  }: { domains: Domains; vocabulary: Vocabulary; gapDraft?: Fact; fromText?: Fact },
+    publishes,
+  }: {
+    domains: Domains
+    vocabulary: Vocabulary
+    gapDraft?: Fact
+    fromText?: Fact
+    /** Whether the writer publishes in a domain: its owner, or an administrator. */
+    publishes: (domain: DomainId) => boolean
+  },
 ): Form {
   if (fact) return fromFact(fact, domains, vocabulary)
   if (fromText) return fromFact(fromText, domains, vocabulary)
@@ -248,9 +256,15 @@ function initialForm(
   const metric = query.get('metric')
   const market = query.get('market')
   const about = query.get('about')?.split('|') ?? []
+  // Written from a definition, it starts in the definition's domain when the writer publishes
+  // there, rather than in the first domain they own.
+  const own = query.get('domain')
+  const start =
+    own && domains[own] && publishes(own) ? { domain: own, owners: domains[own].owners } : {}
   if (metric || market || about.length)
     return {
       ...blank,
+      ...start,
       where: termsOfNames(
         [metric, market, ...about].filter((w): w is string => !!w),
         vocabulary,
@@ -420,6 +434,7 @@ function Editor({
       vocabulary,
       gapDraft: cards.find((c) => c.id === query.get('gap'))?.gap?.draft,
       fromText: mode === 'new' ? fromText : undefined,
+      publishes: (domain) => me.admin || me.owns.includes(domain),
     }),
   )
   const [form, setForm] = React.useState<Form>(initial)

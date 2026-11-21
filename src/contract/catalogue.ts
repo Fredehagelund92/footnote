@@ -40,6 +40,12 @@ export const catalogueDefinitionSchema = z.object({
   tool: z.string(),
   /** The kind of connector that reads it: its manifest id, such as `cube-cloud`. */
   connector: z.string(),
+  /**
+   * The address of the model file that defines it, in the source's web view: the source's model
+   * folder address followed by the file its read named. Null when the source has no folder
+   * address or the read named no file, as a dbt file never does.
+   */
+  fileUrl: z.nullable(z.string()),
 })
 
 const kindCounts = z.object({

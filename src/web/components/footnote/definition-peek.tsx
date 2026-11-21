@@ -23,7 +23,8 @@ import {
   PeekTitle,
 } from '@/components/footnote/peek'
 import { Button } from '@/components/ui/button'
-import { cubeRef, familyMeaning, kindName, sourceUrl, useGlossary } from '@/lib/definitions'
+import { familyMeaning, kindName, useGlossary } from '@/lib/definitions'
+import { SourceText } from '@/components/footnote/source-text'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -87,7 +88,7 @@ export function DefinitionPeek({ name }: { name: string }) {
             // The footer's one action, so always the filled primary; the name is in the title right above.
             <Button
               nativeButton={false}
-              render={<a href={href('/context/new', { metric: d.name })} />}
+              render={<a href={href('/context/new', { metric: d.name, domain: d.domain })} />}
             >
               <PlusIcon data-icon="inline-start" />
               Write context
@@ -120,7 +121,11 @@ export function DefinitionPeek({ name }: { name: string }) {
             ) : (
               <p className={cn(!subject.definition && 'text-muted-foreground')}>
                 {subject.definition ? (
-                  <MentionText text={subject.definition} />
+                  subject.synced ? (
+                    <SourceText text={subject.definition} />
+                  ) : (
+                    <MentionText text={subject.definition} />
+                  )
                 ) : (
                   'No meaning written yet.'
                 )}
@@ -147,16 +152,22 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekFacts>
             {d.synced ? (
               <PeekFact icon={LockIcon}>
-                <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'} -{' '}
-                <a
-                  href={sourceUrl(d)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline"
-                >
-                  Open in source
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
+                <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'}
+                {d.fileUrl && (
+                  <>
+                    {' '}
+                    -{' '}
+                    <a
+                      href={d.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline"
+                    >
+                      Open in source
+                      <span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </>
+                )}
               </PeekFact>
             ) : (
               <PeekFact icon={PencilIcon}>
@@ -190,12 +201,12 @@ export function DefinitionPeek({ name }: { name: string }) {
                     ],
                   ] as [string, string][])
                 : []),
-              ...(d.synced
+              ...(d.synced && d.ref
                 ? ([
                     [
                       `${d.tool ?? 'Its tool'} name`,
                       <span key="v" className="font-mono text-xs">
-                        {cubeRef(d)}
+                        {d.ref}
                       </span>,
                     ],
                   ] as [string, React.ReactNode][])

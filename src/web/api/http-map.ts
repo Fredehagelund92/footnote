@@ -118,7 +118,12 @@ export function definitionsOf(terms: readonly CatalogueTerm[]): Definition[] {
     definition: term.definition?.descriptionCopy ?? '',
     synced: true,
     ...(term.definition
-      ? { tool: term.definition.tool, connector: term.definition.connector }
+      ? {
+          tool: term.definition.tool,
+          connector: term.definition.connector,
+          ref: term.definition.ref,
+          ...(term.definition.fileUrl ? { fileUrl: term.definition.fileUrl } : {}),
+        }
       : {}),
     sourceNames: [...new Set(term.aliases)],
     ...(term.domain.areaId ? { domain: term.domain.areaId } : {}),

@@ -99,6 +99,8 @@ export const manifest = defineManifest({
     mergeDimensions: 'by-name',
     // Its folder is the server's own setting, CUBE_MODEL_DIR.
     serverFolder: true,
+    // Each definition links to its view's model file under the folder address.
+    modelLinks: 'modelUrl',
     figures: true,
   },
   schedule: { default: 'PT1H', minimum: 'PT15M' },

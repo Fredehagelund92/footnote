@@ -1,4 +1,5 @@
 import type { ConnectorModule } from '../../../domain/connector-runtime.ts'
+import type { SettingKey } from '../../../contract/admin.ts'
 import type { SourceConfig } from '../../../contract/sources.ts'
 import { builtInConnectors } from '../../../connectors/index.ts'
 import type { Config } from '../../config/env.ts'
@@ -36,6 +37,27 @@ export function connectorType(type: string, name: string): ConnectorType {
     settingKeys: [],
     mergeDimensions: manifest?.capabilities.mergeDimensions ?? 'by-name',
   }
+}
+
+/**
+ * Where a source's model folder is in its host's web view, for links to the files its reads name:
+ * for the source the server's configuration selects, its type's administrator setting; for one an
+ * administrator added, its own setting that the manifest's `capabilities.modelLinks` names. Null
+ * when it has none.
+ */
+export function modelFolderOf(
+  source: { type: string; fromServer: boolean; config: SourceConfig },
+  setting: (key: SettingKey) => unknown,
+): string | null {
+  const key = source.fromServer
+    ? connectorTypes.find((candidate) => candidate.type === source.type)?.modelLinkSetting
+    : undefined
+  const field = source.fromServer
+    ? undefined
+    : builtInConnectors.find((module) => module.manifest.id === source.type)?.manifest.capabilities
+        .modelLinks
+  const value = key ? setting(key) : field ? source.config[field] : null
+  return typeof value === 'string' && value ? value : null
 }
 
 function checkSource(source: DefinitionSource) {

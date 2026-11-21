@@ -30,6 +30,7 @@ export {
   configuredSources,
   connectorType,
   connectorTypes,
+  modelFolderOf,
 } from './registry.ts'
 export {
   createFigureSources,

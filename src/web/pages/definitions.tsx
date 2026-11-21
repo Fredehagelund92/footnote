@@ -60,7 +60,6 @@ import type { DomainId } from '@/model/items'
 import {
   definitionCounts,
   familyBy,
-  sourceUrl,
   typeLabel,
   toolOf,
   connectorOf,
@@ -79,6 +78,7 @@ import { href, navigate, useRoute } from '@/lib/router'
 import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
 import { TruncatedText } from '@/components/footnote/truncated'
+import { SourceText, sourceWords } from '@/components/footnote/source-text'
 import { TextSwitch } from '@/components/footnote/switches'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { byPointer, moveRows, type Press } from '@/lib/list-motion'
@@ -176,6 +176,37 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
     [tableRef],
   )
   return [shown, ref] as const
+}
+
+/**
+ * What a name ends with in brackets, and the rest: "Channel (orders)" is "Channel" and " (orders)".
+ * Names that share their start differ there, so it is what a narrow row must not cut.
+ */
+const endOf = (name: string) => /^(.*\S)(\s+\([^()]*\)(?:\s*\([^()]*\))*)$/.exec(name)
+
+/**
+ * A name that is cut before its bracketed end, never in it: at 390 wide "Acquisition Channel First
+ * Touch (orders)" reads "Acquisition Chan… (orders)", so two rows of one start stay apart.
+ */
+function NameKeepingEnd({ name, query }: { name: string; query: string }) {
+  const end = endOf(name)
+  if (!end)
+    return (
+      <TruncatedText text={name}>
+        <Highlight text={name} query={query} />
+      </TruncatedText>
+    )
+  const [, start = '', tail = ''] = end
+  return (
+    <span className="flex min-w-0">
+      <TruncatedText text={name}>
+        <Highlight text={start} query={query} />
+      </TruncatedText>
+      <span className="max-w-2/3 shrink-0 truncate whitespace-pre">
+        <Highlight text={tail} query={query} />
+      </span>
+    </span>
+  )
 }
 
 export function DefinitionsPage() {
@@ -436,9 +467,7 @@ export function DefinitionsPage() {
           if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
         }}
       >
-        <TruncatedText text={d.name}>
-          <Highlight text={d.name} query={text} />
-        </TruncatedText>
+        <NameKeepingEnd name={d.name} query={text} />
       </button>
     )
     // The lock is said once, in the line above the table; a row shows only who wrote a term.
@@ -535,7 +564,9 @@ export function DefinitionsPage() {
         </td>
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
-          <TruncatedText text={meaning || 'No meaning written yet'}>{meaning || '–'}</TruncatedText>
+          <TruncatedText text={sourceWords(meaning) || 'No meaning written yet'}>
+            {meaning ? <SourceText text={meaning} /> : '–'}
+          </TruncatedText>
         </td>
         <td
           className={cn(
@@ -565,7 +596,8 @@ export function DefinitionsPage() {
               aria-label={`Write context about ${d.name}`}
               onClick={(e) => {
                 e.stopPropagation()
-                navigate('/context/new', { metric: glossary.meaningOf(d).name })
+                const subject = glossary.meaningOf(d)
+                navigate('/context/new', { metric: subject.name, domain: subject.domain })
               }}
             >
               Write
@@ -590,13 +622,15 @@ export function DefinitionsPage() {
             link={`${APP_URL}/definitions/${encodeURIComponent(d.name)}`}
             extra={
               d.synced
-                ? [
-                    {
-                      label: 'Open in source',
-                      icon: <ExternalLinkIcon />,
-                      onSelect: () => window.open(sourceUrl(d), '_blank', 'noreferrer'),
-                    },
-                  ]
+                ? d.fileUrl
+                  ? [
+                      {
+                        label: 'Open in source',
+                        icon: <ExternalLinkIcon />,
+                        onSelect: () => window.open(d.fileUrl, '_blank', 'noreferrer'),
+                      },
+                    ]
+                  : []
                 : [
                     {
                       label: 'Edit',

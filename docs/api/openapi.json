@@ -44433,6 +44433,16 @@
                                   },
                                   "connector": {
                                     "type": "string"
+                                  },
+                                  "fileUrl": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
                                   }
                                 },
                                 "required": [
@@ -44447,7 +44457,8 @@
                                   "readAt",
                                   "sourceId",
                                   "tool",
-                                  "connector"
+                                  "connector",
+                                  "fileUrl"
                                 ]
                               },
                               {
@@ -44542,6 +44553,16 @@
                                 },
                                 "connector": {
                                   "type": "string"
+                                },
+                                "fileUrl": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 }
                               },
                               "required": [
@@ -44556,7 +44577,8 @@
                                 "readAt",
                                 "sourceId",
                                 "tool",
-                                "connector"
+                                "connector",
+                                "fileUrl"
                               ]
                             }
                           },
@@ -54906,6 +54928,9 @@
                               },
                               "serverFolder": {
                                 "type": "boolean"
+                              },
+                              "modelLinks": {
+                                "type": "string"
                               },
                               "links": {
                                 "type": "boolean"

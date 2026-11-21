@@ -1275,6 +1275,7 @@ export function createMockApi() {
         lastDemo = demo
         if (demo === 'names') names.load()
         if (demo === 'variants') definitions.loadVariants()
+        if (demo === 'dbt') definitions.loadDbtFolder()
         if (demo === 'families') {
           definitions.loadFamilies()
           names.load(true)
@@ -1294,6 +1295,7 @@ export function createMockApi() {
           mentions ||
           demo === 'names' ||
           demo === 'variants' ||
+          demo === 'dbt' ||
           demo === 'families',
       }
     },

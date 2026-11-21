@@ -153,6 +153,7 @@ describe('reading the catalogue', () => {
         sourceId: 'production-cube',
         tool: 'Cube',
         connector: 'cube-cloud',
+        fileUrl: 'https://git.example.com/analytics/blob/main/model/revenue.yml',
       },
       definitions: [],
       status: 'current',
@@ -178,6 +179,8 @@ describe('reading the catalogue', () => {
         synced: true,
         tool: 'Cube',
         connector: 'cube-cloud',
+        ref: 'cube:revenue.net_revenue',
+        fileUrl: 'https://git.example.com/analytics/blob/main/model/revenue.yml',
         sourceNames: ['Turnover'],
         domain: 'area_sales',
         group: 'Revenue',
@@ -185,6 +188,16 @@ describe('reading the catalogue', () => {
         updated: '18 Sept 2026',
       },
     ])
+  })
+
+  it('names its ref, and no file when the source names none, as dbt never does', () => {
+    const [d] = definitionsOf([
+      term({
+        definition: { ...term().definition!, ref: 'dbt:orders.revenue', fileUrl: null },
+      }),
+    ])
+    expect(d).toMatchObject({ ref: 'dbt:orders.revenue' })
+    expect(d).not.toHaveProperty('fileUrl')
   })
 
   it('says nothing of a definition the source never listed', () => {

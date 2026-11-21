@@ -1,8 +1,10 @@
+import { REPOSITORY_URL } from '@domain/brand'
 import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
 import { familyDefinitions, variantDefinitions } from './data/variants'
+import { dbtFolderDefinitions } from './data/dbt-folder'
 import { ApiError } from '@/api/errors'
 import type { DomainId } from '@/model/items'
 import {
@@ -17,6 +19,33 @@ import {
 // The mock's definitions, the data glossary: metrics and dimensions synced from the demo world's
 // definitions tool, never changed here, and the terms and synonyms written here. Kept until the page reloads.
 
+/** The demo model's files, one per view (db/seed/cube): a view without one links nowhere. */
+const modelFiles = new Set([
+  'basket',
+  'customers',
+  'marketing',
+  'operations',
+  'orders',
+  'revenue',
+  'segments',
+])
+
+/** A synced definition's id and model file, as the demo model's Cube read names them. */
+function fromModel(group: string, name: string): Pick<Definition, 'ref' | 'fileUrl'> {
+  // The demo's Payments group is the model's orders view (db/seed/cube/orders.yml).
+  const view = group === 'Payments' ? 'orders' : group.toLowerCase()
+  const member = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return {
+    ref: `cube:${view}.${member}`,
+    ...(modelFiles.has(view)
+      ? { fileUrl: `${REPOSITORY_URL}/blob/main/db/seed/cube/${view}.yml` }
+      : {}),
+  }
+}
+
 const seed: Definition[] = [
   ...metrics.map<Definition>((m) => ({
     name: m.name,
@@ -25,6 +54,7 @@ const seed: Definition[] = [
     synced: true,
     tool: demoTool(DEMO_DEFINITIONS),
     connector: DEMO_DEFINITIONS,
+    ...fromModel(m.group, m.name),
     sourceNames: m.otherNames ?? [],
     domain: m.domain,
     group: m.group,
@@ -38,6 +68,7 @@ const seed: Definition[] = [
     synced: true,
     tool: demoTool(DEMO_DEFINITIONS),
     connector: DEMO_DEFINITIONS,
+    ...fromModel('Segments', d.name),
     sourceNames: [],
     group: 'Segments',
     values: d.values,
@@ -60,6 +91,12 @@ export function createDefinitions() {
     loadVariants() {
       if (!all.some((d) => d.name === 'Revenue (EUR) web'))
         all = [...all, ...variantDefinitions(demoTool(DEMO_DEFINITIONS))]
+    },
+
+    /** Adds what a dbt folder on the server holds, beside the demo's Cube model. */
+    loadDbtFolder() {
+      if (!all.some((d) => d.connector === 'dbt-metricflow'))
+        all = [...all, ...dbtFolderDefinitions()]
     },
 
     /** Adds the same 5,000 metrics as the 20 families a read finds in them (FR-142). */

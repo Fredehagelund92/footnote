@@ -22,9 +22,11 @@ import {
   createWorkspaceSources,
   fromModule,
   guardedFetch,
+  modelFolderOf,
   noSecretStore,
   type DefinitionSource,
 } from '../../../src/server/modules/connectors/index.ts'
+import { modelFileUrl } from '../../../src/domain/source-views.ts'
 import { SourceReadError } from '../../../src/server/modules/connectors/types.ts'
 import {
   withChosenGroups,
@@ -115,6 +117,30 @@ describe('the registry of connectors', () => {
     expect(registry.connector('demo')).toBeUndefined()
     expect(connectorType('static-definitions', 'My list').tool).toBe('Static list')
     expect(connectorType('gone', 'Old source').tool).toBe('Old source')
+  })
+
+  it('finds where a source keeps its model folder in its host’s web view', () => {
+    const settings = new Map([
+      ['sources.cube_model_url', 'https://git.example.com/a/tree/v1/model'],
+    ])
+    const setting = (key: string) => settings.get(key)
+    const modelUrl = 'https://git.example.com/b/tree/main/cube/model'
+    // An administrator's source: its own setting, the one Cube's manifest names.
+    expect(modelFolderOf({ type: 'cube', fromServer: false, config: { modelUrl } }, setting)).toBe(
+      modelUrl,
+    )
+    expect(modelFolderOf({ type: 'cube', fromServer: false, config: {} }, setting)).toBeNull()
+    // The server's own model folder: the administrator setting of its type.
+    expect(modelFolderOf({ type: 'cube', fromServer: true, config: { modelUrl } }, setting)).toBe(
+      'https://git.example.com/a/tree/v1/model',
+    )
+    // dbt names no model file, and its server folder has no address.
+    expect(
+      modelFolderOf({ type: 'dbt-metricflow', fromServer: true, config: {} }, setting),
+    ).toBeNull()
+    expect(modelFileUrl('https://git.example.com/a/tree/v1/model/', 'views/sales & co.yml')).toBe(
+      'https://git.example.com/a/tree/v1/model/views/sales%20%26%20co.yml',
+    )
   })
 
   it('refuses a version this build does not speak, a duplicate id and an id out of form', () => {

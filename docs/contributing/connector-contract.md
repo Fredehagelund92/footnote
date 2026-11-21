@@ -389,6 +389,7 @@ export default defineManifest({
     marks: undefined, // definitions: 'meaning' | 'metadata' (do marks see calculations? CON-505)
     mergeDimensions: undefined, // definitions: 'by-name' | 'never' (CON-201), absent is by-name
     serverFolder: undefined, // definitions: reads a folder on the server with no settings (CON-119)
+    modelLinks: undefined, // definitions: the address setting of the model folder in the host's web view
     links: true,
     figures: undefined, // definitions: reads one figure for Ask (CON-612)
   },

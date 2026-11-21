@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
 import { definitionPageQuery } from '@/api/queries'
-import { kindName, sourceUrl, useGlossary } from '@/lib/definitions'
+import { kindName, useGlossary } from '@/lib/definitions'
 import { href, navigate } from '@/lib/router'
 import { Loadable, PageSkeleton } from '@/components/footnote/load-state'
 import { NotFound } from '@/components/footnote/not-found'
@@ -41,18 +41,20 @@ export function DefinitionPage({ name }: { name: string }) {
     <Button
       nativeButton={false}
       aria-label="Write context"
-      render={<a href={href('/context/new', { metric: d.name })} />}
+      render={<a href={href('/context/new', { metric: d.name, domain: d.domain })} />}
     >
       <NotebookPenIcon data-icon="inline-start" />
       <span className="max-sm:sr-only">Write context</span>
     </Button>
   )
-  const openSource = (variant: 'default' | 'outline') => (
+  // Only a source that names the model file links to it: a dead link would break the rule it serves.
+  const fileUrl = d.fileUrl
+  const openSource = fileUrl && (
     <Button
-      variant={variant}
+      variant="outline"
       nativeButton={false}
       aria-label="Open in source"
-      render={<a href={sourceUrl(d)} target="_blank" rel="noreferrer" />}
+      render={<a href={fileUrl} target="_blank" rel="noreferrer" />}
     >
       <ExternalLinkIcon data-icon="inline-start" />
       <span className="max-sm:sr-only">Open in source</span>
@@ -61,10 +63,10 @@ export function DefinitionPage({ name }: { name: string }) {
   const main = writable ? (
     <>
       {writeContext}
-      {!isMobile && openSource('outline')}
+      {!isMobile && openSource}
     </>
   ) : (
-    openSource('outline')
+    openSource
   )
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -73,8 +75,9 @@ export function DefinitionPage({ name }: { name: string }) {
         icon={<BookAIcon />}
         deep={{ href: href('/definitions'), label: 'Back to Definitions' }}
         more={
-          writable && (
-            <DropdownMenuItem render={<a href={sourceUrl(d)} target="_blank" rel="noreferrer" />}>
+          writable &&
+          fileUrl && (
+            <DropdownMenuItem render={<a href={fileUrl} target="_blank" rel="noreferrer" />}>
               <ExternalLinkIcon />
               Open in source
             </DropdownMenuItem>

@@ -150,7 +150,7 @@ Set the model folder's address to link each view to its file. On the Cube source
 https://github.com/acme/analytics/blob/main/model
 ```
 
-The service never calls the Git host: it only builds the address. Moving a member to another file flags nothing.
+The service never calls the Git host: it only builds the address. Moving a member to another file flags nothing. Without an address, a definition's page has no **Open in source**.
 
 ## Limits
 
