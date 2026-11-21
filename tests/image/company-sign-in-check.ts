@@ -103,7 +103,9 @@ const browser = await chromium.launch({
 try {
   // The first admin's invite link, as `footnote invite` printed it.
   const noor = await freshPage(browser)
-  await noor.goto(inviteLink)
+  // The `footnote invite` container has just joined and left the host's network, which Chromium
+  // reports as ERR_NETWORK_CHANGED on a navigation under way; the same navigation then goes through.
+  await noor.goto(inviteLink).catch(() => noor.goto(inviteLink))
   await check(
     noor.getByText("You're invited as an Admin").waitFor(),
     'the invite link says what it invites Noor Haddad as',
