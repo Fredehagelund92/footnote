@@ -78,11 +78,19 @@ describe('what a raise says', () => {
 
 describe('which Inbox cards a rule keeps from someone', () => {
   const none = { off: [], muted: [] }
-  it('gives the five rules with no other card one of their own, with its words and one action', () => {
-    expect([...alertCardRules].sort()).toEqual(['disagree', 'fail', 'share', 'spend', 'sync'])
+  it('gives the six rules with no other card one of their own, with its words and one action', () => {
+    expect([...alertCardRules].sort()).toEqual([
+      'disagree',
+      'fail',
+      'share',
+      'spend',
+      'sync',
+      'views',
+    ])
     for (const rule of alertCardRules) {
       expect(ruleOfCard({ group: 'alert', rule }), rule).toBe(rule)
-      expect(alertCardWords[rule].open, rule).toMatch(/^Open /)
+      // New views not chosen go straight to choosing them; the others open what they are about.
+      expect(alertCardWords[rule].open, rule).toMatch(rule === 'views' ? /^Choose / : /^Open /)
     }
     expect(
       cardReaches({ group: 'alert', rule: 'spend', areaId: '' }, { off: ['spend'], muted: [] }),

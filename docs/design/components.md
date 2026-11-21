@@ -202,7 +202,7 @@ Unused primitives in the mockup (about seven) are not imported.
 | Topic table     | `components/obs/topic-table.tsx`, `data/observability.ts`, `lib/obs.ts`, `lib/obs-views.ts`       | Topics as rows, in three groupings                                                                                                 |
 | Answer panel    | `components/obs/answer-panel.tsx`, `lib/replay.ts`                                                | A replay of a topic, now or before the last publish                                                                                |
 | Saved questions | `components/obs/save-question.tsx`, `result.tsx`, `data/saved-questions.ts`, `lib/saved-check.ts` | Save question and a result's shape and words                                                                                       |
-| Alerts          | `data/alerts.ts`                                                                                  | Eight rules, each one sentence                                                                                                     |
+| Alerts          | `data/alerts.ts`                                                                                  | Nine rules, each one sentence                                                                                                      |
 
 ### Help and documentation
 

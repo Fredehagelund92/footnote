@@ -16,6 +16,7 @@ import type { ConnectForm, ConnectScope, ConnectTest } from '@/model/integration
 const form: ConnectForm = {
   connector: 'cube',
   source: { id: 'cube', revision: 3 },
+  server: false,
   fields: [
     {
       key: 'ref',
@@ -32,6 +33,7 @@ const form: ConnectForm = {
   staleAfter: '6 hours',
   perDay: null,
   chosen: [],
+  kept: [],
   readsAll: true,
   secretStore: true,
 }
@@ -70,6 +72,26 @@ describe('the connect flow', () => {
   it('starts the choices from the first test that could read', () => {
     expect(picked(ready)).toEqual(['orders', 'basket'])
     expect(ready.choices?.readsAll).toBe(true)
+  })
+
+  it('starts a view no longer read from the domain it had, so choosing it again restores it', () => {
+    const listed: ConnectForm = {
+      ...form,
+      readsAll: false,
+      chosen: [{ id: 'orders', title: 'orders', domain: 'sales' }],
+      kept: [{ id: 'basket', title: 'basket', domain: 'marketing' }],
+    }
+    const start = startChoices(
+      listed,
+      [
+        { ...view('orders'), domain: 'finance' },
+        { ...view('basket'), domain: 'finance' },
+        view('kiosk'),
+      ],
+      { definitions: true, why: '', domains: new Set(['sales', 'marketing', 'finance']) },
+    )
+    expect(start.picked.ids).toEqual(['orders'])
+    expect(start.map).toEqual({ orders: 'sales', basket: 'marketing', kiosk: null })
   })
 
   it('keeps the choices across a changed setting and a new test', () => {

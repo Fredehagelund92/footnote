@@ -80,6 +80,7 @@ export const policies = {
   'sources.get': 'admin',
   'sources.add': 'admin',
   'sources.update': 'admin',
+  'sources.groups': 'admin',
   'sources.test': 'admin',
   'sources.leftOut': 'admin',
   'sources.read': 'admin',

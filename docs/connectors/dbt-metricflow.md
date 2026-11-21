@@ -83,6 +83,8 @@ FOOTNOTE_SERVER_FOLDERS='{"dbt-metricflow":"/srv/dbt/target"}'
 
 It is then one of the server's own sources, with no settings, token or Git. The server's domain map, `FOOTNOTE_DOMAIN_OVERRIDES`, gives a semantic model with no domain its domain. [Service settings](../configuration.md#connectors) has the rest.
 
+Which semantic models it reads is still chosen in the app, as for a source an admin added. On its page in Integrations, press **Choose semantic models** under What it reads, test the connection, and tick the validated ones, each with its domain. Every semantic model is read until an admin chooses.
+
 ## Where `meta` goes
 
 The domain and the other names come from `config.meta`, and the place depends on your YAML spec. dbt drops them anywhere else, without saying so, and every view then shows no domain.

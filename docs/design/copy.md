@@ -205,7 +205,7 @@ States: Healthy, Failed, Needs a new key, Paused. Actions: Connect, Read again, 
 
 ### Alerts
 
-Eight rules, each one sentence: Not found, A saved question needs a look, Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read, A check is due. A rule raises an Inbox card. It never sends an email. Not found, A saved question needs a look and A check is due raise the Inbox's own cards; the other five raise an **Alert** card, in the Alerts group, with one action: **Open the topic**, **Open Overview**, **Open Usage** or **Open the integration**.
+Nine rules, each one sentence: Not found, A saved question needs a look, Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read, New views not chosen, A check is due. A rule raises an Inbox card. It never sends an email. Not found, A saved question needs a look and A check is due raise the Inbox's own cards; the other six raise an **Alert** card, in the Alerts group, with one action: **Open the topic**, **Open Overview**, **Open Usage**, **Open the integration** or, for new views, **Choose what to read**.
 
 ### Privacy words
 

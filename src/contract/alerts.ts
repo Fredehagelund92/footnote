@@ -1,5 +1,5 @@
 /**
- * Alerts on the API (FR-621): the eight rules, each on or off with its threshold and the domains
+ * Alerts on the API (FR-621): the nine rules, each on or off with its threshold and the domains
  * the person muted it for (`alerts.rules`); an administrator turns one on or off and sets its
  * threshold (`alerts.setRule`); an owner mutes one for domains they own (`alerts.mute`); and what
  * the rules raised lately, newest first, as the person may read it (`alerts.raised`). A raise is a

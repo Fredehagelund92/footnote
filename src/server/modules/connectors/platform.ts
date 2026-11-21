@@ -498,7 +498,9 @@ export const groupOf = (name: string) => {
  * read marks its definitions missing, as when the tool drops them, and the live items that rely on
  * them are flagged for their owners. A definition in no group is never read. Each listed group the
  * read did not find is named (`group_not_found`), and a list of none reads nothing and says so
- * (`no_groups_chosen`), never every group. Domains stay as the read gave them.
+ * (`no_groups_chosen`), never every group. Each group it found that the list leaves out is a
+ * choice, not a fault: it is named apart from the warnings (`notSelected`), so a group the tool
+ * adds later raises a card for the admins. Domains stay as the read gave them.
  */
 export function withListedGroups(
   snapshot: SourceSnapshot,
@@ -526,7 +528,16 @@ export function withListedGroups(
         .filter((group) => !groups.has(group))
         .map((group) => ({ code: 'group_not_found', target: group }))
     : [{ code: 'no_groups_chosen', target: 'groups' }]
-  return { ...snapshot, definitions, warnings: [...warnings, ...unlisted], groups: [...chosen] }
+  const notSelected = [...groups]
+    .filter((group) => !chosen.has(group))
+    .sort((a, b) => (a < b ? -1 : 1))
+  return {
+    ...snapshot,
+    definitions,
+    warnings: [...warnings, ...unlisted],
+    groups: [...chosen],
+    notSelected,
+  }
 }
 
 /**

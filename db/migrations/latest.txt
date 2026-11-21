@@ -1,1 +1,1 @@
-0006_declared_families.sql
+0007_approved_groups.sql
