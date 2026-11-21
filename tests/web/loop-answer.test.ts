@@ -286,6 +286,11 @@ describe("Ask's loop answer, state by state", () => {
     expect(buttons(gap, /^Tell/)).toHaveLength(0)
   })
 
+  it('Two words the reads found nothing under, to an admin: They are yours to add', () => {
+    const el = render({ ...ebitda(), unknown: ['EBITDA', 'ARR'] }, 'What are our EBITDA and ARR?')
+    expect(text(el.querySelector('[data-gap]')!)).toContain('They are yours to add.')
+  })
+
   it('makes the chips and the citations the buttons in the words, never a sentence', () => {
     const el = render(example('loop-conflict'))
     const words = el.querySelector('[data-answer-words]')!

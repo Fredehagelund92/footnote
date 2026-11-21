@@ -1059,7 +1059,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
       ? 'No context item covers it yet. It is yours to write: agents get it once it is published.'
       : `No context item covers it yet. ${Whom} can write it.`
     : mayWrite
-      ? `No metric, other name or context item uses ${it} yet. It is yours to add.`
+      ? `No metric, other name or context item uses ${it} yet. ${words.length > 1 ? 'They are' : 'It is'} yours to add.`
       : `No metric, other name or context item uses ${it} yet. ${Whom} can add ${words.length > 1 ? 'them' : 'it'}.`
   return (
     <section
