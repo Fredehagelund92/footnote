@@ -1135,10 +1135,6 @@
           "person:25a8735f-76bb-4631-8614-1c9af887664d",
           "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
         ]
-      },
-      {
-        "domain": "domain:area_paid_media",
-        "people": ["person:d8c06a17-6a1f-4a95-813c-0d920a7c5446"]
       }
     ],
     "overview": null,
@@ -2217,7 +2213,7 @@
     "sources": [],
     "state": "missing",
     "footer": {
-      "denominator": "Out of 21 published context items you can see.",
+      "denominator": "None of the 21 published context items you can see is cited.",
       "notSeen": null,
       "stale": null
     },
@@ -2335,7 +2331,7 @@
     "sources": [],
     "state": "missing",
     "footer": {
-      "denominator": "Out of 21 published context items you can see.",
+      "denominator": "None of the 21 published context items you can see is cited.",
       "notSeen": null,
       "stale": null
     },

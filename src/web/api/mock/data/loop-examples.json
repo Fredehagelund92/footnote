@@ -26,7 +26,14 @@
       },
       "nearby": [],
       "conflict": [],
-      "definitions": [],
+      "definitions": [
+        {
+          "name": "Orders",
+          "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+          "tool": "Cube",
+          "id": "metric:orders"
+        }
+      ],
       "choices": [],
       "reads": [
         {
@@ -203,7 +210,14 @@
         "itm_r6lyl1pc"
       ],
       "conflict": [],
-      "definitions": [],
+      "definitions": [
+        {
+          "name": "Orders",
+          "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+          "tool": "Cube",
+          "id": "metric:orders"
+        }
+      ],
       "choices": [],
       "reads": [
         {
@@ -493,7 +507,15 @@
       },
       "nearby": [],
       "conflict": ["itm_spainvatin", "itm_spainvatout"],
-      "definitions": [],
+      "definitions": [
+        {
+          "name": "Net revenue",
+          "words": "Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+          "tool": "Cube",
+          "id": "metric:net_revenue",
+          "mark": "VAT"
+        }
+      ],
       "choices": [],
       "reads": [
         {
@@ -647,7 +669,7 @@
       "sources": ["itm_pfet8zj3"],
       "state": "stale",
       "footer": {
-        "denominator": "Out of 21 published context items you can see.",
+        "denominator": "1 of 21 published context items you can see is cited.",
         "notSeen": null,
         "stale": "“Regulator paused price promotions in Italy on 18 April 2026” may be out of date: its check date has passed."
       },
@@ -980,7 +1002,14 @@
       },
       "nearby": [],
       "conflict": ["itm_giftcardonly", "itm_giftstorecredit"],
-      "definitions": [],
+      "definitions": [
+        {
+          "name": "Orders",
+          "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+          "tool": "Cube",
+          "id": "metric:orders"
+        }
+      ],
       "choices": [],
       "reads": [
         {
@@ -1464,7 +1493,7 @@
                 "domain": "domain:area_sales",
                 "status": "asked 9 times",
                 "date": "2026-11-21",
-                "card": "01a1feed-969f-7eb5-8273-bb71a2e2978b"
+                "card": "01a1ff39-ddaf-74eb-a64c-744deb1753e9"
               }
             ],
             "more": 0
@@ -1481,7 +1510,7 @@
                 "domain": "domain:area_sales",
                 "status": "reported wrong",
                 "date": "2026-11-21",
-                "card": "report:01a1feed-bf11-7123-bb1f-6ba3920461c2"
+                "card": "report:01a1ff39-df21-7f65-bd57-e554a47cf5c4"
               }
             ],
             "more": 0
@@ -1515,7 +1544,7 @@
                 "domain": "domain:area_customer_value",
                 "status": "an alert",
                 "date": "2026-11-21",
-                "card": "alert:01a1feee-098e-7f12-8697-58d95ac11fc6"
+                "card": "alert:01a1ff39-e165-7c41-8b88-74a92397c239"
               },
               {
                 "title": "Google Drive could not be read",
@@ -1524,7 +1553,7 @@
                 "domain": null,
                 "status": "an alert",
                 "date": "2026-11-21",
-                "card": "alert:01a1feee-09ba-7601-a820-676ad2e73d90"
+                "card": "alert:01a1ff39-e166-71d1-98e9-f1123c100b76"
               }
             ],
             "more": 0
@@ -1593,7 +1622,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1feed-3620-725e-acf3-9b75e0200b60"
+                "card": "01a1ff39-db29-74a4-8418-81cfd1d981ea"
               },
               {
                 "title": "Online sales to Norway stopped on 4 August 2026",
@@ -1602,7 +1631,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1feed-452b-77de-9ab3-9bf46d0c9dbb"
+                "card": "01a1ff39-dba6-7976-a527-d3eccaae4734"
               },
               {
                 "title": "Returns changed definition on 28 April 2026",
@@ -1611,7 +1640,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1feed-5237-7cc3-a8b4-52ee3d141de8"
+                "card": "01a1ff39-dc07-7439-a9fa-e4a1a1347954"
               },
               {
                 "title": "What to rule out before explaining a jump in Gross margin",
@@ -1620,7 +1649,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1feed-6b94-772f-830b-c0cce8b98151"
+                "card": "01a1ff39-dc5d-7fa0-8955-abb450244728"
               },
               {
                 "title": "What to rule out before explaining a jump in Orders",
@@ -1629,7 +1658,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1feed-795c-78c4-be0b-7610840eb2e5"
+                "card": "01a1ff39-dcb7-758c-877e-e731c883eb5b"
               },
               {
                 "title": "Payment provider switched in France on 12 May 2026",
@@ -1638,7 +1667,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1feed-85e7-701a-a260-d178578ea139"
+                "card": "01a1ff39-dd0c-7088-9883-0546f26b4fc0"
               },
               {
                 "title": "Payment provider delays order data in Poland",
@@ -1647,7 +1676,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1feed-8f69-7a5a-9a09-7368eeab16c2"
+                "card": "01a1ff39-dd5e-79a6-acf4-f7ac41567eb2"
               },
               {
                 "title": "Norway orders leave out store credit from 1 November 2026",
@@ -1656,7 +1685,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1feed-9e4f-7cda-8fab-a2053dc4672a"
+                "card": "01a1ff39-ddfb-7824-a2c1-7c4c1a7f3f99"
               },
               {
                 "title": "Data for Orders before 19 January 2026 is not reliable",
@@ -1665,7 +1694,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests to archive",
                 "date": "2026-10-23",
-                "card": "01a1feed-a731-725e-ac1e-b3d01792c376"
+                "card": "01a1ff39-de3a-716b-a794-314c34ddcc88"
               },
               {
                 "title": "Orders in Germany include marketplace orders from 15 October 2026",
@@ -1674,7 +1703,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1feed-f9ac-7fee-9032-5871806da762"
+                "card": "01a1ff39-e0fe-7a56-9198-243ea343f792"
               },
               {
                 "title": "Units sold counts a bundle as one unit",
@@ -1683,7 +1712,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1feed-fcea-73ed-86bf-adcc0fbbc7d4"
+                "card": "01a1ff39-e11c-71d9-a52c-fc173978b238"
               }
             ],
             "more": 0
@@ -2557,7 +2586,14 @@
       },
       "nearby": [],
       "conflict": ["itm_giftcardonly", "itm_giftstorecredit"],
-      "definitions": [],
+      "definitions": [
+        {
+          "name": "Orders",
+          "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+          "tool": "Cube",
+          "id": "metric:orders"
+        }
+      ],
       "choices": [],
       "reads": [
         {
@@ -2741,7 +2777,14 @@
       },
       "nearby": [],
       "conflict": [],
-      "definitions": [],
+      "definitions": [
+        {
+          "name": "Orders",
+          "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+          "tool": "Cube",
+          "id": "metric:orders"
+        }
+      ],
       "choices": [],
       "reads": [
         {

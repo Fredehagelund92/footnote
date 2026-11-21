@@ -473,6 +473,7 @@ describe('Ask on a family', () => {
     expect(read.definitions).toEqual([
       expect.objectContaining({
         name: 'Net revenue by line',
+        from: 'dbt',
         words: expect.stringMatching(
           /^A family of 6 near-identical metrics, one for each sales line and currency\./,
         ),

@@ -167,8 +167,8 @@ type View = {
   shown: ReadonlySet<string>
   /** Each variant's family, by key: what a variant is called is its family's name. */
   familyOf: ReadonlyMap<string, string>
-  /** Each metric's and family's definition, as `definitions` words it, by key. */
-  wordsOf: ReadonlyMap<string, string | null>
+  /** Each metric's and family's definition, as `definitions` words it, and its source, by key. */
+  wordsOf: ReadonlyMap<string, { words: string | null; from: string }>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -246,7 +246,9 @@ async function viewOf(reads: ToolReads): Promise<View> {
     ),
     wordsOf: new Map(
       catalogue.terms.flatMap((t) =>
-        t.kind === 'metric' || t.family ? [[t.key, termWords(t)] as const] : [],
+        t.kind === 'metric' || t.family
+          ? [[t.key, { words: termWords(t), from: termFrom(t) }] as const]
+          : [],
       ),
     ),
     areas,
@@ -732,10 +734,11 @@ const getOutput = z.object({
   owners: ownersSchema,
   /**
    * The definition of each metric and family the subject names, as Definitions gives it: for a
-   * family, what it is and its variants' own words. Null words when its source gives none.
+   * family, what it is and its variants' own words, and where it is from. Null words when its
+   * source gives none.
    */
   definitions: z.array(
-    z.object({ id: z.string(), name: z.string(), words: z.nullable(z.string()) }),
+    z.object({ id: z.string(), name: z.string(), words: z.nullable(z.string()), from: z.string() }),
   ),
   searched: z.array(searchedSchema),
   widened: widenedSchema,
@@ -1058,10 +1061,13 @@ function getContext(
     more: cut,
     wider: wider ? { without: input.widen!.without!, items: widerItems } : null,
     owners,
-    definitions: [...new Set(keysOf(counted).map((k) => view.familyOf.get(k) ?? k))].flatMap((k) =>
-      view.wordsOf.has(k) && isShown(view, k)
-        ? [{ id: nounId(k), name: termName(view, k), words: view.wordsOf.get(k) ?? null }]
-        : [],
+    definitions: [...new Set(keysOf(counted).map((k) => view.familyOf.get(k) ?? k))].flatMap(
+      (k) => {
+        const defined = view.wordsOf.get(k)
+        return defined && isShown(view, k)
+          ? [{ id: nounId(k), name: termName(view, k), ...defined }]
+          : []
+      },
     ),
     searched,
     widened,
@@ -1441,6 +1447,14 @@ function termWords(t: Catalogue['terms'][number]): string | null {
   return t.definition?.descriptionCopy ? quoted(t.definition.descriptionCopy).text : null
 }
 
+/** Where a metric's or a family's definition comes from: its source tool, and its name there. */
+const termFrom = (t: Catalogue['terms'][number]) =>
+  t.family
+    ? (t.definition?.tool ?? 'no source definition')
+    : t.definition
+      ? `${t.definition.tool} (${t.definition.name})`
+      : 'no source definition'
+
 async function definitions(view: View, reads: ToolReads, input: z.output<typeof definitionsInput>) {
   const catalogue = await reads.catalogue()
   const glossary = await reads.glossary()
@@ -1465,11 +1479,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       owners: view.ownersOf(t.domain.areaId),
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
-      from: t.family
-        ? (t.definition?.tool ?? 'no source definition')
-        : t.definition
-          ? `${t.definition.tool} (${t.definition.name})`
-          : 'no source definition',
+      from: termFrom(t),
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
