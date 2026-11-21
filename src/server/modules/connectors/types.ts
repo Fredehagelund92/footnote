@@ -2,7 +2,29 @@ import * as z from 'zod'
 import type { SettingKey } from '../../../contract/admin.ts'
 import { sourceWarningCodes, type SourceServerSettingKey } from '../../../contract/operations.ts'
 import type { SourceErrorClass } from '../../../domain/connector-runtime.ts'
-import { BUILT_FROM_MAX, columnNamePattern } from '../../../domain/definition-helpers.ts'
+import {
+  BUILT_FROM_MAX,
+  columnNamePattern,
+  FAMILY_NAME_MAX,
+} from '../../../domain/definition-helpers.ts'
+
+/** What tells a variant of a family apart: each column or dimension, with its value and ref. */
+const variantBy = z
+  .array(
+    z.object({
+      name: z.string().min(1).max(500),
+      ref: z
+        .string()
+        .regex(/^[a-z][a-z0-9_]*:[A-Za-z0-9_.:/-]+$/)
+        .nullable(),
+      value: z
+        .string()
+        .min(1)
+        .refine((value) => Array.from(value).length <= 200),
+    }),
+  )
+  .min(1)
+  .max(5)
 
 /**
  * The interface of the definitions pipeline's snapshot (docs/contributing/connector-contract.md,
@@ -56,24 +78,22 @@ export const definitionSchema = z.object({
    * dimension when the source reads it. Null or absent for any other definition.
    */
   variant: z
+    .object({ shape: z.string().regex(/^[a-f0-9]{64}$/), by: variantBy })
+    .nullable()
+    .optional(),
+  /**
+   * The family the source declares a metric is a variant of (`meta.footnote`, FR-142, D9): its
+   * name as the source writes it, and what tells this variant apart, as `variant.by` does. Kept
+   * read only and replaced at each read; null or absent when it declares none, or when the read
+   * left out a declaration that does not hold (`withDeclaredFamilies`).
+   */
+  family: z
     .object({
-      shape: z.string().regex(/^[a-f0-9]{64}$/),
-      by: z
-        .array(
-          z.object({
-            name: z.string().min(1).max(500),
-            ref: z
-              .string()
-              .regex(/^[a-z][a-z0-9_]*:[A-Za-z0-9_.:/-]+$/)
-              .nullable(),
-            value: z
-              .string()
-              .min(1)
-              .refine((value) => Array.from(value).length <= 200),
-          }),
-        )
+      name: z
+        .string()
         .min(1)
-        .max(5),
+        .refine((name) => Array.from(name).length <= FAMILY_NAME_MAX && !/[\n\r]/.test(name)),
+      by: variantBy,
     })
     .nullable()
     .optional(),

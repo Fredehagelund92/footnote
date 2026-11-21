@@ -6,6 +6,7 @@ import * as z from 'zod/mini'
 import { canonicalJson } from '../../domain/canonical.ts'
 import type { RuntimeDefinition } from '../../domain/connector-runtime.ts'
 import {
+  declaredFamily,
   descriptionCopy,
   domainHint,
   filterVariant,
@@ -34,7 +35,8 @@ const requestSchema = z.object({
 })
 
 type Warning = {
-  code: 'unsupported_file' | 'unreadable_file' | 'invalid_domain' | 'missing_domain'
+  code:
+    'unsupported_file' | 'unreadable_file' | 'invalid_domain' | 'missing_domain' | 'invalid_family'
   target: string
 }
 
@@ -148,6 +150,18 @@ async function compile(
     throw new ReadProblem('compile_error')
   }
 
+  /**
+   * A member as written or compiled, without its `meta.footnote`: the family Footnote's convention
+   * declares there changes no meaning, so declaring one moves no mark.
+   */
+  function withoutFootnote(raw: unknown): unknown {
+    if (raw === undefined) return null
+    const meta = record(record(raw).meta)
+    if (!('footnote' in meta)) return raw
+    const { footnote: _footnote, ...rest } = meta
+    return { ...record(raw), meta: rest }
+  }
+
   function memberMeaning(name: string, seen = new Set<string>()): unknown {
     if (seen.has(name)) return name
     seen.add(name)
@@ -157,8 +171,8 @@ async function compile(
     if (!member) throw new Error('Unresolved compiled member')
     const alias: unknown = record(member).aliasMember
     return {
-      raw: rawMembers.get(name) ?? null,
-      compiled: semanticValue(compiledMeaning(record(member))),
+      raw: withoutFootnote(rawMembers.get(name)),
+      compiled: semanticValue(withoutFootnote(compiledMeaning(record(member)))),
       source: typeof alias === 'string' ? memberMeaning(alias, seen) : null,
       relation: semanticValue(cube?.sql ?? cube?.sqlTable),
     }
@@ -254,6 +268,10 @@ async function compile(
         const domain = memberDomain.areaHint === null ? viewDomain : memberDomain
         const variant =
           kind === 'metric' ? await variantOf(member.name, member.type, dimensions) : null
+        // The family its `meta.footnote` declares, read as written (D9); one that cannot be kept
+        // is none. A dimension's is sent too, for the core to say a family holds two kinds.
+        const family = declaredFamily(member.meta, (name) => dimensions.get(name) ?? null)
+        if (family === 'invalid') warnings.push({ code: 'invalid_family', target: member.name })
         definitions.push({
           ref: `cube:${member.name}`,
           kind,
@@ -268,6 +286,7 @@ async function compile(
           domainSource: domain.domainSource,
           modelFile: containerFiles.get(config.name) ?? null,
           ...(variant ? { variant } : {}),
+          ...(family && family !== 'invalid' ? { family } : {}),
           // Type, calculation, description and visibility (CON-505). The domain stays out: a
           // changed domain informs the owner and never flags an item (plan 4.3, step 7). Empty
           // parts are left out, and the compiled member is its meaning only (mark version 2,

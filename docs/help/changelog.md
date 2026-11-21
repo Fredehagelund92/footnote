@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-20
+reviewed: 2026-11-21
 ---
+
+## Families declared in your tool
+
+2026-11-21
+
+A family can now be declared in your tool, under each variant's `meta.footnote`, and the Names card marks it declared in your tool. A metric in USD worked out from its EUR twin with a rate is found as one family by Currency, and its page says Converted from. Metrics whose names alone look alike wait under Look alike, to publish as one family or apart. See [Variants](metric-variants.md#declare-a-family-in-your-tool).
 
 ## What a metric is built from
 

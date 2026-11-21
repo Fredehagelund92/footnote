@@ -133,6 +133,12 @@ export function definitionsOf(terms: readonly CatalogueTerm[]): Definition[] {
           family: {
             by: term.family.by,
             derivations: term.family.derivations,
+            found: term.family.found,
+            conversions: term.family.conversions.flatMap(({ from, to, by }) => {
+              const nameOf = (key: string) => term.family!.variants.find((v) => v.key === key)?.name
+              const [was, is] = [nameOf(from), nameOf(to)]
+              return was && is ? [{ from: was, to: is, by }] : []
+            }),
             variants: term.family.variants.map((v) => ({ name: v.name, values: v.values })),
           },
         }

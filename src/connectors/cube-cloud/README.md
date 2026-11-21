@@ -57,12 +57,14 @@ flags nothing until one of those changes too. The connect page says so before an
    a value that is not a domain warns `invalid_domain`. A cube, view or member Cube hides
    (`public: false`) is left out. A view Cube describes in a way this does not read is left out
    with `cube-cloud.unreadable_view`, and the read is then in part, so it marks nothing missing.
+   A member whose `meta.footnote` names a family (`family`, `by`) gets that family as written
+   (D9); one that cannot be kept is none, warned as `invalid_family`.
 6. Ends with the build's hash as its version and its cursor. Every read that is not unchanged is a
    full listing: a member that left is marked missing, and the items that rely on it are flagged.
 
 The change mark is the SHA-256 of what `/v1/meta` says of a member: its type, its aggregation, its
 title, description, format, currency, granularities, values, drill members, the member it stands
-for (`aliasMember`) and its `meta` without the domain and the other names. Nothing else in the
+for (`aliasMember`) and its `meta` without the domain, the other names and the family it declares (`footnote`). Nothing else in the
 answer is read: SQL in an extended answer is never kept, hashed or passed on.
 
 A refused key fails with `unauthorized` on `apiKey`, a token the REST API refuses with

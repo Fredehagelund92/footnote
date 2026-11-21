@@ -30,6 +30,18 @@ const kindWord = { metric: 'Metric', dimension: 'Dimension', metric_group: 'Fami
 const familyWords = (family: NonNullable<SourceNameRead['family']>) =>
   `${family.variants.toLocaleString('en-GB')} ${family.variants === 1 ? 'variant' : 'variants'} ${familyBy({ by: family.by, variants: [] })}`
 
+/** How a family was found, in the tool's name (D1): "declared in dbt". */
+const foundWords = (name: SourceNameRead) =>
+  name.family?.found === 'declared'
+    ? `declared in ${name.tool}`
+    : name.family?.found === 'calculation'
+      ? `found from the calculation in ${name.tool}`
+      : null
+
+/** A family the names alone suggest, which waits for the owner to say it is one (D1). */
+const looksAlike = (name: SourceNameRead) =>
+  name.family?.found === 'names' && name.linked.length === 0
+
 /**
  * A name that is ready: what it is, and the source's own words for it. A family says what it holds
  * and is published with one press, its variants with it; they are never listed here.
@@ -50,7 +62,9 @@ function ReadyRow({
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-medium">{name.name}</span>
         <span className="text-xs text-muted-foreground">
-          {name.family ? `Family · ${familyWords(name.family)}` : kindWord[name.kind]}
+          {name.family
+            ? [`Family · ${familyWords(name.family)}`, foundWords(name)].filter(Boolean).join(' · ')
+            : kindWord[name.kind]}
         </span>
         {name.linked.length > 0 && (
           <span className="text-xs text-muted-foreground">
@@ -143,6 +157,66 @@ function FlaggedRow({
 }
 
 /**
+ * Names that look alike (D1): one name in other currencies, which nothing in the tool says are one
+ * family. The owner publishes them as one family, under the name to keep or change, or apart, each
+ * by its own name, or leaves them out. Never published by Publish all.
+ */
+function LookAlikeRow({
+  name,
+  busy,
+  problem,
+  onFamily,
+  onApart,
+  onLeaveOut,
+}: {
+  name: SourceNameRead
+  busy: boolean
+  problem: string | undefined
+  onFamily: (chosen: string) => void
+  onApart: () => void
+  onLeaveOut: () => void
+}) {
+  const [chosen, setChosen] = React.useState(name.name)
+  const id = React.useId()
+  const names = name.family?.names ?? []
+  return (
+    <li className="flex min-w-0 flex-col gap-2 border-t py-3 first:border-t-0">
+      <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-medium text-foreground">{names.join(', ')}</span>
+          <span>{names.length} metrics</span>
+        </span>
+        {name.flags.map((flag) => flag.message).join(' ')}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          id={id}
+          value={chosen}
+          aria-invalid={problem ? true : undefined}
+          aria-label={`Name for the family of ${names.join(', ')}`}
+          className="min-w-48 flex-1"
+          onChange={(e) => setChosen(e.target.value)}
+        />
+        <Button variant="outline" disabled={busy} onClick={() => onFamily(chosen)}>
+          Publish as a family
+        </Button>
+        <Button variant="outline" disabled={busy} onClick={onApart}>
+          Publish apart
+        </Button>
+        <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
+          Leave out
+        </Button>
+      </div>
+      {problem && (
+        <p role="alert" className="text-xs text-destructive">
+          {problem}
+        </p>
+      )}
+    </li>
+  )
+}
+
+/**
  * The review. `frame` draws its body and its foot in the Inbox's pane or the setup checklist's
  * dialog; `onFinished` runs once nothing is left to publish.
  */
@@ -162,15 +236,19 @@ export default function NamesReview({
   const [all, setAll] = React.useState(false)
   const names = read.data?.names ?? []
   const ready = names.filter((name) => name.state === 'ready')
-  const flagged = names.filter((name) => name.state === 'flagged')
+  const waiting = names.filter((name) => name.state === 'flagged')
+  const flagged = waiting.filter((name) => !looksAlike(name))
+  const alike = waiting.filter(looksAlike)
   const left = names.filter((name) => name.state === 'left_out')
   // One title a project keeps in many semantic models flags every copy: they go out at one press.
   const suggested = asSuggested(flagged)
   const tools = [...new Set(names.map((name) => name.tool))].sort()
-  const families = names.filter((name) => name.family && name.state !== 'left_out').length
+  const families = names.filter(
+    (name) => name.family && name.state !== 'left_out' && !looksAlike(name),
+  ).length
 
   const decide = async (
-    picks: { key: string; name?: string }[],
+    picks: { key: string; name?: string; apart?: true }[],
     leaveOut: string[],
     message: string,
   ) => {
@@ -219,7 +297,7 @@ export default function NamesReview({
     <>
       <PaneHead
         state={{ label: 'New metrics and dimensions', icon: 'names', tone: 'neutral' }}
-        title={namesWords({ ready: ready.length, flagged: flagged.length, tools }).title}
+        title={namesWords({ ready: ready.length, flagged: waiting.length, tools }).title}
         summary={`These metrics and dimensions were found in ${tools.length ? tools.join(', ') : 'your definitions tool'}. Publish them, and people can write context about them and agents can use them.${families ? ` ${families === 1 ? 'One is a family' : `${families} are families`} of near-identical metrics: each is published as one name, with its variants.` : ''}`}
       />
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
@@ -267,6 +345,38 @@ export default function NamesReview({
                       ? undefined
                       : () => void decide([], [name.key], `${name.name} is left out`)
                   }
+                />
+              ))}
+            </ul>
+          </section>
+        )}
+        {alike.length > 0 && (
+          <section aria-labelledby="names-alike" className="flex flex-col gap-1">
+            <h3 id="names-alike" className="font-medium">
+              Look alike
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {alike.length === 1
+                ? 'These metrics have one name in other currencies'
+                : `${alike.length.toLocaleString('en-GB')} sets of metrics have one name in other currencies`}
+              , and nothing in {alike[0]!.tool} says they are one metric.
+            </p>
+            <ul>
+              {alike.map((name) => (
+                <LookAlikeRow
+                  key={name.key}
+                  name={name}
+                  busy={busy}
+                  problem={problems[name.key]}
+                  onFamily={(chosen) => void acceptOne(name, chosen)}
+                  onApart={() =>
+                    void decide(
+                      [{ key: name.key, apart: true }],
+                      [],
+                      `${name.family!.names.length} metrics are published apart`,
+                    )
+                  }
+                  onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
                 />
               ))}
             </ul>
@@ -322,8 +432,8 @@ export default function NamesReview({
       <PaneFoot
         follows={
           online
-            ? flagged.length
-              ? `${count} ${ready.length === 1 ? 'goes' : 'go'} out at once. The other ${flagged.length} ${flagged.length === 1 ? 'stays' : 'stay'} here.`
+            ? waiting.length
+              ? `${count} ${ready.length === 1 ? 'goes' : 'go'} out at once. The other ${waiting.length} ${waiting.length === 1 ? 'stays' : 'stay'} here.`
               : `${count} ${ready.length === 1 ? 'goes' : 'go'} out at once, for people and agents.`
             : "Offline: changes wait until you're back."
         }

@@ -3,6 +3,7 @@ import type { RuntimeDefinition, RuntimeMessage } from '../../domain/connector-r
 import {
   BUILT_FROM_MAX,
   columnsOf,
+  declaredFamily,
   descriptionCopy,
   domainHint,
   filterVariant,
@@ -506,6 +507,7 @@ export async function mapDefinitions(
     meaning: unknown,
     variant: RuntimeDefinition['variant'] = null,
     builtFrom: RuntimeDefinition['builtFrom'] = null,
+    family: RuntimeDefinition['family'] = null,
   ) => {
     const name = `${group}.${entry.name}`
     const description = entry.description?.trim()
@@ -525,6 +527,7 @@ export async function mapDefinitions(
       synonyms: synonymsOf(metaOf(entry).synonyms),
       ...(variant ? { variant } : {}),
       ...(builtFrom ? { builtFrom } : {}),
+      ...(family ? { family } : {}),
       changeMark: await meaningMark({
         kind,
         meaning,
@@ -585,6 +588,9 @@ export async function mapDefinitions(
       const model = owners.find((owner) => owner.dimensions?.some((d) => d.name === name))
       return model ? `${manifest.refPrefix}:${model.name}.${name}` : null
     }
+    // The family its `meta.footnote` declares, read as written (D9); one that cannot be kept is none.
+    const family = declaredFamily(metaOf(metric), dimensionRef)
+    if (family === 'invalid') warn('invalid_family', `${group}.${metric.name}`)
     await add(
       'metric',
       group,
@@ -597,6 +603,7 @@ export async function mapDefinitions(
         by: known.variant.by.map((by) => ({ ...by, ref: dimensionRef(by.name) })),
       },
       builtFromOf(known),
+      family === 'invalid' ? null : family,
     )
   }
 

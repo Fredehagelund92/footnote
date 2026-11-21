@@ -11,7 +11,8 @@
  * Pure: the service and the mock binding make the same names from the same members.
  */
 import { agreedDomain } from './catalogue.ts'
-import { axisWords, familiesOf, type Family } from './metric-families.ts'
+import type { FamilyFound } from './family-found.ts'
+import { axisWords, byWords, familiesOf, type Family } from './metric-families.ts'
 import {
   keyPart,
   memberName,
@@ -36,6 +37,7 @@ export const nameFlagCodes = [
   'titles_differ',
   'bad_name',
   'variants',
+  'look_alike',
 ] as const
 export type NameFlagCode = (typeof nameFlagCodes)[number]
 export type NameFlag = { code: NameFlagCode; message: string }
@@ -54,10 +56,12 @@ export type SourceName = Omit<TermCandidate, 'kind'> & {
   /** The family a variant goes live in, by key; absent for any other name. */
   parentKey?: string
   /**
-   * A family's variants, each a name of its own that goes live with it, and what tells them
-   * apart, in words ("Currency", "Channel"). The card shows the family, never its variants.
+   * A family's variants, each a name of its own that goes live with it, what tells them apart, in
+   * words ("Currency", "Channel"), and how it was found (D1). The card shows the family, never its
+   * variants; a family the names alone suggest (`names`) waits for the owner to publish it as one
+   * family or apart, and names them.
    */
-  family?: { by: string[]; variants: SourceName[] }
+  family?: { by: string[]; variants: SourceName[]; found: FamilyFound }
 }
 
 /** What has each word now, by its compared form: terms, synonyms and live vocabulary. */
@@ -227,7 +231,15 @@ function withFamilies(
   const families = familiesOf(
     members.flatMap((member) =>
       member.kind === 'metric'
-        ? [{ ...member, said: memberName(member), variant: member.variant ?? null }]
+        ? [
+            {
+              ...member,
+              said: memberName(member),
+              variant: member.variant ?? null,
+              declared: member.declared ?? null,
+              builtFrom: member.builtFrom ?? null,
+            },
+          ]
         : [],
     ),
   )
@@ -282,7 +294,7 @@ function freeKey(family: Family, keys: ReadonlySet<string>): string {
   return `group:${tries.find((key) => !keys.has(`group:${key}`)) ?? `${part}_${keys.size}`}`
 }
 
-const variantProblems: Record<Exclude<NameFlagCode, 'variants'>, string> = {
+const variantProblems: Record<Exclude<NameFlagCode, 'variants' | 'look_alike'>, string> = {
   taken: 'names already in use',
   same_name: 'names other definitions share',
   titles_differ: 'titles that differ',
@@ -293,7 +305,7 @@ const variantProblems: Record<Exclude<NameFlagCode, 'variants'>, string> = {
 function variantsFlagMessage(looking: readonly SourceName[]): string {
   const kinds = [
     ...new Set(looking.flatMap((variant) => variant.flags.map((flag) => flag.code))),
-  ].flatMap((code) => (code === 'variants' ? [] : [variantProblems[code]]))
+  ].flatMap((code) => (code === 'variants' || code === 'look_alike' ? [] : [variantProblems[code]]))
   return `${looking.length === 1 ? 'One of its variants has' : `${looking.length} of its variants have`} ${kinds.join(' and ')}. Leave the family out, or fix them in the tool.`
 }
 
@@ -331,6 +343,13 @@ function familyName(
   }
   const looking = variants.filter((variant) => variant.flags.length)
   if (looking.length) flags.push({ code: 'variants', message: variantsFlagMessage(looking) })
+  // Names alone never make a family: the owner says whether these are one (D1).
+  const suggested = !group && family.found === 'names'
+  if (suggested)
+    flags.push({
+      code: 'look_alike',
+      message: `Their names differ only by ${byWords(family.variants.map((v) => v.values.join(' ')))}. Publish them as one family, or apart.`,
+    })
   const left = refs.every((ref) => leftOut.has(ref))
   return {
     source: family.source,
@@ -351,6 +370,7 @@ function familyName(
     family: {
       by: family.by.map(axisName),
       variants: variants.map((variant) => ({ ...variant, parentKey: key })),
+      found: family.found,
     },
   }
 }

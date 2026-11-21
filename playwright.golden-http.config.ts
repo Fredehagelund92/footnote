@@ -66,6 +66,9 @@ export default defineConfig({
     // J88 asks the mock for a dbt folder beside the demo's Cube model (?demo=dbt); the service reads
     // one and gives its refs in tests/integration/server-folder-catalogue.test.ts.
     /\/j88-dbt-definitions\.spec\.ts$/,
+    // J89 reads the families the mock's ?demo=families Names card offers; the service finds them
+    // in tests/integration/declared-families.test.ts.
+    /\/j89-family-trust\.spec\.ts$/,
     // J3 states asks for each answer state by a question the mock's recorded turns answer with it,
     // and opens the mock's Not looked up example; the service's demo week has no check that fails.
     /\/j3-ask-states\.spec\.ts$/,

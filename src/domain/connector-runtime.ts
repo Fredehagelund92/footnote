@@ -1,7 +1,7 @@
 import * as z from 'zod/mini'
 import type { ConnectorConfig, FieldProblem } from './connector-config.ts'
 import type { ConnectorManifest } from './connector-manifest.ts'
-import { BUILT_FROM_MAX, columnNamePattern } from './definition-helpers.ts'
+import { BUILT_FROM_MAX, columnNamePattern, FAMILY_NAME_MAX } from './definition-helpers.ts'
 
 /*
   A connector's runtime (interface 3.0, docs/contributing/connector-contract.md "The runtime and its
@@ -17,6 +17,19 @@ import { BUILT_FROM_MAX, columnNamePattern } from './definition-helpers.ts'
 export const definitionRefPattern = /^[a-z][a-z0-9_]*:[A-Za-z0-9_.:/-]+$/
 const domainId = z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/))
 const sha256 = z.string().check(z.regex(/^[a-f0-9]{64}$/))
+/** What tells a variant of a family apart: each column or dimension, with its value. */
+const variantBy = z
+  .array(
+    z.strictObject({
+      name: z.string().check(z.minLength(1), z.maxLength(500)),
+      ref: z.nullable(z.string().check(z.maxLength(500), z.regex(definitionRefPattern))),
+      value: z.string().check(
+        z.minLength(1),
+        z.refine((value) => [...value].length <= 200),
+      ),
+    }),
+  )
+  .check(z.minLength(1), z.maxLength(5))
 
 /** A metric or dimension a definitions connector found: interface 2's, strict, no vendor. */
 export const runtimeDefinitionSchema = z.strictObject({
@@ -40,22 +53,19 @@ export const runtimeDefinitionSchema = z.strictObject({
    * literals its filters compare left out, and those literals with what each is compared with.
    * Absent for a dimension, and for a metric whose filters compare nothing with a literal.
    */
-  variant: z.optional(
+  variant: z.optional(z.nullable(z.strictObject({ shape: sha256, by: variantBy }))),
+  /**
+   * The family the source declares a metric is a variant of (`meta.footnote`, D9): its name as
+   * the source writes it, and what tells this variant apart. Absent when it declares none.
+   */
+  family: z.optional(
     z.nullable(
       z.strictObject({
-        shape: sha256,
-        by: z
-          .array(
-            z.strictObject({
-              name: z.string().check(z.minLength(1), z.maxLength(500)),
-              ref: z.nullable(z.string().check(z.maxLength(500), z.regex(definitionRefPattern))),
-              value: z.string().check(
-                z.minLength(1),
-                z.refine((value) => [...value].length <= 200),
-              ),
-            }),
-          )
-          .check(z.minLength(1), z.maxLength(5)),
+        name: z.string().check(
+          z.minLength(1),
+          z.refine((name) => [...name].length <= FAMILY_NAME_MAX && !/[\n\r]/.test(name)),
+        ),
+        by: variantBy,
       }),
     ),
   ),

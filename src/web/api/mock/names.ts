@@ -70,6 +70,38 @@ const variants: CandidateMember[] = [
   ),
 ]
 
+/**
+ * With ?demo=families, the other two ways a family is found (D1): one the tool declares in
+ * `meta.footnote`, by sales line; two pairs in EUR and USD that one rate converts, by Currency; and a
+ * pair whose names alone look alike, which waits for the owner to publish as one family or apart.
+ */
+const declared = (line: string) =>
+  member(`orders.gift_wrap_${line}`, `Gift wrap (${line})`, {
+    valueType: 'sum',
+    declared: { name: 'gift_wrap', by: [{ name: 'sales_line', ref: null, value: line }] },
+  })
+const converted = (stem: string, label: string) =>
+  (['EUR', 'USD'] as const).map((code) =>
+    member(`orders.${stem}_${code.toLowerCase()}`, `${label} (${code})`, {
+      valueType: 'sum',
+      builtFrom: {
+        refs: [],
+        columns: code === 'EUR' ? [`${stem}_eur`] : [`${stem}_eur`, 'exchange_rate_usd'],
+      },
+    }),
+  )
+const foundOtherwise: CandidateMember[] = [
+  declared('retail'),
+  declared('online'),
+  ...converted('accrued_share', 'Accrued share'),
+  ...converted('commission', 'Commission'),
+  ...(['EUR', 'USD'] as const).map((code) =>
+    member(`orders.shipping_fee_${code.toLowerCase()}`, `Shipping fee (${code})`, {
+      valueType: 'sum',
+    }),
+  ),
+]
+
 /** The words that mean something else in the mock's demo: the demo has its own Orders. */
 const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
@@ -103,7 +135,17 @@ export function createMockNames(heldWords: WordHolders = holders) {
       }) => ({
         ...name,
         tool: 'dbt',
-        family: family ? { variants: family.variants.length, by: family.by } : null,
+        family: family
+          ? {
+              variants: family.variants.length,
+              by: family.by,
+              found: family.found,
+              names:
+                family.found === 'names' && !name.linked.length
+                  ? family.variants.map((variant) => variant.name)
+                  : [],
+            }
+          : null,
       }),
     )
     return { revision: await contentDigest(shown), names: shown }
@@ -112,7 +154,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
     /** A read of a definitions tool ended; with `families`, it found a family of metrics too. */
     load: (families = false) => {
       waiting = true
-      if (families) members = [...shop, ...variants]
+      if (families) members = [...shop, ...variants, ...foundOtherwise]
     },
     read,
     card(me: string): InboxCard | null {
@@ -137,9 +179,22 @@ export function createMockNames(heldWords: WordHolders = holders) {
     async decide(input: DecideNames): Promise<NamesDecision> {
       if ((await read()).revision !== input.revision)
         throw new ApiError('conflict', 'The names changed after you opened them.')
-      const list = names()
+      const found = names()
+      // A family the names alone suggest, published apart: its variants, each by its own name.
+      const apart = input.accept.flatMap(({ key, apart }) =>
+        apart
+          ? (found.find((n) => n.key === key)?.family?.variants ?? []).map((v) => ({
+              key: v.key,
+              name: v.name,
+            }))
+          : [],
+      )
+      const list = [
+        ...found,
+        ...found.flatMap((n) => (n.family?.found === 'names' ? n.family.variants : [])),
+      ]
       const chosen = new Map(
-        input.accept.map(({ key, name }) => [
+        [...input.accept.filter((pick) => !pick.apart), ...apart].map(({ key, name }) => [
           key,
           termName(name ?? list.find((n) => n.key === key)?.name ?? key),
         ]),

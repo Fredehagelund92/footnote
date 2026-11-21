@@ -4,13 +4,13 @@ import { definitionRelationsQuery } from '@/api/queries'
 import { ShowMoreButton } from '@/components/footnote/show-more'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { useShowMore } from '@/hooks/use-show-more'
-import type { Definition, DefinitionRelation } from '@/lib/definitions'
+import type { Definition, DefinitionRelation, Family } from '@/lib/definitions'
 
 /**
  * What a synced metric is built from and what is built from it (FR-143), as its tool's structure
- * says, never words in its description: Built from (definitions, then the
- * columns its calculation reads) and Used by. Definitions open their pages; columns are names in
- * the tool. On the metric's own page, under its description, and nowhere in the first load.
+ * says, never words in its description: Converted from and to (D2), Built from (definitions, then
+ * the columns its calculation reads) and Used by. Definitions open their pages; columns are names
+ * in the tool. On the metric's own page, under its description, and nowhere in the first load.
  */
 export function DefinitionRelations({ d }: { d: Definition }) {
   const relations = useQuery(definitionRelationsQuery(d.name)).data ?? []
@@ -25,12 +25,24 @@ export function RelationList({
   tool: string
 }) {
   const of = (kind: DefinitionRelation['kind']) => relations.filter((r) => r.kind === kind)
+  const convertedFrom = of('converted_from')
+  const convertedTo = of('converted_to')
   const builtFrom = of('built_from')
   const usedBy = of('used_by')
   if (!relations.length) return null
   return (
     <section aria-label="How it is built" className="max-w-reading text-sm">
       <dl className="flex flex-col">
+        {convertedFrom.length > 0 && (
+          <Row label="Converted from">
+            <Conversions relations={convertedFrom} tool={tool} />
+          </Row>
+        )}
+        {convertedTo.length > 0 && (
+          <Row label="Converted to">
+            <Conversions relations={convertedTo} tool={tool} />
+          </Row>
+        )}
         {builtFrom.length > 0 && (
           <Row label="Built from">
             <Names relations={builtFrom} tool={tool} />
@@ -53,6 +65,66 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
       <dt className="pt-1.5 text-muted-foreground">{label}</dt>
       <dd className="flex min-w-0 flex-col">{children}</dd>
     </div>
+  )
+}
+
+/** Each conversion on a line of its own: the other metric, and the column it is converted by. */
+function Conversions({ relations, tool }: { relations: DefinitionRelation[]; tool: string }) {
+  return relations.map((r) => (
+    <span key={r.name} className="flex min-w-0 flex-wrap items-center gap-1.5 py-1">
+      <Name r={r} tool={tool} />
+      {r.by && (
+        <span className="text-muted-foreground">
+          by the column <Column name={r.by} />
+        </span>
+      )}
+    </span>
+  ))
+}
+
+/**
+ * How a family was found and how its variants are worked out from one another (FR-142, D1, D2):
+ * declared in its tool, from the calculation, or from names an owner made one family; and each
+ * variant converted from another, by the column. On the family's own page, under its meaning.
+ */
+export function FamilyRelations({ family, tool }: { family: Family; tool: string }) {
+  const found =
+    family.found === 'declared'
+      ? `Declared as one family in ${tool}`
+      : family.found === 'calculation'
+        ? `Found from the calculation in ${tool}`
+        : family.found === 'names'
+          ? 'Its names look alike, and an owner published them as one family'
+          : null
+  const conversions = family.conversions ?? []
+  // A variant by what tells it apart, as its family lists it ("USD"), else by its name.
+  const said = (name: string) =>
+    family.variants.find((v) => v.name === name)?.values.join(' ') || name
+  if (!found && !conversions.length) return null
+  return (
+    <section aria-label="How it is built" className="max-w-reading text-sm">
+      <dl className="flex flex-col">
+        {found && (
+          <Row label="Family">
+            <span className="py-1">{found}</span>
+          </Row>
+        )}
+        {conversions.length > 0 && (
+          <Row label="Converted">
+            {conversions.map((c) => (
+              <span key={c.to} className="flex min-w-0 flex-wrap items-center gap-1.5 py-1">
+                <span className="font-medium">{said(c.to)}</span>
+                <span className="text-muted-foreground">from</span>
+                <span className="font-medium">{said(c.from)}</span>
+                <span className="text-muted-foreground">
+                  by the column <Column name={c.by} />
+                </span>
+              </span>
+            ))}
+          </Row>
+        )}
+      </dl>
+    </section>
   )
 }
 
