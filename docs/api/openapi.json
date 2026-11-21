@@ -64636,7 +64636,8 @@
                               "kind": {
                                 "enum": [
                                   "metric",
-                                  "dimension"
+                                  "dimension",
+                                  "metric_group"
                                 ],
                                 "type": "string"
                               },
@@ -64702,7 +64703,8 @@
                                         "taken",
                                         "same_name",
                                         "titles_differ",
-                                        "bad_name"
+                                        "bad_name",
+                                        "variants"
                                       ],
                                       "type": "string"
                                     },
@@ -64718,6 +64720,31 @@
                               },
                               "leftByOwner": {
                                 "type": "boolean"
+                              },
+                              "family": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "variants": {
+                                        "type": "number"
+                                      },
+                                      "by": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "variants",
+                                      "by"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
                             },
                             "required": [
@@ -64732,7 +64759,8 @@
                               "tool",
                               "state",
                               "flags",
-                              "leftByOwner"
+                              "leftByOwner",
+                              "family"
                             ]
                           }
                         }

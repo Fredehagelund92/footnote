@@ -3,7 +3,7 @@ title: Set up your workspace
 line: The six steps from an empty workspace to a first checked answer, and the page for each step.
 group: Start
 order: 2
-minutes: 3
+minutes: 4
 reviewed: 2026-11-20
 ---
 
