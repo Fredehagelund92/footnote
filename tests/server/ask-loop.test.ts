@@ -245,6 +245,17 @@ describe('what code writes from the reads', () => {
     })
   })
 
+  it('counts every item that applies, saying how many are shown, never items that only match (F3)', () => {
+    const read = get('grounded', [item('itm_revenue01'), item('itm_revenue02')])
+    const capped: MadeRead = { ...read, result: { ...(read.result as object), more: 3 } }
+    const footer = (r: MadeRead) => turnOf('As written [itm_revenue01].', [r], []).footer
+    expect(footer(capped)).toMatchObject({
+      denominator: '5 of 21 published context items you can see apply; 2 are shown.',
+      notSeen: null,
+    })
+    expect(footer(read).denominator).toBe('2 of 21 published context items you can see apply.')
+  })
+
   it("names the owners of the subject and of the items cited, never of every item's domain (F3)", () => {
     const owner = (id: string, subject: boolean) => ({
       domain: id,

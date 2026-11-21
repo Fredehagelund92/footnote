@@ -1480,10 +1480,12 @@ export function footerOf(
         m.tool === 'get_context' && isObj(m.result) && !isError(m.result) && isObj(m.result.read),
     )
   const of = outOf ? `${num(outOf.count).toLocaleString('en-GB')} ${str(outOf.of)}` : ''
+  // What applies is what the read gave and what it did not show (`more`, items that apply only).
   const applying = (r: Obj) => {
-    const n = arr(r.items).length
+    const shown = arr(r.items).length
+    const n = shown + num(r.more)
     const wider = isObj(r.wider) && arr(r.searched)[1] ? arr(r.wider.items).length : null
-    return `${n.toLocaleString('en-GB')} of ${of} ${n === 1 ? 'applies' : 'apply'}${wider !== null ? `; a wider read found ${wider.toLocaleString('en-GB')}` : ''}.`
+    return `${n.toLocaleString('en-GB')} of ${of} ${n === 1 ? 'applies' : 'apply'}${n > shown ? `; ${shown.toLocaleString('en-GB')} ${shown === 1 ? 'is' : 'are'} shown` : ''}${wider !== null ? `; a wider read found ${wider.toLocaleString('en-GB')}` : ''}.`
   }
   // An answer that cites what a search found, where the subject's read found none, says how many
   // of what it is out of it cites, in a sentence, never that none apply.
@@ -1497,7 +1499,9 @@ export function footerOf(
           ? `${cited.length.toLocaleString('en-GB')} of ${of} ${cited.length === 1 ? 'is' : 'are'} cited.`
           : `None of the ${of} is cited.`
         : null
-  const more = ok.reduce((n, r) => n + num(r.more), 0)
+  // The subject's read says how many of what applies are shown, in its own sentence.
+  const said = applies && outOf && !records ? subject.result : null
+  const more = ok.reduce((n, r) => n + (r === said ? 0 : num(r.more)), 0)
   const notSeen = [
     more
       ? `${counted(more, 'more item matches', 'more items match')} and ${more === 1 ? 'is' : 'are'} not shown.`
