@@ -159,6 +159,8 @@ type View = {
   published: number
   /** The metrics and dimensions Definitions shows the person, by key. */
   shown: ReadonlySet<string>
+  /** Each family by its key: the keys of its variants. */
+  variantsOf: ReadonlyMap<string, string[]>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -229,6 +231,9 @@ async function viewOf(reads: ToolReads): Promise<View> {
     shown: new Set(
       catalogue.terms.flatMap((t) => [t.key, ...(t.family?.variants.map((v) => v.key) ?? [])]),
     ),
+    variantsOf: new Map(
+      catalogue.terms.flatMap((t) => (t.family ? [[t.key, t.family.variants.map((v) => v.key)]] : [])),
+    ) as ReadonlyMap<string, string[]>,
     areas,
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
     areaName: (id) => area(id)?.name ?? 'no domain',
@@ -246,6 +251,11 @@ const isShown = (view: View, key: string) => {
   if (term.kind === 'metric' || term.kind === 'dimension') return view.shown.has(term.key)
   if (term.kind === 'dimension_value') return !term.parentKey || view.shown.has(term.parentKey)
   return true
+}
+/** The terms a person may name: those shown, never a variant of a family, which only its family names. */
+const speakable = (view: View) => {
+  const variants = new Set([...view.variantsOf.values()].flat())
+  return view.bundle.terms.filter((t) => isShown(view, t.key) && !variants.has(t.key))
 }
 const termName = (view: View, key: string) =>
   view.bundle.terms.find((t) => t.key === key)?.name ?? key
@@ -1344,7 +1354,11 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       owners: view.ownersOf(t.domain.areaId),
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
-      from: t.definition ? `${t.definition.tool} (${t.definition.name})` : 'no source definition',
+      from: t.family
+        ? (t.definition?.tool ?? 'no source definition')
+        : t.definition
+          ? `${t.definition.tool} (${t.definition.name})`
+          : 'no source definition',
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
@@ -1514,7 +1528,9 @@ const recordsOutput = z.object({
 
 async function records(view: View, reads: ToolReads, input: z.output<typeof recordsInput>) {
   const items = await reads.records()
-  const terms = view.bundle.terms.filter((t) => isShown(view, t.key))
+  const terms = speakable(view).filter(
+    (t) => t.kind !== 'metric_group' || view.variantsOf.has(t.key),
+  )
   const found = queryRecords(input, {
     items,
     areas: view.areas,
@@ -1526,14 +1542,16 @@ async function records(view: View, reads: ToolReads, input: z.output<typeof reco
       for (const n of names) {
         const term = terms.find(
           (t) =>
-            (t.kind === 'metric' || t.kind === 'dimension_value') &&
+            (t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value') &&
             namesOf(t).includes(normalizeName(n)),
         )
-        if (term) keys.push(term.key)
+        if (term) keys.push(term.key, ...(view.variantsOf.get(term.key) ?? []))
         else {
           const near = closest(
             n,
-            terms.filter((t) => t.kind === 'metric' || t.kind === 'dimension_value'),
+            terms.filter(
+              (t) => t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value',
+            ),
             (t) => [t.name, ...t.aliases],
           )
           unknown.push(

@@ -247,3 +247,69 @@ describe('the records tool (FR-720.3)', () => {
     expect(read({ about: ['Orders', 'Atlantis'] })).toEqual({ error: '"Atlantis" names nothing.' })
   })
 })
+
+describe('a family of metrics in Ask (FR-142)', () => {
+  const term = (key: string, name: string, kind: string, parentKey: string | null = null) => ({
+    key,
+    name,
+    kind,
+    parentKey,
+    aliases: [],
+    definitionRefs: [],
+  })
+  const variants = ['metric:revenue_aed_app', 'metric:revenue_eur_web', 'metric:revenue_usd_web']
+  const family = {
+    key: 'group:revenue',
+    kind: 'metric',
+    id: 'revenue',
+    name: 'Revenue',
+    aliases: [],
+    group: null,
+    domain: { areaId: 'area_sales' },
+    definition: { tool: 'dbt', name: 'orders.revenue_aed_app', state: 'unchanged' },
+    definitions: [],
+    shelf: { items: [] },
+    family: {
+      by: ['Currency', 'Channel'],
+      derivations: [],
+      variants: variants.map((key) => ({ key, name: `${key} variant`, aliases: [], values: [] })),
+    },
+  }
+  const reads = {
+    ...noReads,
+    bundle: async () => ({
+      items: [],
+      terms: [
+        term('group:revenue', 'Revenue', 'metric_group'),
+        ...variants.map((key) => term(key, `${key} variant`, 'metric')),
+      ],
+    }),
+    index: async () => ({ items: [] }),
+    areas: async () => [{ id: 'area_sales', name: 'Sales', ownerIds: [] }],
+    people: async () => [],
+    catalogue: async () => ({ terms: [family] }),
+    glossary: async () => ({ terms: [] }),
+    records: async () => [
+      item({ id: 'itm_f', title: 'On the family', metrics: ['group:revenue'] }),
+      item({ id: 'itm_v', title: 'On one variant', metrics: ['metric:revenue_eur_web'] }),
+      item({ id: 'itm_o', title: 'On orders', metrics: ['metric:orders'] }),
+    ],
+  } as unknown as ToolReads
+  const tools = createAskTools(reads)
+
+  it('says where a family comes from without naming a variant', async () => {
+    const result = await tools.run('definitions', {})
+    expect(JSON.stringify(result)).not.toMatch(/revenue_aed_app/)
+    expect(result).toMatchObject({ definitions: [{ name: 'Revenue', from: 'dbt' }] })
+  })
+
+  it('counts the items on a family and on any of its variants under the family name', async () => {
+    const result = await tools.run('records', { about: ['Revenue'], show: 'count' })
+    expect(result).toMatchObject({ count: 2 })
+  })
+
+  it('never offers a variant as the closest name', async () => {
+    const result = await tools.run('records', { about: ['Revenu'], show: 'count' })
+    expect(result).toMatchObject({ error: expect.stringContaining('The closest is Revenue.') })
+  })
+})

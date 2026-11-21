@@ -150,7 +150,7 @@ export function queryRecords(input: RecordsInput, table: RecordsTable) {
     }
   const { keys, unknown } = table.keysOf(input.about ?? [])
   if (unknown.length) return { error: unknown.join(' ') }
-  const metrics = keys.filter((k) => k.startsWith('metric:'))
+  const metrics = keys.filter((k) => k.startsWith('metric:') || k.startsWith('group:'))
   const values = keys.filter((k) => k.startsWith('val:'))
   const kinds = new Set((input.kinds ?? []).map((k) => kindFilters[k]))
   const status = new Set(input.status ?? [])

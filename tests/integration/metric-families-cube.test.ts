@@ -45,11 +45,15 @@ const model = variantCube({ measures: 3, currencies: 4, channels: 2 }).replace(
         sql: accrued_share
         title: "Accrued share front loaded (EUR)"
         description: The share of each booking accrued up front, in EUR.
+        filters:
+          - sql: "{CUBE}.accrual_type = 'front_loaded'"
       - name: accrued_share_front_loaded_usd
         type: sum
         sql: "accrued_share * fx_rate"
         title: "Accrued share front loaded (USD)"
         description: The EUR amount multiplied by the row's exchange rate.
+        filters:
+          - sql: "{CUBE}.accrual_type = 'front_loaded'"
 `,
 )
 await writeFile(join(folder, 'model.yml'), model)
@@ -151,8 +155,10 @@ describe('families in a Cube model', () => {
       ['Status', null],
     ])
     // The family's page says how one variant is worked out from the other, in the source's words.
+    // Both carry one more filter, the same on each: the names still say it is the currency.
     expect(terms[0]!.family).toMatchObject({
       by: ['Currency'],
+      variants: [{ values: ['EUR'] }, { values: ['USD'] }],
       derivations: [
         "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
       ],

@@ -15,7 +15,7 @@ import {
   type ShelfItem,
 } from '../../../domain/catalogue.ts'
 import type { VariantValue } from '../../../domain/definition-helpers.ts'
-import { axisWords, derivationsOf, familyAxes } from '../../../domain/metric-families.ts'
+import { axisWords, derivationsOf, familiesOf, familyAxes } from '../../../domain/metric-families.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -58,6 +58,7 @@ type DefinitionRow = Omit<CatalogueDefinition, 'state'> & {
   itemsWithOlderMark: number
   /** What tells a variant of a family apart, as its source read it (FR-142); null otherwise. */
   variantBy: VariantValue[] | null
+  variantShape: string | null
 }
 
 const iso = (column: string) =>
@@ -125,6 +126,7 @@ export function createCatalogueService(
          select d.ref, d.connector_id as "sourceId", d.name, d.title,
                 d.description_copy as "descriptionCopy", d.value_type as "valueType",
                 d.renamed_to as "renamedTo", d.variant_by as "variantBy",
+                d.variant_shape as "variantShape",
                 ${visibleTo} as visible,
                 d.missing_since_snapshot is not null as missing,
                 ${iso('seen.fetched_at')} as "readAt",
@@ -244,15 +246,27 @@ export function createCatalogueService(
       const members = (variantsOf.get(row.key) ?? []).sort(byName)
       const listed = listedOf(row)
       if (!listed || !members.length) return null
-      const said = members.map((member) => ({
-        member,
-        said: member.name,
-        variant: (() => {
-          const by = member.definitionRefs.flatMap((ref) => definitions.get(ref)?.variantBy ?? [])
-          return by.length ? { shape: '', by } : null
-        })(),
-      }))
-      const axes = familyAxes(said)
+      const said = members.map((member) => {
+        const own = member.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
+        return {
+          member,
+          said: member.name,
+          ref: own?.ref ?? member.key,
+          source: own?.sourceId ?? '',
+          name: own?.name ?? member.name,
+          variant: own?.variantBy ? { shape: own.variantShape ?? '', by: own.variantBy } : null,
+        }
+      })
+      const found = familiesOf(said).find((candidate) =>
+        candidate.variants.some(({ ref }) => said.some((entry) => entry.ref === ref)),
+      )
+      const axes = found
+        ? {
+            by: found.by,
+            valuesOf: (entry: { ref: string }) =>
+              found.variants.find(({ ref }) => ref === entry.ref)?.values ?? [],
+          }
+        : familyAxes(said)
       const keys = new Set([row.key, ...members.map((member) => member.key)])
       const names = (item: ShelfItem) =>
         item.scope.metrics.some((id: string) => keys.has(metricKeyOf(id)))
