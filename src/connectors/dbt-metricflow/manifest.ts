@@ -14,7 +14,7 @@ const inGit = { field: 'location', equals: 'git' }
  */
 export const manifest = defineManifest({
   id: 'dbt-metricflow',
-  version: '1.2.0',
+  version: '1.3.0',
   footnote: '^3.3',
   kind: 'definitions',
   tool: 'dbt',

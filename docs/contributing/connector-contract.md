@@ -52,16 +52,16 @@ source is the last one written to it. The other connector documents:
 These never change, in any interface version. The core enforces them and the conformance kit
 tests them, so no connector can break them.
 
-| #   | Invariant                                                                                                                                                                                                                                                                                                     | Requirements              |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| I-1 | **Definitions stay canonical.** A definition is a metric, dimension or group with a ref, a name, a title, a description copy of at most 500 characters, a type, a domain hint, a change mark and, for a variant, its shape and literals: a closed list of fields, never a calculation, a query or a data row. | CON-201, CON-207          |
-| I-2 | **Definition sources only flag.** They never change an item or an edition, and a failed read changes nothing.                                                                                                                                                                                                 | CON-209 to CON-214        |
-| I-3 | **Content sources only create reviewed drafts.** At most one per document, for one domain, every field marked, never accepted automatically and never served before an owner accepts it. A changed document replaces its open draft instead of adding one.                                                    | CON-603, CON-604, CON-606 |
-| I-4 | **Secrets never leave the store**, except into the runtime of their own source, toward the settings they were given for.                                                                                                                                                                                      | CON-105, CON-114          |
-| I-5 | **Domain mapping is per source and explicit**: a hint plus a map of names, or one domain per chosen scope. A hint never creates a domain; an unknown domain is refused when the settings are saved.                                                                                                           | CON-206, CON-602          |
-| I-6 | **Read only, declared hosts, least access said first.**                                                                                                                                                                                                                                                       | CON-102, CON-106, CON-113 |
-| I-7 | **Output is untrusted data**: checked, capped; document text is data, never instructions.                                                                                                                                                                                                                     | CON-107, CON-608          |
-| I-8 | **No vendor in the core, and a connector failure never stops serving.**                                                                                                                                                                                                                                       | CON-101, CON-103          |
+| #   | Invariant                                                                                                                                                                                                                                                                                                                                         | Requirements              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| I-1 | **Definitions stay canonical.** A definition is a metric, dimension or group with a ref, a name, a title, a description copy of at most 500 characters, a type, a domain hint, a change mark, for a variant its shape and literals and for a metric the names of its inputs: a closed list of fields, never a calculation, a query or a data row. | CON-201, CON-207          |
+| I-2 | **Definition sources only flag.** They never change an item or an edition, and a failed read changes nothing.                                                                                                                                                                                                                                     | CON-209 to CON-214        |
+| I-3 | **Content sources only create reviewed drafts.** At most one per document, for one domain, every field marked, never accepted automatically and never served before an owner accepts it. A changed document replaces its open draft instead of adding one.                                                                                        | CON-603, CON-604, CON-606 |
+| I-4 | **Secrets never leave the store**, except into the runtime of their own source, toward the settings they were given for.                                                                                                                                                                                                                          | CON-105, CON-114          |
+| I-5 | **Domain mapping is per source and explicit**: a hint plus a map of names, or one domain per chosen scope. A hint never creates a domain; an unknown domain is refused when the settings are saved.                                                                                                                                               | CON-206, CON-602          |
+| I-6 | **Read only, declared hosts, least access said first.**                                                                                                                                                                                                                                                                                           | CON-102, CON-106, CON-113 |
+| I-7 | **Output is untrusted data**: checked, capped; document text is data, never instructions.                                                                                                                                                                                                                                                         | CON-107, CON-608          |
+| I-8 | **No vendor in the core, and a connector failure never stops serving.**                                                                                                                                                                                                                                                                           | CON-101, CON-103          |
 
 ## Interface 2: the definitions pipeline
 
@@ -156,6 +156,15 @@ A **definition** has:
   a metric whose filters compare nothing with a literal has none. The core groups three or more
   metrics of one view with one shape and the same columns into a family, and two or more whose
   names are one name in other currencies.
+- `builtFrom`, optional, metrics only: what it is built from, by name (FR-143, CON-207). `refs` are
+  the definitions it takes as inputs (a ratio's numerator and denominator, a derived metric's
+  inputs), by ref, whether or not each is a definition of its own; `columns` are the columns of its
+  view its own calculation reads, each one identifier (`^[A-Za-z_][A-Za-z0-9_]{0,99}$`), at most 50
+  of each. Names only: no expression, operator or literal crosses. `columnsOf(expression)` in
+  `src/domain/definition-helpers.ts` reads a SQL calculation's columns. Leave it out for a type the
+  connector does not know, rather than say it wrong. The core keeps it read only, replaces it at
+  each read and works out from it alone what a metric is used by
+  (`src/domain/definition-relations.ts`); it never flags an item.
 - `visibleGroups`, always null until access-policy groups are read (CON-508).
 
 A member's **view** is its name up to the last dot (`orders` of `orders.returns`);
@@ -542,7 +551,8 @@ src/connectors/                  built-in connectors, one folder each
   static-definitions/ …  git-markdown/ …  google-drive/ …
 src/domain/connector-*.ts        the contract: manifest, runtime, settings
 src/domain/definition-helpers.ts what definitions connectors share: synonymsOf,
-                                 descriptionCopy, domainHint, meaningMark, filterVariant
+                                 descriptionCopy, domainHint, meaningMark, filterVariant,
+                                 columnsOf
 src/server/modules/connectors/   the core: registry, sources, scheduler, pipelines, egress,
                                  secrets
 tests/fixtures/<id>/             each connector's invented input, REBUILD.md, definitions.json

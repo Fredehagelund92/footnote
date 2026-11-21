@@ -504,10 +504,13 @@ function ContextAbout({ subject, about }: { subject: Definition; about: Fact[] }
 export function DefinitionDetails({
   d,
   variants,
+  relations,
 }: {
   d: Definition
   /** A family's variants: its own page lists them, which keeps their code out of the first load. */
   variants?: React.ReactNode
+  /** What a metric is built from and what is built from it: its own page shows it, as above. */
+  relations?: React.ReactNode
 }) {
   const me = useMe()
   const canEdit = me.admin || (!!d.domain && me.owns.includes(d.domain))
@@ -553,6 +556,7 @@ export function DefinitionDetails({
       ) : (
         <p className="text-base text-muted-foreground">No meaning written yet.</p>
       )}
+      {relations}
       <div className="flex flex-col gap-3 border-t pt-4 text-sm">
         <PeekFacts>
           {d.synced ? (

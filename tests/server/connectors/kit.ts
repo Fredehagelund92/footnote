@@ -13,6 +13,7 @@ import {
   type FigureQuery,
 } from '../../../src/domain/connector-runtime.ts'
 import { documentMark } from '../../../src/domain/content-document.ts'
+import { columnNamePattern } from '../../../src/domain/definition-helpers.ts'
 import {
   FigureReadError,
   registerConnectors,
@@ -32,6 +33,27 @@ import { SourceReadError } from '../../../src/server/modules/connectors/types.ts
   conformance.test.ts), with a fixture: settings that work, and where it has them, a secret the
   tool refuses, settings the form refuses, and a host that cannot be reached.
 */
+
+/**
+ * A read with the names of the columns its metrics are built from left out, once each is checked
+ * to be one identifier: that name is the only part of a calculation that may cross (CON-207), so
+ * no other part of it may be found anywhere else in the read.
+ */
+export function withoutColumnNames<
+  T extends { definitions: readonly { builtFrom?: { columns: readonly string[] } | null }[] },
+>(read: T): T {
+  for (const definition of read.definitions)
+    for (const column of definition.builtFrom?.columns ?? [])
+      expect(column).toMatch(columnNamePattern)
+  return {
+    ...read,
+    definitions: read.definitions.map((definition) =>
+      definition.builtFrom
+        ? { ...definition, builtFrom: { ...definition.builtFrom, columns: [] } }
+        : definition,
+    ),
+  }
+}
 
 /** One way to set a source up: its settings, its secrets and, for content, its scopes. */
 export interface FixtureSource {
@@ -306,8 +328,8 @@ export function describeConnector(
         async () => {
           const read = await readGood()
           expect(read.definitions.length).toBeGreaterThan(0)
-          for (const calculation of calculations)
-            expect(JSON.stringify(read)).not.toContain(calculation)
+          const text = JSON.stringify(withoutColumnNames(read))
+          for (const calculation of calculations) expect(text).not.toContain(calculation)
         },
         fixture.timeout,
       )

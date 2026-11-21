@@ -2,6 +2,7 @@ import * as z from 'zod'
 import type { SettingKey } from '../../../contract/admin.ts'
 import { sourceWarningCodes, type SourceServerSettingKey } from '../../../contract/operations.ts'
 import type { SourceErrorClass } from '../../../domain/connector-runtime.ts'
+import { BUILT_FROM_MAX, columnNamePattern } from '../../../domain/definition-helpers.ts'
 
 /**
  * The interface of the definitions pipeline's snapshot (docs/contributing/connector-contract.md,
@@ -73,6 +74,19 @@ export const definitionSchema = z.object({
         )
         .min(1)
         .max(5),
+    })
+    .nullable()
+    .optional(),
+  /**
+   * What a metric is built from, as its source names it (CON-207): the definitions it takes as
+   * inputs, by ref, and the columns of its view its own calculation reads, by name. Names only,
+   * never the calculation; kept read only and replaced at each read. Null or absent when the
+   * source does not say.
+   */
+  builtFrom: z
+    .object({
+      refs: z.array(z.string().regex(/^[a-z][a-z0-9_]*:[A-Za-z0-9_.:/-]+$/)).max(BUILT_FROM_MAX),
+      columns: z.array(z.string().regex(columnNamePattern)).max(BUILT_FROM_MAX),
     })
     .nullable()
     .optional(),
