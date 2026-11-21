@@ -87,6 +87,18 @@ describe('a page due for a check', () => {
     ])
   })
 
+  it('takes today as the UTC day, even just after midnight ahead of UTC', () => {
+    write('docs/help/privacy.md', page('2026-11-20', 'Words.'))
+    const early = new Date('2026-11-19T23:30:00Z')
+    expect(
+      checkReviewed([{ file: 'docs/help/privacy.md', reviewed: '2026-11-19' }], early, root),
+    ).toEqual({ warnings: [], problems: [] })
+    expect(
+      checkReviewed([{ file: 'docs/help/privacy.md', reviewed: '2026-11-20' }], early, root)
+        .problems,
+    ).toEqual(['docs/help/privacy.md: reviewed: 2026-11-20 is a day that has not come yet'])
+  })
+
   it('fails on a day that is not a real one, or has not come yet', () => {
     write('docs/help/privacy.md', page('2026-02-30', 'Words.'))
     expect(

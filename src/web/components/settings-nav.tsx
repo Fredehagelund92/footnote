@@ -7,7 +7,7 @@ import {
   UsersIcon,
   WrenchIcon,
 } from '@/components/icons'
-import { memberSections } from '@/lib/settings-access'
+import { memberSections, type settingsSectionIds } from '@/lib/settings-access'
 import {
   SidebarContent,
   SidebarGroup,
@@ -26,23 +26,25 @@ import { useMe } from '@/lib/workspace'
 // Inside Settings the app sidebar gives way to the settings navigation, as Linear's does: a way
 // back to Footnote on top, then six sections in three groups. No tabs anywhere in Settings.
 
-const settingsSections = [
+type SectionId = (typeof settingsSectionIds)[number]
+
+export const settingsSections = [
   {
     group: 'Workspace',
     items: [
-      { id: 'general', title: 'General', icon: SlidersHorizontalIcon },
-      { id: 'domains', title: 'Domains and owners', icon: LayersIcon },
-      { id: 'people', title: 'People', icon: UsersIcon },
+      { id: 'general' satisfies SectionId, title: 'General', icon: SlidersHorizontalIcon },
+      { id: 'domains' satisfies SectionId, title: 'Domains and owners', icon: LayersIcon },
+      { id: 'people' satisfies SectionId, title: 'People', icon: UsersIcon },
     ],
   },
   {
     group: 'Connections',
     items: [
-      { id: 'agents', title: 'Agents and access', icon: BotIcon },
-      { id: 'integrations', title: 'Integrations', icon: PlugIcon },
+      { id: 'agents' satisfies SectionId, title: 'Agents and access', icon: BotIcon },
+      { id: 'integrations' satisfies SectionId, title: 'Integrations', icon: PlugIcon },
     ],
   },
-  { group: 'System', items: [{ id: 'advanced', title: 'Advanced', icon: WrenchIcon }] },
+  { group: 'System', items: [{ id: 'advanced' satisfies SectionId, title: 'Advanced', icon: WrenchIcon }] },
 ] as const
 
 export function SettingsNav({ section, close }: { section: string; close: () => void }) {

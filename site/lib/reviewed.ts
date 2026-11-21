@@ -91,6 +91,7 @@ export function checkReviewed(
   root = repoRoot,
 ): Review {
   const review: Review = { warnings: [], problems: [] }
+  const thisDay = Date.parse(`${today.toISOString().slice(0, 10)}T00:00:00Z`)
   let settings: Set<string> | undefined
   let screens: RegExp[] | undefined
   for (const { file, reviewed } of pages) {
@@ -101,11 +102,11 @@ export function checkReviewed(
       )
       continue
     }
-    if (day > today.getTime()) {
+    if (day > thisDay) {
       review.problems.push(`${file}: reviewed: ${reviewed} is a day that has not come yet`)
       continue
     }
-    const age = Math.floor((today.getTime() - day) / DAY)
+    const age = Math.floor((thisDay - day) / DAY)
     if (age <= REVIEW_DAYS) continue
     review.warnings.push(
       `${file}: checked ${age} days ago (reviewed: ${reviewed}): check it against the app and set reviewed to the day you do`,
