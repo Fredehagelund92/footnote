@@ -700,8 +700,11 @@ describe('the words as the page shows them, beside the evidence', () => {
     ).not.toMatch(/\(\s*\)/)
     // A "()" the model wrote itself is not one a mention left: it stays.
     expect(
-      turnOf('Platform calls refresh() and [@value:team/platform] ([@value:team/platform]).', made, [])
-        .text,
+      turnOf(
+        'Platform calls refresh() and [@value:team/platform] ([@value:team/platform]).',
+        made,
+        [],
+      ).text,
     ).toContain('refresh()')
   })
 
