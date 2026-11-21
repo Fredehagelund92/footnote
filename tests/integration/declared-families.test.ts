@@ -469,15 +469,10 @@ describe('Ask on a family', () => {
         about: 'why is net revenue by line in USD different from EUR',
         no_period: true,
       }),
-    )) as { definitions?: { name: string; words: string | null }[] }
-    expect(read.definitions).toEqual([
-      expect.objectContaining({
-        name: 'Net revenue by line',
-        from: 'dbt',
-        words: expect.stringMatching(
-          /^A family of 6 near-identical metrics, one for each sales line and currency\./,
-        ),
-      }),
-    ])
+    )) as { definitions?: { name: string; from: string; words: string | null }[] }
+    expect(read.definitions?.map((d) => [d.name, d.from])).toEqual([['Net revenue by line', 'dbt']])
+    expect(read.definitions?.[0]?.words).toMatch(
+      /^A family of 6 near-identical metrics, one for each sales line and currency\./,
+    )
   })
 })

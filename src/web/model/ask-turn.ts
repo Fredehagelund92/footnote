@@ -217,5 +217,4 @@ export function effectsOf(outcome: Outcome): Effects {
  * as they come. A Not checked turn is drawn as the check that could not run, whatever it read first.
  */
 export const drawnByLoop = (turn: Turn) =>
-  !!turn.answer.loop ||
-  ((!!turn.reads || !!turn.words) && outcomeOf(turn)?.kind !== 'not_checked')
+  !!turn.answer.loop || ((!!turn.reads || !!turn.words) && outcomeOf(turn)?.kind !== 'not_checked')
