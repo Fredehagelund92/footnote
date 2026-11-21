@@ -188,7 +188,10 @@ describe.each([
       synonyms: ['sales channel', 'route to market'],
       valueType: 'categorical',
     })
-    expect([...of('dbt:orders.gross_margin').descriptionCopy!]).toHaveLength(500)
+    // Cut inside the 500 at its last whole word, with an ellipsis, never mid-word.
+    const cut = of('dbt:orders.gross_margin').descriptionCopy!
+    expect([...cut].length).toBeLessThanOrEqual(500)
+    expect(cut).toMatch(/ never by…$/)
     expect(of('dbt:orders.ordered_at').valueType).toBe('time')
     expect(of('dbt:customers.signed_up_at').valueType).toBe('time')
     expect(of('dbt:orders.revenue').valueType).toBe('sum')

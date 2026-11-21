@@ -5,7 +5,7 @@
       "kind": "metric",
       "name": "customers.customers",
       "title": "Customers",
-      "descriptionCopy": "Customers are the people who placed at least one order in the invented shop in the days asked about, counted once each however many orders they placed. A customer who only returned an order still counts on the day of the order, not on the day of the return. Guest orders count as one customer per address. This sentence is here to make the description longer than five hundred characters, so that the connector must cut it and say so with a warning, never silently, and never by guessing what the end",
+      "descriptionCopy": "Customers are the people who placed at least one order in the invented shop in the days asked about, counted once each however many orders they placed. A customer who only returned an order still counts on the day of the order, not on the day of the return. Guest orders count as one customer per address. This sentence is here to make the description longer than five hundred characters, so that the connector must cut it and say so with a warning, never silently, and never by guessing what the…",
       "valueType": "count_distinct",
       "visibleGroups": null,
       "areaHint": null,

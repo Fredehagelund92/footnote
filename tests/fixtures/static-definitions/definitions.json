@@ -18,7 +18,7 @@
       "kind": "metric",
       "name": "payments.fees",
       "title": "Fees",
-      "descriptionCopy": "What the payment provider kept of each order, in the currency the order was paid in. Fees on refunded orders stay, since the provider keeps them. Fees on orders paid in two parts are split by the share of each part. A fee booked after the month closed counts in the month it was booked, not in the month of its order, so a month read before the books close may move. This sentence is here to make the description longer than five hundred characters, so the read must cut it, and say so with a warning",
+      "descriptionCopy": "What the payment provider kept of each order, in the currency the order was paid in. Fees on refunded orders stay, since the provider keeps them. Fees on orders paid in two parts are split by the share of each part. A fee booked after the month closed counts in the month it was booked, not in the month of its order, so a month read before the books close may move. This sentence is here to make the description longer than five hundred characters, so the read must cut it, and say so with a…",
       "valueType": null,
       "visibleGroups": null,
       "areaHint": "finance",

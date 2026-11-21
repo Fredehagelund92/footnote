@@ -38,7 +38,7 @@ A definition has these fields ([the schema](../../src/domain/connector-runtime.t
 | `kind`            | `metric` or `dimension`                                                       |
 | `name`            | `<group>.<name>`, the ref without its prefix                                  |
 | `title`           | The tool's label, or null                                                     |
-| `descriptionCopy` | `descriptionCopy(text).copy`: the first 500 characters, or null               |
+| `descriptionCopy` | `descriptionCopy(text).copy`: a copy of at most 500 characters, or null       |
 | `valueType`       | The tool's own word for the type, or null when it says none                   |
 | `visibleGroups`   | Always null                                                                   |
 | `areaHint`        | The domain id the tool names, from `domainHint`, or null                      |
@@ -120,7 +120,7 @@ Two small things are optional:
 Every definitions connector follows these, and the template does each of them.
 
 - **Refs and groups.** The same member gives the same ref on every read, whatever the order of the input. Send each ref once. When two members of a group can have one name, keep one and warn with your own code. A ref never moves to another member.
-- **Titles and descriptions.** The tool's label and description as they are, or null. `descriptionCopy` cuts a long description, and you warn with your own `description_cut`, worded at `info`.
+- **Titles and descriptions.** The tool's label and description as they are, or null. `descriptionCopy` cuts a long description at its last whole word inside 500 characters, with an ellipsis, and you warn with your own `description_cut`, worded at `info`.
 - **Domains.** `domainHint(value, config.domainNames)` reads the tool's value through the source's domain names. A member's own valid domain wins over its group's.
 - **Domain warnings.** A group that names no domain warns `missing_domain`. A value that is not a domain id warns `invalid_domain` and gives no hint. If the tool copies a group's value onto its members, warn once, on the group.
 - **Synonyms.** `synonymsOf` trims them, keeps each once whatever its case, and keeps at most 20.

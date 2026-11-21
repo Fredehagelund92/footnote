@@ -31,7 +31,7 @@ An admin adds it in Settings, Integrations, as [Integrations](../help/integratio
 | `kind`        | `metric` or `dimension`. Required                                                                                                                                                       |
 | `name`        | Letters, digits and underscores, each part starting with a letter, usually the view's part before a dot, such as `payments.orders`. Required, at most 200 characters, and no name twice |
 | `title`       | Its name on screen, at most 200 characters                                                                                                                                              |
-| `description` | What it means, at most 5,000 characters. The first 500 are kept                                                                                                                         |
+| `description` | What it means, at most 5,000 characters. It is cut at a whole word inside 500                                                                                                           |
 | `type`        | Its type as text, such as `number`, at most 50 characters                                                                                                                               |
 | `domain`      | Its domain, as a domain id, at most 200 characters                                                                                                                                      |
 
