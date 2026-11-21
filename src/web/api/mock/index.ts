@@ -488,11 +488,14 @@ export function createMockApi() {
           people: workspace.people(),
         }),
       ),
-    searchScope: (input) => now(() => scope.search(
+    searchScope: (input) =>
+      now(() =>
+        scope.search(
           input,
           factsOf(state),
           definitions.list().filter((d) => d.family),
-        )),
+        ),
+      ),
     contextPage: () => read('contextPage', '', () => factsOf(state)),
     itemPage: ({ id }) =>
       read('itemPage', id, () => {

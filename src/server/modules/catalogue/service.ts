@@ -15,7 +15,12 @@ import {
   type ShelfItem,
 } from '../../../domain/catalogue.ts'
 import type { VariantValue } from '../../../domain/definition-helpers.ts'
-import { axisWords, derivationsOf, familiesOf, familyAxes } from '../../../domain/metric-families.ts'
+import {
+  axisWords,
+  derivationsOf,
+  familiesOf,
+  familyAxes,
+} from '../../../domain/metric-families.ts'
 import { viewOf } from '../../../domain/source-views.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'

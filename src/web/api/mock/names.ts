@@ -1,6 +1,11 @@
 import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import { contentDigest } from '@domain/canonical'
-import { nameRefusal, sourceNames, variantNameRefusal, type WordHolders } from '@domain/source-names'
+import {
+  nameRefusal,
+  sourceNames,
+  variantNameRefusal,
+  type WordHolders,
+} from '@domain/source-names'
 import type { CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'

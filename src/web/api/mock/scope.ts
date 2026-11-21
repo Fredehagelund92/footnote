@@ -118,7 +118,9 @@ const familyTermsOf = (families: readonly Definition[]): Term[] =>
     const key = `group:${idOf(d.name)}`
     return [
       { ...term(key, 'metric_group', d.name), definitionRefs: ['variants'] },
-      ...(d.family?.variants ?? []).map((v) => term(`metric:${idOf(v.name)}`, 'metric', v.name, key)),
+      ...(d.family?.variants ?? []).map((v) =>
+        term(`metric:${idOf(v.name)}`, 'metric', v.name, key),
+      ),
     ]
   })
 

@@ -30,7 +30,13 @@ import {
 } from './terms.ts'
 
 /** Why a name needs an owner's eyes before it goes live. */
-export const nameFlagCodes = ['taken', 'same_name', 'titles_differ', 'bad_name', 'variants'] as const
+export const nameFlagCodes = [
+  'taken',
+  'same_name',
+  'titles_differ',
+  'bad_name',
+  'variants',
+] as const
 export type NameFlagCode = (typeof nameFlagCodes)[number]
 export type NameFlag = { code: NameFlagCode; message: string }
 
@@ -268,7 +274,11 @@ function withFamilies(
 function freeKey(family: Family, keys: ReadonlySet<string>): string {
   const part = family.key.slice('group:'.length)
   const view = keyPart(family.variants[0]!.ref.split(':').at(-1)!.split('.')[0] ?? '')
-  const tries = [part, `${view}_${part}`, ...Array.from({ length: 98 }, (_, i) => `${part}_${i + 2}`)]
+  const tries = [
+    part,
+    `${view}_${part}`,
+    ...Array.from({ length: 98 }, (_, i) => `${part}_${i + 2}`),
+  ]
   return `group:${tries.find((key) => !keys.has(`group:${key}`)) ?? `${part}_${keys.size}`}`
 }
 

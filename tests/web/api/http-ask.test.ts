@@ -310,6 +310,9 @@ describe('a family in the names of a question', () => {
   it('is named by its own name, never the raw key', () => {
     expect(withFamily.metric('group:revenue')).toBe('Revenue')
     expect(withFamily.metricKey('revenue')).toBe('group:revenue')
-    expect(withFamily.terms?.map((t) => [t.key, t.name])).toContainEqual(['group:revenue', 'Revenue'])
+    expect(withFamily.terms?.map((t) => [t.key, t.name])).toContainEqual([
+      'group:revenue',
+      'Revenue',
+    ])
   })
 })

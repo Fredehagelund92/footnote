@@ -232,7 +232,9 @@ async function viewOf(reads: ToolReads): Promise<View> {
       catalogue.terms.flatMap((t) => [t.key, ...(t.family?.variants.map((v) => v.key) ?? [])]),
     ),
     familyOf: new Map(
-      catalogue.terms.flatMap((t) => (t.family?.variants ?? []).map((v) => [v.key, t.key] as const)),
+      catalogue.terms.flatMap((t) =>
+        (t.family?.variants ?? []).map((v) => [v.key, t.key] as const),
+      ),
     ),
     areas,
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
@@ -1414,10 +1416,8 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       const group = term?.group ?? null
       const kin =
         group && !term?.family
-          ? catalogue.terms.filter(
-              (t) => t.group?.key === group.key && t.key !== d.id && !t.family,
-            )
-        : []
+          ? catalogue.terms.filter((t) => t.group?.key === group.key && t.key !== d.id && !t.family)
+          : []
       relatedKeys.push(...kin.map((t) => t.key))
       return {
         ...d,
@@ -1538,9 +1538,7 @@ async function records(view: View, reads: ToolReads, input: z.output<typeof reco
     metrics: i.metrics && [...new Set(i.metrics.map((k) => view.familyOf.get(k) ?? k))],
   }))
   const families = new Set(view.familyOf.values())
-  const terms = speakable(view).filter(
-    (t) => t.kind !== 'metric_group' || families.has(t.key),
-  )
+  const terms = speakable(view).filter((t) => t.kind !== 'metric_group' || families.has(t.key))
   const found = queryRecords(input, {
     items,
     areas: view.areas,
@@ -1560,7 +1558,8 @@ async function records(view: View, reads: ToolReads, input: z.output<typeof reco
           const near = closest(
             n,
             terms.filter(
-              (t) => t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value',
+              (t) =>
+                t.kind === 'metric' || t.kind === 'metric_group' || t.kind === 'dimension_value',
             ),
             (t) => [t.name, ...t.aliases],
           )

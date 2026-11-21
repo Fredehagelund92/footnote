@@ -343,9 +343,7 @@ describe('a family its names alone make: one metric in two currencies', () => {
   it('needs two currencies of one name: one alone is a metric', () => {
     const [one] = sourceNames([members[0]!], [], new Map(), new Set())
     expect(one).toMatchObject({ kind: 'metric', name: 'Accrued share front loaded (EUR)' })
-    const families = familiesOf(
-      members.map((m) => ({ ...m, said: m.title!, variant: null })),
-    )
+    const families = familiesOf(members.map((m) => ({ ...m, said: m.title!, variant: null })))
     expect(families.map((f) => [f.name, f.variants.map((v) => v.values)])).toEqual([
       ['Accrued share front loaded', [['EUR'], ['USD']]],
     ])

@@ -277,7 +277,10 @@ export function derivationsOf(
   variants: readonly { said: string; values: readonly string[]; description: string | null }[],
 ): string[] {
   // Every value of the family, by its words: a description names one when it holds them all.
-  const wordsOf = (text: string) => normalizeName(text).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+  const wordsOf = (text: string) =>
+    normalizeName(text)
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean)
   const values = new Set(variants.flatMap((variant) => variant.values.map((v) => normalizeName(v))))
   const lines: string[] = []
   for (const variant of variants) {

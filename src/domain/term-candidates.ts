@@ -165,8 +165,7 @@ export function termCandidates(
   // A family names its variants' members too, but a variant is a term of its own.
   for (const term of known)
     if (term.kind !== 'metric_group')
-      for (const ref of term.definitionRefs)
-        linkedBy.set(ref, [...(linkedBy.get(ref) ?? []), term])
+      for (const ref of term.definitionRefs) linkedBy.set(ref, [...(linkedBy.get(ref) ?? []), term])
   const keys = new Set(known.map((term) => term.key))
   const waiting = new Set(known.filter((term) => term.open).map((term) => term.key))
   const memberByRef = new Map(members.map((member) => [member.ref, member]))

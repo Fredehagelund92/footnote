@@ -203,7 +203,7 @@ describe('find_context (FR-338)', () => {
       query: 'what is revenue',
     })
     const entry = gone.out.definitions.find((d) => d.key === 'group:revenue')!
-    expect(entry.source).toEqual({ tool: 'Cube', state: 'missing' })
+    expect(entry.source).toEqual({ tool: 'Cube', ref: null, state: 'missing' })
     expect(entry.origin_words).toContain('no longer lists at least one of them')
     expect(entry.origin_words).not.toContain('cube:finance.orders')
   })

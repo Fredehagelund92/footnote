@@ -1363,7 +1363,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return {
         // A family is one metric to write about: an item about it applies to every variant (FR-142).
         metrics: [
-          ...vocabulary.families.map((f) => ({ name: f.name, group: '', facts: 0, definition: '' })),
+          ...vocabulary.families.map((f) => ({
+            name: f.name,
+            group: '',
+            facts: 0,
+            definition: '',
+          })),
           ...vocabulary.metrics.map((m) => ({
             name: m.name,
             group: m.group,

@@ -127,9 +127,7 @@ export function createNamesService(tx: Queryable) {
     state: name.state,
     flags: name.flags,
     leftByOwner: name.leftByOwner,
-    family: name.family
-      ? { variants: name.family.variants.length, by: name.family.by }
-      : null,
+    family: name.family ? { variants: name.family.variants.length, by: name.family.by } : null,
   })
 
   /** The names and when the newest was read, or left out when none waits: no digest of the list. */
@@ -288,7 +286,10 @@ export function createNamesService(tx: Queryable) {
       const waiting = found(key)
       return [
         { ...waiting, chosen: name === undefined ? waiting.name : termName(name) },
-        ...(waiting.family?.variants ?? []).map((variant) => ({ ...variant, chosen: variant.name })),
+        ...(waiting.family?.variants ?? []).map((variant) => ({
+          ...variant,
+          chosen: variant.name,
+        })),
       ]
     })
     const left = input.leaveOut.map(found)

@@ -48,9 +48,10 @@ export const runtimeDefinitionSchema = z.strictObject({
             z.strictObject({
               name: z.string().check(z.minLength(1), z.maxLength(500)),
               ref: z.nullable(z.string().check(z.maxLength(500), z.regex(definitionRefPattern))),
-              value: z
-                .string()
-                .check(z.minLength(1), z.refine((value) => [...value].length <= 200)),
+              value: z.string().check(
+                z.minLength(1),
+                z.refine((value) => [...value].length <= 200),
+              ),
             }),
           )
           .check(z.minLength(1), z.maxLength(5)),
