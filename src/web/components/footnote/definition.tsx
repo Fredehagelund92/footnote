@@ -759,7 +759,7 @@ export function DefinitionDetails({ d }: { d: Definition }) {
       {d.family && (
         <>
           <Separator />
-          <FamilyVariants family={d.family} />
+          <FamilyVariants key={d.name} family={d.family} />
         </>
       )}
       {!d.sameAs && (

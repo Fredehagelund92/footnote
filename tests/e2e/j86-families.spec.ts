@@ -1,6 +1,6 @@
 import { expect, go, test } from './go.ts'
 
-// J85, families of metrics (FR-142): a model with a metric per currency and channel, which a read
+// J86, families of metrics (FR-142): a model with a metric per currency and channel, which a read
 // found as twenty families (the mock's ?demo=families). Definitions lists one entry per family and
 // never a variant, marked as a family a person can read without opening it, the same at 1440 and
 // 390 wide; a search for a variant finds its family by the family's name, never the variant; the

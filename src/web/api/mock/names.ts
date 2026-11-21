@@ -70,7 +70,7 @@ const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
 ])
 
-export function createMockNames() {
+export function createMockNames(heldWords: WordHolders = holders) {
   let waiting = false
   let members = shop
   const taken = new Set<string>()
@@ -81,7 +81,7 @@ export function createMockNames() {
       ? sourceNames(
           members.filter((m) => !taken.has(m.ref)),
           [],
-          holders,
+          heldWords,
           left,
         )
       : []
@@ -146,11 +146,11 @@ export function createMockNames() {
         ]),
       )
       for (const [key, name] of chosen) {
-        const refused = nameRefusal(key, name, holders, going)
+        const refused = nameRefusal(key, name, heldWords, going)
         if (refused) throw new ApiError('invalid', refused)
         const family = list.find((n) => n.key === key)
         for (const variant of family?.family?.variants ?? [])
-          if (nameRefusal(variant.key, variant.name, holders, going))
+          if (nameRefusal(variant.key, variant.name, heldWords, going))
             throw new ApiError('invalid', variantNameRefusal(family!.name))
       }
       for (const key of chosen.keys())
