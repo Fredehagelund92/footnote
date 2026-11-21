@@ -446,6 +446,51 @@ describe('what a metric is built from (FR-143)', () => {
   })
 })
 
+describe('a family the file declares (FR-142, D9)', () => {
+  const declaring = (meta: Record<string, unknown>) =>
+    withMetric(latestManifest, 'revenue', (metric) => (metric.config.meta = meta))
+  /** What the read says of families, of all it warns. */
+  const familyWarnings = (read: Awaited<ReturnType<typeof mapped>>) =>
+    read.warnings.filter((warning) => warning.code.includes('family'))
+
+  it('reads meta.footnote as written, with a dimension of its model by ref', async () => {
+    const read = await mapped(
+      declaring({ footnote: { family: 'sales_amount', by: { channel: 'web', currency: 'EUR' } } }),
+    )
+    expect(read.definitions.find((d) => d.ref === 'dbt:orders.revenue')?.family).toEqual({
+      name: 'sales_amount',
+      by: [
+        { name: 'channel', ref: 'dbt:orders.channel', value: 'web' },
+        { name: 'currency', ref: null, value: 'EUR' },
+      ],
+    })
+    expect(familyWarnings(read)).toEqual([])
+  })
+
+  it('moves no mark: a family changes no meaning', async () => {
+    const declared = declaring({ footnote: { family: 'sales_amount', by: { currency: 'EUR' } } })
+    expect(await moved(latestManifest, declared)).toEqual([])
+  })
+
+  it('reads one it cannot keep as none, and says so', async () => {
+    for (const footnote of [
+      { family: 'sales_amount' },
+      { family: '', by: { currency: 'EUR' } },
+      { family: 'sales_amount', by: { currency: { code: 'EUR' } } },
+      { family: 'sales_amount', by: {} },
+    ]) {
+      const read = await mapped(declaring({ footnote }))
+      expect(read.definitions.find((d) => d.ref === 'dbt:orders.revenue')?.family).toBeUndefined()
+      expect(familyWarnings(read)).toEqual([
+        { type: 'warning', code: 'invalid_family', target: 'orders.revenue' },
+      ])
+    }
+    // A footnote key without a family declares none, and says nothing.
+    const other = await mapped(declaring({ footnote: { approved: true } }))
+    expect(familyWarnings(other)).toEqual([])
+  })
+})
+
 describe('a file that is not the semantic manifest', () => {
   it('is refused: dbt’s manifest.json, other JSON and no JSON at all', () => {
     const manifestJson = { metadata: {}, nodes: {}, semantic_models: {}, metrics: {} }

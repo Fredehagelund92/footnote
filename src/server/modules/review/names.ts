@@ -127,7 +127,17 @@ export function createNamesService(tx: Queryable) {
     state: name.state,
     flags: name.flags,
     leftByOwner: name.leftByOwner,
-    family: name.family ? { variants: name.family.variants.length, by: name.family.by } : null,
+    family: name.family
+      ? {
+          variants: name.family.variants.length,
+          by: name.family.by,
+          found: name.family.found,
+          names:
+            name.family.found === 'names' && !name.linked.length
+              ? name.family.variants.map((variant) => variant.name)
+              : [],
+        }
+      : null,
   })
 
   /** The names and when the newest was read, or left out when none waits: no digest of the list. */
@@ -281,17 +291,30 @@ export function createNamesService(tx: Queryable) {
         })
       return name
     }
-    // A family goes live with its variants, each by its own name, and is left out with them.
-    const picked = input.accept.flatMap(({ key, name }) => {
-      const waiting = found(key)
-      return [
-        { ...waiting, chosen: name === undefined ? waiting.name : termName(name) },
-        ...(waiting.family?.variants ?? []).map((variant) => ({
-          ...variant,
-          chosen: variant.name,
-        })),
-      ]
-    })
+    // A family goes live with its variants, each by its own name, and is left out with them. A
+    // family the names alone suggest can go live apart instead: its variants, and no family.
+    const picked = input.accept.flatMap(
+      ({ key, name, apart }): (SourceName & { chosen: string })[] => {
+        const waiting = found(key)
+        if (apart) {
+          if (waiting.family?.found !== 'names' || waiting.linked.length)
+            throw new ORPCError('UNPROCESSABLE_CONTENT', {
+              message: `“${waiting.name}” is not a family of names that look alike. Publish it as it is.`,
+            })
+          return waiting.family.variants.map((variant) => {
+            const { parentKey: _parentKey, ...own } = variant
+            return { ...own, chosen: variant.name }
+          })
+        }
+        return [
+          { ...waiting, chosen: name === undefined ? waiting.name : termName(name) },
+          ...(waiting.family?.variants ?? []).map((variant) => ({
+            ...variant,
+            chosen: variant.name,
+          })),
+        ]
+      },
+    )
     const left = input.leaveOut.map(found)
     const live = left.find((name) => name.linked.length)
     if (live)
@@ -303,7 +326,11 @@ export function createNamesService(tx: Queryable) {
       throw new ORPCError('UNPROCESSABLE_CONTENT', {
         message: `“${renamed.name}” is live already. Rename it where it is edited.`,
       })
-    if (new Set([...picked, ...left].map((name) => name.key)).size !== picked.length + left.length)
+    const requested = [...input.accept.map(({ key }) => key), ...input.leaveOut]
+    if (
+      new Set(requested).size !== requested.length ||
+      new Set([...picked, ...left].map((name) => name.key)).size !== picked.length + left.length
+    )
       throw new ORPCError('CONFLICT', { message: 'Publish a name or leave it out, not both.' })
     const chosen = new Map(
       picked.map((name) => [

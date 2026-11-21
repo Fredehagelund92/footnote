@@ -97,10 +97,11 @@ async function publishNames() {
     )
 }
 
-/** The live term that names a definition. */
+/** The live metric that names a definition: a family's variant, not the family. */
 async function keyOf(metric: string) {
   const { rows } = await client.query<{ key: string }>(
-    `select key from serving_vocabulary((select seq from live_edition)) where $1 = any(definition_refs)`,
+    `select key from serving_vocabulary((select seq from live_edition))
+      where kind = 'metric' and $1 = any(definition_refs)`,
     [`dbt:partner_results.${metric}`],
   )
   return rows[0]!.key
@@ -112,9 +113,9 @@ async function relationsOf(metric: string) {
   answers.push(response.body)
   return (await ok<DefinitionRelations>(Promise.resolve(response))).relations
 }
-/** Each relation as `kind name`. */
+/** Each relation as `kind name`, with its column for a conversion. */
 const said = (relations: DefinitionRelations['relations']) =>
-  relations.map((r) => [r.kind, r.ref ? r.ref.split('.').at(-1) : `column ${r.name}`])
+  relations.map((r) => [r.kind, r.ref ? r.ref.split('.').at(-1) : `column ${r.name}`, r.by])
 
 beforeAll(async () => {
   await foundation(client)
@@ -196,29 +197,53 @@ describe('a read of the source', () => {
 })
 
 describe('a metric’s relations', () => {
-  it('say a metric is built from the columns it reads, and a twin in another currency is no relation of its own', async () => {
+  it('say a USD twin is converted from its EUR one, by the rate column, and the EUR one converted to it', async () => {
     expect(said(await relationsOf('net_revenue_retail_usd'))).toEqual([
-      ['built_from', 'column net_revenue_retail_eur'],
-      ['built_from', 'column exchange_rate_usd'],
+      ['converted_from', 'net_revenue_retail_eur', 'exchange_rate_usd'],
+      ['built_from', 'column net_revenue_retail_eur', null],
+      ['built_from', 'column exchange_rate_usd', null],
     ])
-    expect(said(await relationsOf('net_revenue_retail_eur'))).toEqual([
-      ['built_from', 'column net_revenue_retail_eur'],
+    const eur = await relationsOf('net_revenue_retail_eur')
+    expect(said(eur)).toEqual([
+      ['converted_to', 'net_revenue_retail_usd', 'exchange_rate_usd'],
+      ['built_from', 'column net_revenue_retail_eur', null],
+    ])
+    // It links to the live term's page by its name.
+    expect(eur[0]).toMatchObject({ key: await keyOf('net_revenue_retail_usd'), missing: false })
+    // The same for SUM(x_eur * rate) against SUM(x_eur).
+    expect(said(await relationsOf('accrued_share_1_usd'))[0]).toEqual([
+      'converted_from',
+      'accrued_share_1_eur',
+      'exchange_rate_usd',
+    ])
+  })
+
+  it('pair no forecast, local currency or product line', async () => {
+    for (const metric of [
+      'forecast_net_revenue_retail_eur',
+      'net_revenue_retail_local',
+      'net_revenue_eur',
+    ])
+      expect((await relationsOf(metric)).map((r) => r.kind)).not.toContain('converted_from')
+    expect((await relationsOf('net_revenue_online_eur')).map((r) => r.kind)).toEqual([
+      'converted_to',
+      'built_from',
     ])
   })
 
   it('say a ratio and a derived metric are built from their inputs, and each input used by them', async () => {
     expect(said(await relationsOf('signup_rate'))).toEqual([
-      ['built_from', 'signups'],
-      ['built_from', 'clicks'],
+      ['built_from', 'signups', null],
+      ['built_from', 'clicks', null],
     ])
     expect(said(await relationsOf('net_revenue_per_signup'))).toEqual([
-      ['built_from', 'net_revenue_eur'],
-      ['built_from', 'signups'],
+      ['built_from', 'net_revenue_eur', null],
+      ['built_from', 'signups', null],
     ])
     expect(said(await relationsOf('signups'))).toEqual([
-      ['built_from', 'column signup_count'],
-      ['used_by', 'net_revenue_per_signup'],
-      ['used_by', 'signup_rate'],
+      ['built_from', 'column signup_count', null],
+      ['used_by', 'net_revenue_per_signup', null],
+      ['used_by', 'signup_rate', null],
     ])
   })
 
@@ -302,6 +327,10 @@ describe('a later read', () => {
     expect(rate[0]).toMatchObject({ name: 'partner_results.sign_ups', key: null })
     // The name that was live keeps its term, which says its input left the source.
     expect(rate[1]).toMatchObject({ key: await keyOf('clicks') })
-    expect(said(await relationsOf('net_revenue_per_signup'))[1]).toEqual(['built_from', 'sign_ups'])
+    expect(said(await relationsOf('net_revenue_per_signup'))[1]).toEqual([
+      'built_from',
+      'sign_ups',
+      null,
+    ])
   }, 120_000)
 })

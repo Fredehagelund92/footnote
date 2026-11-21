@@ -4,7 +4,7 @@ line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
 minutes: 3
-reviewed: 2026-11-20
+reviewed: 2026-11-21
 ---
 
 Metrics and dimensions, the business's own terms, and other names for them.
@@ -23,6 +23,7 @@ A metric's page says what it is built from, as its source's structure says it, u
 
 - Built from: the metrics it takes, such as a ratio's two, each a link to its page, and the columns its calculation reads, by name.
 - Used by: the metrics built from it.
+- Converted from and Converted to: a metric in another currency, worked out from the other with one more column, such as `exchange_rate_usd`.
 
 These come from the source at each read and are never edited here. They never show the calculation, and never mark context as due for a check. An input the source no longer has says so.
 
@@ -31,7 +32,7 @@ These come from the source at each read and are never edited here. They never sh
 A family is one entry for many near-identical metrics, such as a metric for each currency and channel. Its row shows a stack of tiles, Family · 250 variants, and what tells them apart, such as by Currency and Channel.
 
 - Its variants are never rows of their own. A search for one finds its family, and says how many variants match.
-- Its own page lists the variants, and narrows them by each value, such as Currency: EUR.
+- Its own page lists the variants, and narrows them by each value, such as Currency: EUR. It says how the family was found, such as declared in dbt, and which variant is converted from which.
 - Context about the family applies to every variant. See [Variants: a dimension, not a metric each](metric-variants.md).
 
 ## Terms and synonyms

@@ -44249,10 +44249,40 @@
                                       "type": "string"
                                     }
                                   },
+                                  "found": {
+                                    "enum": [
+                                      "declared",
+                                      "calculation",
+                                      "names"
+                                    ],
+                                    "type": "string"
+                                  },
                                   "derivations": {
                                     "type": "array",
                                     "items": {
                                       "type": "string"
+                                    }
+                                  },
+                                  "conversions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "by": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "from",
+                                        "to",
+                                        "by"
+                                      ]
                                     }
                                   },
                                   "variants": {
@@ -44310,7 +44340,9 @@
                                 },
                                 "required": [
                                   "by",
+                                  "found",
                                   "derivations",
+                                  "conversions",
                                   "variants"
                                 ]
                               },
@@ -48518,6 +48550,8 @@
                         "properties": {
                           "kind": {
                             "enum": [
+                              "converted_from",
+                              "converted_to",
                               "built_from",
                               "used_by"
                             ],
@@ -48548,6 +48582,16 @@
                           },
                           "missing": {
                             "type": "boolean"
+                          },
+                          "by": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -48555,7 +48599,8 @@
                           "ref",
                           "name",
                           "key",
-                          "missing"
+                          "missing",
+                          "by"
                         ]
                       }
                     }
@@ -64576,7 +64621,8 @@
                                     "same_name",
                                     "titles_differ",
                                     "bad_name",
-                                    "variants"
+                                    "variants",
+                                    "look_alike"
                                   ],
                                   "type": "string"
                                 },
@@ -64606,11 +64652,27 @@
                                     "items": {
                                       "type": "string"
                                     }
+                                  },
+                                  "found": {
+                                    "enum": [
+                                      "declared",
+                                      "calculation",
+                                      "names"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "names": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": [
                                   "variants",
-                                  "by"
+                                  "by",
+                                  "found",
+                                  "names"
                                 ]
                               },
                               {
@@ -64920,6 +64982,9 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 200
+                        },
+                        "apart": {
+                          "const": true
                         }
                       },
                       "required": [
@@ -65056,7 +65121,8 @@
                                         "same_name",
                                         "titles_differ",
                                         "bad_name",
-                                        "variants"
+                                        "variants",
+                                        "look_alike"
                                       ],
                                       "type": "string"
                                     },
@@ -65086,11 +65152,27 @@
                                         "items": {
                                           "type": "string"
                                         }
+                                      },
+                                      "found": {
+                                        "enum": [
+                                          "declared",
+                                          "calculation",
+                                          "names"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "names": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
                                       }
                                     },
                                     "required": [
                                       "variants",
-                                      "by"
+                                      "by",
+                                      "found",
+                                      "names"
                                     ]
                                   },
                                   {

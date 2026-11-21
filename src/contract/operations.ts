@@ -89,6 +89,12 @@ export const sourceWarningCodes = [
   'rate_limited',
   'group_not_found',
   'no_groups_chosen',
+  'invalid_family',
+  'family_one_member',
+  'family_two_views',
+  'family_two_kinds',
+  'family_axes_differ',
+  'family_same_values',
 ] as const
 export type SourceWarningCode = (typeof sourceWarningCodes)[number]
 
