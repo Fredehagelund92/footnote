@@ -33,16 +33,17 @@ export function NavUser() {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SidebarMenuButton size="lg" className="h-auto min-h-12 aria-expanded:bg-muted" />
+              <SidebarMenuButton size="lg" className="aria-expanded:bg-muted" title={me.name} />
             }
           >
+            {/* The name alone: what they own can be a long list, so it is in the menu, which wraps
+                it. A screen reader still hears both, folded to the icons too. */}
             <PersonAvatar name={me.name} size={32} />
-            {/* Who and what they own wrap rather than being cut: "Owner of Memberships, admin". */}
-            <div className="grid flex-1 text-left text-sm leading-tight wrap-break-word">
-              <span className="font-medium">{me.name}</span>
-              <span className="text-xs text-muted-foreground">{me.role}</span>
-            </div>
-            <ChevronsUpDownIcon className="ml-auto size-4" />
+            <span className="flex-1 truncate font-medium group-data-[collapsible=icon]:sr-only">
+              {me.name}
+            </span>
+            <span className="sr-only">{me.role}</span>
+            <ChevronsUpDownIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-60"
@@ -52,7 +53,7 @@ export function NavUser() {
           >
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <div className="flex items-start gap-2 px-1 py-1.5 text-left text-sm">
                   <PersonAvatar name={me.name} size={32} />
                   <div className="grid flex-1 text-left text-sm leading-tight wrap-break-word">
                     <span className="font-medium text-foreground">{me.name}</span>
