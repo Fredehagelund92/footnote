@@ -55,13 +55,14 @@ Then run `/mcp` in Claude Code, choose **footnote**, and choose **Authenticate**
 
 Set these in the shell, before `docker compose up`:
 
-| Setting             | Default | What it does                                                                                            |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| `FOOTNOTE_WEB_PORT` | `8080`  | The web app's port on this computer                                                                     |
-| `FOOTNOTE_PORT`     | `3000`  | The service's port on this computer, where agents connect (`/mcp`)                                      |
-| `SEED_DEMO`         | `on`    | Loads the demo into a new, empty database                                                               |
-| `CUBE_MODEL_DIR`    | Unset   | Your own Cube model's folder, read only: see [Use your own data](use-your-own-data.md)                  |
-| `MODELS`            | Unset   | `live` answers Ask and the test runs on a real model: see [Choose a model provider](model-providers.md) |
+| Setting             | Default | What it does                                                                                                        |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `FOOTNOTE_WEB_PORT` | `8080`  | The web app's port on this computer                                                                                 |
+| `FOOTNOTE_PORT`     | `3000`  | The service's port on this computer, where agents connect (`/mcp`)                                                  |
+| `SEED_DEMO`         | `on`    | Loads the demo into a new, empty database                                                                           |
+| `CUBE_MODEL_DIR`    | Unset   | Your own Cube model's folder, read only: see [Use your own data](use-your-own-data.md)                              |
+| `DBT_MANIFEST_DIR`  | Unset   | The folder of your dbt project's `semantic_manifest.json`, read only: see [Use your own data](use-your-own-data.md) |
+| `MODELS`            | Unset   | `live` answers Ask and the test runs on a real model: see [Choose a model provider](model-providers.md)             |
 
 When 8080 or 3000 is taken by another program, move them, as in `FOOTNOTE_WEB_PORT=8081 FOOTNOTE_PORT=3001 docker compose up`. Docker Desktop refuses a taken port with an error. Colima may say nothing, and the other program then answers on that port. An agent then connects to the new service port, such as `http://localhost:3001/mcp`.
 

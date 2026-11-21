@@ -91,6 +91,9 @@ function providerMessage(error: APICallError): string {
   return text.length > 160 ? `${text.slice(0, 159)}…` : text
 }
 
+/** What a call turned away for an account out of credit notes: no check can tell then. */
+const OUT_OF_CREDIT = 'the provider says the account is out of credit (HTTP 402)'
+
 /** Whether a call was turned away for what it asked: a tool, a tool choice or a schema. */
 const turnedAway = (error: unknown) =>
   APICallError.isInstance(error) && [400, 404, 422].includes(error.statusCode ?? 0)
@@ -112,6 +115,7 @@ function outcomeOf(error: unknown): { outcome: CheckOutcome; note: string } {
       return { outcome: 'fail', note: said ? `HTTP ${status}: ${said}` : `HTTP ${status}` }
     if (status === 401 || status === 403)
       return { outcome: 'unknown', note: `the key was refused (HTTP ${status})` }
+    if (status === 402) return { outcome: 'unknown', note: OUT_OF_CREDIT }
     return { outcome: 'unknown', note: status ? `HTTP ${status}` : 'no answer' }
   }
   if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError'))
@@ -316,6 +320,9 @@ export function roleFails(role: CheckedRole, check: ModelCheck): boolean {
 /** What a role's check means for it, in plain words, for the log, the command and Settings. */
 export function checkWords(role: CheckedRole, check: ModelCheck): string {
   const { tools, noTools, json } = check
+  // A key out of credit is said as such, for every role: no call gets through until it has some.
+  if (check.notes.some((note) => note.endsWith(OUT_OF_CREDIT)))
+    return 'Out of credit: the provider turns every call away until its account has credit'
   if (role === 'assistant') {
     if (tools === 'fail') return 'Can’t call tools, which Ask needs to read'
     if (tools === 'unknown') return 'Couldn’t tell, so Ask reads with its tools'

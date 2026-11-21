@@ -3,7 +3,7 @@ title: Set up your workspace
 line: The six steps from an empty workspace to a first checked answer, and the page for each step.
 group: Start
 order: 2
-minutes: 3
+minutes: 4
 reviewed: 2026-11-20
 ---
 
@@ -37,11 +37,12 @@ Here you write down what your numbers mean, so AI tools stop guessing. Your Inbo
 
 Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card, and nothing is published until you publish it.
 
-![The card 5 new metrics and dimensions from dbt. Under Look at these first are Basket value, Total and Total (refunds), each with a name to keep or change, Publish and Leave out. Under Ready to publish is Completed orders, and at the foot Publish all.](../images/docs/names-light.webp)
+![The card 5 new metrics and dimensions from dbt. Under Look at these first is Publish these as suggested, then Basket value, Total and Total (refunds), each with a name to keep or change, Publish and Leave out. Under Ready to publish is Completed orders, and at the foot Publish all.](../images/docs/names-light.webp)
 
 - **Publish all** makes the ready names live at once, so context can apply to them and agents can use them.
 - **Look at these first** holds a name that would give a word a second meaning, such as two metrics both called Revenue. Keep it, change it, or leave it out. Nothing is picked for you.
 - A family is one name for many near-identical metrics, such as a metric for each currency. Publish it, and its variants are published with it. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
+- **Publish these as suggested** publishes, at one press, the names there only because another definition has the same name, each with the name shown, which tells it apart. A project that keeps one dimension, such as Region, in many semantic models has a copy for each.
 - **Left out** holds dates and ids, which a context item's dates and Applies to already cover, and what you left out. While the card is open you can still publish any of them. Dates and ids alone never raise the card.
 
 ## Your first answer

@@ -141,6 +141,13 @@ describe('wordRefusal', () => {
     })
   })
 
+  it('says another definition has the name, for a second copy of one title', () => {
+    // One dimension a project keeps in two semantic models: the copy published first has the name.
+    expect(
+      wordRefusal('Region', [{ origin: 'vocabulary', ref: 'dim:region', name: 'Region' }], null),
+    ).toMatchObject({ code: 'source', message: 'Another definition is already called “Region”.' })
+  })
+
   it('names who added a synonym, and who wrote a term with its own meaning', () => {
     expect(
       wordRefusal(

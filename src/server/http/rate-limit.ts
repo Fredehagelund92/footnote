@@ -90,8 +90,11 @@ export function registerRateLimit(
     if (!retry) return
     labelOperation(request, 'rate_limited')
     reply.header('retry-after', String(retry))
+    // In the shape of the API's own errors, so the app shows these words, not "Too Many Requests".
     return reply.code(429).send({
+      defined: false,
       code: 'TOO_MANY_REQUESTS',
+      status: 429,
       message: `That was a lot at once. Try again in ${retry} seconds.`,
       data: { retryAfterSeconds: retry },
     })

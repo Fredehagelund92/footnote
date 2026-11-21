@@ -183,10 +183,11 @@ describe('Test connection on a model with a metric per currency', () => {
       variants: 2_500,
       metrics: 2_500,
       bases: 20,
-      // The read hands the definitions over A to Z, so the words come in that order.
+      // Each word splits as many names, and the read hands them over A to Z, so the words come
+      // in that order; the currencies in capitals.
       splits: [
         { words: 5, examples: ['app', 'marketplace', 'store'] },
-        { words: 25, examples: ['aed', 'aud', 'brl'] },
+        { words: 25, examples: ['AED', 'AUD', 'BRL'] },
       ],
     })
   }, 120_000)

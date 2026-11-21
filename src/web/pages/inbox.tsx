@@ -1016,6 +1016,9 @@ function whereContextGoes(me: Person, domains: Domain[]) {
   const home = homeDomain(me, domains)
   if (!home)
     return 'Context goes to a domain, and there is none yet: an admin adds one in Settings, under Domains and owners.'
+  // Several of one's own: the editor starts on one, and the writer picks.
+  const owned = domains.filter((domain) => me.owns.includes(domain.id) && !domain.sandbox).length
+  if (owned > 1) return `Context goes to one of the ${owned} domains you own.`
   if (me.owns.includes(home.id)) return `Context goes to the domain ${home.name}, owned by you.`
   const by = home.owners.length ? `owned by ${listOf(home.owners)}` : 'which has no owner yet'
   return `Context goes to the domain ${home.name}, ${by}. ${
@@ -1056,6 +1059,16 @@ function Setup({ due }: { due: number }) {
     if (ended) void refetchNames()
   }, [ended, refetchNames])
   const namesBehind = ended && canPublish && namesRead.dataUpdatedAt < workspaceRead.dataUpdatedAt
+  // The first names published end the step. A decision reads only the names again, so while the
+  // step is open the checklist reads the workspace once the names change.
+  const revision = namesRead.data?.revision
+  const lastRevision = React.useRef(revision)
+  const { refetch: refetchWorkspace } = workspaceRead
+  React.useEffect(() => {
+    const was = lastRevision.current
+    lastRevision.current = revision
+    if (was !== undefined && revision !== was && !setupDone.definitions) void refetchWorkspace()
+  }, [revision, setupDone.definitions, refetchWorkspace])
   // A step done says what it is, whatever read its names.
   const definitions = definitionsStep(
     setupDone.definitions || !serverSource
@@ -1115,6 +1128,8 @@ function Setup({ due }: { due: number }) {
       </SiteHeader>
       <div className="@container/main min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-3xl flex-col p-4 md:p-6">
+          {/* What already waits comes first: on a phone the checklist is two screens long. */}
+          {due > 0 && <DueRow due={due} />}
           <div className="grid grid-cols-1 gap-px bg-border p-px">
             <Cell className="gap-0 py-0">
               <CardHeader className="border-b px-4 py-4 md:px-5">
@@ -1175,13 +1190,14 @@ function Setup({ due }: { due: number }) {
                   })}
                 </ol>
               </CardContent>
-              <CardFooter className="rounded-none border-t bg-background px-4 py-4 text-xs text-muted-foreground @md:px-6">
-                Until there is context, agents hear “Nothing is written down for this.” That is the
-                honest answer, not an error.
-              </CardFooter>
+              {!setupDone.fact && (
+                <CardFooter className="rounded-none border-t bg-background px-4 py-4 text-xs text-muted-foreground @md:px-6">
+                  Until there is context, agents hear “Nothing is written down for this.” That is
+                  the honest answer, not an error.
+                </CardFooter>
+              )}
             </Cell>
           </div>
-          {due > 0 && <DueRow due={due} />}
         </div>
       </div>
       {reviewing && (
@@ -1194,14 +1210,14 @@ function Setup({ due }: { due: number }) {
 }
 
 /**
- * The Inbox's Due for a check row, under the checklist while setup is unfinished: how many, in
+ * The Inbox's Due for a check row, above the checklist while setup is unfinished: how many, in
  * whose domains, and a link to them in Context.
  */
 function DueRow({ due }: { due: number }) {
   const me = useMe()
   const Icon = cardIcon.check
   return (
-    <section aria-label="Needs you" className="mt-4 grid grid-cols-1 gap-px bg-border p-px">
+    <section aria-label="Needs you" className="mb-4 grid grid-cols-1 gap-px bg-border p-px">
       <Cell className="gap-0 py-0">
         <a
           href={href('/context', { due: '1' })}

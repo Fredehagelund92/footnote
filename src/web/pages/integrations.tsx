@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { PersonAvatar } from '@/components/footnote/bits'
+import { listOf } from '@/model/people'
 import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/footnote/tool-logo'
@@ -273,15 +274,15 @@ function DataTable({
   )
 }
 
+/** A domain's owners by name: a row of small discs alone said nothing, to eyes or a screen reader. */
 function Owners({ domain }: { domain?: DomainId }) {
   const domains = useDomains()
   if (!domain) return <span className="text-muted-foreground">shared</span>
-  return (
-    <span className="flex -space-x-1.5">
-      {domains[domain]?.owners.map((o) => (
-        <PersonAvatar key={o} name={o} size={20} className="ring-2 ring-background" />
-      ))}
-    </span>
+  const owners = domains[domain]?.owners ?? []
+  return owners.length ? (
+    <span className="line-clamp-2">{listOf(owners)}</span>
+  ) : (
+    <span className="text-muted-foreground">No owner yet</span>
   )
 }
 
@@ -2560,8 +2561,16 @@ function ConnectSteps({
 
 /** The connect flow's page: its five steps above one panel. */
 function FlowFrame({ at, children }: { at: number; children: React.ReactNode }) {
+  // Each step opens at its top: after a long Choose list, Map opened scrolled to its end.
+  const frame = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    frame.current?.closest('[data-slot="page-scroll"]')?.scrollTo({ top: 0 })
+  }, [at])
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
+    <div
+      ref={frame}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8"
+    >
       <Stepper at={at} />
       <Panel>{children}</Panel>
     </div>
@@ -3191,7 +3200,7 @@ function ChoiceSteps({
             </div>
             <p className="text-xs text-muted-foreground">
               {isDefinitions
-                ? `A hint never creates a domain. Definitions left unmapped stay shared. ${mapped} of ${chosen.length} mapped.`
+                ? `${chosen.some((s) => s.domain) ? 'A hint never creates a domain. ' : ''}Definitions left unmapped stay shared. ${mapped} of ${chosen.length} mapped.`
                 : `Every folder needs a domain before it is read. ${mapped} of ${chosen.length} mapped.`}
             </p>
           </>
@@ -3227,7 +3236,7 @@ function ChoiceSteps({
                       <span className="font-medium">Due for a check</span> and tells its owner.
                     </>,
                     <>Reading publishes and changes nothing.</>,
-                    <>{`If ${c.label} can't be reached, the last good read stays and nothing is reported.`}</>,
+                    <>{`If ${c.label} can't be reached, the last good read stays, and the source's page says the read failed.`}</>,
                   ]
                 : [
                     <>
