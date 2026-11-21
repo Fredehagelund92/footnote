@@ -1980,7 +1980,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const type = row ? row.type : id
       const listing = types.find((t) => t.manifest.id === type)
       if (!listing || (row?.origin === 'server' && row.kind !== 'definitions')) return null
-      const settings = row ? await read(() => client.sources.get({ id })) : null
+      // The service answers nothing for a server's source it does not read (not registered, or a
+      // build without its connector): there is no form, as for any server source but definitions.
+      const settings = row ? await orNull(() => read(() => client.sources.get({ id }))) : null
+      if (row?.origin === 'server' && !settings) return null
       return (await integrationWords()).connectFormOf(
         listing.manifest,
         settings,
