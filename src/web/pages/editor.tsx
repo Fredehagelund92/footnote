@@ -259,10 +259,8 @@ function initialForm(
   // Written from a definition, it starts in the definition's domain when the writer publishes
   // there, rather than in the first domain they own.
   const own = query.get('domain')
-  const start =
-    own && Object.hasOwn(domains, own) && publishes(own)
-      ? { domain: own, owners: domains[own].owners }
-      : {}
+  const ownDomain = own && Object.hasOwn(domains, own) ? domains[own] : undefined
+  const start = own && ownDomain && publishes(own) ? { domain: own, owners: ownDomain.owners } : {}
   if (metric || market || about.length)
     return {
       ...blank,
