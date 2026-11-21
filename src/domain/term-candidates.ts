@@ -101,6 +101,8 @@ export function keyPart(text: string): string {
 }
 
 const words = (text: string) => text.replace(/_+/g, ' ').trim()
+/** A name with its view's after it, to tell it from another of one name: "Revenue (orders)". */
+export const withView = (name: string, view: string) => `${name} (${words(view)})`
 const capitalized = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 
 /** A member's own name: after its view, and after the prefix a view joined it with. */
@@ -159,7 +161,8 @@ const domainOf = (members: readonly CandidateMember[]) =>
  * proposal for it waits for a decision. Members of one name that several terms link were split by
  * hand and stay so. A metric key another view already uses takes the view's name in front, and
  * so does a metric name that another candidate or a live or proposed metric already has: the
- * vocabulary refuses two metrics of one name.
+ * vocabulary refuses two metrics of one name. A dimension of one view whose title another
+ * dimension already has ("Sport" on `sport_name`) takes its view's name after it too.
  */
 export function termCandidates(
   members: readonly CandidateMember[],
@@ -182,6 +185,12 @@ export function termCandidates(
       const part = keyPart(ownName(member))
       if (part) dimensions.set(part, [...(dimensions.get(part) ?? []), member])
     }
+  // A dimension's name another dimension has already takes its view's, when it is in one view.
+  const dimensionNames = new Set(
+    known.flatMap((term) =>
+      term.kind === 'dimension' ? [term.name, ...term.aliases].map(normalizeName) : [],
+    ),
+  )
   for (const [part, shared] of dimensions) {
     const unlinked = shared.filter((member) => !linkedBy.has(member.ref))
     if (!unlinked.length) continue
@@ -222,16 +231,23 @@ export function termCandidates(
     }
     const first = shared[0]!
     keys.add(key)
+    const views = [...new Set(shared.flatMap((member) => viewOf(member.name) ?? []))]
+    const plain = memberName(first)
+    const name =
+      dimensionNames.has(normalizeName(plain)) && views.length === 1
+        ? withView(plain, views[0]!)
+        : plain
+    dimensionNames.add(normalizeName(name))
     candidates.push({
       source: first.source,
       key,
       kind: 'dimension',
-      name: memberName(first),
+      name,
       aliases: [],
       definitionRefs: shared.map((member) => member.ref),
       linked: [],
       areaId: domainOf(shared),
-      views: [...new Set(shared.flatMap((member) => viewOf(member.name) ?? []))],
+      views,
       description: first.description,
       valueType: first.valueType,
       suggested: !isTime(first.valueType) && !isId(ownName(first)),
@@ -260,7 +276,7 @@ export function termCandidates(
     if (!part || !key) continue
     keys.add(key)
     const plain = memberName(member)
-    const name = taken[kind].has(normalizeName(plain)) && view ? `${plain} (${words(view)})` : plain
+    const name = taken[kind].has(normalizeName(plain)) && view ? withView(plain, view) : plain
     taken[kind].add(normalizeName(name))
     candidates.push({
       source: member.source,

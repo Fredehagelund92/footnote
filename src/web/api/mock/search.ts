@@ -19,6 +19,15 @@ export function searchWorld(
   const words = q.trim().toLowerCase()
   if (!words) return { items: [], definitions: [], domains: [], people: [] }
   const has = (text: string | undefined) => !!text && text.toLowerCase().includes(words)
+  // A definition's name is read with its brackets and dashes as spaces too: "revenue usd" finds
+  // "Revenue (USD)".
+  const plain = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[\s\p{P}\p{S}]+/gu, ' ')
+      .trim()
+  const named = (text: string) =>
+    has(text) || (!!plain(words) && plain(text).includes(plain(words)))
   const best = <T>(rows: T[], name: (row: T) => string) =>
     rows
       .map((row) => ({ row, starts: name(row).toLowerCase().startsWith(words) }))
@@ -39,7 +48,9 @@ export function searchWorld(
       // A family is found by its variants' names too, and is the one hit for them (FR-142).
       world.definitions.filter(
         (d) =>
-          has(d.name) || d.sourceNames.some(has) || !!d.family?.variants.some((v) => has(v.name)),
+          named(d.name) ||
+          d.sourceNames.some(named) ||
+          !!d.family?.variants.some((v) => named(v.name)),
       ),
       (d) => d.name,
     ).map((d) => ({
@@ -47,6 +58,21 @@ export function searchWorld(
       type: d.type,
       ...(d.sameAs ? { sameAs: d.sameAs } : {}),
       sourceNames: d.sourceNames,
+      // Found by a variant's name alone, a family says which.
+      ...(d.family
+        ? {
+            variants: {
+              count: d.family.variants.length,
+              matched:
+                named(d.name) || d.sourceNames.some(named)
+                  ? null
+                  : (d.family.variants
+                      .map((v) => v.name)
+                      .filter(named)
+                      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0] ?? null),
+            },
+          }
+        : {}),
     })),
     domains: best(
       world.domains.filter((d) => has(d.name)),

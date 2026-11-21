@@ -6,11 +6,12 @@ import {
   derivationsOf,
   familiesOf,
   nameWithout,
+  variantWords,
   type VariantMember,
 } from '../../../src/domain/metric-families.ts'
 import { searchScope } from '../../../src/domain/scope-search.ts'
 import { asSuggested } from '../../../src/domain/suggested-names.ts'
-import { sourceNames, type WordHolders } from '../../../src/domain/source-names.ts'
+import { nameRefusal, sourceNames, type WordHolders } from '../../../src/domain/source-names.ts'
 import type { Term } from '../../../src/domain/vocabulary.ts'
 import type { CandidateMember, KnownTerm } from '../../../src/domain/term-candidates.ts'
 
@@ -231,6 +232,82 @@ describe('families on the Names card', () => {
     expect(JSON.stringify(flagged!.flags)).not.toMatch(/\(EUR\)|\(USD\)|Turnover|Sales/)
   })
 
+  describe('two families of one name in two views', () => {
+    const commission = (view: string, currency: string): CandidateMember => ({
+      ref: `cube:${view}.commission_${currency.toLowerCase()}`,
+      source: 'cube',
+      kind: 'metric',
+      name: `${view}.commission_${currency.toLowerCase()}`,
+      title: `Commission (${currency})`,
+      description: null,
+      valueType: 'sum',
+      areaHint: 'sales',
+      synonyms: [],
+      baseName: null,
+      mergeDimensions: 'never',
+      variant: null,
+    })
+    const members = ['affiliates', 'partners'].flatMap((view) =>
+      ['EUR', 'USD'].map((currency) => commission(view, currency)),
+    )
+    const families = (names: ReturnType<typeof sourceNames>) =>
+      names.filter((n) => n.kind === 'metric_group')
+
+    it('flags both, and tells the second apart by its view, as two metrics are', () => {
+      const names = families(sourceNames(members, [], none, new Set()))
+      expect(names.map((n) => [n.key, n.name, n.state])).toEqual([
+        ['group:commission', 'Commission', 'flagged'],
+        ['group:partners_commission', 'Commission (partners)', 'flagged'],
+      ])
+      expect(names[0]!.flags).toContainEqual({
+        code: 'same_name',
+        message: 'Another definition is called “Commission”: Commission (partners).',
+      })
+      // Both go live in one press as suggested: their names are two words.
+      const chosen = new Map(names.map((n) => [n.key, [n.name]]))
+      for (const n of names) expect(nameRefusal(n.key, n.name, none, chosen)).toBeNull()
+    })
+
+    it('offers the second with its view once the first is live, and refuses it the first one’s word', () => {
+      const first = families(sourceNames(members.slice(0, 2), [], none, new Set()))[0]!
+      const live: KnownTerm[] = [
+        ...first.family!.variants.map((v) => ({
+          key: v.key,
+          kind: 'metric',
+          name: v.name,
+          aliases: [],
+          areaId: 'sales',
+          definitionRefs: v.definitionRefs,
+          open: false,
+        })),
+        {
+          key: first.key,
+          kind: 'metric_group',
+          name: first.name,
+          aliases: [],
+          areaId: 'sales',
+          definitionRefs: first.definitionRefs,
+          open: false,
+        },
+      ]
+      const holders: WordHolders = new Map([
+        ['commission', [{ origin: 'vocabulary', ref: first.key, name: first.name, tool: null }]],
+      ])
+      const [second] = families(sourceNames(members, live, holders, new Set()))
+      expect(second).toMatchObject({
+        key: 'group:partners_commission',
+        name: 'Commission (partners)',
+        state: 'flagged',
+      })
+      expect(second!.flags.map((f) => f.code)).toContain('taken')
+      const chosen = new Map([[second!.key, ['Commission']]])
+      expect(nameRefusal(second!.key, 'Commission', holders, chosen)).toBe(
+        'Another definition is already called “Commission”.',
+      )
+      expect(nameRefusal(second!.key, second!.name, holders, chosen)).toBeNull()
+    })
+  })
+
   it('adds the variants a later read found to the family that is live', () => {
     const members = shop([['revenue', 'Revenue', 'a']])
     const live: KnownTerm[] = [
@@ -378,5 +455,46 @@ describe('a family its names alone make: one metric in two currencies', () => {
     ).toEqual([
       "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
     ])
+  })
+
+  it("gives an agent each variant's own words by its values, never its name (F2)", () => {
+    expect(
+      variantWords(
+        members.map((m) => ({ values: [m.title!.slice(-4, -1)], description: m.description })),
+      ),
+    ).toEqual([
+      'EUR: The share of each booking accrued up front, in EUR.',
+      "USD: The EUR amount multiplied by the row's exchange rate.",
+    ])
+  })
+})
+
+describe("a family's variants' words for an agent", () => {
+  const variant = (values: string[], description: string | null) => ({ values, description })
+
+  it('gives words every variant shares, but for its values, once', () => {
+    expect(
+      variantWords([
+        variant(['EUR', 'web'], 'Revenue for orders paid in EUR through the web channel.'),
+        variant(['USD', 'app'], 'Revenue for orders paid in USD through the app channel.'),
+      ]),
+    ).toEqual([
+      'EUR, web, and each other variant with its own: Revenue for orders paid in EUR through the web channel.',
+    ])
+  })
+
+  it('gives at most four, and says how many more have words, and none when none has', () => {
+    // One has no words, so the rest are not words every variant shares.
+    const many = ['AUD', 'CAD', 'EUR', 'GBP', 'NOK', 'USD'].map((code) =>
+      variant([code], code === 'CAD' ? null : `Booked in ${code}.`),
+    )
+    expect(variantWords(many)).toEqual([
+      'AUD: Booked in AUD.',
+      'EUR: Booked in EUR.',
+      'GBP: Booked in GBP.',
+      'NOK: Booked in NOK.',
+      '1 more has words of its own.',
+    ])
+    expect(variantWords([variant(['EUR'], null), variant(['USD'], ' ')])).toEqual([])
   })
 })

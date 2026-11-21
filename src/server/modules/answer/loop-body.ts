@@ -194,10 +194,11 @@ const plainName = (id: string, nouns: ReadonlyMap<string, Noun>) => {
 
 /**
  * A typed id as a read gives it, when the model wrote its kind twice: `domain:domain:area_x`, or
- * `domain:domain_area_x` for a noun a read named as `domain:area_x`.
+ * `domain:domain_area_x` for a noun a read named as `domain:area_x`, or a family's key as a
+ * metric's (`metric:group:revenue`).
  */
 const typedId = (id: string, nouns?: ReadonlyMap<string, Noun>) => {
-  const once = id.replace(/^([a-z]+):\1:/, '$1:')
+  const once = id.replace(/^([a-z]+):\1:/, '$1:').replace(/^metric:(?=group:)/, '')
   const joined = once.replace(/^([a-z]+):\1_/, '$1:')
   return joined !== once && nouns?.has(joined) && !nouns.has(once) ? joined : once
 }

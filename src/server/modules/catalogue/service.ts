@@ -345,6 +345,7 @@ export function createCatalogueService(
               name: member.name,
               aliases: member.aliases,
               values: axes.valuesOf(entry),
+              description: own?.descriptionCopy ?? null,
               state: own ? definitionState(own) : null,
               items: shelfOf(items, scopeNames(member.key), today).items,
             }

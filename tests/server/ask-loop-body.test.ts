@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { LoopRun, LoopTurn } from '../../src/contract/answer.ts'
-import { dimensionHue, dimensionOf, nounId, termKeyOf } from '../../src/domain/ask-nouns.ts'
+import {
+  dimensionHue,
+  dimensionOf,
+  nounId,
+  nounKindOf,
+  termKeyOf,
+} from '../../src/domain/ask-nouns.ts'
 import {
   enumeration,
   itemRows,
@@ -116,6 +122,38 @@ describe('the nouns, by the ids a typed mention writes', () => {
     // A hue from the id, the same every time, for any workspace's dimension.
     expect(dimensionHue('dimension:team')).toBe(dimensionHue('dimension:team'))
     expect(dimensionHue('dimension:team')).not.toBe(dimensionHue('dimension:sprint'))
+  })
+
+  it("names a family of metrics by its own key, a metric's noun (F3)", () => {
+    expect(nounId('group:tickets_closed')).toBe('group:tickets_closed')
+    expect(nounKindOf('group:tickets_closed')).toBe('metric')
+    expect(termKeyOf('group:tickets_closed')).toBe('group:tickets_closed')
+  })
+
+  it('writes a family a read named by its name, never by its key (F3)', () => {
+    const family: MadeRead = {
+      tool: 'definitions',
+      ref: 'r1',
+      input: { names: ['tickets closed'] },
+      result: {
+        definitions: [{ id: 'group:tickets_closed', name: 'Tickets closed', kind: 'metric' }],
+        names: [{ id: 'group:tickets_closed', name: 'Tickets closed', of: null, type: null }],
+        ids: [],
+      },
+    }
+    const t = turnOf(
+      'Nothing written covers why [@metric:group:tickets_closed] differs between teams. [@group:tickets_closed] is one family.',
+      [family],
+      [],
+    )
+    expect(t.text).toBe(
+      'Nothing written covers why Tickets closed differs between teams. Tickets closed is one family.',
+    )
+    expect(runs(t).filter((r) => r.t === 'noun')).toEqual([
+      { t: 'noun', id: 'group:tickets_closed' },
+      { t: 'noun', id: 'group:tickets_closed' },
+    ])
+    expect(t.nouns.map((n) => n.id)).toContain('group:tickets_closed')
   })
 })
 

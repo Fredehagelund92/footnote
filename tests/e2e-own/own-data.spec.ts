@@ -143,6 +143,19 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.getByRole('button', { name: /Ravi Kapoor/ }).click()
   await expect(page).toHaveURL(/\/inbox$/)
   await expect(page.locator('header').locator(label)).toContainText('Own data trial')
+  // On a phone the label gives way before the page's title, which is never cut to a letter.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/definitions')
+  const title = page.locator('header h1')
+  await expect(title).toHaveText('Definitions')
+  expect(
+    await title.evaluate((h1) => {
+      const words = h1.lastElementChild as HTMLElement
+      return words.scrollWidth <= words.clientWidth + 1
+    }),
+  ).toBe(true)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/inbox')
 
   // The checklist, in the order it can be done: a domain, then the names, then writing.
   await expect(page.getByText('0 of 6 done')).toBeVisible()

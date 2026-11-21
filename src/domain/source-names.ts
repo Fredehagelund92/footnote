@@ -12,10 +12,12 @@
  */
 import { agreedDomain } from './catalogue.ts'
 import { axisWords, familiesOf, type Family } from './metric-families.ts'
+import { viewOf } from './source-views.ts'
 import {
   keyPart,
   memberName,
   termCandidates,
+  withView,
   type CandidateMember,
   type KnownTerm,
   type TermCandidate,
@@ -28,6 +30,7 @@ import {
   wordRefusal,
   type WordHolder,
 } from './terms.ts'
+import { normalizeName } from './vocabulary.ts'
 
 /** Why a name needs an owner's eyes before it goes live. */
 export const nameFlagCodes = [
@@ -56,8 +59,9 @@ export type SourceName = Omit<TermCandidate, 'kind'> & {
   /**
    * A family's variants, each a name of its own that goes live with it, and what tells them
    * apart, in words ("Currency", "Channel"). The card shows the family, never its variants.
+   * `plain` is the name its variants give, before any view's name told it from another.
    */
-  family?: { by: string[]; variants: SourceName[] }
+  family?: { by: string[]; variants: SourceName[]; plain: string }
 }
 
 /** What has each word now, by its compared form: terms, synonyms and live vocabulary. */
@@ -247,7 +251,8 @@ function withFamilies(
       (term) => term.kind === 'dimension' && term.definitionRefs.includes(ref),
     )?.name
   const folded = new Set<SourceName>()
-  const made: SourceName[] = []
+  const found: { family: Family; key: string; group: KnownTerm | null; variants: SourceName[] }[] =
+    []
   for (const family of families) {
     const variants = family.variants.flatMap(({ ref }) => byRef.get(ref) ?? [])
     const group = liveGroups.find((term) =>
@@ -257,12 +262,38 @@ function withFamilies(
     const key = group?.key ?? freeKey(family, keys)
     keys.add(key)
     for (const variant of variants) folded.add(variant)
-    made.push(
-      familyName(family, key, group ?? null, variants, holders, names, leftOut, (axis) =>
-        axis.ref ? (dimensionName(axis.ref) ?? axisWords(axis)) : axisWords(axis),
-      ),
-    )
+    found.push({ family, key, group: group ?? null, variants })
   }
+  // A new family whose name a live metric or family, a metric on offer or a family before it has
+  // takes its view's name after it, as a metric does: two families of one name in two views are
+  // "Commission" and "Commission (partners)".
+  const memberOf = new Map(members.map((member) => [member.ref, member]))
+  const taken = new Set(
+    [
+      ...live.flatMap((term) =>
+        term.kind === 'metric' || term.kind === 'metric_group' ? [term.name, ...term.aliases] : [],
+      ),
+      ...names.flatMap((name) => (name.kind === 'metric' && !folded.has(name) ? [name.name] : [])),
+    ].map(normalizeName),
+  )
+  const named = found.map((entry) => {
+    const plain = entry.group?.name ?? entry.family.name
+    const view = viewOf(memberOf.get(entry.family.variants[0]!.ref)?.name ?? '')
+    const name =
+      !entry.group && taken.has(normalizeName(plain)) && view ? withView(plain, view) : plain
+    taken.add(normalizeName(name))
+    return { ...entry, plain, name }
+  })
+  const made = named.map((entry) =>
+    familyName(
+      entry,
+      named.filter((other) => other !== entry && !other.group),
+      holders,
+      names,
+      leftOut,
+      (axis) => (axis.ref ? (dimensionName(axis.ref) ?? axisWords(axis)) : axisWords(axis)),
+    ),
+  )
   return [...names.filter((name) => !folded.has(name)), ...made].sort(
     (a, b) =>
       Number(a.kind === 'dimension') - Number(b.kind === 'dimension') ||
@@ -301,32 +332,47 @@ function variantsFlagMessage(looking: readonly SourceName[]): string {
 export const variantNameRefusal = (family: string) =>
   `A variant of “${family}” has a name that can't be published as it stands, so the family can't go live. Leave it out, or fix its variants in the tool.`
 
-/** The name a family of variants makes: itself, flagged as any name is, and its variants. */
+/** A family as the Names card offers it: the name it is called by, and the one its variants give. */
+type NamedFamily = {
+  family: Family
+  key: string
+  group: KnownTerm | null
+  variants: readonly SourceName[]
+  /** What its variants' names say without their values, or the live family's name. */
+  plain: string
+  /** The name it is offered by: `plain`, with its view's after it when another has that. */
+  name: string
+}
+
+/**
+ * The name a family of variants makes: itself, flagged as any name is, and its variants. A name
+ * or another new family whose name reads as its own is flagged, as two metrics of one name are.
+ */
 function familyName(
-  family: Family,
-  key: string,
-  group: KnownTerm | null,
-  variants: readonly SourceName[],
+  { family, key, group, variants, plain, name }: NamedFamily,
+  others: readonly NamedFamily[],
   holders: WordHolders,
   names: readonly SourceName[],
   leftOut: ReadonlySet<string>,
   axisName: (axis: Family['by'][number]) => string,
 ): SourceName {
   const refs = variants.flatMap((variant) => variant.definitionRefs)
-  const name = group?.name ?? family.name
   const flags: NameFlag[] = []
   if (!group) {
     const shape = nameShapeRefusal(name)
     if (shape) flags.push({ code: 'bad_name', message: shape })
-    const held = wordRefusal(name, othersOf(key, termWord(name), holders), null)
+    const held = wordRefusal(plain, othersOf(key, termWord(plain), holders), null)
     if (held) flags.push({ code: 'taken', message: held.message })
-    const same = names.filter(
-      (other) => other.state !== 'left_out' && termWord(other.name) === termWord(name),
-    )
+    const same = [
+      ...names.filter(
+        (other) => other.state !== 'left_out' && termWord(other.name) === termWord(plain),
+      ),
+      ...others.filter((other) => termWord(other.plain) === termWord(plain)),
+    ]
     if (same.length)
       flags.push({
         code: 'same_name',
-        message: `${same.length === 1 ? 'Another definition is' : `${same.length} others are`} called “${name}”: ${same.map((other) => other.name).join(', ')}.`,
+        message: `${same.length === 1 ? 'Another definition is' : `${same.length} others are`} called “${plain}”: ${same.map((other) => other.name).join(', ')}.`,
       })
   }
   const looking = variants.filter((variant) => variant.flags.length)
@@ -350,6 +396,7 @@ function familyName(
     leftByOwner: left,
     family: {
       by: family.by.map(axisName),
+      plain,
       variants: variants.map((variant) => ({ ...variant, parentKey: key })),
     },
   }
@@ -387,7 +434,19 @@ export function nameRefusal(
   return null
 }
 
-/** The compared forms of the names a list of terms goes by. */
-export function wordsOf(terms: readonly Pick<TermCandidate, 'name' | 'aliases'>[]): string[] {
-  return [...new Set(terms.flatMap((term) => [term.name, ...term.aliases]).map(termWord))]
+/** The compared forms of the names a list of terms goes by, and the name each family's variants give. */
+export function wordsOf(
+  terms: readonly (Pick<TermCandidate, 'name' | 'aliases'> & Pick<Partial<SourceName>, 'family'>)[],
+): string[] {
+  return [
+    ...new Set(
+      terms
+        .flatMap((term) => [
+          term.name,
+          ...term.aliases,
+          ...(term.family ? [term.family.plain] : []),
+        ])
+        .map(termWord),
+    ),
+  ]
 }

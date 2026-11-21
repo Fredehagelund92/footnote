@@ -82,6 +82,8 @@ export const catalogueVariantSchema = z.object({
   aliases: z.array(z.string()),
   /** What tells it apart, in the order of its family's `by`: `["EUR", "web"]`. */
   values: z.array(z.string()),
+  /** Its source's own words for it, or null when the source gives none. */
+  description: z.nullable(z.string()),
   /** What its source last read of it; null when the source never listed it. */
   state: z.nullable(z.enum(definitionStates)),
   /** Accepted items whose scope names the variant itself. */

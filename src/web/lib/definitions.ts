@@ -99,8 +99,15 @@ export const kindName = (
  * when none is synced or they come from several, so a screen says it in neutral words instead.
  */
 export function toolOf(defs: readonly Pick<Definition, 'synced' | 'tool'>[]): string | undefined {
-  const tools = new Set(defs.flatMap((d) => (d.synced && d.tool ? [d.tool] : [])))
-  return tools.size === 1 ? [...tools][0] : undefined
+  const tools = toolsOf(defs)
+  return tools.length === 1 ? tools[0] : undefined
+}
+
+/** The tools the synced definitions come from, by name, A to Z. */
+export function toolsOf(defs: readonly Pick<Definition, 'synced' | 'tool'>[]): string[] {
+  return [...new Set(defs.flatMap((d) => (d.synced && d.tool ? [d.tool] : [])))].sort((a, b) =>
+    a.localeCompare(b, 'en'),
+  )
 }
 
 /** The connector the synced definitions are read by, when it is one; undefined when none or several. */
@@ -159,6 +166,17 @@ export function definitionCounts(rows: readonly Definition[]): string {
 export function familyMeaning(family: Family): string {
   const n = family.variants.length.toLocaleString('en-GB')
   return `Its ${n} variants differ only ${familyBy(family)}. Context written about it applies to all ${n}.`
+}
+
+/**
+ * What a variant's name says after its family's: "(USD)" of "Revenue (USD)" in Revenue. A
+ * variant named otherwise is said in full.
+ */
+export function variantPart(family: string, variant: string): string {
+  const rest = variant.toLowerCase().startsWith(family.toLowerCase())
+    ? variant.slice(family.length).trim()
+    : ''
+  return rest || `· ${variant}`
 }
 
 /** "by Currency and Channel": what tells a family's variants apart. */

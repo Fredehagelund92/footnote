@@ -295,11 +295,18 @@ describe('a family of metrics in Ask (FR-142)', () => {
     family: {
       by: ['Currency', 'Channel'],
       derivations: [],
+      // The USD variant's source says how it is worked out from the EUR one.
       variants: variants.map((key) => ({
         key,
         name: `${key} variant`,
         aliases: [],
-        values: [],
+        values: key
+          .split('_')
+          .slice(1)
+          .map((v, i) => (i ? v : v.toUpperCase())),
+        description: key.endsWith('usd_web')
+          ? "The EUR web amount multiplied by the row's exchange rate."
+          : null,
         state: null,
         items: 0,
       })),
@@ -334,6 +341,14 @@ describe('a family of metrics in Ask (FR-142)', () => {
     const result = await tools.run('definitions', {})
     expect(JSON.stringify(result)).not.toMatch(/revenue_aed_app/)
     expect(result).toMatchObject({ definitions: [{ name: 'Revenue', from: 'dbt' }] })
+  })
+
+  it("gives a family's variants' own words, each by what tells it apart (F2)", async () => {
+    const result = await tools.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { words: string | null }[] }).definitions
+    expect(revenue!.words).toBe(
+      "A family of 3 near-identical metrics, one for each currency and channel. An item about it applies to every one of them. USD, web: The EUR web amount multiplied by the row's exchange rate.",
+    )
   })
 
   it('counts the items on a family and on any of its variants under the family name', async () => {

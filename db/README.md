@@ -466,9 +466,10 @@ metric or dimension of the vocabulary, or `same_as_term`, a term with its own me
 another synonym). `word` is the name as the service compares it (`cl_term_word`, the
 database's `normalizeName`: case, spaces and accents set aside), and one live term holds a word at
 most (`terms_one_word`). `terms_guard` refuses a word the live vocabulary or
-the definitions source uses for a metric or a dimension (`cl_vocabulary_words`: names, other
-names, and the source's name, title and synonyms) whenever a term takes a word: written, renamed,
-pointed elsewhere or restored. A sync can still give a word a second meaning later; the service
+the definitions source uses for a metric, a dimension or a family of metrics
+(`cl_vocabulary_words`: names, other names, and the source's name, title and synonyms of a metric
+or a dimension) whenever a term takes a word: written, renamed, pointed elsewhere or restored. A
+sync can still give a word a second meaning later; the service
 shows that conflict. A synonym's domain is what it means (`cl_term_target_area`), and a term's
 synonyms follow it to a new domain (`terms_follow`). An owner of the domain or an administrator
 writes a term, and a word with no domain is an administrator's (row security). Nothing removes a

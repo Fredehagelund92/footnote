@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createMockApi } from '@/api/mock'
-import { SEARCH_GROUP_MAX } from '@/api/mock/search'
+import { SEARCH_GROUP_MAX, searchWorld } from '@/api/mock/search'
+import { variantPart, type Definition } from '@/lib/definitions'
 
 describe('search everywhere in the demo world', () => {
   it('finds context by its text, a title that starts with the words first, never a draft', async () => {
@@ -29,5 +30,34 @@ describe('search everywhere in the demo world', () => {
     const { api } = createMockApi()
     await api.invite({ emails: ['new.person@example.test'], admin: false, owns: [] })
     expect((await api.searchAll({ q: 'new.person' })).people).toEqual([])
+  })
+})
+
+describe('a family of metrics in search everywhere (F4, F5)', () => {
+  const family = {
+    name: 'Partner fees',
+    type: 'metric',
+    sourceNames: [],
+    family: { variants: [{ name: 'Partner fees (EUR)' }, { name: 'Partner fees (USD)' }] },
+  } as unknown as Definition
+  const find = (q: string) =>
+    searchWorld(q, { facts: [], definitions: [family], domains: [], people: [] }).definitions
+
+  it('says it is a family, with its variants counted', () => {
+    expect(find('partner fees')).toEqual([
+      {
+        name: 'Partner fees',
+        type: 'metric',
+        sourceNames: [],
+        variants: { count: 2, matched: null },
+      },
+    ])
+  })
+
+  it('finds it by a currency word, brackets aside, and says which variant', () => {
+    for (const q of ['partner fees usd', 'fees usd', 'Partner fees (USD)'])
+      expect(find(q).map((d) => d.variants)).toEqual([{ count: 2, matched: 'Partner fees (USD)' }])
+    expect(variantPart('Partner fees', 'Partner fees (USD)')).toBe('(USD)')
+    expect(variantPart('Partner fees', 'Fees in dollars')).toBe('· Fees in dollars')
   })
 })

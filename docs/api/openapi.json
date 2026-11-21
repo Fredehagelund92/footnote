@@ -43874,13 +43874,43 @@
                             "items": {
                               "type": "string"
                             }
+                          },
+                          "family": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "variants": {
+                                    "type": "number"
+                                  },
+                                  "matched": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "variants",
+                                  "matched"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
                           "key",
                           "kind",
                           "name",
-                          "aliases"
+                          "aliases",
+                          "family"
                         ]
                       }
                     },
@@ -44278,6 +44308,16 @@
                                             "type": "string"
                                           }
                                         },
+                                        "description": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
                                         "state": {
                                           "anyOf": [
                                             {
@@ -44302,6 +44342,7 @@
                                         "name",
                                         "aliases",
                                         "values",
+                                        "description",
                                         "state",
                                         "items"
                                       ]

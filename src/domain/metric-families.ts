@@ -293,6 +293,41 @@ export function derivationsOf(
   return lines
 }
 
+/** The most variants whose own words a family's description for an agent gives. */
+const VARIANT_WORDS_MAX = 4
+
+/**
+ * What a family's variants' sources say of them, as lines for an agent: each variant's own words
+ * after the values that tell it apart ("USD: The EUR amount multiplied by the row's rate"), never
+ * its name. Words every variant shares, apart from its own values, are given once, as the first
+ * variant's, saying the others have their own values. At most `VARIANT_WORDS_MAX` lines, and how many more have words of their own.
+ */
+export function variantWords(
+  variants: readonly { values: readonly string[]; description: string | null }[],
+): string[] {
+  const described = variants.flatMap((variant) => {
+    const words = variant.description?.trim()
+    return words ? [{ values: variant.values, words }] : []
+  })
+  if (!described.length) return []
+  const without = (variant: (typeof described)[number]) =>
+    nameWithout(variant.words, variant.values)
+  const label = (variant: (typeof described)[number]) =>
+    variant.values.filter(Boolean).join(', ') || 'One variant'
+  if (described.length === variants.length && new Set(described.map(without)).size === 1)
+    return [`${label(described[0]!)}, and each other variant with its own: ${described[0]!.words}`]
+  const lines = described
+    .slice(0, VARIANT_WORDS_MAX)
+    .map((variant) => `${label(variant)}: ${variant.words}`)
+  const more = described.length - lines.length
+  return more
+    ? [
+        ...lines,
+        `${more.toLocaleString('en-GB')} more ${more === 1 ? 'has' : 'have'} words of ${more === 1 ? 'its' : 'their'} own.`,
+      ]
+    : lines
+}
+
 /** An axis as people read it, when no dimension names it: `currency_code` is "Currency code". */
 export const axisWords = (axis: FamilyAxis) => capitalized(axis.name.replace(/_+/g, ' ').trim())
 

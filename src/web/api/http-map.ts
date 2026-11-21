@@ -201,6 +201,7 @@ export function hitsOf(results: SearchResults): SearchHits {
       name: d.name,
       type: d.kind,
       sourceNames: [...new Set(d.aliases)],
+      ...(d.family ? { variants: { count: d.family.variants, matched: d.family.matched } } : {}),
     })),
     domains: results.domains,
     people: results.people.map((p) => ({ name: p.name })),

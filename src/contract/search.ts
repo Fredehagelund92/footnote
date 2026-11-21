@@ -33,6 +33,11 @@ export const searchResultsSchema = z.object({
       kind: z.enum(['metric', 'dimension']),
       name: z.string(),
       aliases: z.array(z.string()),
+      /**
+       * A family of metrics (FR-142): how many variants it has, and the variant whose name the
+       * words found when the family's own names do not have them. Null for any other definition.
+       */
+      family: z.nullable(z.object({ variants: z.number(), matched: z.nullable(z.string()) })),
     }),
   ),
   /** Domains whose name has the words. */

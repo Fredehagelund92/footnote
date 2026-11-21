@@ -78,6 +78,8 @@ const seed: Definition[] = [
 ]
 
 const same = (a: string, b: string) => termWord(a) === termWord(b)
+/** The definitions tool whose read finds the demo's families. */
+const FAMILIES_DEFINITIONS = 'dbt-metricflow'
 
 export { seed as definitionSeed }
 
@@ -99,10 +101,19 @@ export function createDefinitions() {
         all = [...all, ...dbtFolderDefinitions()]
     },
 
-    /** Adds the same 5,000 metrics as the 20 families a read finds in them (FR-142). */
+    /**
+     * Adds the same 5,000 metrics as the 20 families a read of a dbt project finds in them (FR-142),
+     * beside the demo's own: an install with two definitions tools, as the Names card says.
+     */
     loadFamilies() {
       if (!all.some((d) => d.family))
-        all = [...all, ...familyDefinitions(demoTool(DEMO_DEFINITIONS))]
+        all = [
+          ...all,
+          ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) => ({
+            ...d,
+            connector: FAMILIES_DEFINITIONS,
+          })),
+        ]
     },
 
     /** Saves a term; a renamed one replaces the old entry where it stood. Synced items are never saved here. */
