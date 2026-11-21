@@ -3,6 +3,7 @@ import { renderToString } from 'react-dom/server'
 import { movedSlugs, movedTo } from '@domain/docs'
 import { CHANGELOG_SLUG, CHANGES, DOC_PAGES, docPage } from '@/lib/docs'
 import { DocsSite } from '@/pages/docs'
+import { ThemeProvider } from '@/lib/theme'
 
 // The static docs site, drawn ahead of time (npm run docs:build): every page as HTML, so it reads
 // with no script, a search engine finds it, and main.tsx makes it work in the browser.
@@ -29,7 +30,9 @@ export function headOf(slug: string | undefined): { title: string; line: string 
 export function render(slug: string | undefined): string {
   return renderToString(
     <StrictMode>
-      <DocsSite slug={slug} query={new URLSearchParams()} go={() => undefined} />
+      <ThemeProvider>
+        <DocsSite slug={slug} query={new URLSearchParams()} go={() => undefined} />
+      </ThemeProvider>
     </StrictMode>,
   )
 }

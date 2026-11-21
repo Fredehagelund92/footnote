@@ -12,6 +12,12 @@ A model with a metric for each currency and channel now shows each set of varian
 
 Context about a family applies to every variant, and is due for a check once when any of them changes. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
 
+## Light and dark in the docs
+
+2026-11-20
+
+The Docs area has the theme control at the end of its header, as the rest of the app does, and keeps the same choice. Each page names the version it describes, with a link to read the latest on the web.
+
 ## A metric for each currency
 
 2026-11-20

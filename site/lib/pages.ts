@@ -150,14 +150,19 @@ export type SitePage = {
   line: string
   group?: SiteGroup
   order: number
+  /** The day someone last checked the page against the app, `2026-10-27`. */
+  reviewed?: string
 }
 
 function readPage(root: string, entry: string): SitePage {
   const file = join('docs', entry)
   const front = /^---\n([\s\S]*?)\n---\n/.exec(readFileSync(join(root, file), 'utf8'))
   if (!front) throw new Error(`${file} has no front matter`)
-  const { title, line, group, order } = parse(front[1]!) as Omit<SitePage, 'slug' | 'file'>
-  return { slug: slugOf(entry), file, title, line, group, order: order ?? 0 }
+  const { title, line, group, order, reviewed } = parse(front[1]!) as Omit<
+    SitePage,
+    'slug' | 'file'
+  >
+  return { slug: slugOf(entry), file, title, line, group, order: order ?? 0, reviewed }
 }
 
 /** Every help page that is not on the list, so that a new one is never left out by accident. */

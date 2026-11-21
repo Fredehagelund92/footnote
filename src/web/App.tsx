@@ -485,10 +485,15 @@ const queryClient = createQueryClient({
   onSomeoneElse: () => void afterSomeoneElse(queryClient),
 })
 
+/** The theme, which a new ?theme= in the address switches to, as it does on load. */
+function AddressTheme({ children }: { children: React.ReactNode }) {
+  return <ThemeProvider asked={useRoute().query.get('theme')}>{children}</ThemeProvider>
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+      <AddressTheme>
         <TooltipProvider>
           <ScenarioSync />
           <Loaded>
@@ -502,7 +507,7 @@ export default function App() {
           </Loaded>
           <AppToaster />
         </TooltipProvider>
-      </ThemeProvider>
+      </AddressTheme>
     </QueryClientProvider>
   )
 }

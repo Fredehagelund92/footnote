@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { sitePages, unlistedHelpPages, type SitePage } from '../lib/pages.ts'
 import { checkPages } from '../lib/reader-ready.ts'
+import { checkReviewed } from '../lib/reviewed.ts'
 import { docsPath, readSettings, type Settings } from '../lib/settings.ts'
 
 /*
@@ -11,7 +12,9 @@ import { docsPath, readSettings, type Settings } from '../lib/settings.ts'
   HTML, the landing page and the 404 page are there, and every page of the docs is there and in
   llms.txt, and is no island: its words link to another page, and another page's words link to it.
   On their Markdown: every published page is written for its readers
-  (lib/reader-ready.ts), and no help page was left off the list.
+  (lib/reader-ready.ts), no help page was left off the list, and a page checked against the app
+  more than 90 days ago is named, failing when it names what the app no longer has
+  (lib/reviewed.ts).
 */
 
 const htmlFiles = (folder: string): string[] =>
@@ -148,8 +151,17 @@ export function checkIslands(
 
 if (import.meta.main) {
   const pages = sitePages()
+  const review = checkReviewed(pages, new Date())
+  // In CI each one shows on the run's summary and beside the page's file.
+  for (const warning of review.warnings)
+    console.warn(
+      process.env.GITHUB_ACTIONS
+        ? `::warning file=${warning.split(':')[0]}::${warning}`
+        : `Due for a check: ${warning}`,
+    )
   const problems = [
     ...checkPages(pages),
+    ...review.problems,
     ...unlistedHelpPages().map((page) => `${page}: add it to publishedPages in lib/pages.ts`),
     ...checkSite('dist', readSettings(process.env), pages),
     ...checkIslands('dist', readSettings(process.env), pages),

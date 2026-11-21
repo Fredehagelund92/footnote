@@ -107,8 +107,14 @@ describe('the remark plugin', () => {
     expect(() => read('<!-- tabs -->\n\n### One\n\nOpen.')).toThrow('is not closed')
   })
 
-  it('drops include markers and keeps what stands between them', () => {
-    const tree = read('<!-- include words -->\n\nThe words.\n\n<!-- /include -->\n\nAfter.')
+  it("holds what stands between an include's markers in one element named for its list", () => {
+    const tree = read(
+      '<!-- include word: Context item -->\n\nThe word.\n\n<!-- /include -->\n\nAfter.',
+    )
     expect(tree.children.map((node) => node.type)).toEqual(['paragraph', 'paragraph'])
+    const [include] = tree.children as Paragraph[]
+    expect(drawn(include!)).toEqual({ hName: 'div', hProperties: { dataInclude: 'word' } })
+    expect(include!.children.map((node) => node.type)).toEqual(['paragraph'])
+    expect(() => read('<!-- include words -->\n\nThe words.')).toThrow('is not closed')
   })
 })
