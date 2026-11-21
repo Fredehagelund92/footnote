@@ -57,6 +57,10 @@ describe('the service entry point', { timeout: 30_000 }, () => {
     expect(server.output()).toContain('"msg":"stopped"')
     // The picker lets anyone in as anyone: the start says so.
     expect(server.output()).toContain('Sign-in is the people picker (FOOTNOTE_AUTH=dev)')
+    // Ask's help is searchable before the first request: a greeting never waits for its index.
+    const ready = server.output().indexOf('"msg":"help ready"')
+    expect(ready).toBeGreaterThan(-1)
+    expect(ready).toBeLessThan(server.output().indexOf('Server listening'))
   })
 
   it('refuses to start with invalid configuration and says why', async () => {

@@ -57,11 +57,8 @@ const HELP_TEXT = 1500
 
 let index: MiniSearch<HelpSection & { key: string }> | undefined
 
-/**
- * The help's parts that best match some words, best first, at most three: a page's title, each
- * heading and the words under it, as the docs' own search finds them (src/web/lib/docs.ts).
- */
-export function searchHelp(words: string): HelpSection[] {
+/** The help's search index, built on its first use. */
+function helpIndex() {
   index ??= (() => {
     const built = new MiniSearch<HelpSection & { key: string }>({
       idField: 'key',
@@ -72,8 +69,23 @@ export function searchHelp(words: string): HelpSection[] {
     built.addAll((bundled?.help ?? readHelp()).map((s) => ({ ...s, key: `${s.slug}#${s.id}` })))
     return built
   })()
-  if (!words.trim()) return []
   return index
+}
+
+/**
+ * Builds the help's search index now: the service does it as it starts, so the first question
+ * about Footnote, often a new install's first greeting, does not wait for it (1.4 s on a busy
+ * machine, 2.7 s under load). Says how many parts it holds.
+ */
+export const readyHelp = (): number => helpIndex().documentCount
+
+/**
+ * The help's parts that best match some words, best first, at most three: a page's title, each
+ * heading and the words under it, as the docs' own search finds them (src/web/lib/docs.ts).
+ */
+export function searchHelp(words: string): HelpSection[] {
+  if (!words.trim()) return []
+  return helpIndex()
     .search(words)
     .slice(0, HELP_SHOWN)
     .map((hit) => ({
