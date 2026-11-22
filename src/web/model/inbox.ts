@@ -75,6 +75,8 @@ export type InboxCard = {
   factId?: string
   /** Why a check is due: a definition it relies on changed in its tool, or its check date passed. */
   due?: 'source' | 'date'
+  /** The definitions that changed in their tool, by name, when that is why a check is due. */
+  changed?: string[]
   suggestion?: Suggestion
   /**
    * Not found: the scope agents asked about and how often (never their words, which are not
@@ -90,8 +92,18 @@ export type InboxCard = {
     draft?: Fact
     acrossMonths?: string
   }
-  /** A report someone sent on purpose from a conversation: kept with their words, and their name. */
-  flag?: { reason: 'wrong' | 'unclear'; note: string; when: string; by: string; via: string }
+  /**
+   * A report someone sent on purpose from a conversation: kept with their words, and their name.
+   * One sent from Ask keeps the question they asked, as they wrote it.
+   */
+  flag?: {
+    reason: 'wrong' | 'unclear'
+    note: string
+    when: string
+    by: string
+    via: string
+    question?: string
+  }
   /** Raised by the saved-question alert: the questions that answer worse now, from Quality's one list. */
   look?: { questions: string[] }
   /**

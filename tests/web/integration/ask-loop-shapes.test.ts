@@ -260,6 +260,21 @@ const cases: Case[] = [
     }),
   },
   {
+    // A metric nothing is written about yet: under Not found the model marks the definition as
+    // what answers, and its card offers its owners the first item.
+    id: 'loop-definition-unwritten',
+    question: 'What is churn rate?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'churn rate', no_period: true } },
+      { toolName: 'definitions', input: { names: ['churn rate'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      const id = `metric:${String(d.id)}`
+      return { text: `${mention(id)} is ${String(d.words)} [${id}]` }
+    },
+  },
+  {
     id: 'loop-stopped',
     question: 'Give me all about orders in poland',
     calls: [{ toolName: 'get_context', input: { about: 'orders in Poland' } }],
@@ -441,6 +456,14 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(card!.context.items.length).toBeGreaterThan(0)
     expect(card!.context.count).toBe(card!.context.items.length)
     for (const id of card!.context.items) expect(loop.items.map((i) => i.id)).toContain(id)
+  })
+
+  it('draws the definition card of a metric nothing is written about, with no context', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-definition-unwritten')!)
+    expect(loop.state).toBeNull()
+    const [card] = loop.defined!.cards
+    expect(card).toMatchObject({ id: 'metric:churn_rate', kind: 'metric', context: { count: 0 } })
+    expect(card!.owners.length).toBeGreaterThan(0)
   })
 
   it('names the word its reads found nothing under, when nothing it read covers the question', async () => {

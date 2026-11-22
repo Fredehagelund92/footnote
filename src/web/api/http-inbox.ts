@@ -254,6 +254,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           when: dayWords(card.at),
           by: card.by ? person(card.by) : '',
           via: card.source === 'ask' ? 'Ask' : 'an agent',
+          ...(card.question ? { question: card.question } : {}),
         },
       }
     }
@@ -309,6 +310,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           : `Since ${since.replace(/^Yesterday, .*/, 'yesterday')}`,
         type: 'check',
         due: card.reason,
+        changed: card.changed.map((c) => c.name),
         title: card.title,
         // The line names the definitions and the day each changed; not the tool, which the card lacks.
         line:

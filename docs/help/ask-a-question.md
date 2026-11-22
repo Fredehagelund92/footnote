@@ -3,8 +3,8 @@ title: Ask a question
 line: Ask about a number, read how the answer was made, ask again at other dates, and tell the owner what is missing.
 group: Ask
 order: 1
-minutes: 5
-reviewed: 2026-11-21
+minutes: 6
+reviewed: 2026-11-22
 open:
   label: Open Ask
   href: /ask
@@ -31,7 +31,7 @@ The answer starts with its [answer line](answer-lines.md): Checked, Partial, Not
 - **Read as**, under your question, shows what Ask read it as: the metric, the market and the dates. When the question named no dates, they read Today · assumed. **Change** puts the question back in the box, to change before you ask again.
 - A number after a sentence is the context item it comes from. Point at it to see who checked it and when, and open it from there.
 - Under the answer, its sources show by title, the first three and a count for the rest. Point at one to see which sentences it backs, and press it to open it. An item that is archived, may be out of date or is due for a check shows on its own line under them, so you never miss it.
-- When you ask what something is, the answer is its definition card: the words of the tool that defines it, who owns it, and the context items about it, which open in the card. In other answers a definition shows as a quote, with the tool that defines it.
+- When you ask what something is, the answer is its definition card: the words of the tool that defines it, who owns it, and the context items about it, which open in the card. With none yet about a metric, its owners and admins get Write context, which starts an item about it. In other answers a definition shows as a quote, with the tool that defines it.
 - When Ask stops at its time or step limit, the answer says Stopped and shows what is written, as agents get it. Ask again tries once more. When Ask read a metric or a market in your question, Search for these words opens Search on them.
 
 ### Figures
@@ -60,7 +60,7 @@ When the answer says how to do something, a button under it opens that screen, s
 
 A Not found answer means nothing is written about it yet, and a card under it says what is missing. If you do not own that domain, Tell the owner sends the owners what you asked about and the dates, never your words. It waits in their Inbox, where they can write it: [When nothing is written yet](when-nothing-is-written-yet.md).
 
-When Ask finds no metric or context item that uses a word at all, Tell an admin sends the admins that word alone, never your question.
+When Ask finds no metric or context item that uses a word at all, Tell an admin sends the admins that word alone, never your question. If you are an admin or own a domain, Add the word to Definitions opens a new term with the word already in it.
 
 ## When an answer is wrong
 

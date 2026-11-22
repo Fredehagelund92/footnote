@@ -80,6 +80,7 @@ import { useOpeningRead } from '@/lib/opening-read'
 import { useIsMobile, useMedia } from '@/hooks/use-mobile'
 import { useWide } from '@/hooks/use-wide'
 import { readWidth, saveWidth } from '@/lib/pane-width'
+import { useTyped } from '@/lib/dock'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { composerSurface } from '@/lib/surfaces'
 import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threads'
@@ -1382,17 +1383,33 @@ export function AskPage() {
 }
 
 export function AskDock() {
-  // A quick view's "Try it with a question" opens Ask with the question typed in, not yet sent.
+  // A quick view's "Try it with a question" opens Ask with the question typed in, not yet sent; a
+  // person's own question, such as a report's, comes in memory (`askInDock`), not in the address.
   const { query } = useRoute()
+  const typed = useTyped()
   const q = query.get('q') ?? undefined
   // The dock keeps its own place: History opens a chat here, New chat starts afresh, and a chat
   // that joins the history stays on show. The thread itself is the page's (AskThread).
-  const [dock, setDock] = React.useState<{ key: string; place: Place }>({
+  const [dock, setDock] = React.useState<{
+    key: string
+    place: Place
+    typed?: string | null
+  }>({
     key: 'new',
     place: { example: null, chat: null },
   })
+  const [taken, setTaken] = React.useState<number | null>(null)
   const [history, setHistory] = React.useState(false)
-  const newChat = () => setDock({ key: `new-${Date.now()}`, place: { example: null, chat: null } })
+  if (typed && typed.n !== taken) {
+    setTaken(typed.n)
+    setDock({
+      key: `typed-${typed.n}`,
+      place: { example: null, chat: null },
+      typed: typed.question,
+    })
+  }
+  const newChat = () =>
+    setDock({ key: `new-${Date.now()}`, place: { example: null, chat: null }, typed: null })
   const openChat = (t: Thread) => {
     setDock({ key: `${t.id}-${Date.now()}`, place: placeOf(t) })
     setHistory(false)
@@ -1441,7 +1458,7 @@ export function AskDock() {
         place={dock.place}
         mint={() => `chat-dock-${Date.now()}`}
         compact
-        prefill={dock.place.chat || dock.place.example ? undefined : q}
+        prefill={dock.place.chat || dock.place.example ? undefined : (dock.typed ?? q)}
         onJoined={(chat) => setDock((d) => ({ ...d, place: { example: null, chat } }))}
       />
     </DockFrame>
