@@ -2146,7 +2146,7 @@ function ServerSet({ c }: { c: Connector | undefined }) {
             Back to {c.name}
           </a>
         )}
-        <a href="/settings/integrations" className={buttonVariants({ variant: 'outline' })}>
+        <a href="/settings/integrations" className={cn(buttonVariants({ variant: 'outline' }))}>
           Integrations
         </a>
       </div>

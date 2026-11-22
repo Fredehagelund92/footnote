@@ -16,7 +16,11 @@ import { namesWords, type InboxCard } from '@/model/inbox'
 // The names a read makes in the mock (FR-141): the same rules as the service, on the members of an
 // invented shop's dbt project. They wait once a definitions tool is connected, or with
 // ?demo=names. Accepting one takes it off the list; the mock's vocabulary is the demo's own, so
-// nothing else changes. Kept until the page reloads.
+// nothing else changes. Kept until the page reloads. As on the service, a name is read and
+// decided only by an admin or an owner of its domain.
+
+/** Who reads the names: an admin, or the owner of some domains. */
+type Reader = { admin: boolean; owns: readonly string[] }
 
 const member = (
   name: string,
@@ -125,8 +129,10 @@ export function createMockNames(heldWords: WordHolders = holders) {
           left,
         )
       : []
-  const read = async (): Promise<NamesRead> => {
-    const shown = names().map(
+  const readable = (who: Reader) =>
+    names().filter((n) => who.admin || (n.areaId !== null && who.owns.includes(n.areaId)))
+  const read = async (who: Reader): Promise<NamesRead> => {
+    const shown = readable(who).map(
       ({
         source: _source,
         views: _views,
@@ -150,8 +156,8 @@ export function createMockNames(heldWords: WordHolders = holders) {
       if (families) members = [...shop, ...variants, ...foundOtherwise]
     },
     read,
-    card(me: string): InboxCard | null {
-      const list = names()
+    card(me: string, who: Reader): InboxCard | null {
+      const list = readable(who)
       const ready = list.filter((n) => n.state === 'ready').length
       const flagged = list.filter((n) => n.state === 'flagged').length
       if (!ready && !flagged) return null
@@ -169,10 +175,10 @@ export function createMockNames(heldWords: WordHolders = holders) {
         names: counts,
       }
     },
-    async decide(input: DecideNames): Promise<NamesDecision> {
-      if ((await read()).revision !== input.revision)
+    async decide(input: DecideNames, who: Reader): Promise<NamesDecision> {
+      if ((await read(who)).revision !== input.revision)
         throw new ApiError('conflict', 'The names changed after you opened them.')
-      const found = names()
+      const found = readable(who)
       for (const { key, apart } of input.accept) {
         const waiting = found.find((n) => n.key === key)
         if (apart && !(waiting && mayGoApart(waiting)))
@@ -232,7 +238,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
         edition: chosen.size ? 'today.1' : null,
         accepted: chosen.size,
         leftOut: input.leaveOut.length,
-        waiting: await read(),
+        waiting: await read(who),
       }
     },
   }

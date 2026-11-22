@@ -85,7 +85,8 @@ import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
 import { matches, matchesWords, usePublishOrder, useRowKeys, words, wordsIn } from '@/lib/list'
 import { href, navigate, useRoute } from '@/lib/router'
-import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
+import { useDomainList, useDomains, useFacts, useMe } from '@/lib/workspace'
+import { mayOpenSettings } from '@/lib/settings-access'
 import { APP_URL } from '@/lib/brand'
 import { TruncatedText } from '@/components/footnote/truncated'
 import { SourceText, sourceWords } from '@/components/footnote/source-text'
@@ -302,6 +303,10 @@ export function DefinitionsPage() {
   const tools = toolsOf(all)
   const reader = connectorById(connectorOf(all))
   const source = reader ?? connectorByTool(tool)
+  const me = useMe()
+  // A term is written by an owner of its domain or an admin: the service refuses anyone else.
+  const mayWriteTerms = me.admin || me.owns.length > 0
+  const toolPage = integrationHref(reader?.id)
   const GROUPS = groupsOf(tool)
   // Each row's other names and context, worked out once for the list, not once a row: a search
   // must keep up with the hand at 5,000 rows.
@@ -719,14 +724,16 @@ export function DefinitionsPage() {
       <SiteHeader title="Definitions" icon={<BookAIcon />}>
         {/* With a definition's quick view open, its own action (Write context) is the one solid blue button. */}
         {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
-        <Button
-          variant={dock?.kind === 'def' ? 'outline' : 'default'}
-          className="max-sm:size-7 max-sm:px-0"
-          onClick={() => navigate('/definitions/new')}
-        >
-          <PlusIcon data-icon="inline-start" />
-          <span className="max-sm:sr-only">New term</span>
-        </Button>
+        {mayWriteTerms && (
+          <Button
+            variant={dock?.kind === 'def' ? 'outline' : 'default'}
+            className="max-sm:size-7 max-sm:px-0"
+            onClick={() => navigate('/definitions/new')}
+          >
+            <PlusIcon data-icon="inline-start" />
+            <span className="max-sm:sr-only">New term</span>
+          </Button>
+        )}
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
       <div className="@container/main flex min-h-0 flex-1 flex-col overflow-y-auto *:mx-auto *:w-full *:max-w-wide @min-[80rem]/main:*:border-x">
@@ -949,14 +956,20 @@ export function DefinitionsPage() {
                 {tools.length > 1
                   ? `${tools.slice(0, -1).join(', ')} and ${tools.at(-1)}`
                   : (tool ?? 'your definitions tool')}{' '}
-                - change them there. Terms are written here by their domain owner.{' '}
-                <a
-                  href={integrationHref(reader?.id)}
-                  className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  {tool ?? 'Integrations'}
-                  {tool && ' in Integrations'}
-                </a>
+                - change them there. Terms are written here by their domain owner.
+                {/* The tool's page is in an admin's Settings: anyone else reads the line alone. */}
+                {mayOpenSettings(toolPage, me) && (
+                  <>
+                    {' '}
+                    <a
+                      href={toolPage}
+                      className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    >
+                      {tool ?? 'Integrations'}
+                      {tool && ' in Integrations'}
+                    </a>
+                  </>
+                )}
                 {reader?.figures && (
                   <Popover>
                     <PopoverTrigger
@@ -1110,7 +1123,8 @@ export function DefinitionsPage() {
                     )
                   }
                   after={
-                    rowsShown && (
+                    rowsShown &&
+                    mayWriteTerms && (
                       <AddRow
                         label="New term"
                         colSpan={cols}

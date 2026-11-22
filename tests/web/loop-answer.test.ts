@@ -165,6 +165,27 @@ describe("Ask's loop answer, state by state", () => {
     expect(shown).not.toContain('Nothing it wrote was checked')
   })
 
+  it('Stopped with nothing read: Search for these words opens Search on them, never an address', () => {
+    const el = render(
+      { ...example('loop-stopped'), body: [], items: [], sources: [] },
+      'Give me all about orders in poland',
+    )
+    const search = buttons(el, /^Search for these words$/)
+    expect(search).toHaveLength(1)
+    // No page of its own, and the words never go into an address.
+    expect(search[0]!.getAttribute('href')).toBeNull()
+    expect(el.querySelector('a[href*="poland"]')).toBeNull()
+    const opened: unknown[] = []
+    const seen = (e: Event) => opened.push((e as CustomEvent).detail)
+    window.addEventListener('footnote:open', seen)
+    try {
+      act(() => (search[0] as HTMLElement).click())
+    } finally {
+      window.removeEventListener('footnote:open', seen)
+    }
+    expect(opened).toEqual([{ overlay: 'palette', words: 'Give me all about orders in poland' }])
+  })
+
   it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
     const owner = world.me
     world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }

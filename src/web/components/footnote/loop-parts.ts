@@ -39,6 +39,7 @@ import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
 import { docHref } from '@/lib/doc-links'
 import { openDock } from '@/lib/dock'
+import { open as openOverlay } from '@/lib/events'
 import { ANSWER_LINES } from '@/lib/help-content'
 import { href } from '@/lib/router'
 import { answerKey, keepShown } from '@/lib/shown-answers'
@@ -99,6 +100,7 @@ export const loopParts = {
   useDefinitions,
   docHref,
   openDock,
+  openOverlay,
   useReadAhead,
   useReadCitedAhead,
   ANSWER_LINES,

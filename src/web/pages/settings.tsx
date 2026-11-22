@@ -12,7 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import {
   Dialog,
@@ -24,7 +24,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FoldTrigger } from '@/components/footnote/fold'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { GuideLink } from '@/components/footnote/guide-link'
 import { servedToAgents } from '@/model/items'
@@ -33,7 +39,7 @@ import type { Advanced as AdvancedPage, AnswerTestRuns, Exported } from '@/api/c
 import { toApiError } from '@/api/errors'
 import { advancedPageQuery, useWrite } from '@/api/queries'
 import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
-import { useFacts, useMe, usePeople } from '@/lib/workspace'
+import { useAdminsSaid, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { listOf } from '@/model/people'
 import { answerTestWords } from '@/model/settings'
 import { useDomainList, useDomains } from '@/lib/workspace'
@@ -52,7 +58,7 @@ import {
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
-import { landingOf, memberSections } from '@/lib/settings-access'
+import { landingOf, mayOpenSettings } from '@/lib/settings-access'
 
 // Settings: six sections under the settings navigation (General, Domains and owners, People,
 // Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
@@ -66,6 +72,8 @@ import { landingOf, memberSections } from '@/lib/settings-access'
  * adds a domain. Arrow keys move between cells; search shows once there are more than eight.
  */
 function Domains() {
+  const me = useMe()
+  const admins = useAdminsSaid()
   const domains = useDomains()
   const domainIds = useDomainList().map((d) => d.id)
   const facts = useFacts()
@@ -180,15 +188,25 @@ function Domains() {
               </a>
             )
           })}
-          <a
-            role="listitem"
-            data-cell
-            href="/settings/domains/new"
-            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
-          >
-            <PlusIcon aria-hidden className="size-5" />
-            Add a domain
-          </a>
+          {/* Only an admin adds a domain: anyone else reads who does, in the same place. */}
+          {me.admin ? (
+            <a
+              role="listitem"
+              data-cell
+              href="/settings/domains/new"
+              className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
+            >
+              <PlusIcon aria-hidden className="size-5" />
+              Add a domain
+            </a>
+          ) : (
+            <p
+              role="listitem"
+              className="flex min-h-24 items-center justify-center bg-background p-4 text-center text-sm text-balance text-muted-foreground @2xl/main:min-h-44"
+            >
+              An admin adds a domain{admins}.
+            </p>
+          )}
         </div>
         {q && !ids.length && (
           <p className="border-t p-4 text-sm text-muted-foreground">
@@ -668,8 +686,9 @@ export function SettingsPage({
   const current =
     section && TITLES[section] ? section : me.admin ? 'general' : landingOf(me.owns.length > 0)
   // Someone who isn't an admin uses their agents here, and an owner also the domains and the
-  // people list.
-  if (!me.admin && !memberSections(me.owns.length > 0).includes(current))
+  // people list: any other section says who to ask, and leads to their own.
+  const owner = me.owns.length > 0
+  if (!mayOpenSettings(`/settings/${current}/${sub ?? ''}`, me))
     return (
       <Page title="Settings">
         <Empty>
@@ -681,6 +700,14 @@ export function SettingsPage({
                 : 'Ask an admin if something here needs changing.'}
             </EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <a
+              href={`/settings/${landingOf(owner)}`}
+              className={cn(buttonVariants({ variant: 'outline' }))}
+            >
+              {owner ? 'Open Domains and owners' : 'Open Agents and access'}
+            </a>
+          </EmptyContent>
         </Empty>
       </Page>
     )
@@ -694,7 +721,7 @@ export function SettingsPage({
           crumbs={(name) => (
             <SettingsCrumbs
               trail={[
-                { label: 'Settings', href: '/settings/general' },
+                { label: 'Settings', href: '/settings' },
                 { label: 'Domains and owners', href: '/settings/domains' },
                 { label: name },
               ]}
@@ -705,7 +732,7 @@ export function SettingsPage({
     )
   const title = (
     <SettingsCrumbs
-      trail={[{ label: 'Settings', href: '/settings/general' }, { label: TITLES[current]! }]}
+      trail={[{ label: 'Settings', href: '/settings' }, { label: TITLES[current]! }]}
     />
   )
   if (current === 'general')

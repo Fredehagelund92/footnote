@@ -14,3 +14,18 @@ export const memberSections = (owner: boolean): readonly string[] =>
 
 /** Where Settings opens for someone who isn't an admin: an owner's domains, else their agents. */
 export const landingOf = (owner: boolean) => (owner ? 'domains' : 'agents')
+
+/**
+ * Whether someone may open a Settings address: an admin any, anyone else only the sections that
+ * are theirs, where only an admin adds a domain. Settings itself opens for everyone, on their own
+ * section, and an address outside Settings is not this rule's.
+ */
+export function mayOpenSettings(path: string, me: { admin: boolean; owns: readonly string[] }) {
+  if (me.admin) return true
+  const [, top, section, sub] = path.split(/[?#]/)[0]!.split('/')
+  if (top !== 'settings' || !section) return true
+  return (
+    memberSections(me.owns.length > 0).includes(section) &&
+    !(section === 'domains' && sub === 'new')
+  )
+}
