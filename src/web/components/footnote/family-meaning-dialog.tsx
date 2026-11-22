@@ -260,16 +260,17 @@ function Answer({
   line: string
   children?: React.ReactNode
 }) {
+  const id = React.useId()
   return (
-    <div className="rounded-md px-2 py-2 text-sm hover:bg-muted has-data-checked:bg-muted">
-      <label className="flex cursor-default items-start gap-2.5">
-        <RadioGroupItem value={value} className="mt-0.5" />
-        <span className="flex min-w-0 flex-1 flex-col">
+    <div className="flex items-start gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-muted has-data-checked:bg-muted">
+      <RadioGroupItem id={id} value={value} className="mt-0.5" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <label htmlFor={id} className="flex cursor-default flex-col">
           <span className="font-medium">{title}</span>
           <span className="text-xs text-muted-foreground">{line}</span>
-        </span>
-      </label>
-      {children && <div className="ml-6.5">{children}</div>}
+        </label>
+        {children}
+      </div>
     </div>
   )
 }
