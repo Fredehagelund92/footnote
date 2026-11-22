@@ -271,16 +271,33 @@ export function plainStep({
   const read = isObj(get.read) ? get.read : {}
   // The subject's names as typed mentions of what the read named, as the page draws them.
   const about = Array.isArray(read.about) ? read.about.map(String) : []
-  const definitions = objs(find.definitions).filter(
-    (d) => about.includes(String(d.id)) && typeof d.words === 'string' && d.words,
+  // A family's words are only in the look-up's definitions: the search gives it none of its own.
+  const worded = (d: Obj) =>
+    about.includes(String(d.id)) && typeof d.words === 'string' && !!d.words
+  const searched = objs(find.definitions).filter(worded)
+  const definitions = [
+    ...searched,
+    ...objs(get.definitions)
+      .filter(worded)
+      .filter((d) => !searched.some((s) => s.id === d.id)),
+  ]
+  // A family read as its usual variant is named with the variant's values (F3): "in EUR".
+  const usual = new Map(
+    objs(read.usual).map((u) => [
+      String(u.id),
+      Array.isArray(u.values) ? u.values.map(String).join(', ') : '',
+    ]),
   )
+  const mention = (id: string) => `[@${id}]${usual.has(id) ? ` in ${usual.get(id)}` : ''}`
   const asksWhat = asksWhatItIs(question, {
     values: about.some((id) => id.startsWith('value:')),
     dates: read.assumedToday === false,
   })
   if (asksWhat && definitions.length)
     return {
-      text: definitions.map((d) => `[@${String(d.id)}] means: ${String(d.words)}`).join('\n\n'),
+      text: definitions
+        .map((d) => `${mention(String(d.id))} means: ${String(d.words)}`)
+        .join('\n\n'),
     }
   const applies = objs(get.items).length
     ? objs(get.items)
@@ -288,7 +305,7 @@ export function plainStep({
   const pair = disagreeingOf(applies)
   const items = [...pair, ...applies.filter((i) => !pair.includes(i))]
   if (items.length) {
-    const names = about.map((id) => `[@${id}]`)
+    const names = about.map(mention)
     return {
       text: [
         names.length ? `What is written for ${list(names)}.` : 'What is written.',
@@ -304,7 +321,7 @@ export function plainStep({
       : [],
   )
   // One plain sentence: the page shows what was searched, out of how many, and what is nearest.
-  const names = about.map((id) => `[@${id}]`)
+  const names = about.map(mention)
   return {
     text: [
       names.length ? `Nothing written covers ${list(names)}.` : 'Nothing written covers this.',

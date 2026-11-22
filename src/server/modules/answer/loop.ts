@@ -197,11 +197,12 @@ Today is ${dayWords(today)} (${timeZone}). The person is ${asker.admin ? 'an adm
  * about before the model reads when it is the whole question; in a sentence the model is told the
  * metrics it may mean (`vagueMetricWord`, `vagueNote`). And on a period with two readings that find
  * different items (R7, D6), which code finds: a get_context read that returns choices, only for a
- * question about what is written then. Never on a request to pretend something is written (D5 of
- * the Ask re-run asked "Which September?" of one).
+ * question about what is written then. And on a family named with none of its values when its
+ * owners picked no usual variant (F3); never when a read gives the usual variant. Never on a
+ * request to pretend something is written (D5 of the Ask re-run asked "Which September?" of one).
  */
 export const ASK_BACK =
-  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when the message asks what is written for a period and a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those. Never ask back on a message that asks you to pretend, imagine, suppose or invent that something is written: say that Ask answers only from what is written.'
+  'Ask the person one short question back; this ends your turn: they answer, and you go on from there. Ask back when their message is one bare word, or names no metric, and the chat so far does not settle which one they mean, so the answers would differ: with the metrics it could mean as the choices. Ask back too when the message asks what is written for a period and a get_context read returns choices, the two periods its words may mean, each finding other items: with both periods as the choices, even one that finds nothing. Ask back too when the message names a family of metrics and none of the values its variants are told apart by (such as a currency), no get_context read gives its usual variant, and the answer differs by variant: with the values of its variants as the choices. Never ask back which variant when a read gives the usual variant of the family: answer about that one. Otherwise never ask back on a follow-up whose subject the chat already settles (an earlier answer named what "that" or "it" is), nor on a question that names one metric: answer those. Never ask back on a message that asks you to pretend, imagine, suppose or invent that something is written: say that Ask answers only from what is written.'
 
 /**
  * What goes with the person's latest message, from Footnote, not from them (FR-719.9): the
@@ -1380,7 +1381,7 @@ function subjectOf(
     subjects.findLast((s) => foundIds(s).some((id) => cited.includes(id))) ??
     (carried ? subjects.at(-1) : subjects[0])
   if (!m || !isObj(m.result) || !isObj(m.result.read)) return null
-  const { names, about, period, assumedToday, datesRead, otherDays } = m.result.read
+  const { names, about, period, assumedToday, datesRead, otherDays, usual } = m.result.read
   const ids = (v: unknown) =>
     Array.isArray(v) ? v.filter((n): n is string => typeof n === 'string') : []
   // An item about a name in part (Net revenue in some markets) is written about it all the same.
@@ -1394,6 +1395,8 @@ function subjectOf(
       [
         typeof datesRead === 'string' ? carriedNote(dateNote(datesRead), carried) : null,
         typeof otherDays === 'string' ? `could also mean ${otherDays}` : null,
+        // The variant a family was read as, which its owners picked (F3).
+        ...arr(usual).map((u) => `${ids(u.values).join(', ')}, its usual variant`),
       ]
         .filter(Boolean)
         .join(' · ') || null,
@@ -1468,8 +1471,12 @@ export function readLines(made: readonly MadeRead[]): string[] {
           (x) =>
             ` “${str(x.word)}” was read as ${str(x.name)}, by a synonym written in Definitions.`,
         )
+        const usual = arr(read.usual).map(
+          (u) =>
+            ` ${str(u.name)} was read as its usual variant, ${(Array.isArray(u.values) ? u.values.map(str) : []).join(', ')}, which its owners picked for a question that names none of its values.`,
+        )
         return [
-          `Looked up ${names.length ? listWords(names) : `“${str(read.words)}”`}, ${str(read.period)}: ${counted(items, 'item applies', 'items apply')}${nearby ? `, ${counted(nearby, 'nearby item does', 'nearby items do')} not` : ''}${wider.length ? `; then, wider, ${wider.map(searchedLine).join('; ')}` : ''}.${synonyms.join('')}`,
+          `Looked up ${names.length ? listWords(names) : `“${str(read.words)}”`}, ${str(read.period)}: ${counted(items, 'item applies', 'items apply')}${nearby ? `, ${counted(nearby, 'nearby item does', 'nearby items do')} not` : ''}${wider.length ? `; then, wider, ${wider.map(searchedLine).join('; ')}` : ''}.${synonyms.join('')}${usual.join('')}`,
         ]
       }
       case 'read_context':

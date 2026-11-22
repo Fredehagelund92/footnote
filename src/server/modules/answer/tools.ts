@@ -18,7 +18,7 @@ import {
   type Calendar,
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
-import { meaningLine } from '../../../domain/family-meaning.ts'
+import { meaningLine, usualVariant } from '../../../domain/family-meaning.ts'
 import { variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
@@ -157,6 +157,11 @@ const outOfDateWords: Record<string, string> = {
   source_missing: 'its source is missing',
 }
 
+/** A term of the catalogue that is a family of metrics (FR-142). */
+type FamilyTerm = Catalogue['terms'][number] & {
+  family: NonNullable<Catalogue['terms'][number]['family']>
+}
+
 /** What a person's view of the engine is made of, read once a turn. */
 type View = {
   bundle: ServingBundle
@@ -169,6 +174,8 @@ type View = {
   familyOf: ReadonlyMap<string, string>
   /** Each metric's and family's definition, as `definitions` words it, and its source, by key. */
   wordsOf: ReadonlyMap<string, { words: string | null; from: string }>
+  /** Each family that has variants, as the catalogue gives it, by key: its usual variant too (F3). */
+  families: ReadonlyMap<string, FamilyTerm>
   areas: readonly ToolArea[]
   ownersOf: (areaId: string | null | undefined) => string[]
   areaName: (areaId: string | null | undefined) => string
@@ -250,6 +257,9 @@ async function viewOf(reads: ToolReads): Promise<View> {
           ? [[t.key, { words: termWords(t), from: termFrom(t) }] as const]
           : [],
       ),
+    ),
+    families: new Map(
+      catalogue.terms.flatMap((t) => (t.family ? [[t.key, t as FamilyTerm] as const] : [])),
     ),
     areas,
     ownersOf: (id) => area(id)?.ownerIds.map((p) => names.get(p) ?? 'Someone who left') ?? [],
@@ -698,6 +708,13 @@ const readSchema = z.object({
   otherDays: z.nullable(z.string()),
   /** The words read only by a synonym someone wrote in Definitions, and what each was read as. */
   synonyms: z.array(z.object({ word: z.string(), name: z.string() })).optional(),
+  /**
+   * Each family the words named with none of its values, read as its usual variant, which its
+   * owners picked (F3): the family by id and name, and the variant's values ("EUR").
+   */
+  usual: z
+    .array(z.object({ id: z.string(), name: z.string(), values: z.array(z.string()) }))
+    .optional(),
 })
 const getOutput = z.object({
   /** The answer state (FR-349), by code from what applies; null when the words could not be read. */
@@ -899,8 +916,11 @@ function getContext(
       ...Object.keys(a.scope.filters),
       ...Object.values(a.scope.filters).flat(),
     ].some((k) => !isShown(view, k))
+  // A usual variant read in place of its family is named as the family (FR-142).
+  let asFamily: ReadonlyMap<string, string> = new Map()
+  const named = (key: string) => asFamily.get(key) ?? key
   const keysOf = (a: Answer) =>
-    a.scope ? [...a.scope.metrics, ...Object.values(a.scope.filters).flat()] : []
+    a.scope ? [...a.scope.metrics.map(named), ...Object.values(a.scope.filters).flat()] : []
   const searchedOf = (a: Answer, words: string, without: string | null): Searched => ({
     words,
     names: keysOf(a).map((k) => termName(view, k)),
@@ -914,10 +934,36 @@ function getContext(
   const asked = anchored ? lookup({ question: input.about, window: anchored.window }) : plain
   // A subject read at no period, when its words name no dates: today is not assumed, so the state
   // is not Partial for want of a date (the words' own dates, or from and to, still stand).
-  const first =
+  const atAnyDate =
     input.no_period && asked.assumed && asked.scope
       ? lookup({ scope: { ...asked.scope, window: anyDate } })
       : asked
+  // A family the words name with none of its values is read as its usual variant, once its owners
+  // picked one (F3): what applies to the family and to that variant, never to another one alone.
+  const usual = (atAnyDate.scope?.metrics ?? []).flatMap((key) => {
+    const family = view.families.get(key)
+    const variant =
+      family &&
+      usualVariant(input.about, {
+        usual: family.family.usual.member,
+        variants: family.family.variants,
+      })
+    return variant ? [{ family, variant }] : []
+  })
+  asFamily = new Map(usual.map((u) => [u.variant.key, u.family.key]))
+  const variantOf = new Map(usual.map((u) => [u.family.key, u.variant.key]))
+  const first =
+    usual.length && atAnyDate.scope
+      ? {
+          ...lookup({
+            scope: {
+              ...atAnyDate.scope,
+              metrics: atAnyDate.scope.metrics.map((k) => variantOf.get(k) ?? k),
+            },
+          }),
+          assumed: atAnyDate.assumed,
+        }
+      : atAnyDate
   if (hidesName(first)) return unreadOf(view, input.about, [], window)
   const searched = [searchedOf(first, input.about, null)]
   let widened: z.infer<typeof widenedSchema> = input.widen ? 'not needed' : 'not asked'
@@ -1048,15 +1094,26 @@ function getContext(
               },
           otherDays: days?.other ? windowWords(days.other) : null,
           ...(synonyms.length ? { synonyms } : {}),
+          ...(usual.length
+            ? {
+                usual: usual.map(({ family, variant }) => ({
+                  id: nounId(family.key),
+                  name: family.name,
+                  values: [...variant.values],
+                })),
+              }
+            : {}),
         }
       : null,
     items,
     nearby,
     notCovered: items.length
-      ? [...counted.uncovered.metrics, ...counted.uncovered.values].map((k) => termName(view, k))
+      ? [...counted.uncovered.metrics.map(named), ...counted.uncovered.values].map((k) =>
+          termName(view, k),
+        )
       : [],
     uncovered: items.length
-      ? [...counted.uncovered.metrics, ...counted.uncovered.values].map(nounId)
+      ? [...counted.uncovered.metrics.map(named), ...counted.uncovered.values].map(nounId)
       : [],
     more: cut,
     wider: wider ? { without: input.widen!.without!, items: widerItems } : null,
@@ -1064,8 +1121,9 @@ function getContext(
     definitions: [...new Set(keysOf(counted).map((k) => view.familyOf.get(k) ?? k))].flatMap(
       (k) => {
         const defined = view.wordsOf.get(k)
+        const read = usual.find((u) => u.family.key === k)
         return defined && isShown(view, k)
-          ? [{ id: nounId(k), name: termName(view, k), ...defined }]
+          ? [{ id: nounId(k), name: termName(view, k), ...(read ? usualWords(read) : defined) }]
           : []
       },
     ),
@@ -1435,7 +1493,7 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
     `A family of ${family.variants.length} near-identical metrics, one for each ${family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`,
     ...(usual
       ? [
-          `When a question names no ${family.by.join(' or ').toLowerCase()}, its owners say it means ${usual.name}.`,
+          `When a question names no ${family.by.join(' or ').toLowerCase()}, its owners say it means its ${usual.values.join(', ')} variant.`,
         ]
       : []),
     ...(meaning.words && lines.length
@@ -1443,6 +1501,26 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
       : []),
     ...lines,
   ].join(' ')
+}
+
+/**
+ * A family read as its usual variant (F3), as get_context gives its definition: the variant's own
+ * words, else the family's, and the variant's name in its source tool.
+ */
+function usualWords({
+  family,
+  variant,
+}: {
+  family: FamilyTerm
+  variant: FamilyTerm['family']['variants'][number]
+}): { words: string | null; from: string } {
+  const tool = family.definition?.tool ?? 'no source definition'
+  return {
+    words: variant.description?.trim()
+      ? quoted(variant.description.trim()).text
+      : familyWords(family.family),
+    from: variant.ref ? `${tool} (${variant.ref.replace(/^[^:]*:/, '')})` : tool,
+  }
 }
 
 /**
@@ -2131,7 +2209,7 @@ const definitionsFor = {
   },
   get_context: {
     description:
-      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
+      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read. A family named with none of its values is read as its usual variant when its owners picked one (read.usual): the question is about that variant, so answer about it, and say its values once, such as “in EUR”. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
     input: getInput,
     output: getOutput,
   },

@@ -14,6 +14,7 @@ import {
   type RecordsTable,
 } from '../../src/server/modules/answer/tool-records.ts'
 import { UTC_CALENDAR } from '../../src/domain/dates.ts'
+import { bundle } from './mcp/fixtures.ts'
 
 /*
   Ask's tools without a database (FR-718 to FR-720): the registry the loop will offer, what it
@@ -449,11 +450,111 @@ describe('a family of metrics in Ask (FR-142)', () => {
     const result = await withUsual.run('definitions', { names: ['Revenue'] })
     const [revenue] = (result as { definitions: { words: string | null }[] }).definitions
     expect(revenue!.words).toContain(
-      'When a question names no currency or channel, its owners say it means metric:revenue_eur_web variant.',
+      'When a question names no currency or channel, its owners say it means its EUR, web variant.',
     )
     // With none picked, nothing is said: the agent asks which, as before.
     const plain = await tools.run('definitions', { names: ['Revenue'] })
     expect(JSON.stringify(plain)).not.toContain('When a question names no')
+  })
+
+  describe('read as its usual variant (F3)', () => {
+    // The edition: an item on the family, and one on each of two of its variants.
+    const edition = bundle()
+    const on = (id: string, metric: string) => ({
+      ...edition.items[0]!,
+      id,
+      title: `On ${metric}`,
+      summary: `On ${metric}.`,
+      scope: { metrics: [metric], dimensions: [], dimensionValues: [] },
+    })
+    const items = [
+      on('itm_family01', 'group:revenue'),
+      on('itm_eurweb01', 'metric:revenue_eur_web'),
+      on('itm_usdweb01', 'metric:revenue_usd_web'),
+    ]
+    const familyTerm = (key: string, name: string, parentKey: string | null) => ({
+      key,
+      kind: parentKey ? ('metric' as const) : ('metric_group' as const),
+      name,
+      aliases: [],
+      parentKey,
+      areaId: 'area_sales',
+      definitionRefs: parentKey ? [] : variants.map((v) => `dbt:sales.${v.slice(7)}`),
+      definitions: [],
+    })
+    const withUsual = (member: string | null) =>
+      createAskTools({
+        ...reads,
+        bundle: () =>
+          Promise.resolve({
+            ...edition,
+            terms: [
+              ...edition.terms,
+              familyTerm('group:revenue', 'Revenue', null),
+              ...variants.map((key) => familyTerm(key, `${key} variant`, 'group:revenue')),
+            ],
+            metricArea: Object.fromEntries(variants.map((key) => [key, 'area_sales'])),
+            groupsOfMetric: Object.fromEntries(variants.map((key) => [key, ['group:revenue']])),
+            items,
+          }),
+        readable: () => Promise.resolve(items.map((i) => ({ ...i, status: 'accepted' }))),
+        catalogue: () =>
+          Promise.resolve({
+            terms: [
+              {
+                ...family,
+                family: {
+                  ...family.family,
+                  variants: family.family.variants.map((v) =>
+                    v.key === 'metric:revenue_eur_web'
+                      ? { ...v, description: 'Money taken in EUR via web.' }
+                      : v,
+                  ),
+                  usual: { member, chosen: null, revision: member ? 1 : 0 },
+                },
+              },
+            ],
+          }),
+      } as unknown as ToolReads)
+    type Read = {
+      read: { about: string[]; names: string[]; usual?: { name: string; values: string[] }[] }
+      items: { id: string }[]
+      definitions: { name: string; words: string | null; from: string }[]
+    }
+    const look = async (member: string | null, about: string) =>
+      (await withUsual(member).run('get_context', { about, no_period: true })) as unknown as Read
+    const ids = (r: Read) => r.items.map((i) => i.id).sort()
+
+    it('reads what applies to the family and to its usual variant, named as the family', async () => {
+      const r = await look('metric:revenue_eur_web', 'What is written about revenue?')
+      expect(ids(r)).toEqual(['itm_eurweb01', 'itm_family01'])
+      expect(r.read.names).toEqual(['Revenue'])
+      expect(r.read.usual).toEqual([
+        { id: r.read.about[0], name: 'Revenue', values: ['EUR', 'web'] },
+      ])
+      // Its definition is the usual variant's own words, with its name in its source tool.
+      expect(r.definitions).toEqual([
+        {
+          id: r.read.about[0],
+          name: 'Revenue',
+          words: 'Money taken in EUR via web.',
+          from: 'dbt (sales.revenue_eur_web)',
+        },
+      ])
+    })
+
+    it('reads the whole family when its owners picked no usual variant', async () => {
+      const r = await look(null, 'What is written about revenue?')
+      expect(ids(r)).toEqual(['itm_eurweb01', 'itm_family01', 'itm_usdweb01'])
+      expect(r.read.usual).toBeUndefined()
+      expect(r.definitions[0]!.words).toContain('A family of 3 near-identical metrics')
+    })
+
+    it('never reads the usual variant when the words name a value', async () => {
+      const r = await look('metric:revenue_eur_web', 'What is written about revenue in USD?')
+      expect(ids(r)).toEqual(['itm_eurweb01', 'itm_family01', 'itm_usdweb01'])
+      expect(r.read.usual).toBeUndefined()
+    })
   })
 
   it('counts the items on a family and on any of its variants under the family name', async () => {

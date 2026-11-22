@@ -5,6 +5,7 @@ import {
   familyMeaning,
   meaningLine,
   slotted,
+  usualVariant,
   type MeaningVariant,
 } from '../../../src/domain/family-meaning.ts'
 import { declaredFamilyProblems, declaredWords } from '../../../src/domain/metric-families.ts'
@@ -227,5 +228,34 @@ describe('the words a source declares for a family', () => {
     ])
     expect(read.warnings).toEqual([{ code: 'family_words_differ', target: 'revenue' }])
     expect(read.dropped.size).toBe(0)
+  })
+})
+
+describe('the variant a question that names a family means (F3)', () => {
+  const family: { usual: string | null; variants: MeaningVariant[] } = {
+    usual: 'metric:revenue_eur_web',
+    variants: many,
+  }
+  const meant = (words: string, picked = family) => usualVariant(words, picked)?.key ?? null
+
+  it('is the usual variant when the words name none of its values', () => {
+    expect(meant('What is revenue?')).toBe('metric:revenue_eur_web')
+    expect(meant('revenue last month in Norway')).toBe('metric:revenue_eur_web')
+  })
+
+  it('is none when the words name any value, as written or as a currency is said', () => {
+    expect(meant('revenue in USD')).toBeNull()
+    expect(meant('revenue in usd via the app')).toBeNull()
+    expect(meant('revenue via app')).toBeNull()
+    expect(meant('revenue in EUR')).toBeNull()
+    expect(meant('revenue in dollars')).toBeNull()
+    expect(meant('revenue in €')).toBeNull()
+    // A value inside another word is not named: "web" in "webinar".
+    expect(meant('revenue from the webinar')).toBe('metric:revenue_eur_web')
+  })
+
+  it('is none until an owner picks one, or once the picked variant has left the family', () => {
+    expect(meant('What is revenue?', { ...family, usual: null })).toBeNull()
+    expect(meant('What is revenue?', { ...family, usual: 'metric:revenue_gbp_web' })).toBeNull()
   })
 })

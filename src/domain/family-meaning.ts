@@ -186,3 +186,44 @@ export function axisValues(
     ...new Set(variants.flatMap((variant) => (variant.values[i] ? [variant.values[i]] : []))),
   ])
 }
+
+/** Words people write for a currency in place of its code: a question that says one names it. */
+const CURRENCY_WORDS: Readonly<Record<string, readonly string[]>> = {
+  EUR: ['euro', 'euros', '€'],
+  USD: ['dollar', 'dollars', 'us dollar', 'us dollars', '$'],
+  GBP: ['pound', 'pounds', 'sterling', '£'],
+  JPY: ['yen', '¥'],
+  CHF: ['franc', 'francs'],
+  SEK: ['krona', 'kronor'],
+  NOK: ['krone', 'kroner'],
+  DKK: ['krone', 'kroner'],
+  AED: ['dirham', 'dirhams'],
+}
+
+/** Whether the words name a value: as written, a whole word in any case, or a currency's name. */
+function namesValue(words: string, value: string) {
+  const said = [value, ...(CURRENCY_WORDS[value.trim().toUpperCase()] ?? [])]
+  return said.some((v) =>
+    /^\p{L}/u.test(v)
+      ? new RegExp(`(?<![\\p{L}\\p{N}])${escape(v.trim())}(?![\\p{L}\\p{N}])`, 'iu').test(words)
+      : words.includes(v),
+  )
+}
+
+/**
+ * The variant a question that names a family means (F3): its usual variant, once an owner picked
+ * one, when the words name none of the values its variants hold. Null when no usual variant is
+ * picked, or the words name any value: a question about revenue in USD is about USD, whatever the
+ * usual variant is.
+ */
+export function usualVariant<V extends { key: string; values: readonly string[] }>(
+  words: string,
+  family: { usual: string | null; variants: readonly V[] },
+): V | null {
+  const usual = family.variants.find((variant) => variant.key === family.usual)
+  if (!usual) return null
+  const named = family.variants.some((variant) =>
+    variant.values.some((value) => !!value.trim() && namesValue(words, value)),
+  )
+  return named ? null : usual
+}
