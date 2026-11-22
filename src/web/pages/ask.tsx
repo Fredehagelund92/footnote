@@ -11,7 +11,7 @@ import {
   Trash2Icon,
   XIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { api } from '@/api'
 import { ASK_ANCHOR, ASK_ROOM_GAP_PX } from '@/lib/ask-motion'
 import { toApiError } from '@/api/errors'
@@ -86,6 +86,7 @@ import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threa
 import { TruncatedText } from '@/components/footnote/truncated'
 import { AskedThisWeek, StateLegend } from '@/components/footnote/asked-week'
 import { Answering, Suggestions } from '@/components/footnote/suggestions'
+import { useToastFloor } from '@/lib/toast-floor'
 import { arriveRef, leaveThen, useLeaving } from '@/lib/presence'
 import { asksAgain } from '@domain/ask-again'
 import { fitChat } from '@domain/ask-chat'
@@ -299,6 +300,15 @@ export function AskChat({
   const [pane, wide] = useWide<HTMLDivElement>(LIFT_MIN)
   const up = wide && !compact && turns.length === 0
   const dock = React.useRef<HTMLDivElement>(null)
+  // Docked at the foot, the box is a floor toasts stay above.
+  const floor = useToastFloor<HTMLDivElement>()
+  const docked = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      dock.current = el
+      return floor(el)
+    },
+    [floor],
+  )
   const lifted = React.useRef<number | null>(null)
   // The motion's code comes while the box is up, ready for the first question.
   const motion = React.useRef<typeof LiftMotion>(null)
@@ -643,7 +653,7 @@ export function AskChat({
         {/* Docked to the bottom edge, part of the frame: a hairline above, the box at reading width.
             Lifted, it sits under the question with a soft shadow and the states' legend under it. */}
         <div
-          ref={dock}
+          ref={docked}
           data-dock
           className={cn('shrink-0 bg-background', up ? 'pt-5' : 'border-t')}
         >

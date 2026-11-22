@@ -13,7 +13,7 @@ import {
   SquareArrowOutUpRightIcon,
   XIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useListOrder, words } from '@/lib/list'
 import type { Press } from '@/lib/list-motion'
 import { navigate } from '@/lib/router'

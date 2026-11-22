@@ -14,7 +14,7 @@ import {
   TriangleAlertIcon,
   Undo2Icon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { and, cn, midSentence } from '@/lib/utils'
 import { Statement } from '@/components/footnote/conflict-pair'
 import { comparePair, sharedWords, type Compared } from '@/lib/differing-words'
@@ -120,6 +120,7 @@ import { useInboxRows } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
 import { Summary } from '@/pages/review'
 import { TruncatedText } from '@/components/footnote/truncated'
+import { useToastFloor } from '@/lib/toast-floor'
 import { plainText } from '@/lib/mentions'
 import { useWide } from '@/hooks/use-wide'
 
@@ -1229,6 +1230,8 @@ function Decision({
   barBelow = false,
   variant = 'panel',
 }: DecisionProps) {
+  // At the foot of the window, the decision is a floor toasts stay above.
+  const floor = useToastFloor<HTMLDivElement>()
   const hovered = React.useRef(false)
   const focused = React.useRef(false)
   const hold = (which: typeof hovered, on: boolean) => {
@@ -1482,7 +1485,10 @@ function Decision({
     if (returning) return null
     const at = reviews.findIndex((x) => x.id === r.id)
     return (
-      <div className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 pt-2.5 pb-safe-sm">
+      <div
+        ref={floor}
+        className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 pt-2.5 pb-safe-sm"
+      >
         {finished ? (
           outcome
         ) : done ? (
@@ -1544,7 +1550,7 @@ function Decision({
   }
 
   return (
-    <div id="decision" className="flex scroll-mt-4 flex-col">
+    <div ref={floor} id="decision" className="flex scroll-mt-4 flex-col">
       {/* Once decided, the panel says what happened, never what was true before. */}
       <section hidden={!!done && !finished} className="flex flex-col gap-3 border-b p-4">
         <p className="flex items-start gap-2 text-sm">

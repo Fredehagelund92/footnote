@@ -15,7 +15,7 @@ import {
   UserPlusIcon,
   WholeWordIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { RichTextEditor } from '@/components/editor'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
 import { DocFooter, Paper } from '@/components/footnote/doc'

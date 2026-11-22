@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { SourceNameRead } from '@contract/inbox'
 import { toApiError } from '@/api/errors'
 import { namesQuery, queryKeys, useWrite } from '@/api/queries'

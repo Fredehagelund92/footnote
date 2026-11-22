@@ -30,7 +30,7 @@ vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: Record<string, unknown>) =>
     new Promise((ok, no) => world.calls.push({ op, input, ok, no: () => no(new Error('down')) })),
 }))
-vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
+vi.mock('@/lib/toast', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
 
 // The rating loads with the first click; loaded here, a click settles within its own turn.
 await import('@/components/footnote/answer-rating')
