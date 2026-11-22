@@ -586,9 +586,13 @@ export function Runs({
       {runs.map((r, i) => {
         const from = i ? ends[i - 1]! : 0
         // Plain words go a word at a time, the same spans from the first word to the last, so a
-        // word that is in never fades in again.
+        // word that is in never fades in again; their mark and their link come with the first.
         if (upTo !== undefined && r.t === 'text')
-          return <Typed key={i} text={r.text} upTo={upTo - from} />
+          return upTo - from < (/^\s*\S+/.exec(r.text)?.[0].length ?? 0) ? null : (
+            <Styled key={i} run={r}>
+              <Typed text={r.text} upTo={upTo - from} />
+            </Styled>
+          )
         if (upTo !== undefined && ends[i]! > upTo) return null
         const drawn = run(r, i)
         return upTo === undefined ? (
@@ -605,7 +609,11 @@ export function Runs({
   function run(r: LoopRun, i: number) {
     switch (r.t) {
       case 'text':
-        return <React.Fragment key={i}>{r.text}</React.Fragment>
+        return (
+          <Styled key={i} run={r}>
+            {r.text}
+          </Styled>
+        )
       case 'noun': {
         if (seen?.has(r.id))
           return <React.Fragment key={i}>{nouns.get(r.id)?.name ?? key(r.id)}</React.Fragment>
@@ -641,6 +649,51 @@ export function Runs({
         )
     }
   }
+}
+
+/**
+ * Plain words as the model set them in Markdown: bold, italic, struck through or as code, and on
+ * their link, which opens in a new tab as the help's own links do. A link only ever goes to a web
+ * or mail address or a help page that exists; any other is plain words.
+ */
+function Styled({
+  run,
+  children,
+}: {
+  run: Extract<LoopRun, { t: 'text' }>
+  children: React.ReactNode
+}) {
+  const P = useParts()
+  const set = run.marks ?? []
+  let node = children
+  if (set.includes('code'))
+    node = <code className="rounded-xs bg-muted px-1 font-mono text-sm">{node}</code>
+  if (set.includes('strike')) node = <s>{node}</s>
+  if (set.includes('italic')) node = <em>{node}</em>
+  if (set.includes('bold')) node = <strong className="font-semibold">{node}</strong>
+  const link = run.link
+  const href = !link
+    ? null
+    : 'url' in link
+      ? /^(?:https?|mailto):/i.test(link.url)
+        ? link.url
+        : null
+      : P.docTitle(link.slug)
+        ? P.docHref(link.slug, link.id)
+        : null
+  if (href)
+    node = (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-xs text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {node}
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+    )
+  return <>{node}</>
 }
 
 /**

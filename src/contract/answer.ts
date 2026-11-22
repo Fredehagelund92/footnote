@@ -9,6 +9,7 @@
 import * as z from 'zod/mini'
 import { answerStates, leftOutReasons } from '../domain/answer.ts'
 import { chosenPeriodNames } from '../domain/dates.ts'
+import { marks } from '../domain/markdown-blocks.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 import { CHAT_LINE, CHAT_SOURCES, CHAT_TURNS, LOOP_READS, LOOP_REPLY } from '../domain/ask-chat.ts'
 import { itemKinds } from '../domain/item.ts'
@@ -161,9 +162,23 @@ const loopNounSchema = z.object({
   /** A dimension's value type, as its source gives it ("time"): what picks its icon. */
   type: z.nullable(z.string()),
 })
-/** A run of an answer's words: plain words, a noun, a citation, a count with what it is out of, a day. */
+/** Where words of an answer link: a web or mail address, or a help page at one of its parts. */
+const loopLinkSchema = z.union([
+  z.object({ url: z.string() }),
+  z.object({ slug: z.string(), id: z.string() }),
+])
+export type LoopLink = z.infer<typeof loopLinkSchema>
+/**
+ * A run of an answer's words: plain words, a noun, a citation, a count with what it is out of, a
+ * day. Plain words carry the marks and the link the model wrote them with, in Markdown.
+ */
 const loopRunSchema = z.union([
-  z.object({ t: z.literal('text'), text: z.string() }),
+  z.object({
+    t: z.literal('text'),
+    text: z.string(),
+    marks: z.optional(z.array(z.enum(marks))),
+    link: z.optional(loopLinkSchema),
+  }),
   z.object({ t: z.literal('noun'), id: z.string() }),
   z.object({ t: z.literal('cite'), n: z.number() }),
   z.object({ t: z.literal('count'), value: z.string(), of: z.nullable(z.string()) }),
@@ -171,12 +186,19 @@ const loopRunSchema = z.union([
 ])
 export type LoopRun = z.infer<typeof loopRunSchema>
 /**
- * A block of an answer's words: a paragraph, a short list the model wrote, or the items of a read
- * as code lists them (`[list:r1]`), by id, with how many more the read found.
+ * A block of an answer's words: a paragraph, a short list the model wrote (numbered from `start`
+ * when it numbered it), a short table it wrote, its first row the heads, the lines it wrote as code,
+ * or the items of a read as code lists them (`[list:r1]`), by id, with how many more the read found.
  */
 const loopBlockSchema = z.union([
   z.object({ t: z.literal('p'), runs: z.array(loopRunSchema) }),
-  z.object({ t: z.literal('ul'), items: z.array(z.array(loopRunSchema)) }),
+  z.object({
+    t: z.literal('ul'),
+    items: z.array(z.array(loopRunSchema)),
+    start: z.optional(z.number()),
+  }),
+  z.object({ t: z.literal('table'), rows: z.array(z.array(z.array(loopRunSchema))) }),
+  z.object({ t: z.literal('code'), text: z.string() }),
   z.object({ t: z.literal('list'), rows: z.array(z.string()), more: z.number() }),
 ])
 export type LoopBlock = z.infer<typeof loopBlockSchema>

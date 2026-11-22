@@ -57,6 +57,8 @@ const places = [
   '/ask?example=loop-unknown',
   '/ask?example=loop-stopped',
   '/ask?example=loop-used-trust',
+  // An answer from the help in Markdown: marks, a link, a numbered list and a table.
+  '/ask?example=loop-help-markdown',
   '/context/itm_gift_store_credit',
   // Conflicts: the Context list filtered to them, a pair's page, the dock, a pair across two
   // domains, a near copy.

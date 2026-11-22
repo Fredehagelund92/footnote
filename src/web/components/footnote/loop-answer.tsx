@@ -425,25 +425,35 @@ function Body({
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
       {body.map((b, i) => {
-        if (b.t === 'list') {
-          // A read's rows come in once the words before them are in.
+        if (b.t === 'list' || b.t === 'table' || b.t === 'code') {
+          // A read's rows, a table and code come in whole once the words before them are in.
           if (upTo !== undefined && blockAt[i]! > upTo) return null
-          const rows = (
-            <Rows
-              key={i}
-              items={b.rows.flatMap((id) => {
-                const item = byId.get(id)
-                return item ? [item] : []
-              })}
-              nouns={nouns}
-              more={b.more}
-            />
-          )
+          const drawn =
+            b.t === 'list' ? (
+              <Rows
+                key={i}
+                items={b.rows.flatMap((id) => {
+                  const item = byId.get(id)
+                  return item ? [item] : []
+                })}
+                nouns={nouns}
+                more={b.more}
+              />
+            ) : b.t === 'table' ? (
+              <Table key={i} rows={b.rows} nouns={nouns} items={numbered} seen={seen} />
+            ) : (
+              <pre
+                key={i}
+                className="overflow-x-auto rounded-md bg-muted/50 p-2.5 font-mono text-xs leading-relaxed text-foreground"
+              >
+                <code>{b.text}</code>
+              </pre>
+            )
           return upTo === undefined ? (
-            rows
+            drawn
           ) : (
             <div key={i} className={blockIn}>
-              {rows}
+              {drawn}
             </div>
           )
         }
@@ -464,10 +474,18 @@ function Body({
           <div key={i} className="flex flex-col gap-1.5">
             {rows}
           </div>
-        ) : (
+        ) : b.start === undefined ? (
           <ul key={i} className="ml-6 list-disc space-y-1.5 marker:text-muted-foreground">
             {rows}
           </ul>
+        ) : (
+          <ol
+            key={i}
+            start={b.start}
+            className="ml-6 list-decimal space-y-1.5 marker:text-muted-foreground"
+          >
+            {rows}
+          </ol>
         )
       })}
       {hidden > 0 && (upTo === undefined || end <= upTo) && (
@@ -479,6 +497,54 @@ function Body({
           Show {hidden} more
         </button>
       )}
+    </div>
+  )
+}
+
+/**
+ * A short table the model wrote: its first row the heads, each cell's words drawn as a line's
+ * are. It scrolls on its own when it is wider than the words, as on a phone.
+ */
+function Table({
+  rows,
+  nouns,
+  items,
+  seen,
+}: {
+  rows: readonly (readonly LoopRun[])[][]
+  nouns: Nouns
+  items: ReadonlyMap<number, LoopItem>
+  seen: Set<string>
+}) {
+  const [head, ...body] = rows
+  return (
+    // Focusable, so a keyboard can scroll it when it is wider than the words.
+    <div
+      tabIndex={0}
+      className="max-w-full overflow-x-auto rounded-md border outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <table className="w-full border-collapse text-sm leading-snug">
+        <thead className="bg-muted/50">
+          <tr>
+            {head?.map((cell, j) => (
+              <th key={j} scope="col" className="px-2.5 py-1.5 text-left align-top font-medium">
+                <Runs runs={cell} nouns={nouns} items={items} seen={seen} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, k) => (
+            <tr key={k} className="border-t">
+              {row.map((cell, j) => (
+                <td key={j} className="px-2.5 py-1.5 align-top">
+                  <Runs runs={cell} nouns={nouns} items={items} seen={seen} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -817,7 +883,9 @@ function Disagree({ loop, maps }: { loop: LoopTurn; maps: ReturnType<typeof useM
 
 /** The people the words name: by their mention, or by their name in plain words. */
 function namedIn(body: LoopTurn['body'], nouns: Nouns): Set<string> {
-  const runs = body.flatMap((b) => (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []))
+  const runs = body.flatMap((b) =>
+    b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : b.t === 'table' ? b.rows.flat(2) : [],
+  )
   const words = runs.map((r) => (r.t === 'text' ? r.text : '')).join(' ')
   const named = new Set<string>()
   for (const r of runs) if (r.t === 'noun' && r.id.startsWith('person:')) named.add(r.id)
