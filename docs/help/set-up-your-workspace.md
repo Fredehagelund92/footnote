@@ -8,6 +8,8 @@ reviewed: 2026-11-22
 open:
   label: Open the Inbox
   href: /inbox
+does:
+  publish-the-names: publish_names
 ---
 
 Here you write down what your numbers mean, so AI tools stop guessing. Your Inbox shows the six steps until you have done them, under Set up your workspace so agents can use what you know.

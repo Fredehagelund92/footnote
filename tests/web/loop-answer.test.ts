@@ -321,6 +321,18 @@ describe("Ask's loop answer, state by state", () => {
     expect(buttons(gap, /^Tell/)).toHaveLength(0)
   })
 
+  it('A word the reads found nothing under, to an owner who is no admin: Add it to Definitions, as New term is theirs', () => {
+    const admin = world.me
+    world.me = { ...admin, role: 'Owner of Sales', admin: false }
+    try {
+      const gap = render(ebitda(), 'What is our EBITDA definition?').querySelector('[data-gap]')!
+      expect(text(gap)).toContain('It is yours to add.')
+      expect(buttons(gap, /^Add it to Definitions$/)).toHaveLength(1)
+    } finally {
+      world.me = admin
+    }
+  })
+
   it('Two words the reads found nothing under, to an admin: They are yours to add', () => {
     const el = render({ ...ebitda(), unknown: ['EBITDA', 'ARR'] }, 'What are our EBITDA and ARR?')
     expect(text(el.querySelector('[data-gap]')!)).toContain('They are yours to add.')
@@ -560,6 +572,95 @@ describe("Ask's loop answer, state by state", () => {
       ['Rule', 'A fixed way to read the numbers'],
     ])
     expect(text(table.querySelector('td strong')!)).toBe('Event')
+  })
+
+  it('From the help, how to do something: the screen it explains as an outline button, between the words and the help', () => {
+    const el = render(example('loop-help-write'), 'How do I create my first context item?')
+    const row = el.querySelector('[data-actions]')!
+    const [write] = buttons(row, /^Write context$/)
+    expect(write?.getAttribute('href')).toBe('/context/new')
+    expect(write?.getAttribute('data-variant') ?? write?.className).toMatch(/outline/)
+    // Under the words, above From the help.
+    const help = [...el.querySelectorAll('p, span')].find((n) => n.textContent === 'From the help')!
+    expect(row.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(text(el)).not.toMatch(/do:/)
+  })
+
+  describe('a quick action, by who reads it', () => {
+    const asMe = (me: typeof world.me, run: () => void) => {
+      const admin = world.me
+      world.me = me
+      try {
+        run()
+      } finally {
+        world.me = admin
+      }
+    }
+    const member = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    const owner = { name: 'Jon Abara', role: 'Owner of Sales', owns: ['area_sales'], admin: false }
+    const family: LoopTurn = {
+      ...example('loop-help-write'),
+      text: 'An owner of Sales, or an admin, picks the usual variant in its quick view.',
+      actions: [
+        {
+          id: 'pick_usual_variant',
+          family: {
+            name: 'Revenue',
+            domain: 'domain:area_sales',
+            owners: ['Jon Abara', 'Sofia Brandt'],
+          },
+        },
+      ],
+      nouns: [{ id: 'domain:area_sales', name: 'Sales', of: null, type: null }],
+    }
+
+    it('to a member, Write context all the same: what they write goes to the owners as a suggestion', () =>
+      asMe(member, () => {
+        const row = render(example('loop-help-write')).querySelector('[data-actions]')!
+        expect(buttons(row, /^Write context$/)).toHaveLength(1)
+      }))
+
+    it('to an admin, Invite people opens People', () => {
+      const row = render(example('loop-help-invite')).querySelector('[data-actions]')!
+      expect(buttons(row, /^Invite people$/)[0]?.getAttribute('href')).toBe('/settings/people')
+    })
+
+    it("to an owner who is no admin, Invite people opens their own domain's page", () =>
+      asMe(owner, () => {
+        const row = render(example('loop-help-invite')).querySelector('[data-actions]')!
+        expect(buttons(row, /^Invite people$/)[0]?.getAttribute('href')).toBe(
+          '/settings/domains/area_sales',
+        )
+      }))
+
+    it('to a member, no button: who invites, by name, as their chips', () =>
+      asMe(member, () => {
+        const row = render(example('loop-help-invite')).querySelector('[data-actions]')!
+        expect(buttons(row, /^Invite people$/)).toHaveLength(0)
+        expect(text(row)).toBe('Invite people is for admins: Ravi Kapoor')
+        expect(row.querySelectorAll('[role="button"]')).toHaveLength(1)
+      }))
+
+    it("a family's: to its domain's owner, a button to its quick view; to anyone else, its owners", () => {
+      asMe(owner, () => {
+        const row = render(family).querySelector('[data-actions]')!
+        expect(buttons(row, /^Pick the usual variant$/)[0]?.getAttribute('href')).toBe(
+          '/definitions?dock=def.Revenue',
+        )
+      })
+      asMe(member, () => {
+        const row = render(family).querySelector('[data-actions]')!
+        expect(buttons(row, /^Pick the usual variant$/)).toHaveLength(0)
+        expect(text(row)).toBe('The owners of Sales do this: Jon Abara and Sofia Brandt')
+      })
+    })
+
+    it('Connect an agent opens the Connect dialog, which is no address', () => {
+      const el = render({ ...example('loop-help-write'), actions: [{ id: 'connect_agent' }] })
+      const [connect] = buttons(el.querySelector('[data-actions]')!, /^Connect an agent$/)
+      expect(connect?.tagName).toBe('BUTTON')
+      expect(connect?.getAttribute('href')).toBeNull()
+    })
   })
 
   it('Markdown links: only to a web or mail address or a help page that exists; any other is words', () => {

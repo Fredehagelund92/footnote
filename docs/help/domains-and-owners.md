@@ -8,6 +8,9 @@ reviewed: 2026-11-22
 open:
   label: Open Domains and owners
   href: /settings/domains
+does:
+  add-a-domain: add_domain
+  people: invite_people
 ---
 
 Who publishes what, how to add a domain, the sandbox, and inviting people.

@@ -165,6 +165,11 @@ export type Words = {
   cited: string[]
   /** The definitions the words mark as what answers the question, by id: `… daily rate [metric:x].` */
   marked: string[]
+  /**
+   * The quick actions the words mark as what they explain how to do, by id, in the order marked:
+   * `… choose New context [do:write_context].` Which a read offered is the turn's to say.
+   */
+  does: string[]
   checks: Check[]
 }
 
@@ -712,6 +717,7 @@ function withoutClause(runs: readonly LoopRun[]): LoopRun[] | null {
 export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): Words {
   const checks: Check[] = []
   const marked: string[] = []
+  const does: string[] = []
   const cite = (id: string) => {
     if (!cited.includes(id)) cited.push(id)
     return cited.indexOf(id) + 1
@@ -805,11 +811,15 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       } else if (list !== undefined) check('list', whole)
       else if (inner !== undefined) {
         // A mark cites items; a definition's id in one is no source: it says the definition answers
-        // the question, and is left out.
+        // the question, and is left out. So is a quick action's (`do:write_context`): it says what
+        // the words explain how to do.
         for (const id of inner.split(/[,;]\s*|\s+/).map((x) => x.trim())) {
           const noun = typedId(id, ctx.nouns)
+          const action = /^do:([a-z_]+)$/.exec(id)?.[1]
           if (ITEM_ID.test(id) && ctx.known.has(id)) pushRun(runs, { t: 'cite', n: cite(id) })
-          else if (nounKindOf(noun) && !marked.includes(noun)) marked.push(noun)
+          else if (action) {
+            if (!does.includes(action)) does.push(action)
+          } else if (nounKindOf(noun) && !marked.includes(noun)) marked.push(noun)
         }
       } else if (bare !== undefined) {
         if (ctx.known.has(bare)) pushRun(runs, { t: 'cite', n: cite(bare) })
@@ -958,7 +968,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
   }
   endProse()
   endBullets()
-  return { body, cited, marked, checks }
+  return { body, cited, marked, does, checks }
 }
 
 /** A table's row as the words of its cells: between its pipes, but not one a backslash or code holds. */

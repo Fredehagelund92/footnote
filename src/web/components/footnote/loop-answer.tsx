@@ -9,6 +9,7 @@ import type {
   LoopRun,
   LoopTurn,
 } from '@contract/answer'
+import { ACTIONS, type ActionId, type DoneBy } from '@domain/actions'
 import type { LucideIcon } from '@/components/icons'
 import {
   CompactItemRow,
@@ -1102,7 +1103,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   if (!about.length && !words.length) return null
   const quoted = listed(words.map((w) => `“${w}”`))
   const said = about.length ? subjectWords(about, nouns) : quoted
-  const mayWrite = about.length ? owns : me.admin
+  const mayWrite = about.length ? owns : ACTIONS.add_definition.may(me, { id: 'add_definition' })
   const tell = () => {
     setSending(true)
     const sent = about.length
@@ -1785,6 +1786,131 @@ function HelpSources({ loop }: { loop: LoopTurn }) {
   )
 }
 
+/** Each quick action's icon, first in its button, as its screen shows it. */
+const actionIcon = (P: LoopParts): Record<ActionId, LucideIcon> => ({
+  write_context: P.PencilIcon,
+  add_definition: P.BookOpenIcon,
+  invite_people: P.UserPlusIcon,
+  connect_agent: P.BotIcon,
+  connect_source: P.PlugIcon,
+  publish_names: P.InboxIcon,
+  pick_usual_variant: P.SplitIcon,
+  family_meaning: P.PencilIcon,
+  decide_conflict: P.ArrowLeftRightIcon,
+  open_domain: P.LayersIcon,
+  about_business: P.PencilIcon,
+  add_domain: P.LayersIcon,
+})
+
+/**
+ * The quick actions an answer offers (FR-719.10), under its words: to a reader who may do one, an
+ * outline button, the gap card's own, that opens its screen or the Connect dialog; to anyone else,
+ * one quiet line that says who does it, with their chips, and no button. Who may is the list's
+ * (src/domain/actions.ts), the rule the screens keep, so a button never opens a page that refuses
+ * them. Only an admin is told who the admins are on the service, as the gap card says it.
+ */
+function QuickActions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
+  const P = useParts()
+  const me = P.useMe()
+  const admins = P.usePeople()
+    .filter((p) => p.admin && p.name !== me.name)
+    .map((p) => p.name)
+  const offers = loop.actions ?? []
+  if (!offers.length) return null
+  const icons = actionIcon(P)
+  const may = offers.filter((o) => ACTIONS[o.id].may(me, o))
+  const not = offers.filter((o) => !may.includes(o))
+  return (
+    <div data-actions className="flex flex-col gap-2">
+      {may.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {may.map((o) => {
+            const action = ACTIONS[o.id]
+            const to = action.target(me, o)
+            const Icon = icons[o.id]
+            const label = action.label(me)
+            return 'dialog' in to ? (
+              <P.Button key={o.id} variant="outline" onClick={() => P.openOverlay(to.dialog)}>
+                <Icon data-icon="inline-start" />
+                {label}
+              </P.Button>
+            ) : (
+              <P.Button
+                key={o.id}
+                variant="outline"
+                nativeButton={false}
+                render={<a href={P.href(to.path, to.search ?? {})} />}
+              >
+                <Icon data-icon="inline-start" />
+                {label}
+              </P.Button>
+            )
+          })}
+        </div>
+      )}
+      {not.map((o) => (
+        <p key={o.id} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+          <P.UsersIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <WhoDoes
+              label={ACTIONS[o.id].label(me)}
+              by={ACTIONS[o.id].doneBy(o)}
+              admins={admins}
+              nouns={nouns}
+            />
+          </span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Who does an action, to someone who may not: "Invite people is for admins: Jon Abara and Ravi
+ * Kapoor", "The owners of Sales do this: Jon Abara and Sofia Brandt", or, where the reads named no
+ * one, who does it by role alone.
+ */
+function WhoDoes({
+  label,
+  by,
+  admins,
+  nouns,
+}: {
+  label: string
+  by: DoneBy
+  admins: readonly string[]
+  nouns: Nouns
+}) {
+  if (by.by === 'admins')
+    return admins.length ? (
+      <>
+        {label} is for admins: <People names={admins} />
+      </>
+    ) : (
+      <>{label} is for admins.</>
+    )
+  const domain = by.domain ? nouns.get(by.domain)?.name : undefined
+  if (domain && by.people.length)
+    return (
+      <>
+        {by.people.length === 1 ? `The owner of ${domain} does` : `The owners of ${domain} do`}{' '}
+        this: <People names={by.people} />
+      </>
+    )
+  if (domain)
+    return (
+      <>
+        {label} is for the owners of {domain}
+        {by.admins ? ' and admins' : ''}.
+      </>
+    )
+  return (
+    <>
+      {label} is for owners of a domain{by.admins ? ' and admins' : ''}.
+    </>
+  )
+}
+
 /** The footer's lines, said once each: what was found out of what, and what may be out of date. */
 const footerLines = (loop: LoopTurn) =>
   [loop.footer.denominator, loop.footer.stale, loop.footer.notSeen].filter((x): x is string => !!x)
@@ -2093,6 +2219,7 @@ function Finished({
                     )}
                   </div>
                 )}
+                <QuickActions loop={loop} nouns={maps.nouns} />
                 <HelpSources loop={loop} />
                 {!cardsStandIn(loop) && <DefinitionCards loop={loop} maps={maps} />}
                 {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}

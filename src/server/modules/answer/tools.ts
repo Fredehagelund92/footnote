@@ -19,6 +19,7 @@ import {
   type Calendar,
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
+import { actionIds, type ActionId } from '../../../domain/actions.ts'
 import { meaningLine, usualVariant } from '../../../domain/family-meaning.ts'
 import { derivedVariants, variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
@@ -1380,6 +1381,8 @@ const helpOutput = z.object({
       title: z.string(),
       heading: z.string(),
       text: z.string(),
+      /** The quick actions the part explains, which an answer may offer by its mark (FR-719.10). */
+      does: z.optional(z.array(z.enum(actionIds))),
     }),
   ),
   ids,
@@ -1392,6 +1395,7 @@ function help(input: z.output<typeof helpInput>): z.infer<typeof helpOutput> {
     title: s.title,
     heading: s.heading,
     text: s.text,
+    ...(s.does ? { does: s.does } : {}),
   }))
   return { words: input.words, found: pages.length, pages, ids: [] }
 }
@@ -1429,6 +1433,8 @@ const definitionsOutput = z.object({
       from: z.string(),
       /** A family as the page shows it; never sent to the model (`forModel`). */
       family: z.optional(familyShownSchema),
+      /** The quick actions it offers: a family's usual variant and its meaning (FR-719.10). */
+      does: z.optional(z.array(z.enum(actionIds))),
       /** For a synonym written in Definitions: what it is another name for. */
       sameAs: z.nullable(z.string()),
       /** current, changed (at its source since items about it were checked) or gone. */
@@ -1459,6 +1465,9 @@ const definitionsOutput = z.object({
   names: namesSchema,
   ids,
 })
+
+/** What a family offers to do: pick its usual variant, and change what it means. */
+const FAMILY_ACTIONS: ActionId[] = ['pick_usual_variant', 'family_meaning']
 
 /** The most values of a dimension a look-up names. */
 const VALUES_SHOWN = 40
@@ -1629,7 +1638,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
       from: termFrom(t),
-      ...(t.family ? { family: familyShown(t.family) } : {}),
+      ...(t.family ? { family: familyShown(t.family), does: FAMILY_ACTIONS } : {}),
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
@@ -2315,7 +2324,7 @@ const definitionsFor = {
     output: inboxOutput,
   },
   help: {
-    description: `${productName}'s own help pages: how ${productName} works, what its words, states and screens mean, and how to do something in it. Use it for a question about ${productName} itself, never for the company's context. Returns the parts of the pages that best match the words, best first, each with its page, heading and words.`,
+    description: `${productName}'s own help pages: how ${productName} works, what its words, states and screens mean, and how to do something in it. Use it for a question about ${productName} itself, never for the company's context. Returns the parts of the pages that best match the words, best first, each with its page, heading and words, and the quick actions a part explains (does). Say how to do something as it is for this person: when the help says who may do it and the person is not one of them, by whether they are an administrator and what they own, say who does it, as a fact, never the steps as theirs to take. When the answer says how to do something a read offers to do (a part's does, or a family's in definitions), end that sentence with the action's mark, such as [do:write_context], only for an action a read offered and at most two, and as well when the person may not do it: the page shows a button that opens it to someone who may do it, and who does it to anyone else.`,
     input: helpInput,
     output: helpOutput,
   },

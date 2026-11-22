@@ -52,6 +52,8 @@ Ask the next question in the same chat, such as "And in Spain?". Ask carries wha
 
 Ask also answers questions about how it works, such as "What does Checked mean on an answer?" or "How do I add a context item?". It answers from these help pages and links the page it used under the answer. Such an answer has no answer line, since it rests on the help and not on your context.
 
+When the answer says how to do something, a button under it opens that screen, such as Write context or Invite people. If the screen is not yours to use, the answer says who does it, and has no button.
+
 ## When nothing is written
 
 A Not found answer means nothing is written about it yet, and a card under it says what is missing. If you do not own that domain, Tell the owner sends the owners what you asked about and the dates, never your words. It waits in their Inbox, where they can write it: [When nothing is written yet](when-nothing-is-written-yet.md).

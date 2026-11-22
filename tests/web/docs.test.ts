@@ -204,6 +204,40 @@ describe('the docs check', () => {
     ])
   })
 
+  it('names the quick actions a ## section explains, and refuses one it cannot place', () => {
+    const sections = docs.pages.flatMap((p) => p.sections.map((s) => ({ page: p.slug, ...s })))
+    expect(sections.find((s) => s.does?.includes('write_context'))).toMatchObject({
+      page: 'write-context',
+      id: 'add-a-context-item',
+      does: ['write_context'],
+    })
+    expect(sections.find((s) => s.id === 'families')?.does).toEqual([
+      'pick_usual_variant',
+      'family_meaning',
+    ])
+    const read = (does: string) =>
+      readDocs(
+        [
+          {
+            slug: 'privacy',
+            source: `---\ntitle: Privacy\nline: A line.\ngroup: How it works\norder: 1\nminutes: 1\nreviewed: 2026-10-01\ndoes:\n  ${does}\n---\n\nA lead.\n\n## Here\n\n### Below\n`,
+          },
+          files.find((f) => f.slug === CHANGELOG)!,
+        ],
+        (yaml) => parse(yaml),
+      )
+    const reason = (does: string) => {
+      const result = read(does)
+      return result.ok ? '' : result.reason
+    }
+    expect(reason('nowhere: write_context')).toMatch(/does: nowhere is no ## heading/)
+    expect(reason('below: write_context')).toMatch(/does: below is no ## heading/)
+    expect(reason('here: fly_away')).toMatch(/does\.here/)
+    expect(reason('here: [write_context, fly_away]')).toMatch(/does\.here/)
+    // A list of actions is read: what fails is only that What's new links past these two pages.
+    expect(reason('here: [write_context, add_domain]')).not.toMatch(/does/)
+  })
+
   it('refuses a page that links to nothing, or uses what the docs do not draw', () => {
     const page = (body: string) => ({
       slug: 'privacy',

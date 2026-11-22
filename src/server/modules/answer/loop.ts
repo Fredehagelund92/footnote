@@ -21,6 +21,7 @@ import {
   type LoopRun,
   type LoopTurn,
 } from '../../../contract/answer.ts'
+import { ACTIONS_SHOWN, isActionId, type ActionOffer } from '../../../domain/actions.ts'
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
@@ -1160,6 +1161,8 @@ const isObj = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.i
 const isError = (v: unknown) => isObj(v) && typeof v.error === 'string' && v.error.length > 0
 const arr = (v: unknown): Obj[] => (Array.isArray(v) ? v.filter(isObj) : [])
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
+const strs = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
 const num = (v: unknown) => (typeof v === 'number' ? v : 0)
 const listWords = (names: readonly string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
@@ -2002,6 +2005,16 @@ export function turnOf(
     sources.length || defined || fromHelp || aside || subject?.about.length || listed.length
       ? []
       : unknownOf(made)
+  // What the card under a Not found offers already is not offered again beside it.
+  const gapOffers = [
+    ...(missing || (state === 'partial' && !sources.length) ? ['write_context'] : []),
+    ...(unknown.length ? ['add_definition'] : []),
+  ]
+  const actions = actionsOf(
+    words.does.filter((id) => !gapOffers.includes(id)),
+    [...made, ...earlier],
+    words.checks,
+  )
   return {
     kind: 'answer',
     text: plain,
@@ -2020,6 +2033,7 @@ export function turnOf(
     ...(defined ? { defined } : {}),
     ...(fromHelp ? { help } : {}),
     ...(unknown.length ? { unknown } : {}),
+    ...(actions.length ? { actions } : {}),
     choices: [],
     reads: readsBack(made),
     stopped: null,
@@ -2056,6 +2070,52 @@ function helpOf(made: readonly MadeRead[]): NonNullable<LoopTurn['help']> {
   return pages.filter(
     (p, i) => p.slug && pages.findIndex((q) => q.slug === p.slug && q.id === p.id) === i,
   )
+}
+
+/**
+ * What the reads of a chat offer to do (FR-719.10): each help part's actions, and those of each
+ * family a definitions read found, with the family by name, its domain and its owners.
+ */
+function offersOf(reads: readonly MadeRead[]): ActionOffer[] {
+  return reads.flatMap((m): ActionOffer[] => {
+    const r = m.result
+    if (!isObj(r) || isError(r)) return []
+    const ids = (part: Obj) => strs(part.does).filter(isActionId)
+    if (m.tool === 'help') return arr(r.pages).flatMap((part) => ids(part).map((id) => ({ id })))
+    if (m.tool !== 'definitions') return []
+    const domains = arr(r.names).filter((n) => str(n.id).startsWith('domain:'))
+    return arr(r.definitions).flatMap((d) => {
+      const family = {
+        name: str(d.name),
+        domain: str(domains.find((n) => str(n.name) === str(d.domain))?.id) || null,
+        owners: strs(d.owners),
+      }
+      return ids(d).map((id) => ({ id, family }))
+    })
+  })
+}
+
+/**
+ * The quick actions an answer offers (FR-719.10): each its words mark (`[do:write_context]`), in
+ * the order marked, that a read of the chat offered, at most two; of the offers of one, a family's
+ * over a help part's, which names no family. A mark no read offered, of no action, or past the
+ * second is left out, and the check keeps it. Who may do each is the page's to say, by the same
+ * list (src/domain/actions.ts): the model never decides it.
+ */
+function actionsOf(
+  marked: readonly string[],
+  reads: readonly MadeRead[],
+  checks: LoopTurn['checks'],
+): NonNullable<LoopTurn['actions']> {
+  const offers = offersOf(reads)
+  const actions: NonNullable<LoopTurn['actions']> = []
+  for (const id of marked) {
+    const offered = offers.filter((o) => o.id === id)
+    const offer = offered.find((o) => o.family) ?? offered[0]
+    if (offer && actions.length < ACTIONS_SHOWN) actions.push(offer)
+    else checks.push({ kind: 'action', words: `[do:${id}]` })
+  }
+  return actions
 }
 
 /** A question's end after what it asks: when, then the question mark. */

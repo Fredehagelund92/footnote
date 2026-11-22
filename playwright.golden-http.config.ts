@@ -101,6 +101,9 @@ export default defineConfig({
     // J97 opens an answer from the help in Markdown by the mock's example address; the service
     // draws it in tests/web/integration/ask-loop-shapes.test.ts.
     /\/j97-ask-markdown\.spec\.ts$/,
+    // J98 opens answers from the help that carry quick actions by the mock's example address; the
+    // service offers them in tests/web/integration/ask-loop-shapes.test.ts.
+    /\/j98-ask-quick-actions\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
