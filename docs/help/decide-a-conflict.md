@@ -8,8 +8,6 @@ reviewed: 2026-11-02
 open:
   label: Open Conflicts
   href: /context?show=conflicts
-does:
-  find-them: decide_conflict
 ---
 
 Two context items are in a conflict when an owner said they disagree, in the review or in the editor. The app never decides it by itself. Until someone decides it, agents give both and say that context disagrees: the Conflict line in [Answer lines](answer-lines.md).

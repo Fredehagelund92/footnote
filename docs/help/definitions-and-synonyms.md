@@ -8,9 +8,6 @@ reviewed: 2026-11-22
 open:
   label: Open Definitions
   href: /definitions
-does:
-  families: pick_usual_variant
-  terms-and-synonyms: add_definition
 ---
 
 Metrics and dimensions, the business's own terms, and other names for them.

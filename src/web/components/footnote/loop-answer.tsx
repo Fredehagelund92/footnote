@@ -1689,8 +1689,7 @@ function StateRow({
 
 /**
  * The help pages an answer about Footnote itself rests on (FR-719.8), each opening at its part in
- * the documentation, which opens as its own site. A name that wraps keeps its arrow after its last
- * word, not at the far edge of the line.
+ * the documentation, which opens as its own site.
  */
 function HelpSources({ loop }: { loop: LoopTurn }) {
   const P = useParts()
@@ -1699,30 +1698,20 @@ function HelpSources({ loop }: { loop: LoopTurn }) {
     <div className="flex flex-col gap-1.5">
       <BlockLabel icon={P.BookOpenIcon}>From the help</BlockLabel>
       <ul className="flex flex-col gap-1">
-        {loop.help.map((h) => {
-          const name = h.heading === h.title ? h.title : `${h.title}: ${h.heading}`
-          const cut = name.lastIndexOf(' ') + 1
-          return (
-            <li key={`${h.slug}#${h.id}`} className="py-0.5">
-              <a
-                href={P.docHref(h.slug, h.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm leading-5 font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
-              >
-                {name.slice(0, cut)}
-                <span className="whitespace-nowrap">
-                  {name.slice(cut)}
-                  <P.ArrowUpRightIcon
-                    className="ml-1 inline-block size-3.5 -translate-y-px align-middle"
-                    aria-hidden
-                  />
-                </span>
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            </li>
-          )
-        })}
+        {loop.help.map((h) => (
+          <li key={`${h.slug}#${h.id}`}>
+            <a
+              href={P.docHref(h.slug, h.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-6 w-fit items-center gap-1 text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:underline"
+            >
+              {h.heading === h.title ? h.title : `${h.title}: ${h.heading}`}
+              <P.ArrowUpRightIcon className="size-3.5" aria-hidden />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </li>
+        ))}
       </ul>
     </div>
   )

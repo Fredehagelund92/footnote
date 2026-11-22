@@ -1,5 +1,3 @@
-import type { ActionId } from './actions.ts'
-
 /*
   The documentation (docs/help/README.md): Markdown files in docs/help, one per page, read into one
   page model that the app's Docs area, the static docs site (npm run docs:build), its search and
@@ -96,11 +94,8 @@ export type DocPicture = {
 export const docPictures = 'docs/images/docs'
 export const docPictureFile = /^\.\.\/images\/docs\/([a-z0-9]+(?:-[a-z0-9]+)*)-light\.(webp|svg)$/
 
-/**
- * One part of a page for search: its heading and its words, up to the next heading, and the quick
- * action a `##` section explains, when its page's front matter names one (`does:`).
- */
-export type DocSection = { id: string; heading: string; text: string; does?: ActionId }
+/** One part of a page for search: its heading and its words, up to the next heading. */
+export type DocSection = { id: string; heading: string; text: string }
 
 export type DocPage = {
   slug: string

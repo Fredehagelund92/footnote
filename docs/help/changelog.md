@@ -8,7 +8,7 @@ reviewed: 2026-11-22
 
 2026-11-22
 
-Every help page about a screen now says where to start and has a button beside its title that opens that screen, such as New context on [Write context](write-context.md#add-a-context-item). An answer in Ask from the help names the parts of the pages it drew on.
+Every help page about a screen now says where to start and has a button beside its title that opens that screen, such as New context on [Write context](write-context.md#add-a-context-item).
 
 ## Families declared in your tool
 

@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import MiniSearch from 'minisearch'
 import { parse } from 'yaml'
-import type { ActionId } from '../../../domain/actions.ts'
 import { docsFolder, type DocFile } from '../../../domain/docs.ts'
 import { readDocs } from '../../docs-read.ts'
 import { bundled } from '../../bundled.ts'
@@ -22,8 +21,6 @@ export type HelpSection = {
   /** The heading; the page's title for the words above the first heading. */
   heading: string
   text: string
-  /** The quick action the part explains, as its page names it (`does:`). */
-  does?: ActionId
 }
 
 const folder = new URL(`../../../../${docsFolder}/`, import.meta.url)
@@ -49,7 +46,6 @@ export function readHelp(files: readonly DocFile[] = helpFiles()): HelpSection[]
       title: page.title,
       heading: s.id ? s.heading : page.title,
       text: s.id ? s.text : `${page.line}\n${s.text}`,
-      ...(s.does && { does: s.does }),
     })),
   )
 }
@@ -67,7 +63,7 @@ function helpIndex() {
     const built = new MiniSearch<HelpSection & { key: string }>({
       idField: 'key',
       fields: ['title', 'heading', 'text'],
-      storeFields: ['slug', 'id', 'title', 'heading', 'text', 'does'],
+      storeFields: ['slug', 'id', 'title', 'heading', 'text'],
       searchOptions: { boost: { title: 3, heading: 2 }, prefix: true, fuzzy: 0.2 },
     })
     built.addAll((bundled?.help ?? readHelp()).map((s) => ({ ...s, key: `${s.slug}#${s.id}` })))
@@ -98,6 +94,5 @@ export function searchHelp(words: string): HelpSection[] {
       title: hit.title as string,
       heading: hit.heading as string,
       text: (hit.text as string).slice(0, HELP_TEXT),
-      ...(hit.does ? { does: hit.does as ActionId } : {}),
     }))
 }
