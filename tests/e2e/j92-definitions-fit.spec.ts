@@ -5,7 +5,7 @@ import { expect, go, test } from './go.ts'
 // name with brackets of its own is drawn whole while its row has room; a twin name a second view
 // shares keeps its whole start and gives way at its view's name first, with the panel open too; a
 // description cut at 500 characters ends on a word with an ellipsis; and on a phone the install's
-// label beside the page's action keeps its words.
+// label beside the page's action keeps its words, on Definitions and on Ask's touch header too.
 
 const TWIN = 'Search clicks (reported) (search_console_keyword_rankings_joined)'
 const LONG = 'Net revenue after refunds'
@@ -118,4 +118,39 @@ test.describe('390', () => {
       await add.click()
       await expect(page).toHaveURL(/\/definitions\/new$/)
     })
+
+  test.describe('a touch screen', () => {
+    test.use({ hasTouch: true, isMobile: true })
+
+    for (const scheme of ['light', 'dark'] as const)
+      test(`Ask's header keeps the install's name beside its three buttons (${scheme})`, async ({
+        page,
+      }) => {
+        // It once shrank to "Northwind C…": the touch gaps sat beside the label too (F3).
+        await page.emulateMedia({ colorScheme: scheme })
+        await page.goto('/ask?label=Northwind%20Cube%2C%20local')
+        const header = page.locator('header').first()
+        const label = header.locator('[data-profile-label]')
+        await expect(label).toContainText('Northwind Cube, local')
+        const fit = await header.evaluate((h) => {
+          const words = h.querySelector('[data-profile-label] .truncate')!
+          const range = document.createRange()
+          range.setStart(words.firstChild!, 0)
+          range.setEnd(words.firstChild!, 'Northwind Cube,'.length)
+          const buttons = [...h.querySelectorAll('button')].map((b) => b.getBoundingClientRect())
+          return {
+            visible: words.clientWidth,
+            name: range.getBoundingClientRect().width,
+            pitches: buttons.slice(1).map((b, i) => b.left - buttons[i]!.left),
+            wide: h.scrollWidth > h.clientWidth,
+          }
+        })
+        // The view's name shows whole; only the end of the label gives way.
+        expect(fit.visible).toBeGreaterThanOrEqual(fit.name)
+        // No two buttons' 44px tap areas overlap, and nothing runs off the screen.
+        for (const pitch of fit.pitches) expect(pitch).toBeGreaterThanOrEqual(44)
+        expect(fit.wide).toBe(false)
+        await expect(header.getByRole('button', { name: 'New chat' })).toBeVisible()
+      })
+  })
 })
