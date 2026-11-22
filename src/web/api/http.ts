@@ -2367,7 +2367,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const sent = await write('reports.create', input, (o) => client.reports.create(input, o))
       return { id: sent.id }
     },
-    tellOwner: async ({ about, dates }) => {
+    tellOwner: async ({ about, dates, word }) => {
       const metrics = about.filter((id) => id.startsWith('metric:'))
       const values = new Map<string, string[]>()
       for (const id of about)
@@ -2376,10 +2376,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           const dimension = `dim:${value.split('/')[0]}`
           values.set(dimension, [...(values.get(dimension) ?? []), `val:${value}`])
         }
-      // The days as the answer read them; with none named, the service reads today.
-      const days = daysOfDates(dates, localDay(new Date()))
+      // The days as the answer read them; with none named, the service reads today. A word the
+      // reads found nothing under goes alone, and the service refuses it with anything else.
+      const days = word === undefined ? daysOfDates(dates, localDay(new Date())) : undefined
       const input = {
         type: 'missing' as const,
+        ...(word !== undefined ? { word } : {}),
         ...(metrics.length ? { metrics } : {}),
         ...(values.size
           ? {

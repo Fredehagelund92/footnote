@@ -46,7 +46,7 @@ const chats: Record<string, Question[]> = {
       label: 'Definition',
       shows: (turn) =>
         expect(answer(turn)).toHaveText(
-          /^Net revenue, metric\s*means: Gross sales after returns, discounts, VAT and payment fees/,
+          /^Net revenue, metric\s*Metric\s*Gross sales after returns, discounts, VAT and payment fees/,
         ),
     },
   ],

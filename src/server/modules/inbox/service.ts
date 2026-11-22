@@ -12,6 +12,7 @@ import {
 } from '../../../domain/alerts.ts'
 import { topicScope, topicWords } from '../../../domain/answer.ts'
 import { monthWords } from '../../../domain/dates.ts'
+import { listWords } from '../../../domain/proposal-attributes.ts'
 import { visibleCount } from '../../../domain/gaps.ts'
 import { compareIds } from '../../../domain/resolver.ts'
 import {
@@ -63,6 +64,9 @@ import { missing } from '../../../contract/refusals.ts'
   Counts from agents are counts only, with no words and no person (FR-602), and a count under the
   minimum is hidden (FR-614).
 */
+
+/** The most words a Not found card about words Ask could not find names in its title. */
+const WORDS_SHOWN = 3
 
 type Head = { seq: string; label: string; overlay: string }
 
@@ -211,6 +215,7 @@ export function createInboxFeedService(
       calls: number
       told: number
       draft: string | null
+      words: string[]
     }>(
       `select g.id::text, g.ref, g.status_since::text as at, t.area_id as area,
               cl_topic_domains(t.area_id, t.metric_keys) as areas, t.metric_keys as metrics,
@@ -220,7 +225,12 @@ export function createInboxFeedService(
               coalesce((select w.human_reports from gap_weekly_counts w
                          where w.gap_id=g.id and w.week=date_trunc('week', now() at time zone 'UTC')::date),0)::int as told,
               (select p.id::text from proposals p
-                where p.source_gap_id=g.id and p.discarded_at is null order by p.created_at desc limit 1) as draft
+                where p.source_gap_id=g.id and p.discarded_at is null order by p.created_at desc limit 1) as draft,
+              -- A topic of nothing is what people told an admin about by a word Ask could not find.
+              case when cardinality(t.metric_keys) + cardinality(t.value_keys) + cardinality(t.dimension_keys) = 0
+                   then coalesce((select array_agg(distinct n.note order by n.note) from gap_notes n
+                                   where n.gap_id=g.id and n.source='person'), '{}')
+                   else '{}' end as words
          from gaps g join topics t on t.id=g.topic_id
         where g.status='open' and cl_manages_topic(t.area_id, t.metric_keys)
         order by g.status_since desc limit 100`,
@@ -243,9 +253,13 @@ export function createInboxFeedService(
         done: null,
         gapId: row.id,
         ref: row.ref,
-        // What agents asked about, and the month: "Orders in Spain, October 2026".
-        title:
-          bundle && scope ? `${topicWords(bundle, scope)}, ${monthWords(row.month!)}` : row.ref,
+        // What agents asked about, and the month: "Orders in Spain, October 2026"; for words Ask
+        // could not find, the words: "“EBITDA”, November 2026".
+        title: row.words.length
+          ? `${listWords(row.words.slice(0, WORDS_SHOWN).map((w) => `“${w}”`))}${row.words.length > WORDS_SHOWN ? ` and ${row.words.length - WORDS_SHOWN} more` : ''}, ${monthWords(row.month!)}`
+          : bundle && scope
+            ? `${topicWords(bundle, scope)}, ${monthWords(row.month!)}`
+            : row.ref,
         scope: {
           metrics: row.metrics,
           values: row.values,

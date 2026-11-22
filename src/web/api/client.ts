@@ -678,9 +678,10 @@ export interface FootnoteApi {
    * Tells the owners that nothing is written about what an answer of Ask was about (decision 7 of
    * the chat audit): the report of kind missing agents file, as a gap on the subject's topic, with
    * its metrics and values by id (`metric:orders`, `value:market/poland`) and its days. It names
-   * no one and sends no words of the question; the owners see it in their Inbox.
+   * no one and sends no words of the question; the owners see it in their Inbox. With `word`, a
+   * word Ask's reads found nothing under, it is sent alone and reaches the admins (Tell an admin).
    */
-  tellOwner: (input: { about: string[]; dates?: string }) => Promise<{ id: string }>
+  tellOwner: (input: { about: string[]; dates?: string; word?: string }) => Promise<{ id: string }>
 
   // Observability: what agents asked and how it was answered, as scopes and counts only
   /**

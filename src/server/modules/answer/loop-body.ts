@@ -451,6 +451,9 @@ function stopBeforeCites(runs: readonly LoopRun[]): LoopRun[] {
   return out.filter((r) => r.t !== 'text' || r.text)
 }
 
+/** Stands in for a "()" the model wrote while a sentence is read. */
+const LITERAL_BRACKETS = '\uE000'
+
 /** Where a reference that held nothing was, in the runs of its sentence, until its clause goes. */
 const HOLE = '\u0000'
 /** Where one was that its clause did not need: it goes alone, and still counts as one. */
@@ -570,7 +573,9 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     }
   }
   /** One sentence's runs; `listed`, a line of a list, which keeps its clauses as they are. */
-  const sentence = (words: string, listed = false): LoopRun[] => {
+  const sentence = (written: string, listed = false): LoopRun[] => {
+    // A "()" the model wrote itself ("refresh()") is no bracket a reference left empty: set aside.
+    const words = written.replace(/\(\)/g, LITERAL_BRACKETS)
     const runs: LoopRun[] = []
     let at = 0
     for (const m of words.matchAll(TOKEN)) {
@@ -645,7 +650,9 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       )
     if (!runs.length) return runs
     // A reference left out of brackets leaves no empty brackets behind.
-    for (const r of runs) if (r.t === 'text') r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '')
+    for (const r of runs)
+      if (r.t === 'text')
+        r.text = r.text.replace(/[ \t]*\([ \t]*\)/g, '').replaceAll(LITERAL_BRACKETS, '()')
     // A citation sits right after what it supports: three or more at a sentence's end are a pile.
     let piled = 0
     for (let i = runs.length - 1; i >= 0; i--) {
@@ -660,6 +667,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         for (const d of r.text.match(/\d+(?:[.,]\d+)*/g) ?? [])
           if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
     // A name the words give is said once: a mention after it is drawn on it (FR-720.3).
+    // Placing a mention can leave the brackets it sat in empty: they go too.
     const done = stopBeforeCites(placed(runs, ctx.nouns))
     earlier += ` ${runWords(done, ctx.nouns)}`
     return done
@@ -1073,6 +1081,8 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
   const trailing = trailingRuns(runs)
   // Where the sentence being read starts: a run, and the place in it when it is words.
   let from = { run: 0, at: 0 }
+  // A mention left its place: the brackets it sat in ("Germany ([#germany]):") are left empty.
+  let vacated = false
   const inSentence = (i: number, at: number) => i > from.run || (i === from.run && at >= from.at)
   /** Where the words so far give a name: where they end with it, or its first place this sentence. */
   const find = (name: RegExp, ending: boolean) => {
@@ -1097,15 +1107,21 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
       const last = out.at(-1)
       const led = last?.t === 'text' && LEADS_ON.test(last.text)
       const trails = trailing[n] && !led
-      if (trails && out.slice(from.run).some((x) => x.t === 'noun' && x.id === r.id)) return
+      const id = r.id
+      if (trails && out.slice(from.run).some((x) => x.t === 'noun' && x.id === id)) {
+        vacated = true
+        return
+      }
       const name = nouns.get(r.id)?.name
       const found = name
         ? (find(nameIn(name), true) ?? (trails ? find(nameIn(name), false) : null))
         : null
       if (!found) {
         out.push(r)
+        vacated = false
         return
       }
+      vacated = true
       const x = out[found.i] as Extract<LoopRun, { t: 'text' }>
       const after = x.text.slice(found.at + found.length)
       out.splice(
@@ -1116,7 +1132,17 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
         ...(after ? [{ t: 'text' as const, text: after }] : []),
       )
     } else if (r.t === 'text') {
-      const last = out.at(-1)
+      let last = out.at(-1)
+      if (vacated && last?.t === 'text') {
+        const open = /[ \t]*\([ \t]*$/.exec(last.text)
+        const close = /^[ \t]*\)/.exec(r.text)
+        if (open && close) {
+          last = { ...last, text: last.text.slice(0, open.index) }
+          out[out.length - 1] = last
+          r = { ...r, text: r.text.slice(close[0].length) }
+        }
+      }
+      vacated = false
       const start = lastSentenceStart(r.text)
       if (last?.t === 'text') {
         if (start >= 0) from = { run: out.length - 1, at: last.text.length + start }
@@ -1125,7 +1151,10 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
         if (start >= 0) from = { run: out.length, at: start }
         out.push({ ...r })
       }
-    } else out.push(r)
+    } else {
+      out.push(r)
+      vacated = false
+    }
   })
   return out.flatMap((x): LoopRun[] => {
     if (x.t !== 'text') return [x]

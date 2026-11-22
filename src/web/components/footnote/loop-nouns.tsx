@@ -294,7 +294,7 @@ export function NounChip({
   }
 }
 
-function PersonChip({ name, still }: { name: string; still?: boolean }) {
+export function PersonChip({ name, still }: { name: string; still?: boolean }) {
   const P = useParts()
   const person = P.usePeople().find((p) => p.name === name)
   return (
@@ -305,7 +305,7 @@ function PersonChip({ name, still }: { name: string; still?: boolean }) {
         <span
           role={still ? undefined : 'button'}
           tabIndex={still ? undefined : 0}
-          className={P.cn(chip, 'px-0.5 font-normal')}
+          className={P.cn(chip, 'pr-0 pl-0.5 font-normal')}
         >
           <span aria-hidden className="inline-flex">
             <P.PersonAvatar name={name} size={16} />
@@ -407,14 +407,25 @@ function StatusMark({ status }: { status: Status }) {
   )
 }
 
+/**
+ * The source a reader points at under the answer, by its number: its marks in the words light up
+ * with it, so a source chip and the sentences it backs are seen together.
+ */
+export const LitSource = React.createContext<{
+  lit: number | null
+  light: (n: number | null) => void
+}>({ lit: null, light: () => {} })
+
 /** A citation: its number where it is cited; its card names the item, and a press opens it. */
 export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
   const P = useParts()
+  const { lit } = React.useContext(LitSource)
   const marker =
-    'relative ml-0.5 mr-px inline-flex h-6 min-w-6 -translate-y-px items-center justify-center rounded-md bg-muted px-1.5 align-middle text-xs font-medium text-foreground tabular-nums outline-none after:absolute after:-inset-[13px] hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50'
+    'relative ml-0.5 mr-px inline-flex h-6 min-w-6 -translate-y-px items-center justify-center rounded-md bg-muted px-1.5 align-middle text-xs font-medium text-foreground tabular-nums outline-none transition-colors after:absolute after:-inset-[13px] hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50'
+  const shown = P.cn(marker, lit === n && 'bg-foreground text-background hover:bg-foreground')
   if (!item)
     return (
-      <span className={marker} aria-label={`Source ${n}`}>
+      <span className={shown} aria-label={`Source ${n}`}>
         {n}
       </span>
     )
@@ -426,9 +437,62 @@ export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
           role="button"
           tabIndex={0}
           aria-label={`Source ${n}: ${item.title}`}
-          className={marker}
+          className={shown}
         >
           {n}
+        </span>
+      }
+      onOpen={() => P.openDock('context', item.id)}
+    >
+      <ItemCard item={item} />
+    </HoverCard>
+  )
+}
+
+/**
+ * A source under the answer as a chip (the source chips): its number, the kind's icon, its title
+ * cut to the chip, and the day it was last checked where the column has room. Its card names it
+ * whole, a press opens it, and pointing at it lights its marks in the words.
+ */
+export function SourceChip({ item }: { item: LoopItem & { n: number } }) {
+  const P = useParts()
+  const { lit, light } = React.useContext(LitSource)
+  const Icon = P.kindIcons[kindOf(item.kind)]
+  const on = () => light(item.n)
+  const off = () => light(null)
+  return (
+    <HoverCard
+      label={item.title}
+      trigger={
+        // Its name is what it shows, so a voice command can say what it reads (WCAG 2.5.3):
+        // "Source 1: Online sales to Norway stopped, checked 21 Nov 2026".
+        <span
+          role="button"
+          tabIndex={0}
+          onPointerEnter={on}
+          onPointerLeave={off}
+          onFocus={on}
+          onBlur={off}
+          className={P.cn(
+            'group/chip inline-flex h-8 max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border bg-background pr-2.5 pl-1 text-sm transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted',
+            lit === item.n && 'bg-muted',
+          )}
+        >
+          <span className="sr-only">Source {item.n}: </span>
+          <span
+            aria-hidden
+            className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 text-xs font-medium tabular-nums group-hover/chip:bg-background group-data-popup-open/chip:bg-background"
+          >
+            {item.n}
+          </span>
+          <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 truncate font-medium">{item.title}</span>
+          {item.checked && (
+            <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground @max-md/sources:sr-only">
+              <span className="sr-only">, </span>
+              checked {dayText(item.checked, true)}
+            </span>
+          )}
         </span>
       }
       onOpen={() => P.openDock('context', item.id)}

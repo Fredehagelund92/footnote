@@ -729,6 +729,27 @@ describe('the words as the page shows them, beside the evidence', () => {
       { t: 'noun', id: 'value:team/platform' },
       { t: 'text', text: ' team paused it.' },
     ])
+    // And the brackets it sat in go with it ("Germany ():" in the live test of Ask).
+    const bracketed = turnOf(
+      'Platform ([@value:team/platform]):\n\n- It paused the merge.',
+      made,
+      [],
+    )
+    expect(bracketed.text).not.toContain('()')
+    expect(
+      runs(bracketed)
+        .filter((r) => r.t === 'text')
+        .map((r) => r.text)
+        .join('|'),
+    ).not.toMatch(/\(\s*\)/)
+    // A "()" the model wrote itself is not one a mention left: it stays.
+    expect(
+      turnOf(
+        'Platform calls refresh() and [@value:team/platform] ([@value:team/platform]).',
+        made,
+        [],
+      ).text,
+    ).toContain('refresh()')
   })
 
   it('says a count once when the words give it in words and its reference too', () => {

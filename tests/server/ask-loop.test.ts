@@ -309,7 +309,11 @@ describe('what code writes from the reads', () => {
       [defined('missing', [])],
       [],
     )
-    expect(missing.defined).toEqual({ names: ['Revenue'], tool: 'dbt' })
+    expect(missing.defined).toMatchObject({ names: ['Revenue'], tool: 'dbt' })
+    // Its card is the answer: the words give the definition.
+    expect(missing.defined!.cards).toEqual([
+      expect.objectContaining({ name: 'Revenue', tool: 'dbt', inWords: true }),
+    ])
     expect(missing.state).toBeNull()
     // An answer that cites what applies keeps its state, and shows no card of the definition.
     const checked = turnOf(
@@ -361,14 +365,24 @@ describe('what code writes from the reads', () => {
     expect(t.conflict).toEqual(['itm_norway001', 'itm_norway002'])
   })
 
-  it('uses a search that matched some words when no read was about the subject', () => {
+  it('uses a search that matched some words when no read was about the subject, as Partial', () => {
     const t = turnOf(
       'The switch [itm_france001].',
       [find([{ ...item('itm_france001'), match: 'some' }], 0)],
       [],
     )
-    expect(t.state).toBe('grounded')
+    // Matched on some of the words only, it covers part of what was asked: never Checked (D5 of
+    // the live test, "returns doubled in Germany" answered from a guide on returns in Germany).
+    expect(t.state).toBe('partial')
     expect(t.sources).toEqual(['itm_france001'])
+    // One that matched every word is Checked.
+    expect(
+      turnOf(
+        'The switch [itm_france001].',
+        [find([{ ...item('itm_france001'), match: 'all' }], 1)],
+        [],
+      ).state,
+    ).toBe('grounded')
   })
 
   it('gives an answer from the records no state, with its items as sources', () => {
@@ -551,16 +565,29 @@ describe('a turn that uses no context item', () => {
       'What is orders?',
     )
     expect(t.state).toBeNull()
-    expect(t.defined).toEqual({ names: ['Orders'], tool: 'Cube' })
-    // The words give the definition, whatever the question's words.
-    expect(
-      turnOf(
-        `Ordrer er ${words}`,
-        [subject('partial'), definitions(words)],
-        [],
-        'Hva betyr ordrer?',
-      ).defined,
-    ).toEqual({ names: ['Orders'], tool: 'Cube' })
+    expect(t.defined).toMatchObject({ names: ['Orders'], tool: 'Cube' })
+    // Its card: the source's own words and its name there, from the definitions read; the words
+    // of the answer do not give them, so the card goes under them.
+    expect(t.defined!.cards).toEqual([
+      expect.objectContaining({
+        id: 'metric:orders',
+        name: 'Orders',
+        kind: 'metric',
+        words,
+        tool: 'Cube',
+        member: 'sales.orders',
+        inWords: false,
+      }),
+    ])
+    // The words give the definition, whatever the question's words: the card stands in for them.
+    const given = turnOf(
+      `Ordrer er ${words}`,
+      [subject('partial'), definitions(words)],
+      [],
+      'Hva betyr ordrer?',
+    ).defined
+    expect(given).toMatchObject({ names: ['Orders'], tool: 'Cube' })
+    expect(given!.cards[0]!.inWords).toBe(true)
     // Paraphrased in another language, citing no item: still the Definition label and no state.
     const paraphrased = turnOf(
       'Netto omsetning er salget etter fratrukne returer.',
@@ -572,7 +599,43 @@ describe('a turn that uses no context item', () => {
       'Hva betyr netto omsetning?',
     )
     expect(paraphrased.state).toBeNull()
-    expect(paraphrased.defined).toEqual({ names: ['Orders'], tool: 'Cube' })
+    expect(paraphrased.defined).toMatchObject({ names: ['Orders'], tool: 'Cube' })
+  })
+
+  it('names the words its definitions reads found nothing under, when nothing it read covers the question', () => {
+    const none = (names: string[], found = 0): MadeRead => ({
+      tool: 'definitions',
+      input: { names },
+      result: {
+        found,
+        definitions: [],
+        notFound: names.map((name) => ({ name, closest: null })),
+        names: [],
+        ids: [],
+      },
+    })
+    const unread: MadeRead = {
+      tool: 'get_context',
+      input: { about: 'EBITDA definition' },
+      result: { state: null, read: null, items: [], nearby: [], ids: [] },
+    }
+    // From the reads, as the model asked them, never from the question's words.
+    const t = turnOf(
+      'Nothing written covers EBITDA.',
+      [unread, none(['EBITDA', 'ebitda'])],
+      [],
+      'what is our ebitda definition, and how is it used?',
+    )
+    expect(t.unknown).toEqual(['EBITDA'])
+    expect(t.state).toBeNull()
+    // A turn that found a definition, cited an item or read a subject names none.
+    expect(
+      turnOf('Orders is paid orders.', [none(['EBITDA']), definitions('Paid orders.')], []).unknown,
+    ).toBeUndefined()
+    expect(
+      turnOf('Nothing covers Poland.', [none(['EBITDA']), subject('missing')], []).unknown,
+    ).toBeUndefined()
+    expect(turnOf('I cannot answer that.', [], []).unknown).toBeUndefined()
   })
 
   it('shows a definition the turn read whenever the words do not give it, in any language', () => {
@@ -680,7 +743,7 @@ describe('a turn that uses no context item', () => {
     expect(
       turnOf(`Orders is ${words}`, [subject('missing'), definitions(words)], [], 'What is orders?')
         .defined,
-    ).toEqual({ names: ['Orders'], tool: 'Cube' })
+    ).toMatchObject({ names: ['Orders'], tool: 'Cube' })
   })
 
   it('shows none of the evidence when it read nothing new and cites nothing', () => {
@@ -981,7 +1044,7 @@ describe("Ask's loop on a scripted model", () => {
       { name: 'get_context', input: { about: 'orders in Poland' } },
       { name: 'find_context', input: { words: 'orders in Poland' } },
     ])
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'steps', state: 'missing' })
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'steps', state: null })
     expect(turn.body.length).toBeGreaterThan(0)
     expect(turn.nearby).toContain('itm_germany01')
     // What was read says the model's reads and the plain read's, each once.
@@ -996,7 +1059,7 @@ describe("Ask's loop on a scripted model", () => {
     const { turn } = await turnWith(() => ({ text: 'Too late [itm_germany01].', delay: 2_000 }), {
       timeoutMs: 100,
     })
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'time', state: 'missing' })
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'time', state: null })
     expect(turn.text).toBe(
       'Ask stopped at its time limit of 0 seconds before it had an answer, so this is what is written, as agents get it.',
     )
@@ -1005,7 +1068,7 @@ describe("Ask's loop on a scripted model", () => {
 
   it('says its model failed, in one sentence over the plain read, and logs only the failure', async () => {
     const { turn, errors } = await turnWith(() => ({ fail: true }))
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'model', state: 'missing' })
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'model', state: null })
     expect(turn.text).toBe(
       "Ask's model did not answer just now, so this is what is written, as agents get it.",
     )
@@ -1015,7 +1078,7 @@ describe("Ask's loop on a scripted model", () => {
 
   it('says the provider refused its key, not that it did not answer just now (T2)', async () => {
     const { turn, errors } = await turnWith(() => ({ refuse: 401 }))
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'key', state: 'missing' })
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'key', state: null })
     expect(turn.text).toBe(
       "The model provider refused Ask's key, so this is what is written, as agents get it. An administrator needs to give Footnote a key that works.",
     )
@@ -1029,7 +1092,7 @@ describe("Ask's loop on a scripted model", () => {
 
   it('says the account behind its key is out of credit, not that it did not answer just now', async () => {
     const { turn } = await turnWith(() => ({ refuse: 402 }))
-    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'credit', state: 'missing' })
+    expect(turn).toMatchObject({ kind: 'stopped', stopped: 'credit', state: null })
     expect(turn.text).toBe(
       "The model provider says the account behind Ask's key is out of credit, so this is what is written, as agents get it. An administrator needs to add credit, or give Footnote another key.",
     )

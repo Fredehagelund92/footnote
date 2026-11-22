@@ -6,7 +6,7 @@ import { expect, go, test } from './go.ts'
 // draws them: the state as a badge at the head of the answer with its fixed sentence beside it
 // (none for Checked), its meaning in a card on the badge (on hover, on keyboard focus and on a
 // tap), the words at 16/26 inside the reading measure, the sources as numbered chips, what was used
-// folded to one line, What Ask read under the footer, and one row of icons with More. Partial is
+// as source chips with their titles, What Ask read under the footer, and one row of icons with More. Partial is
 // left out: no recorded question answers Partial. The composer is one surface with Send in one
 // 32 px slot.
 
@@ -63,7 +63,7 @@ async function coversNothing(page: Page, turn: number, label: string) {
   const log = page.getByRole('log')
   const badge = log
     .locator(`[data-turn="${turn}"]`)
-    .locator('[data-slot="popover-trigger"]', { hasText: label })
+    .locator('[data-slot="popover-trigger"]', { hasText: new RegExp(`^${label}`) })
   const card = page.getByRole('dialog', { name: `What ${label} means` })
   await expect(card).toBeVisible()
   // Settled where it goes: in, and no longer moving.
@@ -102,7 +102,10 @@ for (const s of states)
     await go(page, `/ask?n=${Date.now()}`)
     await ask(page, s.question)
     const log = page.getByRole('log')
-    const badge = log.locator('[data-slot="popover-trigger"]', { hasText: s.label })
+    // The badge, by its label first: a source chip says when its item was checked.
+    const badge = log.locator('[data-slot="popover-trigger"]', {
+      hasText: new RegExp(`^${s.label}`),
+    })
     await expect(badge).toBeVisible()
     await expect(badge).toHaveAttribute('aria-haspopup', 'dialog')
     // A 24 px badge, with its state's fixed sentence beside it; Checked needs none. A failed
@@ -138,11 +141,11 @@ for (const s of states)
       expect(type.width).toBeLessThanOrEqual(600)
     }
 
-    // The sources as numbered chips in the words, what was used folded to one line, and What Ask
-    // read under the footer; a failed look-up folds what it tried under Not looked up. No helper
-    // lines.
+    // The sources as numbered chips in the words, what was used as source chips with their
+    // titles, and What Ask read under the footer; a failed look-up folds what it tried under Not
+    // looked up. No helper lines.
     await expect(words.getByRole('button', { name: /^Source \d+: / })).toHaveCount(s.sources)
-    await expect(log.getByText(/^Used \d+ items?$/)).toHaveCount(s.used)
+    await expect(log.locator('[data-sources]')).toHaveCount(s.used)
     await expect(
       log.locator('[data-slot="collapsible-trigger"]', {
         hasText: s.label === 'Not looked up' ? /^Not looked up/ : /^What Ask read$/,

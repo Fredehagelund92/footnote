@@ -1038,7 +1038,25 @@
     "definitions": [],
     "defined": {
       "names": ["Net revenue"],
-      "tool": "Cube"
+      "tool": "Cube",
+      "cards": [
+        {
+          "id": "metric:net_revenue",
+          "name": "Net revenue",
+          "kind": "metric",
+          "words": "Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+          "tool": "Cube",
+          "member": "revenue.net_revenue",
+          "group": null,
+          "domain": null,
+          "owners": [],
+          "context": {
+            "count": 2,
+            "items": ["itm_spain_vat_in", "itm_spain_vat_out"]
+          },
+          "inWords": true
+        }
+      ]
     },
     "choices": [],
     "reads": [
@@ -1126,7 +1144,30 @@
         "type": null
       }
     ],
-    "items": [],
+    "items": [
+      {
+        "id": "itm_spain_vat_in",
+        "title": "Net revenue in Spain includes VAT",
+        "kind": "rule",
+        "domain": "domain:area_sales",
+        "about": ["metric:net_revenue", "value:market/spain"],
+        "status": "live",
+        "checked": "2026-10-12",
+        "outOfDate": null,
+        "n": null
+      },
+      {
+        "id": "itm_spain_vat_out",
+        "title": "Net revenue in Spain excludes VAT",
+        "kind": "rule",
+        "domain": "domain:area_paid_media",
+        "about": ["metric:net_revenue", "value:market/spain"],
+        "status": "live",
+        "checked": "2026-10-03",
+        "outOfDate": null,
+        "n": null
+      }
+    ],
     "closest": null,
     "owners": [
       {

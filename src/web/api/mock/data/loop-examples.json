@@ -1464,7 +1464,7 @@
                 "domain": "domain:area_sales",
                 "status": "asked 9 times",
                 "date": "2026-11-21",
-                "card": "01a1ff56-f2be-7f13-b5d8-9a5a34a20d74"
+                "card": "01a1ffaa-5888-70a4-a3c0-16bb06f67c00"
               }
             ],
             "more": 0
@@ -1481,7 +1481,7 @@
                 "domain": "domain:area_sales",
                 "status": "reported wrong",
                 "date": "2026-11-21",
-                "card": "report:01a1ff57-4167-77ce-8aa2-7449f71a51bd"
+                "card": "report:01a1ffaa-5a08-7edc-951b-7f73af8e918c"
               }
             ],
             "more": 0
@@ -1515,7 +1515,7 @@
                 "domain": "domain:area_customer_value",
                 "status": "an alert",
                 "date": "2026-11-21",
-                "card": "alert:01a1ff58-034a-795f-ad9a-402ecded3205"
+                "card": "alert:01a1ffaa-5c35-7786-bf3a-d15dc5e2587e"
               },
               {
                 "title": "Google Drive could not be read",
@@ -1524,7 +1524,7 @@
                 "domain": null,
                 "status": "an alert",
                 "date": "2026-11-21",
-                "card": "alert:01a1ff58-0381-7885-a4c4-45da750d617c"
+                "card": "alert:01a1ffaa-5c36-702b-9d02-a67a5de50512"
               }
             ],
             "more": 0
@@ -1593,7 +1593,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1ff55-c86b-708d-bfab-99bc52eab073"
+                "card": "01a1ffaa-55a3-78a4-a502-f02637ec9633"
               },
               {
                 "title": "Online sales to Norway stopped on 4 August 2026",
@@ -1602,7 +1602,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1ff55-f91f-758c-bc6d-fcd114da78b2"
+                "card": "01a1ffaa-5643-74c1-92b1-3e1b5ead16ef"
               },
               {
                 "title": "Returns changed definition on 28 April 2026",
@@ -1611,7 +1611,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1ff56-1fec-7784-96bf-d0ced2072363"
+                "card": "01a1ffaa-56b2-722e-b577-646462c5eba1"
               },
               {
                 "title": "What to rule out before explaining a jump in Gross margin",
@@ -1620,7 +1620,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1ff56-425d-7853-9bd1-6ea7120db5bf"
+                "card": "01a1ffaa-5717-7479-93e2-3ce9caebe609"
               },
               {
                 "title": "What to rule out before explaining a jump in Orders",
@@ -1629,7 +1629,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1ff56-65b0-760f-a99a-7e35d996c798"
+                "card": "01a1ffaa-5779-7aa2-9bb2-70edc5085376"
               },
               {
                 "title": "Payment provider switched in France on 12 May 2026",
@@ -1638,7 +1638,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a change",
                 "date": "2026-10-23",
-                "card": "01a1ff56-8844-7ccb-ac6a-6d1f01a5b6f6"
+                "card": "01a1ffaa-57d6-74de-8690-7e4f2c898129"
               },
               {
                 "title": "Payment provider delays order data in Poland",
@@ -1647,7 +1647,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1ff56-b87f-770c-bfdd-a62a38966d9b"
+                "card": "01a1ffaa-5830-73e1-8a5d-831f2c67d8c6"
               },
               {
                 "title": "Norway orders leave out store credit from 1 November 2026",
@@ -1656,7 +1656,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1ff57-080d-7f4b-870d-374526b780d3"
+                "card": "01a1ffaa-58df-7204-83eb-9e18c5e4064b"
               },
               {
                 "title": "Data for Orders before 19 January 2026 is not reliable",
@@ -1665,7 +1665,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests to archive",
                 "date": "2026-10-23",
-                "card": "01a1ff57-1519-7061-bc78-904593e4e320"
+                "card": "01a1ffaa-5927-7c70-8479-7682fa10496e"
               },
               {
                 "title": "Orders in Germany include marketplace orders from 15 October 2026",
@@ -1674,7 +1674,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1ff57-d8c8-7009-b75a-3cace544b115"
+                "card": "01a1ffaa-5bc9-72b7-8ca3-ce7d9fd50e7e"
               },
               {
                 "title": "Units sold counts a bundle as one unit",
@@ -1683,7 +1683,7 @@
                 "domain": "domain:area_sales",
                 "status": "suggests a new item",
                 "date": "2026-10-23",
-                "card": "01a1ff57-e90c-77e9-b3b3-3a0f3bee048e"
+                "card": "01a1ffaa-5be7-7e44-82e9-2d5d4b9f8def"
               }
             ],
             "more": 0
@@ -2850,6 +2850,600 @@
         }
       ],
       "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-definition": {
+    "question": "What is net revenue?",
+    "turn": {
+      "kind": "answer",
+      "text": "Net revenue is Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "2 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up Net revenue, any date: 2 items apply.",
+        "Read Definitions for net revenue: 1 found."
+      ],
+      "subject": {
+        "names": ["Net revenue"],
+        "about": ["metric:net_revenue"],
+        "period": "any date",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": ["metric:net_revenue"],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "defined": {
+        "names": ["Net revenue"],
+        "tool": "Cube",
+        "cards": [
+          {
+            "id": "metric:net_revenue",
+            "name": "Net revenue",
+            "kind": "metric",
+            "words": "Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+            "tool": "Cube",
+            "member": "revenue.net_revenue",
+            "group": "Revenue",
+            "domain": {
+              "id": "domain:area_sales",
+              "name": "Sales"
+            },
+            "owners": ["Jon Abara", "Sofia Brandt"],
+            "context": {
+              "count": 2,
+              "items": ["itm_spainvatin", "itm_spainvatout"]
+            },
+            "inWords": true
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "net revenue",
+            "no_period": true
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["net revenue"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "noun",
+              "id": "metric:net_revenue"
+            },
+            {
+              "t": "text",
+              "text": " is Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month."
+            }
+          ]
+        }
+      ],
+      "said": "[@metric:net_revenue] is Gross sales after returns, discounts, VAT and payment fees, in euros. The figure finance reports each month.",
+      "nouns": [
+        {
+          "id": "metric:net_revenue",
+          "name": "Net revenue",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_paid_media",
+          "name": "Paid media",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:d8c06a17-6a1f-4a95-813c-0d920a7c5446",
+          "name": "Priya Nair",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:gross_sales",
+          "name": "Gross sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:units_sold",
+          "name": "Units sold",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_spainvatin",
+          "title": "Net revenue in Spain includes VAT",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:net_revenue", "value:market/spain"],
+          "status": "live",
+          "checked": "2026-10-12",
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_spainvatout",
+          "title": "Net revenue in Spain excludes VAT",
+          "kind": "rule",
+          "domain": "domain:area_paid_media",
+          "about": ["metric:net_revenue", "value:market/spain"],
+          "status": "live",
+          "checked": "2026-10-03",
+          "outOfDate": null,
+          "n": null
+        }
+      ],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-unknown": {
+    "question": "What is our EBITDA definition?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing written covers EBITDA, so Ask has no definition of it to give you.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up “EBITDA definition”: it names no metric, value or date the workspace knows.",
+        "Read Definitions for EBITDA: 0 found."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "unknown": ["EBITDA"],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "EBITDA definition",
+            "no_period": true
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["EBITDA"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing written covers EBITDA, so Ask has no definition of it to give you."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing written covers EBITDA, so Ask has no definition of it to give you.",
+      "nouns": [],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-stopped": {
+    "question": "Give me all about orders in poland",
+    "turn": {
+      "kind": "stopped",
+      "text": "Ask stopped at its limit of 6 steps before it had an answer, so this is what is written, as agents get it.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "0 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up Orders and Poland, 23 Oct 2026: 0 items apply, 9 nearby items do not.",
+        "Searched “orders 1” (read as Orders), any date: 12 found.",
+        "Searched “orders 2” (read as Orders), any date: 12 found.",
+        "Searched “orders 3” (read as Orders), any date: 12 found.",
+        "Searched “orders 4” (read as Orders), any date: 12 found.",
+        "Searched “Give me all about orders in poland” (read as Orders and Poland), any date: 0 found."
+      ],
+      "subject": {
+        "names": ["Orders", "Poland"],
+        "about": ["metric:orders", "value:market/poland"],
+        "period": "23 Oct 2026",
+        "note": null,
+        "assumedToday": true,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [
+        "itm_norwaystop",
+        "itm_franceswitch21",
+        "itm_franceswitch12",
+        "itm_spe2w9kh",
+        "itm_0tmqp7o1",
+        "itm_2a1wp53q",
+        "itm_giftcardonly",
+        "itm_giftstorecredit",
+        "itm_r6lyl1pc"
+      ],
+      "conflict": [],
+      "definitions": [
+        {
+          "name": "Orders",
+          "words": "The value of orders customers completed and paid for, in euros at the daily rate. Cancelled orders and failed payments are left out.",
+          "tool": "Cube",
+          "id": "metric:orders"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "Give me all about orders in poland"
+          }
+        },
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Give me all about orders in poland"
+          }
+        }
+      ],
+      "stopped": "steps",
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing written covers "
+            },
+            {
+              "t": "noun",
+              "id": "metric:orders"
+            },
+            {
+              "t": "text",
+              "text": " and "
+            },
+            {
+              "t": "noun",
+              "id": "value:market/poland"
+            },
+            {
+              "t": "text",
+              "text": ". Sales is owned by Jon Abara and Sofia Brandt."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing written covers [@metric:orders] and [@value:market/poland]. Sales is owned by Jon Abara and Sofia Brandt.",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:return_on_ad_spend",
+          "name": "Return on ad spend",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:gross_margin",
+          "name": "Gross margin",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_marketing",
+          "name": "Marketing",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_norwaystop",
+          "title": "Online sales to Norway stopped on 4 August 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_franceswitch21",
+          "title": "Payment provider switched in France on 21 May 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/france"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_franceswitch12",
+          "title": "Payment provider switched in France on 12 May 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/france"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_spe2w9kh",
+          "title": "Payment provider switched in France on 12 May 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/france"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_0tmqp7o1",
+          "title": "Orders lags by one day in the source tool",
+          "kind": "warning",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/germany"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_2a1wp53q",
+          "title": "What to rule out before explaining a jump in Orders",
+          "kind": "guide",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/france"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_giftcardonly",
+          "title": "Norway orders are card and cash payments only",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_giftstorecredit",
+          "title": "Norway orders count store credit",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        },
+        {
+          "id": "itm_r6lyl1pc",
+          "title": "Data for Orders before 19 January 2026 is not reliable",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/sweden"],
+          "status": "live",
+          "checked": null,
+          "outOfDate": null,
+          "n": null
+        }
+      ],
+      "closest": {
+        "by": "dimension:market",
+        "counts": [
+          {
+            "id": "value:market/france",
+            "count": 4
+          },
+          {
+            "id": "value:market/norway",
+            "count": 3
+          },
+          {
+            "id": "value:market/germany",
+            "count": 1
+          },
+          {
+            "id": "value:market/sweden",
+            "count": 1
+          }
+        ],
+        "items": [
+          "itm_norwaystop",
+          "itm_franceswitch21",
+          "itm_franceswitch12",
+          "itm_spe2w9kh",
+          "itm_0tmqp7o1",
+          "itm_2a1wp53q",
+          "itm_giftcardonly",
+          "itm_giftstorecredit",
+          "itm_r6lyl1pc"
+        ]
+      },
       "owners": [
         {
           "domain": "domain:area_sales",

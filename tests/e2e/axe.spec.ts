@@ -51,6 +51,12 @@ const places = [
   '/ask?example=loop-stale',
   '/ask?example=loop-list',
   '/ask?example=loop-overview',
+  // The definition card, the gap card for a word the workspace does not know, a stop, and the
+  // source chips with the items that need a look.
+  '/ask?example=loop-definition',
+  '/ask?example=loop-unknown',
+  '/ask?example=loop-stopped',
+  '/ask?example=loop-used-trust',
   '/context/itm_gift_store_credit',
   // Conflicts: the Context list filtered to them, a pair's page, the dock, a pair across two
   // domains, a near copy.
