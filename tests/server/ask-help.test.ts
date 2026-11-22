@@ -113,6 +113,37 @@ describe('an answer from the help', () => {
     })
   })
 
+  it('shows as its source the help part its steps came from, by the words a model searched', () => {
+    // Each question with the words Sonnet searched the help for, and the steps it wrote (live).
+    const howTo = [
+      {
+        question: 'How do I create a context item about a metric?',
+        words: 'add a context item about a metric',
+        text: 'To create a context item, open Context and choose New context. The editor opens on a new item with its first question: What should agents know?',
+        part: 'write-context#add-a-context-item',
+      },
+      {
+        question: 'How do I approve a suggestion?',
+        words: 'approve a suggestion',
+        text: 'A suggestion waits in its owner’s Inbox, and you decide on it in the review: you publish it, return it or close it.',
+        part: 'review-a-suggestion#',
+      },
+      {
+        question: 'How do I mark a context item as checked?',
+        words: 'mark a context item as checked',
+        text: 'Choose Still true on its card when it is due for a check: it then counts as checked today, by you, and its next check date moves on.',
+        part: 'keep-context-up-to-date#due-for-a-check',
+      },
+    ]
+    for (const { question, words, text, part } of howTo) {
+      const t = turnOf(text, [helpRead(words)], [], question)
+      expect(
+        t.help?.map((h) => `${h.slug}#${h.id}`),
+        question,
+      ).toEqual([part])
+    }
+  })
+
   it('is no help answer when it cites an item: the context it rests on is its source', () => {
     const t = turnOf('Nothing written covers it.', [searchedNothing], [], 'Why?')
     expect(t.help).toBeUndefined()

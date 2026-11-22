@@ -3292,9 +3292,9 @@
       "help": [
         {
           "slug": "write-context",
-          "id": "what-a-context-item-is",
+          "id": "add-a-context-item",
           "title": "Write context",
-          "heading": "What a context item is"
+          "heading": "Add a context item"
         }
       ],
       "choices": [],
