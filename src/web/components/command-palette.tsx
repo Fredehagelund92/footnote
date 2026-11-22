@@ -270,7 +270,7 @@ export function CommandPalette() {
                     {d.sameAs
                       ? `Another name for ${d.sameAs}`
                       : d.variants
-                        ? 'Family of metrics'
+                        ? `Family · ${d.variants.count.toLocaleString('en-GB')} ${d.variants.count === 1 ? 'variant' : 'variants'}`
                         : kindName(d)}
                   </CommandShortcut>
                 </CommandItem>

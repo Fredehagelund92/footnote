@@ -189,26 +189,28 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
 }
 
 /**
- * What a name ends with in brackets, and the rest: "Channel (orders)" is "Channel" and " (orders)".
- * Names that share their start differ there, so it is what a narrow row must not cut.
- */
-/**
  * A family's meaning for its row: an article before a slot and the axis word repeated after it
  * drop, so "through the {Channel} channel" reads "through each channel".
  */
 function tidyMeaning(words: string, by: readonly string[]): string {
-  const folded = words.replace(
-    /(\b(?:the|a|an)\s+)?\{([^{}]+)\}(\s+\w+\b)?/gi,
-    (slot, article: string | undefined, axis: string, after: string | undefined) => {
-      if (!by.includes(axis)) return slot
-      const repeated = after !== undefined && after.trim().toLowerCase() === axis.toLowerCase()
-      const lead = /^[TA]/.test(article ?? '') ? 'Each' : 'each'
-      return `${lead} ${axis.toLowerCase()}${repeated ? '' : (after ?? '')}`
-    },
-  )
+  const folded = words
+    .replace(/\{([^{}]+)\}\s+\1\b/gi, (slot, axis: string) =>
+      by.includes(axis) ? `{${axis}}` : slot,
+    )
+    .replace(
+      /(\b(?:the|a|an)\s+)?\{([^{}]+)\}/gi,
+      (slot, article: string | undefined, axis: string) =>
+        by.includes(axis)
+          ? `${/^[TA]/.test(article ?? '') ? 'Each' : 'each'} ${axis.toLowerCase()}`
+          : slot,
+    )
   return meaningLine(folded, by)
 }
 
+/**
+ * What a name ends with in brackets, and the rest: "Channel (orders)" is "Channel" and " (orders)".
+ * Names that share their start differ there, so it is what a narrow row must not cut.
+ */
 const endOf = (name: string) => /^(.*\S)(\s+\([^()]*\)(?:\s*\([^()]*\))*)$/.exec(name)
 
 /**
