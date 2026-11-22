@@ -159,7 +159,7 @@ export async function checkDraft(
         add(
           'source_changed',
           'changeMarks',
-          `The definition ${ref} changed. Check that the fact still holds.`,
+          `The definition ${ref} changed. Check that the item still holds.`,
           'warning',
         )
       // Only a metric belongs to a domain: a dimension such as market is in every view.
@@ -208,14 +208,14 @@ export async function checkDraft(
       add('mention_syntax', field, "A mention isn't written right. Remove it, then add it again.")
     for (const mention of parsed.mentions) {
       const target = mention.target
-      if (target === `item:${itemId}`) add('self_mention', field, "A fact can't mention itself.")
+      if (target === `item:${itemId}`) add('self_mention', field, "An item can't mention itself.")
       else if (target.startsWith('item:')) {
         const rows = await tx.query(
           'select 1 from item_version_service s join item_versions v on v.id=s.version_id where s.item_id=$1 and s.editions @> (select seq from live_edition) and cl_audience_allows(v.audience_groups)',
           [target.slice(5)],
         )
         if (!rows.length)
-          await missing(field, target, "A fact you mention isn't accepted, or you can't see it.")
+          await missing(field, target, "An item you mention isn't accepted, or you can't see it.")
       } else if (target.startsWith('area:')) {
         if (
           !(

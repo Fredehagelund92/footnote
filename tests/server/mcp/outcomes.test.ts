@@ -83,7 +83,7 @@ describe('W3: what must not be concluded reaches agents (FR-104, FR-326)', () =>
     })
     expect(out.context[0]!.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
     expect(out.instructions).toContain(
-      'When an item has not_to_conclude, never conclude what it rules out.',
+      "When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out.",
     )
     const read = await s.call('read_context', { id: 'itm_norway01' })
     expect(read.out.context.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
