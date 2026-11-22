@@ -19,7 +19,13 @@ import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
 import { PersonAvatar } from '@/components/footnote/bits'
-import { AnotherNameFor, FamilyChip, TypeTile } from '@/components/footnote/definition'
+import { AnotherNameFor, TypeTile } from '@/components/footnote/definition'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  createTooltipHandle,
+} from '@/components/ui/tooltip'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import {
@@ -62,7 +68,7 @@ import { definitionsPageQuery } from '@/api/queries'
 import type { DomainId } from '@/model/items'
 import {
   definitionCounts,
-  familyBy,
+  familyLines,
   typeLabel,
   toolOf,
   toolsOf,
@@ -180,6 +186,25 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
     [tableRef],
   )
   return [shown, ref] as const
+}
+
+/**
+ * A family's meaning for its row: an article before a slot and the axis word repeated after it
+ * drop, so "through the {Channel} channel" reads "through each channel".
+ */
+function tidyMeaning(words: string, by: readonly string[]): string {
+  const folded = words
+    .replace(/\{([^{}]+)\}\s+\1\b/gi, (slot, axis: string) =>
+      by.includes(axis) ? `{${axis}}` : slot,
+    )
+    .replace(
+      /(\b(?:the|a|an)\s+)?\{([^{}]+)\}/gi,
+      (slot, article: string | undefined, axis: string) =>
+        by.includes(axis)
+          ? `${/^[TA]/.test(article ?? '') ? 'Each' : 'each'} ${axis.toLowerCase()}`
+          : slot,
+    )
+  return meaningLine(folded, by)
 }
 
 /**
@@ -400,6 +425,8 @@ export function DefinitionsPage() {
     return [...(g.key ? [{ heading: g.key, rows: g.rows, open }] : []), ...(open ? g.rows : [])]
   })
   const drawn = React.useRef<WindowRowsHandle>(null)
+  // Every family row's stack shares one tooltip, so thousands of rows hold one, not one each.
+  const [familyTip] = React.useState(() => createTooltipHandle<string[]>())
   usePublishOrder('definitions', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
@@ -469,16 +496,23 @@ export function DefinitionsPage() {
     const n = about(d)
     const family = d.family
     // A family's meaning, each value it varies by said as its axis ("in each currency"); with
-    // none, what writing about it does.
+    // none, the words its quick view says.
     const subject = family ? undefined : glossary.meaningOf(d)
     const meaning = family
       ? family.meaning?.words
-        ? meaningLine(family.meaning.words, family.by)
-        : `Context about it applies to all ${family.variants.length.toLocaleString('en-GB')} variants.`
+        ? tidyMeaning(family.meaning.words, family.by)
+        : 'No meaning yet: its variants say different things.'
       : plainText(subject?.definition ?? '')
     // Found by its variants' words alone, a family says how many, never which (FR-142): its quick
     // view names the first.
     const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
+    const tip = family && familyLines(family)
+    const matchedWords =
+      matched === 1
+        ? '1 variant matches'
+        : matched > 1
+          ? `${matched.toLocaleString('en-GB')} variants match`
+          : null
     const open = () =>
       openFromRow('def', d.name, matched ? { variant: variantFirst.get(d.name) } : undefined)
     const rowFacts = [
@@ -532,7 +566,6 @@ export function DefinitionsPage() {
         data-vt-move
         className={cn(
           'group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto',
-          family && 'h-auto',
         )}
         onMouseDown={sel.onMouseDown}
         onClick={(e) => sel.rowClick(d.name, e) || open()}
@@ -551,65 +584,50 @@ export function DefinitionsPage() {
           />
         </td>
         {/* The name with its type tile, its other names as tags (or, in the audit view, a synonym's Another name for); the rest are short facts. */}
-        <td
-          className={cn(
-            'max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5',
-            family && 'py-1.5',
-          )}
-        >
-          {family ? (
-            // A family's mark: the stack, "Family · 250 variants" and what tells them apart, the
-            // same at every width (FR-142). The name has its line to itself, so names that start
-            // alike ("Partner net revenue…") stay told apart with a panel open or on a phone.
-            <span className="flex min-w-0 items-center gap-2.5">
+        <td className="max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5">
+          <span className="flex min-w-0 items-center gap-2.5">
+            {tip ? (
+              // A family is marked by its stack alone; what tells its variants apart is in its
+              // tooltip and its quick view (FR-142). The row is a metric's, at a metric's height.
+              <TooltipTrigger
+                handle={familyTip}
+                payload={tip}
+                render={<span className="inline-flex shrink-0" />}
+              >
+                <TypeTile d={d} label={tip.join('. ')} />
+              </TooltipTrigger>
+            ) : (
               <TypeTile d={d} />
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="flex min-w-0 items-center gap-2">
-                  {name}
-                  <AlsoCalledChips names={otherNames(d)} conflicts={[]} matched={matchedBy(d)} />
+            )}
+            <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
+              {name}
+              {target && <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />}
+              <AlsoCalledChips
+                names={otherNames(d)}
+                conflicts={
+                  family
+                    ? []
+                    : index
+                        .alsoCalled(d)
+                        .filter((x) => index.conflictOf(x))
+                        .map((x) => x.name)
+                }
+                matched={matchedBy(d)}
+              />
+              {matchedWords && (
+                <span className="hidden shrink-0 text-xs whitespace-nowrap text-muted-foreground @xl/main:inline">
+                  {matchedWords}
                 </span>
-                {/* What does not fit beside the chip goes on a line of its own, never cut. */}
-                <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                  <FamilyChip family={family} />
-                  <span className="min-w-0">
-                    {familyBy(family)}
-                    {rowFacts.map((fact) => (
-                      <span key={String(fact)} className="@xl/main:hidden">
-                        {' '}
-                        · {fact}
-                      </span>
-                    ))}
-                    {matched > 0 &&
-                      ` · ${matched === 1 ? '1 variant matches' : `${matched.toLocaleString('en-GB')} variants match`}`}
-                  </span>
-                </span>
+              )}
+              {/* On a phone the short facts go on a second line, led by why a family is found. */}
+              <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
+                {matchedWords && <span>{matchedWords}</span>}
+                {rowFacts.map((fact) => (
+                  <span key={String(fact)}>{fact}</span>
+                ))}
               </span>
             </span>
-          ) : (
-            <span className="flex min-w-0 items-center gap-2.5">
-              <TypeTile d={d} />
-              <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
-                {name}
-                {target && (
-                  <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />
-                )}
-                <AlsoCalledChips
-                  names={otherNames(d)}
-                  conflicts={index
-                    .alsoCalled(d)
-                    .filter((x) => index.conflictOf(x))
-                    .map((x) => x.name)}
-                  matched={matchedBy(d)}
-                />
-                {/* On a phone the short facts go on a second line. */}
-                <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
-                  {rowFacts.map((fact) => (
-                    <span key={String(fact)}>{fact}</span>
-                  ))}
-                </span>
-              </span>
-            </span>
-          )}
+          </span>
         </td>
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
@@ -1142,6 +1160,20 @@ export function DefinitionsPage() {
           </>
         )}
       </div>
+      {/* What a family's stack stands for, on hover: the quick view's first line. */}
+      <Tooltip handle={familyTip}>
+        {({ payload }) =>
+          payload && (
+            <TooltipContent side="top" align="start" className="flex-col items-start gap-0.5">
+              {payload.map((line, i) => (
+                <span key={line} className={i === 0 ? 'font-medium' : 'opacity-80'}>
+                  {line}
+                </span>
+              ))}
+            </TooltipContent>
+          )
+        }
+      </Tooltip>
       {/* Picked rows get their bar in a band of its own under the list, never over a row. */}
       <DefinitionsBulk sel={sel} defs={all} />
     </div>

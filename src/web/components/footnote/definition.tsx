@@ -1,13 +1,12 @@
 import * as React from 'react'
 import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/components/icons'
 import { termWord } from '@domain/terms'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
 import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
 import type { Fact } from '@/model/items'
 import {
   familyMeaning,
@@ -39,10 +38,13 @@ import { ShowMoreButton } from '@/components/footnote/show-more'
 export function TypeTile({
   d,
   size = 'md',
+  label,
   className,
 }: {
   d: Pick<Definition, 'type' | 'sameAs' | 'family'>
   size?: 'md' | 'lg'
+  /** What it says to a screen reader in place of its kind, when a tooltip beside it says the same. */
+  label?: string
   className?: string
 }) {
   const Glyph = glyphs[kindOf(d)]
@@ -50,8 +52,8 @@ export function TypeTile({
   const tile = (
     <span
       role="img"
-      aria-label={kindName(d)}
-      title={kindName(d)}
+      aria-label={label ?? kindName(d)}
+      title={label ? undefined : kindName(d)}
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center border bg-muted text-foreground',
         size === 'md' ? 'size-6 [&>svg]:size-3.5' : 'size-7 [&>svg]:size-4',
@@ -64,31 +66,19 @@ export function TypeTile({
   )
   if (!d.family) return tile
   // A family is its metric's tile with two more behind it, each a step up and to the right: a
-  // stack of variants.
-  const behind = cn('absolute border bg-background', size === 'md' ? 'size-6' : 'size-7', corner)
+  // stack of variants. Their edges are the muted ink, so the stack reads in light and dark alike.
+  const behind = cn(
+    'absolute border border-muted-foreground/35 bg-muted',
+    size === 'md' ? 'size-6' : 'size-7',
+    corner,
+  )
   return (
     // The stack takes no room of its own: the name beside it starts where a metric's would.
     <span className={cn('relative -mt-1 -mr-1 inline-flex shrink-0 pt-1 pr-1', className)}>
-      <span aria-hidden className={cn(behind, 'top-0 right-0')} />
+      <span aria-hidden className={cn(behind, 'top-0 right-0 opacity-60')} />
       <span aria-hidden className={cn(behind, 'top-0.5 right-0.5')} />
       {tile}
     </span>
-  )
-}
-
-/** A family's mark beside its name: "Family · 250 variants", the same at every width. */
-export function FamilyChip({
-  family,
-  className,
-}: {
-  family: NonNullable<Definition['family']>
-  className?: string
-}) {
-  const n = family.variants.length.toLocaleString('en-GB')
-  return (
-    <Badge variant="outline" className={cn('shrink-0 text-muted-foreground', className)}>
-      Family · {n} {family.variants.length === 1 ? 'variant' : 'variants'}
-    </Badge>
   )
 }
 

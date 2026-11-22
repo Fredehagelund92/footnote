@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { FAMILY_WORDS_MAX } from '@domain/family-meaning'
 import { useWrite } from '@/api/queries'
 import { TriangleAlertIcon } from '@/components/icons'

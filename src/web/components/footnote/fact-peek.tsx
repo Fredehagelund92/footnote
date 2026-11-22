@@ -14,7 +14,7 @@ import {
   PencilIcon,
   TriangleAlertIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { DockFrame, DockMissing, PeekBar } from '@/components/dock'
 import { DockStepper } from '@/components/footnote/list'
 import {

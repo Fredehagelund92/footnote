@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/errors'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), dismiss: vi.fn(), say: vi.fn(() => 'id') }))
-vi.mock('sonner', () => ({ toast: Object.assign(toast.say, toast) }))
+vi.mock('@/lib/toast', () => ({ toast: Object.assign(toast.say, toast), SAID_MS: 4000 }))
 
 import { heldFor, heldWords, LASTING_TOAST_MS, showOffer, takeBackBy } from '@/lib/undo'
 
@@ -59,18 +59,18 @@ describe('the toast of an Undo', () => {
   const taken = () => Promise.resolve(true)
   const said = () => toast.say.mock.calls[0] as unknown as [string, Record<string, unknown>]
 
-  it('goes when the window ends', () => {
-    vi.useFakeTimers({ now: at })
+  it('goes when the window ends, even while it is pointed at', () => {
     showOffer('Closed', { token: 't', until: '2026-11-16T09:00:15Z' }, taken, {}, at)
-    expect(said()[1]).toMatchObject({ duration: 15_000, action: { label: 'Undo' } })
-    vi.advanceTimersByTime(15_000)
-    expect(toast.dismiss).toHaveBeenCalledWith('id')
-    vi.useRealTimers()
+    expect(said()[1]).toMatchObject({ duration: 15_000, firm: true, action: { label: 'Undo' } })
   })
 
   it('goes by itself when the service takes Undo at any time', () => {
     showOffer('Closed', { token: 't', until: null }, taken, {}, at)
-    expect(said()[1]).toMatchObject({ duration: LASTING_TOAST_MS, action: { label: 'Undo' } })
+    expect(said()[1]).toMatchObject({
+      duration: LASTING_TOAST_MS,
+      firm: false,
+      action: { label: 'Undo' },
+    })
     expect(LASTING_TOAST_MS).toBeLessThanOrEqual(15_000)
   })
 

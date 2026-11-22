@@ -1,5 +1,5 @@
 import { CircleSlashIcon, DatabaseIcon, ExternalLinkIcon } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/footnote/fold'

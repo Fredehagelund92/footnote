@@ -24,7 +24,7 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { listOf } from '@/model/people'

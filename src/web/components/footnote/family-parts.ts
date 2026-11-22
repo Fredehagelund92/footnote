@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { toApiError } from '@/api/errors'
 import { namesQuery, useWrite } from '@/api/queries'
 import {
@@ -55,7 +55,7 @@ import {
 } from '@/components/ui/dialog'
 import { useRelated } from '@/hooks/use-related'
 import { differingWords } from '@/lib/differing-words'
-import { familyBy, useGlossary } from '@/lib/definitions'
+import { conversionLines, familyBy, useGlossary } from '@/lib/definitions'
 import { closeDock, openDock } from '@/lib/dock'
 import { useFigures } from '@/lib/figures'
 import { mentionId } from '@/lib/mentions'
@@ -122,6 +122,7 @@ export const familyParts = {
   DialogTitle,
   useRelated,
   differingWords,
+  conversionLines,
   familyBy,
   useGlossary,
   closeDock,

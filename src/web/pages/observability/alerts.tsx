@@ -4,7 +4,7 @@ import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/re
 import { api } from '@/api'
 import { queryKeys, useAlerts, useWrite } from '@/api/queries'
 import { alertRule } from '@domain/alerts'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ObsEmpty } from '@/components/obs/obs-empty'

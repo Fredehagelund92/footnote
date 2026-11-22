@@ -269,15 +269,31 @@
   }
 }
 
-/* Toasts (Sonner, which brings 400ms of its own): in 220ms on the ease-out curve, out in 150ms. The
-   selectors outweigh Sonner's, which it adds after this sheet. With reduced motion the tokens are 0
-   and Sonner stops its own transitions too. */
+/* Toasts (Sonner, which brings 400ms of its own): in 220ms on the ease-out curve, out in 150ms. Out
+   is a slide to the right, past the window's edge, in place: when its time ends, on Close and on
+   Escape alike. Sonner's own way out sinks and fades where it stood. The selectors outweigh
+   Sonner's, which it adds after this sheet; it unmounts a toast 200ms after it starts to leave.
+   With reduced motion the tokens are 0 and Sonner stops its own transitions too. Each toast draws
+   itself (lib/toast.tsx), so its width is set here; a phone keeps Sonner's full width. */
 [data-sonner-toaster] [data-sonner-toast] {
+  width: var(--width);
   transition-duration: var(--dur-3);
   transition-timing-function: var(--ease-out);
 
-  &[data-removed='true'] {
+  &[data-removed='true'][data-swipe-out='false'] {
     transition-duration: var(--dur-2);
+
+    &[data-front='true'] {
+      --y: translateX(calc(100% + 2rem));
+
+      opacity: 1;
+    }
+
+    &[data-front='false'][data-expanded='true'] {
+      --y: translateY(calc(var(--lift) * var(--offset))) translateX(calc(100% + 2rem));
+
+      opacity: 1;
+    }
   }
 }
 
