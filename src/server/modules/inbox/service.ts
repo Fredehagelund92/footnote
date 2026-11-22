@@ -387,7 +387,8 @@ export function createInboxFeedService(
     const lastChecked = new Map(reviews.map((r) => [r.id, { on: r.on, by: r.by }]))
     // A definition changed when its mark first read as it does now, after the last other mark.
     const moved = await tx.query<{ id: string; name: string; on: string }>(
-      `select s.item_id as id,
+      `select id, name, "on" from (
+       select s.item_id as id,
               coalesce((select min(v.name collate "C") from vocab_term_service ts
                           join vocab_term_refs tr on tr.version_id = ts.version_id
                           join vocab_term_versions v on v.id = ts.version_id
@@ -404,7 +405,7 @@ export function createInboxFeedService(
          join item_version_refs r on r.version_id = s.version_id
          join definitions d on d.ref = r.definition_ref and d.change_mark <> r.change_mark
         where s.item_id = any($1::text[]) and upper_inf(s.editions)
-        order by s.item_id, 2 collate "C"`,
+       ) q order by id, name collate "C"`,
       [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
     )
     return due.map((item) => ({
