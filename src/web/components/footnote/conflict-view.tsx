@@ -20,6 +20,7 @@ import { kindIcons } from '@/components/footnote/kind-icons'
 import { Statement } from '@/components/footnote/conflict-pair'
 import { Loadable } from '@/components/footnote/load-state'
 import { markText } from '@/components/footnote/mark'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { Button } from '@/components/ui/button'
 import {
@@ -159,8 +160,8 @@ function Provenance({ s }: { s: ConflictSide }) {
         </a>
       )}
       {s.source?.quote && (
-        <blockquote className="border-l-2 pl-3 text-sm text-muted-foreground italic">
-          “{s.source.quote}”
+        <blockquote className="border-l-2 pl-3 text-sm text-muted-foreground">
+          <SourcePassages text={s.source.quote} />
         </blockquote>
       )}
     </div>

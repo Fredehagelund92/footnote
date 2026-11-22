@@ -7,6 +7,7 @@ import {
   type Token,
 } from '@domain/markdown-blocks'
 import { sequenceDiff } from '@domain/sequence-diff'
+import { safeHref } from '@/lib/host'
 
 // The comparison's text: the stored text as a reader sees it, passage by passage (a paragraph, a
 // heading, a quote, a list item), now beside suggested. Passages are paired as the review pairs
@@ -74,21 +75,6 @@ export type PassageRow = {
 }
 
 const MENTION = /\[@ [^\]]*\]/g
-
-/**
- * A link's address when a reader may follow it (http, https or mailto, or one on this site);
- * null for any other, such as javascript:, so its words are drawn without a link. A suggestion's
- * text can come from an agent or a document.
- */
-export function safeHref(href: string | null): string | null {
-  if (!href) return null
-  try {
-    const url = new URL(href, 'https://footnote.invalid')
-    return ['http:', 'https:', 'mailto:'].includes(url.protocol) ? href : null
-  } catch {
-    return null
-  }
-}
 
 /**
  * Each side's mentions as the reader's own mention markup, the same token the same on both sides,

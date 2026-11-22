@@ -107,6 +107,10 @@ export default defineConfig({
     // J99 opens answers of Ask's loop by the mock's example address; the service writes the word
     // and the card of a metric with no context in tests/web/integration/ask-loop-shapes.test.ts.
     /\/j99-ask-prefills\.spec\.ts$/,
+    // J101 reads words the mock's demo world holds in Markdown (an item's quote, a Cube description)
+    // and opens a loop answer by the mock's example address; the drawing is the same component on
+    // the service, and tests/web/source-markdown.test.ts reads it.
+    /\/j101-source-markdown\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

@@ -554,7 +554,9 @@ const stored: StoredFact[] = [
     checkedBy: 'Sofia Brandt',
     checkedOn: '3 Mar 2026',
     source: 'https://wiki.example/data/freshness',
-    quote: 'Germany payment files are loaded two days after the orders.',
+    // Copied from a wiki page written in Markdown: the app draws its marks.
+    quote:
+      '**Germany payment files** are loaded two days after the orders. The `payments_daily_by_market_and_provider` export waits for _both_ banks, see the [freshness notes](https://wiki.example/data/freshness).',
     dontConclude: "Low last two days for Germany orders aren't a drop.",
   },
   // Drafts: started, never published. Agents don't get them; they can be finished or deleted.
@@ -721,7 +723,9 @@ export const metrics: Metric[] = [
     group: 'Marketing',
     domain: 'marketing',
     facts: 1,
-    definition: 'Marketing spend divided by first-time buyers in the same period, in euros.',
+    // Written in Markdown in Cube, as source descriptions often are: the app draws its marks.
+    definition:
+      '**Marketing spend** divided by first-time buyers in the same period, in euros (`marketing_spend_eur / first_time_buyers`). Computed from totals, _never_ as an average of daily CPA. See the [attribution notes](https://wiki.example/marketing/attribution).',
   },
   {
     name: 'Return on ad spend',

@@ -830,7 +830,7 @@ function Editor({
             )}
           >
             {form.body.trim() ? (
-              <ContextText text={form.body.replace(/\*\*|`/g, '')} dense />
+              <ContextText text={form.body} dense />
             ) : (
               <p className="text-muted-foreground">…</p>
             )}

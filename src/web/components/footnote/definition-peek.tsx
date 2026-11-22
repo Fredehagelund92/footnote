@@ -25,7 +25,7 @@ import {
 } from '@/components/footnote/peek'
 import { Button } from '@/components/ui/button'
 import { kindName, useGlossary } from '@/lib/definitions'
-import { SourceText } from '@/components/footnote/source-text'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -117,17 +117,17 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekTitle lead={<TypeTile d={d} size="lg" />}>{d.name}</PeekTitle>
           <PeekMeaning>
             {target && <AnotherNameFor target={target} className="mb-2" />}
-            <p className={cn(!subject.definition && 'text-muted-foreground')}>
-              {subject.definition ? (
-                subject.synced ? (
-                  <SourceText text={subject.definition} />
-                ) : (
+            {subject.definition && subject.synced ? (
+              <SourcePassages text={subject.definition} />
+            ) : (
+              <p className={cn(!subject.definition && 'text-muted-foreground')}>
+                {subject.definition ? (
                   <MentionText text={subject.definition} />
-                )
-              ) : (
-                'No meaning written yet.'
-              )}
-            </p>
+                ) : (
+                  'No meaning written yet.'
+                )}
+              </p>
+            )}
           </PeekMeaning>
           {conflictLine && word && (
             <PeekAttention

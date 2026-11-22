@@ -21,7 +21,7 @@ import { useReadAhead } from '@/lib/read-ahead'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { mentionId, plainText } from '@/lib/mentions'
 import { MentionText } from '@/components/footnote/mention-chip'
-import { SourceText } from '@/components/footnote/source-text'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
 import { PeekFact, PeekFacts } from '@/components/footnote/peek'
@@ -544,14 +544,22 @@ export function DefinitionDetails({
       ) : target ? (
         <div className="flex flex-col items-start gap-2">
           <AnotherNameFor target={target} />
-          <p className="max-w-reading text-base leading-7 text-muted-foreground">
-            {plainText(glossary.meaningOf(d).definition)}
-          </p>
+          {subject.synced ? (
+            <SourcePassages
+              text={subject.definition}
+              code="text-sm"
+              className="max-w-reading text-base leading-7 text-muted-foreground"
+            />
+          ) : (
+            <p className="max-w-reading text-base leading-7 text-muted-foreground">
+              {plainText(subject.definition)}
+            </p>
+          )}
         </div>
       ) : d.definition ? (
         <div className="max-w-reading text-base leading-7">
           {d.synced ? (
-            <SourceText text={d.definition} code="text-sm" />
+            <SourcePassages text={d.definition} code="text-sm" />
           ) : (
             <MentionText text={d.definition} />
           )}

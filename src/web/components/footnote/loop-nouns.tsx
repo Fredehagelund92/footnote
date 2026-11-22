@@ -7,6 +7,8 @@ import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/footnote/answer'
 import type { AnswerFigure } from '@/components/footnote/answer-figure'
 import type { LoopPartsOfAsk } from '@/components/footnote/loop-parts'
+import { Marks, answerCode } from '@/components/footnote/source-text'
+import { safeHref } from '@/lib/host'
 
 /** What the loop's answer uses of Ask, handed to it by Ask (loop-parts.ts). */
 export type LoopParts = LoopPartsOfAsk & {
@@ -664,20 +666,16 @@ function Styled({
   children: React.ReactNode
 }) {
   const P = useParts()
-  const set = run.marks ?? []
-  let node = children
-  if (set.includes('code'))
-    node = <code className="rounded-xs bg-muted px-1 font-mono text-sm">{node}</code>
-  if (set.includes('strike')) node = <s>{node}</s>
-  if (set.includes('italic')) node = <em>{node}</em>
-  if (set.includes('bold')) node = <strong className="font-semibold">{node}</strong>
+  let node = (
+    <Marks marks={run.marks ?? []} code={answerCode}>
+      {children}
+    </Marks>
+  )
   const link = run.link
   const href = !link
     ? null
     : 'url' in link
-      ? /^(?:https?|mailto):/i.test(link.url)
-        ? link.url
-        : null
+      ? safeHref(link.url)
       : P.docTitle(link.slug)
         ? P.docHref(link.slug, link.id)
         : null

@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { chipTone, domainHue } from '@/lib/tones'
 import { openDock } from '@/lib/dock'
+import { MarkedWords } from '@/components/footnote/source-text'
 import {
   mentionParts,
   parseMentionId,
@@ -255,9 +256,20 @@ export function MentionText({ text, interactive }: { text: string; interactive?:
   )
 }
 
+/** A passage of context text: its Markdown marks drawn, its mentions as chips. */
+function Words({ text, dense }: { text: string; dense?: boolean }) {
+  return (
+    <MarkedWords
+      text={text}
+      code={dense ? 'text-xs' : 'text-sm'}
+      words={(t) => <MentionText text={t} />}
+    />
+  )
+}
+
 /**
  * Stored context text as the editor wrote it, read-only: paragraphs, lists and quotes, with
- * mentions as chips. `dense` is the quick view's smaller text.
+ * their marks and links, and mentions as chips. `dense` is the quick view's smaller text.
  */
 export function ContextText({ text, dense }: { text: string; dense?: boolean }) {
   return text.split('\n\n').map((para, i) =>
@@ -271,7 +283,7 @@ export function ContextText({ text, dense }: { text: string; dense?: boolean }) 
       >
         {para.split('\n').map((li, j) => (
           <li key={j}>
-            <MentionText text={li.replace(/^(- |\d\. )/, '')} />
+            <Words text={li.replace(/^(- |\d\. )/, '')} dense={dense} />
           </li>
         ))}
       </ul>
@@ -280,11 +292,11 @@ export function ContextText({ text, dense }: { text: string; dense?: boolean }) 
         key={i}
         className={cn('border-l-2 text-muted-foreground', dense ? 'pl-3' : 'pl-4')}
       >
-        <MentionText text={para.replace(/^> ?/gm, '')} />
+        <Words text={para.replace(/^> ?/gm, '')} dense={dense} />
       </blockquote>
     ) : (
       <p key={i}>
-        <MentionText text={para} />
+        <Words text={para} dense={dense} />
       </p>
     ),
   )

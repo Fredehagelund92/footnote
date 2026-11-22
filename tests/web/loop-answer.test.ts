@@ -877,6 +877,23 @@ describe("Ask's loop answer, state by state", () => {
     expect(buttons(shown, /^See the/)).toHaveLength(0)
   })
 
+  it('Definition card: the source’s Markdown drawn, its marks never shown as characters', () => {
+    const words =
+      '**Cost-CPA** is outbound cost per acquired customer (`cost_eur / affiliate_ndcs`), _from totals_. See [the notes](https://wiki.example/cpa) or [this](javascript:alert(1)).'
+    const el = render(defining({ words }), 'What is orders?')
+    const quote = el.querySelector('[data-definition-card] blockquote')!
+    expect(text(quote)).toBe(
+      'Cost-CPA is outbound cost per acquired customer (cost_eur / affiliate_ndcs), from totals. See the notes or this.',
+    )
+    expect(quote.querySelector('strong')?.textContent).toBe('Cost-CPA')
+    expect(quote.querySelector('code')?.textContent).toBe('cost_eur / affiliate_ndcs')
+    expect(quote.querySelector('em')?.textContent).toBe('from totals')
+    // Only a web or mail address is a link; any other stays words.
+    expect([...quote.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      'https://wiki.example/cpa',
+    ])
+  })
+
   // A family of metrics (invented: Partner fees), as the definitions read gives it to the page.
   const fees = {
     by: ['Currency'],

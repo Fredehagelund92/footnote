@@ -1,39 +1,179 @@
 import * as React from 'react'
+import {
+  inlineSegments,
+  markdownBlocks,
+  type DocBlock,
+  type Mark,
+  type Segment,
+} from '@domain/markdown-blocks'
+import { safeHref } from '@/lib/host'
 import { cn } from '@/lib/utils'
 
-/** A Markdown code span, as a tool's description quotes a name or a value: `FORECAST`. */
-const CODE_SPAN = /`([^`\n]+)`/
+// Words a source wrote in Markdown, read-only: a tool's description of a definition, a quote
+// copied from a document. The small subset the editor writes is drawn (bold, italic, struck
+// through, code and links, in paragraphs and lists) from the one reading of it
+// (src/domain/markdown-blocks.ts); nothing else is: no HTML, no images, no tables. Every other
+// character stays as it is, and the stored text is never changed, so a copy keeps the marks.
 
-/** A tool's description in plain words: its code spans without their backticks, for a tooltip. */
-export const sourceWords = (text: string) => text.replace(new RegExp(CODE_SPAN, 'g'), '$1')
+/** Code, as the editor draws it: a step smaller than the words around it. */
+const editorCode = 'rounded-sm bg-(--rte-code-inline-bg) px-1.5 py-0.5 font-mono font-medium'
+
+/** Code in an answer's words and the review's comparison: the words' own size, on the muted tone. */
+export const answerCode = 'rounded-xs bg-muted px-1 font-mono text-sm'
+
+/** How a place draws code: the editor's look a step smaller than its words, or an answer's. */
+type CodeLook = 'text-xs' | 'text-sm' | 'answer'
+const codeLook = (look: CodeLook) => (look === 'answer' ? answerCode : cn(editorCode, look))
 
 /**
- * A description as its tool wrote it, read-only: its code spans as code, and every other character
- * as it is. Nothing else of the tool's Markdown is drawn, so a description never reads differently
- * here than in the tool. Code is drawn as the editor draws it, a step smaller than the words
- * around it: `code` is that step.
+ * Words with their marks, drawn the one way every Markdown reader here draws them: code, struck
+ * through, italic, then bold outermost. `code` is the code's look where it is not the editor's.
  */
-export function SourceText({
+export function Marks({
+  marks,
+  code = cn(editorCode, 'text-xs'),
+  children,
+}: {
+  marks: Iterable<Mark>
+  code?: string
+  children: React.ReactNode
+}) {
+  const set = new Set(marks)
+  let node = children
+  if (set.has('code')) node = <code className={code}>{node}</code>
+  if (set.has('strike')) node = <s>{node}</s>
+  if (set.has('italic')) node = <em>{node}</em>
+  if (set.has('bold')) node = <strong className="font-semibold">{node}</strong>
+  return <>{node}</>
+}
+
+/**
+ * A run of the words: its marks, and its link when that is safe and the place may hold one.
+ * `words` draws its plain words, where they hold more than characters (item text's mentions).
+ */
+function Run({
+  s,
+  code,
+  links,
+  words,
+}: {
+  s: Segment
+  code: string
+  links: boolean
+  words?: (text: string) => React.ReactNode
+}) {
+  const node = (
+    <Marks marks={s.marks} code={code}>
+      {words ? words(s.text) : s.text}
+    </Marks>
+  )
+  const href = links ? safeHref(s.href) : null
+  if (!href) return node
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="rounded-xs text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      {node}
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>
+  )
+}
+
+const runs = (segments: readonly Segment[], code: string, links: boolean) =>
+  segments.map((s, i) => <Run key={i} s={s} code={code} links={links} />)
+
+/** A tool's description in plain words, its marks taken off: for a tooltip. */
+export const sourceWords = (text: string) =>
+  inlineSegments(text)
+    .map((s) => s.text)
+    .join('')
+
+/**
+ * A description as its tool wrote it, on one line of the page: its marks drawn, its link as plain
+ * words (a row or a button may not hold a link). `code` is how its code is drawn.
+ */
+export function SourceText({ text, code = 'text-xs' }: { text: string; code?: CodeLook }) {
+  return runs(inlineSegments(text), codeLook(code), false)
+}
+
+/**
+ * A line of item text as the editor wrote it (FR-119): its marks and safe links drawn, and its
+ * plain words by `words`, which draws its mentions as chips.
+ */
+export function MarkedWords({
   text,
-  code = 'text-xs',
+  words,
+  code = 'text-sm',
 }: {
   text: string
-  code?: 'text-xs' | 'text-sm'
+  words: (text: string) => React.ReactNode
+  code?: CodeLook
 }) {
-  // Splitting on a group keeps it: every odd part is a code span's text.
-  return text.split(new RegExp(CODE_SPAN, 'g')).map((part, i) =>
-    i % 2 ? (
-      <code
-        key={i}
-        className={cn(
-          'rounded-sm bg-(--rte-code-inline-bg) px-1.5 py-0.5 font-mono font-medium',
-          code,
-        )}
-      >
-        {part}
-      </code>
-    ) : (
-      <React.Fragment key={i}>{part}</React.Fragment>
-    ),
+  return inlineSegments(text).map((s, i) => (
+    <Run key={i} s={s} code={codeLook(code)} links words={words} />
+  ))
+}
+
+/** Consecutive list items of one kind, so each list is one list. */
+function grouped(blocks: readonly DocBlock[]) {
+  const out: (DocBlock | { list: 'bullet' | 'number'; items: DocBlock[] })[] = []
+  for (const b of blocks) {
+    const type = b.shape.type
+    if (type === 'rule') continue
+    if (type !== 'bullet' && type !== 'number') {
+      out.push(b)
+      continue
+    }
+    const last = out.at(-1)
+    if (last && 'list' in last && last.list === type) last.items.push(b)
+    else out.push({ list: type, items: [b] })
+  }
+  return out
+}
+
+/**
+ * Words a source wrote in Markdown, whole: its paragraphs and lists, its marks and its safe links,
+ * which open in a new tab. A heading reads as a bold line, a quote inside it as a paragraph. A long
+ * name or address breaks to fit. `code` is how its code is drawn.
+ */
+export function SourcePassages({
+  text,
+  code = 'text-xs',
+  className,
+}: {
+  text: string
+  code?: CodeLook
+  className?: string
+}) {
+  const look = codeLook(code)
+  return (
+    <div className={cn('flex flex-col gap-2 wrap-anywhere', className)}>
+      {grouped(markdownBlocks(text)).map((b, i) => {
+        if ('list' in b) {
+          const List = b.list === 'number' ? 'ol' : 'ul'
+          return (
+            <List
+              key={i}
+              className={cn(
+                'ml-5 flex flex-col gap-1 marker:text-muted-foreground',
+                b.list === 'number' ? 'list-decimal' : 'list-disc',
+              )}
+            >
+              {b.items.map((item, j) => (
+                <li key={j}>{runs(item.segments, look, true)}</li>
+              ))}
+            </List>
+          )
+        }
+        return (
+          <p key={i} className={b.shape.type === 'heading' ? 'font-semibold' : undefined}>
+            {runs(b.segments, look, true)}
+          </p>
+        )
+      })}
+    </div>
   )
 }
