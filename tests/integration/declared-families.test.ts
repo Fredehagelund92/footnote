@@ -8,6 +8,7 @@ import type {
   DefinitionRelations,
   FamilyMeaningVersion,
 } from '../../src/contract/catalogue.ts'
+import type { LoopTurn } from '../../src/contract/answer.ts'
 import type { NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
 import { buildApp } from '../../src/server/app.ts'
@@ -569,5 +570,39 @@ describe('the usual variant of a family (F3)', () => {
       revision: 0,
     })
     expect(unknown.statusCode, unknown.body).toBe(404)
+  })
+
+  it('is what Ask reads for a question that names none of its values, and says so', async () => {
+    // Asked about a family whose owners picked EUR, Ask still read every variant (22 November
+    // 2026): the pick was in Definitions only. The scripted reader stands in for the model.
+    const ask = async (question: string) => {
+      const r = await call('POST', '/ask/lookup', 'member', { question })
+      expect(r.statusCode, r.body).toBe(200)
+      const turns = r.body
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => JSON.parse(line.slice(5)) as { type: string; turn?: LoopTurn })
+      return turns.findLast((e) => e.type === 'turn')!.turn!
+    }
+    const accrued = await family('Accrued share 1')
+    const plain = await ask('What is accrued share 1?')
+    expect(plain.subject?.note).toBeNull()
+    expect(plain.read.join(' ')).not.toContain('usual variant')
+    const eur = accrued.family!.variants.find((v) => v.values[0] === 'EUR')!
+    const { revision } = accrued.family!.usual
+    await ok(pick(accrued.key, 'owner', { key: accrued.key, member: eur.key, revision }))
+    const defined = await ask('What is accrued share 1?')
+    expect(defined.text).toBe('Accrued share 1 in EUR means: The accrued share 1 eur.')
+    expect(defined.subject).toMatchObject({
+      names: ['Accrued share 1'],
+      note: 'EUR, its usual variant',
+    })
+    expect(defined.read[0]).toContain(
+      'Accrued share 1 was read as its usual variant, EUR, which its owners picked for a question that names none of its values.',
+    )
+    // A question that names a value means that value, whatever the usual variant is.
+    const usd = await ask('What is accrued share 1 in USD?')
+    expect(usd.subject?.note).toBeNull()
+    expect(usd.text).toMatch(/^Accrued share 1 means: /)
   })
 })
