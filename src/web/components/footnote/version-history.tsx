@@ -15,7 +15,7 @@ import {
   type LucideIcon,
   SplitIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { FieldDiff, PersonAvatar } from '@/components/footnote/bits'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'

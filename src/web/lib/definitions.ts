@@ -250,6 +250,45 @@ export function familyBy(family: Family): string {
   return `by ${by.length < 2 ? (by[0] ?? '') : `${by.slice(0, -1).join(', ')} and ${by.at(-1)}`}`
 }
 
+/**
+ * How variants are converted from others, in one line each, by the values that differ: "USD is
+ * converted from EUR by the column exchange_rate_usd". The same conversion across a channel is
+ * said once; past two, how many more.
+ */
+export function conversionLines(family: Family): {
+  lines: { to: string; from: string; by: string }[]
+  more: number
+} {
+  const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []
+  const said = new Map<string, { to: string; from: string; by: string }>()
+  for (const c of family.conversions ?? []) {
+    const [from, to] = [valuesOf(c.from), valuesOf(c.to)]
+    const differ = to.flatMap((value, i) => (value !== from[i] ? [i] : []))
+    const line = {
+      to: differ.map((i) => to[i]).join(' · ') || c.to,
+      from: differ.map((i) => from[i]).join(' · ') || c.from,
+      by: c.by,
+    }
+    said.set(`${line.to}\u0000${line.from}\u0000${line.by}`, line)
+  }
+  const lines = [...said.values()]
+  return { lines: lines.slice(0, 2), more: Math.max(0, lines.length - 2) }
+}
+
+/**
+ * A family's mark said in words, as its quick view's first line says it: "Family of 250 metrics,
+ * by Currency and Channel", with how one variant is converted from another after it.
+ */
+export function familyLines(family: Family): string[] {
+  const n = (x: number) => x.toLocaleString('en-GB')
+  const { lines, more } = conversionLines(family)
+  return [
+    `Family of ${n(family.variants.length)} metrics, ${familyBy(family)}`,
+    ...lines.map((line) => `${line.to} is converted from ${line.from}`),
+    ...(more > 0 ? [`${n(more)} more conversions`] : []),
+  ]
+}
+
 /** The terms that mean the same as this definition: its "Also called in Footnote". */
 export const synonymsOf = (all: Definition[], name: string) =>
   all.filter((d) => d.sameAs && same(d.sameAs, name))

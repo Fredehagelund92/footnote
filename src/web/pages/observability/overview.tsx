@@ -7,7 +7,7 @@ import {
   useWorkspace,
   useWrite,
 } from '@/api/queries'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   BotIcon,
   CalendarIcon,

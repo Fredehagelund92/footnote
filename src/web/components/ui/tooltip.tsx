@@ -6,13 +6,16 @@ function TooltipProvider({ delay = 500, ...props }: TooltipPrimitive.Provider.Pr
   return <TooltipPrimitive.Provider data-slot="tooltip-provider" delay={delay} {...props} />
 }
 
-function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
+function Tooltip<Payload>({ ...props }: TooltipPrimitive.Root.Props<Payload>) {
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 
-function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
+function TooltipTrigger<Payload>({ ...props }: TooltipPrimitive.Trigger.Props<Payload>) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
+
+/** One tooltip for many triggers, each handing it what to say: rows in the thousands share one. */
+const createTooltipHandle = TooltipPrimitive.createHandle
 
 function TooltipContent({
   className,
@@ -49,4 +52,4 @@ function TooltipContent({
   )
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, createTooltipHandle }

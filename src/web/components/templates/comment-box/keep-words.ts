@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 /**
  * A post, a reply or an edit as the composer sends it: the composer keeps the words until this

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useWrite } from '@/api/queries'
 import { BookmarkIcon, ChevronDownIcon, ListTreeIcon, XIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'

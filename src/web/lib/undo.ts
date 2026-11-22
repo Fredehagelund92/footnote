@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { toast, type ExternalToast } from 'sonner'
+import { SAID_MS, toast, type ToastOptions } from '@/lib/toast'
 import type { UndoOffer } from '@/api/client'
 import { isSignedOut, toApiError } from '@/api/errors'
 import { useWrite } from '@/api/queries'
@@ -21,9 +21,6 @@ export function heldFor(offer: UndoOffer, now = Date.now()): number {
  * long enough to reach for Undo.
  */
 export const LASTING_TOAST_MS = 10_000
-
-/** How long a toast with nothing to take back stays: Sonner's own default, written out. */
-const SAID_MS = 4000
 
 /** How long an offer still holds, in words ("6 seconds"); null when it never ends. */
 export function heldWords(offer: UndoOffer, now = Date.now()): string | null {
@@ -49,7 +46,7 @@ export async function takeBackBy(run: () => Promise<unknown>): Promise<boolean> 
   }
 }
 
-type OfferOptions = Omit<ExternalToast, 'action' | 'description' | 'duration'> & {
+type OfferOptions = Omit<ToastOptions, 'action' | 'description' | 'duration' | 'firm'> & {
   /** What else to say; given how long Undo holds ("6 seconds"), when it ends. */
   description?: string | ((held: string) => string | undefined) | undefined
   /** What to do once it was taken back. */
@@ -76,19 +73,18 @@ export function showOffer(
   // Too late already: say what was done, with nothing to take back. When it updates a toast that
   // had Undo and no end (id), that toast's duration and button go with it.
   if (ms === 0) return toast(message, { ...rest, ...words, duration: SAID_MS, action: undefined })
-  // An offer that never ends has a toast that does.
-  const id = toast(message, {
+  // An offer that never ends has a toast that does. A toast waits while it is pointed at, focused
+  // or in a hidden tab; the end of an offer does not, so that toast's time is firm.
+  return toast(message, {
     ...rest,
     ...words,
     duration: ms === Infinity ? LASTING_TOAST_MS : ms,
+    firm: ms !== Infinity,
     action: {
       label: 'Undo',
       onClick: () => void takeBack(undo).then((back) => back && onUndone?.()),
     },
   })
-  // A toast waits while it is pointed at, or while the tab is hidden; the offer does not.
-  if (ms !== Infinity) setTimeout(() => toast.dismiss(id), ms)
-  return id
 }
 
 /**

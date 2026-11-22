@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { clockTime } from '@/lib/dates'
 import { LinkIcon, MessageSquareTextIcon, ReceiptTextIcon } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent } from '@/components/ui/popover'
