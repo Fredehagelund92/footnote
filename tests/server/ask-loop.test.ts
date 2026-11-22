@@ -303,9 +303,9 @@ describe('what code writes from the reads', () => {
         },
       }
     }
-    // The family question: nothing applies, and the words give its definition.
+    // The family question: nothing applies, and the words give its definition, marked as theirs.
     const missing = turnOf(
-      `USD is the EUR amount times the rate. ${words}`,
+      `USD is the EUR amount times the rate. ${words} [metric:group:revenue]`,
       [defined('missing', [])],
       [],
     )
@@ -741,8 +741,12 @@ describe('a turn that uses no context item', () => {
     const words =
       'The value of orders customers completed and paid for, in euros at the daily rate, with cancelled orders left out.'
     expect(
-      turnOf(`Orders is ${words}`, [subject('missing'), definitions(words)], [], 'What is orders?')
-        .defined,
+      turnOf(
+        `Orders is ${words} [metric:orders]`,
+        [subject('missing'), definitions(words)],
+        [],
+        'What is orders?',
+      ).defined,
     ).toMatchObject({ names: ['Orders'], tool: 'Cube' })
   })
 
@@ -791,19 +795,22 @@ describe('a turn that uses no context item', () => {
       }
     }
     const why = 'Why is partner fees in USD different from EUR?'
-    const answer =
-      'The USD figure is the EUR figure converted at each row’s rate: both are fees partners report on referred users.'
+    // In words of its own, as the live model writes it, with no run of the definition's words.
+    const said = 'The USD figure is the EUR one multiplied by each row’s rate.'
+    const answer = `${said} [group:partner_fees]`
 
     it('shows the Definition label for a why-question answered from it alone, as for a what-is one (R5)', () => {
       const t = turnOf(answer, [read(), fees(shown)], [], why)
+      expect(t.text).toBe(said)
       expect(t.state).toBeNull()
       expect(t.defined).toMatchObject({ names: ['Partner fees'], tool: 'Cube' })
       // Its card shows the family as the page draws it.
       expect(t.defined!.cards).toEqual([
         expect.objectContaining({ name: 'Partner fees', family: shown }),
       ])
-      // Read on days the words name, or answered with nothing of the definition: Not found.
+      // Read on days the words name, or answered resting on nothing the reads returned: Not found.
       expect(turnOf(answer, [read('1-31 Oct 2026'), fees(shown)], [], why).state).toBe('missing')
+      expect(turnOf(said, [read(), fees(shown)], [], why).state).toBe('missing')
       expect(
         turnOf('Nothing written covers why partner fees fell.', [read(), fees(shown)], [], why)
           .state,
@@ -878,6 +885,13 @@ describe('the instructions', () => {
     expect(system).toContain('never write “the person asking”')
     expect(system).toMatch(/Never say how you read the question/)
     expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
+    // A definition that answers the question is marked, which gives it the Definition label (R5).
+    expect(system).toContain(
+      'When a definition a read returned answers the question, and no item does, mark it',
+    )
+    expect(system).toContain(
+      'Never mark a definition you add to an answer that nothing written covers.',
+    )
     expect(system).toContain('in every language')
     expect(system).toContain('answer the likelier reading without saying which one you chose')
     // A step that reads writes nothing: words before a read would show, then go.

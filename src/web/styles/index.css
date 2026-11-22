@@ -178,10 +178,19 @@
   }
 
   /* 28px header buttons 18px apart: a 46px pitch, so no two 44px tap areas overlap. The header
-     holds two groups of them, the install's label between. */
-  [data-touch-targets] [data-header-actions],
-  [data-touch-targets] [data-site-header] {
+     holds two groups of them, the install's label between. The title and the label take no tap,
+     so a tap area may reach over them: the header's own gap stays narrow, and the two groups keep
+     the pitch only where they meet, with no label between. */
+  [data-touch-targets] [data-header-actions] {
     column-gap: var(--touch-gap);
+  }
+
+  [data-touch-targets] [data-site-header] {
+    column-gap: var(--space-2);
+  }
+
+  [data-touch-targets] [data-header-actions] + [data-header-actions] {
+    margin-inline-start: var(--touch-gap-rest);
   }
 }
 

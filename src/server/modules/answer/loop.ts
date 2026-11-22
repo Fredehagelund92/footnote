@@ -59,6 +59,7 @@ import {
   overviewProblem,
   overviewWords,
   shownBody,
+  typedId,
   withoutCites,
   withoutLastSentence,
   wordsOf,
@@ -170,8 +171,8 @@ How to work:
 What an answer may say:
 - Only what a tool returned, what the person wrote, and these fixed facts: ${productName} keeps no business figures (no order values, revenue, counts of customers or other numbers from the business itself), only what is written about them, the definitions its source tools hold, and counts of its own records; and today's date.
 - Each result has a ref, r1, r2 and so on. Write every number, count and day a tool returned as a reference to it, never as digits of your own: [#r1.count] for a count, [#r1.outOf] for what it is out of, or any path into the result, such as [#r2.items.0.checked.date]. The page fills each one in from the read. Never count, add up or rank by yourself; the records tool counts and ranks. Give a count with what it is out of. [#r1.outOf] writes what it is out of in English words: in any other language, write the number alone, [#r1.outOf.count], and what it counts in your own words.
-- Name each metric, dimension, value of a dimension, domain and person the first time you name it as a typed mention, in place of its name: [@metric:<id>], [@dimension:<id>], [@value:<dimension>/<value>], [@domain:<id>], [@person:<id>], the id copied exactly from a result's names. The page shows each as its chip, with its name; a mention no read named shows as plain words. Never write the name beside its mention, and never put a definition's id in brackets.
-- Cite each context item you use by its id in square brackets, right after the words it supports, such as [itm_ab12cd34]; in a list, on the line it supports. Never gather citations at the end of a sentence. The page turns each id into a numbered link to the item; an item named without its id is not shown as a source. Cite only ids a tool returned in this chat. An item you name only because it does not apply, such as one nearby about other names, is not cited.
+- Name each metric, dimension, value of a dimension, domain and person the first time you name it as a typed mention, in place of its name: [@metric:<id>], [@dimension:<id>], [@value:<dimension>/<value>], [@domain:<id>], [@person:<id>], the id copied exactly from a result's names. The page shows each as its chip, with its name; a mention no read named shows as plain words. Never write the name beside its mention.
+- Cite each context item you use by its id in square brackets, right after the words it supports, such as [itm_ab12cd34]; in a list, on the line it supports. Never gather citations at the end of a sentence. The page turns each id into a numbered link to the item; an item named without its id is not shown as a source. Cite only ids a tool returned in this chat. An item you name only because it does not apply, such as one nearby about other names, is not cited. When a definition a read returned answers the question, and no item does, mark it the same way, by its id right after the words that give it, such as [metric:<id>]: the page then shows the answer as the definition's. Never mark a definition you add to an answer that nothing written covers.
 - Never tell the person what to do, check, ask or decide, in your own voice. You may repeat what an item itself says to check or do, attributed to that item and cited, and you may say who owns something and that the decision is theirs, as a fact, never as someone to go to.
 - When items disagree, or an owner marked a conflict, give each side with its source and choose none. Never say which one is right, likelier or better supported, and never say what will happen.
 - When the question names a period, give get_context its words as the person wrote them in period_words and the days they mean in this chat in from and to, then say the days that were read.
@@ -1631,31 +1632,27 @@ const wordsIn = (text: string) =>
     (w) => w.length >= 3 && !COMMON.has(w),
   )
 
-/**
- * Whether some words already give a definition: eight of its words in a row are in them, or as
- * many as `run` asks for.
- */
-function gives(text: string, definition: string, run = 8) {
+/** Whether some words already give a definition: eight of its words in a row are in them. */
+function gives(text: string, definition: string) {
   const said = ` ${wordsIn(text).join(' ')} `
   const own = wordsIn(definition)
-  for (let i = 0; i + run <= own.length; i++)
-    if (said.includes(` ${own.slice(i, i + run).join(' ')} `)) return true
+  for (let i = 0; i + 8 <= own.length; i++)
+    if (said.includes(` ${own.slice(i, i + 8).join(' ')} `)) return true
   return false
 }
-
-/** Words that put a definition in words of their own keep runs of its words this long. */
-const DRAWN_RUN = 5
 
 /**
  * What an answer that cites no item defines (decision 3): the definitions its reads returned of
  * what the question was read as, in any language: no word of the question decides it. Under Not
- * found the words must draw on it, five of its words in a row, whether the question asks what it
- * is or why its variants differ, of a subject that names no value and no days (read at any date
- * names none): "what is written about orders in Poland?" is about the context, whatever its words,
- * and stays Not found. Such an answer shows the Definition label in place of a state.
+ * found the model must mark it as what answers the question (`[metric:orders]` after its words),
+ * in its source's words or its own, whether the question asks what it is or why its variants differ, of
+ * a subject that names no value and no days (read at any date names none): "what is written about
+ * orders in Poland?" is about the context, whatever its words, and stays Not found. Such an answer
+ * shows the Definition label in place of a state.
  */
 function definedOf(
   text: string,
+  marked: readonly string[],
   reads: readonly MadeRead[],
   subject: LoopTurn['subject'],
   state: AnswerState | null,
@@ -1670,12 +1667,12 @@ function definedOf(
     .filter((d) => d.words && (!about.size || (d.id !== undefined && about.has(d.id))))
     .slice(0, CARDS_SHOWN)
   if (!candidates.length) return undefined
-  const drawn = candidates.some((d) => gives(text, d.words!, DRAWN_RUN))
+  const rests = candidates.some((d) => d.id !== undefined && marked.includes(typedId(d.id)))
   const scoped =
     !!subject &&
     (subject.about.some((id) => id.startsWith('value:')) ||
       (!subject.assumedToday && subject.period !== windowWords(anyDate)))
-  if (state === 'missing' && (!drawn || scoped)) return undefined
+  if (state === 'missing' && (!rests || scoped)) return undefined
   return {
     names: candidates.map((d) => d.name),
     tool: candidates[0]!.tool,
@@ -1997,7 +1994,7 @@ export function turnOf(
   const defined =
     words.cited.length || aside || fromHelp
       ? undefined
-      : definedOf(plain, about, subject, state, ctx.nouns, state === 'missing')
+      : definedOf(plain, words.marked, about, subject, state, ctx.nouns, state === 'missing')
   const cardItems = defined?.cards.flatMap((c) => c.context.items) ?? []
   const unknown =
     sources.length || defined || fromHelp || aside || subject?.about.length || listed.length
