@@ -46,7 +46,7 @@ A read groups near-identical metrics into a family, such as Revenue, with 250 va
 - On the Names card a family is one name, marked declared in your tool or found from the calculation. Publish it, and its variants are published with it.
 - Select a family's name on the Names card to see what it would mean, the values its variants hold and who owns it. There, Keep them separate publishes each metric by its own name. A family your tool declares is changed in your tool instead.
 - Under Look alike, choose Publish as a family, or Keep them separate to publish each metric by its own name.
-- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked Family · 250 variants. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants, says how the family was found, and which variant is converted from which.
+- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked by a stack of tiles. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants, says how the family was found, and which variant is converted from which.
 - A context item about the family applies to every variant, and agents get it for a question about revenue.
 - When any variant changes, the item is due for a check once, not once for each variant.
 
