@@ -54,6 +54,14 @@ for (const { name, viewport } of [
         'Say what it is about not, if people mix it up.',
         'Publish it.',
       ])
+      // The numbers are as quiet as the bullets: both markers in the muted colour, not the words'.
+      const [bullet, number, text] = await words.evaluate((el) => [
+        getComputedStyle(el.querySelector('ul > li')!, '::marker').color,
+        getComputedStyle(el.querySelector('ol > li')!, '::marker').color,
+        getComputedStyle(el.querySelector('ol > li')!).color,
+      ])
+      expect(number).toBe(bullet)
+      expect(number).not.toBe(text)
       const table = words.getByRole('table')
       await expect(table.getByRole('columnheader')).toHaveText(['Kind', 'When to pick it'])
       await expect(table.getByRole('row')).toHaveCount(3)
