@@ -1,6 +1,6 @@
 import { expect, go, test } from './go.ts'
 
-// J95, an answer from the help that the model wrote in Markdown, as the service drew it on the
+// J97, an answer from the help that the model wrote in Markdown, as the service drew it on the
 // demo week (?example=loop-help-markdown): "lets create my first context", answered with bold
 // labels, italics, code, a link to a help page and one to an address no read gave, a numbered
 // list and a short table. The page draws each as it is meant, never as asterisks, tildes,
