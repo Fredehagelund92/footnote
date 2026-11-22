@@ -499,12 +499,12 @@ describe("Ask's loop answer, state by state", () => {
     expect(text(words.querySelector('em')!)).toBe('know')
     expect(text(words.querySelector('code')!)).toBe('Definitions')
     expect(text(words.querySelector('s')!)).toBe('about')
-    // A help page opens at its part, and a web address as it is, each in a new tab.
+    // A help page opens at its part, in a new tab; an address no read gave is words.
     const links = [...words.querySelectorAll('a')]
     expect(links.map((a) => [text(a), a.getAttribute('href')])).toEqual([
       ['Write context', '/docs/write-context#what-to-put-in-it'],
-      ['the customs notice', 'https://example.com/customs-notice'],
     ])
+    expect(text(words)).toContain('such as the customs notice.')
     for (const a of links) {
       expect(a.target).toBe('_blank')
       expect(a.rel).toBe('noreferrer')

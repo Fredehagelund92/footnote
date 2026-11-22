@@ -450,6 +450,11 @@ describe("Ask's loop answers, as the page draws them", () => {
         marks: ['bold'],
       })),
     )
+    // An address no read gave is no link: the words in a read could have made it.
+    expect(runsOf(loop.body)).toContainEqual({
+      t: 'text',
+      text: ' a link anyone can open, such as the customs notice.',
+    })
     expect(steps?.t === 'ul' && steps.start).toBe(1)
     for (const r of runsOf(loop.body)) if (r.t === 'text') expect(r.text).not.toMatch(/\*\*|~~|\|/)
     expect(loop.text).not.toMatch(/\*\*|~~/)

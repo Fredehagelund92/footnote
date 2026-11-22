@@ -3230,18 +3230,7 @@
               },
               {
                 "t": "text",
-                "text": " a link anyone can open, such as "
-              },
-              {
-                "t": "text",
-                "text": "the customs notice",
-                "link": {
-                  "url": "https://example.com/customs-notice"
-                }
-              },
-              {
-                "t": "text",
-                "text": "."
+                "text": " a link anyone can open, such as the customs notice."
               }
             ]
           ]
@@ -3329,7 +3318,7 @@
           ]
         }
       ],
-      "said": "To write your first context item, open **Write** and say what agents should *know*. [Write context](write-context.md#what-to-put-in-it) has every part.\n\n- **Properties:** the Domain, the Kind, the Status and the owners.\n- **Applies to:** the metrics and markets it is about, as `Definitions` names them.\n- **Source:** a link anyone can open, such as [the customs notice](https://example.com/customs-notice).\n\n1. Give it a title that is one plain sentence.\n2. Say what it is ~~about~~ not, if people mix it up.\n3. Publish it.\n\n| Kind | When to pick it |\n| --- | --- |\n| **Event** | Something happened on a date |\n| **Rule** | A fixed way to read the numbers |",
+      "said": "To write your first context item, open **Write** and say what agents should *know*. [Write context](write-context.md#what-to-put-in-it) has every part.\n\n- **Properties:** the Domain, the Kind, the Status and the owners.\n- **Applies to:** the metrics and markets it is about, as `Definitions` names them.\n- **Source:** a link anyone can open, such as the customs notice.\n\n1. Give it a title that is one plain sentence.\n2. Say what it is ~~about~~ not, if people mix it up.\n3. Publish it.\n\n| Kind | When to pick it |\n| --- | --- |\n| **Event** | Something happened on a date |\n| **Rule** | A fixed way to read the numbers |",
       "nouns": [],
       "items": [],
       "closest": null,

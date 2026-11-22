@@ -149,6 +149,12 @@ export type WordsContext = {
   reads: readonly NumberedRead[]
   /** The digits in the reads, the question and the chat: a digit elsewhere is the model's own. */
   digits: ReadonlySet<string>
+  /**
+   * The web and mail addresses the reads and the question give word for word: the only ones a
+   * link may go to, besides a help page, so words in an item cannot have the model send what the
+   * chat says to an address of their own.
+   */
+  addresses: ReadonlySet<string>
   items: ReadonlyMap<string, Omit<LoopItem, 'n'>>
 }
 
@@ -232,19 +238,36 @@ const CODE_CLOSE = '\uE002'
 /** The first of the characters that stand in for a mention, reference or mark while Markdown is read. */
 const HELD = 0xe200
 
-/**
- * Where a link the model wrote may go: a web or mail address, or a part of a help page as the help
- * read gives it (`write-context.md#the-four-kinds`); nowhere else, so never a script.
- */
-export function linkOf(href: string): LoopLink | null {
-  const help = /^(?:\.\/)?([a-z0-9]+(?:-[a-z0-9]+)*)(?:\.md)?(?:#([a-z0-9-]+))?$/.exec(href)
-  if (help) return { slug: help[1]!, id: help[2] ?? '' }
+/** A web or mail address as a link holds it; null for any other. */
+const addressOf = (href: string) => {
   try {
     const url = new URL(href)
-    return ['https:', 'http:', 'mailto:'].includes(url.protocol) ? { url: url.href } : null
+    return ['https:', 'http:', 'mailto:'].includes(url.protocol) ? url.href : null
   } catch {
     return null
   }
+}
+
+/** The web and mail addresses some words give word for word, as a link holds each. */
+export const addressesIn = (words: string): Set<string> =>
+  new Set(
+    (words.match(/\b(?:https?:\/\/|mailto:)[^\s"'<>\\]+/g) ?? []).flatMap((a) => {
+      const address = addressOf(a.replace(/[.,;:!?)\]]+$/, ''))
+      return address ? [address] : []
+    }),
+  )
+
+/**
+ * Where a link the model wrote may go: a part of a help page as the help read gives it
+ * (`write-context.md#the-four-kinds`), or a web or mail address the reads or the question give
+ * word for word (`addresses`); nowhere else, so never a script and never an address of the
+ * model's own making.
+ */
+export function linkOf(href: string, addresses: ReadonlySet<string>): LoopLink | null {
+  const help = /^(?:\.\/)?([a-z0-9]+(?:-[a-z0-9]+)*)(?:\.md)?(?:#([a-z0-9-]+))?$/.exec(href)
+  if (help) return { slug: help[1]!, id: help[2] ?? '' }
+  const url = addressOf(href)
+  return url && addresses.has(url) ? { url } : null
 }
 
 /**
@@ -253,7 +276,7 @@ export function linkOf(href: string): LoopLink | null {
  * as code mark nothing. Words that mark nothing come back as they are, but for what a backslash
  * keeps from being a mark (`\*`).
  */
-function styled(words: string, links: LoopLink[]): string {
+function styled(words: string, links: LoopLink[], addresses: ReadonlySet<string>): string {
   const held: string[] = []
   const hold = words.replace(TOKEN, (m: string, ...rest: unknown[]) => {
     const at = rest.at(-2) as number
@@ -269,7 +292,7 @@ function styled(words: string, links: LoopLink[]): string {
     return back(segments.map((x) => x.text).join(''))
   let style = 0
   const out = segments.map((x) => {
-    const link = x.href === null ? null : linkOf(x.href)
+    const link = x.href === null ? null : linkOf(x.href, addresses)
     let n = link ? links.findIndex((l) => JSON.stringify(l) === JSON.stringify(link)) + 1 : 0
     if (link && !n && links.length < LINKS_HELD) n = links.push(link)
     const set = STYLE + marks.reduce((b, m, i) => (x.marks.has(m) ? b | (1 << i) : b), 0) + n * 16
@@ -825,7 +848,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
   const paragraph = (written: string): LoopBlock[] => {
     const blocks: LoopBlock[] = []
     const links: LoopLink[] = []
-    const words = styled(written, links)
+    const words = styled(written, links, ctx.addresses)
     let runs: LoopRun[] = []
     const flush = () => {
       runs = drawn(runs, links)
@@ -854,7 +877,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
   /** A line of words that stands alone, a list's or a table's: its sentence, as set. */
   const line = (written: string): LoopRun[] => {
     const links: LoopLink[] = []
-    return drawn(sentence(styled(written, links), true), links)
+    return drawn(sentence(styled(written, links, ctx.addresses), true), links)
   }
   const body: LoopBlock[] = []
   let prose: string[] = []

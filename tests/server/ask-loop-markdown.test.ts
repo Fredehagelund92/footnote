@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { LoopBlock, LoopRun } from '../../src/contract/answer.ts'
-import { blockRuns, finishedWords, linkOf } from '../../src/server/modules/answer/loop-body.ts'
+import type { LoopBlock, LoopLink, LoopRun } from '../../src/contract/answer.ts'
+import type { Mark } from '../../src/domain/markdown-blocks.ts'
+import {
+  addressesIn,
+  blockRuns,
+  finishedWords,
+  linkOf,
+} from '../../src/server/modules/answer/loop-body.ts'
 import { turnOf, type MadeRead } from '../../src/server/modules/answer/index.ts'
 
 /*
@@ -69,7 +75,7 @@ const lookup: MadeRead = {
   },
 }
 
-const text = (s: string, marks?: string[], link?: object): LoopRun => ({
+const text = (s: string, marks?: Mark[], link?: LoopLink): LoopRun => ({
   t: 'text',
   text: s,
   ...(marks ? { marks } : {}),
@@ -180,35 +186,45 @@ describe("the model's Markdown in an answer from the help", () => {
 })
 
 describe('the links the model writes', () => {
-  it('links to a web or mail address, or a help page at one of its parts, and nowhere else', () => {
-    expect(linkOf('https://footnote.dev/docs')).toEqual({ url: 'https://footnote.dev/docs' })
-    expect(linkOf('mailto:ada@example.com')).toEqual({ url: 'mailto:ada@example.com' })
-    expect(linkOf('review-a-suggestion.md')).toEqual({ slug: 'review-a-suggestion', id: '' })
-    expect(linkOf('write-context#the-four-kinds')).toEqual({
+  const given = addressesIn(
+    'Source: https://footnote.dev/docs, and mail ada@example.com at mailto:ada@example.com.',
+  )
+
+  it('links to a help page at one of its parts, or to an address the reads give word for word', () => {
+    expect([...given]).toEqual(['https://footnote.dev/docs', 'mailto:ada@example.com'])
+    expect(linkOf('https://footnote.dev/docs', given)).toEqual({ url: 'https://footnote.dev/docs' })
+    expect(linkOf('mailto:ada@example.com', given)).toEqual({ url: 'mailto:ada@example.com' })
+    expect(linkOf('review-a-suggestion.md', given)).toEqual({ slug: 'review-a-suggestion', id: '' })
+    expect(linkOf('write-context#the-four-kinds', given)).toEqual({
       slug: 'write-context',
       id: 'the-four-kinds',
     })
-    expect(linkOf('javascript:alert(1)')).toBeNull()
-    expect(linkOf('JavaScript:alert(1)')).toBeNull()
-    expect(linkOf('data:text/html,<script>alert(1)</script>')).toBeNull()
-    expect(linkOf('../../etc/passwd')).toBeNull()
-    expect(linkOf('//evil.example')).toBeNull()
+    // Never a script, a path out of the help, or an address of the model's own making: words in
+    // an item could have it put what the chat says into one.
+    expect(linkOf('javascript:alert(1)', given)).toBeNull()
+    expect(linkOf('JavaScript:alert(1)', given)).toBeNull()
+    expect(linkOf('data:text/html,<script>alert(1)</script>', given)).toBeNull()
+    expect(linkOf('../../etc/passwd', given)).toBeNull()
+    expect(linkOf('//evil.example', given)).toBeNull()
+    expect(linkOf('https://evil.example/?q=orders+fell', given)).toBeNull()
+    expect(linkOf('https://footnote.dev/docs?q=orders+fell', given)).toBeNull()
   })
 
   it('draws a link on its words, and words whose link may go nowhere as plain words', () => {
     const t = turnOf(
-      'See [Review a suggestion](review-a-suggestion.md) and [the site](https://footnote.dev), not [this](javascript:alert(1)).',
+      'See [Review a suggestion](review-a-suggestion.md) and [the site](https://footnote.dev/docs), not [this](javascript:alert(1)) nor [that](https://evil.example/?q=secret).',
       [help],
       [],
+      'What does https://footnote.dev/docs say about review?',
     )
     expect(blockRuns(t.body[0]!)).toEqual([
       text('See '),
       text('Review a suggestion', undefined, { slug: 'review-a-suggestion', id: '' }),
       text(' and '),
-      text('the site', undefined, { url: 'https://footnote.dev/' }),
-      text(', not this.'),
+      text('the site', undefined, { url: 'https://footnote.dev/docs' }),
+      text(', not this nor that.'),
     ])
-    expect(t.text).toBe('See Review a suggestion and the site, not this.')
+    expect(t.text).toBe('See Review a suggestion and the site, not this nor that.')
   })
 
   it('draws no raw HTML: a tag the model writes is its words', () => {

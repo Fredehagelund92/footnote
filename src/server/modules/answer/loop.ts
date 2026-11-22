@@ -50,6 +50,7 @@ import {
   type ReadContext,
 } from './tools.ts'
 import {
+  addressesIn,
   blockRuns,
   bodyMarkup,
   bodyWords,
@@ -1610,14 +1611,14 @@ function wordsContext(
   earlier: readonly MadeRead[],
 ): WordsContext {
   const results = [...made, ...earlier].map((m) => m.result)
-  const digits = new Set(
-    `${JSON.stringify(results)} ${question}`.match(/\d+(?:\.\d+)?/g)?.map(String) ?? [],
-  )
+  const said = `${JSON.stringify(results)} ${question}`
+  const digits = new Set(said.match(/\d+(?:\.\d+)?/g)?.map(String) ?? [])
   return {
     nouns: nounsRead(results),
     known: new Set(results.flatMap(idsOf)),
     reads: numberedOf(made, earlier),
     digits,
+    addresses: addressesIn(said),
     items: itemRows(results),
   }
 }

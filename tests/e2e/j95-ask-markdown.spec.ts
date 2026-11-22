@@ -2,10 +2,10 @@ import { expect, go, test } from './go.ts'
 
 // J95, an answer from the help that the model wrote in Markdown, as the service drew it on the
 // demo week (?example=loop-help-markdown): "lets create my first context", answered with bold
-// labels, italics, code, a link to a help page and one to the web, a numbered list and a short
-// table. The page draws each as it is meant, never as asterisks, tildes, backticks or pipes; each
-// link opens in a new tab; the table scrolls in its own box on a phone, never the page; Copy
-// copies the plain words.
+// labels, italics, code, a link to a help page and one to an address no read gave, a numbered
+// list and a short table. The page draws each as it is meant, never as asterisks, tildes,
+// backticks or pipes; the help link opens in a new tab, and the other is plain words; the table
+// scrolls in its own box on a phone, never the page; Copy copies the plain words.
 
 for (const { name, viewport } of [
   { name: '1440', viewport: { width: 1440, height: 900 } },
@@ -45,9 +45,9 @@ for (const { name, viewport } of [
       await expect(help).toHaveAttribute('href', '/docs/write-context#what-to-put-in-it')
       await expect(help).toHaveAttribute('target', '_blank')
       await expect(help).toHaveAttribute('rel', 'noreferrer')
-      await expect(
-        words.getByRole('link', { name: 'the customs notice (opens in a new tab)' }),
-      ).toHaveAttribute('href', 'https://example.com/customs-notice')
+      // An address no read gave is no link: words in an item could have made it up.
+      await expect(words.getByRole('link')).toHaveCount(1)
+      await expect(words).toContainText('such as the customs notice.')
 
       await expect(words.locator('ol[start="1"] > li')).toHaveText([
         'Give it a title that is one plain sentence.',
