@@ -37,7 +37,7 @@ import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { useWrite } from '@/api/queries'
 import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
-import { docHref } from '@/lib/doc-links'
+import { docHref, docTitle } from '@/lib/doc-links'
 import { openDock } from '@/lib/dock'
 import { open as openOverlay } from '@/lib/events'
 import { ANSWER_LINES } from '@/lib/help-content'
@@ -99,6 +99,7 @@ export const loopParts = {
   PRODUCT,
   useDefinitions,
   docHref,
+  docTitle,
   openDock,
   openOverlay,
   useReadAhead,

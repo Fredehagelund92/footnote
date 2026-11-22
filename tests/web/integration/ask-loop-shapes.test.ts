@@ -219,6 +219,30 @@ const cases: Case[] = [
     }),
   },
   {
+    // The captain's question, answered from the help in Markdown as a model may write it.
+    id: 'loop-help-markdown',
+    question: 'lets create my first context',
+    calls: [{ toolName: 'help', input: { words: 'create a context item' } }],
+    write: () => ({
+      text: [
+        'To write your first context item, open **Write** and say what agents should *know*. [Write context](write-context.md#what-to-put-in-it) has every part.',
+        '',
+        '- **Properties:** the Domain, the Kind, the Status and the owners.',
+        '- **Applies to:** the metrics and markets it is about, as `Definitions` names them.',
+        '- **Source:** a link anyone can open, such as [the customs notice](https://example.com/customs-notice).',
+        '',
+        '1. Give it a title that is one plain sentence.',
+        '2. Say what it is ~~about~~ not, if people mix it up.',
+        '3. Publish it.',
+        '',
+        '| Kind | When to pick it |',
+        '| --- | --- |',
+        '| **Event** | Something happened on a date |',
+        '| **Rule** | A fixed way to read the numbers |',
+      ].join('\n'),
+    }),
+  },
+  {
     id: 'loop-stopped',
     question: 'Give me all about orders in poland',
     calls: [{ toolName: 'get_context', input: { about: 'orders in Poland' } }],
@@ -249,7 +273,9 @@ const ask = async (c: Case) => {
   return answer.loop!
 }
 const runsOf = (body: readonly LoopBlock[]) =>
-  body.flatMap((b) => (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []))
+  body.flatMap((b) =>
+    b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : b.t === 'table' ? b.rows.flat(2) : [],
+  )
 
 describe("Ask's loop answers, as the page draws them", () => {
   it('draws each noun as a chip a read named, and each citation as a source', async () => {
@@ -407,8 +433,35 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(loop.sources).toEqual([])
   })
 
+  it('draws an answer from the help in its Markdown: bold labels, a link, a numbered list and a table, no asterisks', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-help-markdown')!)
+    expect(loop.help?.map((h) => h.slug)).toContain('write-context')
+    expect(loop.body.map((b) => b.t)).toEqual(['p', 'ul', 'ul', 'table'])
+    const [lead, labels, steps] = loop.body
+    expect(lead?.t === 'p' && lead.runs).toContainEqual({
+      t: 'text',
+      text: 'Write context',
+      link: { slug: 'write-context', id: 'what-to-put-in-it' },
+    })
+    expect(labels?.t === 'ul' && labels.items.map((i) => i[0])).toEqual(
+      ['Properties:', 'Applies to:', 'Source:'].map((text) => ({
+        t: 'text',
+        text,
+        marks: ['bold'],
+      })),
+    )
+    // An address no read gave is no link: the words in a read could have made it.
+    expect(runsOf(loop.body)).toContainEqual({
+      t: 'text',
+      text: ' a link anyone can open, such as the customs notice.',
+    })
+    expect(steps?.t === 'ul' && steps.start).toBe(1)
+    for (const r of runsOf(loop.body)) if (r.t === 'text') expect(r.text).not.toMatch(/\*\*|~~|\|/)
+    expect(loop.text).not.toMatch(/\*\*|~~/)
+  })
+
   it('says Stopped at its step limit with no state, over the plain read', async () => {
-    const loop = await ask(cases[14]!)
+    const loop = await ask(cases.find((c) => c.id === 'loop-stopped')!)
     expect(loop).toMatchObject({ kind: 'stopped', stopped: 'steps', state: null })
     expect(loop.text).toMatch(/^Ask stopped at its limit of \d+ steps/)
   })

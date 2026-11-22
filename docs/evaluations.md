@@ -398,7 +398,7 @@ FR-720.10 before they are shown (below); the judges' part waits.
   (`src/domain/ask-nouns.ts`): `metric:<id>`, `dimension:<id>`, `value:<dimension>/<value>`,
   `domain:<id>`, `person:<id>`, a value always with its own dimension. The model writes
   `[@value:<dimension>/<value>]` for a noun, `[#r1.count]` for a number or a day a read holds,
-  `[list:r1]` for a read's items as rows, and lines that start with a dash for a short list. Code
+  `[list:r1]` for a read's items as rows, and Markdown for the rest (bold, italic, code, lists, numbered lists, short tables, links; a heading is drawn as bold words, raw HTML is plain words, and a link goes only to a help page or to an address the reads or the question give word for word). Code
   checks each against the chat's reads, and repairs the words, never deleting a sentence: a
   mention no read named is plain words (its name, also when the model wrote a name in place of an
   id), a reference to a read's words is those words and one to nothing a read holds is left out

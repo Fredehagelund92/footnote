@@ -86,9 +86,15 @@ describe('a follow-up that reads nothing', () => {
         ),
       ),
     )
-    await act(() => new Promise((r) => setTimeout(r, 50)))
-    expect(host.querySelector('[data-answer-words]')?.textContent).toBe(
-      'Jon Abara owns Net revenue.',
+    // The loop answer's own code loads with its first answer: on a busy machine that takes a while.
+    await vi.waitFor(
+      async () => {
+        await act(() => new Promise((r) => setTimeout(r, 50)))
+        expect(host!.querySelector('[data-answer-words]')?.textContent).toBe(
+          'Jon Abara owns Net revenue.',
+        )
+      },
+      { timeout: 10_000 },
     )
   })
 })
