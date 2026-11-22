@@ -192,13 +192,12 @@ describe("Ask's loop answer, state by state", () => {
     expect(words).toBe('Orders Poland')
   })
 
-  it('Stopped with nothing read and no metric or market: the question, cut at a word within 200 characters', () => {
-    const question = Array.from({ length: 60 }, (_, i) => `word${i}`).join(' ')
-    expect(question.length).toBeGreaterThan(200)
-    const words = searched({ ...example('loop-stopped'), ...nothingRead, subject: null }, question)
-    expect(words.length).toBeLessThanOrEqual(200)
-    expect(question.startsWith(words)).toBe(true)
-    expect(question[words.length]).toBe(' ')
+  it('Stopped with nothing read and no metric or market: no Search button, Ask again stays', () => {
+    const el = render(
+      { ...example('loop-stopped'), ...nothingRead, subject: null },
+      'give me everything we know about churn',
+    )
+    expect(buttons(el, /^Search for these words$/)).toHaveLength(0)
   })
 
   it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
