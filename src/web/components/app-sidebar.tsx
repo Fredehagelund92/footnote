@@ -183,7 +183,10 @@ export function AppSidebar({
       {...props}
     >
       {place === 'settings' ? (
-        <SettingsNav section={route.parts[1] ?? 'general'} close={close} />
+        <SettingsNav
+          section={route.parts[1] ?? (me.admin ? 'general' : landingOf(me.owns.length > 0))}
+          close={close}
+        />
       ) : place === 'observability' && seesObservability(me) ? (
         <ObservabilityNav section={route.parts[1] ?? 'overview'} close={close} />
       ) : (

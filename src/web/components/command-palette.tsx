@@ -145,15 +145,16 @@ export function CommandPalette() {
     })
     return () => cancelAnimationFrame(frame)
   }, [open, q, results])
-  const onOpenChange = (o: boolean) => {
-    setOpen(o)
-    if (!o) setQ('')
+  const [wasOpen, setWasOpen] = React.useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (!open) setQ('')
   }
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={setOpen}
       title="Search"
       description="Search context and go anywhere"
     >

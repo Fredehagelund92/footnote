@@ -48,6 +48,9 @@ test('an owner is never sent to Settings are for admins', async ({ page }) => {
   await page.getByRole('main').getByRole('link', { name: 'Settings', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Domains and owners', level: 1 })).toBeVisible()
   await expect(page.getByText('Settings are for admins')).toHaveCount(0)
+  await expect(
+    page.getByRole('link', { name: 'Domains and owners', exact: true }).first(),
+  ).toHaveAttribute('data-active', /.*/)
   // Only an admin adds a domain: an owner reads who does, and its address leads back.
   const domainsList = page.getByRole('list', { name: 'Domains' })
   await expect(domainsList.getByRole('link', { name: 'Add a domain' })).toHaveCount(0)
@@ -56,6 +59,20 @@ test('an owner is never sent to Settings are for admins', async ({ page }) => {
   )
   await go(page, '/settings/domains/new')
   await expect(page.getByText('Settings are for admins')).toBeVisible()
+
+  // Search forgets its words however it closes: running a row, not only Esc.
+  await go(page, '/observability/quality')
+  await page.keyboard.press('ControlOrMeta+k')
+  const search = page.getByRole('dialog', { name: 'Search' }).getByRole('combobox')
+  await search.fill('inbox')
+  await page
+    .getByRole('dialog', { name: 'Search' })
+    .getByRole('option', { name: 'Inbox' })
+    .first()
+    .click()
+  await page.keyboard.press('ControlOrMeta+k')
+  await expect(search).toHaveValue('')
+  await page.keyboard.press('Escape')
 
   // A section that is an admin's says so, and leads to the owner's own.
   await go(page, '/settings/advanced')
