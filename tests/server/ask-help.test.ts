@@ -94,6 +94,21 @@ describe('an answer from the help', () => {
     ])
   })
 
+  it('finds the steps for a screen by the words people use for it', () => {
+    expect(searchHelp('connect a source like dbt')[0]).toMatchObject({
+      slug: 'integrations',
+      id: 'connect-a-source',
+    })
+    expect(searchHelp('create my first context item')[0]).toMatchObject({
+      slug: 'write-context',
+      id: 'add-a-context-item',
+    })
+    expect(searchHelp('invite a colleague')[0]).toMatchObject({
+      slug: 'domains-and-owners',
+      id: 'people',
+    })
+  })
+
   it('is no help answer when it cites an item: the context it rests on is its source', () => {
     const t = turnOf('Nothing written covers it.', [searchedNothing], [], 'Why?')
     expect(t.help).toBeUndefined()

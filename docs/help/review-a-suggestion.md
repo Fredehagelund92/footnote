@@ -4,7 +4,10 @@ line: The quick view, the review, Try it, and publishing, returning or closing.
 group: Write and review
 order: 2
 minutes: 4
-reviewed: 2026-11-03
+reviewed: 2026-11-22
+open:
+  label: Open the Inbox
+  href: /inbox
 ---
 
 A suggestion waits in its owner's Inbox. The quick view says what changes; the review is where you decide.

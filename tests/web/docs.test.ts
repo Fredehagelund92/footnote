@@ -192,6 +192,18 @@ describe('the docs check', () => {
     expect(broken).toEqual([])
   })
 
+  it('opens its screen from every page about one, which says where to start', () => {
+    // The pages about no one screen: how agents read, what is kept, the tools and the words, and
+    // how to model metrics in the tool that defines them.
+    expect(DOC_PAGES.filter((p) => !p.open).map((p) => p.slug)).toEqual([
+      'words',
+      'privacy',
+      'metric-variants',
+      'how-agents-use-it',
+      'tools',
+    ])
+  })
+
   it('refuses a page that links to nothing, or uses what the docs do not draw', () => {
     const page = (body: string) => ({
       slug: 'privacy',
