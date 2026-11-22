@@ -8,6 +8,8 @@ reviewed: 2026-11-22
 open:
   label: Open Integrations
   href: /settings/integrations
+does:
+  connect-a-source: connect_source
 ---
 
 Connect the sources where metrics are defined and where documents live, and what is read from each.

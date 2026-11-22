@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-22
 ---
 
+## Ask opens the screen it explains
+
+2026-11-22
+
+An answer in Ask that says how to do something in the app, such as writing a context item or inviting a colleague, now ends with a button that opens that screen. When the screen is not yours to use, the answer says who does it instead. Under it are the parts of the help pages it drew on. See [Ask a question](ask-a-question.md#ask-how-it-works).
+
 ## Help pages open their screen
 
 2026-11-22

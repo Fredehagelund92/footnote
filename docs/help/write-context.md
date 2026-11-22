@@ -8,6 +8,9 @@ reviewed: 2026-11-22
 open:
   label: New context
   href: /context/new
+does:
+  add-a-context-item: write_context
+  about-our-business: about_business
 ---
 
 How to add a context item, what to put in it, and the line that stops an agent from reading a cause into it.

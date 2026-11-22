@@ -21,6 +21,7 @@ import {
   type LoopRun,
   type LoopTurn,
 } from '../../../contract/answer.ts'
+import { ACTIONS_SHOWN, isActionId, type ActionOffer } from '../../../domain/actions.ts'
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
@@ -1160,6 +1161,8 @@ const isObj = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.i
 const isError = (v: unknown) => isObj(v) && typeof v.error === 'string' && v.error.length > 0
 const arr = (v: unknown): Obj[] => (Array.isArray(v) ? v.filter(isObj) : [])
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
+const strs = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
 const num = (v: unknown) => (typeof v === 'number' ? v : 0)
 const listWords = (names: readonly string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
@@ -1961,7 +1964,7 @@ export function turnOf(
   const { items, about, aside } = evidence
   // Words that cite no item after a read of the help are about Footnote itself: they rest on the
   // help's pages, and carry no state and none of the context's evidence (FR-719.8).
-  const help = words.cited.length ? [] : helpOf(made)
+  const help = words.cited.length ? [] : helpOf(made, text)
   const fromHelp = help.length > 0
   const state = fromHelp ? null : evidence.state
   const subject = fromHelp ? null : evidence.subject
@@ -2002,6 +2005,16 @@ export function turnOf(
     sources.length || defined || fromHelp || aside || subject?.about.length || listed.length
       ? []
       : unknownOf(made)
+  // What the card under a Not found offers already is not offered again beside it.
+  const gapOffers = [
+    ...(missing || (state === 'partial' && !sources.length) ? ['write_context'] : []),
+    ...(unknown.length ? ['add_definition'] : []),
+  ]
+  const actions = actionsOf(
+    words.does.filter((id) => !gapOffers.includes(id)),
+    [...made, ...earlier],
+    words.checks,
+  )
   return {
     kind: 'answer',
     text: plain,
@@ -2020,6 +2033,7 @@ export function turnOf(
     ...(defined ? { defined } : {}),
     ...(fromHelp ? { help } : {}),
     ...(unknown.length ? { unknown } : {}),
+    ...(actions.length ? { actions } : {}),
     choices: [],
     reads: readsBack(made),
     stopped: null,
@@ -2042,20 +2056,103 @@ export function turnOf(
 }
 
 /**
- * The help pages a turn's help reads returned, the best part of each, once each (FR-719.8): what
- * an answer about Footnote itself rests on.
+ * The help parts an answer about Footnote itself rests on (FR-719.8): of the parts its help reads
+ * returned, the ones its words use, most used first, once each, at most three. A part counts the
+ * pairs of words it shares with the answer, which a paraphrase keeps and a part about something
+ * else rarely has; one with fewer than half as many as the part with most is left out, so a part
+ * the search put first that the answer never drew on is not shown as its source. Words that share
+ * none with any part keep each read's best part.
  */
-function helpOf(made: readonly MadeRead[]): NonNullable<LoopTurn['help']> {
-  const pages = made.flatMap((m) => {
+function helpOf(made: readonly MadeRead[], text: string): NonNullable<LoopTurn['help']> {
+  const said = wordPairs(text.replace(/\[[^\]]*\]/g, ' '))
+  const parts = made.flatMap((m) => {
     if (m.tool !== 'help' || !isObj(m.result) || isError(m.result)) return []
-    const best = arr(m.result.pages)[0]
-    if (!best) return []
-    const [slug = '', id = ''] = str(best.page).split('#')
-    return [{ slug, id, title: str(best.title), heading: str(best.heading) }]
+    return arr(m.result.pages).map((part, at) => {
+      const [slug = '', id = ''] = str(part.page).split('#')
+      const holds = wordPairs(`${str(part.heading)} ${str(part.text)}`)
+      return {
+        page: { slug, id, title: str(part.title), heading: str(part.heading) },
+        best: at === 0,
+        used: [...said].filter((pair) => holds.has(pair)).length,
+      }
+    })
   })
-  return pages.filter(
-    (p, i) => p.slug && pages.findIndex((q) => q.slug === p.slug && q.id === p.id) === i,
+  const most = Math.max(0, ...parts.map((p) => p.used))
+  const shown = most
+    ? parts.filter((p) => p.used * 2 >= most).sort((a, b) => b.used - a.used)
+    : parts.filter((p) => p.best)
+  const pages = shown.map((p) => p.page)
+  return pages
+    .filter((p, i) => p.slug && pages.findIndex((q) => q.slug === p.slug && q.id === p.id) === i)
+    .slice(0, 3)
+}
+
+/** Words too common to tell one help part from another. */
+const COMMON_WORDS = new Set(
+  'about after also been before being both does each either even every from have here into just like more most much must never only other over same some such than that their them then there these they this those through under very want were what when where which while will with would your'.split(
+    ' ',
+  ),
+)
+
+/**
+ * The pairs of words that follow each other in some text, each word in lower case and singular,
+ * leaving out a pair of short or common words ("in the"), which any two parts share.
+ */
+function wordPairs(text: string): Set<string> {
+  const words = (text.toLowerCase().match(/\p{L}+/gu) ?? []).map((w) =>
+    w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w,
   )
+  const telling = (w: string) => w.length > 3 && !COMMON_WORDS.has(w)
+  const pairs = new Set<string>()
+  for (let i = 1; i < words.length; i++)
+    if (telling(words[i - 1]!) || telling(words[i]!)) pairs.add(`${words[i - 1]} ${words[i]}`)
+  return pairs
+}
+
+/**
+ * What the reads of a chat offer to do (FR-719.10): each help part's actions, and those of each
+ * family a definitions read found, with the family by name, its domain and its owners.
+ */
+function offersOf(reads: readonly MadeRead[]): ActionOffer[] {
+  return reads.flatMap((m): ActionOffer[] => {
+    const r = m.result
+    if (!isObj(r) || isError(r)) return []
+    const ids = (part: Obj) => strs(part.does).filter(isActionId)
+    if (m.tool === 'help') return arr(r.pages).flatMap((part) => ids(part).map((id) => ({ id })))
+    if (m.tool !== 'definitions') return []
+    const domains = arr(r.names).filter((n) => str(n.id).startsWith('domain:'))
+    return arr(r.definitions).flatMap((d) => {
+      const family = {
+        name: str(d.name),
+        domain: str(domains.find((n) => str(n.name) === str(d.domain))?.id) || null,
+        owners: strs(d.owners),
+      }
+      return ids(d).map((id) => ({ id, family }))
+    })
+  })
+}
+
+/**
+ * The quick actions an answer offers (FR-719.10): each its words mark (`[do:write_context]`), in
+ * the order marked, that a read of the chat offered, at most two; of the offers of one, a family's
+ * over a help part's, which names no family. A mark no read offered, of no action, or past the
+ * second is left out, and the check keeps it. Who may do each is the page's to say, by the same
+ * list (src/domain/actions.ts): the model never decides it.
+ */
+function actionsOf(
+  marked: readonly string[],
+  reads: readonly MadeRead[],
+  checks: LoopTurn['checks'],
+): NonNullable<LoopTurn['actions']> {
+  const offers = offersOf(reads)
+  const actions: NonNullable<LoopTurn['actions']> = []
+  for (const id of marked) {
+    const offered = offers.filter((o) => o.id === id)
+    const offer = offered.find((o) => o.family) ?? offered[0]
+    if (offer && actions.length < ACTIONS_SHOWN) actions.push(offer)
+    else checks.push({ kind: 'action', words: `[do:${id}]` })
+  }
+  return actions
 }
 
 /** A question's end after what it asks: when, then the question mark. */

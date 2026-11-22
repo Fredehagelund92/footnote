@@ -3327,6 +3327,126 @@
       "checks": []
     }
   },
+  "loop-help-write": {
+    "question": "How do I create my first context item?",
+    "turn": {
+      "kind": "answer",
+      "text": "Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know?",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Read the help for “create my first context item”: 3 parts."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "write-context",
+          "id": "add-a-context-item",
+          "title": "Write context",
+          "heading": "Add a context item"
+        }
+      ],
+      "actions": [
+        {
+          "id": "write_context"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "create my first context item"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know?"
+            }
+          ]
+        }
+      ],
+      "said": "Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know?",
+      "nouns": [],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-help-invite": {
+    "question": "How do I invite a colleague?",
+    "turn": {
+      "kind": "answer",
+      "text": "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Read the help for “invite a colleague”: 3 parts."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "domains-and-owners",
+          "id": "people",
+          "title": "Domains and owners",
+          "heading": "People"
+        }
+      ],
+      "actions": [
+        {
+          "id": "invite_people"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "invite a colleague"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page."
+            }
+          ]
+        }
+      ],
+      "said": "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page.",
+      "nouns": [],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
   "loop-stopped": {
     "question": "Give me all about orders in poland",
     "turn": {

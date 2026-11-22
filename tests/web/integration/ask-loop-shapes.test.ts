@@ -243,6 +243,23 @@ const cases: Case[] = [
     }),
   },
   {
+    // The captain's question again, as Ask answers it now: the first step, and the action it marks.
+    id: 'loop-help-write',
+    question: 'How do I create my first context item?',
+    calls: [{ toolName: 'help', input: { words: 'create my first context item' } }],
+    write: () => ({
+      text: 'Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know? [do:write_context]',
+    }),
+  },
+  {
+    id: 'loop-help-invite',
+    question: 'How do I invite a colleague?',
+    calls: [{ toolName: 'help', input: { words: 'invite a colleague' } }],
+    write: () => ({
+      text: "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page [do:invite_people].",
+    }),
+  },
+  {
     id: 'loop-stopped',
     question: 'Give me all about orders in poland',
     calls: [{ toolName: 'get_context', input: { about: 'orders in Poland' } }],
@@ -458,6 +475,18 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(steps?.t === 'ul' && steps.start).toBe(1)
     for (const r of runsOf(loop.body)) if (r.t === 'text') expect(r.text).not.toMatch(/\*\*|~~|\|/)
     expect(loop.text).not.toMatch(/\*\*|~~/)
+  })
+
+  it('offers the action a help answer marks, from the part that explains it, with no state', async () => {
+    const write = await ask(cases.find((c) => c.id === 'loop-help-write')!)
+    expect(write).toMatchObject({ state: null, actions: [{ id: 'write_context' }] })
+    expect(write.help?.map((h) => `${h.slug}#${h.id}`)).toContain(
+      'write-context#add-a-context-item',
+    )
+    expect(write.text).not.toMatch(/do:/)
+    const invite = await ask(cases.find((c) => c.id === 'loop-help-invite')!)
+    expect(invite.actions).toEqual([{ id: 'invite_people' }])
+    expect(invite.help?.map((h) => `${h.slug}#${h.id}`)).toContain('domains-and-owners#people')
   })
 
   it('says Stopped at its step limit with no state, over the plain read', async () => {

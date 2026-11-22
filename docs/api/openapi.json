@@ -92086,6 +92086,63 @@
                                         "type": "string"
                                       }
                                     },
+                                    "actions": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "enum": [
+                                              "write_context",
+                                              "add_definition",
+                                              "invite_people",
+                                              "connect_agent",
+                                              "connect_source",
+                                              "publish_names",
+                                              "pick_usual_variant",
+                                              "family_meaning",
+                                              "decide_conflict",
+                                              "open_domain",
+                                              "about_business",
+                                              "add_domain"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "family": {
+                                            "type": "object",
+                                            "properties": {
+                                              "name": {
+                                                "type": "string"
+                                              },
+                                              "domain": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "owners": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "name",
+                                              "domain",
+                                              "owners"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "id"
+                                        ]
+                                      }
+                                    },
                                     "choices": {
                                       "type": "array",
                                       "items": {
@@ -93690,6 +93747,63 @@
                                           "type": "array",
                                           "items": {
                                             "type": "string"
+                                          }
+                                        },
+                                        "actions": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "enum": [
+                                                  "write_context",
+                                                  "add_definition",
+                                                  "invite_people",
+                                                  "connect_agent",
+                                                  "connect_source",
+                                                  "publish_names",
+                                                  "pick_usual_variant",
+                                                  "family_meaning",
+                                                  "decide_conflict",
+                                                  "open_domain",
+                                                  "about_business",
+                                                  "add_domain"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "family": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "name": {
+                                                    "type": "string"
+                                                  },
+                                                  "domain": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "owners": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "required": [
+                                                  "name",
+                                                  "domain",
+                                                  "owners"
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "id"
+                                            ]
                                           }
                                         },
                                         "choices": {

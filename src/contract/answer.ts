@@ -7,6 +7,7 @@
  * (`obs.replay`), and the editor and the review count who would get a draft (`engine.reach`).
  */
 import * as z from 'zod/mini'
+import { actionIds } from '../domain/actions.ts'
 import { answerStates, leftOutReasons } from '../domain/answer.ts'
 import { chosenPeriodNames } from '../domain/dates.ts'
 import { marks } from '../domain/markdown-blocks.ts'
@@ -392,6 +393,26 @@ export const loopTurnSchema = z.object({
    * there are none.
    */
   unknown: z.optional(z.array(z.string())),
+  /**
+   * The quick actions the answer offers to open (FR-719.10), at most two: each one its words mark
+   * as what they explain how to do, that a read of the chat offered, with the family the read was
+   * about. The page draws a button for each the person may do (src/domain/actions.ts), and says
+   * who does it in place of one they may not. Left out when there are none.
+   */
+  actions: z.optional(
+    z.array(
+      z.object({
+        id: z.enum(actionIds),
+        family: z.optional(
+          z.object({
+            name: z.string(),
+            domain: z.nullable(z.string()),
+            owners: z.array(z.string()),
+          }),
+        ),
+      }),
+    ),
+  ),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /**

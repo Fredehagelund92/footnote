@@ -42,12 +42,16 @@ reviewed: 2026-10-27 # the day someone last checked it against the app
 open: # the screen the page is about, opened from beside its title
   label: Open Agents and access
   href: /settings/agents
+does: # optional: the quick actions a ## section explains, by the section's anchor
+  paste-the-prompt: connect_agent
 ---
 ```
 
 The title comes from the front matter, so the body has no `#` heading. The body opens with one paragraph, the lead, shown under the title. Sections are `##` headings, which the page's "On this page" list shows, and `###` below them.
 
 Every page about a screen has `open:`, and says early where to start: the screen to open and the control to choose there, such as "Open **Context** and choose **New context**". The few pages about no one screen, such as Words, have none, and the docs check lists them.
+
+`does:` names, for a `##` section that explains how to do something, the quick action it explains, one of `src/domain/actions.ts`, or a list of them, such as `families: [pick_usual_variant, family_meaning]`. Ask's help read gives them with each part it finds: when an answer says how to do it, Ask offers a button that opens that screen, or says who does it to someone who may not. The check fails when a key is no `##` heading of the page, or a value is no action.
 
 The docs draw only what the pages use, and refuse the rest when the app is built:
 
@@ -116,7 +120,7 @@ The words follow [Copy](../design/copy.md), the same rules as the screens:
 
 - a page cannot be read: front matter missing a field or with a value outside the lists above, a `#` heading, no lead, a note without its title, a code block without its title, a picture without its words, its file or its dark file, or HTML
 - a page or What's new is missing, or a page is not one of the nineteen the test lists
-- a page has no `open:` and is not one of the pages about no one screen that the test lists
+- a page has no `open:` and is not one of the pages about no one screen that the test lists, or a `does:` names no `##` heading of its page or no action
 - a link points at a page, a heading or a screen that does not exist
 - an include's Markdown is not the app's list as it is now (`npm run docs:sync` mends it)
 - a bold phrase has no row in `tests/e2e/docs-controls.ts` (the page, the screen and how it is drawn); `docs-controls.spec.ts` then opens each screen and fails when the control is not there
