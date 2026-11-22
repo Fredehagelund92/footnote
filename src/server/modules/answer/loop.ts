@@ -50,6 +50,7 @@ import {
   type ReadContext,
 } from './tools.ts'
 import {
+  blockRuns,
   bodyMarkup,
   bodyWords,
   finishedWords,
@@ -1953,11 +1954,7 @@ export function turnOf(
   const ctx = wordsContext(question, made, earlier)
   const words = wordsOf(text, ctx)
   const named = new Set(
-    words.body.flatMap((b) =>
-      (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []).flatMap((r) =>
-        r.t === 'noun' ? [r.id] : [],
-      ),
-    ),
+    words.body.flatMap((b) => blockRuns(b).flatMap((r) => (r.t === 'noun' ? [r.id] : []))),
   )
   const evidence = evidenceOf(made, earlier, words.cited, true, named)
   const { items, about, aside } = evidence
@@ -1975,7 +1972,11 @@ export function turnOf(
           ? []
           : b.t === 'p'
             ? [{ ...b, runs: withoutCites(b.runs) }]
-            : [{ ...b, items: b.items.map(withoutCites) }],
+            : b.t === 'ul'
+              ? [{ ...b, items: b.items.map(withoutCites) }]
+              : b.t === 'table'
+                ? [{ ...b, rows: b.rows.map((row) => row.map(withoutCites)) }]
+                : [b],
       )
     : words.body
   const sources = missing ? [] : words.cited

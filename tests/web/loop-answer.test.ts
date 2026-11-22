@@ -487,6 +487,71 @@ describe("Ask's loop answer, state by state", () => {
     for (const line of lines) expect(buttons(line, /^Source \d+: /).length).toBe(1)
   })
 
+  it("From the help, in Markdown: bold labels, links, a numbered list and a table, never the model's asterisks", () => {
+    const el = render(example('loop-help-markdown'), 'lets create my first context')
+    const words = el.querySelector('[data-answer-words]')!
+    expect(text(words)).not.toMatch(/\*\*|~~|\||`/)
+    expect([...words.querySelectorAll('li > strong')].map(text)).toEqual([
+      'Properties:',
+      'Applies to:',
+      'Source:',
+    ])
+    expect(text(words.querySelector('em')!)).toBe('know')
+    expect(text(words.querySelector('code')!)).toBe('Definitions')
+    expect(text(words.querySelector('s')!)).toBe('about')
+    // A help page opens at its part, and a web address as it is, each in a new tab.
+    const links = [...words.querySelectorAll('a')]
+    expect(links.map((a) => [text(a), a.getAttribute('href')])).toEqual([
+      ['Write context', '/docs/write-context#what-to-put-in-it'],
+      ['the customs notice', 'https://example.com/customs-notice'],
+    ])
+    for (const a of links) {
+      expect(a.target).toBe('_blank')
+      expect(a.rel).toBe('noreferrer')
+      expect(nameOf(a)).toMatch(/ \(opens in a new tab\)$/)
+    }
+    const steps = words.querySelector('ol')!
+    expect(steps.getAttribute('start')).toBe('1')
+    expect([...steps.querySelectorAll('li')].map(text)).toEqual([
+      'Give it a title that is one plain sentence.',
+      'Say what it is about not, if people mix it up.',
+      'Publish it.',
+    ])
+    const table = words.querySelector('table')!
+    expect([...table.querySelectorAll('th')].map(text)).toEqual(['Kind', 'When to pick it'])
+    const rows = [...table.querySelectorAll('tbody tr')]
+    expect(rows.map((tr) => [...tr.querySelectorAll('td')].map(text))).toEqual([
+      ['Event', 'Something happened on a date'],
+      ['Rule', 'A fixed way to read the numbers'],
+    ])
+    expect(text(table.querySelector('td strong')!)).toBe('Event')
+  })
+
+  it('Markdown links: only to a web or mail address or a help page that exists; any other is words', () => {
+    const turn: LoopTurn = {
+      ...example('loop-help-markdown'),
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'Not ' },
+            { t: 'text', text: 'a script', link: { url: 'javascript:alert(1)' } },
+            { t: 'text', text: ', nor ' },
+            { t: 'text', text: 'a page', link: { slug: 'no-such-page', id: '' } },
+            { t: 'text', text: ', but ' },
+            { t: 'text', text: 'mail', link: { url: 'mailto:ada@example.com' } },
+            { t: 'text', text: '.' },
+          ],
+        },
+      ],
+    }
+    const words = render(turn).querySelector('[data-answer-words]')!
+    expect(text(words)).toBe('Not a script, nor a page, but mail.')
+    expect([...words.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      'mailto:ada@example.com',
+    ])
+  })
+
   it('A long paragraph: one sentence a line, five at most, then Show more; no "Nothing is written" once items were found', () => {
     const base = example('loop-checked')
     const turn: LoopTurn = {
@@ -967,6 +1032,41 @@ describe('while the loop writes', () => {
       expect(words()).toContain('The payment files for Germany')
       expect(host.querySelector('.invisible')).toBeNull()
       expect(buttons(host, /^Good answer$/)).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('types words the model marked in their marks from their first word, never showing a mark', () => {
+    motion(false)
+    const { askedTurn, turnReducer } = turnModule
+    const asked = askedTurn('t1', 'lets create my first context')
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+    try {
+      host = document.createElement('div')
+      document.body.append(host)
+      root = createRoot(host)
+      const turn = turnReducer(asked, {
+        type: 'done',
+        answer: loopAnswerOf(example('loop-help-markdown'), 'lets create my first context', names),
+      })
+      act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+      const words = () => host!.querySelector('[data-answer-words]')!
+      let bold = 0
+      for (let ms = 0; ms < 8000; ms += 100) {
+        act(() => {
+          vi.advanceTimersByTime(100)
+        })
+        expect(text(words())).not.toMatch(/\*\*|~~|\|/)
+        // A bold label is in bold from its first word on.
+        for (const strong of words().querySelectorAll('strong'))
+          expect(text(strong)).toMatch(
+            /^(?:Write|Properties:|Applies|Applies to:|Source:|Event|Rule)$/,
+          )
+        bold = Math.max(bold, words().querySelectorAll('li > strong').length)
+      }
+      expect(bold).toBe(3)
+      expect(words().querySelector('table')).not.toBeNull()
     } finally {
       vi.useRealTimers()
     }

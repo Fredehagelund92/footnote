@@ -98,6 +98,9 @@ export default defineConfig({
     // reaches the Inbox in tests/web/integration/ask-tell-owner.test.ts.
     /\/j93-ask-definition-card\.spec\.ts$/,
     /\/j94-ask-gap-card\.spec\.ts$/,
+    // J95 opens an answer from the help in Markdown by the mock's example address; the service
+    // draws it in tests/web/integration/ask-loop-shapes.test.ts.
+    /\/j95-ask-markdown\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

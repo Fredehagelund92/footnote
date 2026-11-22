@@ -1,11 +1,13 @@
 import type {
   LoopBlock,
   LoopItem,
+  LoopLink,
   LoopOverview,
   LoopRun,
   LoopTurn,
 } from '../../../contract/answer.ts'
 import { dimensionOf, nounKindOf } from '../../../domain/ask-nouns.ts'
+import { inlineSegments, marks } from '../../../domain/markdown-blocks.ts'
 import { isCalendarDate } from '../../../domain/validity.ts'
 
 /*
@@ -13,9 +15,11 @@ import { isCalendarDate } from '../../../domain/validity.ts'
   and what the reads returned. The model writes each noun as a typed mention whose id a read
   returned (`[@metric:orders]`, `[@value:channel/web_shop]`), each count or day a read gave as a
   reference to it (`[#r1.count]`), cites items by id as before, asks for a read's items as a list
-  (`[list:r1]`), and may write a short list as lines that start with "- ". Code checks every one
-  against the reads of this chat: a mention no read named is plain words, never a chip; a
-  reference to a read's words is those words, and one no read holds is left out of its sentence,
+  (`[list:r1]`), and may write a short list as lines that start with "- ". What it marks in
+  Markdown is drawn so (bold, italics, code, a link, a numbered list, a short table), never as
+  its asterisks and pipes, and a link goes only to a web or mail address or a help page. Code
+  checks every one against the reads of this chat: a mention no read named is plain words, never
+  a chip; a reference to a read's words is those words, and one no read holds is left out of its sentence,
   which stays (code repairs the words and never deletes a sentence); and what the check found is
   kept in `checks`, never shown as the answer's words. A set the person asked for as a whole is an overview: the
   groups of one read, by code.
@@ -161,23 +165,161 @@ export type Words = {
 /** A mention, a number reference, a list, a citation mark, or a bare item id. */
 const TOKEN =
   /\[@([a-z]+:[^\]\s]{1,200})\]|\[#(r\d+)((?:\.[A-Za-z0-9_]+)+)\]|\[list:(r\d+)\]|\[([^[\]\n]{1,200})\]|\b(itm_[a-z0-9]{8,16})\b/g
-const BULLET = /^\s*(?:[-*•]|\d{1,2}[.)])\s+/
+/** A line of a list: a dash, a star or a bullet, or a number (its own group) and a stop. */
+const BULLET = /^\s*(?:[-*•]|(\d{1,2})[.)])\s+/
 const LIST_LINE = /^\s*\[list:(r\d+)\]\s*$/
+/** A line that only rules off what is above it ("---"), a heading's, a quote's and a fence's. */
+const RULE = /^\s{0,3}([-*_])(?:[ \t]*\1){2,}\s*$/
+const HEADING = /^\s{0,3}#{1,6}\s+(.*?)(?:\s+#+)?\s*$/
+const QUOTE = /^\s{0,3}>[ \t]?/
+const FENCE = /^\s{0,3}(`{3,}|~{3,})/
+/** A table's line under its heads: a dash or more between each pipe, with colons to align. */
+const TABLE_RULE = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/
 /** A sentence's end, with any marks after it: where one sentence stops and the next begins. */
-export const SENTENCE_END = /(?<=[.!?](?:\s*\[[^[\]\n]{1,200}\])*)\s+/
+export const SENTENCE_END = /(?<=[.!?][*_~`\uE100-\uE1FF]*(?:\s*\[[^[\]\n]{1,200}\])*)\s+/
 
 /**
  * The words a model has written so far, up to the end of their last sentence or line that is
- * final: one that more words follow, so no citation or mark after it can still come. Empty when
+ * final: one that more words follow, so no citation or mark after it can still come, and that
+ * closes each mark it opens, so no asterisk shows that is bold once its words are in. Empty when
  * no sentence is final yet.
  */
 export function finishedWords(draft: string): string {
   const ends = [
-    ...draft.matchAll(/(?:(?<=[.!?](?:\s*\[[^[\]\n]{1,200}\])*)[ \t]+|[ \t]*\n\s*)(?=[^\s[])/g),
+    ...draft.matchAll(
+      /(?:(?<=[.!?][*_~`]*(?:\s*\[[^[\]\n]{1,200}\])*)[ \t]+|[ \t]*\n\s*)(?=[^\s[])/g,
+    ),
   ]
   const last = ends.at(-1)
-  return last ? draft.slice(0, last.index).trimEnd() : ''
+  const done = last ? draft.slice(0, last.index).trimEnd() : ''
+  return done && opensMark(lastBlockOf(done)) ? finishedWords(done) : done
 }
+
+/** The words of the block some words end in, as `styled` reads them: a list's line, or a paragraph's lines. */
+function lastBlockOf(words: string): string {
+  const lines = words
+    .split(/\n\s*\n/)
+    .at(-1)!
+    .split('\n')
+  const from = lines.findLastIndex((l) => BULLET.test(l))
+  return from < 0 || from === lines.length - 1
+    ? lines.slice(Math.max(from, 0)).join(' ')
+    : lines.slice(from + 1).join(' ')
+}
+
+/** Whether some words open a mark they do not close yet: closing it would set words in it. */
+const opensMark = (words: string) => {
+  const set = (w: string) =>
+    inlineSegments(w).reduce((n, s) => n + (s.marks.size ? s.text.length : 0), 0)
+  const now = set(words)
+  return ['**', '__', '~~', '*', '_', '`'].some((close) => set(words + close) > now)
+}
+
+/*
+  How the model's words are set while code reads them (`styled`): one character before some words
+  sets their marks and their link until the next one, so every check reads the words as they are
+  and a mark goes wherever its words go; `drawn` reads them back as the runs' marks and links.
+*/
+
+/** The first character that sets words' marks: bold, italic, strike and code as bits, the link's number above them. */
+const STYLE = 0xe100
+const STYLED = /[\uE100-\uE1FF]/
+/** The most links one block of words carries. */
+const LINKS_HELD = 15
+/** Square brackets in words set as code, which mark nothing: set aside while the words are read. */
+const CODE_OPEN = '\uE001'
+const CODE_CLOSE = '\uE002'
+/** The first of the characters that stand in for a mention, reference or mark while Markdown is read. */
+const HELD = 0xe200
+
+/**
+ * Where a link the model wrote may go: a web or mail address, or a part of a help page as the help
+ * read gives it (`write-context.md#the-four-kinds`); nowhere else, so never a script.
+ */
+export function linkOf(href: string): LoopLink | null {
+  const help = /^(?:\.\/)?([a-z0-9]+(?:-[a-z0-9]+)*)(?:\.md)?(?:#([a-z0-9-]+))?$/.exec(href)
+  if (help) return { slug: help[1]!, id: help[2] ?? '' }
+  try {
+    const url = new URL(href)
+    return ['https:', 'http:', 'mailto:'].includes(url.protocol) ? { url: url.href } : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Some words with their Markdown marks and links as the characters that set them (`STYLE`), and
+ * the links in `links`: the model's mentions, references and marks stay as written, and words set
+ * as code mark nothing. Words that mark nothing come back as they are, but for what a backslash
+ * keeps from being a mark (`\*`).
+ */
+function styled(words: string, links: LoopLink[]): string {
+  const held: string[] = []
+  const hold = words.replace(TOKEN, (m: string, ...rest: unknown[]) => {
+    const at = rest.at(-2) as number
+    // A mark's brackets that a link's address follows are the link's.
+    if (m.startsWith('[') && !/^\[[@#]|^\[list:/.test(m) && words[at + m.length] === '(') return m
+    held.push(m)
+    return String.fromCharCode(HELD + held.length - 1)
+  })
+  const back = (text: string) =>
+    text.replace(/[\uE200-\uEFFF]/g, (c) => held[c.charCodeAt(0) - HELD] ?? '')
+  const segments = inlineSegments(hold)
+  if (segments.every((x) => !x.marks.size && x.href === null))
+    return back(segments.map((x) => x.text).join(''))
+  let style = 0
+  const out = segments.map((x) => {
+    const link = x.href === null ? null : linkOf(x.href)
+    let n = link ? links.findIndex((l) => JSON.stringify(l) === JSON.stringify(link)) + 1 : 0
+    if (link && !n && links.length < LINKS_HELD) n = links.push(link)
+    const set = STYLE + marks.reduce((b, m, i) => (x.marks.has(m) ? b | (1 << i) : b), 0) + n * 16
+    const text = x.marks.has('code')
+      ? back(x.text).replaceAll('[', CODE_OPEN).replaceAll(']', CODE_CLOSE)
+      : back(x.text)
+    const lead = set === STYLE + style ? '' : String.fromCharCode(set)
+    style = set - STYLE
+    return lead + text
+  })
+  return out.join('') + (style ? String.fromCharCode(STYLE) : '')
+}
+
+/** A block's runs with the marks and links its words were set with (`styled`), as the page draws them. */
+function drawn(runs: readonly LoopRun[], links: readonly LoopLink[]): LoopRun[] {
+  const out: LoopRun[] = []
+  let style = 0
+  for (const r of runs) {
+    if (r.t !== 'text') {
+      out.push(r)
+      continue
+    }
+    for (const part of r.text.split(/(?=[\uE100-\uE1FF])/)) {
+      if (STYLED.test(part[0] ?? '')) style = part.charCodeAt(0) - STYLE
+      const text = part.replace(STYLED, '').replaceAll(CODE_OPEN, '[').replaceAll(CODE_CLOSE, ']')
+      const set = marks.filter((_, i) => style & (1 << i))
+      const link = links[(style >> 4) - 1]
+      pushRun(out, {
+        t: 'text',
+        text,
+        ...(set.length ? { marks: [...set] } : {}),
+        ...(link ? { link } : {}),
+      })
+    }
+  }
+  return trimRuns(out)
+}
+
+/** A block's runs with every plain word in it bold too: a heading's. */
+const bolded = (runs: readonly LoopRun[]): LoopRun[] =>
+  runs.map((r) =>
+    r.t === 'text' && !r.marks?.includes('bold')
+      ? { ...r, marks: marks.filter((m) => m === 'bold' || r.marks?.includes(m)) }
+      : r,
+  )
+
+/** Whether two runs of words are set the same: their marks and their link. */
+const sameStyle = (a: Extract<LoopRun, { t: 'text' }>, b: Extract<LoopRun, { t: 'text' }>) =>
+  (a.marks ?? []).join() === (b.marks ?? []).join() &&
+  JSON.stringify(a.link) === JSON.stringify(b.link)
 
 /**
  * An id's words when no read named it: the name of a noun a read named that the id spells
@@ -371,10 +513,10 @@ function strayAtEnd(runs: readonly LoopRun[], run: LoopRun, rest: string, earlie
   )
 }
 
-/** Runs of words, a run of plain words merged with the one before it. */
+/** Runs of words, a run of plain words merged with the one before it when they are set the same. */
 function pushRun(runs: LoopRun[], run: LoopRun) {
   const last = runs.at(-1)
-  if (run.t === 'text' && last?.t === 'text') last.text += run.text
+  if (run.t === 'text' && last?.t === 'text' && sameStyle(last, run)) last.text += run.text
   else if (run.t !== 'text' || run.text) runs.push(run)
 }
 
@@ -680,11 +822,13 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     return done
   }
   /** A paragraph's sentences; a long enumeration after a colon as a lead and a list. */
-  const paragraph = (words: string): LoopBlock[] => {
+  const paragraph = (written: string): LoopBlock[] => {
     const blocks: LoopBlock[] = []
+    const links: LoopLink[] = []
+    const words = styled(written, links)
     let runs: LoopRun[] = []
     const flush = () => {
-      trimRuns(runs)
+      runs = drawn(runs, links)
       if (runs.length) blocks.push({ t: 'p', runs })
       runs = []
     }
@@ -696,7 +840,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         if (runs.length) pushRun(runs, { t: 'text', text: ' ' })
         for (const r of lead) pushRun(runs, r)
         flush()
-        blocks.push({ t: 'ul', items: items.map(trimRuns) })
+        blocks.push({ t: 'ul', items: items.map((item) => drawn(item, links)) })
         continue
       }
       const one = sentence(said)
@@ -707,43 +851,111 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     flush()
     return blocks
   }
-  const body: LoopBlock[] = []
-  for (const para of text.replace(/\r\n?/g, '\n').split(/\n\s*\n/)) {
-    let prose: string[] = []
-    let bullets: string[] = []
-    const endProse = () => {
-      if (prose.length) body.push(...paragraph(prose.join(' ')))
-      prose = []
-    }
-    const endBullets = () => {
-      if (bullets.length) {
-        body.push({ t: 'ul', items: bullets.map((b) => trimRuns(sentence(b, true))) })
-      }
-      bullets = []
-    }
-    for (const line of para.split('\n')) {
-      if (!line.trim()) continue
-      const list = line.match(LIST_LINE)?.[1]
-      if (list) {
-        endProse()
-        endBullets()
-        const block = listOf(list, ctx, cite)
-        if (block) body.push(block)
-        else check('list', line.trim())
-      } else if (BULLET.test(line)) {
-        endProse()
-        bullets.push(line.replace(BULLET, ''))
-      } else if (bullets.length && /^\s{2,}/.test(line))
-        bullets[bullets.length - 1] += ` ${line.trim()}`
-      else {
-        endBullets()
-        prose.push(line.trim())
-      }
-    }
-    endProse()
-    endBullets()
+  /** A line of words that stands alone, a list's or a table's: its sentence, as set. */
+  const line = (written: string): LoopRun[] => {
+    const links: LoopLink[] = []
+    return drawn(sentence(styled(written, links), true), links)
   }
+  const body: LoopBlock[] = []
+  let prose: string[] = []
+  let bullets: string[] = []
+  /** The number a numbered list starts from; null for a list of dashes. */
+  let start: number | null = null
+  const endProse = () => {
+    if (prose.length) body.push(...paragraph(prose.join(' ')))
+    prose = []
+  }
+  const endBullets = () => {
+    if (bullets.length)
+      body.push({ t: 'ul', items: bullets.map(line), ...(start === null ? {} : { start }) })
+    bullets = []
+  }
+  // A blank line ends a paragraph; a list goes on past one to its next line of the same kind.
+  const lines = text.replace(/\r\n?/g, '\n').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const quoted = lines[i]!.replace(QUOTE, '')
+    if (!quoted.trim()) {
+      endProse()
+      continue
+    }
+    const rule = RULE.test(quoted)
+    const fence = quoted.match(FENCE)?.[1]
+    const bullet = rule ? null : quoted.match(BULLET)
+    const list = quoted.match(LIST_LINE)?.[1]
+    const heading = quoted.match(HEADING)?.[1]
+    // A table: a line with a pipe, then the line of dashes under its heads.
+    const under = lines[i + 1]?.replace(QUOTE, '') ?? ''
+    const table = quoted.includes('|') && under.includes('|') && TABLE_RULE.test(under)
+    if (bullets.length && !bullet && /^\s{2,}/.test(quoted)) {
+      bullets[bullets.length - 1] += ` ${quoted.trim()}`
+      continue
+    }
+    if (bullets.length && (!bullet || (start === null) !== (bullet[1] === undefined))) endBullets()
+    if (rule || fence || bullet || table || list || heading !== undefined) endProse()
+    if (fence) {
+      // What the model wrote as code is its lines as written, to the fence that closes it; a
+      // quote's marks only when the fence is in the quote.
+      const inQuote = (l: string) => (QUOTE.test(lines[i]!) ? l.replace(QUOTE, '') : l)
+      const end = lines.findIndex((l, j) => j > i && inQuote(l).trim().startsWith(fence))
+      const code = lines.slice(i + 1, end < 0 ? undefined : end).map(inQuote)
+      if (code.some((l) => l.trim())) body.push({ t: 'code', text: code.join('\n').trimEnd() })
+      i = end < 0 ? lines.length : end
+    } else if (table) {
+      const rows: string[] = [quoted]
+      for (i += 2; i < lines.length && lines[i]!.includes('|'); i++)
+        rows.push(lines[i]!.replace(QUOTE, ''))
+      i--
+      // Each row has the heads' cells, as many as there are heads.
+      const width = cellsOf(quoted).length
+      body.push({
+        t: 'table',
+        rows: rows.map((r) => {
+          const cells = cellsOf(r)
+          return Array.from({ length: width }, (_, j) => line(cells[j] ?? ''))
+        }),
+      })
+    } else if (list) {
+      const block = listOf(list, ctx, cite)
+      if (block) body.push(block)
+      else check('list', quoted.trim())
+    } else if (rule) continue
+    else if (heading !== undefined) {
+      // A heading is a line of its own, in bold: an answer has no headings of its own.
+      const runs = bolded(line(heading))
+      if (runs.length) body.push({ t: 'p', runs })
+    } else if (bullet) {
+      if (!bullets.length) start = bullet[1] === undefined ? null : Number(bullet[1])
+      bullets.push(quoted.replace(BULLET, ''))
+    } else prose.push(quoted.trim())
+  }
+  endProse()
+  endBullets()
   return { body, cited, marked, checks }
+}
+
+/** A table's row as the words of its cells: between its pipes, but not one a backslash or code holds. */
+function cellsOf(row: string): string[] {
+  const cells: string[] = []
+  let cell = ''
+  let code = false
+  for (let i = 0; i < row.length; i++) {
+    const c = row[i]!
+    if (c === '\\' && row[i + 1] === '|') {
+      cell += '|'
+      i++
+    } else if (c === '`') {
+      code = !code
+      cell += c
+    } else if (c === '|' && !code) {
+      cells.push(cell)
+      cell = ''
+    } else cell += c
+  }
+  cells.push(cell)
+  // The pipes at the row's ends hold no cell.
+  if (!cells[0]!.trim()) cells.shift()
+  if (cells.length > 1 && !cells.at(-1)!.trim()) cells.pop()
+  return cells.map((x) => x.trim())
 }
 
 /** Runs with no space at their start or end. */
@@ -1034,25 +1246,62 @@ export function bodyMarkup(
           ? { t: 'text' as const, text: `[@${r.id}]` }
           : r.t === 'cite'
             ? { t: 'text' as const, text: mark(r.n) }
-            : r,
+            : r.t === 'text'
+              ? { t: 'text' as const, text: markdownOf(r) }
+              : r,
       ),
       nouns,
     )
   return body
-    .map((b) =>
-      b.t === 'p'
-        ? marked(b.runs)
-        : b.t === 'ul'
-          ? b.items.map((i) => `- ${marked(i)}`).join('\n')
-          : b.rows.map((id) => `- ${items.get(id)?.title ?? id} [${id}]`).join('\n'),
-    )
+    .map((b) => {
+      switch (b.t) {
+        case 'p':
+          return marked(b.runs)
+        case 'ul':
+          return b.items.map((i, n) => `${lineMark(b, n)}${marked(i)}`).join('\n')
+        case 'table':
+          return b.rows
+            .flatMap((row, n) => {
+              const line = `| ${row.map((c) => marked(c).replaceAll('|', '\\|')).join(' | ')} |`
+              return n ? [line] : [line, `|${row.map(() => ' --- |').join('')}`]
+            })
+            .join('\n')
+        case 'code':
+          return `\`\`\`\n${b.text}\n\`\`\``
+        case 'list':
+          return b.rows.map((id) => `- ${items.get(id)?.title ?? id} [${id}]`).join('\n')
+      }
+    })
     .join('\n\n')
 }
+
+/** What starts a list's line: a dash, or its number. */
+const lineMark = (b: Extract<LoopBlock, { t: 'ul' }>, n: number) =>
+  b.start === undefined ? '- ' : `${b.start + n}. `
+
+/** A run of words as Markdown: its marks around its words, the spaces at its ends outside them, and its link. */
+function markdownOf(r: Extract<LoopRun, { t: 'text' }>): string {
+  const [, lead, words, trail] = /^(\s*)([^]*?)(\s*)$/.exec(r.text)!
+  if (!words || (!r.marks?.length && !r.link)) return r.text
+  const set = r.marks ?? []
+  let md = words
+  if (set.includes('code')) md = `\`${md}\``
+  if (set.includes('strike')) md = `~~${md}~~`
+  if (set.includes('italic')) md = `*${md}*`
+  if (set.includes('bold')) md = `**${md}**`
+  if (r.link)
+    md = `[${md}](${'url' in r.link ? r.link.url : `${r.link.slug}.md${r.link.id && `#${r.link.id}`}`})`
+  return `${lead}${md}${trail}`
+}
+
+/** Every run of a block's words: a paragraph's, a list's lines', a table's cells'. */
+export const blockRuns = (b: LoopBlock): LoopRun[] =>
+  b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : b.t === 'table' ? b.rows.flat(2) : []
 
 /** Where the last sentence in some words begins, just after the space that ends the one before; -1 when none ends in them. */
 const lastSentenceStart = (text: string) => {
   let at = -1
-  for (const m of text.matchAll(/[.!?]["'”’)]*\s+/g)) at = m.index + m[0].length
+  for (const m of text.matchAll(/[.!?]["'”’)\uE100-\uE1FF]*\s+/g)) at = m.index + m[0].length
   return at
 }
 
@@ -1134,9 +1383,9 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
       out.splice(
         found.i,
         1,
-        ...(found.at ? [{ t: 'text' as const, text: x.text.slice(0, found.at) }] : []),
+        ...(found.at ? [{ ...x, text: x.text.slice(0, found.at) }] : []),
         r,
-        ...(after ? [{ t: 'text' as const, text: after }] : []),
+        ...(after ? [{ ...x, text: after }] : []),
       )
     } else if (r.t === 'text') {
       let last = out.at(-1)
@@ -1151,7 +1400,7 @@ function placed(runs: readonly LoopRun[], nouns: ReadonlyMap<string, Noun>): Loo
       }
       vacated = false
       const start = lastSentenceStart(r.text)
-      if (last?.t === 'text') {
+      if (last?.t === 'text' && sameStyle(last, r)) {
         if (start >= 0) from = { run: out.length - 1, at: last.text.length + start }
         out[out.length - 1] = { ...last, text: last.text + r.text }
       } else {
@@ -1287,12 +1536,16 @@ export function shownBody(
     const shown = (runs: readonly LoopRun[]) => placed(notFound ? withoutCites(runs) : runs, nouns)
     if (b.t === 'p') out.push({ ...b, runs: shown(b.runs) })
     else if (b.t === 'ul') out.push({ ...b, items: b.items.map(shown) })
+    else if (b.t === 'table') out.push({ ...b, rows: b.rows.map((row) => row.map(shown)) })
     else out.push(b)
   }
   return out
 }
 
-/** The blocks in plain words: paragraphs, then each list's lines with "- ". */
+/**
+ * The blocks in plain words, no Markdown: paragraphs, each list's lines with "- " or their
+ * number, a table's rows with its cells between pipes, and what was written as code as it is.
+ */
 export function bodyWords(
   body: readonly LoopBlock[],
   nouns: ReadonlyMap<string, Noun>,
@@ -1300,14 +1553,21 @@ export function bodyWords(
   cited: readonly string[],
 ): string {
   return body
-    .map((b) =>
-      b.t === 'p'
-        ? runWords(b.runs, nouns)
-        : b.t === 'ul'
-          ? b.items.map((i) => `- ${runWords(i, nouns)}`).join('\n')
-          : b.rows
-              .map((id) => `- ${items.get(id)?.title ?? id} [${cited.indexOf(id) + 1}]`)
-              .join('\n'),
-    )
+    .map((b) => {
+      switch (b.t) {
+        case 'p':
+          return runWords(b.runs, nouns)
+        case 'ul':
+          return b.items.map((i, n) => `${lineMark(b, n)}${runWords(i, nouns)}`).join('\n')
+        case 'table':
+          return b.rows.map((row) => row.map((c) => runWords(c, nouns)).join(' | ')).join('\n')
+        case 'code':
+          return b.text
+        case 'list':
+          return b.rows
+            .map((id) => `- ${items.get(id)?.title ?? id} [${cited.indexOf(id) + 1}]`)
+            .join('\n')
+      }
+    })
     .join('\n\n')
 }
