@@ -482,7 +482,7 @@ function Body({
           <ol
             key={i}
             start={b.start}
-            className="ml-6 list-decimal space-y-1.5 marker:text-muted-foreground marker:tabular-nums"
+            className="ml-6 list-decimal space-y-1.5"
           >
             {rows}
           </ol>

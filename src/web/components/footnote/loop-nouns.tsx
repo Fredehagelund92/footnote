@@ -687,7 +687,7 @@ function Styled({
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="rounded-xs text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="rounded-xs text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {node}
         <span className="sr-only"> (opens in a new tab)</span>
