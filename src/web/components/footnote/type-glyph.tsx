@@ -26,3 +26,27 @@ export function TypeGlyph({
   const Glyph = glyphs[kindOf(d)]
   return <Glyph aria-hidden className={cn('size-3.5 shrink-0 text-muted-foreground', className)} />
 }
+
+/**
+ * A family's glyph where a metric's is a bare sigma (search, menus): the same sigma, a little
+ * smaller, with two sheets behind it up and to the right. The sigma's width, so a name beside it
+ * starts where a metric's does.
+ */
+export function FamilyGlyph({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('size-3.5 shrink-0 text-muted-foreground', className)}
+    >
+      <SigmaIcon x={-0.5} y={3.5} width={19.68} height={19.68} />
+      <path d="M7.5 3.5h11a1.5 1.5 0 0 1 1.5 1.5v11" opacity={0.75} />
+      <path d="M10.5 1h10a2 2 0 0 1 2 2v10" opacity={0.45} />
+    </svg>
+  )
+}

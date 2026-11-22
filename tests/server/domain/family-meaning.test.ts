@@ -324,6 +324,19 @@ describe('a meaning as one plain line', () => {
       'Taken in each currency via each channel for {customers}.',
     )
   })
+
+  it('folds an article before a slot and the axis word after it', () => {
+    expect(
+      meaningLine('Fees for orders paid in {Currency} through the {Channel} channel.', by),
+    ).toBe('Fees for orders paid in each currency through each channel.')
+    expect(meaningLine('Paid in a {Currency} of the {Channel} kind.', by)).toBe(
+      'Paid in each currency of each channel kind.',
+    )
+    expect(meaningLine('The {Currency} amount.', by)).toBe('Each currency amount.')
+    expect(meaningLine('Theme {Channel} channels, an {Other} one.', by)).toBe(
+      'Theme each channel channels, an {Other} one.',
+    )
+  })
 })
 
 describe('the words a source declares for a family', () => {

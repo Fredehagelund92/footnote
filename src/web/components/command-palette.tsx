@@ -38,7 +38,7 @@ import { navigate } from '@/lib/router'
 import { kindName, variantPart } from '@/lib/definitions'
 import { useDomains, useMe } from '@/lib/workspace'
 import { DomainDot } from '@/components/footnote/tag-chip'
-import { TypeGlyph } from '@/components/footnote/type-glyph'
+import { FamilyGlyph, TypeGlyph } from '@/components/footnote/type-glyph'
 import { useTheme } from '@/lib/theme-context'
 import { logos } from '@/model/integrations'
 
@@ -250,7 +250,12 @@ export function CommandPalette() {
                     openDock('def', d.name, { variant: d.variants?.matched ?? undefined }),
                   )}
                 >
-                  <TypeGlyph d={d} className="text-current" />
+                  {/* A family is marked by its stack, on a phone too, where the words beside go. */}
+                  {d.variants ? (
+                    <FamilyGlyph className="text-current" />
+                  ) : (
+                    <TypeGlyph d={d} className="text-current" />
+                  )}
                   <span className="min-w-0 flex-1 truncate">
                     {d.name}
                     {/* Found by one variant's name, a family says which, by what tells it apart. */}
@@ -265,7 +270,7 @@ export function CommandPalette() {
                     {d.sameAs
                       ? `Another name for ${d.sameAs}`
                       : d.variants
-                        ? `Family · ${d.variants.count.toLocaleString('en-GB')} ${d.variants.count === 1 ? 'variant' : 'variants'}`
+                        ? 'Family of metrics'
                         : kindName(d)}
                   </CommandShortcut>
                 </CommandItem>
