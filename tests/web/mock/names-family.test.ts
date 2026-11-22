@@ -221,6 +221,10 @@ describe('what a converted pair would mean on the Names card', () => {
     const family = sourceNames([pair('EUR'), pair('USD')], [], new Map(), new Set()).find(
       (name) => name.kind === 'metric_group',
     )!
-    expect(familyRead(family)!.meaning).toMatchObject({ source: 'common', agree: 1, base: 'EUR' })
+    expect(familyRead(family)!.meaning).toMatchObject({
+      source: 'common',
+      agree: 1,
+      base: 'Accrued share (EUR)',
+    })
   })
 })
