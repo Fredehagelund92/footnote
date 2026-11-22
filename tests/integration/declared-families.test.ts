@@ -14,6 +14,12 @@ import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import {
+  scriptedLoopChoice,
+  scriptedLoopModel,
+  type ScriptedPrompt,
+  type ScriptedStep,
+} from '../../src/server/modules/answer/index.ts'
+import {
   ConnectorRegistry,
   connectorSyncJob,
   createWorkspaceSources,
@@ -44,8 +50,17 @@ const clock = systemClock('2026-11-21')
 const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-families-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
 const registry = new ConnectorRegistry([], { secrets: store })
+/** The model of the next turn: the scripted reader, unless a test scripts one. */
+let decide: ((prompt: ScriptedPrompt) => ScriptedStep) | null = null
+const reader = scriptedLoopModel()
+const scripted = scriptedLoopChoice('families', (prompt) => decide!(prompt))
 const app = buildApp({
   database,
+  askTrace: {
+    get loopModel() {
+      return decide ? scripted : reader
+    },
+  },
   jobs: idleJobs(),
   sources: registry,
   workspaceSources: createWorkspaceSources({ secrets: store, registry }),
@@ -144,6 +159,17 @@ async function read() {
     logger,
     signal: new AbortController().signal,
   })
+}
+
+/** One question to Ask as a member, through the real service: the turn it answers with. */
+const ask = async (question: string) => {
+  const r = await call('POST', '/ask/lookup', 'member', { question })
+  expect(r.statusCode, r.body).toBe(200)
+  const turns = r.body
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => JSON.parse(line.slice(5)) as { type: string; turn?: LoopTurn })
+  return turns.findLast((e) => e.type === 'turn')!.turn!
 }
 
 const names = () => ok<NamesRead>(call('GET', '/inbox/names', 'admin'))
@@ -518,6 +544,36 @@ describe('Ask on a family', () => {
     expect(looked.definitions?.[0]?.family).toMatchObject({ variants: 6 })
     expect(looked.definitions?.[0]?.family).toEqual(defined.definitions?.[0]?.family)
   })
+
+  it('answers a why-question from its definition under the Definition label, in words of its own', async () => {
+    // Answered from the definition, in words of its own, the answer still showed Not found
+    // (captain's install, 22 November 2026): only a run of five of its words made it a Definition.
+    const why = (words: (id: string) => string) => {
+      decide = ({ step, results }) => {
+        if (step === 0)
+          return {
+            calls: [
+              { toolName: 'get_context', input: { about: 'net revenue by line', no_period: true } },
+            ],
+          }
+        const got = results[0]!.value as { definitions: { id: string }[] }
+        return { text: words(got.definitions[0]!.id) }
+      }
+      return ask('Why is net revenue by line in USD different from EUR?')
+    }
+    try {
+      const drawn = await why((id) => `The USD figure is the EUR one at that day's rate [${id}].`)
+      expect(drawn.text).toBe("The USD figure is the EUR one at that day's rate.")
+      expect(drawn.state).toBeNull()
+      expect(drawn.defined).toMatchObject({ names: ['Net revenue by line'], tool: 'dbt' })
+      // Words that say nothing covers it, and rest on no definition, stay Not found.
+      const none = await why(() => 'Nothing written covers why the USD figure differs.')
+      expect(none.state).toBe('missing')
+      expect(none.defined).toBeUndefined()
+    } finally {
+      decide = null
+    }
+  })
 })
 
 describe('the usual variant of a family (F3)', () => {
@@ -585,15 +641,6 @@ describe('the usual variant of a family (F3)', () => {
   it('is what Ask reads for a question that names none of its values, and says so', async () => {
     // Asked about a family whose owners picked EUR, Ask still read every variant (22 November
     // 2026): the pick was in Definitions only. The scripted reader stands in for the model.
-    const ask = async (question: string) => {
-      const r = await call('POST', '/ask/lookup', 'member', { question })
-      expect(r.statusCode, r.body).toBe(200)
-      const turns = r.body
-        .split('\n')
-        .filter((line) => line.startsWith('data:'))
-        .map((line) => JSON.parse(line.slice(5)) as { type: string; turn?: LoopTurn })
-      return turns.findLast((e) => e.type === 'turn')!.turn!
-    }
     const accrued = await family('Accrued share 1')
     const plain = await ask('What is accrued share 1?')
     expect(plain.subject?.note).toBeNull()

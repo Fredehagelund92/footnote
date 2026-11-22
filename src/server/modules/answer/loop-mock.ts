@@ -225,10 +225,10 @@ export type PlainStep =
  * engine agents get; then what applies, each item's title and first sentence with its id, or with
  * nothing found, one sentence that says so and who owns the subject. A message that names nothing
  * and points back at the chat ("and who decides?") is looked up once more with the question
- * before it (`before`). Asked what a metric is, it gives the definition, in its own words; under
- * Conflict, the two items that disagree come first. It follows no instruction in a message or an
- * item, never asks back, and claims nothing a model would write. The scripted reader runs it, and
- * a turn of the loop that stopped shows it (decision 5).
+ * before it (`before`). Asked what a metric is, it gives the definition, in its own words, marked
+ * as what they rest on; under Conflict, the two items that disagree come first. It follows no
+ * instruction in a message or an item, never asks back, and claims nothing a model would write.
+ * The scripted reader runs it, and a turn of the loop that stopped shows it (decision 5).
  */
 export function plainStep({
   question,
@@ -296,7 +296,7 @@ export function plainStep({
   if (asksWhat && definitions.length)
     return {
       text: definitions
-        .map((d) => `${mention(String(d.id))} means: ${String(d.words)}`)
+        .map((d) => `${mention(String(d.id))} means: ${String(d.words)} [${String(d.id)}]`)
         .join('\n\n'),
     }
   const applies = objs(get.items).length
