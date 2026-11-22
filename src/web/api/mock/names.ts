@@ -179,6 +179,12 @@ export function createMockNames(heldWords: WordHolders = holders) {
       if ((await read(who)).revision !== input.revision)
         throw new ApiError('conflict', 'The names changed after you opened them.')
       const found = readable(who)
+      for (const key of [...input.accept.map((pick) => pick.key), ...input.leaveOut])
+        if (!found.some((n) => n.key === key))
+          throw new ApiError(
+            'conflict',
+            'A name here is no longer waiting. Look at the latest list, then try again.',
+          )
       for (const { key, apart } of input.accept) {
         const waiting = found.find((n) => n.key === key)
         if (apart && !(waiting && mayGoApart(waiting)))

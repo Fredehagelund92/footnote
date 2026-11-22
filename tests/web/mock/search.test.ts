@@ -33,6 +33,31 @@ describe('search everywhere in the demo world', () => {
   })
 })
 
+describe('search everywhere over context words that are apart', () => {
+  it('finds an item that has every word anywhere in its title, summary or text', () => {
+    const fact = (id: string, title: string, body: string) =>
+      ({
+        id,
+        title,
+        summary: '',
+        body,
+        status: 'Published',
+        kind: 'Rule',
+        domain: 'sales',
+      }) as never
+    const found = searchWorld('orders poland', {
+      facts: [
+        fact('a', 'Orders', 'Counted per market, such as Poland.'),
+        fact('b', 'Orders', 'Counted per market.'),
+      ],
+      definitions: [],
+      domains: [],
+      people: [],
+    })
+    expect(found.items.map((hit) => hit.id)).toEqual(['a'])
+  })
+})
+
 describe('a family of metrics in search everywhere (F4, F5)', () => {
   const family = {
     name: 'Partner fees',

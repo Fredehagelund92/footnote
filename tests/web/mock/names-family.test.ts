@@ -30,12 +30,19 @@ describe('who the mock shows the names to', () => {
   it('refuses a decision from someone the names are not shown to', async () => {
     const names = createMockNames(new Map())
     names.load(true)
-    const { revision, names: shown } = await names.read(admin)
+    const { names: shown } = await names.read(admin)
     const outsider = { admin: false, owns: ['marketing'] }
-    const refusal = await names
-      .decide({ revision, accept: [{ key: shown[0]!.key }], leaveOut: [] }, outsider)
-      .catch((error: Error) => error)
-    expect(refusal).toBeInstanceOf(Error)
+    const { revision } = await names.read(outsider)
+    for (const input of [
+      { accept: [{ key: shown[0]!.key }], leaveOut: [] },
+      { accept: [], leaveOut: [shown[0]!.key] },
+    ]) {
+      const refusal = await names.decide({ revision, ...input }, outsider).catch((e: Error) => e)
+      expect(refusal).toBeInstanceOf(Error)
+      expect((refusal as Error).message).toBe(
+        'A name here is no longer waiting. Look at the latest list, then try again.',
+      )
+    }
   })
 })
 
