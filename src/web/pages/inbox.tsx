@@ -90,7 +90,8 @@ import type { UndoOffer } from '@/api/client'
 import { useUndo } from '@/lib/undo'
 import { definitionsStep, setupHeading, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
-import { useDomains, useFacts, useMe } from '@/lib/workspace'
+import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
+import { mayOpenSettings } from '@/lib/settings-access'
 import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
 import type { Outcome } from '@/model/inbox'
 import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments'
@@ -358,12 +359,15 @@ function InboxList({
                 <span className="shrink-0 text-muted-foreground @max-md:hidden">
                   {fromRead} new {fromRead === 1 ? 'suggestion' : 'suggestions'}
                 </span>
-                <a
-                  href={`${integrationHref(source.connector)}?state=suggestions`}
-                  className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                >
-                  About this read
-                </a>
+                {/* The read's page is in an admin's Settings: an owner reads the header alone. */}
+                {mayOpenSettings(integrationHref(source.connector), me) && (
+                  <a
+                    href={`${integrationHref(source.connector)}?state=suggestions`}
+                    className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    About this read
+                  </a>
+                )}
               </li>
             )}
             {!folded.has(group) && (
@@ -658,6 +662,11 @@ function CardDetail({
   next: () => void
 }) {
   const { primary, secondary, online, writes } = useActions(card)
+  const me = useMe()
+  const admins = useAdminsSaid()
+  // An alert whose page is in an admin's Settings, such as a tool that could not be read: anyone
+  // else is told who looks into it, and has no button to a page that refuses them.
+  const opens = !card.alert || mayOpenSettings(card.alert.href, me)
   // Opening a card in the quick view is reading it: its unread dot goes.
   const write = useWrite()
   const facts = useFacts()
@@ -684,7 +693,13 @@ function CardDetail({
     </div>
   ) : (
     <PaneFoot
-      follows={offline ? "Offline: changes wait until you're back." : follows(card, review)}
+      follows={
+        offline
+          ? "Offline: changes wait until you're back."
+          : opens
+            ? follows(card, review)
+            : `An admin looks into it${admins}.`
+      }
     >
       {card.secondary.map((label) => (
         <Button
@@ -697,9 +712,11 @@ function CardDetail({
           {label}
         </Button>
       ))}
-      <PrimaryAction disabled={writes && !online} onClick={primary}>
-        {primaryLabel(card, review)}
-      </PrimaryAction>
+      {opens && (
+        <PrimaryAction disabled={writes && !online} onClick={primary}>
+          {primaryLabel(card, review)}
+        </PrimaryAction>
+      )}
     </PaneFoot>
   )
 
@@ -1078,7 +1095,6 @@ function Setup({ due }: { due: number }) {
     names?.length ?? 0,
   )
   const [reviewing, setReviewing] = React.useState(false)
-  const first = setupSteps.find((s) => !setupDone[s.id])
   // A question about the first item, from what it applies to or, if that is empty, its own words,
   // on its own dates when they miss today: most first items are about a day that has passed.
   // A new install has only what this visit added, newest first.
@@ -1095,6 +1111,15 @@ function Setup({ due }: { due: number }) {
     ? `What should I know about ${scope}${dates ? ` ${dates}` : ''}?`
     : 'What should I know about our numbers?'
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
+  const admins = useAdminsSaid()
+  // The steps done in an admin's Settings: anyone else reads who does them, and has no button.
+  const inSettings: Record<string, string> = {
+    about: '/settings/general',
+    domain: '/settings/domains/new',
+    ...(definitions.opens === 'names' ? {} : { definitions: '/settings/integrations' }),
+  }
+  const mayDo = (id: string) => mayOpenSettings(inSettings[id] ?? '', me)
+  const first = setupSteps.find((s) => !setupDone[s.id] && mayDo(s.id))
   const go = (id: string) => {
     if (id === 'definitions' && definitions.opens === 'names') setReviewing(true)
     else if (id === 'definitions' && definitions.opens === 'source' && serverSource)
@@ -1149,7 +1174,7 @@ function Setup({ due }: { due: number }) {
                   {setupSteps.map((step, i) => {
                     const isDone = setupDone[step.id]
                     const own = step.id === 'definitions'
-                    const action = own ? definitions.action : step.action
+                    const action = mayDo(step.id) ? (own ? definitions.action : step.action) : null
                     return (
                       <li
                         key={step.id}
@@ -1176,6 +1201,11 @@ function Setup({ due }: { due: number }) {
                           >
                             {own ? definitions.description : step.description}
                           </span>
+                          {!isDone && !mayDo(step.id) && (
+                            <span className="block text-xs text-muted-foreground">
+                              An admin does this{admins}.
+                            </span>
+                          )}
                         </span>
                         {isDone && <span className="sr-only">Done</span>}
                         {action !== null && (!isDone || (own && definitions.opens === 'names')) && (

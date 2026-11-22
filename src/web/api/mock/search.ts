@@ -8,7 +8,7 @@ export const SEARCH_GROUP_MAX = 5
 
 /**
  * Search everywhere over the demo world, by the service's rule (`search.all`): the library's
- * items (a draft is no item yet) whose title, summary or text has the words, definitions by name
+ * items (a draft is no item yet) whose title, summary or text has every word, definitions by name
  * or another name, domains and people still here by name. A name that starts with the words comes
  * first, then A to Z; a few of each.
  */
@@ -19,6 +19,7 @@ export function searchWorld(
   const words = q.trim().toLowerCase()
   if (!words) return { items: [], definitions: [], domains: [], people: [] }
   const has = (text: string | undefined) => !!text && text.toLowerCase().includes(words)
+  const every = words.split(/\s+/)
   // A definition's name is read with its brackets and dashes as spaces too: "revenue usd" finds
   // "Revenue (USD)".
   const plain = (text: string) =>
@@ -40,7 +41,11 @@ export function searchWorld(
   return {
     items: best(
       world.facts.filter(
-        (f) => f.status !== 'Draft' && (has(f.title) || has(f.summary) || has(f.body)),
+        (f) =>
+          f.status !== 'Draft' &&
+          every.every((word) =>
+            [f.title, f.summary, f.body].some((text) => text?.toLowerCase().includes(word)),
+          ),
       ),
       (f) => f.title,
     ).map((f) => ({ id: f.id, title: f.title, kind: f.kind, domain: f.domain })),

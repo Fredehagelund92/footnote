@@ -126,7 +126,7 @@ Conflicts is a filter of the list, not a list of its own: All or Conflicts above
 
 ### Settings
 
-Inside Settings, the app sidebar gives way to the settings menu, with Back to app on top. Six sections in three groups: Workspace (General, Domains and owners, People), Connections (Agents and access, Integrations), System (Advanced). Someone who isn't an admin has only Agents and access, where they see and disconnect the agents they connected; an owner also has Domains and owners and People.
+Inside Settings, the app sidebar gives way to the settings menu, with Back to app on top. Six sections in three groups: Workspace (General, Domains and owners, People), Connections (Agents and access, Integrations), System (Advanced). Someone who isn't an admin has only Agents and access, where they see and disconnect the agents they connected; an owner also has Domains and owners and People. Settings itself opens for everyone, on their own section; any other section says who to ask and leads to theirs. An owner reads the domains but only an admin adds one.
 
 | Screen                               | Address                                      |
 | ------------------------------------ | -------------------------------------------- |

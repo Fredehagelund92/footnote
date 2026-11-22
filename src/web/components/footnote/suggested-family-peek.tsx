@@ -59,6 +59,7 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
   const P = useParts()
   const read = P.useQuery(P.namesQuery())
   const domains = P.useDomains()
+  const me = P.useMe()
   const write = P.useWrite()
   const online = P.useOnline()
   const [busy, setBusy] = React.useState(false)
@@ -68,7 +69,9 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
     return (
       <P.DockFrame title="Suggested family">
         <P.DockMissing>
-          This family no longer waits on the Names card. It may have been published or left out.
+          {me.admin
+            ? 'This family is not waiting on the Names card. It may have been published or left out.'
+            : "This family is not waiting on your Names card. It may have been published or left out, or it waits in a domain you don't own."}
         </P.DockMissing>
       </P.DockFrame>
     )

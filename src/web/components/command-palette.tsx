@@ -111,7 +111,15 @@ export function CommandPalette() {
   const me = useMe()
   const { theme, setTheme } = useTheme()
 
-  React.useEffect(() => onOpen('palette', () => setOpen(true)), [])
+  // Opened on words, such as those of a turn of Ask that stopped, it searches them at once.
+  React.useEffect(
+    () =>
+      onOpen('palette', (words) => {
+        if (words) setQ(words)
+        setOpen(true)
+      }),
+    [],
+  )
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -137,15 +145,16 @@ export function CommandPalette() {
     })
     return () => cancelAnimationFrame(frame)
   }, [open, q, results])
-  const onOpenChange = (o: boolean) => {
-    setOpen(o)
-    if (!o) setQ('')
+  const [wasOpen, setWasOpen] = React.useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (!open) setQ('')
   }
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={setOpen}
       title="Search"
       description="Search context and go anywhere"
     >
@@ -221,10 +230,12 @@ export function CommandPalette() {
               <PlusIcon />
               New context
             </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/definitions/new'))}>
-              <PlusIcon />
-              New term
-            </CommandItem>
+            {(me.admin || me.owns.length > 0) && (
+              <CommandItem onSelect={run(() => navigate('/definitions/new'))}>
+                <PlusIcon />
+                New term
+              </CommandItem>
+            )}
             <CommandItem onSelect={run(() => openDock('ask'))}>
               <MessageSquareIcon />
               Ask in the side panel

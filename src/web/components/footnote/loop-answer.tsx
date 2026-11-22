@@ -1796,10 +1796,11 @@ const StoppedLine = ({ text }: { text: string }) => (
 
 /**
  * A turn of the loop that stopped with no plain read under it: its fixed sentence, Ask again, and
- * a search for its words.
+ * Search on the words it read, handed over in memory: a question never goes into an address.
  */
 function Stopped({ answer, onRetry }: { answer: Answer; onRetry?: () => void }) {
   const P = useParts()
+  const words = P.searchWordsOf(answer)
   return (
     <div className="flex flex-col gap-3">
       <StoppedLine text={answer.text} />
@@ -1810,14 +1811,12 @@ function Stopped({ answer, onRetry }: { answer: Answer; onRetry?: () => void }) 
             Ask again
           </P.Button>
         )}
-        <P.Button
-          variant="ghost"
-          nativeButton={false}
-          render={<a href={P.href('/search', { q: P.askedOf(answer) })} />}
-        >
-          <P.SearchIcon data-icon="inline-start" />
-          Search for these words
-        </P.Button>
+        {words && (
+          <P.Button variant="ghost" onClick={() => P.openOverlay('palette', words)}>
+            <P.SearchIcon data-icon="inline-start" />
+            Search for these words
+          </P.Button>
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Nothing it wrote was checked, so nothing is shown.

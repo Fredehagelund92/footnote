@@ -190,7 +190,7 @@ export function createMockApi() {
           : cards.find((c) => c.id === id)?.title) ?? 'A comment'
       )
     }
-    const nameCard = names.card(me())
+    const nameCard = names.card(me(), obsReader())
     return {
       cards: [...(nameCard ? [nameCard] : []), ...(state.fresh ? [] : cards)],
       waiting: state.fresh ? [] : waiting,
@@ -334,7 +334,7 @@ export function createMockApi() {
     policies.fromAddress(scenario.address().query)
     return policies.state().on
   }
-  /** Who reads Observability: an admin, or the owner of some domains. */
+  /** Who reads Observability and the names: an admin, or the owner of some domains. */
   const obsReader = () => {
     const person = workspace.people().find((p) => p.name === me())
     return { admin: !!person?.admin, owns: person?.owns ?? [] }
@@ -825,9 +825,9 @@ export function createMockApi() {
     getInbox: () => now(inbox),
     inboxPage: () => read('inboxPage', '', inbox),
     getReviews: () => now(() => reviews.map(reviewNow)),
-    getNames: () => names.read().then(copy),
+    getNames: () => names.read(obsReader()).then(copy),
     decideNames: async (input) => {
-      const decided = await names.decide(input)
+      const decided = await names.decide(input, obsReader())
       if (decided.accepted) dispatch({ type: 'setupStep', step: 'definitions' })
       return decided
     },

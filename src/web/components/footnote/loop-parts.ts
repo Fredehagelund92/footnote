@@ -39,6 +39,7 @@ import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
 import { docHref, docTitle } from '@/lib/doc-links'
 import { openDock } from '@/lib/dock'
+import { open as openOverlay } from '@/lib/events'
 import { ANSWER_LINES } from '@/lib/help-content'
 import { href } from '@/lib/router'
 import { answerKey, keepShown } from '@/lib/shown-answers'
@@ -46,7 +47,7 @@ import { chipTone, domainHue } from '@/lib/tones'
 import { cn } from '@/lib/utils'
 import { useDomains, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
-import { askedOf } from '@/model/ask'
+import { askedOf, searchWordsOf } from '@/model/ask'
 import { isLive } from '@/model/ask-turn'
 
 /**
@@ -100,6 +101,7 @@ export const loopParts = {
   docHref,
   docTitle,
   openDock,
+  openOverlay,
   useReadAhead,
   useReadCitedAhead,
   ANSWER_LINES,
@@ -114,6 +116,7 @@ export const loopParts = {
   useMe,
   usePeople,
   askedOf,
+  searchWordsOf,
   isLive,
 }
 export type LoopPartsOfAsk = typeof loopParts
