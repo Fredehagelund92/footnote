@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sourceNames } from '@domain/source-names'
+import { familyRead, sourceNames } from '@domain/source-names'
 import type { CandidateMember } from '@domain/term-candidates'
 import { termWord } from '@domain/terms'
 import { createMockNames } from '@/api/mock/names'
@@ -206,13 +206,25 @@ describe('what a converted pair would mean on the Names card', () => {
     },
   })
 
-  it("reads the base variant's words when only it has any", () => {
+  it('reads the words of the variant the others are converted from, its currency a slot', () => {
     const family = sourceNames([pair('EUR'), pair('USD')], [], new Map(), new Set()).find(
       (name) => name.kind === 'metric_group',
     )!
     expect(family.family!.meaning).toMatchObject({
-      source: 'base',
-      words: 'What partners earned, in euros.',
+      source: 'common',
+      words: 'What partners earned, in {Currency}.',
+      base: 'metric:accrued_share_eur',
+    })
+  })
+
+  it('carries the base variant to the card as the card shows variants', () => {
+    const family = sourceNames([pair('EUR'), pair('USD')], [], new Map(), new Set()).find(
+      (name) => name.kind === 'metric_group',
+    )!
+    expect(familyRead(family)!.meaning).toMatchObject({
+      source: 'common',
+      agree: 1,
+      base: 'Accrued share (EUR)',
     })
   })
 })

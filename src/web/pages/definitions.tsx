@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { meaningLine } from '@domain/family-meaning'
+import { meaningLine } from '@domain/family-meaning-line'
 import {
   BookAIcon,
   ChevronDownIcon,
@@ -506,7 +506,7 @@ export function DefinitionsPage() {
     const meaning = family
       ? family.meaning?.words
         ? tidyMeaning(family.meaning.words, family.by)
-        : 'No meaning yet: its variants say different things.'
+        : 'No meaning yet: no words speak for all its variants.'
       : plainText(subject?.definition ?? '')
     // Found by its variants' words alone, a family says how many, never which (FR-142): its quick
     // view names the first.

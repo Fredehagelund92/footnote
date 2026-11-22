@@ -21,6 +21,7 @@
 import { CURRENCIES } from './currencies.ts'
 import type { DeclaredFamily, VariantValue } from './definition-helpers.ts'
 import type { FamilyFound } from './family-found.ts'
+import { axisValues, worksOut } from './family-meaning.ts'
 import { conversionsOf, type BuiltFrom, type Conversion } from './definition-relations.ts'
 import { keyPart } from './term-candidates.ts'
 import { normalizeName } from './vocabulary.ts'
@@ -550,24 +551,15 @@ const DERIVATIONS_MAX = 3
 
 /**
  * The variants whose source says how they are worked out from another: each whose description
- * names another variant's value ("The EUR amount multiplied by the row's exchange rate", of the
- * USD one). The source's words, never Footnote's guess.
+ * names a rate and another variant's value ("The EUR amount multiplied by the row's exchange
+ * rate", of the USD one). The source's words, never Footnote's guess.
  */
 export function derivedVariants<
   V extends { values: readonly string[]; description: string | null },
 >(variants: readonly V[]): V[] {
-  // Every value of the family, by its words: a description names one when it holds them all.
-  const wordsOf = (text: string) =>
-    normalizeName(text)
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter(Boolean)
-  const values = new Set(variants.flatMap((variant) => variant.values.map((v) => normalizeName(v))))
-  return variants.filter((variant) => {
-    const own = new Set(variant.values.map((v) => normalizeName(v)))
-    return wordsOf(variant.description?.trim() ?? '').some(
-      (word) => values.has(word) && !own.has(word),
-    )
-  })
+  // Every variant holds one value for each of what tells them apart, in the same order.
+  const axes = axisValues(variants[0]?.values ?? [], variants)
+  return variants.filter((variant) => worksOut(variant, axes))
 }
 
 /**

@@ -397,19 +397,20 @@ describe('what a family means (M1)', () => {
     expect(refused.statusCode, refused.body).toBe(409)
   })
 
-  it('is the base variant’s words for a pair one rate converts, and names the other', async () => {
+  it('is the words of the variant the others are converted from, for a pair one rate converts', async () => {
     const accrued = (await family('Accrued share 1')).family!
     const keyOf = (code: string) => accrued.variants.find((v) => v.values[0] === code)!.key
-    expect(accrued.meaning.base).toBe(keyOf('EUR'))
-    if (accrued.meaning.source === 'base') {
-      expect(accrued.meaning.member).toBe(keyOf('EUR'))
-      expect(accrued.meaning.differing).toEqual([keyOf('USD')])
-    } else expect(accrued.meaning.source).toBe('common')
+    // The USD variant is converted from the EUR one: it has no say, and says nothing else.
+    expect(accrued.meaning).toMatchObject({
+      source: 'common',
+      words: 'The accrued share 1 {Currency}.',
+      base: keyOf('EUR'),
+      differing: [],
+    })
   })
 
   it('is changed by an owner of its domain only, against the meaning they read, with history', async () => {
     const accrued = await family('Accrued share 1')
-    const eur = accrued.family!.variants.find((v) => v.values[0] === 'EUR')!
     const written = {
       key: accrued.key,
       choice: 'written',
@@ -435,21 +436,12 @@ describe('what a family means (M1)', () => {
     const stale = await choose(accrued.key, 'admin', written)
     expect(stale.statusCode, stale.body).toBe(409)
 
-    if (eur.description) {
-      await ok(
-        choose(accrued.key, 'admin', {
-          key: accrued.key,
-          choice: 'member',
-          member: eur.key,
-          revision: 1,
-        }),
-      )
-      expect((await family('Accrued share 1')).family!.meaning).toMatchObject({
-        source: 'member',
-        member: eur.key,
-        words: eur.description,
-      })
-    } else await ok(choose(accrued.key, 'admin', { key: accrued.key, choice: 'auto', revision: 1 }))
+    await ok(choose(accrued.key, 'admin', { key: accrued.key, choice: 'auto', revision: 1 }))
+    expect((await family('Accrued share 1')).family!.meaning).toMatchObject({
+      source: 'common',
+      chosen: { choice: 'auto', words: null, personId: people.admin },
+      revision: 2,
+    })
     const history = await ok<FamilyMeaningVersion[]>(
       call(
         'GET',
@@ -469,16 +461,17 @@ describe('what a family means (M1)', () => {
     ).rejects.toThrow()
   })
 
-  it('refuses a variant of another family, and an unknown family', async () => {
+  it('refuses one variant’s words as a choice, and an unknown family', async () => {
     const accrued = await family('Accrued share 1')
-    const other = (await family('Net revenue by line')).family!.variants[0]!.key
-    const wrong = await choose(accrued.key, 'admin', {
+    const variant = accrued.family!.variants[0]!.key
+    // Two choices only: worked out, or written.
+    const member = await choose(accrued.key, 'admin', {
       key: accrued.key,
       choice: 'member',
-      member: other,
+      member: variant,
       revision: 2,
     })
-    expect(wrong.statusCode, wrong.body).toBe(404)
+    expect(member.statusCode, member.body).toBe(400)
     const unknown = await choose('group:no_such_family', 'admin', {
       key: 'group:no_such_family',
       choice: 'auto',

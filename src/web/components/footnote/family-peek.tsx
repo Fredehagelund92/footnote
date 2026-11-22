@@ -197,8 +197,6 @@ function differingQuote(
 const sourceIcon = (P: FamilyParts) => ({
   declared: P.LockIcon,
   written: P.PencilIcon,
-  member: P.CircleDotIcon,
-  base: P.CircleDotIcon,
   common: P.SparklesIcon,
   none: P.CircleDotIcon,
 })
@@ -221,7 +219,8 @@ function MeaningLead({
   const meaning = family.meaning
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
-  const Icon = sourceIcon(P)[meaning.source]
+  const Icon =
+    meaning.source === 'common' && meaning.base ? P.CircleDotIcon : sourceIcon(P)[meaning.source]
   const mayChange = canChange && meaning.source !== 'declared'
   // A variant converted from another says how, which the values band shows: it says nothing else.
   const converted = new Set((family.conversions ?? []).map((c) => c.to))
@@ -414,7 +413,10 @@ function ValuesBand({
 }) {
   const P = useParts()
   const [picking, setPicking] = React.useState(false)
-  const base = family.variants.find((v) => v.name === family.meaning?.base)
+  // The variant every conversion starts at, never converted itself: none when they start at two.
+  const to = new Set((family.conversions ?? []).map((c) => c.to))
+  const from = new Set((family.conversions ?? []).map((c) => c.from).filter((v) => !to.has(v)))
+  const base = from.size === 1 ? family.variants.find((v) => from.has(v.name)) : undefined
   const usual = family.variants.find((v) => v.name === family.usual?.member)
   const gone = !!family.usual?.member && !usual
   const { lines, more } = P.conversionLines(family)

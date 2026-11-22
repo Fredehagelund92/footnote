@@ -1,17 +1,10 @@
 import * as React from 'react'
 import { toast } from '@/lib/toast'
-import { FAMILY_WORDS_MAX } from '@domain/family-meaning'
+import { FAMILY_WORDS_MAX } from '@domain/family-meaning-line'
 import { useWrite } from '@/api/queries'
 import { TriangleAlertIcon } from '@/components/icons'
 import { PeekAttention } from '@/components/footnote/peek'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import {
   Dialog,
   DialogClose,
@@ -25,7 +18,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import type { Definition, Family, FamilyMeaning } from '@/lib/definitions'
 import { useReported } from '@/lib/reported'
-import { cn } from '@/lib/utils'
 import { useMe } from '@/lib/workspace'
 
 // What a family of metrics means (FR-142, M1), in its quick view and on its page: the meaning, with
@@ -45,7 +37,7 @@ export function MeaningWords({ meaning, by }: { meaning: FamilyMeaning; by: stri
   if (!meaning.words)
     return (
       <span className="text-muted-foreground">
-        No meaning yet: its variants say different things.
+        No meaning yet: no words speak for all its variants.
       </span>
     )
   return meaning.words.split(/(\{[^{}]+\})/).map((part, i) => {
@@ -68,15 +60,9 @@ export const meaningParts = {
   toast,
   useWrite,
   useReported,
-  cn,
   FAMILY_WORDS_MAX,
   MeaningWords,
   Button,
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Dialog,
   DialogClose,
   DialogContent,
@@ -98,13 +84,11 @@ export function meaningSource(family: Family, meaning: FamilyMeaning, tool: stri
     ? `Written for the family in ${tool}`
     : source === 'written'
       ? `Written for the family ${by}`
-      : source === 'member'
-        ? `Words of ${meaning.member}, chosen ${by}`
-        : source === 'base'
-          ? `Words of ${meaning.member}, the variant the others are converted from`
-          : source === 'common'
-            ? `Common words of ${n(meaning.common!.agree)} of ${n(family.variants.length)} variants, chosen automatically`
-            : ''
+      : source === 'common' && meaning.base
+        ? `Words of ${meaning.base}, the variant the others are converted from`
+        : source === 'common'
+          ? `Common words of ${n(meaning.common!.agree)} of ${n(family.variants.length)} variants, chosen automatically`
+          : ''
 }
 
 /** Variants that say something else: named when they are few, counted when many. */

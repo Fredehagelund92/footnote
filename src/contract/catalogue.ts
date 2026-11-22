@@ -10,7 +10,7 @@ import {
   FAMILY_WORDS_MAX,
   familyMeaningChoices,
   familyMeaningSources,
-} from '../domain/family-meaning.ts'
+} from '../domain/family-meaning-line.ts'
 import type { ItemKind } from '../domain/item.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 
@@ -100,28 +100,29 @@ export const catalogueVariantSchema = z.object({
 
 /**
  * What a family means (FR-142, M1), worked out at each read: the words its source declares for it,
- * else an owner's choice, else the words most of its variants share, else the base variant's.
+ * else words an owner wrote, else the words most of its variants share.
  */
 export const familyMeaningSchema = z.object({
   source: z.enum(familyMeaningSources),
   /**
-   * Its meaning; null for none. The variants' common words and the base variant's write each value
-   * as what it stands for, in braces, by a name of the family's `by`: "Money taken in {Currency}
-   * via {Channel}". Any other source's words are as written.
+   * Its meaning; null for none. The variants' common words write each value as what it stands
+   * for, in braces, by a name of the family's `by`: "Money taken in {Currency} via {Channel}".
+   * Any other source's words are as written.
    */
   words: z.nullable(z.string()),
-  /** The variant whose own words are the meaning, by key: of `member` and `base`; else null. */
-  member: z.nullable(z.string()),
   /**
    * The words most variants share, values aside, and how many share them: the same words, else
-   * words most of them hold within their own. Null when most don't.
+   * words most of them hold within their own. Null when most don't, or the words name a value.
    */
   common: z.nullable(z.object({ words: z.string(), agree: z.number() })),
-  /** The variant the others are converted from, by key; null when no one variant is. */
+  /**
+   * The variant the others are converted from, by key, when the common words are its alone: each
+   * other variant is converted from one or says how it is worked out from another. Else null.
+   */
   base: z.nullable(z.string()),
   /**
    * The words the rule gives, any declared words or owner's choice aside, values as slots: the
-   * common words, else the base variant's. Null when it gives none.
+   * common words. Null when it gives none.
    */
   automatic: z.nullable(z.string()),
   /** The variants whose own words say something else than the meaning, by key. */
@@ -130,7 +131,6 @@ export const familyMeaningSchema = z.object({
   chosen: z.nullable(
     z.object({
       choice: z.enum(familyMeaningChoices),
-      member: z.nullable(z.string()),
       words: z.nullable(z.string()),
       personId: z.string(),
       at: z.string(),
@@ -285,14 +285,12 @@ export const definitionRelationsSchema = z.object({
 const familyKey = z.string().check(z.regex(/^group:[a-z0-9_]+$/))
 
 /**
- * An owner's choice of what a family means: worked out by the rule again (`auto`), one variant's
- * own words (`member`, its key), or words written for the family (`words`). `revision` is the
- * meaning's as the person last read it.
+ * An owner's choice of what a family means: worked out from its variants again (`auto`), or words
+ * written for the family (`words`). `revision` is the meaning's as the person last read it.
  */
 export const familyMeaningInputSchema = z.strictObject({
   key: familyKey,
   choice: z.enum(familyMeaningChoices),
-  member: z.optional(z.string().check(z.regex(/^metric:[a-z0-9_]+$/))),
   words: z.optional(
     z
       .string()
@@ -321,9 +319,6 @@ export const familyUsualInputSchema = z.strictObject({
 export const familyMeaningVersionSchema = z.object({
   revision: z.number(),
   choice: z.enum(familyMeaningChoices),
-  /** The variant whose words were chosen, by key, and by its name now; else both null. */
-  member: z.nullable(z.string()),
-  memberName: z.nullable(z.string()),
   words: z.nullable(z.string()),
   personId: z.string(),
   at: z.string(),

@@ -112,8 +112,13 @@ const refOf = (name: string) =>
     .replace(/^_|_$/g, '')}`
 
 function measureFamilies(tool: string): Definition[] {
-  // Two of the measures are the demo's own metrics by name: one word has one meaning (FR-138).
-  const own: Record<string, string> = { 'Net revenue': 'Net takings', 'Gross margin': 'Margin' }
+  // Three of the measures are the demo's own words by name, two metrics and a term: one word has
+  // one meaning (FR-138).
+  const own: Record<string, string> = {
+    'Net revenue': 'Net takings',
+    'Gross margin': 'Margin',
+    'Store credit': 'Store credit used',
+  }
   return measures.map<Definition>((measure) => {
     const label = own[measure] ?? measure
     return {

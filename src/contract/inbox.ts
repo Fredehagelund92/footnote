@@ -9,7 +9,7 @@ import * as z from 'zod/mini'
 import { alertCardRules } from '../domain/alerts.ts'
 import { cardGroups, cardActions, setupSteps } from '../domain/inbox.ts'
 import { familyFoundKinds } from '../domain/family-found.ts'
-import { familyMeaningSources } from '../domain/family-meaning.ts'
+import { familyMeaningSources } from '../domain/family-meaning-line.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
 import { proposalActions } from '../domain/proposal.ts'
@@ -249,6 +249,8 @@ export const sourceNameSchema = z.object({
           source: z.enum(familyMeaningSources),
           words: z.nullable(z.string()),
           agree: z.number(),
+          /** The variant the others are converted from, as the card shows variants; else null. */
+          base: z.nullable(z.string()),
           differing: z.number(),
         }),
       ),

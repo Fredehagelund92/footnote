@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/api/errors'
 import { createHttpApi } from '@/api/http'
 
-// Choosing a variant's words names it as Definitions lists it. A variant the tool stopped reading
-// since the dialog opened is told so, not sent on to the service as a choice of nobody.
+// A family's meaning and usual variant go to the service by the family's key, and a usual variant
+// by its key. A family or a variant the tool stopped reading since the dialog opened is told so,
+// not sent on to the service as a choice of nobody.
 
 const family = {
   key: 'group:revenue',
@@ -23,7 +24,6 @@ const family = {
     meaning: {
       source: 'none',
       words: null,
-      member: null,
       common: null,
       base: null,
       differing: [],
@@ -60,17 +60,23 @@ function serviceOf() {
 }
 
 describe('setFamilyMeaning', () => {
-  it('says a variant that is no longer in the family is gone, without asking the service', async () => {
+  it('says a family that is no longer in Definitions is gone, without asking the service', async () => {
     const { api, writes } = serviceOf()
     const error = await api
-      .setFamilyMeaning({ name: 'Revenue', choice: 'member', member: 'Revenue (GBP)', revision: 0 })
+      .setFamilyMeaning({ name: 'Margin', choice: 'written', words: 'Money kept.', revision: 0 })
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({
       kind: 'not-found',
-      message: 'That variant is no longer in this family.',
+      message: "“Margin” isn't a family in Definitions any more.",
     })
     expect(writes).toEqual([])
+  })
+
+  it('sends the words written for the family by its key', async () => {
+    const { api, writes } = serviceOf()
+    await api.setFamilyMeaning({ name: 'Revenue', choice: 'written', words: 'Money.', revision: 0 })
+    expect(writes).toEqual(['/api/v1/definitions/families/group%3Arevenue/meaning'])
   })
 })
 

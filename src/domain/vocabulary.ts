@@ -1,4 +1,7 @@
 import * as z from 'zod/mini'
+import { normalizeName } from './normalize-name.ts'
+
+export { normalizeName }
 
 /** One meaning of a word with several: a vocabulary key, or `term:<id>` for a term of its own. */
 export type WordMeaning = { key: string; name: string }
@@ -62,18 +65,6 @@ export const governedVocabularySchema = z.array(termSchema).check(
  */
 export const metricKeyOf = (id: string) => (id.startsWith('group:') ? id : `metric:${id}`)
 
-export function normalizeName(name: string): string {
-  return name
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/æ/g, 'ae')
-    .replace(/ø/g, 'o')
-    .replace(/ß/g, 'ss')
-    .replace(/ς/g, 'σ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
 /** Words a short name leaves out: "Cost of goods sold" is COGS or CGS. */
 const SMALL_WORDS = new Set([
   'a',

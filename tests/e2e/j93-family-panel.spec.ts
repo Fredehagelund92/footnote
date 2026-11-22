@@ -64,7 +64,7 @@ for (const { name, width, height } of widths) {
       await go(page, '/definitions?demo=families&dock=def.Accrued%20share%20front%20loaded')
       const dock = page.getByRole('region', { name: 'Definition' })
       await expect(dock).toContainText(
-        "The share of a contract's value booked in its first three months, in euros.",
+        "The share of a contract's value booked in its first three months, in Currency.",
       )
       const values = dock.getByRole('region', { name: 'Varies by' })
       await expect(values).toContainText('EUR base')

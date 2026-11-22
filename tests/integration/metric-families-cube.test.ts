@@ -174,12 +174,14 @@ describe('families in a Cube model', () => {
         words: `${name} for orders paid in {Currency} through the {Channel} channel.`,
         source: 'common',
         agree: 8,
+        base: null,
         differing: 0,
       },
     })
     expect(families.map((name) => [name.name, name.state, name.family])).toEqual([
       // Cube says nothing of how the USD one is worked out: only its name says it is the same
-      // amount in USD, so the owner says whether the two are one family (D1).
+      // amount in USD, so the owner says whether the two are one family (D1). Its measure says it
+      // is converted from the EUR one, which then speaks for the family.
       [
         'Accrued share front loaded',
         'flagged',
@@ -189,7 +191,13 @@ describe('families in a Cube model', () => {
           found: 'names',
           names: ['Accrued share front loaded (EUR)', 'Accrued share front loaded (USD)'],
           values: [['EUR', 'USD']],
-          meaning: { words: null, source: 'none', agree: 0, differing: 0 },
+          meaning: {
+            words: 'The share of each booking accrued up front, in {Currency}.',
+            source: 'common',
+            agree: 1,
+            base: 'Accrued share front loaded (EUR)',
+            differing: 0,
+          },
         },
       ],
       ['Gross revenue', 'ready', { variants: 8, ...calculation('Gross revenue') }],

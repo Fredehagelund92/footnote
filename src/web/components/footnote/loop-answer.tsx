@@ -1340,7 +1340,9 @@ function FamilyDefinition({
       {family.meaning ? (
         <p>{words(family.meaning, 0)}</p>
       ) : (
-        <p className="text-muted-foreground">No meaning yet: its variants say different things.</p>
+        <p className="text-muted-foreground">
+          No meaning yet: no words speak for all its variants.
+        </p>
       )}
       {family.own.length > 0 && (
         <ul aria-label="In its variants’ own words" className="mt-2 flex flex-col gap-1.5 text-sm">
