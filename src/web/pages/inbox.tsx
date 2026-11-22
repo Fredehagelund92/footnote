@@ -1095,7 +1095,6 @@ function Setup({ due }: { due: number }) {
     names?.length ?? 0,
   )
   const [reviewing, setReviewing] = React.useState(false)
-  const first = setupSteps.find((s) => !setupDone[s.id])
   // A question about the first item, from what it applies to or, if that is empty, its own words,
   // on its own dates when they miss today: most first items are about a day that has passed.
   // A new install has only what this visit added, newest first.
@@ -1120,6 +1119,7 @@ function Setup({ due }: { due: number }) {
     ...(definitions.opens === 'names' ? {} : { definitions: '/settings/integrations' }),
   }
   const mayDo = (id: string) => mayOpenSettings(inSettings[id] ?? '', me)
+  const first = setupSteps.find((s) => !setupDone[s.id] && mayDo(s.id))
   const go = (id: string) => {
     if (id === 'definitions' && definitions.opens === 'names') setReviewing(true)
     else if (id === 'definitions' && definitions.opens === 'source' && serverSource)

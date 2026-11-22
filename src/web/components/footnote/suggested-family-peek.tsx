@@ -59,7 +59,6 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
   const P = useParts()
   const read = P.useQuery(P.namesQuery())
   const domains = P.useDomains()
-  const me = P.useMe()
   const write = P.useWrite()
   const online = P.useOnline()
   const [busy, setBusy] = React.useState(false)
@@ -69,7 +68,8 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
     return (
       <P.DockFrame title="Suggested family">
         <P.DockMissing>
-          This family no longer waits on the Names card. It may have been published or left out.
+          This family is not waiting on your Names card. It may have been published or left out, or
+          it waits in a domain you don't own.
         </P.DockMissing>
       </P.DockFrame>
     )
@@ -79,8 +79,6 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
   const joining = name.linked.length > 0
   const domain = name.areaId ? domains[name.areaId] : undefined
   const owners = domain?.owners ?? []
-  // An owner of its domain or an admin decides, as the service lets them; anyone else reads who.
-  const mayDecide = me.admin || (!!name.areaId && me.owns.includes(name.areaId))
   // Its tool declares it one family, or it is live already and gains variants: no other answer.
   const mayKeepApart = !joining && family.found !== 'declared'
   const problems = name.flags.filter((flag) => flag.code !== 'look_alike')
@@ -120,23 +118,21 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
       title="Suggested family"
       quietTitle
       footer={
-        mayDecide && (
-          <>
-            {mayKeepApart && (
-              <P.Button
-                variant="outline"
-                disabled={busy || !online}
-                onClick={() => void decide(true)}
-              >
-                Keep them separate
-              </P.Button>
-            )}
-            <P.Button disabled={busy || !online} onClick={() => void decide(false)}>
-              <P.LayersIcon data-icon="inline-start" />
-              {name.linked.length ? 'Publish its new variants' : 'Publish as a family'}
+        <>
+          {mayKeepApart && (
+            <P.Button
+              variant="outline"
+              disabled={busy || !online}
+              onClick={() => void decide(true)}
+            >
+              Keep them separate
             </P.Button>
-          </>
-        )
+          )}
+          <P.Button disabled={busy || !online} onClick={() => void decide(false)}>
+            <P.LayersIcon data-icon="inline-start" />
+            {name.linked.length ? 'Publish its new variants' : 'Publish as a family'}
+          </P.Button>
+        </>
       }
     >
       <P.PeekBands>

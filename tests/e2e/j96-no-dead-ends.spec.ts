@@ -89,10 +89,12 @@ test("a family waiting in another owner's domain has no Publish for this owner",
     // Tomas owns Marketing: the names are not his, so neither the card nor the button is there.
     await signInAs(page, 'Tomas Eriksen')
     await go(page, '/inbox')
-    await expect(page.getByRole('main').getByRole('heading').first()).toBeVisible()
+    await expect(
+      page.getByText('Regulator paused price promotions in Italy on 18 April 2026').first(),
+    ).toBeVisible()
     await expect(page.getByText(/new metrics and dimensions from dbt/)).toHaveCount(0)
     await go(page, family)
-    await expect(page.getByText('Suggested family')).toBeVisible()
+    await expect(page.getByText('This family is not waiting on your Names card.')).toBeVisible()
     await expect(page.getByRole('button', { name: /^Publish/ })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Keep them separate' })).toHaveCount(0)
   })
@@ -150,11 +152,11 @@ test('a new install tells an owner and a member who does the admin steps', async
         await expect(step.getByRole('button', { name: action, exact: true })).toHaveCount(0)
       }
       // What anyone does stays a button.
-      await expect(
-        steps
-          .filter({ hasText: 'Write your first context item' })
-          .getByRole('button', { name: 'Write context' }),
-      ).toBeVisible()
+      const write = steps
+        .filter({ hasText: 'Write your first context item' })
+        .getByRole('button', { name: 'Write context' })
+      await expect(write).toBeVisible()
+      await expect(write).toHaveAttribute('data-variant', 'default')
       await go(page, '/inbox?demo=week')
     }
   })
