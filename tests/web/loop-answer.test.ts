@@ -165,16 +165,12 @@ describe("Ask's loop answer, state by state", () => {
     expect(shown).not.toContain('Nothing it wrote was checked')
   })
 
-  it('Stopped with nothing read: Search for these words opens Search on them, never an address', () => {
-    const el = render(
-      { ...example('loop-stopped'), body: [], items: [], sources: [] },
-      'Give me all about orders in poland',
-    )
+  const searched = (turn: LoopTurn, question: string) => {
+    const el = render(turn, question)
     const search = buttons(el, /^Search for these words$/)
     expect(search).toHaveLength(1)
     // No page of its own, and the words never go into an address.
     expect(search[0]!.getAttribute('href')).toBeNull()
-    expect(el.querySelector('a[href*="poland"]')).toBeNull()
     const opened: unknown[] = []
     const seen = (e: Event) => opened.push((e as CustomEvent).detail)
     window.addEventListener('footnote:open', seen)
@@ -183,7 +179,26 @@ describe("Ask's loop answer, state by state", () => {
     } finally {
       window.removeEventListener('footnote:open', seen)
     }
-    expect(opened).toEqual([{ overlay: 'palette', words: 'Give me all about orders in poland' }])
+    expect(opened).toHaveLength(1)
+    return (opened[0] as { overlay: string; words: string }).words
+  }
+  const nothingRead = { body: [], items: [], sources: [] }
+
+  it('Stopped with nothing read: Search for these words hands over the words Ask read, never an address', () => {
+    const words = searched(
+      { ...example('loop-stopped'), ...nothingRead },
+      'Give me all about orders in poland',
+    )
+    expect(words).toBe('Orders Poland')
+  })
+
+  it('Stopped with nothing read and no metric or market: the question, cut at a word within 200 characters', () => {
+    const question = Array.from({ length: 60 }, (_, i) => `word${i}`).join(' ')
+    expect(question.length).toBeGreaterThan(200)
+    const words = searched({ ...example('loop-stopped'), ...nothingRead, subject: null }, question)
+    expect(words.length).toBeLessThanOrEqual(200)
+    expect(question.startsWith(words)).toBe(true)
+    expect(question[words.length]).toBe(' ')
   })
 
   it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {

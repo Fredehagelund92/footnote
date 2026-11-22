@@ -47,7 +47,7 @@ import { chipTone, domainHue } from '@/lib/tones'
 import { cn } from '@/lib/utils'
 import { useDomains, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
-import { askedOf } from '@/model/ask'
+import { askedOf, searchWordsOf } from '@/model/ask'
 import { isLive } from '@/model/ask-turn'
 
 /**
@@ -115,6 +115,7 @@ export const loopParts = {
   useMe,
   usePeople,
   askedOf,
+  searchWordsOf,
   isLive,
 }
 export type LoopPartsOfAsk = typeof loopParts

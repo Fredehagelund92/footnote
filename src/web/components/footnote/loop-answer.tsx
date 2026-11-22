@@ -1742,7 +1742,7 @@ function Stopped({ answer, onRetry }: { answer: Answer; onRetry?: () => void }) 
             Ask again
           </P.Button>
         )}
-        <P.Button variant="ghost" onClick={() => P.openOverlay('palette', P.askedOf(answer))}>
+        <P.Button variant="ghost" onClick={() => P.openOverlay('palette', P.searchWordsOf(answer))}>
           <P.SearchIcon data-icon="inline-start" />
           Search for these words
         </P.Button>

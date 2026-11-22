@@ -37,6 +37,7 @@ import {
 import type { DomainId } from '@/model/items'
 import { OBS_PURPOSE, useDomainChoice, useObsPageQuery, useObsView } from '@/lib/obs'
 import { useDomains, useMe } from '@/lib/workspace'
+import { mayOpenSettings } from '@/lib/settings-access'
 import { ObsPage } from '@/pages/observability'
 
 // Alerts: what raises a card in the Inbox, as rules of one sentence each, and what was raised
@@ -166,6 +167,7 @@ export function RaisedLately({
   domain: DomainId | undefined
 }) {
   const domains = useDomains()
+  const me = useMe()
   const [chosen, setChosen] = React.useState<{ rule: RuleId | null; domain: DomainId | undefined }>(
     {
       rule: null,
@@ -226,9 +228,16 @@ export function RaisedLately({
                 <BellIcon className="size-4" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
-                <a href={r.href} className="text-sm font-medium underline-offset-4 hover:underline">
-                  {r.title}
-                </a>
+                {mayOpenSettings(r.href, me) ? (
+                  <a
+                    href={r.href}
+                    className="text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    {r.title}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium">{r.title}</span>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {r.domain && (
                     <span className="mr-1.5 inline-flex items-center gap-1.5 align-middle">
@@ -305,6 +314,7 @@ function RuleRow({
   state: AlertSettings
 }) {
   const domains = useDomains()
+  const me = useMe()
   const write = useWrite()
   const setRuleOn = (id: Rule['id'], on: boolean) => void write('setAlertRule', { id, on })
   const setMuted = (id: Rule['id'], ds: DomainId[], muted: boolean) =>
@@ -412,7 +422,7 @@ function RuleRow({
       </p>
       <p className="col-span-2 text-xs text-muted-foreground @4xl/main:col-span-1 @4xl/main:col-start-3 @4xl/main:row-start-1">
         <span className="@4xl/main:sr-only">Last raised: </span>
-        {seen.href && last !== 'Never' ? (
+        {seen.href && last !== 'Never' && mayOpenSettings(seen.href, me) ? (
           <a
             href={seen.href}
             className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
