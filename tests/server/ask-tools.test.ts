@@ -320,6 +320,7 @@ describe('a family of metrics in Ask (FR-142)', () => {
     family: {
       by: ['Currency', 'Channel'],
       derivations: [],
+      conversions: [],
       // The USD variant's source says how it is worked out from the EUR one.
       variants: variants.map((key) => ({
         key,
@@ -340,7 +341,6 @@ describe('a family of metrics in Ask (FR-142)', () => {
       meaning: {
         source: 'none',
         words: null,
-        member: null,
         common: null,
         base: null,
         differing: ['metric:revenue_usd_web'],

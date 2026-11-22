@@ -45,9 +45,11 @@ A family is one entry for many near-identical metrics, such as a metric for each
 - Its quick view counts the context about the family apart from the context about one variant alone.
 - Its quick view and page say what the family means, and where those words come from, in this order:
   1. Words your tool writes for the family.
-  2. The words most variants share, with each value shown as what it stands for, such as Currency, and a note on how a value is converted, such as (EUR × the row's rate), left out. Words most variants hold within their own count too.
-  3. The words of the variant the others are converted from, with its values shown the same way.
-- An owner of its domain, or an admin, can choose Change: one variant's words, or words written for the family. History keeps each choice. Variants whose own words say something else than the meaning are named, and agents read their words too. A family with no meaning names none.
+  2. Words an owner wrote for the family.
+  3. The words most variants share, with each value shown as what it stands for, such as Currency, and a note on how a value is converted, such as (EUR × the row's rate), left out. A currency's name, such as euros, counts as its code. Words most variants hold within their own count too.
+- A variant converted from another, or whose words say it is worked out from one at a rate, has no say. When only the variant the others are converted from is left, its words are the meaning.
+- Words that still name one variant's value, such as in euros, are never the family's: it reads No meaning yet.
+- An owner of its domain, or an admin, can choose Change: worked out from its variants, or written for the family. Written words can start from what its variants say, each wording once. History keeps each choice. Variants whose own words say something else than the meaning are named, and agents read their words too. A family with no meaning names none.
 - Its own page lists the variants, and narrows them by each value, such as Currency: EUR. It says how the family was found, such as declared in dbt, and which variant is converted from which.
 - Context about the family applies to every variant. See [Variants: a dimension, not a metric each](metric-variants.md).
 

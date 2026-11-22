@@ -119,14 +119,12 @@ function meaningOf(
   const { chosen, common, automatic, ...meaning } = family.meaning
   return {
     ...meaning,
-    member: nameOf(meaning.member),
     base: nameOf(meaning.base),
     common: common ?? undefined,
     automatic: automatic ?? undefined,
     differing: meaning.differing.flatMap((key) => nameOf(key) ?? []),
     chosen: chosen && {
       choice: chosen.choice,
-      member: nameOf(chosen.member),
       words: chosen.words ?? undefined,
       by: person(chosen.personId),
       on: dateLabel(chosen.at.slice(0, 10)),

@@ -151,8 +151,7 @@ export function createCatalogueService(
       settings: { key: string; value: unknown }[]
       meanings: {
         key: string
-        choice: 'auto' | 'member' | 'written'
-        member: string | null
+        choice: 'auto' | 'written'
         words: string | null
         revision: number
         personId: string
@@ -253,7 +252,7 @@ export function createCatalogueService(
          (select coalesce(json_agg(s order by s.id collate "C"), '[]') from sources s) as sources,
          (select coalesce(json_agg(m), '[]') from mentions m) as mentions,
          (select coalesce(json_agg(json_build_object(
-                   'key', f.family_key, 'choice', f.choice, 'member', f.member_key, 'words', f.words,
+                   'key', f.family_key, 'choice', f.choice, 'words', f.words,
                    'revision', f.revision, 'personId', f.updated_by::text, 'at', ${iso('f.updated_at')})), '[]')
             from family_meanings f) as meanings,
          (select coalesce(json_agg(json_build_object(
@@ -487,7 +486,6 @@ export function createCatalogueService(
             chosen: chosen
               ? {
                   choice: chosen.choice,
-                  member: chosen.member,
                   words: chosen.words,
                   personId: chosen.personId,
                   at: chosen.at,

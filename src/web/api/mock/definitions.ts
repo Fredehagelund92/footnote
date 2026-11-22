@@ -1,6 +1,7 @@
 import type { FamilyMeaningVersion } from '@contract/catalogue'
 import { REPOSITORY_URL } from '@domain/brand'
-import { FAMILY_WORDS_MAX, familyMeaning, type FamilyMeaningChoice } from '@domain/family-meaning'
+import { familyMeaning } from '@domain/family-meaning'
+import { FAMILY_WORDS_MAX, type FamilyMeaningChoice } from '@domain/family-meaning-line'
 import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
@@ -110,7 +111,6 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
       meaning: {
         source: meaning.source,
         words: meaning.words,
-        ...(meaning.member ? { member: meaning.member } : {}),
         ...(meaning.common ? { common: meaning.common } : {}),
         ...(meaning.base ? { base: meaning.base } : {}),
         ...(meaning.automatic ? { automatic: meaning.automatic } : {}),
@@ -119,7 +119,6 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
           ? {
               chosen: {
                 choice: chosen.choice,
-                ...(chosen.member ? { member: chosen.member } : {}),
                 ...(chosen.words ? { words: chosen.words } : {}),
                 by: chosen.personId,
                 on: dateLabel(chosen.at.slice(0, 10)),
@@ -169,14 +168,13 @@ export function createDefinitions() {
     },
 
     /**
-     * Chooses what a family means, as the service does: one variant with words of its own, words
-     * written for the family, or the rule again, against the meaning the person read.
+     * Chooses what a family means, as the service does: words written for the family, or worked
+     * out from its variants again, against the meaning the person read.
      */
     setFamilyMeaning(
       input: {
         name: string
         choice: FamilyMeaningChoice
-        member?: string
         words?: string
         revision: number
       },
@@ -191,17 +189,6 @@ export function createDefinitions() {
           'invalid',
           `Write the family's meaning in 1 to ${FAMILY_WORDS_MAX} characters.`,
         )
-      const member =
-        input.choice === 'member'
-          ? d.family.variants.find((v) => input.member && same(v.name, input.member))
-          : undefined
-      if (input.choice === 'member' && !member)
-        throw new ApiError('not-found', 'That variant is no longer in this family.')
-      if (member && !member.description)
-        throw new ApiError(
-          'invalid',
-          'That variant has no words of its own in its tool. Choose another.',
-        )
       const kept = meanings.get(d.name) ?? []
       if ((kept.at(-1)?.revision ?? 0) !== input.revision)
         throw new ApiError(
@@ -211,8 +198,6 @@ export function createDefinitions() {
       const chosen: Chosen = {
         revision: input.revision + 1,
         choice: input.choice,
-        member: member?.name ?? null,
-        memberName: member?.name ?? null,
         words: words ?? null,
         personId: by,
         at: `${today()}T09:00:00.000Z`,

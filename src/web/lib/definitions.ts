@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { FamilyFound } from '@domain/family-found'
-import type { FamilyMeaningChoice, FamilyMeaningSource } from '@domain/family-meaning'
+import type { FamilyMeaningChoice, FamilyMeaningSource } from '@domain/family-meaning-line'
 import { lookAlikes, termWord, wordRefusal, type WordHolder } from '@domain/terms'
 import { useDefinitions as useDefinitionList } from '@/api/queries'
 import { servedToAgents, type DomainId, type Fact } from '@/model/items'
@@ -41,30 +41,24 @@ export type FamilyUsual = {
 }
 
 /**
- * What a family means (FR-142, M1): the words its tool writes for it, else an owner's choice,
- * else the words most of its variants share, else the base variant's. Variants by name.
+ * What a family means (FR-142, M1): the words its tool writes for it, else words an owner wrote,
+ * else the words most of its variants share. Variants by name.
  */
 export type FamilyMeaning = {
   source: FamilyMeaningSource
-  /**
-   * The meaning; the common words and the base variant's write each value as what it stands for:
-   * "in {Currency}".
-   */
+  /** The meaning; the common words write each value as what it stands for: "in {Currency}". */
   words: string | null
-  /** The variant whose words are the meaning: of `member` and `base`. */
-  member?: string
   /** The words most variants share, values aside, and how many share them. */
   common?: { words: string; agree: number }
-  /** The variant the others are converted from. */
+  /** The variant the others are converted from, when the common words are its alone. */
   base?: string
-  /** The words the rule gives, an owner's choice aside: the common words, else the base's. */
+  /** The words the rule gives, an owner's choice aside: the common words. */
   automatic?: string
   /** The variants whose own words say something else than the meaning. */
   differing: string[]
   /** What an owner chose last, by whom and on which day. */
   chosen?: {
     choice: FamilyMeaningChoice
-    member?: string
     words?: string
     by: string
     on: string

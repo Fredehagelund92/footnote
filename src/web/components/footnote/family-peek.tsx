@@ -414,7 +414,10 @@ function ValuesBand({
 }) {
   const P = useParts()
   const [picking, setPicking] = React.useState(false)
-  const base = family.variants.find((v) => v.name === family.meaning?.base)
+  // The variant every conversion starts at, never converted itself: none when they start at two.
+  const to = new Set((family.conversions ?? []).map((c) => c.to))
+  const from = new Set((family.conversions ?? []).map((c) => c.from).filter((v) => !to.has(v)))
+  const base = from.size === 1 ? family.variants.find((v) => from.has(v.name)) : undefined
   const usual = family.variants.find((v) => v.name === family.usual?.member)
   const gone = !!family.usual?.member && !usual
   const { lines, more } = P.conversionLines(family)

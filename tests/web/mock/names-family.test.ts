@@ -206,13 +206,14 @@ describe('what a converted pair would mean on the Names card', () => {
     },
   })
 
-  it("reads the base variant's words when only it has any", () => {
+  it('reads the words of the variant the others are converted from, its currency a slot', () => {
     const family = sourceNames([pair('EUR'), pair('USD')], [], new Map(), new Set()).find(
       (name) => name.kind === 'metric_group',
     )!
     expect(family.family!.meaning).toMatchObject({
-      source: 'base',
-      words: 'What partners earned, in euros.',
+      source: 'common',
+      words: 'What partners earned, in {Currency}.',
+      base: 'metric:accrued_share_eur',
     })
   })
 })

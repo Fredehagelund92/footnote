@@ -1608,20 +1608,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         ...glossary.syncedHistory(synced),
       ]
     },
-    setFamilyMeaning: async ({ name, choice, member, words, revision }) => {
+    setFamilyMeaning: async ({ name, choice, words, revision }) => {
       const family = (await readGlossary()).familyOf(name)
       if (!family?.family)
         throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
-      const variant = family.family.variants.find((v) => v.name === member)
-      if (choice === 'member' && !variant)
-        throw new ApiError('not-found', 'That variant is no longer in this family.')
-      const input = {
-        key: family.key,
-        choice,
-        member: variant?.key,
-        words,
-        revision,
-      }
+      const input = { key: family.key, choice, words, revision }
       await write('definitions.setFamilyMeaning', input, (o) =>
         client.definitions.setFamilyMeaning(input, o),
       )

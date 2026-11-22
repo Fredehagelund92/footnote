@@ -44395,25 +44395,13 @@
                                       "source": {
                                         "enum": [
                                           "declared",
-                                          "member",
                                           "written",
                                           "common",
-                                          "base",
                                           "none"
                                         ],
                                         "type": "string"
                                       },
                                       "words": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "null"
-                                          }
-                                        ]
-                                      },
-                                      "member": {
                                         "anyOf": [
                                           {
                                             "type": "string"
@@ -44479,20 +44467,9 @@
                                               "choice": {
                                                 "enum": [
                                                   "auto",
-                                                  "member",
                                                   "written"
                                                 ],
                                                 "type": "string"
-                                              },
-                                              "member": {
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
-                                                  },
-                                                  {
-                                                    "type": "null"
-                                                  }
-                                                ]
                                               },
                                               "words": {
                                                 "anyOf": [
@@ -44513,7 +44490,6 @@
                                             },
                                             "required": [
                                               "choice",
-                                              "member",
                                               "words",
                                               "personId",
                                               "at"
@@ -44531,7 +44507,6 @@
                                     "required": [
                                       "source",
                                       "words",
-                                      "member",
                                       "common",
                                       "base",
                                       "automatic",
@@ -49133,14 +49108,9 @@
                   "choice": {
                     "enum": [
                       "auto",
-                      "member",
                       "written"
                     ],
                     "type": "string"
-                  },
-                  "member": {
-                    "type": "string",
-                    "pattern": "^metric:[a-z0-9_]+$"
                   },
                   "words": {
                     "type": "string"
@@ -49174,30 +49144,9 @@
                     "choice": {
                       "enum": [
                         "auto",
-                        "member",
                         "written"
                       ],
                       "type": "string"
-                    },
-                    "member": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "memberName": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
                     },
                     "words": {
                       "anyOf": [
@@ -49219,8 +49168,6 @@
                   "required": [
                     "revision",
                     "choice",
-                    "member",
-                    "memberName",
                     "words",
                     "personId",
                     "at"
@@ -49853,30 +49800,9 @@
                       "choice": {
                         "enum": [
                           "auto",
-                          "member",
                           "written"
                         ],
                         "type": "string"
-                      },
-                      "member": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "memberName": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
                       },
                       "words": {
                         "anyOf": [
@@ -49898,8 +49824,6 @@
                     "required": [
                       "revision",
                       "choice",
-                      "member",
-                      "memberName",
                       "words",
                       "personId",
                       "at"
@@ -66773,10 +66697,8 @@
                                           "source": {
                                             "enum": [
                                               "declared",
-                                              "member",
                                               "written",
                                               "common",
-                                              "base",
                                               "none"
                                             ],
                                             "type": "string"
@@ -67329,10 +67251,8 @@
                                               "source": {
                                                 "enum": [
                                                   "declared",
-                                                  "member",
                                                   "written",
                                                   "common",
-                                                  "base",
                                                   "none"
                                                 ],
                                                 "type": "string"

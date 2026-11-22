@@ -16,11 +16,7 @@ export function familyMeaningHistoryOf(
 ): Version[] {
   const sorted = [...versions].sort((a, b) => b.revision - a.revision)
   const said = (v: FamilyMeaningVersion | undefined) =>
-    !v || v.choice === 'auto'
-      ? 'Worked out from its variants'
-      : v.choice === 'member'
-        ? `The words of ${v.memberName ?? 'a variant'}`
-        : (v.words ?? '')
+    !v || v.choice === 'auto' ? 'Worked out from its variants' : (v.words ?? '')
   return sorted.map((version, index) => ({
     v: version.revision + 1,
     who: person(version.personId),
@@ -29,9 +25,7 @@ export function familyMeaningHistoryOf(
     summary:
       version.choice === 'auto'
         ? 'Its meaning is worked out from its variants again.'
-        : version.choice === 'member'
-          ? `Its meaning is the words of ${version.memberName ?? 'a variant'}.`
-          : 'Its meaning was written for the family.',
+        : 'Its meaning was written for the family.',
     field: 'Meaning',
     before: said(sorted[index + 1]),
     after: said(version),

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { meaningLine } from '@domain/family-meaning'
+import { meaningLine } from '@domain/family-meaning-line'
 import {
   BookAIcon,
   ChevronDownIcon,
