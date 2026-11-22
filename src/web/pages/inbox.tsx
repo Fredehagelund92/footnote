@@ -3,6 +3,7 @@ import {
   ArrowLeftIcon,
   ArrowLeftRightIcon,
   AtSignIcon,
+  BookOpenIcon,
   MessageSquareTextIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -68,7 +69,7 @@ import type { DomainId, Fact } from '@/model/items'
 import { questionDates } from '@/model/validity'
 import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { openDock, openFromRow, useDock } from '@/lib/dock'
+import { askInDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
 import { href, navigate, setQuery, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
@@ -78,6 +79,7 @@ import {
   inboxPageQuery,
   namesQuery,
   readQuestionQuery,
+  useDefinitions,
   useInbox,
   useReviews,
   useSavedQuestions,
@@ -760,6 +762,14 @@ function CardDetail({
                   ? ' Only what was sent is kept: their words and the question.'
                   : ' Only the words that were sent are kept, not who sent them.')}
             </p>
+            {card.flag?.question && (
+              <ReportedQuestion by={card.flag.by} question={card.flag.question} />
+            )}
+            {card.changed && card.changed.length > 0 && (
+              <React.Suspense fallback={null}>
+                <ChangedDefinitions names={card.changed} />
+              </React.Suspense>
+            )}
             {card.look && <LookList ids={card.look.questions} />}
             {card.alert?.rule === 'disagree' && <AlertPair pair={card.alert.pair} />}
             <div className="border-b empty:hidden">
@@ -810,6 +820,50 @@ function CardDetail({
         )}
       </div>
     </InboxPanel>
+  )
+}
+
+/**
+ * The question a report from Ask was sent about, as its sender asked it, and the way to ask it
+ * again: Ask opens beside the Inbox with it typed in, not yet sent, as the owner, who may see more
+ * than the sender did. The question goes to Ask in memory, never in the address.
+ */
+function ReportedQuestion({ by, question }: { by: string; question: string }) {
+  return (
+    <figure className="flex flex-col items-start gap-2">
+      <figcaption className="font-medium">{by ? `${by} asked` : 'The question'}</figcaption>
+      <blockquote className="border-l-2 pl-3 text-pretty">{question}</blockquote>
+      <Button variant="outline" className="mt-1" onClick={() => askInDock(question)}>
+        <MessageSquareIcon data-icon="inline-start" />
+        Try this question
+      </Button>
+    </figure>
+  )
+}
+
+/**
+ * The way to each definition that changed in its tool, beside a Due for a check card that says it
+ * changed: opened beside the Inbox. Only the ones the person can read, which are in their
+ * Definitions; a single one is "the definition", as the card's line names it.
+ */
+function ChangedDefinitions({ names }: { names: readonly string[] }) {
+  const definitions = useDefinitions()
+  const shown = names.filter((n) => definitions.some((d) => d.name === n))
+  if (!shown.length) return null
+  return (
+    <div className="flex flex-wrap gap-2">
+      {shown.map((name) => (
+        <Button
+          key={name}
+          variant="outline"
+          aria-label={`See the definition of ${name}`}
+          onClick={() => openDock('def', name)}
+        >
+          <BookOpenIcon data-icon="inline-start" />
+          {shown.length === 1 ? 'See the definition' : `See ${name}`}
+        </Button>
+      ))}
+    </div>
   )
 }
 

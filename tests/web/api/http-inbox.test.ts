@@ -317,7 +317,7 @@ describe('the Inbox', () => {
     })
   })
 
-  it('names who sent a named report from Ask, by their name', () => {
+  it('names who sent a named report from Ask, by their name, with the question they asked', () => {
     const flag: Card = {
       ...base,
       id: 'report:r1',
@@ -339,7 +339,11 @@ describe('the Inbox', () => {
       title: 'Norway orders count store credit',
       line: 'Reported wrong: “Gift cards are paid out separately since October.”',
       factId: 'itm_gift0001',
-      flag: { by: 'Maria Lindqvist', via: 'Ask' },
+      flag: {
+        by: 'Maria Lindqvist',
+        via: 'Ask',
+        question: 'Do Norway orders include gift-card money?',
+      },
     })
   })
   it('says since when a check is due, and who checked it last', () => {
@@ -377,7 +381,14 @@ describe('the Inbox', () => {
       secondary: ['Edit', 'Archive'],
       factId: 'itm_a',
     })
-    expect(changed).toMatchObject({ when: 'Today', detail: 'Not checked yet.', due: 'source' })
+    expect(due?.changed).toEqual([])
+    // The definitions that changed, by name, which the card opens.
+    expect(changed).toMatchObject({
+      when: 'Today',
+      detail: 'Not checked yet.',
+      due: 'source',
+      changed: ['Gross margin'],
+    })
     expect(changed?.line).toBe(
       'The definition of Gross margin changed in its tool on 7 Oct 2026, after this context item was checked.',
     )

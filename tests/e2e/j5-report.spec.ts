@@ -1,17 +1,11 @@
-import { expect, go, mode, test } from './go.ts'
+import { expect, go, test } from './go.ts'
 
 // J5: an owner answers a report, and the card is done.
 test('an owner answers a report', async ({ page }) => {
   await go(page, '/inbox?demo=week&card=flag-germany')
-  // A named report keeps who sent it. On the service a person sends one from Ask: an agent's
-  // report keeps nobody (docs/product.md, section 9). The mock's came through an agent.
-  await expect(
-    page.getByText(
-      mode === 'http'
-        ? /Reported by Maria Lindqvist from Ask,/
-        : /Reported by Maria Lindqvist from a chat with an agent,/,
-    ),
-  ).toBeVisible()
+  // A named report keeps who sent it: a person sends one from Ask, while an agent's report keeps
+  // nobody (docs/product.md, section 9).
+  await expect(page.getByText(/Reported by Maria Lindqvist from Ask,/)).toBeVisible()
   await page.getByRole('button', { name: 'Not a problem' }).click()
   await expect(page.getByText('Report closed')).toBeVisible()
   await go(page, '/inbox?tab=all')

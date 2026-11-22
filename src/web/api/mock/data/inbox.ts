@@ -178,7 +178,8 @@ export const cards: InboxCard[] = [
       note: 'Is this Germany only, or every market?',
       when: '21 Oct 2026',
       by: 'Maria Lindqvist',
-      via: 'Claude',
+      via: 'Ask',
+      question: 'Why are Germany orders low for yesterday?',
     },
   },
   {
@@ -234,6 +235,7 @@ export const cards: InboxCard[] = [
     when: 'Since 7 Oct',
     title: 'What to rule out before explaining a jump in Gross margin',
     due: 'source',
+    changed: ['Gross margin'],
     line: `${demoTool(DEMO_DEFINITIONS)} changed the definition of Gross margin on 7 Oct, after this context item was checked.`,
     detail: 'Last checked by Sofia Brandt, 30 Sep 2026.',
     primary: 'Still true',

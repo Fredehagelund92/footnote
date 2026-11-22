@@ -1021,11 +1021,15 @@ function WhatAskRead({ loop, footer }: { loop: LoopTurn; footer: string[] }) {
   )
 }
 
+/** A domain's own key, from the noun's id (`domain:area_sales`), the service's (`area_sales`) or the mock's (`sales`). */
+const domainKey = (id: string) => id.replace(/^domain:/, '').replace(/^area_/, '')
+const sameDomain = (a: string, b: string) => domainKey(a) === domainKey(b)
+
 /** Whether the reader owns what the answer is about, or is an admin: theirs to write or check. */
 function useOwns(loop: LoopTurn) {
   const me = useParts().useMe()
-  const owned = new Set(loop.owners.map((o) => o.domain.replace(/^domain:(area_)?/, '')))
-  return me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
+  const owned = new Set(loop.owners.map((o) => domainKey(o.domain)))
+  return me.admin || me.owns.some((d) => owned.has(domainKey(d)))
 }
 
 /** Names as a sentence says them: "A", "A and B", "A, B and C". */
@@ -1087,7 +1091,8 @@ function People({ names }: { names: readonly string[] }) {
  * which reports the subject as missing to its owners' Inbox (decision 7 of the chat audit), its
  * metrics, values and days and nothing of the question, and then says who was told. For a word
  * the reads found nothing under (`unknown`), it is Tell an admin, which sends the word alone, or
- * to an admin, Add it to Definitions. Ask itself writes nothing.
+ * to an admin or an owner, Add “the word” to Definitions, which opens a new term with the word in
+ * it. Ask itself writes nothing.
  */
 function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?: string }) {
   const P = useParts()
@@ -1181,14 +1186,18 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
                 Write context
               </P.Button>
             ) : (
-              <P.Button
-                variant="outline"
-                nativeButton={false}
-                render={<a href={P.href('/definitions/new')} />}
-              >
-                <P.BookOpenIcon data-icon="inline-start" />
-                Add it to Definitions
-              </P.Button>
+              // Each word opens a new term with that word already in it.
+              words.map((word) => (
+                <P.Button
+                  key={word}
+                  variant="outline"
+                  nativeButton={false}
+                  render={<a href={P.href('/definitions/new', { name: word })} />}
+                >
+                  <P.BookOpenIcon data-icon="inline-start" />
+                  {`Add “${word}” to Definitions`}
+                </P.Button>
+              ))
             )
           ) : (
             <>
@@ -1282,8 +1291,9 @@ function Next({
 /**
  * The definition card, for an answer about what something is: the definition's chip and what it
  * is, the source's own words at the answer's size, then two quiet lines on where the words come
- * from and who owns it, and the context about it, which opens in the card. With the words of the
- * answer giving the same definition, the card stands in for them.
+ * from and who owns it, and the context about it, which opens in the card; with none about a
+ * metric, Write context for its owners and the admins. With the words of the answer giving the
+ * same definition, the card stands in for them.
  */
 function DefinitionCards({ loop, maps }: { loop: LoopTurn; maps: ReturnType<typeof useMaps> }) {
   const cards = loop.defined?.cards ?? []
@@ -1361,11 +1371,21 @@ function DefinitionCardOf({
   maps: ReturnType<typeof useMaps>
 }) {
   const P = useParts()
+  const me = P.useMe()
+  const domains = P.useDomains()
   const [open, setOpen] = React.useState(false)
   const title = React.useId()
   const rows = card.context.items.flatMap((id) => maps.byId.get(id) ?? [])
   const count = card.context.count
   const items = `${count.toLocaleString('en-GB')} context ${count === 1 ? 'item' : 'items'}`
+  // With nothing written about a metric, its owners and the admins are offered to write the first.
+  const at = card.domain?.id
+  const writes =
+    card.kind === 'metric' &&
+    !card.family &&
+    (me.admin || card.owners.includes(me.name) || (!!at && me.owns.some((d) => sameDomain(d, at))))
+  // The editor starts in the metric's domain, as the workspace names it.
+  const domain = at ? Object.keys(domains).find((d) => sameDomain(d, at)) : undefined
   return (
     <article
       data-definition-card
@@ -1440,8 +1460,20 @@ function DefinitionCardOf({
               className={P.cn('transition-transform', open && 'rotate-180')}
             />
           </P.Button>
+        ) : count > 0 ? (
+          <span className="text-sm text-muted-foreground">{items} about it</span>
         ) : (
-          count > 0 && <span className="text-sm text-muted-foreground">{items} about it</span>
+          writes && (
+            <P.Button
+              variant="outline"
+              nativeButton={false}
+              aria-label={`Write context about ${card.name}`}
+              render={<a href={P.href('/context/new', { metric: card.name, domain })} />}
+            >
+              <P.PencilIcon data-icon="inline-start" />
+              Write context
+            </P.Button>
+          )
         )}
       </div>
       {open && (

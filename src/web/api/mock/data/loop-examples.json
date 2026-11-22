@@ -3054,6 +3054,165 @@
       "checks": []
     }
   },
+  "loop-definition-unwritten": {
+    "question": "What is churn rate?",
+    "turn": {
+      "kind": "answer",
+      "text": "Churn rate is The share of customers active in the previous month who placed no order this month.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "0 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up Churn rate, any date: 0 items apply.",
+        "Read Definitions for churn rate: 1 found."
+      ],
+      "subject": {
+        "names": ["Churn rate"],
+        "about": ["metric:churn_rate"],
+        "period": "any date",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "defined": {
+        "names": ["Churn rate"],
+        "tool": "Cube",
+        "cards": [
+          {
+            "id": "metric:churn_rate",
+            "name": "Churn rate",
+            "kind": "metric",
+            "words": "The share of customers active in the previous month who placed no order this month.",
+            "tool": "Cube",
+            "member": "customers.churn_rate",
+            "group": "Customers",
+            "domain": {
+              "id": "domain:area_customer_value",
+              "name": "Customer value"
+            },
+            "owners": ["Alex Moreau", "Noor Haddad"],
+            "context": {
+              "count": 0,
+              "items": []
+            },
+            "inWords": true
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "churn rate",
+            "no_period": true
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["churn rate"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "noun",
+              "id": "metric:churn_rate"
+            },
+            {
+              "t": "text",
+              "text": " is The share of customers active in the previous month who placed no order this month."
+            }
+          ]
+        }
+      ],
+      "said": "[@metric:churn_rate] is The share of customers active in the previous month who placed no order this month.",
+      "nouns": [
+        {
+          "id": "metric:churn_rate",
+          "name": "Churn rate",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:1c7bc86c-0d85-4d35-82f3-c17b4d1ba6e1",
+          "name": "Alex Moreau",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:42ebe0c7-e5c8-4c1c-889f-2fc033b158b9",
+          "name": "Noor Haddad",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:active_customers",
+          "name": "Active customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:customer_lifetime_value",
+          "name": "Customer lifetime value",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:new_customers",
+          "name": "New customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:repeat_purchase_rate",
+          "name": "Repeat purchase rate",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_customer_value",
+          "people": [
+            "person:1c7bc86c-0d85-4d35-82f3-c17b4d1ba6e1",
+            "person:42ebe0c7-e5c8-4c1c-889f-2fc033b158b9"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
+  },
   "loop-unknown": {
     "question": "What is our EBITDA definition?",
     "turn": {

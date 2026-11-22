@@ -313,29 +313,35 @@ describe("Ask's loop answer, state by state", () => {
     }
   })
 
-  it('A word the reads found nothing under, to an admin: Add it to Definitions', () => {
+  it('A word the reads found nothing under, to an admin: Add it to Definitions, with the word in it', () => {
     const el = render(ebitda(), 'What is our EBITDA definition?')
     const gap = el.querySelector('[data-gap]')!
     expect(text(gap)).toContain('It is yours to add.')
-    expect(buttons(gap, /^Add it to Definitions$/)).toHaveLength(1)
+    const [add] = buttons(gap, /^Add “EBITDA” to Definitions$/)
+    expect(add!.getAttribute('href')).toBe('/definitions/new?name=EBITDA')
     expect(buttons(gap, /^Tell/)).toHaveLength(0)
   })
 
-  it('A word the reads found nothing under, to an owner who is no admin: Add it to Definitions, as New term is theirs', () => {
+  it('A word the reads found nothing under, to an owner who is no admin: Add it to Definitions too, as New term is theirs', () => {
     const admin = world.me
     world.me = { ...admin, role: 'Owner of Sales', admin: false }
     try {
       const gap = render(ebitda(), 'What is our EBITDA definition?').querySelector('[data-gap]')!
       expect(text(gap)).toContain('It is yours to add.')
-      expect(buttons(gap, /^Add it to Definitions$/)).toHaveLength(1)
+      expect(buttons(gap, /^Add “EBITDA” to Definitions$/)).toHaveLength(1)
     } finally {
       world.me = admin
     }
   })
 
-  it('Two words the reads found nothing under, to an admin: They are yours to add', () => {
+  it('Two words the reads found nothing under, to an admin: They are yours to add, each by its own button', () => {
     const el = render({ ...ebitda(), unknown: ['EBITDA', 'ARR'] }, 'What are our EBITDA and ARR?')
-    expect(text(el.querySelector('[data-gap]')!)).toContain('They are yours to add.')
+    const gap = el.querySelector('[data-gap]')!
+    expect(text(gap)).toContain('They are yours to add.')
+    expect(buttons(gap, /^Add “.+” to Definitions$/).map((b) => b.getAttribute('href'))).toEqual([
+      '/definitions/new?name=EBITDA',
+      '/definitions/new?name=ARR',
+    ])
   })
 
   it('makes the chips and the citations the buttons in the words, never a sentence', () => {

@@ -80,6 +80,7 @@ import { useOpeningRead } from '@/lib/opening-read'
 import { useIsMobile, useMedia } from '@/hooks/use-mobile'
 import { useWide } from '@/hooks/use-wide'
 import { readWidth, saveWidth } from '@/lib/pane-width'
+import { useTyped } from '@/lib/dock'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { composerSurface } from '@/lib/surfaces'
 import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threads'
@@ -1382,9 +1383,11 @@ export function AskPage() {
 }
 
 export function AskDock() {
-  // A quick view's "Try it with a question" opens Ask with the question typed in, not yet sent.
+  // A quick view's "Try it with a question" opens Ask with the question typed in, not yet sent; a
+  // person's own question, such as a report's, comes in memory (`askInDock`), not in the address.
   const { query } = useRoute()
-  const q = query.get('q') ?? undefined
+  const typed = useTyped()
+  const q = typed?.question ?? query.get('q') ?? undefined
   // The dock keeps its own place: History opens a chat here, New chat starts afresh, and a chat
   // that joins the history stays on show. The thread itself is the page's (AskThread).
   const [dock, setDock] = React.useState<{ key: string; place: Place }>({
@@ -1437,7 +1440,7 @@ export function AskDock() {
       }
     >
       <AskThread
-        key={`${q}-${dock.key}`}
+        key={`${typed?.n ?? ''}-${q}-${dock.key}`}
         place={dock.place}
         mint={() => `chat-dock-${Date.now()}`}
         compact
