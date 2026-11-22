@@ -192,6 +192,23 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
  * What a name ends with in brackets, and the rest: "Channel (orders)" is "Channel" and " (orders)".
  * Names that share their start differ there, so it is what a narrow row must not cut.
  */
+/**
+ * A family's meaning for its row: an article before a slot and the axis word repeated after it
+ * drop, so "through the {Channel} channel" reads "through each channel".
+ */
+function tidyMeaning(words: string, by: readonly string[]): string {
+  const folded = words.replace(
+    /(\b(?:the|a|an)\s+)?\{([^{}]+)\}(\s+\w+\b)?/gi,
+    (slot, article: string | undefined, axis: string, after: string | undefined) => {
+      if (!by.includes(axis)) return slot
+      const repeated = after !== undefined && after.trim().toLowerCase() === axis.toLowerCase()
+      const lead = /^[TA]/.test(article ?? '') ? 'Each' : 'each'
+      return `${lead} ${axis.toLowerCase()}${repeated ? '' : (after ?? '')}`
+    },
+  )
+  return meaningLine(folded, by)
+}
+
 const endOf = (name: string) => /^(.*\S)(\s+\([^()]*\)(?:\s*\([^()]*\))*)$/.exec(name)
 
 /**
@@ -481,7 +498,7 @@ export function DefinitionsPage() {
     const subject = family ? undefined : glossary.meaningOf(d)
     const meaning = family
       ? family.meaning?.words
-        ? meaningLine(family.meaning.words, family.by)
+        ? tidyMeaning(family.meaning.words, family.by)
         : 'No meaning yet: its variants say different things.'
       : plainText(subject?.definition ?? '')
     // Found by its variants' words alone, a family says how many, never which (FR-142): its quick

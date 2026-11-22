@@ -246,22 +246,12 @@ export function familyMeaning(family: {
 
 /**
  * A family's meaning as one plain line, each value it varies by said as what it stands for:
- * "Money taken in each currency via each channel". An article before a slot and its axis's word
- * after it fold in, so "through the {Channel} channel" reads "through each channel". Braces that
- * name no axis stay as written.
+ * "Money taken in each currency via each channel". Braces that name no axis stay as written.
  */
 export function meaningLine(words: string, by: readonly string[]): string {
-  return words
-    .replace(/\{([^{}]+)\}\s+(\w+)\b/g, (slot, axis: string, after: string) =>
-      by.includes(axis) && after.toLowerCase() === axis.toLowerCase() ? `{${axis}}` : slot,
-    )
-    .replace(
-      /(\b(?:the|a|an)\s+)?\{([^{}]+)\}/gi,
-      (slot, article: string | undefined, axis: string) =>
-        by.includes(axis)
-          ? `${/^[TA]/.test(article ?? '') ? 'Each' : 'each'} ${axis.toLowerCase()}`
-          : slot,
-    )
+  return words.replace(/\{([^{}]+)\}/g, (slot, axis: string) =>
+    by.includes(axis) ? `each ${axis.toLowerCase()}` : slot,
+  )
 }
 
 /**
