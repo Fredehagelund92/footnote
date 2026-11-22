@@ -34,6 +34,13 @@ vi.mock('@/lib/workspace', () => ({
       covers: 'Orders.',
       text: '',
     },
+    area_customer_value: {
+      id: 'area_customer_value',
+      name: 'Customer value',
+      owners: ['Alex Moreau'],
+      covers: 'Churn.',
+      text: '',
+    },
   }),
   usePeople: () => [world.me, { name: 'Ravi Kapoor', role: 'Admin', owns: [], admin: true }],
 }))
@@ -625,6 +632,27 @@ describe("Ask's loop answer, state by state", () => {
         const row = render(example('loop-help-write')).querySelector('[data-actions]')!
         expect(buttons(row, /^Write context$/)).toHaveLength(1)
       }))
+
+    it("to an owner of the metric's domain, Write context in that domain; to an owner of another, none", () => {
+      const unwritten = () => example('loop-definition-unwritten')
+      const ownerOf = (owns: string[]) => ({
+        name: 'Noor Other',
+        role: 'Owner',
+        owns,
+        admin: false,
+      })
+      asMe(ownerOf(['area_customer_value']), () => {
+        const [write] = buttons(render(unwritten()), /^Write context about Churn rate$/)
+        expect(write?.getAttribute('href')).toBe(
+          '/context/new?metric=Churn+rate&domain=area_customer_value',
+        )
+      })
+      act(() => root?.unmount())
+      host?.remove()
+      asMe(ownerOf(['area_sales']), () => {
+        expect(buttons(render(unwritten()), /^Write context/)).toHaveLength(0)
+      })
+    })
 
     it('to an admin, Invite people opens People', () => {
       const row = render(example('loop-help-invite')).querySelector('[data-actions]')!

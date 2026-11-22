@@ -81,7 +81,7 @@ for (const { name, viewport } of [
       await fitsThePage(page, card)
       await write.click()
       await expect(page.getByRole('heading', { name: 'New context', level: 1 })).toBeVisible()
-      await expect(page.getByText('Customer value', { exact: true }).first()).toBeVisible()
+      await expect(page.getByRole('combobox', { name: 'Domain' })).toContainText('Customer value')
       await expect(page.getByRole('button', { name: /Churn rate/ }).first()).toBeVisible()
 
       // A metric with context already has its items in the card, and no Write context.

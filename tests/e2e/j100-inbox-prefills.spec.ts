@@ -41,6 +41,25 @@ for (const { name, viewport } of [
       await expect(page.getByRole('log')).toHaveCount(0)
     })
 
+    test(`${name}, ${theme}: Try this question types the question in again over a chat already sent, and New chat starts empty`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport)
+      await go(page, `/inbox?card=${card('flag-germany')}&theme=${theme}`)
+      const question = 'Why are Germany orders low for yesterday?'
+      const box = page.getByRole('textbox', { name: 'Ask a question' })
+      const dock = page.getByRole('complementary', { name: 'Ask' })
+      await pane(page).getByRole('button', { name: 'Try this question' }).click()
+      await expect(box).toHaveText(question, { timeout: 20_000 })
+      await box.press('Enter')
+      await expect(page.getByRole('log')).toHaveCount(1, { timeout: 20_000 })
+      await pane(page).getByRole('button', { name: 'Try this question' }).click()
+      await expect(box).toHaveText(question, { timeout: 20_000 })
+      await expect(page.getByRole('log')).toHaveCount(0)
+      await dock.getByRole('button', { name: 'New chat' }).click()
+      await expect(box).toHaveText('')
+    })
+
     test(`${name}, ${theme}: a definition that changed opens beside the card due for its check`, async ({
       page,
     }) => {

@@ -848,7 +848,7 @@ function ReportedQuestion({ by, question }: { by: string; question: string }) {
  */
 function ChangedDefinitions({ names }: { names: readonly string[] }) {
   const definitions = useDefinitions()
-  const shown = names.filter((n) => definitions.some((d) => d.name === n))
+  const shown = [...new Set(names)].filter((n) => definitions.some((d) => d.name === n))
   if (!shown.length) return null
   return (
     <div className="flex flex-wrap gap-2">
