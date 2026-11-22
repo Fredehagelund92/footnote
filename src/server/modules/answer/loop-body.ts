@@ -741,6 +741,10 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
     }
   }
   /** One sentence's runs; `listed`, a line of a list, which keeps its clauses as they are. */
+  const checkDigits = (text: string) => {
+    for (const d of text.match(/\d+(?:[.,]\d+)*/g) ?? [])
+      if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
+  }
   const sentence = (written: string, listed = false): LoopRun[] => {
     // A "()" the model wrote itself ("refresh()") is no bracket a reference left empty: set aside.
     const words = written.replace(/\(\)/g, LITERAL_BRACKETS)
@@ -834,10 +838,7 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       else break
     }
     if (piled >= 3) check('piled', runWords(runs, ctx.nouns))
-    for (const r of runs)
-      if (r.t === 'text')
-        for (const d of r.text.match(/\d+(?:[.,]\d+)*/g) ?? [])
-          if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
+    for (const r of runs) if (r.t === 'text') checkDigits(r.text)
     // A name the words give is said once: a mention after it is drawn on it (FR-720.3).
     // Placing a mention can leave the brackets it sat in empty: they go too.
     const done = stopBeforeCites(placed(runs, ctx.nouns))
@@ -921,7 +922,10 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       const inQuote = (l: string) => (QUOTE.test(lines[i]!) ? l.replace(QUOTE, '') : l)
       const end = lines.findIndex((l, j) => j > i && inQuote(l).trim().startsWith(fence))
       const code = lines.slice(i + 1, end < 0 ? undefined : end).map(inQuote)
-      if (code.some((l) => l.trim())) body.push({ t: 'code', text: code.join('\n').trimEnd() })
+      if (code.some((l) => l.trim())) {
+        body.push({ t: 'code', text: code.join('\n').trimEnd() })
+        checkDigits(code.join('\n'))
+      }
       i = end < 0 ? lines.length : end
     } else if (table) {
       const rows: string[] = [quoted]
