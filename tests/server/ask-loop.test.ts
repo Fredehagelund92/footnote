@@ -885,9 +885,12 @@ describe('the instructions', () => {
     expect(system).toContain('never write “the person asking”')
     expect(system).toMatch(/Never say how you read the question/)
     expect(system).toMatch(/what something is or means, answer with its definition in one sentence/)
-    // Words that rest on a definition mark it, which gives them the Definition label (R5).
+    // A definition that answers the question is marked, which gives it the Definition label (R5).
     expect(system).toContain(
-      'Words that rest on a definition a read returned, and on no item, mark it',
+      'When a definition a read returned answers the question, and no item does, mark it',
+    )
+    expect(system).toContain(
+      'Never mark a definition you add to an answer that nothing written covers.',
     )
     expect(system).toContain('in every language')
     expect(system).toContain('answer the likelier reading without saying which one you chose')

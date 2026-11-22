@@ -153,7 +153,7 @@ export type Words = {
   body: LoopBlock[]
   /** The items cited, in the order first cited: [n] is the nth. */
   cited: string[]
-  /** The definitions the words mark as what they rest on, by id: `… at the daily rate [metric:x].` */
+  /** The definitions the words mark as what answers the question, by id: `… daily rate [metric:x].` */
   marked: string[]
   checks: Check[]
 }
@@ -634,8 +634,8 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
         }
       } else if (list !== undefined) check('list', whole)
       else if (inner !== undefined) {
-        // A mark cites items; a definition's id in one is no source: it says what the words rest
-        // on, and is left out.
+        // A mark cites items; a definition's id in one is no source: it says the definition answers
+        // the question, and is left out.
         for (const id of inner.split(/[,;]\s*|\s+/).map((x) => x.trim())) {
           const noun = typedId(id, ctx.nouns)
           if (ITEM_ID.test(id) && ctx.known.has(id)) pushRun(runs, { t: 'cite', n: cite(id) })
