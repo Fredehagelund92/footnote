@@ -302,6 +302,12 @@ describe("the model's numbered lists, tables, code and headings", () => {
     expect(t.text).toContain('claude mcp add footnote [**url**]')
   })
 
+  it('flags a figure the model invents inside lines written as code, and keeps the code as written', () => {
+    const t = turnOf('Run this:\n\n```text\nretry 57 times\n```', [help], [])
+    expect(t.body).toContainEqual({ t: 'code', text: 'retry 57 times' })
+    expect(t.checks).toContainEqual({ kind: 'digits', words: '57' })
+  })
+
   it('draws a heading as a line in bold, a quote as its words, and a rule as nothing', () => {
     const t = turnOf(
       '## The four *kinds*\n\n> **Events** happen on a date.\n\n---\n\nThat is all.',

@@ -740,11 +740,12 @@ export function wordsOf(text: string, ctx: WordsContext, cited: string[] = []): 
       pushRun(runs, { t: 'text', text: /\s/.test(words) ? words : plainName(id, ctx.nouns) })
     }
   }
-  /** One sentence's runs; `listed`, a line of a list, which keeps its clauses as they are. */
+  /** A digit no read, question or chat gave, in some words: the model's own, flagged. */
   const checkDigits = (text: string) => {
     for (const d of text.match(/\d+(?:[.,]\d+)*/g) ?? [])
       if (!ctx.digits.has(d.replace(/,/g, ''))) check('digits', d)
   }
+  /** One sentence's runs; `listed`, a line of a list, which keeps its clauses as they are. */
   const sentence = (written: string, listed = false): LoopRun[] => {
     // A "()" the model wrote itself ("refresh()") is no bracket a reference left empty: set aside.
     const words = written.replace(/\(\)/g, LITERAL_BRACKETS)
