@@ -479,7 +479,11 @@ function Body({
             {rows}
           </ul>
         ) : (
-          <ol key={i} start={b.start} className="ml-6 list-decimal space-y-1.5">
+          <ol
+            key={i}
+            start={b.start}
+            className="ml-6 list-decimal space-y-1.5 marker:text-muted-foreground"
+          >
             {rows}
           </ol>
         )
@@ -523,7 +527,7 @@ function Table({
         <thead className="bg-muted/50">
           <tr>
             {head?.map((cell, j) => (
-              <th key={j} scope="col" className="px-2.5 py-1.5 text-left align-bottom font-medium">
+              <th key={j} scope="col" className="px-2.5 py-1.5 text-left align-top font-medium">
                 <Runs runs={cell} nouns={nouns} items={items} seen={seen} />
               </th>
             ))}
