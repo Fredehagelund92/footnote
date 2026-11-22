@@ -479,11 +479,7 @@ function Body({
             {rows}
           </ul>
         ) : (
-          <ol
-            key={i}
-            start={b.start}
-            className="ml-6 list-decimal space-y-1.5"
-          >
+          <ol key={i} start={b.start} className="ml-6 list-decimal space-y-1.5">
             {rows}
           </ol>
         )
