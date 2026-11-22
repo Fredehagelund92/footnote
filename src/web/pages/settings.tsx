@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { PlusIcon } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { Page } from '@/components/site-header'
 import {

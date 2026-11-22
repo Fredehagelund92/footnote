@@ -44,11 +44,16 @@ const bannedImports = [
   { group: ['@magicui/*', 'magicui-cli'], message: 'No decorative animated component sets.' },
   ...serverOnlyImports,
 ]
+const iconImports = {
+  group: ['lucide-react', 'lucide-react/*'],
+  message: 'Import icons from "@/components/icons" so there is one icon module.',
+}
 const webBannedImports = [
   ...bannedImports,
+  iconImports,
   {
-    group: ['lucide-react', 'lucide-react/*'],
-    message: 'Import icons from "@/components/icons" so there is one icon module.',
+    regex: '^sonner$',
+    message: 'Say it with "@/lib/toast": each toast keeps its own time, with a bar and Close.',
   },
 ]
 
@@ -197,6 +202,11 @@ export default tseslint.config(
     // The one place in the app that may import the icon library.
     files: ['src/web/components/icons.ts'],
     rules: { 'no-restricted-imports': ['error', { patterns: bannedImports }] },
+  },
+  {
+    // The two places that may import the toast library: the toaster, and the toasts.
+    files: ['src/web/lib/toast.tsx', 'src/web/components/ui/sonner.tsx'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [...bannedImports, iconImports] }] },
   },
   {
     files: webDockFiles,

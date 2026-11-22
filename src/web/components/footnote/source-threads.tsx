@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { JSONContent } from '@tiptap/core'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { CircleCheckIcon, CircleDotIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Composer } from '@/components/templates/comment-box/composer'

@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { Skip } from '@/lib/bulk'
 import { countLine } from '@/lib/selection'
 import { useLinger } from '@/lib/presence'
-import { useReportBulkBar } from '@/lib/bulk-bar-presence'
+import { useToastFloor } from '@/lib/toast-floor'
 
 // The one bar for rows picked in a list (Context, Definitions, the Inbox): the count, Clear, and the
 // list's actions, on the ink surface the Footnote app uses. It takes a band of its own under the list,
@@ -43,7 +43,7 @@ export function BulkBar({
   // appears with its text is often not read.
   // The bar leaves the way it came: it stays for its exit, still showing the count it had.
   const { present, leaving } = useLinger(count > 0)
-  useReportBulkBar(present)
+  const floor = useToastFloor<HTMLDivElement>()
   const [shown, setShown] = React.useState(count)
   if (count > 0 && count !== shown) setShown(count)
   const [said, setSaid] = React.useState('')
@@ -60,6 +60,7 @@ export function BulkBar({
       </span>
       {present && (
         <div
+          ref={floor}
           data-leaving={leaving ? '' : undefined}
           inert={leaving}
           className="flex shrink-0 bar-motion flex-col items-center gap-1.5 border-t bg-background px-4 py-2.5 max-md:gap-0 max-md:border-t-0 max-md:bg-foreground max-md:p-0 max-md:pb-safe-area"

@@ -16,7 +16,7 @@ import {
   SearchIcon,
   TriangleAlertIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn, midSentence } from '@/lib/utils'
 import { FieldDiff } from '@/components/footnote/bits'
 import { Mark } from '@/components/footnote/mark'

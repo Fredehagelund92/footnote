@@ -21,7 +21,7 @@ import {
   TriangleAlertIcon,
   UserIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
 import { ContextText } from '@/components/footnote/mention-chip'

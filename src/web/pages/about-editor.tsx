@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useEditor } from '@tiptap/react'
 import { PanelRightIcon } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
 import { Button } from '@/components/ui/button'

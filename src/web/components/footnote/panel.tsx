@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/footnote/fold'
 import { takeDockFocus } from '@/lib/dock'
+import { useToastFloor } from '@/lib/toast-floor'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Every right-hand panel has one anatomy: a title bar (the bar's height, its title, its own actions
@@ -45,6 +46,7 @@ export function Panel({
   bodyClassName?: string
 }) {
   const heading = React.useRef<HTMLHeadingElement>(null)
+  const floor = useToastFloor<HTMLDivElement>()
   // Opened from a list row by the keyboard, the panel takes focus on its title.
   React.useEffect(() => {
     if (!waiting && takeDockFocus()) heading.current?.focus({ preventScroll: true })
@@ -83,7 +85,11 @@ export function Panel({
       <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}>
         {children}
       </div>
-      {footer && <div className="shrink-0 border-t bg-background">{footer}</div>}
+      {footer && (
+        <div ref={floor} className="shrink-0 border-t bg-background">
+          {footer}
+        </div>
+      )}
     </section>
   )
 }

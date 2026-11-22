@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { toApiError } from '@/api/errors'
 import { namesQuery, useWrite } from '@/api/queries'
 import {

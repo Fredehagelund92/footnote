@@ -25,8 +25,8 @@ import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/footnote/definition-peek'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { Toaster } from '@/components/ui/sonner'
-import { useBulkBarShown } from '@/lib/bulk-bar-presence'
+import { Toaster, useSonner } from '@/components/ui/sonner'
+import { allFloors, floorUnder, useFloorsVersion } from '@/lib/toast-floor'
 import { SharePanel } from '@/components/footnote/share-answer'
 import { WherePanel } from '@/components/footnote/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -465,25 +465,50 @@ function Loaded({ children }: { children: React.ReactNode }) {
   return children
 }
 
+/** How far a toast sits from the window's right and bottom edges, and above a floor, in px. */
+const TOAST_EDGE = 16
+const TOAST_ABOVE = 8
+
 /**
- * Toasts never cover a primary action: clear of the Ask box wherever Ask is open, above the
- * 48px action bars at the foot of panes, and in the review at the bottom right above the decision
- * panel, so it covers neither the change nor its buttons; on a phone above the decision bar.
+ * Toasts sit in the bottom right corner, and never cover what is at the foot of the window under
+ * them: a card's decisions, a list's count or selection bar, the Ask box (`useToastFloor`). Then
+ * they sit just above it. In the review a narrower toast stays inside the decision's column.
  */
 function AppToaster() {
-  const { parts, query } = useRoute()
-  const ask = parts[0] === 'ask' || /^(ask|try)/.test(query.get('dock') ?? '')
+  const { parts } = useRoute()
   const review = parts[0] === 'inbox' && parts[2] === 'review'
-  // A list's selection bar sits in a band at its foot: a toast about what the bar did sits above it
-  // and its line. With no bar on screen, the toast is in the corner.
-  const bar = useBulkBarShown()
+  const width = review ? 300 : 356
+  const shown = useSonner().toasts.length > 0
+  const floors = useFloorsVersion()
+  const [lift, setLift] = React.useState(0)
+  React.useLayoutEffect(() => {
+    if (!shown) return
+    // Sonner gives a phone (under 600px) the whole width.
+    const measure = () => {
+      const w = window.innerWidth
+      const left = w < 600 ? 0 : w - TOAST_EDGE - width
+      setLift(floorUnder({ left, right: w }))
+    }
+    measure()
+    const sizes = new ResizeObserver(measure)
+    for (const el of allFloors()) {
+      sizes.observe(el)
+      el.addEventListener('transitionend', measure)
+    }
+    window.addEventListener('resize', measure)
+    return () => {
+      sizes.disconnect()
+      for (const el of allFloors()) el.removeEventListener('transitionend', measure)
+      window.removeEventListener('resize', measure)
+    }
+  }, [shown, floors, width])
+  const bottom = lift ? lift + TOAST_ABOVE : TOAST_EDGE
   return (
     <Toaster
       position="bottom-right"
-      offset={{ bottom: ask ? 152 : bar ? 112 : review ? 300 : 64, right: 24 }}
-      // In the review a narrower toast stays inside the decision's column, clear of the change.
-      style={review ? ({ '--width': '300px' } as React.CSSProperties) : undefined}
-      mobileOffset={{ bottom: ask ? 168 : review ? 148 : bar ? 124 : 64 }}
+      offset={{ bottom, right: TOAST_EDGE }}
+      mobileOffset={{ bottom, left: TOAST_EDGE, right: TOAST_EDGE }}
+      style={{ '--width': `${width}px` } as React.CSSProperties}
     />
   )
 }

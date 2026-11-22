@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/components/icons'
 import { termWord } from '@domain/terms'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
 import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'

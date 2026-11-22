@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { KeyRoundIcon } from '@/components/icons'
 import { ConnectAgent } from '@/components/connect-agent'
 import { ToolLogo } from '@/components/footnote/tool-logo'
