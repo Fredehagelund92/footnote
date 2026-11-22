@@ -238,7 +238,7 @@ const shot = (name: string) => {
           <div><h3>Drafts stay drafts</h3><p>The database role that answers agents can't read the versions table at all. That's a permission, not a setting someone can flip by accident.</p></div>
           <div><h3>A review before it goes live</h3><p>The review holds the claims up against the source. It also replays the questions agents asked against the draft, so the owner sees what will change before it does.</p></div>
           <div><h3>Nothing filled in</h3><p>When nothing is written, the answer says Not found and stops. It doesn't reach for a likely story.</p></div>
-          <div><h3>What not to conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.</p></div>
+          <div><h3>Don't conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.</p></div>
           <div><h3>When a definition changes</h3><p>If a definition an item relies on changes or disappears in Cube or dbt, the item is flagged for its owner, and answers say Outdated until they've looked.</p></div>
           <div><h3>Topics, not words</h3><p>When an agent asks something, we keep what it was about and how often. We don't keep the words. Your own chats in Ask stay in your browser.</p></div>
         </div>
@@ -270,10 +270,10 @@ const shot = (name: string) => {
         <div class="file"><p class="bar"><b>AGENTS.md</b><span>the line you add</span></p><pre><span># Footnote</span>
 Before you answer a question about company data, call get_context first and use what it returns.</pre></div>
         <div class="file"><p class="bar"><b>get_context reply</b><span>sent every time</span></p><ol>
-          <li>State the documented fact with its source and dates.</li>
+          <li>State what the item says, with its source and dates.</li>
           <li>Say "might be related" only when the dates overlap and the metric is in scope, and say the context does not prove a cause.</li>
           <li>Never say "caused by" unless the item states the effect.</li>
-          <li>When an item has not_to_conclude, never conclude what it rules out.</li>
+          <li>When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out.</li>
           <li>Suggest a check that would test the effect.</li>
         </ol></div>
         <p class="after">How to explain the why isn't left to that file. Footnote sends the rules with every reply, so each agent gets the same ones, and they change with the server rather than in every repository.</p>

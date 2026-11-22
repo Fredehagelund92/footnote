@@ -415,7 +415,7 @@ const answerTemplates: readonly Template[] = [
     lead: (s) =>
       `How did ${s.metric} change in ${s.place} in ${s.month}? A good answer compares ${s.metric} in ${s.place} with the month before and a year earlier.`,
     more: [
-      () => 'It names each fact it used, with its dates.',
+      () => 'It names each context item it used, with its dates.',
       () => 'It gives the size of the change in numbers before any explanation.',
       () => "It lists what's written down for that month.",
       () => 'If nothing is written down for that month, it says so.',
@@ -449,7 +449,7 @@ const answerTemplates: readonly Template[] = [
       `What happened to ${s.metric} in ${s.month}? A good answer about ${s.metric} in ${s.month} starts with the closures, outages, new rules and campaigns written down.`,
     more: [
       () => 'It says which markets moved most.',
-      () => 'It says when a movement has no fact to explain it.',
+      () => 'It says when nothing written down explains a movement.',
       () => "It names no cause that the context items don't state.",
       () => 'It gives the size of the change in numbers before any explanation.',
     ],

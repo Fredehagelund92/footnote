@@ -183,7 +183,7 @@ States (`united_states`, USA and United States of America), Sweden (`sweden`) an
 (`mexico`). A market is a whole country, never a state, region, province or city. Prose puts
 "the" before the United Kingdom, the Netherlands and the United States ("orders in the
 Netherlands"); a label or a scope does not ("Market Netherlands"), and neither does the text Footnote
-builds from a name ("Which facts apply to Orders in Netherlands"). What happens in a market (a
+builds from a name ("3 context items apply to Orders in Netherlands"). What happens in a market (a
 stop, a VAT rate, a regulator's pause) is invented, as everything else in the demo is.
 
 The twelve invented people, with their ids and initials: Maria Lindqvist (writes the show's

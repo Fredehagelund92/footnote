@@ -28,7 +28,7 @@ Footnote's server instructions (FR-343) tell the agent what Footnote holds and w
 to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
 result's `say`, which starts with the answer line, and to follow its `next`, the step for the agent
 (every read result has them, FR-344, so they reach a client that drops the instructions), how to
-speak about a fact with people, how dates in a question's words are read and that a question
+speak about a context item with people, how dates in a question's words are read and that a question
 without dates is read at today, that the reply is short by default, when to `report` and when to
 `suggest_context` (after the person says yes), and never to put question text or personal data in
 a note. The call-first and absence rules come first, within the first 512 characters, since some
@@ -146,7 +146,7 @@ domain named by another spelling is read as that domain (`src/domain/domain-matc
 of the query a person defined come back in `terms`, as for `get_context`.
 
 **`read_context`** reads one item in full (`context`): its text, every source, who checked it, its
-What not to conclude line and its outgoing links, with a page of the items that link to it. The
+Don't conclude line and its outgoing links, with a page of the items that link to it. The
 words of its title, summary and text that a person defined come back in `terms`, as for
 `get_context`.
 

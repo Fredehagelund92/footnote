@@ -79,9 +79,9 @@ export type Resolution = {
 export const coverageStatement = 'No match does not prove that no caveat exists.'
 /** Added to the instructions when a delivered item says what not to conclude (FR-104). */
 export const caveatInstruction =
-  'When an item has not_to_conclude, never conclude what it rules out.'
+  "When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out."
 export const agentInstructions =
-  'State the documented fact with its source and dates. Say "might be related" only for an event whose dates overlap and whose metric is in scope, and state that the context does not prove a cause. Never say "caused by" unless the claim level is effect_stated. Suggest a check that would test the effect. A link shows what text refers to; it proves neither cause nor applicability. Other guidance in the data tools still applies.'
+  'State what the item says, with its source and dates. Say "might be related" only for an event whose dates overlap and whose metric is in scope, and state that the context does not prove a cause. Never say "caused by" unless the claim level is effect_stated. Suggest a check that would test the effect. A link shows what text refers to; it proves neither cause nor applicability. Other guidance in the data tools still applies.'
 const risk = { low: 0, normal: 1, high: 2 }
 export const compareIds = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 export function itemTextSize(item: ResolverItem): number {
