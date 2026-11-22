@@ -8,6 +8,8 @@ reviewed: 2026-11-20
 open:
   label: Open Agents and access
   href: /settings/agents
+does:
+  paste-the-prompt: connect_agent
 ---
 
 Connect Claude, Cursor or another agent, so it reads your published context before it answers a question about the numbers.

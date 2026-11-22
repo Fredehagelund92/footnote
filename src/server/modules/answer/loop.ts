@@ -1963,7 +1963,7 @@ export function turnOf(
   const { items, about, aside } = evidence
   // Words that cite no item after a read of the help are about Footnote itself: they rest on the
   // help's pages, and carry no state and none of the context's evidence (FR-719.8).
-  const help = words.cited.length ? [] : helpOf(made)
+  const help = words.cited.length ? [] : helpOf(made, text)
   const fromHelp = help.length > 0
   const state = fromHelp ? null : evidence.state
   const subject = fromHelp ? null : evidence.subject
@@ -2040,20 +2040,57 @@ export function turnOf(
 }
 
 /**
- * The help pages a turn's help reads returned, the best part of each, once each (FR-719.8): what
- * an answer about Footnote itself rests on.
+ * The help parts an answer about Footnote itself rests on (FR-719.8): of the parts its help reads
+ * returned, the ones its words use, most used first, once each, at most three. A part counts the
+ * pairs of words it shares with the answer, which a paraphrase keeps and a part about something
+ * else rarely has; one with fewer than half as many as the part with most is left out, so a part
+ * the search put first that the answer never drew on is not shown as its source. Words that share
+ * none with any part keep each read's best part.
  */
-function helpOf(made: readonly MadeRead[]): NonNullable<LoopTurn['help']> {
-  const pages = made.flatMap((m) => {
+function helpOf(made: readonly MadeRead[], text: string): NonNullable<LoopTurn['help']> {
+  const said = wordPairs(text.replace(/\[[^\]]*\]/g, ' '))
+  const parts = made.flatMap((m) => {
     if (m.tool !== 'help' || !isObj(m.result) || isError(m.result)) return []
-    const best = arr(m.result.pages)[0]
-    if (!best) return []
-    const [slug = '', id = ''] = str(best.page).split('#')
-    return [{ slug, id, title: str(best.title), heading: str(best.heading) }]
+    return arr(m.result.pages).map((part, at) => {
+      const [slug = '', id = ''] = str(part.page).split('#')
+      const holds = wordPairs(`${str(part.heading)} ${str(part.text)}`)
+      return {
+        page: { slug, id, title: str(part.title), heading: str(part.heading) },
+        best: at === 0,
+        used: [...said].filter((pair) => holds.has(pair)).length,
+      }
+    })
   })
-  return pages.filter(
-    (p, i) => p.slug && pages.findIndex((q) => q.slug === p.slug && q.id === p.id) === i,
+  const most = Math.max(0, ...parts.map((p) => p.used))
+  const shown = most
+    ? parts.filter((p) => p.used * 2 >= most).sort((a, b) => b.used - a.used)
+    : parts.filter((p) => p.best)
+  const pages = shown.map((p) => p.page)
+  return pages
+    .filter((p, i) => p.slug && pages.findIndex((q) => q.slug === p.slug && q.id === p.id) === i)
+    .slice(0, 3)
+}
+
+/** Words too common to tell one help part from another. */
+const COMMON_WORDS = new Set(
+  'about after also been before being both does each either even every from have here into just like more most much must never only other over same some such than that their them then there these they this those through under very want were what when where which while will with would your'.split(
+    ' ',
+  ),
+)
+
+/**
+ * The pairs of words that follow each other in some text, each word in lower case and singular,
+ * leaving out a pair of short or common words ("in the"), which any two parts share.
+ */
+function wordPairs(text: string): Set<string> {
+  const words = (text.toLowerCase().match(/\p{L}+/gu) ?? []).map((w) =>
+    w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w,
   )
+  const telling = (w: string) => w.length > 3 && !COMMON_WORDS.has(w)
+  const pairs = new Set<string>()
+  for (let i = 1; i < words.length; i++)
+    if (telling(words[i - 1]!) || telling(words[i]!)) pairs.add(`${words[i - 1]} ${words[i]}`)
+  return pairs
 }
 
 /** A question's end after what it asks: when, then the question mark. */

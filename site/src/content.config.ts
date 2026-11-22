@@ -26,6 +26,8 @@ export const collections = {
           reviewed: z.coerce.date(),
           /** A screen of the app. The public site knows no instance, so it shows none. */
           open: z.object({ label: z.string(), href: z.string() }).optional(),
+          /** The quick action a section explains, by its anchor: for Ask in the app, not drawn here. */
+          does: z.record(z.string(), z.string()).optional(),
         }),
       })(context).transform((page) => ({
         ...page,

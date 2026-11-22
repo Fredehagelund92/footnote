@@ -3,6 +3,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { gfm } from 'micromark-extension-gfm'
 import * as z from 'zod/mini'
+import { actionIds, type ActionId } from '../domain/actions.ts'
 import {
   blocksText,
   CHANGELOG,
@@ -48,6 +49,8 @@ const pageFrontMatter = z.strictObject({
       href: z.string().check(z.regex(/^\/[a-z]/)),
     }),
   ),
+  /** The quick action a ## section explains, by its anchor: `add-a-context-item: write_context`. */
+  does: z.optional(z.record(z.string(), z.enum(actionIds))),
 })
 
 const changelogFrontMatter = z.strictObject({
@@ -222,12 +225,26 @@ function reader(slug: string) {
   }
 }
 
-/** The parts of a page for search: the words above the first heading, then each heading's. */
-function sectionsOf(lead: readonly DocInline[], blocks: readonly DocBlock[]): DocSection[] {
+/**
+ * The parts of a page for search: the words above the first heading, then each heading's, with
+ * the quick action a ## section explains.
+ */
+function sectionsOf(
+  lead: readonly DocInline[],
+  blocks: readonly DocBlock[],
+  does: Readonly<Record<string, ActionId>>,
+): DocSection[] {
   const sections: DocSection[] = [{ id: '', heading: '', text: inlineText(lead) }]
   for (const block of blocks) {
-    if (block.type === 'heading') sections.push({ id: block.id, heading: block.text, text: '' })
-    else {
+    if (block.type === 'heading') {
+      const action = block.depth === 2 ? does[block.id] : undefined
+      sections.push({
+        id: block.id,
+        heading: block.text,
+        text: '',
+        ...(action && { does: action }),
+      })
+    } else {
       const last = sections.at(-1)!
       last.text = [last.text, blocksText([block])].filter(Boolean).join('\n')
     }
@@ -253,15 +270,21 @@ function readGuide(file: DocFile, parse: (yaml: string) => unknown): Result<DocP
     const headings = blocks.flatMap((b) =>
       b.type === 'heading' ? [{ id: b.id, text: b.text, depth: b.depth }] : [],
     )
+    const { does = {}, ...page } = data.data
+    const stray = Object.keys(does).filter(
+      (id) => !headings.some((h) => h.depth === 2 && h.id === id),
+    )
+    if (stray.length)
+      return { ok: false, reason: `does: ${stray.join(', ')} is no ## heading of the page` }
     return {
       ok: true,
       value: {
         slug: file.slug,
-        ...data.data,
+        ...page,
         lead: first.children,
         blocks,
         headings,
-        sections: sectionsOf(first.children, blocks),
+        sections: sectionsOf(first.children, blocks, does),
       },
     }
   } catch (error) {

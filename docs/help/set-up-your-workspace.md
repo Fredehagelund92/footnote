@@ -4,7 +4,12 @@ line: The six steps from an empty workspace to a first checked answer, and the p
 group: Start
 order: 2
 minutes: 4
-reviewed: 2026-11-20
+reviewed: 2026-11-22
+open:
+  label: Open the Inbox
+  href: /inbox
+does:
+  publish-the-names: publish_names
 ---
 
 Here you write down what your numbers mean, so AI tools stop guessing. Your Inbox shows the six steps until you have done them, under Set up your workspace so agents can use what you know.
@@ -28,14 +33,14 @@ Here you write down what your numbers mean, so AI tools stop guessing. Your Inbo
 
 1. Say what the business is about: [About our business](write-context.md#about-our-business).
 2. Add your first domain: [Domains and owners](domains-and-owners.md#add-a-domain).
-3. Connect your definitions: [Integrations](integrations.md#connect-one), then [publish the names](#publish-the-names).
+3. Connect your definitions: [Integrations](integrations.md#connect-a-source), then [publish the names](#publish-the-names).
 4. Write your first context item: [Write context](write-context.md).
 5. Ask a question about it: [Answer lines](answer-lines.md).
 6. Connect your agent: [Connect an agent](connect-an-agent.md).
 
 ## Publish the names
 
-Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card, and nothing is published until you publish it.
+Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card in the Inbox, and nothing is published until you publish it.
 
 ![The card 5 new metrics and dimensions from dbt. Under Look at these first is Publish these as suggested, then Basket value, Total and Total (refunds), each with a name to keep or change, Publish and Leave out. Under Ready to publish is Completed orders, and at the foot Publish all.](../images/docs/names-light.webp)
 

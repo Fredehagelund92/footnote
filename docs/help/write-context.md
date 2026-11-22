@@ -1,13 +1,25 @@
 ---
 title: Write context
-line: What a context item is, what to put in it, its source and its check date.
+line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 3
-reviewed: 2026-11-20
+minutes: 4
+reviewed: 2026-11-22
+open:
+  label: New context
+  href: /context/new
+does:
+  add-a-context-item: write_context
+  about-our-business: about_business
 ---
 
-What a context item is, what to put in it, and the line that stops an agent from reading a cause into it.
+How to add a context item, what to put in it, and the line that stops an agent from reading a cause into it.
+
+## Add a context item
+
+To create one, open **Context** and choose **New context**. The editor opens on a new item, with its first question: What should agents know?
+
+When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 
 ## What a context item is
 
@@ -71,4 +83,4 @@ The same news, written weakly:
 
 ## About our business
 
-A short text every agent reads first, in Settings, General: what the business is, words that are easy to misread, and house rules for reading numbers. No figures or customer names.
+A short text every agent reads first: what the business is, words that are easy to misread, and house rules for reading numbers. No figures or customer names. An admin writes it in **Settings**, then **General**, under About our business.

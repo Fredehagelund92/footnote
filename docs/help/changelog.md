@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-21
+reviewed: 2026-11-22
 ---
+
+## Help pages open their screen
+
+2026-11-22
+
+Every help page about a screen now says where to start and has a button beside its title that opens that screen, such as New context on [Write context](write-context.md#add-a-context-item). An answer in Ask from the help names the parts of the pages it drew on.
 
 ## Families declared in your tool
 
