@@ -10,21 +10,23 @@ import {
   type Tool,
 } from 'ai'
 import * as z from 'zod'
-import type {
-  ChatTurnInput,
-  DefinitionCard,
-  LookupEvent,
-  LoopBlock,
-  LoopRead,
-  LoopRun,
-  LoopTurn,
+import {
+  familyShownSchema,
+  type ChatTurnInput,
+  type DefinitionCard,
+  type FamilyShown,
+  type LookupEvent,
+  type LoopBlock,
+  type LoopRead,
+  type LoopRun,
+  type LoopTurn,
 } from '../../../contract/answer.ts'
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
-import { dateNote, type ChosenPeriod } from '../../../domain/dates.ts'
+import { dateNote, windowWords, type ChosenPeriod } from '../../../domain/dates.ts'
 import { personInstead, personSaid, refusalOffers } from '../../../domain/say.ts'
-import { shiftDate } from '../../../domain/validity.ts'
+import { anyDate, shiftDate } from '../../../domain/validity.ts'
 import { productName } from '../../brand.ts'
 import type { Database, Queryable } from '../../db/database.ts'
 import {
@@ -531,8 +533,24 @@ const withoutChosen = ({ period: _, ...input }: Record<string, unknown>) => inpu
 /** A result as the model is given it: with its ref first, so its words can cite its values. */
 const withRef = (ref: string, result: unknown) =>
   result && typeof result === 'object' && !Array.isArray(result)
-    ? { ref, ...result }
+    ? { ref, ...forModel(result) }
     : { ref, result: result ?? null }
+
+/**
+ * A result without what only the page shows: a family's definition as the page draws it
+ * (`family`), whose words the model reads in the definition's own.
+ */
+function forModel(result: object): object {
+  if (!isObj(result) || !Array.isArray(result.definitions)) return result
+  return {
+    ...result,
+    definitions: result.definitions.map((d: unknown) => {
+      if (!isObj(d)) return d
+      const { family: _, ...rest } = d
+      return rest
+    }),
+  }
+}
 
 /** The line that says what a read is doing while it runs, written by code from its input. */
 export function progressOf(name: AskToolName, input: Record<string, unknown>): string {
@@ -1180,9 +1198,11 @@ function definitionsRead(results: readonly unknown[]) {
         const id = str(d.id)
         if (!id || found.has(id)) continue
         const from = str(d.source) || str(d.from)
+        const family = familyShownSchema.safeParse(d.family)
         found.set(id, {
           name: str(d.name),
           words: typeof d.words === 'string' ? d.words : null,
+          ...(family.success ? { family: family.data } : {}),
           tool: from.replace(/ \(.*\)$/, '') || 'Definitions',
           id: nounId(id),
         })
@@ -1539,17 +1559,20 @@ export function footerOf(
     return `${n.toLocaleString('en-GB')} of ${of} ${n === 1 ? 'applies' : 'apply'}${n > shown ? `; ${shown.toLocaleString('en-GB')} ${shown === 1 ? 'is' : 'are'} shown` : ''}${wider !== null ? `; a wider read found ${wider.toLocaleString('en-GB')}` : ''}.`
   }
   // An answer that cites what a search found, where the subject's read found none, says how many
-  // of what it is out of it cites, in a sentence, never that none apply.
+  // of what it is out of it cites, in a sentence, never that none apply. With nothing published
+  // there is nothing to count out of ("0 of 0").
   const applies = subject && (arr((subject.result as Obj).items).length || !cited.length)
   const denominator = records
     ? `Counted ${str((records.result as Obj).counted)}.`
-    : applies && outOf
-      ? applying(subject.result as Obj)
-      : outOf
-        ? cited.length
-          ? `${cited.length.toLocaleString('en-GB')} of ${of} ${cited.length === 1 ? 'is' : 'are'} cited.`
-          : `None of the ${of} is cited.`
-        : null
+    : outOf && !num(outOf.count)
+      ? 'No context item you can see is published yet.'
+      : applies && outOf
+        ? applying(subject.result as Obj)
+        : outOf
+          ? cited.length
+            ? `${cited.length.toLocaleString('en-GB')} of ${of} ${cited.length === 1 ? 'is' : 'are'} cited.`
+            : `None of the ${of} is cited.`
+          : null
   // The subject's read says how many of what applies are shown, in its own sentence.
   const said = applies && outOf && !records ? subject.result : null
   const more = ok.reduce((n, r) => n + (r === said ? 0 : num(r.more)), 0)
@@ -1608,21 +1631,28 @@ const wordsIn = (text: string) =>
     (w) => w.length >= 3 && !COMMON.has(w),
   )
 
-/** Whether some words already give a definition: eight of its words in a row are in them. */
-function gives(text: string, definition: string) {
+/**
+ * Whether some words already give a definition: eight of its words in a row are in them, or as
+ * many as `run` asks for.
+ */
+function gives(text: string, definition: string, run = 8) {
   const said = ` ${wordsIn(text).join(' ')} `
   const own = wordsIn(definition)
-  for (let i = 0; i + 8 <= own.length; i++)
-    if (said.includes(` ${own.slice(i, i + 8).join(' ')} `)) return true
+  for (let i = 0; i + run <= own.length; i++)
+    if (said.includes(` ${own.slice(i, i + run).join(' ')} `)) return true
   return false
 }
+
+/** Words that put a definition in words of their own keep runs of its words this long. */
+const DRAWN_RUN = 5
 
 /**
  * What an answer that cites no item defines (decision 3): the definitions its reads returned of
  * what the question was read as, in any language: no word of the question decides it. Under Not
- * found the words must give it, of a subject that names no value and no days: "what is written
- * about orders in Poland?" is about the context, whatever its words, and stays Not found. Such an
- * answer shows the Definition label in place of a state.
+ * found the words must draw on it, five of its words in a row, whether the question asks what it
+ * is or why its variants differ, of a subject that names no value and no days (read at any date
+ * names none): "what is written about orders in Poland?" is about the context, whatever its words,
+ * and stays Not found. Such an answer shows the Definition label in place of a state.
  */
 function definedOf(
   text: string,
@@ -1640,10 +1670,12 @@ function definedOf(
     .filter((d) => d.words && (!about.size || (d.id !== undefined && about.has(d.id))))
     .slice(0, CARDS_SHOWN)
   if (!candidates.length) return undefined
-  const given = candidates.some((d) => gives(text, d.words!))
+  const drawn = candidates.some((d) => gives(text, d.words!, DRAWN_RUN))
   const scoped =
-    !!subject && (subject.about.some((id) => id.startsWith('value:')) || !subject.assumedToday)
-  if (state === 'missing' && (!given || scoped)) return undefined
+    !!subject &&
+    (subject.about.some((id) => id.startsWith('value:')) ||
+      (!subject.assumedToday && subject.period !== windowWords(anyDate)))
+  if (state === 'missing' && (!drawn || scoped)) return undefined
   return {
     names: candidates.map((d) => d.name),
     tool: candidates[0]!.tool,
@@ -1661,7 +1693,7 @@ const CARDS_SHOWN = 2
  * alone), the ones that apply; with no such read, the count the definitions read gives and no rows.
  */
 function cardOf(
-  d: { id?: string; name: string; words: string | null },
+  d: { id?: string; name: string; words: string | null; family?: FamilyShown },
   text: string,
   reads: readonly MadeRead[],
   nouns: WordsContext['nouns'],
@@ -1702,6 +1734,7 @@ function cardOf(
     name: d.name,
     kind: kind === 'dimension' || kind === 'term' ? kind : 'metric',
     words: d.words,
+    ...(d.family ? { family: d.family } : {}),
     tool: from.replace(/ \(.*\)$/, '') || 'Definitions',
     member,
     group: isObj(raw.related) && typeof raw.related.group === 'string' ? raw.related.group : null,
@@ -1719,7 +1752,7 @@ function cardOf(
  * The definitions an answer shows (decision 6): each one this turn read of what the question was
  * read as, or with no such read, of a noun the words name, unless the words already give it. In
  * any language: no word of the question decides it. A word of the question that the definition
- * says, other than the names, is marked.
+ * says, other than the names, is marked: of a family, in the words the page shows of it.
  */
 function definitionsShown(
   question: string,
@@ -1739,10 +1772,13 @@ function definitionsShown(
   const asked = wordsIn(question).filter((w) => !names.has(w))
   return candidates.flatMap((d) => {
     if (gives(text, d.words!)) return []
-    const own = wordsIn(d.words!)
+    const shown = d.family
+      ? [d.family.meaning ?? '', ...d.family.own.map((o) => o.words)].join(' ')
+      : d.words!
+    const own = wordsIn(shown)
     const word = asked.find((w) => own.includes(w))
     const mark = word
-      ? d.words!.match(new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'))?.[0]
+      ? shown.match(new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'))?.[0]
       : undefined
     return [mark ? { ...d, mark } : d]
   })

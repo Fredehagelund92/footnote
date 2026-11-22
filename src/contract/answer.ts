@@ -238,16 +238,33 @@ const overviewSchema = z.object({
 export type LoopOverview = z.infer<typeof overviewSchema>
 
 /**
+ * A family of metrics as an answer shows its definition (FR-142): what tells its variants apart,
+ * how many there are, its meaning as one plain line ("Money taken in each currency"; null for
+ * none), and the own words of its variants that say something else or how they are worked out
+ * from another (of every variant, with no meaning), by their values: at most a few, and how many
+ * more have words of their own. Only the page reads it; Ask's model reads the definition's words.
+ */
+export const familyShownSchema = z.object({
+  by: z.array(z.string()),
+  variants: z.number(),
+  meaning: z.nullable(z.string()),
+  own: z.array(z.object({ values: z.array(z.string()), words: z.string() })),
+  more: z.number(),
+})
+export type FamilyShown = z.infer<typeof familyShownSchema>
+
+/**
  * A definition as an answer's card shows it (the definition card): its name and kind, the source's
- * own words, the tool and the source's name for it, its group, its domain (a noun's id when a read
- * named it) and owners by name, and the context items about it: how many, and the ones a read of
- * it returned, by id, as the turn's items.
+ * own words (of a family, `family` too), the tool and the source's name for it, its group, its
+ * domain (a noun's id when a read named it) and owners by name, and the context items about it:
+ * how many, and the ones a read of it returned, by id, as the turn's items.
  */
 const definitionCardSchema = z.object({
   id: z.string(),
   name: z.string(),
   kind: z.enum(['metric', 'dimension', 'term']),
   words: z.nullable(z.string()),
+  family: z.optional(familyShownSchema),
   tool: z.string(),
   member: z.nullable(z.string()),
   group: z.nullable(z.string()),
@@ -302,12 +319,13 @@ export const loopTurnSchema = z.object({
   conflict: z.array(z.string()),
   /**
    * The definitions shown with the answer: only when the question asks what one is, or turns on a
-   * word of it (`mark`), and never when the words already say it.
+   * word of it (`mark`), and never when the words already say it. A family's shows as `family`.
    */
   definitions: z.array(
     z.object({
       name: z.string(),
       words: z.nullable(z.string()),
+      family: z.optional(familyShownSchema),
       tool: z.string(),
       id: z.optional(z.string()),
       mark: z.optional(z.string()),

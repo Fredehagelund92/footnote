@@ -549,29 +549,37 @@ export function declaredWords(
 const DERIVATIONS_MAX = 3
 
 /**
- * What a family's source says of how one variant is worked out from another, as plain lines for
- * its page: each variant whose description names another variant's value ("The EUR amount
- * multiplied by the row's exchange rate", of the USD one), with its name. The source's words,
- * never Footnote's guess; none when no description does.
+ * The variants whose source says how they are worked out from another: each whose description
+ * names another variant's value ("The EUR amount multiplied by the row's exchange rate", of the
+ * USD one). The source's words, never Footnote's guess.
  */
-export function derivationsOf(
-  variants: readonly { said: string; values: readonly string[]; description: string | null }[],
-): string[] {
+export function derivedVariants<
+  V extends { values: readonly string[]; description: string | null },
+>(variants: readonly V[]): V[] {
   // Every value of the family, by its words: a description names one when it holds them all.
   const wordsOf = (text: string) =>
     normalizeName(text)
       .split(/[^\p{L}\p{N}]+/u)
       .filter(Boolean)
   const values = new Set(variants.flatMap((variant) => variant.values.map((v) => normalizeName(v))))
-  const lines: string[] = []
-  for (const variant of variants) {
-    const words = variant.description?.trim()
-    if (!words || lines.length === DERIVATIONS_MAX) continue
+  return variants.filter((variant) => {
     const own = new Set(variant.values.map((v) => normalizeName(v)))
-    if (wordsOf(words).some((word) => values.has(word) && !own.has(word)))
-      lines.push(`${variant.said}: ${words}`)
-  }
-  return lines
+    return wordsOf(variant.description?.trim() ?? '').some(
+      (word) => values.has(word) && !own.has(word),
+    )
+  })
+}
+
+/**
+ * What a family's source says of how one variant is worked out from another, as plain lines for
+ * its page: each variant `derivedVariants` finds, with its name. None when no description does.
+ */
+export function derivationsOf(
+  variants: readonly { said: string; values: readonly string[]; description: string | null }[],
+): string[] {
+  return derivedVariants(variants)
+    .slice(0, DERIVATIONS_MAX)
+    .map((variant) => `${variant.said}: ${variant.description!.trim()}`)
 }
 
 /** The most variants whose own words a family's description for an agent gives. */

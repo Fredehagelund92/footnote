@@ -2,6 +2,7 @@ import * as React from 'react'
 import type {
   ChosenPeriodInput,
   DefinitionCard,
+  FamilyShown,
   LoopBlock,
   LoopItem,
   LoopOverview,
@@ -1231,6 +1232,58 @@ function DefinitionCards({ loop, maps }: { loop: LoopTurn; maps: ReturnType<type
 
 const kindWord = { metric: 'Metric', dimension: 'Dimension', term: 'Word' } as const
 
+/** What a card says a definition is: "Metric", "Family of 2 metrics, by Currency". */
+const kindOf = (card: DefinitionCard) =>
+  card.family
+    ? `Family of ${card.family.variants.toLocaleString('en-GB')} metrics, by ${listed(card.family.by)}`
+    : kindWord[card.kind]
+
+/**
+ * A family's definition as an answer shows it (FR-142): its meaning, then the own words of its
+ * variants that say something else or how they are worked out, each after its values. `mark` is
+ * marked where it first shows.
+ */
+function FamilyDefinition({
+  family,
+  mark,
+  className,
+}: {
+  family: FamilyShown
+  mark?: string
+  className?: string
+}) {
+  const parts = [family.meaning ?? '', ...family.own.map((o) => o.words)]
+  const marked = mark ? parts.findIndex((p) => p.toLowerCase().includes(mark.toLowerCase())) : -1
+  const words = (text: string, at: number) =>
+    at === marked ? <Marked words={text} mark={mark!} /> : text
+  return (
+    <div className={className}>
+      {family.meaning ? (
+        <p>{words(family.meaning, 0)}</p>
+      ) : (
+        <p className="text-muted-foreground">No meaning yet: its variants say different things.</p>
+      )}
+      {family.own.length > 0 && (
+        <ul aria-label="In its variants’ own words" className="mt-2 flex flex-col gap-1.5 text-sm">
+          {family.own.map((o, i) => (
+            <li key={o.values.join(', ')}>
+              <span className="font-medium">{o.values.join(', ')}</span>
+              {': '}
+              {words(o.words, i + 1)}
+            </li>
+          ))}
+        </ul>
+      )}
+      {family.more > 0 && (
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {family.more.toLocaleString('en-GB')} more{' '}
+          {family.more === 1 ? 'has words of its' : 'have words of their'} own.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function DefinitionCardOf({
   card,
   maps,
@@ -1259,14 +1312,20 @@ function DefinitionCardOf({
           )}
         </span>
         <span className="text-xs text-muted-foreground">
-          {kindWord[card.kind]}
+          {kindOf(card)}
           {card.group && ` in the ${card.group} group`}
         </span>
       </header>
-      {card.words && (
+      {card.family ? (
         <blockquote className="px-4 pt-2.5 text-base leading-chat text-pretty">
-          {card.words}
+          <FamilyDefinition family={card.family} />
         </blockquote>
+      ) : (
+        card.words && (
+          <blockquote className="px-4 pt-2.5 text-base leading-chat text-pretty">
+            {card.words}
+          </blockquote>
+        )
       )}
       <div className="mx-4 mt-3 flex flex-col gap-1 border-t pt-3 text-sm text-muted-foreground">
         <p>
@@ -1344,7 +1403,13 @@ function Definitions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
             <span>as {d.tool} defines it</span>
           </figcaption>
           <blockquote className="text-pretty">
-            {d.mark ? <Marked words={d.words ?? ''} mark={d.mark} /> : d.words}
+            {d.family ? (
+              <FamilyDefinition family={d.family} mark={d.mark} />
+            ) : d.mark ? (
+              <Marked words={d.words ?? ''} mark={d.mark} />
+            ) : (
+              d.words
+            )}
           </blockquote>
         </figure>
       ))}

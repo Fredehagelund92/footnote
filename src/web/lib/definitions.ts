@@ -46,7 +46,10 @@ export type FamilyUsual = {
  */
 export type FamilyMeaning = {
   source: FamilyMeaningSource
-  /** The meaning; the common words write each value as what it stands for: "in {Currency}". */
+  /**
+   * The meaning; the common words and the base variant's write each value as what it stands for:
+   * "in {Currency}".
+   */
   words: string | null
   /** The variant whose words are the meaning: of `member` and `base`. */
   member?: string
@@ -54,6 +57,8 @@ export type FamilyMeaning = {
   common?: { words: string; agree: number }
   /** The variant the others are converted from. */
   base?: string
+  /** The words the rule gives, an owner's choice aside: the common words, else the base's. */
+  automatic?: string
   /** The variants whose own words say something else than the meaning. */
   differing: string[]
   /** What an owner chose last, by whom and on which day. */

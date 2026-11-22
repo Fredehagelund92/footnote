@@ -105,17 +105,25 @@ export const catalogueVariantSchema = z.object({
 export const familyMeaningSchema = z.object({
   source: z.enum(familyMeaningSources),
   /**
-   * Its meaning; null for none. The variants' common words write each value as what it stands for,
-   * in braces, by a name of the family's `by`: "Money taken in {Currency} via {Channel}". Any other
-   * source's words are as written.
+   * Its meaning; null for none. The variants' common words and the base variant's write each value
+   * as what it stands for, in braces, by a name of the family's `by`: "Money taken in {Currency}
+   * via {Channel}". Any other source's words are as written.
    */
   words: z.nullable(z.string()),
   /** The variant whose own words are the meaning, by key: of `member` and `base`; else null. */
   member: z.nullable(z.string()),
-  /** The words most variants share, values aside, and how many share them; null when most don't. */
+  /**
+   * The words most variants share, values aside, and how many share them: the same words, else
+   * words most of them hold within their own. Null when most don't.
+   */
   common: z.nullable(z.object({ words: z.string(), agree: z.number() })),
   /** The variant the others are converted from, by key; null when no one variant is. */
   base: z.nullable(z.string()),
+  /**
+   * The words the rule gives, any declared words or owner's choice aside, values as slots: the
+   * common words, else the base variant's. Null when it gives none.
+   */
+  automatic: z.nullable(z.string()),
   /** The variants whose own words say something else than the meaning, by key. */
   differing: z.array(z.string()),
   /** What an owner chose last, and who and when; null when no owner has chosen. */

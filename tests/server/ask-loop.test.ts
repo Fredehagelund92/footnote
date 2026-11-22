@@ -746,6 +746,102 @@ describe('a turn that uses no context item', () => {
     ).toMatchObject({ names: ['Orders'], tool: 'Cube' })
   })
 
+  describe('a family of metrics answered from its definition (invented: Partner fees)', () => {
+    const shown = {
+      by: ['Currency'],
+      variants: 2,
+      meaning: 'Fees partners report on referred users in each currency.',
+      own: [
+        {
+          values: ['USD'],
+          words: 'Fees partners report on referred users in USD (EUR × row fx_usd).',
+        },
+      ],
+      more: 0,
+    }
+    const words =
+      'Fees partners report on referred users in each currency. A family of 2 near-identical metrics, one for each currency. An item about it applies to every one of them. How 1 variant is worked out from another, in its own words: USD: Fees partners report on referred users in USD (EUR × row fx_usd).'
+    const fees = (family?: object): MadeRead => ({
+      tool: 'definitions',
+      input: { names: ['Partner fees'] },
+      result: {
+        found: 1,
+        definitions: [
+          { id: 'group:partner_fees', name: 'Partner fees', words, from: 'Cube', family },
+        ],
+        names: [],
+        ids: ['group:partner_fees'],
+      },
+    })
+    // The read of the subject: nothing written, at any date, or on days the words name.
+    const read = (period = 'any date', items: object[] = []): MadeRead => {
+      const made = get(items.length ? 'grounded' : 'missing', items)
+      const result = made.result as { read: object }
+      return {
+        ...made,
+        result: {
+          ...result,
+          read: {
+            ...result.read,
+            about: ['group:partner_fees'],
+            period,
+            assumedToday: false,
+          },
+        },
+      }
+    }
+    const why = 'Why is partner fees in USD different from EUR?'
+    const answer =
+      'The USD figure is the EUR figure converted at each row’s rate: both are fees partners report on referred users.'
+
+    it('shows the Definition label for a why-question answered from it alone, as for a what-is one (R5)', () => {
+      const t = turnOf(answer, [read(), fees(shown)], [], why)
+      expect(t.state).toBeNull()
+      expect(t.defined).toMatchObject({ names: ['Partner fees'], tool: 'Cube' })
+      // Its card shows the family as the page draws it.
+      expect(t.defined!.cards).toEqual([
+        expect.objectContaining({ name: 'Partner fees', family: shown }),
+      ])
+      // Read on days the words name, or answered with nothing of the definition: Not found.
+      expect(turnOf(answer, [read('1-31 Oct 2026'), fees(shown)], [], why).state).toBe('missing')
+      expect(
+        turnOf('Nothing written covers why partner fees fell.', [read(), fees(shown)], [], why)
+          .state,
+      ).toBe('missing')
+    })
+
+    it('quotes a family as its meaning and its variants’ words, marking a word of the question in them (R6)', () => {
+      const t = turnOf(
+        'Each partner reports them [itm_fees00001].',
+        [read('any date', [item('itm_fees00001')]), fees(shown)],
+        [],
+        why,
+      )
+      // The question turns on USD: marked in the USD variant's own words, which the quote shows.
+      expect(t.definitions).toEqual([
+        {
+          name: 'Partner fees',
+          words,
+          family: shown,
+          tool: 'Cube',
+          id: 'group:partner_fees',
+          mark: 'USD',
+        },
+      ])
+    })
+  })
+
+  it('says nothing is published yet, never "0 of 0", when nothing the person can see is (R6)', () => {
+    const made = get('missing', [])
+    const empty: MadeRead = {
+      ...made,
+      result: { ...(made.result as object), outOf: { ...outOf, count: 0 } },
+    }
+    expect(turnOf('Nothing is written about it.', [empty], []).footer.denominator).toBe(
+      'No context item you can see is published yet.',
+    )
+  })
+
   it('shows none of the evidence when it read nothing new and cites nothing', () => {
     const earlier = [subject('partial'), definitions('The value of orders customers paid for.')]
     const t = turnOf('You are welcome.', [], earlier, 'thanks!')
@@ -920,21 +1016,31 @@ async function turnWith(
     onEvent?: (event: LookupEvent) => void
     /** The word of the question that names no one metric, as the tools read it. */
     vague?: AskTools['vague']
+    /** What a read returns, over the usual results. */
+    results?: (name: string, input: unknown) => unknown
   } = {},
 ) {
   const { database, seen } = countingDatabase()
   const { tools, asked } = fakeTools(
     (name, input) =>
-      ({
+      options.results?.(name, input) ??
+      {
         get_context: get('missing', [], ['itm_germany01']).result,
         find_context: find([{ ...item('itm_germany01'), match: 'all' }], 1).result,
         read_context: { found: false, item: null, nothing: 'none', ids: [] },
-      })[name] ?? { input, ids: [] },
+      }[name] ?? { input, ids: [] },
     options.vague,
   )
   const errors: unknown[] = []
   const events: LookupEvent[] = []
-  const { turns, question = 'what is written?', onEvent, vague: _vague, ...rest } = options
+  const {
+    turns,
+    question = 'what is written?',
+    onEvent,
+    vague: _vague,
+    results: _results,
+    ...rest
+  } = options
   for await (const event of askLoop(
     {
       database,
@@ -1149,6 +1255,42 @@ describe("Ask's loop on a scripted model", () => {
       sources: [],
     })
     expect(asked).toEqual([])
+  })
+
+  it('sends the model a family’s words, never what only the page shows of it', async () => {
+    const family = { by: ['Currency'], variants: 2, meaning: 'Fees.', own: [], more: 0 }
+    let seen = ''
+    const { turn } = await turnWith(
+      ({ results, prompt }) => {
+        if (!results.length)
+          return { calls: [{ toolName: 'definitions', input: { names: ['Partner fees'] } }] }
+        seen = JSON.stringify(prompt)
+        return { text: 'Partner fees are fees partners report.' }
+      },
+      {
+        question: 'What is partner fees?',
+        results: (name) =>
+          name === 'definitions'
+            ? {
+                found: 1,
+                definitions: [
+                  {
+                    id: 'group:partner_fees',
+                    name: 'Partner fees',
+                    words: 'Fees partners report, in each currency.',
+                    from: 'Cube',
+                    family,
+                  },
+                ],
+                ids: ['group:partner_fees'],
+              }
+            : undefined,
+      },
+    )
+    expect(seen).toContain('Fees partners report, in each currency.')
+    expect(seen).not.toContain('"family"')
+    // The page still draws it, from the read.
+    expect(turn.defined?.cards).toEqual([expect.objectContaining({ family })])
   })
 
   it('in a sentence, tells the model the metrics a word may mean and lets it answer', async () => {
