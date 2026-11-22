@@ -4,7 +4,7 @@ line: The Inbox cards for a context item that is due for a check or was reported
 group: Write and review
 order: 3
 minutes: 3
-reviewed: 2026-11-20
+reviewed: 2026-11-22
 open:
   label: Open the Inbox
   href: /inbox
@@ -23,7 +23,7 @@ The owners of a domain get the cards for the context items in it. Admins get the
 The card says why the item is due:
 
 - Its check date passed. Every item gets one when it is published: 90 days later, unless your workspace has set another number. An item about something still going on is checked again sooner.
-- A definition changed. A connector read that a metric or dimension the item relies on changed in its tool, after the item was checked. The card names it and the day.
+- A definition changed. A connector read that a metric or dimension the item relies on changed in its tool, after the item was checked. The card names it and the day, and See the definition opens it beside the Inbox when you can read it.
 
 When a definition the item uses is gone from its tool, the item's page says so under Due for a check, and Still true is refused: change the item instead.
 
@@ -42,6 +42,8 @@ Until someone answers, an answer that uses the item starts with Outdated: see [A
 ## Reported
 
 Someone said an item is wrong or unclear, from Ask or from a chat with an agent. The card shows what they wrote, who sent it and from where. Agents keep getting the item until it changes.
+
+A report from Ask shows the question they asked. Try this question opens Ask beside the Inbox with it typed in, so you see the answer as it is for you before you change anything.
 
 - Open the context item to read it, and change it if they are right.
 - **Not a problem** closes the report when the item is right as it is. The item stays as it is.

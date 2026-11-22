@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { setQuery, useRoute } from '@/lib/router'
 
 // The dock's content lives in the address (?dock=kind.id), so Back closes it and every state has a link.
@@ -36,6 +37,7 @@ export function useDock(): DockState | null {
 }
 
 export function openDock(kind: DockKind, id?: string, extra?: Record<string, string | undefined>) {
+  setTyped(null)
   setQuery({
     dock: id ? `${kind}.${id}` : kind,
     tab: undefined,
@@ -48,6 +50,7 @@ export function openDock(kind: DockKind, id?: string, extra?: Record<string, str
 }
 
 export function closeDock() {
+  setTyped(null)
   setQuery({
     dock: undefined,
     tab: undefined,
@@ -92,4 +95,33 @@ export function returnFromDock() {
   if (!id || (document.activeElement && document.activeElement !== document.body)) return
   const rows = document.querySelectorAll<HTMLElement>('[data-row-open]')
   ;[...rows].find((r) => r.dataset.rowOpen === id)?.focus({ preventScroll: true })
+}
+
+/*
+  A person's own question, typed into Ask's dock from another page (a report's question in the
+  Inbox): held in memory, never in the address, which history and logs keep. Opening or closing any
+  dock lets it go, so it is typed in once, not yet sent.
+*/
+type Typed = { question: string; n: number }
+let typed: Typed | null = null
+let typedCount = 0
+const typedListeners = new Set<() => void>()
+function setTyped(next: Typed | null) {
+  if (next === typed) return
+  typed = next
+  for (const l of typedListeners) l()
+}
+
+/** Opens Ask beside the page with the question typed in. */
+export function askInDock(question: string) {
+  openDock('ask', undefined, { q: undefined })
+  setTyped({ question, n: ++typedCount })
+}
+
+/** The question typed into Ask's dock from another page, while the dock it opened is open. */
+export function useTyped(): Typed | null {
+  return React.useSyncExternalStore(
+    (l) => (typedListeners.add(l), () => void typedListeners.delete(l)),
+    () => typed,
+  )
 }

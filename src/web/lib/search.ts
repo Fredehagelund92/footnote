@@ -112,7 +112,8 @@ export const contextEditorSearch = lenient(
 
 export const definitionsSearch = lenient(z.object({ domain: text, setup: text }))
 
-export const definitionEditorSearch = lenient(z.object({ sameAs: text }))
+/** A new term may start from its word (`name`, from Ask's gap card) or as another name for a definition. */
+export const definitionEditorSearch = lenient(z.object({ name: text, sameAs: text }))
 
 export const settingsSearch = lenient(z.object({ step: digits, setup: text, person: text }))
 

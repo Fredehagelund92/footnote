@@ -95,7 +95,7 @@ for (const { name, viewport } of [
       const log = await answer(page, 'loop-unknown', theme)
       const gap = log.getByRole('region', { name: 'Not written yet: “EBITDA”' })
       await expect(gap).toContainText('It is yours to add.')
-      await expect(gap.getByRole('button', { name: 'Add it to Definitions' })).toBeVisible()
+      await expect(gap.getByRole('button', { name: 'Add “EBITDA” to Definitions' })).toBeVisible()
       // The card offers it once: no quick action repeats it beside the card.
       await expect(actionsOf(log)).toHaveCount(0)
 
@@ -104,6 +104,8 @@ for (const { name, viewport } of [
         name: 'Not written yet: “EBITDA”',
       })
       await expect(member.getByRole('button', { name: 'Tell an admin' })).toBeVisible()
-      await expect(member.getByRole('button', { name: 'Add it to Definitions' })).toHaveCount(0)
+      await expect(member.getByRole('button', { name: 'Add “EBITDA” to Definitions' })).toHaveCount(
+        0,
+      )
     })
   }

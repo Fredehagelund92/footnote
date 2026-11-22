@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-22
 ---
 
+## Buttons that start with what you asked for
+
+2026-11-22
+
+The buttons that open a screen now fill in what they are about. Add the word to Definitions, under an answer that found a word nobody defined, opens a new term with that word. A definition card with no context yet offers its owners Write context.
+
+In the Inbox, a report from Ask shows the question asked, with Try this question, and a card due for a check because a definition changed has See the definition. See [Keep context up to date](keep-context-up-to-date.md#reported).
+
 ## Ask opens the screen it explains
 
 2026-11-22

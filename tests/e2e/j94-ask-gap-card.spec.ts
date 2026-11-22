@@ -38,7 +38,7 @@ for (const { name, viewport } of [
     await go(page, '/ask?example=loop-unknown')
     const gap = page.getByRole('log').getByRole('region', { name: 'Not written yet: “EBITDA”' })
     await expect(gap).toContainText('It is yours to add.')
-    await expect(gap.getByRole('button', { name: 'Add it to Definitions' })).toBeVisible()
+    await expect(gap.getByRole('button', { name: 'Add “EBITDA” to Definitions' })).toBeVisible()
     await expect(gap.getByRole('button', { name: /^Tell/ })).toHaveCount(0)
   })
 
