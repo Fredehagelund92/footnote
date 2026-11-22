@@ -90,6 +90,8 @@ export const catalogueVariantSchema = z.object({
   values: z.array(z.string()),
   /** Its source's own words for it, or null when the source gives none. */
   description: z.nullable(z.string()),
+  /** Its id in the source tool, for example `cube:orders.revenue_eur_web`; null when never listed. */
+  ref: z.nullable(z.string()),
   /** What its source last read of it; null when the source never listed it. */
   state: z.nullable(z.enum(definitionStates)),
   /** Accepted items whose scope names the variant itself. */
@@ -130,6 +132,19 @@ export const familyMeaningSchema = z.object({
   revision: z.number(),
 })
 
+/**
+ * The variant agents read when a question names none of the values a family's variants are told
+ * apart by (FR-142, F3), as an owner of its domain or an admin picked it. With none, agents ask.
+ */
+export const familyUsualSchema = z.object({
+  /** The usual variant, by key; null when no owner picked one or it left the family. */
+  member: z.nullable(z.string()),
+  /** Who picked last, and when; null before the first pick. */
+  chosen: z.nullable(z.object({ personId: z.string(), at: z.string() })),
+  /** How many times owners picked: send it back with a change, 0 before the first. */
+  revision: z.number(),
+})
+
 export const catalogueTermSchema = z.object({
   /** The vocabulary key: `metric:orders`, `dim:market`. */
   key: z.string(),
@@ -166,6 +181,7 @@ export const catalogueTermSchema = z.object({
       conversions: z.array(z.object({ from: z.string(), to: z.string(), by: z.string() })),
       variants: z.array(catalogueVariantSchema),
       meaning: familyMeaningSchema,
+      usual: familyUsualSchema,
     }),
   ),
   /** The vocabulary's area first, the source's hint second, no domain third. */
@@ -283,6 +299,16 @@ export const familyMeaningInputSchema = z.strictObject({
 
 export const familyKeyInputSchema = z.strictObject({ key: familyKey })
 
+/**
+ * An owner's pick of a family's usual variant, by key, or none (`member: null`). `revision` is the
+ * pick's as the person last read it.
+ */
+export const familyUsualInputSchema = z.strictObject({
+  key: familyKey,
+  member: z.nullable(z.string().check(z.regex(/^metric:[a-z0-9_]+$/))),
+  revision: z.number().check(z.int(), z.minimum(0)),
+})
+
 /** One choice of what a family means, as it was made. */
 export const familyMeaningVersionSchema = z.object({
   revision: z.number(),
@@ -306,3 +332,5 @@ export type DefinitionRelations = z.infer<typeof definitionRelationsSchema>
 export type FamilyMeaningData = z.infer<typeof familyMeaningSchema>
 export type FamilyMeaningInput = z.infer<typeof familyMeaningInputSchema>
 export type FamilyMeaningVersion = z.infer<typeof familyMeaningVersionSchema>
+export type FamilyUsualData = z.infer<typeof familyUsualSchema>
+export type FamilyUsualInput = z.infer<typeof familyUsualInputSchema>

@@ -62,5 +62,7 @@ const ready = router.subscribe('onResolved', () => {
       if (route.lazyFn) void router.loadRouteChunk(route)
     // The context item's quick view, so a click on one never waits for its code.
     void import('@/components/footnote/fact-peek')
+    // A family's quick view, for the same reason.
+    void import('@/components/footnote/family-peek')
   })
 })

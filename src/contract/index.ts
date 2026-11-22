@@ -196,6 +196,8 @@ import {
   familyKeyInputSchema,
   familyMeaningInputSchema,
   familyMeaningVersionSchema,
+  familyUsualInputSchema,
+  familyUsualSchema,
 } from './catalogue.ts'
 import { searchAllInputSchema, searchResultsSchema } from './search.ts'
 import { scopeSearchInputSchema, scopeSearchSchema } from './scope.ts'
@@ -365,6 +367,8 @@ export type {
   FamilyMeaningData,
   FamilyMeaningInput,
   FamilyMeaningVersion,
+  FamilyUsualData,
+  FamilyUsualInput,
 } from './catalogue.ts'
 export type {
   DeletedTerm,
@@ -1238,6 +1242,23 @@ export const contract = {
       })
       .input(familyMeaningInputSchema)
       .output(familyMeaningVersionSchema),
+    setFamilyUsual: read
+      .meta({ scope: 'propose' })
+      .route({
+        method: 'PUT',
+        path: '/definitions/families/{key}/usual',
+        tags: ['library'],
+        summary:
+          "Pick the variant agents read when a question names none of a family's values (FR-142)",
+      })
+      .errors({
+        ...familyNotFound,
+        CONFLICT: {
+          message: "Someone changed this family's usual variant after you opened it.",
+        },
+      })
+      .input(familyUsualInputSchema)
+      .output(familyUsualSchema),
     familyMeaningHistory: read
       .route({
         method: 'GET',

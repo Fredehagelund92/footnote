@@ -331,6 +331,7 @@ describe('a family of metrics in Ask (FR-142)', () => {
         description: key.endsWith('usd_web')
           ? "The EUR web amount multiplied by the row's exchange rate."
           : null,
+        ref: `dbt:sales.${key.slice('metric:'.length)}`,
         state: null,
         items: 0,
       })),
@@ -345,6 +346,7 @@ describe('a family of metrics in Ask (FR-142)', () => {
         chosen: null,
         revision: 0,
       },
+      usual: { member: null, chosen: null, revision: 0 },
     },
   }
   const reads = {
@@ -435,6 +437,23 @@ describe('a family of metrics in Ask (FR-142)', () => {
       '2 variants say something else: AED, app: Money taken in AED via app. EUR, web: Money taken in EUR via web.',
     )
     expect(revenue!.words).not.toContain('each other variant')
+  })
+
+  it('says which variant a question that names no value means, once an owner picked one (F3)', async () => {
+    const usual = { member: 'metric:revenue_eur_web', chosen: null, revision: 1 }
+    const withUsual = createAskTools({
+      ...reads,
+      catalogue: () =>
+        Promise.resolve({ terms: [{ ...family, family: { ...family.family, usual } }] }),
+    } as unknown as ToolReads)
+    const result = await withUsual.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { words: string | null }[] }).definitions
+    expect(revenue!.words).toContain(
+      'When a question names no currency or channel, its owners say it means metric:revenue_eur_web variant.',
+    )
+    // With none picked, nothing is said: the agent asks which, as before.
+    const plain = await tools.run('definitions', { names: ['Revenue'] })
+    expect(JSON.stringify(plain)).not.toContain('When a question names no')
   })
 
   it('counts the items on a family and on any of its variants under the family name', async () => {

@@ -19,6 +19,7 @@ import { ReportDialog } from '@/components/report-dialog'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
+import { familyParts } from '@/components/footnote/family-parts'
 import { DockLeaving, pictureOf, setLeavingDock, useLeavingDock } from '@/components/dock-leaving'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/footnote/definition-peek'
@@ -102,6 +103,9 @@ const FactPeek = React.lazy(() =>
   import('@/components/footnote/fact-peek').then((m) => ({ default: m.FactPeek })),
 )
 
+// A suggested family's panel opens only from the Names card, so its code comes when it opens.
+const SuggestedFamilyPeek = React.lazy(() => import('@/components/footnote/suggested-family-peek'))
+
 // Connect an agent is asked for now and then, so its dialog is not on the first load: its code is
 // fetched with Settings, which shows the same body, once the browser is idle (main.tsx), and the
 // dialog mounts the first time it is asked for.
@@ -144,7 +148,7 @@ function SafeDock() {
           onKeyDown={(e) => {
             // A list row's peek closes on Escape from inside; a field, menu or dialog in it keeps its own Escape.
             if (e.key !== 'Escape' || e.defaultPrevented) return
-            if (dock?.kind !== 'context' && dock?.kind !== 'def') return
+            if (dock?.kind !== 'context' && dock?.kind !== 'def' && dock?.kind !== 'family') return
             if (
               (e.target as HTMLElement).closest(
                 'input, textarea, [contenteditable], [role=menu], [role=listbox], [role=dialog]',
@@ -180,6 +184,12 @@ function DockContent() {
       )
     case 'def':
       return <DefinitionPeek name={dock.id!} />
+    case 'family':
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.family} />}>
+          <SuggestedFamilyPeek parts={familyParts} nameKey={dock.id!} />
+        </React.Suspense>
+      )
     case 'ask':
       return <AskDock />
     case 'try':

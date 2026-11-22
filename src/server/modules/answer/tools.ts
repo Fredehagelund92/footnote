@@ -1428,9 +1428,16 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
     ? family.variants.filter((variant) => differing.has(variant.key))
     : family.variants
   const lines = variantWords(others, !!meaning.words).map((line) => quoted(line).text)
+  // The variant its owners say a question that names none of its values means (F3).
+  const usual = family.variants.find((variant) => variant.key === family.usual.member)
   return [
     ...(meaning.words ? [quoted(meaningLine(meaning.words, family.by)).text] : []),
     `A family of ${family.variants.length} near-identical metrics, one for each ${family.by.join(' and ').toLowerCase()}. An item about it applies to every one of them.`,
+    ...(usual
+      ? [
+          `When a question names no ${family.by.join(' or ').toLowerCase()}, its owners say it means ${usual.name}.`,
+        ]
+      : []),
     ...(meaning.words && lines.length
       ? [`${plural(others.length, 'variant says', 'variants say')} something else:`]
       : []),

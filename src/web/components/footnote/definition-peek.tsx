@@ -7,9 +7,9 @@ import {
   PlusIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { DockFrame, DockMissing, PeekBar } from '@/components/dock'
+import { DockFrame, DockMissing, DockWaiting, PeekBar } from '@/components/dock'
 import { AnotherNameFor, SynonymTags, TypeTile } from '@/components/footnote/definition'
-import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
+import { familyParts } from '@/components/footnote/family-parts'
 import { DockStepper } from '@/components/footnote/list'
 import {
   PeekAttention,
@@ -24,7 +24,7 @@ import {
   PeekTitle,
 } from '@/components/footnote/peek'
 import { Button } from '@/components/ui/button'
-import { familyMeaning, kindName, useGlossary } from '@/lib/definitions'
+import { kindName, useGlossary } from '@/lib/definitions'
 import { SourceText } from '@/components/footnote/source-text'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
@@ -38,6 +38,8 @@ import { useRelated } from '@/hooks/use-related'
 // its type as the tile), the meaning, its domain and where it comes from in one quiet line (a
 // synced item says read-only, when it was read and links to the source), the other words as one
 // row, and the one action. A word that means two things is the one attention line.
+
+const FamilyPeek = React.lazy(() => import('@/components/footnote/family-peek'))
 
 export function DefinitionPeek({ name }: { name: string }) {
   const glossary = useGlossary()
@@ -53,6 +55,13 @@ export function DefinitionPeek({ name }: { name: string }) {
           There is no definition by this name. It may have been renamed; search Definitions for it.
         </DockMissing>
       </DockFrame>
+    )
+  // A family has a quick view of its own, meaning first, loaded when one first opens.
+  if (d.family)
+    return (
+      <React.Suspense fallback={<DockWaiting title="Definition" />}>
+        <FamilyPeek parts={familyParts} d={d} family={d.family} />
+      </React.Suspense>
     )
   const subject = glossary.meaningOf(d)
   const target = d.sameAs ? glossary.find(d.sameAs) : undefined
@@ -108,33 +117,17 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekTitle lead={<TypeTile d={d} size="lg" />}>{d.name}</PeekTitle>
           <PeekMeaning>
             {target && <AnotherNameFor target={target} className="mb-2" />}
-            {d.family ? (
-              <>
-                <FamilyMeaningBlock d={d} family={d.family} />
-                {/* Its variants are listed on its own page only (FR-142). */}
-                <p className={cn(d.family.meaning && 'mt-3 text-sm text-muted-foreground')}>
-                  {familyMeaning(d.family)}{' '}
-                  <a
-                    href={href(page)}
-                    className="font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    See its variants
-                  </a>
-                </p>
-              </>
-            ) : (
-              <p className={cn(!subject.definition && 'text-muted-foreground')}>
-                {subject.definition ? (
-                  subject.synced ? (
-                    <SourceText text={subject.definition} />
-                  ) : (
-                    <MentionText text={subject.definition} />
-                  )
+            <p className={cn(!subject.definition && 'text-muted-foreground')}>
+              {subject.definition ? (
+                subject.synced ? (
+                  <SourceText text={subject.definition} />
                 ) : (
-                  'No meaning written yet.'
-                )}
-              </p>
-            )}
+                  <MentionText text={subject.definition} />
+                )
+              ) : (
+                'No meaning written yet.'
+              )}
+            </p>
           </PeekMeaning>
           {conflictLine && word && (
             <PeekAttention

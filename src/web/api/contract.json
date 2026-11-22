@@ -890,6 +890,18 @@
         }
       }
     },
+    "setFamilyUsual": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "PUT",
+          "path": "/definitions/families/{key}/usual"
+        }
+      }
+    },
     "familyMeaningHistory": {
       "~orpc": {
         "errorMap": {},

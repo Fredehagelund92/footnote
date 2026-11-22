@@ -3,7 +3,7 @@ import { expect, go, test } from './go.ts'
 
 // J90, what a family means (FR-142, M1): on the mock's ?demo=families, Revenue's quick view reads
 // the words most of its 250 variants share, each value as what it stands for, says where those
-// words come from and names the three variants that say something else. An owner chooses one
+// words come from and quotes what the three variants that say something else say. An owner chooses one
 // variant's words, found by typing, then writes the family's own; each choice shows at once and
 // History keeps it. A pair one rate converts reads the base variant's words. The same at 1440 and
 // 390 wide, where nothing scrolls sideways.
@@ -29,12 +29,13 @@ for (const { name, width, height } of widths) {
         'Money taken for paid orders in Currency via Channel, after discounts and before tax.',
       )
       await expect(dock).toContainText('Common words of 247 of 250 variants, chosen automatically')
-      await expect(dock.getByRole('note')).toHaveText(
-        'Revenue (INR) marketplace, Revenue (BRL) marketplace and Revenue (MXN) marketplace say something else.',
+      // The words they say otherwise, quoted: the quick view compares them on the family's page.
+      await expect(dock.getByRole('note')).toContainText(
+        '3 variants say something else: “before marketplace fees”.',
       )
       expect(await sideways(page)).toBe(0)
 
-      await dock.getByRole('button', { name: 'Change' }).click()
+      await dock.getByRole('button', { name: 'Change what Revenue means' }).click()
       const choose = page.getByRole('dialog', { name: 'What Revenue means' })
       await choose.getByRole('radio', { name: /One variant’s words/ }).click()
       await choose.getByRole('combobox', { name: 'Variants' }).fill('brl marketplace')
@@ -46,9 +47,9 @@ for (const { name, width, height } of widths) {
         'Money taken for paid orders in BRL via marketplace, before marketplace fees and before tax.',
       )
       await expect(dock).toContainText('Words of Revenue (BRL) marketplace, chosen by')
-      await expect(dock.getByRole('note')).toHaveText('247 variants say something else.')
+      await expect(dock.getByRole('note')).toContainText('247 variants say something else')
 
-      await dock.getByRole('button', { name: 'Change' }).click()
+      await dock.getByRole('button', { name: 'Change what Revenue means' }).click()
       await choose.getByRole('radio', { name: /Words written for the family/ }).click()
       await choose.getByRole('textbox', { name: 'What it means' }).fill('Money taken for orders.')
       await choose.getByRole('button', { name: 'Save' }).click()
@@ -71,9 +72,8 @@ for (const { name, width, height } of widths) {
       await expect(main).toContainText(
         'Words of Accrued share front loaded (EUR), the variant the others are converted from',
       )
-      await expect(main.getByRole('note').first()).toHaveText(
-        'Accrued share front loaded (USD) says something else.',
-      )
+      // The USD variant's own words say how it is converted, which the page shows: nothing else.
+      await expect(main).not.toContainText('says something else')
       expect(await sideways(page)).toBe(0)
     })
   })

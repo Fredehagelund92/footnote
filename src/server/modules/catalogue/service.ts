@@ -158,6 +158,13 @@ export function createCatalogueService(
         personId: string
         at: string
       }[]
+      usuals: {
+        key: string
+        member: string | null
+        revision: number
+        personId: string
+        at: string
+      }[]
       mentions: { key: string; items: number }[]
       gaps: string[][]
       items: IndexedItem[]
@@ -249,6 +256,10 @@ export function createCatalogueService(
                    'key', f.family_key, 'choice', f.choice, 'member', f.member_key, 'words', f.words,
                    'revision', f.revision, 'personId', f.updated_by::text, 'at', ${iso('f.updated_at')})), '[]')
             from family_meanings f) as meanings,
+         (select coalesce(json_agg(json_build_object(
+                   'key', f.family_key, 'member', f.member_key, 'revision', f.revision,
+                   'personId', f.updated_by::text, 'at', ${iso('f.updated_at')})), '[]')
+            from family_usual f) as usuals,
          (select coalesce(json_agg(s), '[]') from (
             select distinct on (key) key, value from settings_versions
              where key = any($2::text[]) order by key, version desc) s) as settings,
@@ -258,7 +269,7 @@ export function createCatalogueService(
          ${libraryIndexItems} as items`,
       [groups, linkSettings],
     )
-    const { vocabulary, definitions, familyMembers, mentions, meanings, items } = row!
+    const { vocabulary, definitions, familyMembers, mentions, meanings, usuals, items } = row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
     const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
@@ -270,7 +281,17 @@ export function createCatalogueService(
         modelFolder: modelFolderOf({ type, fromServer, config }, (key) => settings.get(key)),
       }))
     const gaps = row!.gaps.map((keys) => ({ keys }))
-    return { vocabulary, definitions, familyMembers, sources, mentions, meanings, gaps, items }
+    return {
+      vocabulary,
+      definitions,
+      familyMembers,
+      sources,
+      mentions,
+      meanings,
+      usuals,
+      gaps,
+      items,
+    }
   }
 
   function build(data: Awaited<ReturnType<typeof read>>) {
@@ -281,6 +302,7 @@ export function createCatalogueService(
     )
     const mentionedBy = new Map(data.mentions.map((row) => [row.key, row.items]))
     const chosenMeanings = new Map(data.meanings.map((row) => [row.key, row]))
+    const pickedUsual = new Map(data.usuals.map((row) => [row.key, row]))
     // A gap counts once for a term, even when its topic names several of the term's values. A
     // dimension is named by itself or by any of its values.
     const gapsNaming = (key: string) =>
@@ -405,6 +427,7 @@ export function createCatalogueService(
         entry.member.definitionRefs.flatMap((ref) => definitions.get(ref) ?? [])[0]
           ?.descriptionCopy ?? null
       const chosen = chosenMeanings.get(row.key)
+      const usual = pickedUsual.get(row.key)
       const meaning = familyMeaning({
         by,
         variants: said.map((entry) => ({
@@ -454,6 +477,7 @@ export function createCatalogueService(
               aliases: member.aliases,
               values: axes.valuesOf(entry),
               description: own?.descriptionCopy ?? null,
+              ref: own?.ref ?? null,
               state: own ? definitionState(own) : null,
               items: shelfOf(items, scopeNames(member.key), today).items,
             }
@@ -470,6 +494,14 @@ export function createCatalogueService(
                 }
               : null,
             revision: chosen?.revision ?? 0,
+          },
+          // A usual variant that has left the family is no usual variant.
+          usual: {
+            member: members.some((member) => member.key === usual?.member)
+              ? (usual?.member ?? null)
+              : null,
+            chosen: usual ? { personId: usual.personId, at: usual.at } : null,
+            revision: usual?.revision ?? 0,
           },
         },
         domain: termDomain(row.areaId, row.sourceAreaId),

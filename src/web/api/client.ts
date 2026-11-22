@@ -562,6 +562,16 @@ export interface FootnoteApi {
     words?: string
     revision: number
   }) => Promise<void>
+  /**
+   * Picks the variant Ask reads when a question names none of a family's values, by its name, or
+   * none (`member: null`), by an owner of its domain or an admin. `revision` is the pick's as the
+   * person read it.
+   */
+  setFamilyUsual: (input: {
+    name: string
+    member: string | null
+    revision: number
+  }) => Promise<void>
   /** Saves a term; a renamed one replaces the old entry. Synced definitions are never saved here. */
   saveTerm: (input: { previous?: string; term: Definition }) => Promise<void>
   /** Another name for a definition, refused when the word already means something. */
@@ -963,6 +973,7 @@ export const footnoteApiMethods = [
   'getDefinitionRelations',
   'getDefinitionHistory',
   'setFamilyMeaning',
+  'setFamilyUsual',
   'saveTerm',
   'addSynonym',
   'removeTerm',

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { meaningLine } from '@domain/family-meaning'
 import {
   BookAIcon,
   ChevronDownIcon,
@@ -311,12 +312,18 @@ export function DefinitionsPage() {
   const asked = words(text)
   // The variants of a family the words find when its own words do not: what the row then says.
   const variantHits = new Map<string, number>()
+  // The first of them, which the family's quick view names (S3).
+  const variantFirst = new Map<string, string>()
   const found = (d: Definition) => {
     const row = said.get(d.name)
     if (matchesWords(asked, row?.words ?? wordsIn(d.name))) return true
     if (!row?.variants.length) return false
-    if (!variantHits.has(d.name))
-      variantHits.set(d.name, row.variants.filter((v) => matchesWords(asked, v)).length)
+    if (!variantHits.has(d.name)) {
+      const hit = row.variants.flatMap((v, i) => (matchesWords(asked, v) ? [i] : []))
+      variantHits.set(d.name, hit.length)
+      const first = hit.length ? d.family?.variants[hit[0]!]?.name : undefined
+      if (first) variantFirst.set(d.name, first)
+    }
     return variantHits.get(d.name)! > 0
   }
   const pass = (d: Definition, skip?: 'view' | 'domain' | 'cue') =>
@@ -461,13 +468,19 @@ export function DefinitionsPage() {
     const flag = flagOf(d)
     const n = about(d)
     const family = d.family
-    // The row already says what tells the variants apart: its meaning says what writing about it does.
+    // A family's meaning, each value it varies by said as its axis ("in each currency"); with
+    // none, what writing about it does.
     const subject = family ? undefined : glossary.meaningOf(d)
     const meaning = family
-      ? `Context about it applies to all ${family.variants.length.toLocaleString('en-GB')} variants.`
+      ? family.meaning?.words
+        ? meaningLine(family.meaning.words, family.by)
+        : `Context about it applies to all ${family.variants.length.toLocaleString('en-GB')} variants.`
       : plainText(subject?.definition ?? '')
-    // Found by its variants' words alone, a family says how many: never which (FR-142).
+    // Found by its variants' words alone, a family says how many, never which (FR-142): its quick
+    // view names the first.
     const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
+    const open = () =>
+      openFromRow('def', d.name, matched ? { variant: variantFirst.get(d.name) } : undefined)
     const rowFacts = [
       group !== 'domain' && (d.domain ? domains[d.domain]?.name : 'All domains'),
       d.type === 'dimension' ? 'Every context item' : n ? `${n} context` : 'No context yet',
@@ -484,7 +497,7 @@ export function DefinitionsPage() {
         className="flex min-h-6 max-w-full min-w-0 shrink-0 items-center text-left font-medium outline-none hover:underline"
         onClick={(e) => {
           e.stopPropagation()
-          if (!sel.titleClick(d.name, e)) openFromRow('def', d.name)
+          if (!sel.titleClick(d.name, e)) open()
         }}
       >
         <NameKeepingEnd name={d.name} query={text} />
@@ -522,7 +535,7 @@ export function DefinitionsPage() {
           family && 'h-auto',
         )}
         onMouseDown={sel.onMouseDown}
-        onClick={(e) => sel.rowClick(d.name, e) || openFromRow('def', d.name)}
+        onClick={(e) => sel.rowClick(d.name, e) || open()}
       >
         <td
           className="hidden w-9.5 pr-0 pl-4 align-middle md:w-11.5 md:pl-6 @xl/main:table-cell"

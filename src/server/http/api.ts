@@ -969,6 +969,11 @@ export function createRouter({
           context.familyMeaning.set(input),
         ),
       ),
+      setFamilyUsual: authorized.definitions.setFamilyUsual.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'definitions.setFamilyUsual', input, () =>
+          context.familyMeaning.setUsual(input),
+        ),
+      ),
       familyMeaningHistory: authorized.definitions.familyMeaningHistory.handler(
         ({ input, context }) => context.familyMeaning.history(input.key),
       ),

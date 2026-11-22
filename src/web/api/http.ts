@@ -173,6 +173,7 @@ export const wiredMethods = [
   'getDefinitionRelations',
   'getDefinitionHistory',
   'setFamilyMeaning',
+  'setFamilyUsual',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -1623,6 +1624,18 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       await write('definitions.setFamilyMeaning', input, (o) =>
         client.definitions.setFamilyMeaning(input, o),
+      )
+    },
+    setFamilyUsual: async ({ name, member, revision }) => {
+      const family = (await readGlossary()).familyOf(name)
+      if (!family?.family)
+        throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
+      const variant = member ? family.family.variants.find((v) => v.name === member) : undefined
+      if (member && !variant)
+        throw new ApiError('not-found', 'That variant is no longer in this family.')
+      const input = { key: family.key, member: variant?.key ?? null, revision }
+      await write('definitions.setFamilyUsual', input, (o) =>
+        client.definitions.setFamilyUsual(input, o),
       )
     },
     saveTerm: async ({ previous, term }) => {

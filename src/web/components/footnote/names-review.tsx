@@ -43,6 +43,34 @@ const looksAlike = (name: SourceNameRead) =>
   name.family?.found === 'names' && name.linked.length === 0
 
 /**
+ * A family's name: with `onOpen`, a button that opens its panel, which shows what it would mean,
+ * its values and who owns it, with Publish as a family and Keep them separate (F4).
+ */
+function FamilyName({
+  name,
+  children,
+  onOpen,
+}: {
+  name: SourceNameRead
+  children: React.ReactNode
+  onOpen?: (key: string) => void
+}) {
+  if (!onOpen || !name.family)
+    return <span className="font-medium text-foreground">{children}</span>
+  return (
+    <button
+      type="button"
+      className="text-left font-medium text-foreground underline decoration-border underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      aria-label={`Look at the family ${name.name}`}
+      data-row-open={name.key}
+      onClick={() => onOpen(name.key)}
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
  * A name that is ready: what it is, and the source's own words for it. A family says what it holds
  * and is published with one press, its variants with it; they are never listed here.
  */
@@ -51,16 +79,20 @@ function ReadyRow({
   busy,
   onLeaveOut,
   onPublish,
+  onOpen,
 }: {
   name: SourceNameRead
   busy: boolean
   onLeaveOut: () => void
   onPublish: () => void
+  onOpen?: (key: string) => void
 }) {
   return (
     <li className="flex min-w-0 flex-col gap-0.5 py-2">
       <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-medium">{name.name}</span>
+        <FamilyName name={name} onOpen={onOpen}>
+          {name.name}
+        </FamilyName>
         <span className="text-xs text-muted-foreground">
           {name.family
             ? [`Family · ${familyWords(name.family)}`, foundWords(name)].filter(Boolean).join(' · ')
@@ -101,12 +133,14 @@ function FlaggedRow({
   problem,
   onAccept,
   onLeaveOut,
+  onOpen,
 }: {
   name: SourceNameRead
   busy: boolean
   problem: string | undefined
   onAccept: (chosen: string) => void
   onLeaveOut?: () => void
+  onOpen?: (key: string) => void
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
@@ -120,7 +154,11 @@ function FlaggedRow({
     <li className="flex min-w-0 flex-col gap-2 border-t py-3 first:border-t-0">
       <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-          <span className="text-sm font-medium text-foreground">{name.name}</span>
+          <span className="text-sm">
+            <FamilyName name={name} onOpen={onOpen}>
+              {name.name}
+            </FamilyName>
+          </span>
           <span>{kindWord[name.kind]}</span>
           <span className={cn(!name.family && 'font-mono')}>{member}</span>
         </span>
@@ -168,6 +206,7 @@ function LookAlikeRow({
   onFamily,
   onApart,
   onLeaveOut,
+  onOpen,
 }: {
   name: SourceNameRead
   busy: boolean
@@ -175,6 +214,7 @@ function LookAlikeRow({
   onFamily: (chosen: string) => void
   onApart: () => void
   onLeaveOut?: () => void
+  onOpen?: (key: string) => void
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
@@ -183,7 +223,11 @@ function LookAlikeRow({
     <li className="flex min-w-0 flex-col gap-2 border-t py-3 first:border-t-0">
       <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-          <span className="text-sm font-medium text-foreground">{names.join(', ')}</span>
+          <span className="text-sm">
+            <FamilyName name={name} onOpen={onOpen}>
+              {names.join(', ')}
+            </FamilyName>
+          </span>
           <span>{names.length.toLocaleString('en-GB')} metrics</span>
         </span>
         {name.flags.map((flag) => flag.message).join(' ')}
@@ -201,7 +245,7 @@ function LookAlikeRow({
           Publish as a family
         </Button>
         <Button variant="outline" disabled={busy} onClick={onApart}>
-          Publish apart
+          Keep them separate
         </Button>
         {onLeaveOut && (
           <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
@@ -225,9 +269,12 @@ function LookAlikeRow({
 export default function NamesReview({
   frame,
   onFinished,
+  onOpenFamily,
 }: {
   frame: (body: React.ReactNode, foot: React.ReactNode) => React.ReactNode
   onFinished?: () => void
+  /** Opens a family's panel, by its key; without it a family's name opens nothing. */
+  onOpenFamily?: (key: string) => void
 }) {
   const read = useQuery(namesQuery())
   const write = useWrite()
@@ -342,6 +389,7 @@ export default function NamesReview({
                   busy={busy}
                   problem={problems[name.key]}
                   onAccept={(chosen) => void acceptOne(name, chosen)}
+                  onOpen={onOpenFamily}
                   onLeaveOut={
                     name.linked.length
                       ? undefined
@@ -371,11 +419,12 @@ export default function NamesReview({
                   busy={busy || !online}
                   problem={problems[name.key]}
                   onFamily={(chosen) => void acceptOne(name, chosen)}
+                  onOpen={onOpenFamily}
                   onApart={() =>
                     void decide(
                       [{ key: name.key, apart: true }],
                       [],
-                      `${name.family!.names.length.toLocaleString('en-GB')} metrics are published apart`,
+                      `${name.family!.names.length.toLocaleString('en-GB')} metrics are published separately`,
                     )
                   }
                   onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
@@ -397,6 +446,7 @@ export default function NamesReview({
                   busy={busy}
                   onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
                   onPublish={() => void acceptOne(name, name.name)}
+                  onOpen={onOpenFamily}
                 />
               ))}
             </ul>
@@ -421,11 +471,12 @@ export default function NamesReview({
                     busy={busy || !online}
                     problem={problems[name.key]}
                     onFamily={(chosen) => void acceptOne(name, chosen)}
+                    onOpen={onOpenFamily}
                     onApart={() =>
                       void decide(
                         [{ key: name.key, apart: true }],
                         [],
-                        `${name.family!.names.length.toLocaleString('en-GB')} metrics are published apart`,
+                        `${name.family!.names.length.toLocaleString('en-GB')} metrics are published separately`,
                       )
                     }
                   />
@@ -436,6 +487,7 @@ export default function NamesReview({
                     busy={busy}
                     problem={problems[name.key]}
                     onAccept={(chosen) => void acceptOne(name, chosen)}
+                    onOpen={onOpenFamily}
                   />
                 ),
               )}

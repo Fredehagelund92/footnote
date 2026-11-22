@@ -7,6 +7,8 @@ import type {
 } from '../../../contract/inbox.ts'
 import { contentDigest } from '../../../domain/canonical.ts'
 import {
+  familyRead,
+  mayGoApart,
   nameRefusal,
   variantNameRefusal,
   sourceNames,
@@ -127,17 +129,7 @@ export function createNamesService(tx: Queryable) {
     state: name.state,
     flags: name.flags,
     leftByOwner: name.leftByOwner,
-    family: name.family
-      ? {
-          variants: name.family.variants.length,
-          by: name.family.by,
-          found: name.family.found,
-          names:
-            name.family.found === 'names' && !name.linked.length
-              ? name.family.variants.map((variant) => variant.name)
-              : [],
-        }
-      : null,
+    family: familyRead(name),
   })
 
   /** The names and when the newest was read, or left out when none waits: no digest of the list. */
@@ -292,16 +284,20 @@ export function createNamesService(tx: Queryable) {
       return name
     }
     // A family goes live with its variants, each by its own name, and is left out with them. A
-    // family the names alone suggest can go live apart instead: its variants, and no family.
+    // family Footnote suggests can go live apart instead (Keep them separate): its variants, and
+    // no family. One its tool declares is one there, and one live already keeps its variants.
     const picked = input.accept.flatMap(
       ({ key, name, apart }): (SourceName & { chosen: string })[] => {
         const waiting = found(key)
         if (apart) {
-          if (waiting.family?.found !== 'names' || waiting.linked.length)
+          if (!mayGoApart(waiting))
             throw new ORPCError('UNPROCESSABLE_CONTENT', {
-              message: `“${waiting.name}” is not a family of names that look alike. Publish it as it is.`,
+              message:
+                waiting.family?.found === 'declared' && !waiting.linked.length
+                  ? `${tool(waiting.source)} declares “${waiting.name}” as one family. Keep its variants separate there.`
+                  : `“${waiting.name}” is not a family waiting to be published. Publish it as it is.`,
             })
-          return waiting.family.variants.map((variant) => {
+          return waiting.family!.variants.map((variant) => {
             const { parentKey: _parentKey, ...own } = variant
             return { ...own, chosen: variant.name }
           })

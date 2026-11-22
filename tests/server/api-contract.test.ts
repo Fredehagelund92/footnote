@@ -329,6 +329,7 @@ describe('the API over HTTP', () => {
       '/decisions/undo',
       '/definitions/families/{key}/meaning',
       '/definitions/families/{key}/meaning/history',
+      '/definitions/families/{key}/usual',
       '/definitions/related',
       '/definitions/relations',
       '/drafts/from-text',

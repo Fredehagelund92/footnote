@@ -30,33 +30,38 @@ const family = {
       chosen: null,
       revision: 0,
     },
+    usual: { member: null, chosen: null, revision: 0 },
   },
+}
+
+function serviceOf() {
+  const writes: string[] = []
+  const answers: Record<string, unknown> = {
+    '/api/v1/auth/session': {
+      person: { id: 'p1', name: 'Ines', permissions: { roles: [] } },
+      csrfToken: 'token',
+    },
+    '/api/v1/catalogue': { terms: [family] },
+    '/api/v1/terms': { terms: [] },
+    '/api/v1/people': [],
+  }
+  const fetch: typeof globalThis.fetch = (input, init) => {
+    const request = new Request(input, init)
+    const path = new URL(request.url).pathname
+    if (request.method !== 'GET') writes.push(path)
+    return Promise.resolve(
+      new Response(JSON.stringify(answers[path] ?? {}), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+  }
+  return { api: createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch }), writes }
 }
 
 describe('setFamilyMeaning', () => {
   it('says a variant that is no longer in the family is gone, without asking the service', async () => {
-    const writes: string[] = []
-    const answers: Record<string, unknown> = {
-      '/api/v1/auth/session': {
-        person: { id: 'p1', name: 'Ines', permissions: { roles: [] } },
-        csrfToken: 'token',
-      },
-      '/api/v1/catalogue': { terms: [family] },
-      '/api/v1/terms': { terms: [] },
-      '/api/v1/people': [],
-    }
-    const fetch: typeof globalThis.fetch = (input, init) => {
-      const request = new Request(input, init)
-      const path = new URL(request.url).pathname
-      if (request.method !== 'GET') writes.push(path)
-      return Promise.resolve(
-        new Response(JSON.stringify(answers[path] ?? {}), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-      )
-    }
-    const api = createHttpApi({ baseUrl: 'https://footnote.example/api/v1', fetch })
+    const { api, writes } = serviceOf()
     const error = await api
       .setFamilyMeaning({ name: 'Revenue', choice: 'member', member: 'Revenue (GBP)', revision: 0 })
       .catch((e: unknown) => e)
@@ -66,5 +71,29 @@ describe('setFamilyMeaning', () => {
       message: 'That variant is no longer in this family.',
     })
     expect(writes).toEqual([])
+  })
+})
+
+describe('setFamilyUsual', () => {
+  it('says a variant that is no longer in the family is gone, without asking the service', async () => {
+    const { api, writes } = serviceOf()
+    const error = await api
+      .setFamilyUsual({ name: 'Revenue', member: 'Revenue (GBP)', revision: 0 })
+      .catch((e: unknown) => e)
+    expect(error).toMatchObject({
+      kind: 'not-found',
+      message: 'That variant is no longer in this family.',
+    })
+    expect(writes).toEqual([])
+  })
+
+  it('sends the variant by its key, or none', async () => {
+    const { api, writes } = serviceOf()
+    await api.setFamilyUsual({ name: 'Revenue', member: 'Revenue (EUR)', revision: 0 })
+    await api.setFamilyUsual({ name: 'Revenue', member: null, revision: 1 })
+    expect(writes).toEqual([
+      '/api/v1/definitions/families/group%3Arevenue/usual',
+      '/api/v1/definitions/families/group%3Arevenue/usual',
+    ])
   })
 })

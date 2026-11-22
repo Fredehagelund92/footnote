@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { sourceNames } from '@domain/source-names'
+import type { CandidateMember } from '@domain/term-candidates'
 import { termWord } from '@domain/terms'
 import { createMockNames } from '@/api/mock/names'
 
@@ -65,14 +67,64 @@ describe('the other ways the mock finds a family (D1)', () => {
   })
 })
 
+describe('a suggested family on the Names card (F4)', () => {
+  it('says the values its variants hold and what it would mean', async () => {
+    const names = createMockNames(new Map())
+    names.load(true)
+    const { names: shown } = await names.read()
+    const packaging = shown.find((n) => n.name === 'Packaging costs')!
+    expect(packaging.family).toMatchObject({
+      by: ['Currency', 'Channel'],
+      values: [
+        ['EUR', 'GBP', 'SEK', 'USD'],
+        ['app', 'web'],
+      ],
+      meaning: {
+        source: 'common',
+        words: 'What boxes, fill and labels cost for orders in {Currency} via {Channel}.',
+        agree: 8,
+        differing: 0,
+      },
+    })
+  })
+
+  it('keeps the variants of a family found from the calculation separate', async () => {
+    const names = createMockNames(new Map())
+    names.load(true)
+    const { revision, names: shown } = await names.read()
+    const packaging = shown.find((n) => n.name === 'Packaging costs')!
+    const decided = await names.decide({
+      revision,
+      accept: [{ key: packaging.key, apart: true }],
+      leaveOut: [],
+    })
+    expect(decided.accepted).toBe(8)
+    const after = decided.waiting.names.map((n) => n.name)
+    expect(after).not.toContain('Packaging costs')
+    expect(after.filter((name) => name.startsWith('Packaging costs'))).toEqual([])
+  })
+})
+
 describe('the mock refusing what the service refuses', () => {
-  it('refuses a family published apart that is not one of look-alike names', async () => {
+  it('refuses to keep the variants of a family its tool declares separate', async () => {
     const names = createMockNames(new Map())
     names.load(true)
     const { revision, names: shown } = await names.read()
     const declared = shown.find((n) => n.name === 'Gift wrap')!
     const refusal = await names
       .decide({ revision, accept: [{ key: declared.key, apart: true }], leaveOut: [] })
+      .catch((error: Error) => error)
+    expect(refusal).toBeInstanceOf(Error)
+    expect((refusal as Error).message).toContain('declares')
+  })
+
+  it('refuses to keep apart a name that is no family', async () => {
+    const names = createMockNames(new Map())
+    names.load(true)
+    const { revision, names: shown } = await names.read()
+    const plain = shown.find((n) => n.name === 'Completed orders')!
+    const refusal = await names
+      .decide({ revision, accept: [{ key: plain.key, apart: true }], leaveOut: [] })
       .catch((error: Error) => error)
     expect(refusal).toBeInstanceOf(Error)
   })
@@ -87,5 +139,35 @@ describe('the mock refusing what the service refuses', () => {
       .catch((error: Error) => error)
     expect(refusal).toBeInstanceOf(Error)
     expect((refusal as Error).message).toContain('not both')
+  })
+})
+
+describe('what a converted pair would mean on the Names card', () => {
+  const pair = (code: 'EUR' | 'USD'): CandidateMember => ({
+    ref: `dbt:orders.accrued_share_${code.toLowerCase()}`,
+    source: 'dbt',
+    kind: 'metric',
+    name: `orders.accrued_share_${code.toLowerCase()}`,
+    title: `Accrued share (${code})`,
+    description: code === 'EUR' ? 'What partners earned, in euros.' : null,
+    valueType: 'sum',
+    areaHint: 'sales',
+    synonyms: [],
+    baseName: null,
+    mergeDimensions: 'never',
+    builtFrom: {
+      refs: [],
+      columns: code === 'EUR' ? ['accrued_share_eur'] : ['accrued_share_eur', 'exchange_rate_usd'],
+    },
+  })
+
+  it("reads the base variant's words when only it has any", () => {
+    const family = sourceNames([pair('EUR'), pair('USD')], [], new Map(), new Set()).find(
+      (name) => name.kind === 'metric_group',
+    )!
+    expect(family.family!.meaning).toMatchObject({
+      source: 'base',
+      words: 'What partners earned, in euros.',
+    })
   })
 })
