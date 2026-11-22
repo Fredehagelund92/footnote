@@ -590,7 +590,6 @@ function Article({ page }: { page: DocPage }) {
                 href={appHref(page.open.href)}
                 className={cn(buttonVariants({ variant: 'outline' }))}
               >
-                <PlugIcon />
                 {page.open.label}
                 <ArrowUpRightIcon />
               </a>

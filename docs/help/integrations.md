@@ -1,13 +1,16 @@
 ---
 title: Integrations
-line: Connect where metrics are defined and where documents live, and what is read.
+line: Connect a source of definitions or documents, and what is read from each.
 group: Set up
 order: 2
 minutes: 4
-reviewed: 2026-11-21
+reviewed: 2026-11-22
+open:
+  label: Open Integrations
+  href: /settings/integrations
 ---
 
-Connect where metrics are defined and where documents live, and what is read from each.
+Connect the sources where metrics are defined and where documents live, and what is read from each.
 
 ![Integrations in Settings: under Connected, one tool that holds definitions and one that holds documents, each read today; under Available, three more tools, each with Connect.](../images/docs/integrations-light.webp)
 
@@ -23,9 +26,9 @@ A read makes a name for each new one, and an owner publishes them on one card in
 
 A folder shared with a service account, or Markdown in a repository. A read never publishes: each document becomes a suggestion in its owners' Inbox.
 
-## Connect one
+## Connect a source
 
-Only admins connect a tool. It takes five steps on one page:
+Only admins connect a tool. Open **Settings**, then **Integrations**, and choose **Connect** on a tool under Available. It takes five steps on one page:
 
 1. Pick: the tool.
 2. Connect: its settings, then **Test connection**.

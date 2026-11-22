@@ -4,10 +4,13 @@ line: The six lines an answer starts with, and what each one asks of you.
 group: Ask
 order: 2
 minutes: 3
-reviewed: 2026-10-30
+reviewed: 2026-11-22
+open:
+  label: Open Ask
+  href: /ask
 ---
 
-Every answer, in the app and in your own agent, starts with one of six lines. Each says what the answer rests on, and what it asks of you.
+Every answer, in Ask and in your own agent, starts with one of six lines. Each says what the answer rests on, and what it asks of you.
 
 ## The six lines
 

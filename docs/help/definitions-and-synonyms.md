@@ -3,13 +3,18 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
-minutes: 4
-reviewed: 2026-11-21
+minutes: 5
+reviewed: 2026-11-22
+open:
+  label: Open Definitions
+  href: /definitions
 ---
 
 Metrics and dimensions, the business's own terms, and other names for them.
 
 ## Metrics and dimensions
+
+Open **Definitions** to see every metric, dimension and term your workspace knows.
 
 They come from where your metrics are defined, and are read-only here: their meaning and other names belong to that source. Write context about them instead.
 
@@ -51,7 +56,7 @@ Another name for a metric or a dimension, such as GMV for Gross sales. Agents re
 
 <!-- /include -->
 
-- A term is a word with its own meaning, such as Peak season.
+- A term is a word with its own meaning, such as Peak season. An owner of its domain, or an admin, adds one with **New term** in Definitions.
 - On a definition, type other names into Another name: a comma or Enter makes each one a tag.
 - In a term's editor, Another name for points the word at a metric or a dimension.
 - A word that already means something else says who has it, and is never saved twice. Case, spaces and accents don't make it another word: Salés is Sales.
