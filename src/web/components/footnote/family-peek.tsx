@@ -172,31 +172,6 @@ const axisValuesOf = (family: Family) =>
   ])
 
 /**
- * How variants are converted from others, in one line each, by the values that differ: "USD is
- * converted from EUR by the column exchange_rate_usd". The same conversion across a channel is
- * said once; past two, how many more.
- */
-function conversionLines(family: Family): {
-  lines: { to: string; from: string; by: string }[]
-  more: number
-} {
-  const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []
-  const said = new Map<string, { to: string; from: string; by: string }>()
-  for (const c of family.conversions ?? []) {
-    const [from, to] = [valuesOf(c.from), valuesOf(c.to)]
-    const differ = to.flatMap((value, i) => (value !== from[i] ? [i] : []))
-    const line = {
-      to: differ.map((i) => to[i]).join(' · ') || c.to,
-      from: differ.map((i) => from[i]).join(' · ') || c.from,
-      by: c.by,
-    }
-    said.set(`${line.to}\u0000${line.from}\u0000${line.by}`, line)
-  }
-  const lines = [...said.values()]
-  return { lines: lines.slice(0, 2), more: Math.max(0, lines.length - 2) }
-}
-
-/**
  * The words the variants that say something else differ by, from the first of them: "before
  * marketplace fees". Null when the difference is no clear few words.
  */
@@ -442,7 +417,7 @@ function ValuesBand({
   const base = family.variants.find((v) => v.name === family.meaning?.base)
   const usual = family.variants.find((v) => v.name === family.usual?.member)
   const gone = !!family.usual?.member && !usual
-  const { lines, more } = conversionLines(family)
+  const { lines, more } = P.conversionLines(family)
   const converted = new Set(
     (family.conversions ?? []).flatMap((c) => {
       const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []

@@ -55,7 +55,7 @@ import {
 } from '@/components/ui/dialog'
 import { useRelated } from '@/hooks/use-related'
 import { differingWords } from '@/lib/differing-words'
-import { familyBy, useGlossary } from '@/lib/definitions'
+import { conversionLines, familyBy, useGlossary } from '@/lib/definitions'
 import { closeDock, openDock } from '@/lib/dock'
 import { useFigures } from '@/lib/figures'
 import { mentionId } from '@/lib/mentions'
@@ -122,6 +122,7 @@ export const familyParts = {
   DialogTitle,
   useRelated,
   differingWords,
+  conversionLines,
   familyBy,
   useGlossary,
   closeDock,
