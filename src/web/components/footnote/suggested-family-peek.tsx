@@ -36,6 +36,7 @@ function sourceSaid(name: Suggested): string {
   if (!meaning) return ''
   if (meaning.source === 'declared') return `Written for the family in ${name.tool}`
   if (meaning.source !== 'common') return ''
+  if (meaning.base) return `Words of ${meaning.base}, the variant the others are converted from`
   return meaning.agree === variants
     ? `Common words of all ${n(variants)} variants`
     : `Common words of ${n(meaning.agree)} of ${n(variants)} variants`

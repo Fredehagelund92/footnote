@@ -21,7 +21,7 @@ function automatic(family: Family): string {
     return `The words of ${base.values.join(', ')}, the variant the others are converted from.`
   if (meaning.automatic && meaning.common)
     return `The common words of ${n(meaning.common.agree)} of ${n(family.variants.length)} variants.`
-  return 'Nothing yet: its variants say different things.'
+  return 'Nothing yet: no words speak for all its variants.'
 }
 
 export default function FamilyMeaningDialog({
@@ -74,6 +74,7 @@ export default function FamilyMeaningDialog({
     [family],
   )
   const box = React.useRef<HTMLTextAreaElement>(null)
+  const list = React.useRef<HTMLUListElement>(null)
   const write = useWrite()
   const saving = useReported<void>({
     wasnt: `What ${name} means wasn't changed.`,
@@ -84,6 +85,9 @@ export default function FamilyMeaningDialog({
   })
   const sending = saving.state === 'sending'
   const shown = all ? wordings : wordings.slice(0, WORDINGS_SHOWN)
+  React.useEffect(() => {
+    if (all) list.current?.querySelectorAll('button')[WORDINGS_SHOWN]?.focus()
+  }, [all])
 
   const save = (event: React.FormEvent) => {
     event.preventDefault()
@@ -170,6 +174,7 @@ export default function FamilyMeaningDialog({
                     Start from what its variants say
                   </p>
                   <ul
+                    ref={list}
                     aria-labelledby="family-wordings"
                     className="flex max-h-72 flex-col divide-y overflow-y-auto rounded-md border"
                   >
@@ -256,13 +261,15 @@ function Answer({
   children?: React.ReactNode
 }) {
   return (
-    <label className="flex cursor-default items-start gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-muted has-data-checked:bg-muted">
-      <RadioGroupItem value={value} className="mt-0.5" />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="font-medium">{title}</span>
-        <span className="text-xs text-muted-foreground">{line}</span>
-        {children}
-      </span>
-    </label>
+    <div className="rounded-md px-2 py-2 text-sm hover:bg-muted has-data-checked:bg-muted">
+      <label className="flex cursor-default items-start gap-2.5">
+        <RadioGroupItem value={value} className="mt-0.5" />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="font-medium">{title}</span>
+          <span className="text-xs text-muted-foreground">{line}</span>
+        </span>
+      </label>
+      {children && <div className="ml-6.5">{children}</div>}
+    </div>
   )
 }

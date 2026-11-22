@@ -37,7 +37,7 @@ export function MeaningWords({ meaning, by }: { meaning: FamilyMeaning; by: stri
   if (!meaning.words)
     return (
       <span className="text-muted-foreground">
-        No meaning yet: its variants say different things.
+        No meaning yet: no words speak for all its variants.
       </span>
     )
   return meaning.words.split(/(\{[^{}]+\})/).map((part, i) => {

@@ -479,14 +479,17 @@ function familyName(
 export function familyRead(name: Pick<SourceName, 'family' | 'linked'>) {
   const family = name.family
   if (!family) return null
+  const names =
+    family.found === 'names' && !name.linked.length
+      ? family.variants.map((variant) => variant.name)
+      : []
+  const at = family.variants.findIndex((variant) => variant.key === family.meaning.base)
+  const base = at < 0 ? null : (names[at] ?? family.values[at]?.join(', ') ?? null)
   return {
     variants: family.variants.length,
     by: family.by,
     found: family.found,
-    names:
-      family.found === 'names' && !name.linked.length
-        ? family.variants.map((variant) => variant.name)
-        : [],
+    names,
     values: axisValues(
       family.by,
       family.values.map((values) => ({ values })),
@@ -497,6 +500,7 @@ export function familyRead(name: Pick<SourceName, 'family' | 'linked'>) {
           source: family.meaning.source,
           words: family.meaning.words,
           agree: family.meaning.common?.agree ?? 0,
+          base,
           differing: family.meaning.differing.length,
         },
   }

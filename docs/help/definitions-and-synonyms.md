@@ -40,7 +40,7 @@ These come from the source at each read and are never edited here. They never sh
 A family is one entry for many near-identical metrics, such as a metric for each currency and channel. Its row is as tall as a metric's, marked by a stack of tiles in place of a metric's tile. Point at the stack to see how many variants it has and what tells them apart, such as Family of 250 metrics, by Currency and Channel.
 
 - Its variants are never rows of their own. A search for one finds its family, and says how many variants match. Its quick view then names the variant the search found.
-- Its row and quick view lead with what the family means. A family whose variants say different things reads No meaning yet. The quick view shows the values its variants hold, such as EUR and USD, marks the base variant, and says which variant is converted from which.
+- Its row and quick view lead with what the family means. A family no words speak for reads No meaning yet. The quick view shows the values its variants hold, such as EUR and USD, marks the base variant, and says which variant is converted from which.
 - An owner of its domain, or an admin, can pick the usual variant, such as Revenue (EUR) web. Ask reads a question that names no currency or channel as that variant, and says so under the question. A question that names one is read as written.
 - Its quick view counts the context about the family apart from the context about one variant alone.
 - Its quick view and page say what the family means, and where those words come from, in this order:

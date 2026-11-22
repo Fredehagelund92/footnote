@@ -66716,6 +66716,16 @@
                                           "agree": {
                                             "type": "number"
                                           },
+                                          "base": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
                                           "differing": {
                                             "type": "number"
                                           }
@@ -66724,6 +66734,7 @@
                                           "source",
                                           "words",
                                           "agree",
+                                          "base",
                                           "differing"
                                         ]
                                       },
@@ -67270,6 +67281,16 @@
                                               "agree": {
                                                 "type": "number"
                                               },
+                                              "base": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
                                               "differing": {
                                                 "type": "number"
                                               }
@@ -67278,6 +67299,7 @@
                                               "source",
                                               "words",
                                               "agree",
+                                              "base",
                                               "differing"
                                             ]
                                           },

@@ -887,7 +887,7 @@ describe("Ask's loop answer, state by state", () => {
       'What is partner fees?',
     )
     expect(text(none.querySelector('[data-definition-card] blockquote')!)).toMatch(
-      /^No meaning yet: its variants say different things\.USD: /,
+      /^No meaning yet: no words speak for all its variants\.USD: /,
     )
   })
 

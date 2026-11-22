@@ -249,6 +249,8 @@ export const sourceNameSchema = z.object({
           source: z.enum(familyMeaningSources),
           words: z.nullable(z.string()),
           agree: z.number(),
+          /** The variant the others are converted from, as the card shows variants; else null. */
+          base: z.nullable(z.string()),
           differing: z.number(),
         }),
       ),
