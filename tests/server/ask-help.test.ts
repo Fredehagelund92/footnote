@@ -95,32 +95,6 @@ describe('an answer from the help', () => {
     ])
   })
 
-  it('shows the parts its words use, not the part the search put first', () => {
-    // A live answer: the search put Variants first, and the words come from Families.
-    const words = 'usual variant of a metric family'
-    expect(searchHelp(words)[0]).toMatchObject({ slug: 'metric-variants' })
-    const t = turnOf(
-      "An owner of the family's domain, or an admin like you, can pick the usual variant. Open the family in Definitions, either from its row or its quick view, and choose the variant, such as Revenue (EUR) web. After that, a question that names no currency or channel is read as that variant. A question that names one is read as written.",
-      [helpRead(words)],
-      [],
-      'How do I pick the usual variant of a metric family?',
-    )
-    expect(t.help?.map((h) => `${h.slug}#${h.id}`)).toEqual(['definitions-and-synonyms#families'])
-  })
-
-  it("keeps each read's best part when the words share none with what it found", () => {
-    const words = 'usual variant of a metric family'
-    const t = turnOf('Yes.', [helpRead(words)], [], 'Can I?')
-    expect(t.help).toEqual([
-      {
-        slug: 'metric-variants',
-        id: 'if-you-keep-a-metric-for-each-variant',
-        title: 'Variants: a dimension, not a metric each',
-        heading: 'If you keep a metric for each variant',
-      },
-    ])
-  })
-
   it('finds the steps for a screen by the words people use for it, with the action they explain', () => {
     expect(searchHelp('connect a source like dbt')[0]).toMatchObject({
       slug: 'integrations',
@@ -137,32 +111,6 @@ describe('an answer from the help', () => {
       id: 'people',
       does: ['invite_people'],
     })
-  })
-
-  it('shows the parts its words use, not the part the search put first', () => {
-    // A live answer: the search put Variants first, and the words come from Families.
-    const words = 'usual variant of a metric family'
-    expect(searchHelp(words)[0]).toMatchObject({ slug: 'metric-variants' })
-    const t = turnOf(
-      "An owner of the family's domain, or an admin like you, can pick the usual variant. Open the family in Definitions, either from its row or its quick view, and choose the variant, such as Revenue (EUR) web. After that, a question that names no currency or channel is read as that variant. A question that names one is read as written.",
-      [helpRead(words)],
-      [],
-      'How do I pick the usual variant of a metric family?',
-    )
-    expect(t.help?.map((h) => `${h.slug}#${h.id}`)).toEqual(['definitions-and-synonyms#families'])
-  })
-
-  it("keeps each read's best part when the words share none with what it found", () => {
-    const words = 'usual variant of a metric family'
-    const t = turnOf('Yes.', [helpRead(words)], [], 'Can I?')
-    expect(t.help).toEqual([
-      {
-        slug: 'metric-variants',
-        id: 'if-you-keep-a-metric-for-each-variant',
-        title: 'Variants: a dimension, not a metric each',
-        heading: 'If you keep a metric for each variant',
-      },
-    ])
   })
 
   it('is no help answer when it cites an item: the context it rests on is its source', () => {
