@@ -1,4 +1,5 @@
 import { tool, type Tool } from 'ai'
+import { familyShownSchema, type FamilyShown } from '../../../contract/answer.ts'
 import type { Catalogue } from '../../../contract/index.ts'
 import * as z from 'zod'
 import type { Answer } from '../../../domain/answer.ts'
@@ -19,7 +20,7 @@ import {
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
 import { meaningLine, usualVariant } from '../../../domain/family-meaning.ts'
-import { variantWords } from '../../../domain/metric-families.ts'
+import { derivedVariants, variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import { searchHelp } from './help.ts'
@@ -173,7 +174,7 @@ type View = {
   /** Each variant's family, by key: what a variant is called is its family's name. */
   familyOf: ReadonlyMap<string, string>
   /** Each metric's and family's definition, as `definitions` words it, and its source, by key. */
-  wordsOf: ReadonlyMap<string, { words: string | null; from: string }>
+  wordsOf: ReadonlyMap<string, { words: string | null; from: string; family?: FamilyShown }>
   /** Each family that has variants, as the catalogue gives it, by key: its usual variant too (F3). */
   families: ReadonlyMap<string, FamilyTerm>
   areas: readonly ToolArea[]
@@ -254,7 +255,16 @@ async function viewOf(reads: ToolReads): Promise<View> {
     wordsOf: new Map(
       catalogue.terms.flatMap((t) =>
         t.kind === 'metric' || t.family
-          ? [[t.key, { words: termWords(t), from: termFrom(t) }] as const]
+          ? [
+              [
+                t.key,
+                {
+                  words: termWords(t),
+                  from: termFrom(t),
+                  ...(t.family ? { family: familyShown(t.family) } : {}),
+                },
+              ] as const,
+            ]
           : [],
       ),
     ),
@@ -755,7 +765,14 @@ const getOutput = z.object({
    * source gives none.
    */
   definitions: z.array(
-    z.object({ id: z.string(), name: z.string(), words: z.nullable(z.string()), from: z.string() }),
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      words: z.nullable(z.string()),
+      from: z.string(),
+      /** A family as the page shows it; never sent to the model (`forModel`). */
+      family: z.optional(familyShownSchema),
+    }),
   ),
   searched: z.array(searchedSchema),
   widened: widenedSchema,
@@ -1410,6 +1427,8 @@ const definitionsOutput = z.object({
       words: z.nullable(z.string()),
       /** Where the words come from: the tool that defines it, or Definitions. */
       from: z.string(),
+      /** A family as the page shows it; never sent to the model (`forModel`). */
+      family: z.optional(familyShownSchema),
       /** For a synonym written in Definitions: what it is another name for. */
       sameAs: z.nullable(z.string()),
       /** current, changed (at its source since items about it were checked) or gone. */
@@ -1475,17 +1494,34 @@ async function historyOf(
     .map((v) => ({ on: v.at.slice(0, 10), change: words[v.change] ?? 'changed' }))
 }
 
+type Family = NonNullable<Catalogue['terms'][number]['family']>
+
+/**
+ * The variants of a family whose own words go with its meaning: those that say something else
+ * than it, and those that say how they are worked out from another (`derivedVariants`), whose
+ * words the meaning leaves out. With no meaning, every variant.
+ */
+function ownWords(family: Family) {
+  const { meaning } = family
+  if (!meaning.words) return { differing: family.variants, derived: [] }
+  const differing = new Set(meaning.differing)
+  return {
+    differing: family.variants.filter((variant) => differing.has(variant.key)),
+    derived: derivedVariants(family.variants.filter((variant) => !differing.has(variant.key))),
+  }
+}
+
 /**
  * A family as an agent reads it (FR-142, M1): its meaning, what it is, and the own words of the
- * variants that say something else than the meaning. With no meaning, every variant's own words.
+ * variants that say something else than the meaning, then of those that say how they are worked
+ * out from another. With no meaning, every variant's own words.
  */
-function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>): string {
+function familyWords(family: Family): string {
   const { meaning } = family
-  const differing = new Set(meaning.differing)
-  const others = meaning.words
-    ? family.variants.filter((variant) => differing.has(variant.key))
-    : family.variants
-  const lines = variantWords(others, !!meaning.words).map((line) => quoted(line).text)
+  const { differing, derived } = ownWords(family)
+  const lines = (variants: Family['variants']) =>
+    variantWords(variants, !!meaning.words).map((line) => quoted(line).text)
+  const worked = lines(derived)
   // The variant its owners say a question that names none of its values means (F3).
   const usual = family.variants.find((variant) => variant.key === family.usual.member)
   return [
@@ -1496,11 +1532,39 @@ function familyWords(family: NonNullable<Catalogue['terms'][number]['family']>):
           `When a question names no ${family.by.join(' or ').toLowerCase()}, its owners say it means its ${usual.values.join(', ')} variant.`,
         ]
       : []),
-    ...(meaning.words && lines.length
-      ? [`${plural(others.length, 'variant says', 'variants say')} something else:`]
+    ...(meaning.words && lines(differing).length
+      ? [`${plural(differing.length, 'variant says', 'variants say')} something else:`]
       : []),
-    ...lines,
+    ...lines(differing),
+    ...(worked.length
+      ? [
+          `How ${plural(derived.length, 'variant is', 'variants are')} worked out from another, in ${derived.length === 1 ? 'its' : 'their'} own words:`,
+          ...worked,
+        ]
+      : []),
   ].join(' ')
+}
+
+/** The most variants whose own words a family shows with an answer. */
+const OWN_SHOWN = 4
+
+/**
+ * A family as Ask's page shows its definition (R7): its meaning in one plain line, and the own
+ * words of the variants `familyWords` gives, each by its values. The model never reads it.
+ */
+function familyShown(family: Family): FamilyShown {
+  const { differing, derived } = ownWords(family)
+  const own = [...differing, ...derived].flatMap((variant) => {
+    const words = variant.description?.trim()
+    return words ? [{ values: variant.values, words }] : []
+  })
+  return {
+    by: family.by,
+    variants: family.variants.length,
+    meaning: family.meaning.words ? meaningLine(family.meaning.words, family.by) : null,
+    own: own.slice(0, OWN_SHOWN),
+    more: Math.max(0, own.length - OWN_SHOWN),
+  }
 }
 
 /**
@@ -1565,6 +1629,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
       from: termFrom(t),
+      ...(t.family ? { family: familyShown(t.family) } : {}),
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,

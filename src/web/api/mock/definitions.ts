@@ -113,6 +113,7 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
         ...(meaning.member ? { member: meaning.member } : {}),
         ...(meaning.common ? { common: meaning.common } : {}),
         ...(meaning.base ? { base: meaning.base } : {}),
+        ...(meaning.automatic ? { automatic: meaning.automatic } : {}),
         differing: meaning.differing,
         ...(chosen
           ? {

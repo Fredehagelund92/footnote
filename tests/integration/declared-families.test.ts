@@ -494,7 +494,14 @@ describe('Ask on a family', () => {
   it("gives the family's words with the look-up of it, as Definitions gives them", async () => {
     // Asked why its USD variant differs from its EUR one, Ask read only the look-up and said
     // nothing was written (captain's install, 21 November 2026): the words were only in Definitions.
-    type Defined = { definitions?: { name: string; from: string; words: string | null }[] }
+    type Defined = {
+      definitions?: {
+        name: string
+        from: string
+        words: string | null
+        family?: { by: string[]; variants: number; meaning: string | null }
+      }[]
+    }
     const [looked, defined] = (await askToolsAs(database, clock)(people.member, async (tools) => [
       await tools.run('get_context', {
         about: 'why is net revenue by line in USD different from EUR',
@@ -507,6 +514,9 @@ describe('Ask on a family', () => {
     ])
     expect(looked.definitions?.[0]?.words).toContain('A family of 6 near-identical metrics')
     expect(looked.definitions?.[0]?.words).toBe(defined.definitions?.[0]?.words)
+    // The page draws it as a family, from the same read: what tells its variants apart, how many.
+    expect(looked.definitions?.[0]?.family).toMatchObject({ variants: 6 })
+    expect(looked.definitions?.[0]?.family).toEqual(defined.definitions?.[0]?.family)
   })
 })
 

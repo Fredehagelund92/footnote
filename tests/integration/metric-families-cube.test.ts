@@ -189,7 +189,7 @@ describe('families in a Cube model', () => {
           found: 'names',
           names: ['Accrued share front loaded (EUR)', 'Accrued share front loaded (USD)'],
           values: [['EUR', 'USD']],
-          meaning: { words: null, source: 'none', agree: 0, differing: 2 },
+          meaning: { words: null, source: 'none', agree: 0, differing: 0 },
         },
       ],
       ['Gross revenue', 'ready', { variants: 8, ...calculation('Gross revenue') }],

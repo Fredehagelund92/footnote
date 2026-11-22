@@ -6,16 +6,16 @@ import type { Family } from '@/lib/definitions'
 // An owner's choice of what a family means (M1): worked out from its variants (their common words,
 // else the base variant's), one variant's own words, or words written for the family, kept with
 // its history. One dialog, three answers; the variant is found by typing, as a family can have
-// hundreds.
+// hundreds, and each one found shows the start of its words, so the owner reads before choosing.
 
 const n = (x: number) => x.toLocaleString('en-GB')
 
 /** What the rule gives now, in a few words, for the first answer. */
 function automatic(family: Family): string {
   const meaning = family.meaning!
-  if (meaning.common)
+  if (meaning.automatic && meaning.common)
     return `The common words of ${n(meaning.common.agree)} of ${n(family.variants.length)} variants.`
-  if (baseWords(family))
+  if (meaning.automatic && meaning.base)
     return `The words of ${meaning.base}, the variant the others are converted from.`
   return 'Nothing yet: its variants say different things.'
 }
@@ -63,6 +63,7 @@ export default function FamilyMeaningDialog({
   const [words, setWords] = React.useState(chosen?.words ?? meaning.words ?? '')
   const [problem, setProblem] = React.useState<string | null>(null)
   const write = useWrite()
+  const wordsId = React.useId()
   const saving = useReported<void>({
     wasnt: `What ${name} means wasn't changed.`,
     done: () => {
@@ -151,17 +152,28 @@ export default function FamilyMeaningDialog({
                 />
                 <CommandList className="max-h-48">
                   <CommandEmpty>No variant has these words in its name.</CommandEmpty>
-                  {described.map((v) => (
+                  {described.map((v, i) => (
                     <CommandItem
                       key={v.name}
                       value={v.name}
+                      // Named by its name, its words read as what it says.
+                      aria-describedby={`${wordsId}-${i}`}
                       data-checked={v.name === member || undefined}
                       onSelect={() => {
                         setMember(v.name)
                         setProblem(null)
                       }}
                     >
-                      {v.name}
+                      <span className="flex min-w-0 flex-col">
+                        <span>{v.name}</span>
+                        <span
+                          id={`${wordsId}-${i}`}
+                          aria-hidden
+                          className="line-clamp-2 text-xs text-muted-foreground"
+                        >
+                          {v.description}
+                        </span>
+                      </span>
                     </CommandItem>
                   ))}
                 </CommandList>
@@ -192,12 +204,9 @@ export default function FamilyMeaningDialog({
               />
             </div>
           )}
-          {choice === 'auto' && (meaning.common || baseWords(family)) && (
+          {choice === 'auto' && meaning.automatic && (
             <p className="rounded-md bg-muted/60 px-3 py-2 text-sm">
-              <MeaningWords
-                meaning={{ ...meaning, words: meaning.common?.words ?? baseWords(family) ?? null }}
-                by={family.by}
-              />
+              <MeaningWords meaning={{ ...meaning, words: meaning.automatic }} by={family.by} />
             </p>
           )}
           {problem && (
@@ -223,10 +232,6 @@ export default function FamilyMeaningDialog({
     </Dialog>
   )
 }
-
-/** The base variant's own words, when the family has one. */
-const baseWords = (family: Family) =>
-  family.variants.find((v) => v.name === family.meaning?.base)?.description
 
 function Answer({
   parts: { cn, RadioGroupItem },

@@ -408,6 +408,62 @@ describe('a family of metrics in Ask (FR-142)', () => {
     )
   })
 
+  it('gives the words of a variant that says how it is worked out, which its meaning leaves out (R1)', async () => {
+    // The USD variant says what the others do, and how it is converted: no variant says
+    // something else, and its note on the rate still reaches the agent.
+    const meaning = {
+      ...family.family.meaning,
+      source: 'common',
+      words: 'Money taken in {Currency} via {Channel}.',
+      common: { words: 'Money taken in {Currency} via {Channel}.', agree: 3 },
+      differing: [],
+    }
+    const note = family.family.variants.map((v) => ({
+      ...v,
+      description: v.key.endsWith('usd_web')
+        ? 'Money taken in USD (EUR × row fx_usd) via web.'
+        : `Money taken in ${v.values.join(' via ')}.`,
+    }))
+    const withNote = createAskTools({
+      ...reads,
+      catalogue: () =>
+        Promise.resolve({
+          terms: [{ ...family, family: { ...family.family, meaning, variants: note } }],
+        }),
+    } as unknown as ToolReads)
+    const result = await withNote.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { words: string | null; family?: unknown }[] })
+      .definitions
+    expect(revenue!.words).toBe(
+      'Money taken in each currency via each channel. A family of 3 near-identical metrics, one for each currency and channel. An item about it applies to every one of them. How 1 variant is worked out from another, in its own words: USD, web: Money taken in USD (EUR × row fx_usd) via web.',
+    )
+    // The page shows the same as the family: its meaning, and that variant's words by its values.
+    expect(revenue!.family).toEqual({
+      by: ['Currency', 'Channel'],
+      variants: 3,
+      meaning: 'Money taken in each currency via each channel.',
+      own: [{ values: ['USD', 'web'], words: 'Money taken in USD (EUR × row fx_usd) via web.' }],
+      more: 0,
+    })
+  })
+
+  it('shows the page a family with no meaning by every variant’s own words (R7)', async () => {
+    const result = await tools.run('definitions', { names: ['Revenue'] })
+    const [revenue] = (result as { definitions: { family?: unknown }[] }).definitions
+    expect(revenue!.family).toEqual({
+      by: ['Currency', 'Channel'],
+      variants: 3,
+      meaning: null,
+      own: [
+        {
+          values: ['USD', 'web'],
+          words: "The EUR web amount multiplied by the row's exchange rate.",
+        },
+      ],
+      more: 0,
+    })
+  })
+
   it('lists the variants that say something else by their values, never as all of them', async () => {
     const same = (key: string, description: string | null) => ({
       ...family.family.variants[0]!,

@@ -1,3 +1,4 @@
+import { derivationsOf } from '@domain/metric-families'
 import type { Definition } from '@/lib/definitions'
 import { withWhen, type Fact } from '@/model/items'
 
@@ -87,7 +88,7 @@ const measures = [
  * its metrics are made.
  */
 export function familyDefinitions(tool: string): Definition[] {
-  return [...measureFamilies(tool), accruedShare(tool)]
+  return [...measureFamilies(tool), accruedShare(tool), ...partnerPairs(tool)]
 }
 
 /**
@@ -198,6 +199,49 @@ function accruedShare(tool: string): Definition {
       ],
     },
   }
+}
+
+/**
+ * Two pairs in EUR and USD found by their names alone, as a Cube model writes them (R1): one whose
+ * USD words are the EUR ones with a note on the rate, so the family means what both say; and one
+ * whose two variants are written apart, so it has no meaning yet.
+ */
+function partnerPairs(tool: string): Definition[] {
+  const pair = (name: string, eur: string, usd: string): Definition => {
+    const variants = [
+      { name: `${name} (EUR)`, values: ['EUR'], description: eur, ref: refOf(`${name} EUR`) },
+      { name: `${name} (USD)`, values: ['USD'], description: usd, ref: refOf(`${name} USD`) },
+    ]
+    return {
+      name,
+      type: 'metric',
+      definition: '',
+      synced: true,
+      tool,
+      sourceNames: [],
+      domain: 'sales',
+      group: 'partners',
+      updated: '22 Oct 2026',
+      family: {
+        by: ['Currency'],
+        found: 'names',
+        derivations: derivationsOf(variants.map((v) => ({ ...v, said: v.name }))),
+        variants,
+      },
+    }
+  }
+  return [
+    pair(
+      'Partner fees',
+      'Fees partners report on referred customers in EUR. Not our revenue: see `commission_eur`.',
+      'Fees partners report on referred customers in USD (EUR × row fx_usd). Not our revenue: see `commission_eur`.',
+    ),
+    pair(
+      'Partner payouts',
+      'Payouts we send partners in EUR, booked on the day they are sent.',
+      'Partner payouts converted to USD at each month’s rate.',
+    ),
+  ]
 }
 
 /** The 5,000 metrics, each read-only from the definitions tool. */

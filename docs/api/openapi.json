@@ -44455,6 +44455,16 @@
                                           }
                                         ]
                                       },
+                                      "automatic": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
                                       "differing": {
                                         "type": "array",
                                         "items": {
@@ -44524,6 +44534,7 @@
                                       "member",
                                       "common",
                                       "base",
+                                      "automatic",
                                       "differing",
                                       "chosen",
                                       "revision"
@@ -91731,6 +91742,61 @@
                                               }
                                             ]
                                           },
+                                          "family": {
+                                            "type": "object",
+                                            "properties": {
+                                              "by": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "variants": {
+                                                "type": "number"
+                                              },
+                                              "meaning": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "own": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "values": {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "words": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "values",
+                                                    "words"
+                                                  ]
+                                                }
+                                              },
+                                              "more": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "by",
+                                              "variants",
+                                              "meaning",
+                                              "own",
+                                              "more"
+                                            ]
+                                          },
                                           "tool": {
                                             "type": "string"
                                           },
@@ -91787,6 +91853,61 @@
                                                   {
                                                     "type": "null"
                                                   }
+                                                ]
+                                              },
+                                              "family": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "by": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "variants": {
+                                                    "type": "number"
+                                                  },
+                                                  "meaning": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "own": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "values": {
+                                                          "type": "array",
+                                                          "items": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "words": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "values",
+                                                        "words"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "more": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "by",
+                                                  "variants",
+                                                  "meaning",
+                                                  "own",
+                                                  "more"
                                                 ]
                                               },
                                               "tool": {
@@ -93016,6 +93137,61 @@
                                                   }
                                                 ]
                                               },
+                                              "family": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "by": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "variants": {
+                                                    "type": "number"
+                                                  },
+                                                  "meaning": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "own": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "values": {
+                                                          "type": "array",
+                                                          "items": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "words": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "values",
+                                                        "words"
+                                                      ]
+                                                    }
+                                                  },
+                                                  "more": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "by",
+                                                  "variants",
+                                                  "meaning",
+                                                  "own",
+                                                  "more"
+                                                ]
+                                              },
                                               "tool": {
                                                 "type": "string"
                                               },
@@ -93072,6 +93248,61 @@
                                                       {
                                                         "type": "null"
                                                       }
+                                                    ]
+                                                  },
+                                                  "family": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "by": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "variants": {
+                                                        "type": "number"
+                                                      },
+                                                      "meaning": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "null"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "own": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "values": {
+                                                              "type": "array",
+                                                              "items": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "words": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "values",
+                                                            "words"
+                                                          ]
+                                                        }
+                                                      },
+                                                      "more": {
+                                                        "type": "number"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "by",
+                                                      "variants",
+                                                      "meaning",
+                                                      "own",
+                                                      "more"
                                                     ]
                                                   },
                                                   "tool": {

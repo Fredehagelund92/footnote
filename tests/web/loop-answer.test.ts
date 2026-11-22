@@ -3,7 +3,7 @@ import * as React from 'react'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import type { LoopTurn } from '@contract/answer'
+import type { DefinitionCard, LoopTurn } from '@contract/answer'
 import { dimensionHue } from '@domain/ask-nouns'
 import { answerLines } from '@domain/words'
 import examples from '@/api/mock/data/loop-examples.json'
@@ -590,7 +590,10 @@ describe("Ask's loop answer, state by state", () => {
     context: { count: 3, items: [] as string[] },
     inWords: true,
   }
-  const defining = (over: Partial<typeof card>, words = 'Orders is the value of paid orders.') => {
+  const defining = (
+    over: Partial<DefinitionCard>,
+    words = 'Orders is the value of paid orders.',
+  ) => {
     const base = example('loop-checked')
     return {
       ...base,
@@ -637,6 +640,77 @@ describe("Ask's loop answer, state by state", () => {
     expect(el.querySelector('[data-answer-words] [data-definition-card]')).toBeNull()
     expect(text(shown)).toContain('3 context items about it')
     expect(buttons(shown, /^See the/)).toHaveLength(0)
+  })
+
+  // A family of metrics (invented: Partner fees), as the definitions read gives it to the page.
+  const fees = {
+    by: ['Currency'],
+    variants: 2,
+    meaning: 'Fees partners report on referred users in each currency.',
+    own: [
+      {
+        values: ['USD'],
+        words: 'Fees partners report on referred users in USD (EUR × row fx_usd).',
+      },
+    ],
+    more: 0,
+  }
+  const agentWords =
+    'Fees partners report on referred users in each currency. A family of 2 near-identical metrics, one for each currency. An item about it applies to every one of them.'
+
+  it('Definition card of a family: called a family by what tells its variants apart, its meaning, then its variants’ own words (R7)', () => {
+    const el = render(
+      defining(
+        { name: 'Partner fees', words: agentWords, family: fees, group: null, member: null },
+        'Partner fees are what partners report.',
+      ),
+      'What is partner fees?',
+    )
+    const shown = el.querySelector('[data-definition-card]')!
+    expect(text(shown)).toContain('Family of 2 metrics, by Currency')
+    expect(text(shown)).not.toContain('Metric')
+    // The meaning, then a list of the variants' own words, each after its values: never the
+    // agent's text in one paragraph.
+    const quote = shown.querySelector('blockquote')!
+    expect(text(quote.querySelector('p')!)).toBe(fees.meaning)
+    expect([...quote.querySelectorAll('li')].map((li) => text(li))).toEqual([
+      'USD: Fees partners report on referred users in USD (EUR × row fx_usd).',
+    ])
+    expect(text(shown)).not.toContain('near-identical')
+    // A family with no meaning says so, then gives every variant's words.
+    const none = render(
+      defining(
+        { name: 'Partner fees', words: agentWords, family: { ...fees, meaning: null } },
+        'Partner fees are what partners report.',
+      ),
+      'What is partner fees?',
+    )
+    expect(text(none.querySelector('[data-definition-card] blockquote')!)).toMatch(
+      /^No meaning yet: its variants say different things\.USD: /,
+    )
+  })
+
+  it('Quoted definition of a family: its meaning and variants’ words, the word the question turns on marked in them (R6)', () => {
+    const base = example('loop-checked')
+    const el = render(
+      {
+        ...base,
+        definitions: [
+          {
+            name: 'Partner fees',
+            words: agentWords,
+            family: fees,
+            tool: 'Cube',
+            mark: 'USD',
+          },
+        ],
+      },
+      'Why is partner fees in USD different from EUR?',
+    )
+    const figure = el.querySelector('figure')!
+    expect(text(figure)).toContain('What the definition says about USD, in its own words')
+    expect(figure.querySelector('mark')?.closest('li')).not.toBeNull()
+    expect(text(figure.querySelector('blockquote')!)).not.toContain('near-identical')
   })
 
   it('A reply to the chat that read nothing and cites nothing: its words and the actions only', () => {

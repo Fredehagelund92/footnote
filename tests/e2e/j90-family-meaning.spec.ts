@@ -5,8 +5,11 @@ import { expect, go, test } from './go.ts'
 // the words most of its 250 variants share, each value as what it stands for, says where those
 // words come from and quotes what the three variants that say something else say. An owner chooses one
 // variant's words, found by typing, then writes the family's own; each choice shows at once and
-// History keeps it. A pair one rate converts reads the base variant's words. The same at 1440 and
-// 390 wide, where nothing scrolls sideways.
+// History keeps it. A pair one rate converts reads the base variant's words. A pair found by its
+// names, whose USD words are the EUR ones with a note on the rate, reads what both say; one whose
+// variants are written apart has no meaning, and so nothing says something else; choosing one
+// variant's words shows each variant's words to choose from. The same at 1440 and 390 wide, where
+// nothing scrolls sideways.
 
 const widths = [
   { name: '1440', width: 1440, height: 900 },
@@ -39,7 +42,10 @@ for (const { name, width, height } of widths) {
       const choose = page.getByRole('dialog', { name: 'What Revenue means' })
       await choose.getByRole('radio', { name: /One variant’s words/ }).click()
       await choose.getByRole('combobox', { name: 'Variants' }).fill('brl marketplace')
-      await choose.getByRole('option', { name: 'Revenue (BRL) marketplace' }).click()
+      const brl = choose.getByRole('option', { name: 'Revenue (BRL) marketplace', exact: true })
+      // Each variant found shows its words, so the owner reads before choosing.
+      await expect(brl).toHaveAccessibleDescription(/before marketplace fees and before tax\.$/)
+      await brl.click()
       await expect(choose).toContainText('before marketplace fees and before tax.')
       await choose.getByRole('button', { name: 'Save' }).click()
       await expect(choose).toHaveCount(0)
@@ -61,6 +67,31 @@ for (const { name, width, height } of widths) {
       const main = page.getByRole('main')
       await main.getByRole('button', { name: /changes - last edited by Jon Abara/ }).click()
       await expect(main.getByRole('button', { name: /Jon edited wording/ })).toHaveCount(2)
+    })
+
+    test('a pair whose USD words note its rate reads what both say; one written apart has none', async ({
+      page,
+    }) => {
+      await go(page, '/definitions?demo=families&dock=def.Partner%20fees')
+      const dock = page.getByRole('region', { name: 'Definition' })
+      await expect(dock).toContainText(
+        'Fees partners report on referred customers in Currency. Not our revenue: see `commission_eur`.',
+      )
+      await expect(dock).toContainText('Common words of 2 of 2 variants, chosen automatically')
+      await expect(dock).not.toContainText('something else')
+      // With no meaning there is nothing to say something else than: no warning.
+      await go(page, '/definitions?demo=families&dock=def.Partner%20payouts')
+      await expect(dock).toContainText('No meaning yet: its variants say different things.')
+      await expect(dock.getByRole('note')).toHaveCount(0)
+      await expect(dock).not.toContainText('something else')
+      expect(await sideways(page)).toBe(0)
+      await dock.getByRole('button', { name: 'Change what Partner payouts means' }).click()
+      const choose = page.getByRole('dialog', { name: 'What Partner payouts means' })
+      await choose.getByRole('radio', { name: /One variant’s words/ }).click()
+      await expect(
+        choose.getByRole('option', { name: 'Partner payouts (USD)', exact: true }),
+      ).toContainText('Partner payouts converted to USD at each month’s rate.')
+      expect(await sideways(page)).toBe(0)
     })
 
     test('a pair one rate converts reads the base variant’s words', async ({ page }) => {

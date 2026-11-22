@@ -116,12 +116,13 @@ function meaningOf(
   person: (id: string) => string,
 ): FamilyMeaning {
   const nameOf = (key: string | null) => family.variants.find((v) => v.key === key)?.name
-  const { chosen, common, ...meaning } = family.meaning
+  const { chosen, common, automatic, ...meaning } = family.meaning
   return {
     ...meaning,
     member: nameOf(meaning.member),
     base: nameOf(meaning.base),
     common: common ?? undefined,
+    automatic: automatic ?? undefined,
     differing: meaning.differing.flatMap((key) => nameOf(key) ?? []),
     chosen: chosen && {
       choice: chosen.choice,
