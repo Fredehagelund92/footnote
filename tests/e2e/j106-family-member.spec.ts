@@ -85,6 +85,7 @@ for (const { name, width, height } of widths) {
           'Accrued share front loaded (EUR) and Accrued share front loaded (USD), split by Jon Abara on',
         )
         await expect(split).toContainText('Owners of Sales decide')
+        await expect(split).toContainText('1 context item is still about the family')
         await expect(split.getByRole('button')).toHaveCount(0)
         expect(await sideways(page)).toBe(0)
         expect(await axe(page)).toEqual([])

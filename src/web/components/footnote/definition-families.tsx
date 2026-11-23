@@ -32,6 +32,7 @@ function foundWords(d: Definition): string {
 export function DefinitionFamilies({
   rows,
   loading,
+  onClear,
   splits,
   meaningOf,
   dueOf,
@@ -40,6 +41,8 @@ export function DefinitionFamilies({
   rows: readonly Definition[]
   /** The rows are not read or drawn yet: the table holds its place instead of saying none match. */
   loading: boolean
+  /** Ends the search and the filters, as the main table's empty state offers. */
+  onClear: () => void
   splits: readonly SplitFamily[]
   /** A family's meaning as its row says it, or null for none yet. */
   meaningOf: (d: Definition) => string | null
@@ -69,6 +72,9 @@ export function DefinitionFamilies({
                     A family is one entry for metrics that differ only by a value, such as one per
                     currency.
                   </p>
+                  <Button variant="outline" className="mt-3" onClick={onClear}>
+                    Clear search and filters
+                  </Button>
                 </td>
               </tr>
             )}

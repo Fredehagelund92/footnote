@@ -188,6 +188,15 @@ export function createMockApi() {
   const domainOf = (id: string) => workspace.domains().find((d) => d.id === id)
   /** The cards a family split gave the owners of each item about it, one per owner (D2). */
   let splitCards: InboxCard[] = []
+  /** The items a split left due, as they were and as the split changed them: kept past a sign-in. */
+  const splitItems = new Map<
+    string,
+    {
+      family: string
+      before: Pick<Fact, 'status' | 'outOfDate' | 'where'>
+      patch: Partial<Fact>
+    }
+  >()
   /** The Inbox as the person sees it: none of the demo's cards on a new install. */
   const inbox = (): Inbox => {
     const titleOf = (subject: Subject) => {
@@ -396,6 +405,7 @@ export function createMockApi() {
         dispatch({ type: 'signIn', name })
         // The families demo stays for whoever signs in: its context, as its families do.
         if (familiesShop) for (const fact of familyFacts()) dispatch({ type: 'addFact', fact })
+        for (const [id, { patch }] of splitItems) dispatch({ type: 'editFact', id, patch })
         return {
           user: state.user,
           install: state.install,
@@ -860,19 +870,21 @@ export function createMockApi() {
         // The items about it: no word changes, each applies to every former variant, due for a
         // check, and each owner of its domain gets a card for it (D2).
         const about = factsOf(state).filter(
-          (f) => f.status !== 'Archived' && f.where.some((w) => same(w, name)),
+          (f) => servedToAgents(f) && f.where.some((w) => same(w, name)),
         )
         const metrics = definitions.splitFamily(name, me(), about.length)
         for (const fact of about) {
-          dispatch({
-            type: 'editFact',
-            id: fact.id,
-            patch: {
-              where: [...new Set(fact.where.flatMap((w) => (same(w, name) ? metrics : [w])))],
-              status: 'Due for a check',
-              outOfDate: splitDue(d!.name),
-            },
+          const patch: Partial<Fact> = {
+            where: [...new Set(fact.where.flatMap((w) => (same(w, name) ? metrics : [w])))],
+            status: 'Due for a check',
+            outOfDate: splitDue(d!.name),
+          }
+          splitItems.set(fact.id, {
+            family: d!.name,
+            before: { status: fact.status, outOfDate: fact.outOfDate, where: fact.where },
+            patch,
           })
+          dispatch({ type: 'editFact', id: fact.id, patch })
           for (const owner of domainOf(fact.domain)?.owners ?? [])
             splitCards = [
               ...splitCards.filter((c) => c.id !== `check-split.${fact.id}.${owner}`),
@@ -907,10 +919,13 @@ export function createMockApi() {
             `Only an owner of ${domainOf(split.domain ?? '')?.name ?? 'its domain'} or an admin can make them one family again.`,
           )
         definitions.joinFamily(name)
+        const restored: string[] = []
         // The items it left due are about the family again, and their cards go.
         for (const fact of factsOf(state).filter(
           (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(name),
-        ))
+        )) {
+          restored.push(fact.id)
+          const was = splitItems.get(fact.id)?.before
           dispatch({
             type: 'editFact',
             id: fact.id,
@@ -922,12 +937,16 @@ export function createMockApi() {
                   ),
                 ),
               ],
-              status: 'Live',
-              outOfDate: undefined,
+              status: was?.status ?? 'Live',
+              outOfDate: was?.outOfDate,
             },
           })
+        }
+        for (const [id, item] of splitItems) if (same(item.family, name)) splitItems.delete(id)
         splitCards = splitCards.filter(
-          (c) => !factsOf(state).some((f) => f.id === c.factId && f.status === 'Live'),
+          (c) =>
+            !restored.includes(c.factId!) &&
+            !factsOf(state).some((f) => f.id === c.factId && f.status === 'Live'),
         )
       }),
     getFamilySplits: () =>

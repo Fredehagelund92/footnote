@@ -645,7 +645,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /** The metrics and dimensions the catalogue lists, the terms written here, and who wrote them. */
-  async function readGlossary() {
+  async function buildGlossary() {
     const [catalogue, { terms }, people] = await Promise.all([
       read(() => client.catalogue.list()),
       read(() => client.terms.list()),
@@ -697,6 +697,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       },
     }
   }
+
+  /** One read at a time: the reads of a screen that overlap share it, a later one reads again. */
+  let glossaryRead: ReturnType<typeof buildGlossary> | undefined
+  const readGlossary = () =>
+    (glossaryRead ??= buildGlossary().finally(() => {
+      glossaryRead = undefined
+    }))
 
   /** A change to many terms: its Undo, or why none of them changed. */
   const undoOf = (done: { undo: UndoOffer | null; skipped: { message: string }[] }) => {

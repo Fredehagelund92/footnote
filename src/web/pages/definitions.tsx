@@ -475,7 +475,7 @@ export function DefinitionsPage() {
   const views: View[] = [
     'all',
     'metric',
-    ...(byView.family > 0 || splits.length > 0 ? (['family'] as const) : []),
+    ...(byView.family > 0 || splits.length > 0 || view === 'family' ? (['family'] as const) : []),
     'dimension',
     'term',
   ]
@@ -1052,6 +1052,7 @@ export function DefinitionsPage() {
               <DefinitionFamilies
                 rows={rowsShown ? shown : NO_DEFINITIONS}
                 loading={!rowsShown}
+                onClear={clearAll}
                 splits={splits}
                 meaningOf={(d) =>
                   d.family?.meaning?.words ? tidyMeaning(d.family.meaning.words, d.family.by) : null
