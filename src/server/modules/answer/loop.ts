@@ -1450,6 +1450,10 @@ export function stateOf(
     : state
 }
 
+/** Why the value words a get_context read could not read were not read: "There is no value of ...". */
+const unreadWhy = (result: Record<string, unknown>) =>
+  arr(result.unread).flatMap((w) => (typeof w.why === 'string' ? [w.why] : []))
+
 function readsState(
   made: readonly MadeRead[],
   cited: readonly string[],
@@ -1462,7 +1466,7 @@ function readsState(
       ? []
       : typeof m.result.state === 'string'
         ? [m.result.state as AnswerState]
-        : isObj(m.result.unread) && Array.isArray(m.result.unread.why) && m.result.unread.why.length
+        : unreadWhy(m.result).length
           ? ['missing' as const]
           : [],
   )
@@ -1613,7 +1617,7 @@ export function readLines(made: readonly MadeRead[]): string[] {
         const items = arr(r.items).length
         const nearby = arr(r.nearby).length
         if (!read) {
-          const why = isObj(r.unread) && Array.isArray(r.unread.why) ? r.unread.why.map(str) : []
+          const why = unreadWhy(r)
           return [
             why.length
               ? `Looked up “${str(m.input.about)}”: nothing applies. ${why.join(' ')}`
@@ -1626,12 +1630,20 @@ export function readLines(made: readonly MadeRead[]): string[] {
           (x) =>
             ` “${str(x.word)}” was read as ${str(x.name)}, by a synonym written in Definitions.`,
         )
+        // A word read as the one metric whose name holds it, and a word that named no metric.
+        const part = arr(read.loose)
+          .filter((x) => x.by === 'part')
+          .map(
+            (x) =>
+              ` “${str(x.words)}” was read as ${str(x.name)}, the one metric whose name holds the word.`,
+          )
+        const unread = arr(r.unread).map((w) => ` “${str(w.word)}” names no metric here.`)
         const usual = arr(read.usual).map(
           (u) =>
             ` ${str(u.name)} was read as its usual variant, ${(Array.isArray(u.values) ? u.values.map(str) : []).join(', ')}, which its owners picked for a question that names none of its values.`,
         )
         return [
-          `Looked up ${names.length ? listWords(names) : `“${str(read.words)}”`}, ${str(read.period)}: ${counted(items, 'item applies', 'items apply')}${nearby ? `, ${counted(nearby, 'nearby item does', 'nearby items do')} not` : ''}${wider.length ? `; then, wider, ${wider.map(searchedLine).join('; ')}` : ''}.${synonyms.join('')}${usual.join('')}`,
+          `Looked up ${names.length ? listWords(names) : `“${str(read.words)}”`}, ${str(read.period)}: ${counted(items, 'item applies', 'items apply')}${nearby ? `, ${counted(nearby, 'nearby item does', 'nearby items do')} not` : ''}${wider.length ? `; then, wider, ${wider.map(searchedLine).join('; ')}` : ''}.${synonyms.join('')}${part.join('')}${unread.join('')}${usual.join('')}`,
         ]
       }
       case 'read_context':

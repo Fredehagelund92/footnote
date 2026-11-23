@@ -52,7 +52,7 @@ export const contextVoice: Voice = {
   find: 'find_context',
   read: 'read_context',
   report: 'if the person agrees, call report with kind missing',
-  cuts: 'Call again with cursor set to next_cursor for the rest.',
+  cuts: 'Call again with cursor set to next_cursor for the rest, or with a higher max_items (at most 50).',
   appliesField: 'applies',
   disagreesField: 'disagrees_with',
   stateFirst: true,
@@ -403,10 +403,14 @@ function unreadWordsSay(unread: readonly UnreadSaid[]) {
   return unread
     .slice(0, 3)
     .map((w) => {
+      const holding =
+        w.closest.length > 3
+          ? `${count(w.closest.length, 'name has', 'names have')} the word, such as ${list(w.closest.slice(0, 3), 'or')}`
+          : w.closest.length
+            ? `${list(w.closest)} ${w.closest.length === 1 ? 'has' : 'have'} the word`
+            : null
       const parts = [
-        ...(w.closest.length
-          ? [`${list(w.closest.slice(0, 3))} ${w.closest.length === 1 ? 'has' : 'have'} the word`]
-          : []),
+        ...(holding ? [holding] : []),
         ...(w.domain ? [`${w.domain} is a domain`] : []),
       ]
       return parts.length

@@ -67,13 +67,13 @@ export const answerStates = [
 ] as const
 export type AnswerState = (typeof answerStates)[number]
 
-/** How many items an answer gives in Ask: the first 20 whole, the rest by title. */
-export const ANSWER_MAX_ITEMS = 20
 /**
- * How many items an agent's get_context gives by default (`max_items`): those the question turns
- * on come first, and next_cursor gives the rest (decided 23 November 2026).
+ * How many items an agent's get_context gives by default (`max_items`), and so the engine: those
+ * the question turns on come first, and next_cursor gives the rest (decided 23 November 2026).
  */
 export const AGENT_MAX_ITEMS = 10
+/** How many items a read of Ask's gives whole: the rest it names by title. */
+export const ASK_MAX_ITEMS = 20
 
 /** An item of the bundle as the engine needs it: what the resolver reads, its kind and title. */
 export type AnswerSource = ResolverItem & {
@@ -407,7 +407,7 @@ export function* lookUp(
   {
     today,
     calendar,
-    maxItems = ANSWER_MAX_ITEMS,
+    maxItems = AGENT_MAX_ITEMS,
     now = () => 0,
     voice = peopleVoice,
     person = false,
@@ -502,6 +502,15 @@ export function* lookUp(
   mark = now()
 
   const metrics = scope ? askedMetrics(bundle, scope) : []
+  // A term an agent is shown: none of a stopped domain, as get_context names them (FR-333).
+  const shownName = (key: string) => {
+    const term = bundle.terms.find((t) => t.key === key)
+    return term &&
+      !bundle.stopped.all &&
+      !(term.areaId && bundle.stopped.areas.includes(term.areaId))
+      ? [term.name]
+      : []
+  }
   const said = contextSaid(
     bundle,
     {
@@ -519,6 +528,14 @@ export function* lookUp(
       upTo: person,
       groups: resolution.scope ? askedGroups(bundle, resolution.scope) : [],
       about: metrics.length > 1,
+      unread: (names.unread ?? []).map((w) => ({
+        word: w.word,
+        closest: w.closest.flatMap(shownName),
+        ...(w.domain ? { domain: w.domain } : {}),
+      })),
+      readAs: (names.loose ?? []).flatMap((hit) =>
+        shownName(hit.key).map((name) => ({ words: hit.words, name, by: hit.by })),
+      ),
     },
     voice,
   )
@@ -651,7 +668,7 @@ export function reach(
   topics: readonly TopicCount[],
   today: string,
   minimum: number,
-  maxItems = ANSWER_MAX_ITEMS,
+  maxItems = AGENT_MAX_ITEMS,
 ): number {
   let total = 0
   for (const topic of topics) {

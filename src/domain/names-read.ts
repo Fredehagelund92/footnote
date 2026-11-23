@@ -8,8 +8,8 @@ import { initialsOf, normalizeName, type Term } from './vocabulary.ts'
   what is left is read here, in this order:
 
   - another form of a whole name: a plural or a singular, or its words in another order ("customer
-    active" for Active customers, "order" for Orders); one everyday word alone is no dimension
-    ("stores" is no Store);
+    active" for Active customers, "order" for Orders); one word alone reads only as a metric
+    ("stores" is no Store, "customer" no Customers);
   - a short name made of its initials ("ROAS" for Return on ad spend, `initialsOf`);
   - a whole word of the name of one metric only, when no other name holds the word and it names no
     domain ("churn" for Churn rate, "margin" for Gross margin). A word in several names ("rate",
@@ -218,15 +218,15 @@ export function looseNames(
     const end = free[to]!.end
     found.push({ start, end, words: text.slice(start, end), key, by })
   }
-  // Another form of a one-word name ("order" for Orders): longer ones are read before whole names
-  // (`looseForms`). One everyday word alone is no other form of a dimension's name: "stores" and
-  // "campaigns" stay words (value linking, 10 November 2026).
+  // Another form of a one-word metric's name ("order" for Orders): longer ones are read before
+  // whole names (`looseForms`). One word alone is no other form of a group's or a dimension's name:
+  // "customer" in "customer happiness score" is no Customers, and "stores" and "campaigns" stay
+  // words (value linking, 10 November 2026).
   for (const [i, w] of free.entries()) {
     if (isPlain(w.word)) continue
     const keys = v.forms.get(stem(w.word))
     const [key] = keys?.size === 1 ? [...keys] : []
-    if (key && !(v.kinds.get(key) === 'dimension' && isEverydayWord(w.word)))
-      take(i, i, key, 'form')
+    if (key && v.kinds.get(key) === 'metric') take(i, i, key, 'form')
   }
   const domainStems = new Set(domains.flatMap(wordsOf).map(stem))
   for (const [i, w] of free.entries()) {
@@ -282,7 +282,11 @@ export function unreadWords(
     const s = stem(word)
     const closest = [...(v.holders.get(s) ?? [])]
       .filter((key) => looseKinds.has(v.kinds.get(key)!))
-      .sort((a, b) => v.names.get(a)!.localeCompare(v.names.get(b)!, 'en'))
+      // The plainest first: Revenue before Net revenue, then A to Z.
+      .sort((a, b) => {
+        const [x, y] = [v.names.get(a)!, v.names.get(b)!]
+        return x.length - y.length || x.localeCompare(y, 'en')
+      })
     const domain = domains.find((d) => wordsOf(d).map(stem).includes(s))
     return [{ word, closest, ...(domain ? { domain } : {}), start, end }]
   })

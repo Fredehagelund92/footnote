@@ -1323,9 +1323,11 @@ export function createToolService(
         // by the limit that cut it.
         let bySize = false
         const cutNext = () =>
-          items.length
-            ? `Call again with cursor set to next_cursor for the rest, or with a higher ${bySize ? 'max_bytes' : 'max_items (at most 50)'}.`
-            : 'Call again with a higher max_bytes.'
+          !items.length
+            ? 'Call again with a higher max_bytes.'
+            : bySize
+              ? 'Call again with cursor set to next_cursor for the rest, or with a higher max_bytes.'
+              : contextVoice.cuts
         // FR-344: what the reply read and did not, as it stands after any cut.
         const said = () => {
           const out = withTermsNext(

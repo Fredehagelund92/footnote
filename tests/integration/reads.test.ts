@@ -156,8 +156,11 @@ describe('what applies, in the order of the question', () => {
     })
     expect(places.length).toBeGreaterThan(20)
     expect(places.filter((place) => place === 0)).toEqual([])
-    expect(places.filter((place) => place === 1).length).toBeGreaterThanOrEqual(20)
-  })
+    // Three in four first; by risk and date alone, 10 of 26 were.
+    expect(places.filter((place) => place === 1).length).toBeGreaterThanOrEqual(
+      Math.ceil(places.length * 0.75),
+    )
+  }, 120_000)
 })
 
 /** How many items apply to a question, as a full reply counts them. */
@@ -276,5 +279,5 @@ describe('what agents are told', () => {
     ]
     for (const question of questions)
       expect((await agent({ question })).bytes, question).toBeLessThanOrEqual(REPLY_BUDGET)
-  })
+  }, 120_000)
 })

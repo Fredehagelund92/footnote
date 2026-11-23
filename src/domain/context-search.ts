@@ -65,6 +65,14 @@ export type ReadQuery = {
 
 export { searchStopWords, stem }
 
+const MONTH =
+  '(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)'
+/** A date as words write it: "4 august 2026", "october 2026", "august 4", "2026". */
+const datePattern = new RegExp(
+  `\\b(?:(?:\\d{1,2}(?:st|nd|rd|th)? )?${MONTH}(?: \\d{1,2}(?:st|nd|rd|th)?)?(?:,? (?:19|20)\\d{2})?|(?:19|20)\\d{2})\\b`,
+  'g',
+)
+
 /** A text's words: a compound joined by a hyphen ("orders-cpa") is one word, as phrasesIn reads it. */
 const wordsOf = (text: string) =>
   normalizeName(text).match(/[\p{L}\p{N}_']+(?:[-\u2010\u2011][\p{L}\p{N}_']+)*/gu) ?? []
@@ -175,6 +183,17 @@ export function readQuery(
     concepts.push(concept)
     used.domains.push(...concept.areas)
     used.terms.push(...concept.terms)
+  }
+  // A date in the words is one phrase, found whole: "October 2026" is no "October" of any year.
+  for (const date of text.matchAll(datePattern)) {
+    if (
+      Array.from({ length: date[0].length }, (_, i) => date.index + i).some((i) => occupied.has(i))
+    )
+      continue
+    for (let i = date.index; i < date.index + date[0].length; i++) occupied.add(i)
+    if (concepts.some((c) => c.kind === 'named' && c.phrase === date[0])) continue
+    concepts.push({ kind: 'named', phrase: date[0], areas: [], terms: [] })
+    used.words.push(date[0])
   }
   // The words outside the recognised phrases.
   const rest = [...text].map((char, i) => (occupied.has(i) ? ' ' : char)).join('')

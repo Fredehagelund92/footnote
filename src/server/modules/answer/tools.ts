@@ -3,7 +3,7 @@ import { familyShownSchema, type FamilyShown } from '../../../contract/answer.ts
 import type { Catalogue } from '../../../contract/index.ts'
 import * as z from 'zod'
 import type { Answer } from '../../../domain/answer.ts'
-import { answer } from '../../../domain/answer.ts'
+import { answer, ASK_MAX_ITEMS } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { vagueMetricWord } from '../../../domain/ask-held.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
@@ -1056,7 +1056,7 @@ function getContext(
   // engine's order, as agents get it (question-order.ts).
   const order = [question, input.about, input.widen?.other_name ?? ''].join(' ')
   const lookup = (ask: Parameters<typeof answer>[1]) =>
-    answer(view.bundle, ask, { today, calendar, person: true, order })
+    answer(view.bundle, ask, { today, calendar, person: true, order, maxItems: ASK_MAX_ITEMS })
   const plain = lookup({ question: input.about, ...(given ? { window: given } : {}) })
   // Words the reader placed no period for may name an event the days start or end at.
   const anchored =

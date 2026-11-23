@@ -23,11 +23,13 @@ export type WordedItem = {
   notToConclude?: string | null
 }
 
-/** Words of a question that say nothing about which item is meant. */
+/** Words of a question that say nothing about which item is meant: "I want to put ... next week". */
 const questionWordsOnly = new Set(
-  'anything something everything number numbers figure figures data like known written one ones thing things'.split(
-    ' ',
-  ),
+  (
+    'anything something everything number numbers figure figures data like known written one ones ' +
+    'thing things want wants wanted need needs put get give tell show see think help please next ' +
+    'last week weeks month months year years day days today now'
+  ).split(' '),
 )
 
 const wordsOf = (text: string) =>
@@ -36,8 +38,8 @@ const wordsOf = (text: string) =>
 /**
  * The words of a question that order what applies, as stems: those outside the names it holds
  * (metrics, groups, dimensions, values, domains), that are no word of a metric's, group's or
- * dimension's name and no common word. "Is the gross margin number reliable in June?" gives
- * "reliable" and "june".
+ * dimension's name, and no word that only asks ("want", "next week"). "Is the gross margin number
+ * reliable in June?" gives "reliable" and "june".
  */
 export function questionWords(
   question: string,
